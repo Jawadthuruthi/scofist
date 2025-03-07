@@ -16,9 +16,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 export function Topbar({ user }) {
   const { toggleSidebar } = useSidebar();
-  console.log(user);
 
-  const handleLogout = () => {};
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout");
+    window.location.reload();
+  };
   return (
     <header className="fixed top-0 left-0 w-full h-14 bg-white border-b shadow-sm flex items-center px-4 justify-between">
       {/* Sidebar Toggle Button */}
@@ -40,7 +42,7 @@ export function Topbar({ user }) {
               <User className="w-5 h-5" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-72 p-0 mr-4">
+          <PopoverContent className="w-72 p-0 rounded-xl mr-4 mt-4">
             <Card>
               <CardHeader className="flex items-center space-x-4">
                 <Avatar>
