@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Topbar } from "@/components/Topbar";
 import { headers } from "next/headers";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 export default async function Layout({ children }) {
   const userHeaders = await headers();
@@ -9,12 +10,19 @@ export default async function Layout({ children }) {
   const user = userHeader !== "undefined" ? JSON.parse(userHeader) : {};
 
   return (
-    <SidebarProvider defaultOpen={false}>
-      <div className="flex">
-        <AppSidebar />
-        <Topbar user={user} />
-        <main className="flex-1 p-4 mt-14">{children}</main>
-      </div>
-    </SidebarProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <SidebarProvider defaultOpen={false}>
+        <div className="flex w-[100vw] ">
+          <AppSidebar roles={user.roles} />
+          <Topbar user={user} />
+          <main className="flex-1 max-w-full p-4 lg:p-6 mt-14">{children}</main>
+        </div>
+      </SidebarProvider>
+    </ThemeProvider>
   );
 }

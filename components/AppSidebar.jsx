@@ -1,14 +1,24 @@
 "use client";
 import Link from "next/link";
 import {
+  Users,
+  Book,
+  ClipboardList,
+  GraduationCap,
+  Briefcase,
+  FileText,
+  UserCheck,
+  UserX,
+  Home,
+  Settings,
+  FileSpreadsheet,
+  FolderCheck,
+  FileSearch,
   Calendar,
   ChevronsUpDown,
-  Home,
-  Inbox,
-  Search,
-  Settings,
-  Check,
   X,
+  Check,
+  CreditCard,
 } from "lucide-react";
 
 import {
@@ -19,16 +29,18 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 import {
   Command,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
@@ -38,27 +50,118 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import Cookies from "js-cookie";
 
 // Menu items.
 const items = [
-  { title: "Home", url: "/", icon: Home },
-  { title: "Inbox", url: "/inbox", icon: Inbox },
-  { title: "Calendar", url: "/calendar", icon: Calendar },
-  { title: "Search", url: "/search", icon: Search },
-  { title: "Settings", url: "/settings", icon: Settings },
+  {
+    title: "Dashboard",
+    url: "/dashboard",
+    icon: Home,
+    allowedRoles: ["College Admin", "Teacher", "Org Admin"],
+  },
+  {
+    title: "My Classes",
+    url: "/dashboard/my-classes",
+    icon: Book,
+    allowedRoles: ["Teacher"],
+  },
+  {
+    title: "My Time Table",
+    url: "/dashboard/my-time-table",
+    icon: Calendar,
+    allowedRoles: ["Teacher"],
+  },
+  {
+    title: "Managements",
+    icon: Briefcase,
+    allowedRoles: ["College Admin", "Teacher"],
+    subItems: [
+      {
+        title: "Batches",
+        url: "/dashboard/batches",
+        icon: ClipboardList,
+        allowedRoles: ["College Admin"],
+      },
+      {
+        title: "Classes",
+        url: "/dashboard/classes",
+        icon: Book,
+        allowedRoles: ["College Admin"],
+      },
+      {
+        title: "Students",
+        url: "/dashboard/students",
+        icon: GraduationCap,
+        allowedRoles: ["College Admin"],
+      },
+      {
+        title: "Teachers",
+        url: "/dashboard/teachers",
+        icon: Users,
+        allowedRoles: ["College Admin"],
+      },
+      {
+        title: "Time Table",
+        url: "/dashboard/time-table",
+        icon: Calendar,
+        allowedRoles: ["College Admin"],
+      },
+      {
+        title: "Marks",
+        url: "/dashboard/marks",
+        icon: FileSpreadsheet,
+        allowedRoles: ["College Admin", "Teacher"],
+      },
+      {
+        title: "Leave Records",
+        url: "/dashboard/leave-records",
+        icon: UserX,
+        allowedRoles: ["College Admin", "Teacher"],
+      },
+      {
+        title: "Applications",
+        url: "/dashboard/applications",
+        icon: FolderCheck,
+      },
+    ],
+  },
+  {
+    title: "Reports",
+    icon: FileText,
+    allowedRoles: ["College Admin", "Teacher"],
+    subItems: [
+      {
+        title: "Attendance Tracking",
+        url: "/dashboard/attendance-tracking",
+        icon: UserCheck,
+        allowedRoles: ["College Admin", "Teacher"],
+      },
+      {
+        title: "Students Reports",
+        url: "/dashboard/students-reports",
+        icon: FileSearch,
+        allowedRoles: ["College Admin", "Teacher"],
+      },
+    ],
+  },
+  {
+    title: "Students Transactions",
+    url: "/dashboard/students-transactions",
+    icon: CreditCard,
+    allowedRoles: ["Teacher"],
+  },
+  {
+    title: "Settings",
+    url: "#",
+    icon: Settings,
+    allowedRoles: ["College Admin"],
+  },
 ];
 
-const options = [
-  { value: "next.js", label: "Next.js" },
-  { value: "sveltekit", label: "SvelteKit" },
-  { value: "nuxt.js", label: "Nuxt.js" },
-  { value: "remix", label: "Remix" },
-  { value: "astro", label: "Astro" },
-];
-
-function ComboBox() {
+function ComboBox({ roles, activeRole }) {
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(activeRole);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -69,34 +172,33 @@ function ComboBox() {
           aria-expanded={open}
           className="w-full justify-between"
         >
-          {value
-            ? options.find((option) => option.value === value)?.label
-            : "Select role..."}
+          {value ? roles.find((role) => role === value) : "Select role..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0">
         <Command>
-          <CommandInput placeholder="Search..." />
           <CommandList>
-            <CommandEmpty>No option found.</CommandEmpty>
+            <CommandEmpty>No role found.</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
+              {roles.map((role) => (
                 <CommandItem
-                  key={option.value}
-                  value={option.value}
+                  key={role}
+                  value={role}
                   onSelect={(currentValue) => {
                     setValue(currentValue === value ? "" : currentValue);
                     setOpen(false);
+                    Cookies.set("active-role", currentValue);
+                    window.location.reload();
                   }}
                 >
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
+                      value === role ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {option.label}
+                  {role}
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -107,33 +209,75 @@ function ComboBox() {
   );
 }
 
-export function AppSidebar() {
+export function AppSidebar({ roles }) {
   const { toggleSidebar } = useSidebar();
+  const activeRole = Cookies.get("active-role") || roles[0];
+
+  const menuItems = useMemo(() => {
+    return items
+      .filter((item) => item.allowedRoles?.includes(activeRole)) // Filter parent items
+      .map((item) => ({
+        ...item, // Keep the original item structure
+        subItems: item.subItems
+          ? item.subItems.filter((subItem) =>
+              subItem.allowedRoles?.includes(activeRole)
+            ) // Filter subItems
+          : undefined, // Ensure subItems is removed if empty
+      }))
+      .filter((item) => item.subItems?.length > 0 || !item.subItems); // Remove parents with no subItems
+  }, [activeRole]);
+
   return (
     <Sidebar>
       <SidebarContent>
-        <div className="flex justify-between items-center h-14 px-4 border-b">
+        <div className="flex justify-between items-center h-14 px-6 border-b">
           <h2 className="text-lg font-semibold">Menu</h2>
           <Button variant="ghost" size="icon" onClick={toggleSidebar}>
             <X className="w-5 h-5" />
           </Button>
         </div>
-        <div className="m-4">
-          <ComboBox />
+        <div className="mx-4">
+          <ComboBox roles={roles} activeRole={activeRole} />
         </div>
-        <SidebarGroup>
+        <SidebarGroup className="px-4">
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url} className="flex items-center gap-2">
-                      <item.icon className="w-5 h-5" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems.map((item) =>
+                item.subItems ? (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <div className="flex items-center gap-2">
+                        <item.icon className="w-5 h-5" />
+                        <span>{item.title}</span>
+                      </div>
+                    </SidebarMenuButton>
+                    <SidebarMenuSub className="mr-0">
+                      {item.subItems.map((subItem) => (
+                        <SidebarMenuSubItem
+                          className="pt-1"
+                          key={subItem.title}
+                        >
+                          <SidebarMenuSubButton asChild>
+                            <Link href={subItem.url}>
+                              <subItem.icon className="w-5 h-5" />
+                              <span>{subItem.title}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+                ) : (
+                  <SidebarMenuItem className="pt-1" key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <Link href={item.url} className="flex items-center gap-2">
+                        <item.icon className="w-5 h-5" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -20,7 +20,7 @@
     --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
+    --border: 240 5.9% 80%;
     --input: 240 5.9% 90%;
     --ring: 240 10% 3.9%;
     --chart-1: 12 76% 61%;
@@ -89,4 +89,51 @@
 
 main {
   @apply p-4;
+}
+
+.loader {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  position: fixed;
+  background: transparent;
+  overflow: hidden;
+  z-index: 9999;
+}
+.loader::after {
+  content: "";
+  width: 40%;
+  height: 3px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  animation: animloader 1s linear infinite;
+  @apply bg-primary;
+}
+
+@media (min-width: 800px) {
+  .loader::after {
+    width: 20%;
+    animation: animloader 2s linear infinite;
+  }
+}
+
+@keyframes animloader {
+  0% {
+    left: 0;
+    transform: translateX(-100%);
+  }
+  100% {
+    left: 100%;
+    transform: translateX(0%);
+  }
+}
+
+@media print {
+  ::-webkit-scrollbar,
+  button[role="checkbox"] {
+    display: none;
+  }
 }

@@ -15,8 +15,7 @@ export const metadata = {
     "Jamia Sa Adiya Arabia, Sa-adiya Da-awa College, Islamic College, integrated studies, Islamic education, academic excellence, spiritual growth, Islamic studies programs, higher education, Da-awa college",
   robots: "index, follow",
   openGraph: {
-    title:
-      "Sa-adiya Da-awa College - Leading Islamic College for Integrated Studies",
+    title: "Sa-adiya Da-awa College - Islamic College for Integrated Studies",
     description:
       "Join Sa-adiya Da-awa College, where Islamic and academic excellence meet. Offering a range of programs designed for intellectual and spiritual development.",
     url: "https://www.scofist.com",
