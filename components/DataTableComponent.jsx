@@ -35,6 +35,7 @@ export default function DataTableComponent({
   initialData,
   columnConfig,
   tableHeight = "calc(100vh - 312px)",
+  formFields,
 }) {
   const [sorting, setSorting] = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
@@ -108,7 +109,7 @@ export default function DataTableComponent({
         <div className="space-x-2">
           {selectedData?.length > 0 && <ConfirmationPopup />}
           {selectedData?.length > 0 && <PopupForm data={selectedData} />}
-          <PopupForm />
+          <PopupForm formFields={formFields} />
         </div>
       </div>
       <div
@@ -184,7 +185,10 @@ export default function DataTableComponent({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  <h2 className="text-lg font-bold">No Data.</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Sorry, there is no data available at the moment.
+                  </p>
                 </TableCell>
               </TableRow>
             )}
