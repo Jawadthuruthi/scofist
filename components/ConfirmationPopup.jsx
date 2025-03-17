@@ -10,11 +10,27 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { Trash } from "lucide-react";
+import { Loader2, Trash } from "lucide-react";
+import { useRouter } from "next/navigation";
 
-export function ConfirmationPopup() {
+export default function ConfirmationPopup({
+  loading = false,
+  action,
+  title,
+  onClick,
+}) {
   const [open, setOpen] = React.useState(false);
 
+  const router = useRouter();
+  const handleClick = async () => {
+    try {
+      await onClick();
+      setOpen(false);
+      router.refresh();
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -24,9 +40,9 @@ export function ConfirmationPopup() {
       </DialogTrigger>
       <DialogContent className="w-[80vw] max-w-[425px] mx-auto rounded-lg">
         <DialogHeader>
-          <DialogTitle>Delete</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete this?
+            Are you sure you want to {action.toLowerCase()} this?
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-between">
@@ -35,10 +51,10 @@ export function ConfirmationPopup() {
           </Button>
           <Button
             variant="outline"
-            className="bg-destructive text-destructive-foreground"
-            onClick={() => setOpen(false)}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/80 hover:text-destructive-foreground"
+            onClick={handleClick}
           >
-            Delete
+            {loading ? <Loader2 className="animate-spin mr-2" /> : action}
           </Button>
         </div>
       </DialogContent>

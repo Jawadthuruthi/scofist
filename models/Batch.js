@@ -24,6 +24,7 @@ const batchSchema = new Schema(
     startYear: {
       type: Number,
       required: true,
+      unique: true,
       min: [2000, "Start year cannot be before 2000"],
       max: [
         new Date().getFullYear() + 2,
@@ -33,6 +34,7 @@ const batchSchema = new Schema(
     endYear: {
       type: Number,
       required: true,
+      unique: true,
       validate: {
         validator: function (value) {
           return value > this.startYear;
@@ -60,7 +62,7 @@ const batchSchema = new Schema(
 );
 
 // Virtual for graduation year format
-batchSchema.virtual("graduationYear").get(function () {
+batchSchema.virtual("academicYear").get(function () {
   return `${
     this.startYear
   }-${(this.endYear % 100).toString().padStart(2, "0")}`;

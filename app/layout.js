@@ -1,5 +1,9 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./globals.css";
 import { Montserrat } from "next/font/google";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import Providers from "@/components/Providers";
+import { Toaster } from "@/components/ui/sonner";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -29,10 +33,15 @@ export const metadata = {
   },
 };
 
+const queryClient = new QueryClient();
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={montserrat.className}>{children}</body>
+      <body className={montserrat.className}>
+        <Providers>{children}</Providers>
+        <Toaster />
+      </body>
     </html>
   );
 }

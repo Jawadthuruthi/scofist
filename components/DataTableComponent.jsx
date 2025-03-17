@@ -7,15 +7,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Sliders } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -25,33 +17,103 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useMemo, useRef, useState } from "react";
-import { PopupForm } from "./PopupForm";
-import { ConfirmationPopup } from "./ConfirmationPopup";
-import { FilterComponent } from "./FilterComponent";
-import usePrint from "@/hooks/usePrint";
-import useTableColumns from "@/hooks/useTableColumns";
+import usePrint from "@/hooks/use-print";
+import useTableColumns from "@/hooks/use-table-columns";
+import { useCrud } from "@/hooks/use-crud";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useDataFilter } from "@/hooks/use-data-filter";
+import dynamic from "next/dynamic";
+import { Loader2 } from "lucide-react";
 
-export default function DataTableComponent({
-  initialData,
-  columnConfig,
+const PopupFilter = dynamic(() => import("./PopupFilter"), {
+  ssr: false,
+  loading: () => (
+    <Button variant="outline" disabled>
+      <Loader2 />
+    </Button>
+  ),
+});
+const ColumnCustomization = dynamic(() => import("./ColumnCustomization"), {
+  ssr: false,
+  loading: () => (
+    <Button variant="outline" disabled>
+      <Loader2 />
+    </Button>
+  ),
+});
+const ConfirmationPopup = dynamic(() => import("./ConfirmationPopup"), {
+  ssr: false,
+  loading: () => (
+    <Button variant="outline" disabled>
+      <Loader2 />
+    </Button>
+  ),
+});
+const PopupForm = dynamic(() => import("./PopupForm"), {
+  ssr: false,
+  loading: () => (
+    <Button variant="outline" disabled>
+      <Loader2 />
+    </Button>
+  ),
+});
+
+const DataTableComponent = ({
+  resource,
+  initialData = [],
+  columnsConfig,
   tableHeight = "calc(100vh - 312px)",
   formFields,
-}) {
+  createSuccessMessage = "Item added successfully!",
+  editSuccessMessage = "Item updated successfully!",
+  deleteSuccessMessage = "Item deleted successfully!",
+  token,
+  createFormTitle = "Add New Item",
+  editFormTitle = "Edit Item",
+  deleteFormTitle = "Delete Item",
+  filterConfig = [],
+}) => {
   const [sorting, setSorting] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [columnFilters, setColumnFilters] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
   const [rowSelection, setRowSelection] = useState({});
 
   const tableRef = useRef(null);
+  const router = useRouter();
+
+  const {
+    useFetchItems,
+    useFetchItemById,
+    useAddItem,
+    useUpdateItem,
+    useDeleteItem,
+  } = useCrud(resource, token);
+
+  const {
+    filteredData,
+    filters,
+    setFilter,
+    removeFilter,
+    clearFilters,
+    globalFilter,
+    setGlobalFilter,
+    hasFilters,
+  } = useDataFilter(initialData);
 
   const handlePrint = usePrint({
     content: () => tableRef.current,
   });
 
-  const columns = useTableColumns(columnConfig);
+  const columns = useTableColumns(columnsConfig);
+
+  const addData = useAddItem();
+  const updateData = useUpdateItem();
+  const deleteData = useDeleteItem();
 
   const table = useReactTable({
-    data: initialData,
+    data: filteredData,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -74,42 +136,102 @@ export default function DataTableComponent({
     [rowSelection]
   );
 
+  const handleSubmit = async (values) => {
+    try {
+      setLoading(true);
+      await addData.mutateAsync(values);
+      table.resetRowSelection();
+      toast.success(createSuccessMessage);
+      router.refresh();
+    } catch (error) {
+      console.error(error.message);
+      toast.error(
+        error.message || "Something went wrong. Please try again later."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = async (values) => {
+    try {
+      setLoading(true);
+      await updateData.mutateAsync({
+        data: {
+          ids: selectedData?.map((item) => item._id),
+          ...values,
+        },
+      });
+      table.resetRowSelection();
+      router.refresh();
+      toast.success(editSuccessMessage);
+    } catch (error) {
+      console.error(error.message);
+      toast.error(
+        error.message || "Something went wrong. Please try again later."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+      await deleteData.mutateAsync(selectedData?.map((item) => item._id));
+      table.resetRowSelection();
+      toast.success(deleteSuccessMessage);
+      router.refresh();
+    } catch (error) {
+      console.error(error.message);
+      toast.error(
+        error.message || "Something went wrong. Please try again later."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between py-4">
-        <div className="mr-auto space-x-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <Sliders />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <FilterComponent />
+        <div className="mr-auto space-x-2 flex">
+          <ColumnCustomization table={table} columnsConfig={columnsConfig} />
+          <PopupFilter
+            filterConfig={filterConfig}
+            filters={filters}
+            setFilter={setFilter}
+            removeFilter={removeFilter}
+            clearFilters={clearFilters}
+            globalFilter={globalFilter}
+            setGlobalFilter={setGlobalFilter}
+            hasFilters={hasFilters}
+            buttonLabel="Table Filters"
+          />
         </div>
         <div className="space-x-2">
-          {selectedData?.length > 0 && <ConfirmationPopup />}
-          {selectedData?.length > 0 && <PopupForm data={selectedData} />}
-          <PopupForm formFields={formFields} />
+          {selectedData?.length > 0 && (
+            <ConfirmationPopup
+              onClick={handleDelete}
+              action="delete"
+              loading={loading}
+              title={deleteFormTitle}
+            />
+          )}
+          {selectedData?.length > 0 && (
+            <PopupForm
+              data={selectedData[0]}
+              formFields={formFields}
+              onSubmit={handleEdit}
+              loading={loading}
+              title={editFormTitle}
+            />
+          )}
+          <PopupForm
+            formFields={formFields}
+            onSubmit={handleSubmit}
+            loading={loading}
+            title={createFormTitle}
+          />
         </div>
       </div>
       <div
@@ -202,4 +324,6 @@ export default function DataTableComponent({
       )}
     </div>
   );
-}
+};
+
+export default DataTableComponent;

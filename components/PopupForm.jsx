@@ -20,109 +20,124 @@ import {
   DrawerDescription,
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Edit, Plus } from "lucide-react";
-import { AdvancedInput } from "./AdvancedInput";
+import { Edit, Loader2, Plus } from "lucide-react";
+import { MultiSelect } from "./ui/multi-select";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { z } from "zod";
+import { useDynamicFormSchema } from "@/hooks/use-dynamic-form-schema";
+import { getDefaultValues } from "@/lib/utils";
 
-export function PopupForm({
+const FormContent = ({ form, formFields, handleSubmit, data, loading }) => (
+  <Form {...form}>
+    <form
+      onSubmit={form.handleSubmit(handleSubmit)}
+      className="grid items-start gap-4"
+    >
+      {formFields.map((field, index) => (
+        <FormField
+          key={index}
+          control={form.control}
+          name={field.name}
+          render={({ field: formField }) => (
+            <FormItem>
+              {field.label && !field.hideLabel && (
+                <FormLabel htmlFor={field.name}>
+                  {field.label}
+                  {field.required && (
+                    <span className="text-red-500 ml-1">*</span>
+                  )}
+                </FormLabel>
+              )}
+              <FormControl>
+                {field.inputType === "select" ||
+                field.inputType === "multiSelect" ? (
+                  <MultiSelect
+                    options={field.options || []}
+                    placeholder={field.placeholder || "Select options"}
+                    disableSearch={field.disableSearch || false}
+                    multiSelect={field.inputType === "multiSelect"}
+                    freeSolo={field.freeSolo || false}
+                    variant={field.variant || "default"}
+                    maxCount={field.maxCount || 0}
+                    animation={field.animation || 0}
+                    modalPopover={field.modalPopover || false}
+                    disabled={field.disabled}
+                    value={formField.value}
+                    onValueChange={(value) => formField.onChange(value)}
+                  />
+                ) : (
+                  <Input
+                    {...formField}
+                    type={field.type || "text"}
+                    name={field.name}
+                    id={field.name}
+                    placeholder={field.placeholder}
+                    disabled={field.disabled}
+                  />
+                )}
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      ))}
+      <div className="flex w-full gap-3 mt-2">
+        <Button className="w-full" type="submit" disabled={loading}>
+          {loading ? (
+            <Loader2 className="animate-spin mr-2" />
+          ) : data ? (
+            "Save changes"
+          ) : (
+            "Create"
+          )}
+        </Button>
+      </div>
+    </form>
+  </Form>
+);
+
+export default function PopupForm({
   data = null,
   formFields = [],
   onSubmit,
   title = "",
   description = "",
+  loading = false,
 }) {
-  const [open, setOpen] = React.useState(false);
-  const [formValues, setFormValues] = React.useState({});
   const isMobile = useIsMobile();
+  const [open, setOpen] = React.useState(false);
 
-  React.useEffect(() => {
-    // Initialize form values with existing data if provided
-    if (data) {
-      const initialValues = {};
-      formFields.forEach((field) => {
-        initialValues[field.name] = data[field.name] || "";
-      });
-      setFormValues(initialValues);
-    } else {
-      // Initialize with empty values
-      const initialValues = {};
-      formFields.forEach((field) => {
-        initialValues[field.name] = field.inputType === "multiSelect" ? [] : "";
-      });
-      setFormValues(initialValues);
+  const { schema } = useDynamicFormSchema(formFields);
+
+  const defaultValues = React.useMemo(() => {
+    return getDefaultValues(data, formFields);
+  }, []);
+
+  const form = useForm({
+    resolver: zodResolver(schema),
+    defaultValues,
+    mode: "onChange",
+    key: data ? `edit-${data._id}` : "create",
+  });
+
+  const handleSubmit = async (values) => {
+    try {
+      await onSubmit(values);
+      setOpen(false);
+    } catch (error) {
+      console.error("Form submission failed:", error.message);
     }
-  }, [data, formFields]);
-
-  const handleInputChange = (name, value) => {
-    setFormValues((prev) => {
-      return { ...prev, [name]: value };
-    });
   };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(formValues);
-    setOpen(false);
-  };
-
-  const renderFormField = (field) => {
-    // Handle AdvancedInput types (select and multiSelect)
-    if (field.inputType === "select" || field.inputType === "multiSelect") {
-      return (
-        <AdvancedInput
-          label={field.label}
-          placeholder={field.placeholder || "Select..."}
-          options={field.options || []}
-          value={formValues[field.name]}
-          onChange={(value) => handleInputChange(field.name, value)}
-          type={field.inputType}
-          disableSearch={field.disableSearch}
-          valueKey={field.valueKey || "_id"}
-          required={field.required}
-          disabled={field.disabled}
-          freeSolo={field.freeSolo}
-        />
-      );
-    }
-
-    // For regular inputs
-    return (
-      <>
-        {field.label && !field.hideLabel && (
-          <Label htmlFor={field.name}>
-            {field.label}
-            {field.required && <span className="text-red-500 ml-1">*</span>}
-          </Label>
-        )}
-        <Input
-          type={field.type || "text"}
-          id={field.name}
-          name={field.name}
-          placeholder={field.placeholder}
-          value={formValues[field.name] || ""}
-          onChange={(e) => handleInputChange(field.name, e.target.value)}
-          required={field.required}
-          disabled={field.disabled}
-        />
-      </>
-    );
-  };
-
-  const FormContent = () => (
-    <form className="grid items-start gap-4" onSubmit={handleSubmit}>
-      {formFields.map((field, index) => (
-        <div key={index} className="space-y-2">
-          {renderFormField(field)}
-        </div>
-      ))}
-      <div className="flex w-full gap-3 mt-2">
-        <Button className="w-full" type="submit">
-          {data ? "Save changes" : "Create"}
-        </Button>
-      </div>
-    </form>
-  );
 
   if (!isMobile) {
     return (
@@ -139,7 +154,13 @@ export function PopupForm({
               <DialogDescription>{description}</DialogDescription>
             )}
           </DialogHeader>
-          <FormContent />
+          <FormContent
+            form={form}
+            formFields={formFields}
+            handleSubmit={handleSubmit}
+            data={data}
+            loading={loading}
+          />
         </DialogContent>
       </Dialog>
     );
@@ -158,7 +179,13 @@ export function PopupForm({
           {description && <DrawerDescription>{description}</DrawerDescription>}
         </DrawerHeader>
         <div className="px-4">
-          <FormContent />
+          <FormContent
+            form={form}
+            formFields={formFields}
+            handleSubmit={handleSubmit}
+            data={data}
+            loading={loading}
+          />
         </div>
         <DrawerFooter className="pt-2">
           <DrawerClose asChild>
