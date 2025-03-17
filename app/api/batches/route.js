@@ -3,9 +3,6 @@ import connectToDB from "@/lib/db";
 import Batch from "@/models/Batch";
 import { NextResponse } from "next/server";
 
-export const revalidate = 0;
-export const dynamicParams = true;
-
 export async function GET(req, res) {
   try {
     const apiKey = req.headers.get("api-key");

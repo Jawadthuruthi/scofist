@@ -23,14 +23,13 @@ const OPERATORS = {
 };
 
 /**
- * Custom hook for filtering data collections with support for multiple operators
+ * Custom hook for filtering initialData collections with support for multiple operators
  *
- * @param {Array} initialData - The original data array to filter
+ * @param {Array} initialData - The original initialData array to filter
  * @param {Object} initialFilters - Optional initial filter criteria
- * @returns {Object} Filtering utilities and filtered data
+ * @returns {Object} Filtering utilities and filtered initialData
  */
 export function useDataFilter(initialData = [], initialFilters = {}) {
-  const [data] = useState(initialData);
   const [filters, setFilters] = useState(initialFilters);
   const [globalFilter, setGlobalFilter] = useState("");
 
@@ -273,12 +272,12 @@ export function useDataFilter(initialData = [], initialFilters = {}) {
   );
 
   /**
-   * Filter the data based on current filters
+   * Filter the initialData based on current filters
    */
   const filteredData = useMemo(() => {
-    if (!data || data.length === 0) return [];
+    if (!initialData || initialData.length === 0) return [];
 
-    return data.filter((item) => {
+    return initialData.filter((item) => {
       // Apply field-specific filters
       for (const [field, filterConfig] of Object.entries(filters)) {
         // Skip empty filters
@@ -342,7 +341,7 @@ export function useDataFilter(initialData = [], initialFilters = {}) {
 
       return true;
     });
-  }, [data, filters, globalFilter, matchesFilter]);
+  }, [initialData, filters, globalFilter, matchesFilter]);
 
   return {
     filters,
