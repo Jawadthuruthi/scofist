@@ -24,7 +24,6 @@ const batchSchema = new Schema(
     startYear: {
       type: Number,
       required: true,
-      unique: true,
       min: [2000, "Start year cannot be before 2000"],
       max: [
         new Date().getFullYear() + 2,

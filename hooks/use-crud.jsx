@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  useInfiniteQuery,
+} from "@tanstack/react-query";
 import {
   fetchItems,
   fetchItemById,
@@ -10,11 +15,28 @@ import {
 export const useCrud = (resource, token) => {
   const queryClient = useQueryClient();
 
-  // Fetch all items
-  const useFetchItems = () => {
+  // Fetch items with pagination support
+  const useFetchItems = (page = 0, limit = 20, filters = {}) => {
     return useQuery({
-      queryKey: [resource],
-      queryFn: () => fetchItems(resource, token),
+      queryKey: [resource, page, limit, filters],
+      queryFn: () => fetchItems(resource, token, page, limit, filters),
+      staleTime: 60000, // 1 min caching
+      keepPreviousData: true, // Keep previous data while fetching new data
+    });
+  };
+
+  // Fetch items with infinite query (alternative approach)
+  const useInfiniteItems = (limit = 20, filters = {}) => {
+    return useInfiniteQuery({
+      queryKey: [resource, "infinite", limit, filters],
+      queryFn: ({ pageParam = 0 }) =>
+        fetchItems(resource, token, pageParam, limit, filters),
+      getNextPageParam: (lastPage, allPages) => {
+        // Determine if there's more data to fetch
+        const hasMore = (lastPage[resource] || []).length === limit;
+        if (!hasMore) return undefined;
+        return allPages.length; // Next page number
+      },
       staleTime: 60000, // 1 min caching
     });
   };
@@ -60,6 +82,7 @@ export const useCrud = (resource, token) => {
 
   return {
     useFetchItems,
+    useInfiniteItems,
     useFetchItemById,
     useAddItem,
     useUpdateItem,

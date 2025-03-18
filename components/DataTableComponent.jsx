@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import usePrint from "@/hooks/use-print";
 import useTableColumns from "@/hooks/use-table-columns";
 import { useCrud } from "@/hooks/use-crud";
@@ -74,34 +74,191 @@ const DataTableComponent = ({
   deleteFormTitle = "Delete Item",
   filterConfig = [],
   multiEdit = false,
+  limit = 20, // Default limit for infinite loading
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
   const [columnFilters, setColumnFilters] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
   const [rowSelection, setRowSelection] = useState({});
+  const [page, setPage] = useState(0);
+  const [data, setData] = useState(initialData || []);
+  const [hasNextPage, setHasNextPage] = useState(true);
+  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
+
+  // Server-side filter state
+  const [apiFilters, setApiFilters] = useState({});
+  const [isFilterRefetching, setIsFilterRefetching] = useState(false);
 
   const tableRef = useRef(null);
+  const loaderRef = useRef(null);
   const router = useRouter();
 
-  const {
-    useFetchItems,
-    useFetchItemById,
-    useAddItem,
-    useUpdateItem,
-    useDeleteItem,
-  } = useCrud(resource, token);
+  const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud(
+    resource,
+    token
+  );
 
+  // Use the fetchItems hook with pagination parameters and server-side filters
+  const fetchItemsQuery = useFetchItems(page, limit, apiFilters);
+
+  // Update data state when query data changes
+  useEffect(() => {
+    if (fetchItemsQuery.data) {
+      const newItems = fetchItemsQuery.data[resource] || [];
+      if (page === 0) {
+        setData(newItems);
+      } else {
+        // Append new items to existing data
+        setData((prev) => [...prev, ...newItems]);
+      }
+
+      // Check if we've reached the end of available data
+      setHasNextPage(newItems.length === limit);
+
+      // Reset filter refetching state
+      if (isFilterRefetching) {
+        setIsFilterRefetching(false);
+      }
+    }
+  }, [fetchItemsQuery.data, page, resource, limit, isFilterRefetching]);
+
+  // Intersection Observer setup
+  const handleObserver = useCallback(
+    (entries) => {
+      const [entry] = entries;
+      if (
+        entry.isIntersecting &&
+        hasNextPage &&
+        !isFetchingNextPage &&
+        !fetchItemsQuery.isLoading &&
+        !isFilterRefetching
+      ) {
+        setIsFetchingNextPage(true);
+        setPage((prevPage) => prevPage + 1);
+        setIsFetchingNextPage(false);
+      }
+    },
+    [
+      hasNextPage,
+      isFetchingNextPage,
+      fetchItemsQuery.isLoading,
+      isFilterRefetching,
+    ]
+  );
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleObserver, {
+      root: null,
+      rootMargin: "0px",
+      threshold: 0.1,
+    });
+
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+
+    return () => {
+      if (loaderRef.current) {
+        observer.unobserve(loaderRef.current);
+      }
+    };
+  }, [handleObserver]);
+
+  // Client-side filtering for additional filtering options
   const {
     filteredData,
     filters,
-    setFilter,
-    removeFilter,
-    clearFilters,
+    setFilter: setClientFilter,
+    removeFilter: removeClientFilter,
+    clearFilters: clearClientFilters,
     globalFilter,
     setGlobalFilter,
     hasFilters,
-  } = useDataFilter(initialData);
+  } = useDataFilter(data);
+
+  // Convert client-side filter to API filter format and trigger refetch
+  const setFilter = useCallback(
+    (field, value) => {
+      setClientFilter(field, value);
+
+      // Update API filters
+      setApiFilters((prev) => {
+        // Create a modified version of the filters for the API
+        const apiFilter = { ...prev };
+
+        if (value === undefined || value === null || value === "") {
+          // Remove empty filters
+          delete apiFilter[field];
+        } else {
+          // Add or update the filter
+          apiFilter[field] = value;
+        }
+
+        return apiFilter;
+      });
+
+      // Reset to first page and refetch with new filters
+      setPage(0);
+      setIsFilterRefetching(true);
+    },
+    [setClientFilter]
+  );
+
+  // Handle filter removal with API updates
+  const removeFilter = useCallback(
+    (field) => {
+      removeClientFilter(field);
+
+      // Remove from API filters
+      setApiFilters((prev) => {
+        const apiFilter = { ...prev };
+
+        // Remove all variants of this field filter
+        Object.keys(apiFilter).forEach((key) => {
+          if (key === field || key.startsWith(`${field}_`)) {
+            delete apiFilter[key];
+          }
+        });
+
+        return apiFilter;
+      });
+
+      // Reset to first page and refetch
+      setPage(0);
+      setIsFilterRefetching(true);
+    },
+    [removeClientFilter]
+  );
+
+  // Clear all filters
+  const clearFilters = useCallback(() => {
+    clearClientFilters();
+    setApiFilters({});
+    setPage(0);
+    setIsFilterRefetching(true);
+  }, [clearClientFilters]);
+
+  // Handle global filter
+  useEffect(() => {
+    if (globalFilter) {
+      setApiFilters((prev) => ({
+        ...prev,
+        search: globalFilter,
+      }));
+    } else {
+      setApiFilters((prev) => {
+        const newFilters = { ...prev };
+        delete newFilters.search;
+        return newFilters;
+      });
+    }
+
+    if (globalFilter !== undefined) {
+      setPage(0);
+      setIsFilterRefetching(true);
+    }
+  }, [globalFilter]);
 
   const handlePrint = usePrint({
     content: () => tableRef.current,
@@ -134,7 +291,7 @@ const DataTableComponent = ({
 
   const selectedData = useMemo(
     () => table.getFilteredSelectedRowModel().rows.map((row) => row.original),
-    [rowSelection]
+    [rowSelection, table]
   );
 
   const handleSubmit = async (values) => {
@@ -143,6 +300,9 @@ const DataTableComponent = ({
       await addData.mutateAsync(values);
       table.resetRowSelection();
       toast.success(createSuccessMessage);
+      // Reset page to ensure fresh data is loaded
+      setPage(0);
+      setIsFilterRefetching(true);
       router.refresh();
     } catch (error) {
       console.error(error.message);
@@ -164,6 +324,9 @@ const DataTableComponent = ({
         },
       });
       table.resetRowSelection();
+      // Reset page to ensure fresh data is loaded
+      setPage(0);
+      setIsFilterRefetching(true);
       router.refresh();
       toast.success(editSuccessMessage);
     } catch (error) {
@@ -175,11 +338,15 @@ const DataTableComponent = ({
       setLoading(false);
     }
   };
+
   const handleDelete = async () => {
     try {
       setLoading(true);
       await deleteData.mutateAsync(selectedData?.map((item) => item._id));
       table.resetRowSelection();
+      // Reset page to ensure fresh data is loaded
+      setPage(0);
+      setIsFilterRefetching(true);
       toast.success(deleteSuccessMessage);
       router.refresh();
     } catch (error) {
@@ -275,7 +442,18 @@ const DataTableComponent = ({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {fetchItemsQuery.isLoading && page === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  <div className="flex justify-center">
+                    <Loader2 className="animate-spin" size={24} />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -311,13 +489,27 @@ const DataTableComponent = ({
                 >
                   <h2 className="text-lg font-bold">No Data.</h2>
                   <p className="text-sm text-muted-foreground">
-                    Sorry, there is no data available at the moment.
+                    {hasFilters
+                      ? "No matching records found."
+                      : "Sorry, there is no data available at the moment."}
                   </p>
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
+        {/* Intersection Observer Target */}
+        {hasNextPage && table.getRowModel().rows?.length > 0 && (
+          <div ref={loaderRef} className="w-full p-4 text-center">
+            {isFetchingNextPage || fetchItemsQuery.isLoading ? (
+              <div className="flex justify-center">
+                <Loader2 className="animate-spin" size={24} />
+              </div>
+            ) : (
+              <div className="h-8" />
+            )}
+          </div>
+        )}
       </div>
       {table.getRowModel().rows?.length > 0 && (
         <div className="py-4 w-full flex justify-end">

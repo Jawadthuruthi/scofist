@@ -12,9 +12,57 @@ export async function GET(req, res) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const batches = await Batch.find({});
+    // Parse URL to get search params
+    const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get("page") || "0");
+    const limit = parseInt(url.searchParams.get("limit") || "20");
+
+    // Build filter object from query parameters
+    const filterParams = {};
+    for (const [key, value] of url.searchParams.entries()) {
+      // Skip pagination parameters
+      if (key !== "page" && key !== "limit") {
+        filterParams[key] = value;
+      }
+    }
+
+    // Build MongoDB query from filter params
+    const query = {};
+    if (filterParams.name) {
+      query.name = { $regex: filterParams.name, $options: "i" };
+    }
+    if (filterParams.status) {
+      query.status = filterParams.status;
+    }
+    if (filterParams.startYear) {
+      query.startYear = filterParams.startYear;
+    }
+    if (filterParams.endYear) {
+      query.endYear = filterParams.endYear;
+    }
+
+    console.log(query);
+
+    // Execute query with pagination
+    const batches = await Batch.find(query)
+      .skip(page * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    // Get total count for pagination info (optional)
+    const total = await Batch.countDocuments(query);
+
     return NextResponse.json(
-      { batches, message: "Batches fetched successfully" },
+      {
+        batches,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+        message: "Batches fetched successfully",
+      },
       { status: 200 }
     );
   } catch (error) {
@@ -50,8 +98,8 @@ export async function POST(req, res) {
     console.log(error.message);
 
     // Handle duplicate key error (MongoDB error code 11000)
+    const field = Object.keys(error.keyPattern)[0] === "_id" ? "ID" : "Name";
 
-    const field = Object.keys(error.keyPattern)[0] === "_id" ? "ID" : "name";
     if (error.code === 11000) {
       return NextResponse.json(
         { message: `Batch with this ${field} already exists.` },
