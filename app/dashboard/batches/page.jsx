@@ -17,7 +17,7 @@ const page = async () => {
         />
       );
     }
-    const batchesResponse = await fetch(`${baseURL}/api/batches`, {
+    const batchesResponse = await fetch(`${baseURL}/api/batches?limit=20`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -180,6 +180,7 @@ const page = async () => {
           editSuccessMessage="Batch updated successfully!"
           deleteSuccessMessage="Batch deleted successfully!"
           filterConfig={filterConfig}
+          limit={batches.length || 20}
         />
       </>
     );

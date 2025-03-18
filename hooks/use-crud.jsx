@@ -12,16 +12,17 @@ import {
   deleteItem,
 } from "@/lib/api";
 
-export const useCrud = (resource, token) => {
+const useCrud = (resource, token) => {
   const queryClient = useQueryClient();
 
   // Fetch items with pagination support
-  const useFetchItems = (page = 0, limit = 20, filters = {}) => {
+  const useFetchItems = (page = 0, limit = 20, filters = {}, options = {}) => {
     return useQuery({
       queryKey: [resource, page, limit, filters],
       queryFn: () => fetchItems(resource, token, page, limit, filters),
       staleTime: 60000, // 1 min caching
       keepPreviousData: true, // Keep previous data while fetching new data
+      ...options,
     });
   };
 
@@ -89,3 +90,5 @@ export const useCrud = (resource, token) => {
     useDeleteItem,
   };
 };
+
+export default useCrud;

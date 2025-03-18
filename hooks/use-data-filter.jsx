@@ -29,7 +29,7 @@ const OPERATORS = {
  * @param {Object} initialFilters - Optional initial filter criteria
  * @returns {Object} Filtering utilities and filtered initialData
  */
-export function useDataFilter(initialData = [], initialFilters = {}) {
+export default function useDataFilter(initialData = [], initialFilters = {}) {
   const [filters, setFilters] = useState(initialFilters);
   const [globalFilter, setGlobalFilter] = useState("");
 

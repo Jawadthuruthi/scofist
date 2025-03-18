@@ -19,11 +19,10 @@ import {
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import usePrint from "@/hooks/use-print";
 import useTableColumns from "@/hooks/use-table-columns";
-import { useCrud } from "@/hooks/use-crud";
+import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useDataFilter } from "@/hooks/use-data-filter";
-import { useApiFiltering } from "@/hooks/use-api-filter";
+import useDataFilter from "@/hooks/use-data-filter";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
 
@@ -92,15 +91,16 @@ const DataTableComponent = ({
   const loaderRef = useRef(null);
   const router = useRouter();
 
-  // Use the API filtering hook
   const {
-    apiFilters,
-    updateFilter,
-    debouncedUpdateFilter,
-    clearFilters: clearApiFilters,
-    isRefetching,
-    setIsRefetching,
-  } = useApiFiltering({});
+    filteredData,
+    filters,
+    setFilter,
+    removeFilter,
+    clearFilters,
+    globalFilter,
+    setGlobalFilter,
+    hasFilters,
+  } = useDataFilter(data);
 
   const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud(
     resource,
@@ -108,7 +108,7 @@ const DataTableComponent = ({
   );
 
   // Use the fetchItems hook with pagination parameters and server-side filters
-  const fetchItemsQuery = useFetchItems(page, limit, apiFilters, {
+  const fetchItemsQuery = useFetchItems(page, limit, filters, {
     retry: 2,
     retryDelay: 1000,
   });
@@ -120,7 +120,6 @@ const DataTableComponent = ({
         fetchItemsQuery.error.message ||
           "Failed to fetch data. Please try again."
       );
-      setIsRefetching(false);
     }
   }, [fetchItemsQuery.error]);
 
@@ -129,8 +128,8 @@ const DataTableComponent = ({
     if (fetchItemsQuery.data) {
       const newItems = fetchItemsQuery.data[resource] || [];
 
-      // Handle cache for filter combinations
-      const cacheKey = JSON.stringify(apiFilters);
+      // Handle cache for filter
+      const cacheKey = JSON.stringify(filters);
       if (page === 0) {
         filterCache.current[cacheKey] = newItems;
       }
@@ -144,13 +143,8 @@ const DataTableComponent = ({
 
       // Check if we've reached the end of available data
       setHasNextPage(newItems.length === limit);
-
-      // Reset filter refetching state
-      if (isRefetching) {
-        setIsRefetching(false);
-      }
     }
-  }, [fetchItemsQuery.data, page, resource, limit, isRefetching, apiFilters]);
+  }, [fetchItemsQuery.data, page, resource, limit]);
 
   // Define loading states
   const isInitialLoading =
@@ -166,15 +160,14 @@ const DataTableComponent = ({
         entry.isIntersecting &&
         hasNextPage &&
         !isLoadingMore &&
-        !fetchItemsQuery.isLoading &&
-        !isRefetching
+        !fetchItemsQuery.isLoading
       ) {
         setIsFetchingNextPage(true);
         setPage((prevPage) => prevPage + 1);
         setIsFetchingNextPage(false);
       }
     },
-    [hasNextPage, isLoadingMore, fetchItemsQuery.isLoading, isRefetching]
+    [hasNextPage, isLoadingMore, fetchItemsQuery.isLoading]
   );
 
   useEffect(() => {
@@ -195,61 +188,27 @@ const DataTableComponent = ({
     };
   }, [handleObserver]);
 
-  // Client-side filtering for additional filtering options
-  const {
-    filteredData,
-    filters,
-    setFilter: setClientFilter,
-    removeFilter: removeClientFilter,
-    clearFilters: clearClientFilters,
-    globalFilter,
-    setGlobalFilter,
-    hasFilters,
-  } = useDataFilter(data);
-
-  // Unified filter handler to manage both client and API filters
-  const setFilter = useCallback(
+  const handleFilter = useCallback(
     (field, value) => {
-      // Update client filter immediately for UI response
-      setClientFilter(field, value);
-
-      // Update API filter with debounce for text inputs
-      if (typeof value === "string") {
-        debouncedUpdateFilter(field, value);
-      } else {
-        updateFilter(field, value);
-      }
-
-      // Reset to first page
+      setFilter(field, value);
       setPage(0);
     },
-    [setClientFilter, debouncedUpdateFilter, updateFilter]
+    [setFilter]
   );
 
-  // Handle filter removal with API updates
-  const removeFilter = useCallback(
+  const handleRemoveFilter = useCallback(
     (field) => {
-      removeClientFilter(field);
-      updateFilter(field, null);
+      removeFilter(field);
       setPage(0);
     },
-    [removeClientFilter, updateFilter]
+    [removeFilter]
   );
 
   // Clear all filters
-  const clearFilters = useCallback(() => {
-    clearClientFilters();
-    clearApiFilters();
+  const handleClearFilters = useCallback(() => {
+    clearFilters();
     setPage(0);
-  }, [clearClientFilters, clearApiFilters]);
-
-  // Handle global filter
-  useEffect(() => {
-    if (globalFilter !== undefined) {
-      updateFilter("search", globalFilter || null);
-      setPage(0);
-    }
-  }, [globalFilter, updateFilter]);
+  }, [clearFilters]);
 
   const handlePrint = usePrint({
     content: () => tableRef.current,
@@ -293,7 +252,7 @@ const DataTableComponent = ({
       toast.success(createSuccessMessage);
       // Reset page to ensure fresh data is loaded
       setPage(0);
-      setIsRefetching(true);
+      // setIsRefetching(true);
       router.refresh();
     } catch (error) {
       console.error(error.message);
@@ -317,7 +276,7 @@ const DataTableComponent = ({
       table.resetRowSelection();
       // Reset page to ensure fresh data is loaded
       setPage(0);
-      setIsRefetching(true);
+      // setIsRefetching(true);
       router.refresh();
       toast.success(editSuccessMessage);
     } catch (error) {
@@ -337,7 +296,7 @@ const DataTableComponent = ({
       table.resetRowSelection();
       // Reset page to ensure fresh data is loaded
       setPage(0);
-      setIsRefetching(true);
+      // setIsRefetching(true);
       toast.success(deleteSuccessMessage);
       router.refresh();
     } catch (error) {
@@ -358,12 +317,12 @@ const DataTableComponent = ({
           <PopupFilter
             filterConfig={filterConfig}
             filters={filters}
-            setFilter={setFilter}
-            removeFilter={removeFilter}
-            clearFilters={clearFilters}
+            setFilter={handleFilter}
+            removeFilter={handleRemoveFilter}
+            clearFilters={handleClearFilters}
             globalFilter={globalFilter}
             setGlobalFilter={setGlobalFilter}
-            hasFilters={hasFilters || Object.keys(apiFilters).length > 0}
+            hasFilters={hasFilters || Object.keys(filters).length > 0}
             buttonLabel="Table Filters"
           />
         </div>
@@ -480,7 +439,7 @@ const DataTableComponent = ({
                 >
                   <h2 className="text-lg font-bold">No Data.</h2>
                   <p className="text-sm text-muted-foreground">
-                    {hasFilters || Object.keys(apiFilters).length > 0
+                    {hasFilters || Object.keys(filters).length > 0
                       ? "No matching records found."
                       : "Sorry, there is no data available at the moment."}
                   </p>

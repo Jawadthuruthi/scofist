@@ -15,7 +15,7 @@ export async function GET(req, res) {
     // Parse URL to get search params
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit") || "20");
+    const limit = parseInt(url.searchParams.get("limit") || "0");
 
     // Build filter object from query parameters
     const filterParams = {};
