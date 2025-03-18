@@ -57,11 +57,11 @@ const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
             <!-- Direct Google Fonts Import - More reliable than copying from main document -->
             <link rel="preconnect" href="https://fonts.googleapis.com">
             <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-            <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+            <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
             <style>
               /* Base font definition */
               html, body, #printable-content, #printable-content * {
-                font-family: 'Poppins', sans-serif !important;
+                font-family: 'Montserrat', sans-serif !important;
               }
               
               /* Print-specific styles */
@@ -73,7 +73,7 @@ const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
                 body { 
                   -webkit-print-color-adjust: exact; 
                   print-color-adjust: exact; 
-                  font-family: 'Poppins', sans-serif !important;
+                  font-family: 'Montserrat', sans-serif !important;
                 }
                 .print\\:hidden, button, [role="button"] {
                   display: none !important;
@@ -84,8 +84,8 @@ const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
               ${styles}
             </style>
           </head>
-          <body style="font-family: 'Poppins', sans-serif !important;">
-            <div id="printable-content" style="font-family: 'Poppins', sans-serif !important;"></div>
+          <body style="font-family: 'Montserrat', sans-serif !important;">
+            <div id="printable-content" style="font-family: 'Montserrat', sans-serif !important;"></div>
           </body>
         </html>
       `);
@@ -94,7 +94,7 @@ const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
       // Process the node tree to enforce fonts
       const applyFontsRecursively = (node) => {
         if (node.style) {
-          node.style.fontFamily = "'Poppins', sans-serif";
+          node.style.fontFamily = "'Montserrat', sans-serif";
         }
         if (node.childNodes && node.childNodes.length > 0) {
           for (let i = 0; i < node.childNodes.length; i++) {
