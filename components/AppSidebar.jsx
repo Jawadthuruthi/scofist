@@ -241,7 +241,7 @@ export function AppSidebar({ roles }) {
         </div>
         <SidebarGroup className="px-4">
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-4">
               {menuItems.map((item) =>
                 item.subItems ? (
                   <SidebarMenuItem key={item.title}>

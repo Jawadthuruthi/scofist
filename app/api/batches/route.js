@@ -78,8 +78,6 @@ export async function PUT(req, res) {
 
     const _id = ids[0];
 
-    console.log(ids);
-
     if (ids.length > 1) {
       const updatedBatches = await Batch.updateMany(
         { _id: { $in: ids } },

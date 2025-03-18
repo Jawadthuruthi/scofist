@@ -73,6 +73,7 @@ const DataTableComponent = ({
   editFormTitle = "Edit Item",
   deleteFormTitle = "Delete Item",
   filterConfig = [],
+  multiEdit = false,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -217,7 +218,8 @@ const DataTableComponent = ({
               title={deleteFormTitle}
             />
           )}
-          {selectedData?.length > 0 && (
+          {((selectedData?.length > 0 && multiEdit) ||
+            selectedData?.length === 1) && (
             <PopupForm
               data={selectedData[0]}
               formFields={formFields}

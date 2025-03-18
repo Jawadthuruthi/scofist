@@ -4,7 +4,6 @@ import { useState } from "react";
 import { X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -74,6 +73,12 @@ export default function PopupFilter({
     }
   };
 
+  // Handle clearing filters and closing the dialog
+  const handleClearFilters = () => {
+    clearFilters();
+    setOpen(false);
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center space-x-2">
@@ -92,14 +97,18 @@ export default function PopupFilter({
                 {filterConfig.map((filterItem) => {
                   const filterId = filterItem.id;
                   const currentFilter = filters[filterId] || {};
-                  const currentValue =
-                    currentFilter.value !== undefined
-                      ? currentFilter.value
-                      : typeof currentFilter !== "object"
-                      ? currentFilter
-                      : filterItem.inputType === "multiSelect"
-                      ? []
-                      : "";
+                  const currentValue = (() => {
+                    // If the filter exists, use its value
+                    if (currentFilter.value !== undefined) {
+                      return currentFilter.value;
+                    }
+                    // If the filter is a primitive value (legacy support)
+                    if (typeof currentFilter !== "object") {
+                      return currentFilter;
+                    }
+                    // Default empty values based on input type
+                    return filterItem.inputType === "multiSelect" ? [] : "";
+                  })();
                   const displayName = filterItem.label || filterId;
                   const inputType = filterItem.inputType || "text";
                   const operator =
@@ -148,7 +157,7 @@ export default function PopupFilter({
             <DialogFooter className="gap-2">
               <Button
                 variant="outline"
-                onClick={clearFilters}
+                onClick={handleClearFilters}
                 disabled={!hasFilters}
               >
                 Clear All Filters

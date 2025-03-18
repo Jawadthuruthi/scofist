@@ -44,14 +44,16 @@ const useTableColumns = (columnConfig) => {
     // Apply sorting if type includes "sortable"
     if (col.type?.includes("sortable")) {
       columnDefinition.header = ({ column }) => (
-        <Button
-          className="px-0"
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          {col.header}
-          <ArrowUpDown />
-        </Button>
+        <div className="flex items-center ">
+          <span>{col.header}</span>
+          <Button
+            className="px-0 ml-1 print:hidden"
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            <ArrowUpDown className="h-4 w-4" />
+          </Button>
+        </div>
       );
     }
 

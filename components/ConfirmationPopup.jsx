@@ -54,7 +54,11 @@ export default function ConfirmationPopup({
             className="bg-destructive text-destructive-foreground hover:bg-destructive/80 hover:text-destructive-foreground"
             onClick={handleClick}
           >
-            {loading ? <Loader2 className="animate-spin mr-2" /> : action}
+            {loading ? (
+              <Loader2 className="animate-spin mr-2" />
+            ) : (
+              action.trim().charAt(0).toUpperCase() + action.trim().slice(1)
+            )}
           </Button>
         </div>
       </DialogContent>
