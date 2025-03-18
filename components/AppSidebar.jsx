@@ -241,7 +241,7 @@ export function AppSidebar({ roles }) {
         </div>
         <SidebarGroup className="px-4">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-4">
+            <SidebarMenu className="gap-2">
               {menuItems.map((item) =>
                 item.subItems ? (
                   <SidebarMenuItem key={item.title}>
@@ -251,12 +251,9 @@ export function AppSidebar({ roles }) {
                         <span>{item.title}</span>
                       </div>
                     </SidebarMenuButton>
-                    <SidebarMenuSub className="mr-0">
+                    <SidebarMenuSub className="mr-0 gap-3 pt-2">
                       {item.subItems.map((subItem) => (
-                        <SidebarMenuSubItem
-                          className="pt-1"
-                          key={subItem.title}
-                        >
+                        <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton asChild>
                             <Link href={subItem.url}>
                               <subItem.icon className="w-5 h-5" />
