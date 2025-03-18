@@ -25,6 +25,7 @@ import { useRouter } from "next/navigation";
 import { useDataFilter } from "@/hooks/use-data-filter";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
+import { debounce } from "lodash";
 
 const PopupFilter = dynamic(() => import("./PopupFilter"), {
   ssr: false,
@@ -82,7 +83,7 @@ const DataTableComponent = ({
   const [columnVisibility, setColumnVisibility] = useState({});
   const [rowSelection, setRowSelection] = useState({});
   const [page, setPage] = useState(0);
-  const [data, setData] = useState(initialData || []);
+  const [data, setData] = useState(initialData);
   const [hasNextPage, setHasNextPage] = useState(true);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
 
@@ -103,11 +104,14 @@ const DataTableComponent = ({
   const fetchItemsQuery = useFetchItems(page, limit, apiFilters);
 
   // Update data state when query data changes
+  // Update data state when query data changes
   useEffect(() => {
     if (fetchItemsQuery.data) {
       const newItems = fetchItemsQuery.data[resource] || [];
-      if (page === 0) {
+
+      if (page === 0 || isFilterRefetching) {
         setData(newItems);
+        setIsFilterRefetching(false);
       } else {
         // Append new items to existing data
         setData((prev) => [...prev, ...newItems]);
@@ -115,11 +119,6 @@ const DataTableComponent = ({
 
       // Check if we've reached the end of available data
       setHasNextPage(newItems.length === limit);
-
-      // Reset filter refetching state
-      if (isFilterRefetching) {
-        setIsFilterRefetching(false);
-      }
     }
   }, [fetchItemsQuery.data, page, resource, limit, isFilterRefetching]);
 
@@ -179,29 +178,17 @@ const DataTableComponent = ({
 
   // Convert client-side filter to API filter format and trigger refetch
   const setFilter = useCallback(
-    (field, value) => {
+    debounce((field, value) => {
       setClientFilter(field, value);
-
-      // Update API filters
       setApiFilters((prev) => {
-        // Create a modified version of the filters for the API
         const apiFilter = { ...prev };
-
-        if (value === undefined || value === null || value === "") {
-          // Remove empty filters
-          delete apiFilter[field];
-        } else {
-          // Add or update the filter
-          apiFilter[field] = value;
-        }
-
+        if (!value) delete apiFilter[field];
+        else apiFilter[field] = value;
         return apiFilter;
       });
-
-      // Reset to first page and refetch with new filters
       setPage(0);
       setIsFilterRefetching(true);
-    },
+    }, 300),
     [setClientFilter]
   );
 
@@ -359,6 +346,9 @@ const DataTableComponent = ({
     }
   };
 
+  // Single loading state approach
+  const isLoading = fetchItemsQuery.isLoading && page === 0 && !data.length;
+  const isLoadingMore = isFetchingNextPage || fetchItemsQuery.isLoading;
   return (
     <div>
       <div className="flex items-center justify-between py-4">
@@ -442,7 +432,7 @@ const DataTableComponent = ({
             ))}
           </TableHeader>
           <TableBody>
-            {fetchItemsQuery.isLoading && page === 0 ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
@@ -501,7 +491,7 @@ const DataTableComponent = ({
         {/* Intersection Observer Target */}
         {hasNextPage && table.getRowModel().rows?.length > 0 && (
           <div ref={loaderRef} className="w-full p-4 text-center">
-            {isFetchingNextPage || fetchItemsQuery.isLoading ? (
+            {isLoadingMore ? (
               <div className="flex justify-center">
                 <Loader2 className="animate-spin" size={24} />
               </div>

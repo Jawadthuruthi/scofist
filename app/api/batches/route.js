@@ -28,6 +28,20 @@ export async function GET(req, res) {
 
     // Build MongoDB query from filter params
     const query = {};
+
+    // Process global search first
+    if (filterParams.search) {
+      const searchRegex = { $regex: filterParams.search, $options: "i" };
+      // Add $or condition to search across multiple fields
+      query.$or = [
+        { name: searchRegex },
+        { description: searchRegex },
+        { status: searchRegex },
+        { createdBy: searchRegex },
+        // Add other text fields you want to search
+      ];
+    }
+
     if (filterParams.name) {
       query.name = { $regex: filterParams.name, $options: "i" };
     }
@@ -40,8 +54,6 @@ export async function GET(req, res) {
     if (filterParams.endYear) {
       query.endYear = filterParams.endYear;
     }
-
-    console.log(query);
 
     // Execute query with pagination
     const batches = await Batch.find(query)
