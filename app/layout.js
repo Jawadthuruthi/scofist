@@ -31,6 +31,9 @@ export const metadata = {
     platform: "Instagram",
     handle: "@jawad_thuruthi",
   },
+  icons: {
+    icon: "/favicon.svg", // SVG favicon
+  },
 };
 
 export default function RootLayout({ children }) {

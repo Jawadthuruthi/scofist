@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
@@ -6,9 +7,13 @@ export default function Home() {
     <main className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800">
       {/* Header with subtle gradient background */}
       <header className="w-full py-4 px-6 flex justify-center items-center shadow">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-          SCOFIST
-        </h1>
+        <Image
+          src="/logo.svg"
+          alt="Logo"
+          width={200}
+          height={200}
+          className="mr-4"
+        />
       </header>
 
       {/* Hero Section with improved spacing and visual hierarchy */}
