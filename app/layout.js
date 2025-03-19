@@ -31,8 +31,21 @@ export const metadata = {
     platform: "Instagram",
     handle: "@jawad_thuruthi",
   },
+  manifest: "/manifest.json",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  },
+  capable: true,
+  statusBarStyle: "default",
   icons: {
     icon: "/favicon.svg", // SVG favicon
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Scofist",
   },
 };
 
