@@ -87,10 +87,6 @@
   @apply box-border m-0 p-0;
 }
 
-main {
-  @apply p-4;
-}
-
 .loader {
   top: 0;
   left: 0;
@@ -111,6 +107,13 @@ main {
   box-sizing: border-box;
   animation: animloader 1s linear infinite;
   @apply bg-primary;
+}
+
+::-webkit-scrollbar {
+  @apply hidden;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-primary rounded-full;
 }
 
 @media (min-width: 800px) {
