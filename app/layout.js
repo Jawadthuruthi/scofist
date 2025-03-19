@@ -13,7 +13,7 @@ export const metadata = {
   title: "Sa-adiya Da-awa College - Islamic College Of Integrated Studies",
   description:
     "Sa-adiya Da-awa College offers comprehensive Islamic and integrated studies, promoting academic excellence and spiritual growth. Explore our programs and community.",
-  author: "Jawad TS",
+  authors: [{ name: "Jawad TS" }],
   keywords:
     "Jamia Sa Adiya Arabia, Sa-adiya Da-awa College, Islamic College, integrated studies, Islamic education, academic excellence, spiritual growth, Islamic studies programs, higher education, Da-awa college",
   robots: "index, follow",
@@ -24,8 +24,9 @@ export const metadata = {
     url: "https://www.scofist.com",
     type: "website",
     locale: "en_US",
-    site_name: "Sa-adiya Da-awa College",
+    siteName: "Sa-adiya Da-awa College",
   },
+  metadataBase: new URL("https://www.scofist-app.vercel.app"),
   social: {
     platform: "Instagram",
     handle: "@jawad_thuruthi",

@@ -91,9 +91,9 @@ export default function PopupFilter({
           <DialogContent className="max-w-[80%] mx-auto sm:max-w-xl">
             <DialogHeader>
               <DialogTitle>
+                Filter{" "}
                 {buttonLabel.trim().charAt(0).toUpperCase() +
-                  buttonLabel.trim().slice(1)}{" "}
-                Filter
+                  buttonLabel.trim().slice(1)}
               </DialogTitle>
             </DialogHeader>
             <div className="py-4">
