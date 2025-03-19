@@ -325,6 +325,11 @@ const DataTableComponent = ({
           />
         </div>
       </div>
+      {!!selectedData.length && (
+        <div className="mb-2 text-muted-foreground">
+          {selectedData?.length} selected
+        </div>
+      )}
       <div
         ref={tableRef}
         className={`rounded-md overflow-auto border shadow-sm`}

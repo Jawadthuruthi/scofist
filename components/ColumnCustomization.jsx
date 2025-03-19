@@ -17,7 +17,7 @@ const ColumnCustomization = ({ table, columnsConfig }) => {
           <Sliders />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent className="mx-4" align="end">
         {columnsConfig
           .filter((column) => column.accessorKey)
           .map((columnConfig) => {

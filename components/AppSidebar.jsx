@@ -34,7 +34,7 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import Cookies from "js-cookie";
+import { usePathname } from "next/navigation";
 
 // Menu items.
 const items = [
@@ -210,9 +211,28 @@ function ComboBox({ roles, activeRole }) {
 }
 
 export function AppSidebar({ roles }) {
-  const [location, setLocation] = useState(window.location.pathname);
-  const { toggleSidebar } = useSidebar();
+  const sidebarRef = useRef(null);
+  const { toggleSidebar, setOpen } = useSidebar();
   const activeRole = Cookies.get("active-role") || roles[0];
+  const pathname = usePathname();
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        setOpen(false); // Close sidebar
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [toggleSidebar]);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   const menuItems = useMemo(() => {
     return items
@@ -229,7 +249,7 @@ export function AppSidebar({ roles }) {
   }, [activeRole]);
 
   return (
-    <Sidebar>
+    <Sidebar ref={sidebarRef}>
       <SidebarContent>
         <div className="flex justify-between items-center h-14 px-6 border-b">
           <h2 className="text-lg  font-semibold">SCOFIST</h2>
@@ -237,7 +257,7 @@ export function AppSidebar({ roles }) {
             variant="ghost"
             size="icon"
             onClick={() => {
-              toggleSidebar();
+              setOpen(false);
             }}
           >
             <X className="w-5 h-5" />
@@ -262,8 +282,7 @@ export function AppSidebar({ roles }) {
                       {item.subItems.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton
-                            data-active={location === subItem.url}
-                            onClick={() => setLocation(subItem.url)}
+                            data-active={pathname === subItem.url}
                             asChild
                           >
                             <Link href={subItem.url}>
@@ -278,8 +297,7 @@ export function AppSidebar({ roles }) {
                 ) : (
                   <SidebarMenuItem className="pt-1" key={item.title}>
                     <SidebarMenuButton
-                      data-active={location === item.url}
-                      onClick={() => setLocation(item.url)}
+                      data-active={pathname === item.url}
                       asChild
                     >
                       <Link href={item.url} className="flex items-center gap-2">

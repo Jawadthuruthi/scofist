@@ -8,6 +8,7 @@ const Toaster = ({ ...props }) => {
   return (
     <Sonner
       theme={theme}
+      style={{ fontFamily: "Montserrat, sans-serif" }}
       className="toaster group"
       toastOptions={{
         classNames: {
