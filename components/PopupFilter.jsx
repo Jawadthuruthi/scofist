@@ -192,7 +192,7 @@ export default function PopupFilter({
 
         {hasFilters && (
           <Button variant="destructive" onClick={handleClearFilters}>
-            Clear Filters <Trash2 />
+            Clear <Trash2 />
           </Button>
         )}
       </div>

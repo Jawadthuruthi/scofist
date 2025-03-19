@@ -232,7 +232,7 @@ export function AppSidebar({ roles }) {
     <Sidebar>
       <SidebarContent>
         <div className="flex justify-between items-center h-14 px-6 border-b">
-          <h2 className="text-lg font-semibold">Menu</h2>
+          <h2 className="text-lg  font-semibold">SCOFIST</h2>
           <Button
             variant="ghost"
             size="icon"
