@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Filter } from "lucide-react";
+import { X, Filter, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -188,6 +188,12 @@ export default function PopupFilter({
               />
             )}
           </div>
+        )}
+
+        {hasFilters && (
+          <Button variant="destructive" onClick={handleClearFilters}>
+            Clear Filters <Trash2 />
+          </Button>
         )}
       </div>
     </div>

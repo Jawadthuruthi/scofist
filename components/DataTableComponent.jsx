@@ -144,19 +144,18 @@ const DataTableComponent = ({
   const isLoadingMore =
     isFetchingNextPage || (fetchItemsQuery.isLoading && page > 0);
 
+  const fetchNextPage = useCallback(() => {
+    if (hasNextPage && !isLoadingMore && !fetchItemsQuery.isLoading) {
+      setIsFetchingNextPage(true);
+      setPage((prevPage) => prevPage + 1);
+      setIsFetchingNextPage(false);
+    }
+  }, [hasNextPage, isLoadingMore, fetchItemsQuery.isLoading]);
+
   const handleObserver = useCallback(
     (entries) => {
       const [entry] = entries;
-      if (
-        entry.isIntersecting &&
-        hasNextPage &&
-        !isLoadingMore &&
-        !fetchItemsQuery.isLoading
-      ) {
-        setIsFetchingNextPage(true);
-        setPage((prevPage) => prevPage + 1);
-        setIsFetchingNextPage(false);
-      }
+      if (entry.isIntersecting) fetchNextPage();
     },
     [hasNextPage, isLoadingMore, fetchItemsQuery.isLoading]
   );
@@ -172,25 +171,12 @@ const DataTableComponent = ({
       observer.observe(loaderRef.current);
     }
 
-    return () => {
-      if (loaderRef.current) {
-        observer.unobserve(loaderRef.current);
-      }
-    };
+    return () => observer.disconnect();
   }, [handleObserver]);
 
   // Auto fetch more data if filtered data is less
   useEffect(() => {
-    if (
-      filteredData.length < limit &&
-      hasNextPage &&
-      !isLoadingMore &&
-      !fetchItemsQuery.isLoading
-    ) {
-      setIsFetchingNextPage(true);
-      setPage((prevPage) => prevPage + 1);
-      setIsFetchingNextPage(false);
-    }
+    if (filteredData.length < limit) fetchNextPage();
   }, [
     filteredData,
     hasNextPage,
@@ -203,7 +189,10 @@ const DataTableComponent = ({
     content: () => tableRef.current,
   });
 
-  const columns = useTableColumns(columnsConfig);
+  const columns = useMemo(
+    () => useTableColumns(columnsConfig),
+    [columnsConfig]
+  );
 
   const addData = useAddItem();
   const updateData = useUpdateItem();
@@ -310,7 +299,7 @@ const DataTableComponent = ({
           />
         </div>
         <div className="space-x-2">
-          {selectedData?.length > 0 && (
+          {!!selectedData?.length && (
             <ConfirmationPopup
               onClick={handleDelete}
               action="delete"
@@ -318,7 +307,7 @@ const DataTableComponent = ({
               title={deleteFormTitle}
             />
           )}
-          {((selectedData?.length > 0 && multiEdit) ||
+          {((!!selectedData?.length && multiEdit) ||
             selectedData?.length === 1) && (
             <PopupForm
               data={selectedData[0]}
