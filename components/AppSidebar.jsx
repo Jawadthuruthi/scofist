@@ -210,6 +210,7 @@ function ComboBox({ roles, activeRole }) {
 }
 
 export function AppSidebar({ roles }) {
+  const [location, setLocation] = useState(window.location.pathname);
   const { toggleSidebar } = useSidebar();
   const activeRole = Cookies.get("active-role") || roles[0];
 
@@ -232,7 +233,13 @@ export function AppSidebar({ roles }) {
       <SidebarContent>
         <div className="flex justify-between items-center h-14 px-6 border-b">
           <h2 className="text-lg font-semibold">Menu</h2>
-          <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              toggleSidebar();
+            }}
+          >
             <X className="w-5 h-5" />
           </Button>
         </div>
@@ -241,7 +248,7 @@ export function AppSidebar({ roles }) {
         </div>
         <SidebarGroup className="px-4">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-2">
+            <SidebarMenu>
               {menuItems.map((item) =>
                 item.subItems ? (
                   <SidebarMenuItem key={item.title}>
@@ -251,10 +258,14 @@ export function AppSidebar({ roles }) {
                         <span>{item.title}</span>
                       </div>
                     </SidebarMenuButton>
-                    <SidebarMenuSub className="mr-0 gap-3 pt-2">
+                    <SidebarMenuSub className="mr-0 pt-2">
                       {item.subItems.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton asChild>
+                          <SidebarMenuSubButton
+                            data-active={location === subItem.url}
+                            onClick={() => setLocation(subItem.url)}
+                            asChild
+                          >
                             <Link href={subItem.url}>
                               <subItem.icon className="w-5 h-5" />
                               <span>{subItem.title}</span>
@@ -266,7 +277,11 @@ export function AppSidebar({ roles }) {
                   </SidebarMenuItem>
                 ) : (
                   <SidebarMenuItem className="pt-1" key={item.title}>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton
+                      data-active={location === item.url}
+                      onClick={() => setLocation(item.url)}
+                      asChild
+                    >
                       <Link href={item.url} className="flex items-center gap-2">
                         <item.icon className="w-5 h-5" />
                         <span>{item.title}</span>
