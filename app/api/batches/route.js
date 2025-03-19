@@ -29,31 +29,6 @@ export async function GET(req, res) {
     // Build MongoDB query from filter params
     const query = {};
 
-    // Handle global search
-    if (filterParams.search) {
-      const searchRegex = { $regex: filterParams.search, $options: "i" };
-      const searchQuery = [
-        { name: searchRegex },
-        { description: searchRegex },
-        { status: searchRegex },
-        // Add other text fields you want to search
-      ];
-
-      // Try to convert search string to number for numeric fields
-      const numericSearch = !isNaN(filterParams.search)
-        ? Number(filterParams.search)
-        : null;
-      if (numericSearch !== null) {
-        searchQuery.push(
-          { startYear: numericSearch },
-          { endYear: numericSearch }
-        );
-      }
-
-      query.$or = searchQuery;
-    }
-
-    // Handle specific filters
     if (filterParams.name) {
       query.name = { $regex: filterParams.name, $options: "i" };
     }

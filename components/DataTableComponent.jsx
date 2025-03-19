@@ -74,7 +74,7 @@ const DataTableComponent = ({
   deleteFormTitle = "Delete Item",
   filterConfig = [],
   multiEdit = false,
-  limit = 20, // Default limit for infinite loading
+  limit = 20,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -85,9 +85,7 @@ const DataTableComponent = ({
   const [data, setData] = useState(initialData);
   const [hasNextPage, setHasNextPage] = useState(true);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
-  const [apiFilters, setApiFilters] = useState({});
 
-  const filterCache = useRef({});
   const tableRef = useRef(null);
   const loaderRef = useRef(null);
   const router = useRouter();
@@ -108,13 +106,16 @@ const DataTableComponent = ({
     token
   );
 
-  // Use the fetchItems hook with pagination parameters and server-side filters
-  const fetchItemsQuery = useFetchItems(page, limit, apiFilters, {
-    retry: 2,
-    retryDelay: 1000,
-  });
+  const fetchItemsQuery = useFetchItems(
+    page,
+    limit,
+    {},
+    {
+      retry: 2,
+      retryDelay: 1000,
+    }
+  );
 
-  // Handle fetch errors
   useEffect(() => {
     if (fetchItemsQuery.error) {
       toast.error(
@@ -124,36 +125,25 @@ const DataTableComponent = ({
     }
   }, [fetchItemsQuery.error]);
 
-  // Update data state when query data changes
   useEffect(() => {
     if (fetchItemsQuery.data) {
       const newItems = fetchItemsQuery.data[resource] || [];
 
-      // Handle cache for filter
-      const cacheKey = JSON.stringify(apiFilters);
-      if (page === 0) {
-        filterCache.current[cacheKey] = newItems;
-      }
-
       if (page === 0) {
         setData(newItems);
       } else {
-        // Append new items to existing data
         setData((prev) => [...prev, ...newItems]);
       }
 
-      // Check if we've reached the end of available data
       setHasNextPage(newItems.length === limit);
     }
   }, [fetchItemsQuery.data, page, resource, limit]);
 
-  // Define loading states
   const isInitialLoading =
     fetchItemsQuery.isLoading && page === 0 && !data.length;
   const isLoadingMore =
     isFetchingNextPage || (fetchItemsQuery.isLoading && page > 0);
 
-  // Intersection Observer setup
   const handleObserver = useCallback(
     (entries) => {
       const [entry] = entries;
@@ -189,43 +179,25 @@ const DataTableComponent = ({
     };
   }, [handleObserver]);
 
-  const handleFilter = useCallback(
-    (field, value) => {
-      console.log(value);
-      setFilter(field, value);
-      setApiFilters((prev) => ({ ...prev, [field]: value }));
-      setPage(0);
-    },
-    [setFilter]
-  );
-  const handleGlobalFilter = useCallback(
-    (value) => {
-      setGlobalFilter(value);
-      setApiFilters((prev) => ({ ...prev, ["search"]: value }));
-      setPage(0);
-    },
-    [setFilter]
-  );
-
-  const handleRemoveFilter = useCallback(
-    (field) => {
-      removeFilter(field);
-      setApiFilters((prev) => {
-        const newFilters = { ...prev };
-        delete newFilters[field];
-        return newFilters;
-      });
-      setPage(0);
-    },
-    [removeFilter]
-  );
-
-  // Clear all filters
-  const handleClearFilters = useCallback(() => {
-    clearFilters();
-    setApiFilters({});
-    setPage(0);
-  }, [clearFilters]);
+  // Auto fetch more data if filtered data is less
+  useEffect(() => {
+    if (
+      filteredData.length < limit &&
+      hasNextPage &&
+      !isLoadingMore &&
+      !fetchItemsQuery.isLoading
+    ) {
+      setIsFetchingNextPage(true);
+      setPage((prevPage) => prevPage + 1);
+      setIsFetchingNextPage(false);
+    }
+  }, [
+    filteredData,
+    hasNextPage,
+    isLoadingMore,
+    fetchItemsQuery.isLoading,
+    limit,
+  ]);
 
   const handlePrint = usePrint({
     content: () => tableRef.current,
@@ -267,9 +239,7 @@ const DataTableComponent = ({
       await addData.mutateAsync(values);
       table.resetRowSelection();
       toast.success(createSuccessMessage);
-      // Reset page to ensure fresh data is loaded
       setPage(0);
-      // setIsRefetching(true);
       router.refresh();
     } catch (error) {
       console.error(error.message);
@@ -291,9 +261,7 @@ const DataTableComponent = ({
         },
       });
       table.resetRowSelection();
-      // Reset page to ensure fresh data is loaded
       setPage(0);
-      // setIsRefetching(true);
       router.refresh();
       toast.success(editSuccessMessage);
     } catch (error) {
@@ -311,9 +279,7 @@ const DataTableComponent = ({
       setLoading(true);
       await deleteData.mutateAsync(selectedData?.map((item) => item._id));
       table.resetRowSelection();
-      // Reset page to ensure fresh data is loaded
       setPage(0);
-      // setIsRefetching(true);
       toast.success(deleteSuccessMessage);
       router.refresh();
     } catch (error) {
@@ -334,11 +300,11 @@ const DataTableComponent = ({
           <PopupFilter
             filterConfig={filterConfig}
             filters={filters}
-            setFilter={handleFilter}
-            removeFilter={handleRemoveFilter}
-            clearFilters={handleClearFilters}
+            setFilter={setFilter}
+            removeFilter={removeFilter}
+            clearFilters={clearFilters}
             globalFilter={globalFilter}
-            setGlobalFilter={handleGlobalFilter}
+            setGlobalFilter={setGlobalFilter}
             hasFilters={hasFilters || Object.keys(filters).length > 0}
             buttonLabel={resource}
           />
@@ -465,7 +431,6 @@ const DataTableComponent = ({
             )}
           </TableBody>
         </Table>
-        {/* Intersection Observer Target */}
         {hasNextPage && table.getRowModel().rows?.length > 0 && (
           <div ref={loaderRef} className="w-full p-4 text-center">
             {isLoadingMore ? (
