@@ -34,7 +34,7 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -212,28 +212,30 @@ function ComboBox({ roles, activeRole }) {
 
 export function AppSidebar({ roles }) {
   const sidebarRef = useRef(null);
-  const { toggleSidebar, setOpen } = useSidebar();
+  const { setOpen } = useSidebar();
   const activeRole = Cookies.get("active-role") || roles[0];
   const pathname = usePathname();
 
-  useEffect(() => {
-    function handleClickOutside(event) {
+  // Close sidebar on outside click
+  const handleClickOutside = useCallback(
+    (event) => {
       if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
-        setOpen(false); // Close sidebar
+        setOpen(false);
       }
-    }
+    },
+    [setOpen]
+  );
 
+  useEffect(() => {
     document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [toggleSidebar]);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [handleClickOutside]);
 
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
+  // Memoized filtered menu items
   const menuItems = useMemo(() => {
     return items
       .filter((item) => item.allowedRoles?.includes(activeRole)) // Filter parent items
