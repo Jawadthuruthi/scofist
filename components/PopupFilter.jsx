@@ -55,7 +55,7 @@ export default function PopupFilter({
   globalFilter,
   setGlobalFilter,
   hasFilters,
-  buttonLabel = "Filters",
+  buttonLabel = "Table",
 }) {
   const [open, setOpen] = useState(false);
 
@@ -90,7 +90,11 @@ export default function PopupFilter({
           </DialogTrigger>
           <DialogContent className="max-w-[80%] mx-auto sm:max-w-xl">
             <DialogHeader>
-              <DialogTitle>{buttonLabel}</DialogTitle>
+              <DialogTitle>
+                {buttonLabel.trim().charAt(0).toUpperCase() +
+                  buttonLabel.trim().slice(1)}{" "}
+                Filter
+              </DialogTitle>
             </DialogHeader>
             <div className="py-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

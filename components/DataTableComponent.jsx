@@ -85,6 +85,7 @@ const DataTableComponent = ({
   const [data, setData] = useState(initialData);
   const [hasNextPage, setHasNextPage] = useState(true);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
+  const [apiFilters, setApiFilters] = useState({});
 
   const filterCache = useRef({});
   const tableRef = useRef(null);
@@ -108,7 +109,7 @@ const DataTableComponent = ({
   );
 
   // Use the fetchItems hook with pagination parameters and server-side filters
-  const fetchItemsQuery = useFetchItems(page, limit, filters, {
+  const fetchItemsQuery = useFetchItems(page, limit, apiFilters, {
     retry: 2,
     retryDelay: 1000,
   });
@@ -129,7 +130,7 @@ const DataTableComponent = ({
       const newItems = fetchItemsQuery.data[resource] || [];
 
       // Handle cache for filter
-      const cacheKey = JSON.stringify(filters);
+      const cacheKey = JSON.stringify(apiFilters);
       if (page === 0) {
         filterCache.current[cacheKey] = newItems;
       }
@@ -190,7 +191,17 @@ const DataTableComponent = ({
 
   const handleFilter = useCallback(
     (field, value) => {
+      console.log(value);
       setFilter(field, value);
+      setApiFilters((prev) => ({ ...prev, [field]: value }));
+      setPage(0);
+    },
+    [setFilter]
+  );
+  const handleGlobalFilter = useCallback(
+    (value) => {
+      setGlobalFilter(value);
+      setApiFilters((prev) => ({ ...prev, ["search"]: value }));
       setPage(0);
     },
     [setFilter]
@@ -199,6 +210,11 @@ const DataTableComponent = ({
   const handleRemoveFilter = useCallback(
     (field) => {
       removeFilter(field);
+      setApiFilters((prev) => {
+        const newFilters = { ...prev };
+        delete newFilters[field];
+        return newFilters;
+      });
       setPage(0);
     },
     [removeFilter]
@@ -207,6 +223,7 @@ const DataTableComponent = ({
   // Clear all filters
   const handleClearFilters = useCallback(() => {
     clearFilters();
+    setApiFilters({});
     setPage(0);
   }, [clearFilters]);
 
@@ -321,9 +338,9 @@ const DataTableComponent = ({
             removeFilter={handleRemoveFilter}
             clearFilters={handleClearFilters}
             globalFilter={globalFilter}
-            setGlobalFilter={setGlobalFilter}
+            setGlobalFilter={handleGlobalFilter}
             hasFilters={hasFilters || Object.keys(filters).length > 0}
-            buttonLabel="Table Filters"
+            buttonLabel={resource}
           />
         </div>
         <div className="space-x-2">
