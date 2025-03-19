@@ -38,8 +38,6 @@ export async function middleware(req) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
 
-    const activeRole = req.cookies.get("active-role")?.value || user.roles?.[0];
-
     // Proceed with the request
     const res = NextResponse.next();
     res.headers.set("x-user", JSON.stringify({ ...user, userId: user._id }));

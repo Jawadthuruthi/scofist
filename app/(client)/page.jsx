@@ -1,8 +1,14 @@
 import { Button } from "@/components/ui/button";
+import { verifyToken } from "@/lib/auth";
+import { cookies } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function Home() {
+export default async function Home() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("auth-token")?.value;
+
+  const verifiedToken = await verifyToken(token);
   return (
     <main className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800">
       {/* Header with subtle gradient background */}
@@ -28,10 +34,10 @@ export default function Home() {
             modern education for tomorrow's leaders.
           </p>
           <div className="flex flex-col sm:flex-row w-40 mx-auto sm:w-auto gap-4 justify-center">
-            <Link href="/login">
+            <Link href={verifiedToken?.payload ? "/dashboard" : "/login"}>
               <Button
                 size="lg"
-                className="w-full py-6 sm:px--8 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg shadow-md hover:shadow-lg transition-all"
+                className="w-full py-6 sm:w-40 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg shadow-md hover:shadow-lg transition-all"
               >
                 Login
               </Button>
@@ -40,7 +46,7 @@ export default function Home() {
               <Button
                 size="lg"
                 variant="outline"
-                className="w-full py-6 sm:px--8 border-2 border-emerald-700 text-emerald-700 bg-transparent hover:bg-emerald-50 rounded-lg shadow-sm hover:shadow-md transition-all"
+                className="w-full py-6 sm:w-40 border-2 border-emerald-700 text-emerald-700 bg-transparent hover:bg-emerald-50 rounded-lg shadow-sm hover:shadow-md transition-all"
               >
                 Apply Now
               </Button>

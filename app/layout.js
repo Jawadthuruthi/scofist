@@ -32,11 +32,7 @@ export const metadata = {
     handle: "@jawad_thuruthi",
   },
   manifest: "/manifest.json",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-  },
+
   capable: true,
   statusBarStyle: "default",
   icons: {
