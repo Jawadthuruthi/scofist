@@ -333,7 +333,7 @@ const DataTableComponent = ({
       )}
       <div
         ref={tableRef}
-        className={`rounded-md overflow-auto border shadow-sm table-print`}
+        className={`rounded-md border overflow-auto shadow-sm table-print`}
         style={{
           maxHeight: tableHeight,
         }}
