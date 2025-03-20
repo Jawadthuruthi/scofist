@@ -59,6 +59,20 @@ const PopupForm = dynamic(() => import("./PopupForm"), {
   ),
 });
 
+const getCellStyles = (meta) => ({
+  width: meta?.width || "auto",
+  minWidth: meta?.minWidth || "100px",
+  maxWidth: meta?.maxWidth || "300px",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const handleError = (error) => {
+  console.error(error.message);
+  toast.error(error.message || "Something went wrong. Please try again later.");
+};
+
 const DataTableComponent = ({
   resource,
   initialData = [],
@@ -84,7 +98,6 @@ const DataTableComponent = ({
   const [page, setPage] = useState(0);
   const [data, setData] = useState(initialData);
   const [hasNextPage, setHasNextPage] = useState(true);
-  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
 
   const tableRef = useRef(null);
   const loaderRef = useRef(null);
@@ -141,14 +154,12 @@ const DataTableComponent = ({
 
   const isInitialLoading =
     fetchItemsQuery.isLoading && page === 0 && !data.length;
-  const isLoadingMore =
-    isFetchingNextPage || (fetchItemsQuery.isLoading && page > 0);
+
+  const isLoadingMore = fetchItemsQuery.isLoading && page > 0;
 
   const fetchNextPage = useCallback(() => {
     if (hasNextPage && !isLoadingMore && !fetchItemsQuery.isLoading) {
-      setIsFetchingNextPage(true);
       setPage((prevPage) => prevPage + 1);
-      setIsFetchingNextPage(false);
     }
   }, [hasNextPage, isLoadingMore, fetchItemsQuery.isLoading]);
 
@@ -157,7 +168,7 @@ const DataTableComponent = ({
       const [entry] = entries;
       if (entry.isIntersecting) fetchNextPage();
     },
-    [hasNextPage, isLoadingMore, fetchItemsQuery.isLoading]
+    [hasNextPage, isLoadingMore]
   );
 
   useEffect(() => {
@@ -189,10 +200,9 @@ const DataTableComponent = ({
     content: () => tableRef.current,
   });
 
-  const columns = useMemo(
-    () => useTableColumns(columnsConfig),
-    [columnsConfig]
-  );
+  const columns = useMemo(() => {
+    return useTableColumns(columnsConfig);
+  }, [columnsConfig]);
 
   const addData = useAddItem();
   const updateData = useUpdateItem();
@@ -231,10 +241,7 @@ const DataTableComponent = ({
       setPage(0);
       router.refresh();
     } catch (error) {
-      console.error(error.message);
-      toast.error(
-        error.message || "Something went wrong. Please try again later."
-      );
+      handleError(error);
     } finally {
       setLoading(false);
     }
@@ -254,10 +261,7 @@ const DataTableComponent = ({
       router.refresh();
       toast.success(editSuccessMessage);
     } catch (error) {
-      console.error(error.message);
-      toast.error(
-        error.message || "Something went wrong. Please try again later."
-      );
+      handleError(error);
     } finally {
       setLoading(false);
     }
@@ -272,10 +276,7 @@ const DataTableComponent = ({
       toast.success(deleteSuccessMessage);
       router.refresh();
     } catch (error) {
-      console.error(error.message);
-      toast.error(
-        error.message || "Something went wrong. Please try again later."
-      );
+      handleError(error);
     } finally {
       setLoading(false);
     }
@@ -307,16 +308,16 @@ const DataTableComponent = ({
               title={deleteFormTitle}
             />
           )}
-          {((!!selectedData?.length && multiEdit) ||
-            selectedData?.length === 1) && (
-            <PopupForm
-              data={selectedData[0]}
-              formFields={formFields}
-              onSubmit={handleEdit}
-              loading={loading}
-              title={editFormTitle}
-            />
-          )}
+          {selectedData.length === 1 ||
+            (selectedData.length > 1 && multiEdit && (
+              <PopupForm
+                data={selectedData[0]}
+                formFields={formFields}
+                onSubmit={handleEdit}
+                loading={loading}
+                title={editFormTitle}
+              />
+            ))}
           <PopupForm
             formFields={formFields}
             onSubmit={handleSubmit}
@@ -345,16 +346,7 @@ const DataTableComponent = ({
                   return (
                     <TableHead
                       key={header.id}
-                      style={{
-                        width: header.column.columnDef.meta?.width || "auto",
-                        minWidth:
-                          header.column.columnDef.meta?.minWidth || "100px",
-                        maxWidth:
-                          header.column.columnDef.meta?.maxWidth || "300px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
+                      style={getCellStyles(header.column.columnDef.meta)}
                     >
                       {header.isPlaceholder
                         ? null
@@ -388,16 +380,7 @@ const DataTableComponent = ({
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
-                      style={{
-                        width: cell.column.columnDef.meta?.width || "auto",
-                        minWidth:
-                          cell.column.columnDef.meta?.minWidth || "100px",
-                        maxWidth:
-                          cell.column.columnDef.meta?.maxWidth || "300px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
+                      style={getCellStyles(cell.column.columnDef.meta)}
                       key={cell.id}
                     >
                       {flexRender(
