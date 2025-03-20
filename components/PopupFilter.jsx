@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { MultiSelect } from "./ui/multi-select";
+import { capitalize } from "lodash";
 
 // Define all available operators
 const OPERATORS = {
@@ -99,11 +100,7 @@ export default function PopupFilter({
           </DialogTrigger>
           <DialogContent className="max-w-[80%] mx-auto sm:max-w-xl">
             <DialogHeader>
-              <DialogTitle>
-                Filter{" "}
-                {buttonLabel.trim().charAt(0).toUpperCase() +
-                  buttonLabel.trim().slice(1)}
-              </DialogTitle>
+              <DialogTitle>Filter {capitalize(buttonLabel)}</DialogTitle>
             </DialogHeader>
             <div className="py-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

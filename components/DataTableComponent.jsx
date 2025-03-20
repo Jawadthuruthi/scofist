@@ -168,7 +168,7 @@ const DataTableComponent = ({
       const [entry] = entries;
       if (entry.isIntersecting) fetchNextPage();
     },
-    [hasNextPage, isLoadingMore]
+    [hasNextPage, isLoadingMore, fetchItemsQuery.isLoading]
   );
 
   useEffect(() => {

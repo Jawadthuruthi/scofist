@@ -12,34 +12,34 @@ const ColumnCustomization = ({ table, columnsConfig }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild onClick={() => setIsOpen(!isOpen)}>
+      <DropdownMenuTrigger asChild>
         <Button variant="outline">
           <Sliders />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="mx-4" align="end">
-        {columnsConfig
-          .filter((column) => column.accessorKey)
-          .map((columnConfig) => {
-            const column = table.getColumn(columnConfig.accessorKey);
+        {columnsConfig.map((columnConfig) => {
+          if (!columnConfig.accessorKey) return null;
 
-            // Skip if column doesn't exist in the table
-            if (!column) return null;
+          const column = table.getColumn(columnConfig.accessorKey);
 
-            return (
-              <DropdownMenuCheckboxItem
-                key={columnConfig.accessorKey}
-                className="capitalize"
-                checked={column.getIsVisible()}
-                onSelect={(event) => event.preventDefault()}
-                onCheckedChange={(value) => {
-                  column.toggleVisibility(!!value);
-                }}
-              >
-                {columnConfig.header || columnConfig.accessorKey}
-              </DropdownMenuCheckboxItem>
-            );
-          })}
+          // Skip if column doesn't exist in the table
+          if (!column) return null;
+
+          return (
+            <DropdownMenuCheckboxItem
+              key={columnConfig.accessorKey}
+              className="capitalize"
+              checked={column.getIsVisible()}
+              onSelect={(event) => event.preventDefault()}
+              onCheckedChange={(value) => {
+                column.toggleVisibility(!!value);
+              }}
+            >
+              {columnConfig.header || columnConfig.accessorKey}
+            </DropdownMenuCheckboxItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

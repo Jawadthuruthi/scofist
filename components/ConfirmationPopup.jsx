@@ -12,6 +12,7 @@ import {
 
 import { Loader2, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { capitalize } from "lodash";
 
 export default function ConfirmationPopup({
   loading = false,
@@ -21,16 +22,15 @@ export default function ConfirmationPopup({
 }) {
   const [open, setOpen] = React.useState(false);
 
-  const router = useRouter();
-  const handleClick = async () => {
+  const handleClick = React.useCallback(async () => {
     try {
       await onClick();
       setOpen(false);
-      router.refresh();
     } catch (error) {
       console.error(error.message);
     }
-  };
+  }, [onClick]);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -57,7 +57,7 @@ export default function ConfirmationPopup({
             {loading ? (
               <Loader2 className="animate-spin mr-2" />
             ) : (
-              action.trim().charAt(0).toUpperCase() + action.trim().slice(1)
+              capitalize(action)
             )}
           </Button>
         </div>

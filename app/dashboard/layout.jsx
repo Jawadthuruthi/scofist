@@ -3,11 +3,11 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Topbar } from "@/components/Topbar";
 import { headers } from "next/headers";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { parseUser } from "@/lib/utils";
 
 export default async function Layout({ children }) {
-  const userHeaders = await headers();
-  const userHeader = userHeaders.get("x-user");
-  const user = userHeader !== "undefined" ? JSON.parse(userHeader) : {};
+  const headerStore = await headers();
+  const user = parseUser(headerStore);
 
   return (
     <ThemeProvider
