@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { X, Filter, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,12 @@ const DEFAULT_OPERATORS = {
   boolean: OPERATORS.EQUALS,
 };
 
+const getCurrentValue = (filterItem, currentFilter) => {
+  if (currentFilter.value !== undefined) return currentFilter.value;
+  if (typeof currentFilter !== "object") return currentFilter;
+  return filterItem.inputType === "multiSelect" ? [] : "";
+};
+
 export default function PopupFilter({
   filterConfig = [],
   filters = {},
@@ -60,24 +66,27 @@ export default function PopupFilter({
   const [open, setOpen] = useState(false);
 
   // Enhanced filter change handler that works with different input types and operators
-  const handleFilterChange = (filterId, value, operator) => {
-    if (
-      (typeof value === "string" && value.trim() === "") ||
-      (Array.isArray(value) && value.length === 0) ||
-      value === undefined ||
-      value === null
-    ) {
-      removeFilter(filterId);
-    } else {
-      setFilter(filterId, value, operator);
-    }
-  };
+  const handleFilterChange = useCallback(
+    (filterId, value, operator) => {
+      if (
+        (typeof value === "string" && value.trim() === "") ||
+        (Array.isArray(value) && value.length === 0) ||
+        value === undefined ||
+        value === null
+      ) {
+        removeFilter(filterId);
+      } else {
+        setFilter(filterId, value, operator);
+      }
+    },
+    [setFilter, removeFilter]
+  );
 
   // Handle clearing filters and closing the dialog
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     clearFilters();
     setOpen(false);
-  };
+  }, [clearFilters]);
 
   return (
     <div className="space-y-2">
@@ -101,18 +110,10 @@ export default function PopupFilter({
                 {filterConfig.map((filterItem) => {
                   const filterId = filterItem.id;
                   const currentFilter = filters[filterId] || {};
-                  const currentValue = (() => {
-                    // If the filter exists, use its value
-                    if (currentFilter.value !== undefined) {
-                      return currentFilter.value;
-                    }
-                    // If the filter is a primitive value (legacy support)
-                    if (typeof currentFilter !== "object") {
-                      return currentFilter;
-                    }
-                    // Default empty values based on input type
-                    return filterItem.inputType === "multiSelect" ? [] : "";
-                  })();
+                  const currentValue = getCurrentValue(
+                    filterItem,
+                    currentFilter
+                  );
                   const displayName = filterItem.label || filterId;
                   const inputType = filterItem.inputType || "text";
                   const operator =
