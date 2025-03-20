@@ -212,7 +212,7 @@ function ComboBox({ roles, activeRole }) {
 
 export function AppSidebar({ roles }) {
   const sidebarRef = useRef(null);
-  const { setOpen } = useSidebar();
+  const { setOpen, toggleSidebar } = useSidebar();
   const activeRole = Cookies.get("active-role") || roles[0];
   const pathname = usePathname();
 
@@ -232,7 +232,7 @@ export function AppSidebar({ roles }) {
   }, [handleClickOutside]);
 
   useEffect(() => {
-    setOpen(false);
+    toggleSidebar();
   }, [pathname]);
 
   // Memoized filtered menu items

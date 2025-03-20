@@ -139,6 +139,10 @@
   button[role="checkbox"] {
     display: none;
   }
+
+  .table-print {
+    max-height: max-content !important;
+  }
 }
 
 .logo-container {

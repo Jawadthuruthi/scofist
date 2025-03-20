@@ -332,7 +332,7 @@ const DataTableComponent = ({
       )}
       <div
         ref={tableRef}
-        className={`rounded-md overflow-auto border shadow-sm`}
+        className={`rounded-md overflow-auto border shadow-sm table-print`}
         style={{
           maxHeight: tableHeight,
         }}
@@ -426,7 +426,7 @@ const DataTableComponent = ({
           </TableBody>
         </Table>
         {hasNextPage && table.getRowModel().rows?.length > 0 && (
-          <div ref={loaderRef} className="w-full p-4 text-center">
+          <div ref={loaderRef} className="w-full p-4 text-center print:hidden">
             {isLoadingMore ? (
               <div className="flex justify-center">
                 <Loader2 className="animate-spin" size={24} />
