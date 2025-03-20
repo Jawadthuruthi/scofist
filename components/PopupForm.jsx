@@ -121,23 +121,26 @@ export default function PopupForm({
 
   const defaultValues = React.useMemo(() => {
     return getDefaultValues(data, formFields);
-  }, []);
+  }, [data, formFields]);
 
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues,
     mode: "onChange",
-    key: data ? `edit-${data._id}` : "create",
+    key: data ? `edit-${data._id}` : `create ${title}`,
   });
 
-  const handleSubmit = async (values) => {
-    try {
-      await onSubmit(values);
-      setOpen(false);
-    } catch (error) {
-      console.error("Form submission failed:", error.message);
-    }
-  };
+  const handleSubmit = React.useCallback(
+    async (values) => {
+      try {
+        await onSubmit(values);
+        setOpen(false);
+      } catch (error) {
+        console.error("Form submission failed:", error.message);
+      }
+    },
+    [onSubmit]
+  );
 
   if (!isMobile) {
     return (
@@ -155,6 +158,7 @@ export default function PopupForm({
             )}
           </DialogHeader>
           <FormContent
+            key={data ? `edit-${data._id}` : `create ${title}`}
             form={form}
             formFields={formFields}
             handleSubmit={handleSubmit}

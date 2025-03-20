@@ -308,16 +308,16 @@ const DataTableComponent = ({
               title={deleteFormTitle}
             />
           )}
-          {selectedData.length === 1 ||
-            (selectedData.length > 1 && multiEdit && (
-              <PopupForm
-                data={selectedData[0]}
-                formFields={formFields}
-                onSubmit={handleEdit}
-                loading={loading}
-                title={editFormTitle}
-              />
-            ))}
+          {(selectedData.length === 1 ||
+            (selectedData.length > 1 && multiEdit)) && (
+            <PopupForm
+              data={selectedData[0]}
+              formFields={formFields}
+              onSubmit={handleEdit}
+              loading={loading}
+              title={editFormTitle}
+            />
+          )}
           <PopupForm
             formFields={formFields}
             onSubmit={handleSubmit}
