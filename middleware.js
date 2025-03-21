@@ -101,8 +101,6 @@ async function fetchUserProfile(userId) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ userId }),
-      signal: controller.signal,
-      // Add cache: 'no-store' to prevent browser caching
       cache: "no-store",
     });
 

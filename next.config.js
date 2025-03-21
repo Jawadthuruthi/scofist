@@ -11,6 +11,12 @@ const pwaConfig = withPWA({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
+  runtimeCaching: [
+    {
+      urlPattern: /^\//,
+      handler: "NetworkOnly",
+    },
+  ],
 })(nextConfig);
 
 export default pwaConfig;
