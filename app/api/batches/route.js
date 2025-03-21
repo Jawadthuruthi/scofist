@@ -46,7 +46,7 @@ export async function GET(req, res) {
     const batches = await Batch.find(query)
       .skip(page * limit)
       .limit(limit)
-      .sort({ createdAt: -1 });
+      .sort({ startYear: -1 });
 
     // Get total count for pagination info
     const total = await Batch.countDocuments(query);

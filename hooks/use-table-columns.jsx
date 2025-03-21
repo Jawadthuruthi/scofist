@@ -1,9 +1,9 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowUpDown, Pencil, Trash } from "lucide-react";
-import Image from "next/image";
+import { ArrowUpDown, Pencil, Trash, User } from "lucide-react";
 
 const useTableColumns = (columnConfig) => {
   return columnConfig.map((col) => {
@@ -72,19 +72,45 @@ const useTableColumns = (columnConfig) => {
       };
     }
 
+    // Apply list if type includes "array"
+    if (col.type?.includes("array")) {
+      columnDefinition.cell = ({ row }) => {
+        const value = row.getValue(col.accessorKey);
+
+        return (
+          <div className="font-medium">
+            {value.length > 0 ? (
+              value.join(", ")
+            ) : (
+              <span className="text-muted-foreground">-</span>
+            )}
+          </div>
+        );
+      };
+    }
+    // Apply nested data if type includes "nested"
+    if (col.type?.includes("nested")) {
+      columnDefinition.cell = ({ row }) => {
+        const value = row.getValue(col.accessorKey);
+
+        return (
+          <div className="font-medium">
+            {Object.values(value).filter(Boolean).join(", ")}
+          </div>
+        );
+      };
+    }
+
     // Apply date formatting if type includes "date"
     if (col.type?.includes("date")) {
       columnDefinition.cell = ({ row }) => {
-        const date = new Date(row.getValue(col.accessorKey));
-        return (
-          <div>
-            {date.toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
-          </div>
-        );
+        const value = new Date(row.getValue(col.accessorKey));
+        const date = value.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+        return <div>{date === "Invalid Date" ? "" : date}</div>;
       };
     }
 
@@ -98,15 +124,29 @@ const useTableColumns = (columnConfig) => {
 
     // Apply avatar formatting if type includes "avatar"
     if (col.type?.includes("avatar")) {
-      columnDefinition.cell = ({ row }) => (
-        <Image
-          src={row.getValue(col.accessorKey) || "/default-avatar.png"}
-          alt="Profile"
-          width={40}
-          height={40}
-          className="rounded-full"
-        />
-      );
+      columnDefinition.cell = ({ row }) => {
+        const imageSrc = row.getValue(col.accessorKey);
+        const name = row.getValue("name");
+
+        return (
+          <Avatar className="w-10 h-10">
+            <AvatarImage
+              src={imageSrc}
+              alt="Profile"
+              onError={(e) => {
+                e.currentTarget.style.display = "none"; // Hide broken image
+              }}
+            />
+            <AvatarFallback>
+              {name ? (
+                name.charAt(0).toUpperCase()
+              ) : (
+                <User className="w-5 h-5" />
+              )}
+            </AvatarFallback>
+          </Avatar>
+        );
+      };
     }
 
     // Apply link formatting if type includes "link"

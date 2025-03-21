@@ -89,6 +89,7 @@ const DataTableComponent = ({
   filterConfig = [],
   multiEdit = false,
   limit = 20,
+  apiFilters = {},
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -119,15 +120,10 @@ const DataTableComponent = ({
     token
   );
 
-  const fetchItemsQuery = useFetchItems(
-    page,
-    limit,
-    {},
-    {
-      retry: 2,
-      retryDelay: 1000,
-    }
-  );
+  const fetchItemsQuery = useFetchItems(page, limit, apiFilters, {
+    retry: 2,
+    retryDelay: 1000,
+  });
 
   useEffect(() => {
     if (fetchItemsQuery.error) {
@@ -142,15 +138,15 @@ const DataTableComponent = ({
     if (fetchItemsQuery.data) {
       const newItems = fetchItemsQuery.data[resource] || [];
 
-      console.log(page, fetchItemsQuery.data.pagination.totalPages);
-
-      if (page === 0) {
+      if (page === 0 && !initialData.length) {
         setData(newItems);
       } else {
         setData((prev) => [...prev, ...newItems]);
       }
 
-      setHasNextPage(page < fetchItemsQuery.data.pagination.totalPages);
+      setHasNextPage(
+        page < fetchItemsQuery.data.pagination.totalPages && newItems.length > 0
+      );
     }
   }, [fetchItemsQuery.data, page, resource, limit]);
 
@@ -241,6 +237,7 @@ const DataTableComponent = ({
       table.resetRowSelection();
       setPage(0);
       router.refresh();
+      // await fetchItemsQuery.refetch();
       toast.success(createSuccessMessage);
     } catch (error) {
       handleError(error);
@@ -261,6 +258,7 @@ const DataTableComponent = ({
       table.resetRowSelection();
       setPage(0);
       router.refresh();
+      // await fetchItemsQuery.refetch();
       toast.success(editSuccessMessage);
     } catch (error) {
       handleError(error);
@@ -276,6 +274,7 @@ const DataTableComponent = ({
       table.resetRowSelection();
       setPage(0);
       router.refresh();
+      // await fetchItemsQuery.refetch();
       toast.success(deleteSuccessMessage);
     } catch (error) {
       handleError(error);

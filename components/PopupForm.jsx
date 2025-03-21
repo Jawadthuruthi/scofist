@@ -41,7 +41,7 @@ const FormContent = ({ form, formFields, handleSubmit, data, loading }) => (
   <Form {...form}>
     <form
       onSubmit={form.handleSubmit(handleSubmit)}
-      className="grid items-start gap-4"
+      className="grid items-start gap-4 max-h-[80vh] overflow-auto"
     >
       {formFields.map((field, index) => (
         <FormField
@@ -150,13 +150,15 @@ export default function PopupForm({
             {data ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
+
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             {description && (
               <DialogDescription>{description}</DialogDescription>
             )}
           </DialogHeader>
+
           <FormContent
             key={data ? `edit-${data._id}` : `create ${title}`}
             form={form}

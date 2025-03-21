@@ -29,6 +29,12 @@ const userSchema = new Schema(
         message: "Invalid ID format",
       },
     },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      uppercase: true,
+    },
     email: {
       type: String,
       required: true,
@@ -37,12 +43,6 @@ const userSchema = new Schema(
       lowercase: true,
       match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Invalid email format"],
       index: true,
-    },
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-      uppercase: true,
     },
     roles: {
       type: [
@@ -103,6 +103,12 @@ const userSchema = new Schema(
           validator: (v) => v <= new Date(),
           message: "Joining date cannot be in the future",
         },
+      },
+      status: {
+        type: String,
+        enum: ["Active", "Retired"],
+        default: "Active",
+        required: true,
       },
     },
     studentSpecificField: {
