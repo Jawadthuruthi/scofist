@@ -88,7 +88,7 @@ export function Topbar({ user }) {
                   <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <CardTitle>{user.name}</CardTitle>
+                  <CardTitle className="text-center">{user.name}</CardTitle>
                   <CardDescription>{user.email}</CardDescription>
                 </div>
               </CardHeader>

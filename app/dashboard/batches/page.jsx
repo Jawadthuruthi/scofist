@@ -2,9 +2,7 @@ import { cookies } from "next/headers";
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { baseURL } from "@/lib/utils";
 
-// Configuration objects moved outside component to prevent recreation on each render
 const columnsConfig = [
   {
     id: "select",
@@ -127,19 +125,6 @@ const statusMessages = {
   delete: "Batch deleted successfully!",
 };
 
-// async function fetchBatches(token) {
-//   const response = await fetch(`${baseURL}/api/batches?limit=20`, {
-//     method: "GET",
-//     headers: {
-//       "Content-Type": "application/json",
-//       "api-key": token,
-//     },
-//     next: { revalidate: 0 },
-//   });
-
-//   return response.json();
-// }
-
 export default async function BatchesPage() {
   try {
     const cookieStore = await cookies();
@@ -154,8 +139,6 @@ export default async function BatchesPage() {
         />
       );
     }
-
-    // const { batches } = await fetchBatches(token);
 
     return (
       <>
