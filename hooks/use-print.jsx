@@ -65,20 +65,34 @@ const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
               }
               
               /* Print-specific styles */
-              @media print {
-                @page { 
-                  margin: 0.5cm; 
-                  size: auto;
-                }
-                body { 
-                  -webkit-print-color-adjust: exact; 
-                  print-color-adjust: exact; 
-                  font-family: 'Montserrat', sans-serif !important;
-                }
-                .print\\:hidden, button, [role="button"] {
-                  display: none !important;
-                }
+             @media print {
+              @page {
+                margin: 0.5cm;
+                /* Removed size constraint to respect user print settings */
               }
+              body { 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+                font-family: 'Montserrat', sans-serif !important;
+              }
+              .print\\:hidden, button, [role="button"] {
+                display: none !important;
+              }
+              
+              /* Ensure content respects container width */
+              #printable-content {
+                width: 100%;
+                height: auto;
+                overflow: visible !important;
+              }
+              
+              /* Ensure tables adapt properly to orientation */
+              table {
+                width: 100% !important;
+                table-layout: fixed;
+                page-break-inside: avoid;
+              }
+            }
               
               /* Application styles */
               ${styles}

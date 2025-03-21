@@ -13,6 +13,7 @@ const useTableColumns = (columnConfig) => {
     if (col.type?.includes("checkbox")) {
       columnDefinition.enableSorting = false;
       columnDefinition.enableHiding = false;
+      columnDefinition.meta = { className: "print:hidden" };
 
       columnDefinition.header = ({ table }) => (
         <Checkbox
@@ -129,7 +130,7 @@ const useTableColumns = (columnConfig) => {
         const name = row.getValue("name");
 
         return (
-          <Avatar className="w-10 h-10">
+          <Avatar className="w-7 h-7">
             <AvatarImage
               src={imageSrc}
               alt="Profile"
