@@ -1,10 +1,10 @@
 import { cookies } from "next/headers";
 
-const page = async () => {
+const Dashboard = async () => {
   const cookieStore = await cookies();
   const activeRole = cookieStore.get("active-role")?.value;
 
   return <div>{activeRole}</div>;
 };
 
-export default page;
+export default Dashboard;

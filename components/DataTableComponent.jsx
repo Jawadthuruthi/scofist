@@ -142,13 +142,15 @@ const DataTableComponent = ({
     if (fetchItemsQuery.data) {
       const newItems = fetchItemsQuery.data[resource] || [];
 
+      console.log(page, fetchItemsQuery.data.pagination.totalPages);
+
       if (page === 0) {
         setData(newItems);
       } else {
         setData((prev) => [...prev, ...newItems]);
       }
 
-      setHasNextPage(newItems.length === limit);
+      setHasNextPage(page < fetchItemsQuery.data.pagination.totalPages);
     }
   }, [fetchItemsQuery.data, page, resource, limit]);
 
@@ -237,9 +239,9 @@ const DataTableComponent = ({
       setLoading(true);
       await addData.mutateAsync(values);
       table.resetRowSelection();
-      toast.success(createSuccessMessage);
       setPage(0);
       router.refresh();
+      toast.success(createSuccessMessage);
     } catch (error) {
       handleError(error);
     } finally {
@@ -273,8 +275,8 @@ const DataTableComponent = ({
       await deleteData.mutateAsync(selectedData?.map((item) => item._id));
       table.resetRowSelection();
       setPage(0);
-      toast.success(deleteSuccessMessage);
       router.refresh();
+      toast.success(deleteSuccessMessage);
     } catch (error) {
       handleError(error);
     } finally {

@@ -20,25 +20,7 @@ const useCrud = (resource, token) => {
     return useQuery({
       queryKey: [resource, page, limit, filters],
       queryFn: () => fetchItems(resource, token, page, limit, filters),
-      staleTime: 60000, // 1 min caching
-      keepPreviousData: true, // Keep previous data while fetching new data
       ...options,
-    });
-  };
-
-  // Fetch items with infinite query (alternative approach)
-  const useInfiniteItems = (limit = 20, filters = {}) => {
-    return useInfiniteQuery({
-      queryKey: [resource, "infinite", limit, filters],
-      queryFn: ({ pageParam = 0 }) =>
-        fetchItems(resource, token, pageParam, limit, filters),
-      getNextPageParam: (lastPage, allPages) => {
-        // Determine if there's more data to fetch
-        const hasMore = (lastPage[resource] || []).length === limit;
-        if (!hasMore) return undefined;
-        return allPages.length; // Next page number
-      },
-      staleTime: 60000, // 1 min caching
     });
   };
 
@@ -56,7 +38,8 @@ const useCrud = (resource, token) => {
     return useMutation({
       mutationFn: (data) => addItem(resource, data, token),
       onSuccess: () => {
-        queryClient.invalidateQueries([resource]); // Refresh list after adding
+        queryClient.removeQueries([resource]);
+        queryClient.invalidateQueries([resource]);
       },
     });
   };
@@ -66,7 +49,8 @@ const useCrud = (resource, token) => {
     return useMutation({
       mutationFn: ({ data }) => updateItem(resource, data, token),
       onSuccess: () => {
-        queryClient.invalidateQueries([resource]); // Refresh list after updating
+        queryClient.removeQueries([resource]);
+        queryClient.invalidateQueries([resource]);
       },
     });
   };
@@ -76,14 +60,14 @@ const useCrud = (resource, token) => {
     return useMutation({
       mutationFn: (ids) => deleteItem(resource, ids, token),
       onSuccess: () => {
-        queryClient.invalidateQueries([resource]); // Refresh list after deletion
+        queryClient.removeQueries([resource]);
+        queryClient.invalidateQueries([resource]);
       },
     });
   };
 
   return {
     useFetchItems,
-    useInfiniteItems,
     useFetchItemById,
     useAddItem,
     useUpdateItem,

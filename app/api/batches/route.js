@@ -58,7 +58,7 @@ export async function GET(req, res) {
           page,
           limit,
           total,
-          totalPages: Math.ceil(total / limit),
+          totalPages: Math.ceil(total / limit) - 1,
         },
         message: "Batches fetched successfully",
       },

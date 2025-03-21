@@ -127,18 +127,18 @@ const statusMessages = {
   delete: "Batch deleted successfully!",
 };
 
-async function fetchBatches(token) {
-  const response = await fetch(`${baseURL}/api/batches?limit=20`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "api-key": token,
-    },
-    next: { revalidate: 0 },
-  });
+// async function fetchBatches(token) {
+//   const response = await fetch(`${baseURL}/api/batches?limit=20`, {
+//     method: "GET",
+//     headers: {
+//       "Content-Type": "application/json",
+//       "api-key": token,
+//     },
+//     next: { revalidate: 0 },
+//   });
 
-  return response.json();
-}
+//   return response.json();
+// }
 
 export default async function BatchesPage() {
   try {
@@ -155,8 +155,7 @@ export default async function BatchesPage() {
       );
     }
 
-    const { batches } = await fetchBatches(token);
-    const batchCount = batches?.length || 20;
+    // const { batches } = await fetchBatches(token);
 
     return (
       <>
@@ -166,7 +165,7 @@ export default async function BatchesPage() {
         />
         <DataTableComponent
           resource="batches"
-          initialData={batches}
+          initialData={[]}
           columnsConfig={columnsConfig}
           formFields={formFields}
           token={token}
@@ -177,7 +176,7 @@ export default async function BatchesPage() {
           editSuccessMessage={statusMessages.edit}
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
-          limit={batchCount}
+          limit={20}
         />
       </>
     );
@@ -193,5 +192,4 @@ export default async function BatchesPage() {
   }
 }
 
-// Enable fresh data on each request
-export const revalidate = 0;
+export const revalidate = 60;
