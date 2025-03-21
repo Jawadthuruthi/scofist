@@ -78,10 +78,44 @@ export async function POST(req, res) {
     if (!authorized) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    const { _id, name, status } = await req.json();
+    const {
+      _id,
+      name,
+      email,
+      profilePic,
+      roles,
+      contactNumber,
+      alternativeNumber,
+      dateOfBirth,
+      dateOfJoining,
+      houseName,
+      place,
+      postOffice,
+      district,
+      state,
+      pin,
+      status,
+    } = await req.json();
     const newUser = await User.create({
       _id,
       name,
+      email,
+      profilePic,
+      roles,
+      contactNumber,
+      alternativeNumber,
+      dateOfBirth,
+      teacherSpecificField: {
+        dateOfJoining,
+      },
+      address: {
+        houseName,
+        place,
+        postOffice,
+        district,
+        state,
+        pin,
+      },
       status,
     });
     return NextResponse.json(
@@ -116,14 +150,40 @@ export async function PUT(req, res) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
     const body = await req.json();
-    const { ids, name, status } = body;
+    const {
+      ids,
+      name,
+      status,
+      roles,
+      contactNumber,
+      alternativeNumber,
+      dateOfBirth,
+      dateOfJoining,
+      houseName,
+      place,
+      postOffice,
+      district,
+      state,
+      pin,
+    } = body;
 
     const _id = ids[0];
 
     if (ids.length > 1) {
       const updatedUsers = await User.updateMany(
         { _id: { $in: ids } },
-        { $set: { name, status } }
+        {
+          $set: {
+            name,
+            status,
+            roles,
+            contactNumber,
+            alternativeNumber,
+            dateOfBirth,
+            teacherSpecificField: { dateOfJoining },
+            address: { houseName, place, postOffice, district, state, pin },
+          },
+        }
       );
       return NextResponse.json(
         { updatedUsers, message: "Users updated successfully" },
@@ -133,7 +193,16 @@ export async function PUT(req, res) {
 
     const updatedUser = await User.findOneAndUpdate(
       { _id },
-      { name, status },
+      {
+        name,
+        status,
+        roles,
+        contactNumber,
+        alternativeNumber,
+        dateOfBirth,
+        teacherSpecificField: { dateOfJoining },
+        address: { houseName, place, postOffice, district, state, pin },
+      },
       { new: true }
     );
     return NextResponse.json(

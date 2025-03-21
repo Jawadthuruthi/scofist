@@ -86,7 +86,6 @@ export function useDynamicFormSchema(formFields = null) {
         default: // text, password, etc.
           // Handle select and multiSelect fields
           if (inputType === "select" && options) {
-            const values = options.map((option) => option.value);
             fieldSchema = z.string();
           } else if (inputType === "multiSelect" && options) {
             const values = options.map((option) => option.value);
@@ -143,7 +142,7 @@ export function useDynamicFormSchema(formFields = null) {
 
             if (validators.pattern) {
               fieldSchema = fieldSchema.regex(
-                validators.pattern,
+                new RegExp(validators.pattern),
                 validators.patternMessage || "Invalid format"
               );
             }
