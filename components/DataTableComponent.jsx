@@ -25,6 +25,7 @@ import { useRouter } from "next/navigation";
 import useDataFilter from "@/hooks/use-data-filter";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
+import { capitalize } from "lodash";
 
 const PopupFilter = dynamic(() => import("./PopupFilter"), {
   ssr: false,
@@ -196,6 +197,7 @@ const DataTableComponent = ({
 
   const handlePrint = usePrint({
     content: () => tableRef.current,
+    documentTitle: `${capitalize(resource)} List`,
   });
 
   const columns = useMemo(() => {

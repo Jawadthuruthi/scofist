@@ -154,7 +154,7 @@ const useTableColumns = (columnConfig) => {
     if (col.type?.includes("link")) {
       columnDefinition.cell = ({ row }) => (
         <a
-          href={row.getValue(col.accessorKey)}
+          href={row.getValue(col.link || col.accessorKey)}
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-600 underline"
