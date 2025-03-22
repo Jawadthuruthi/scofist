@@ -211,6 +211,7 @@ export default function PopupForm({
             handleSubmit={handleSubmit}
             data={data}
             loading={loading}
+            token={token}
           />
         </div>
         <DrawerFooter className="pt-2">
