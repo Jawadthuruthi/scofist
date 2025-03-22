@@ -31,12 +31,12 @@ const columnsConfig = [
   { accessorKey: "_id", header: "Teacher ID" },
   { accessorKey: "name", header: "Name" },
   { accessorKey: "email", header: "Email" },
-  { accessorKey: "roles", header: "Roles", type: ["array"] },
   { accessorKey: "contactNumber", header: "Contact Number" },
   { accessorKey: "alternativeNumber", header: "Alternative Number" },
-  { accessorKey: "address", header: "Address", type: ["nested"] },
   { accessorKey: "dateOfBirth", header: "Date Of Birth", type: ["date"] },
   { accessorKey: "dateOfJoining", header: "Date Of Joining", type: ["date"] },
+  { accessorKey: "roles", header: "Roles", type: ["array"] },
+  { accessorKey: "address", header: "Address", type: ["nested"] },
   { accessorKey: "status", header: "Status", type: ["badge"] },
 ];
 

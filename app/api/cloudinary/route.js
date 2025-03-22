@@ -55,6 +55,7 @@ export async function DELETE(req) {
     }
 
     const { publicId } = await req.json();
+    console.log(publicId);
 
     if (!publicId) {
       return NextResponse.json(

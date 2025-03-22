@@ -49,7 +49,7 @@ const ImageUploader = ({
   const [loading, setLoading] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [publicId, setPublicId] = React.useState(
-    value?.url ? getPublicIdFromUrl(value?.url) : null
+    value?.publicId || getPublicIdFromUrl(value?.url) || null
   );
   const [selectedFile, setSelectedFile] = React.useState(null);
   const [localPreview, setLocalPreview] = React.useState(null);
@@ -60,7 +60,9 @@ const ImageUploader = ({
   React.useEffect(() => {
     if (value?.url && value?.url !== preview) {
       setPreview(value?.url);
-      setPublicId(getPublicIdFromUrl(value?.url));
+      setPublicId(
+        value?.publicId ? valid?.publicId : getPublicIdFromUrl(value?.url)
+      );
     }
   }, [value?.url]);
 
@@ -325,7 +327,7 @@ const ImageUploader = ({
         await deleteFromCloudinary(publicId);
         setPreview("");
         setPublicId(null);
-        onChange("");
+        onChange({ url: "", publicId: null });
         toast.success("Image removed successfully");
       } catch (error) {
         console.error("Error removing image:", error);
