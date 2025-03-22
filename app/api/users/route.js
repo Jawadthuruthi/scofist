@@ -105,7 +105,6 @@ export async function POST(req, res) {
       pin,
       status,
     } = body;
-    console.log(body);
     const newUser = await User.create({
       _id,
       name,
@@ -170,7 +169,8 @@ export async function PUT(req, res) {
     const {
       ids,
       name,
-      status,
+      email,
+      profilePic,
       roles,
       contactNumber,
       alternativeNumber,
@@ -182,6 +182,8 @@ export async function PUT(req, res) {
       district,
       state,
       pin,
+
+      status,
     } = body;
 
     const _id = ids[0];
