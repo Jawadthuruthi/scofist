@@ -5,7 +5,6 @@ import { verifyToken } from "@/lib/auth";
 export async function POST(req) {
   try {
     const apiKey = await req.headers.get("api-key");
-    console.log(apiKey);
     const authorized = await verifyToken(apiKey);
 
     if (!authorized) {

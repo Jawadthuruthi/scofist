@@ -55,6 +55,10 @@ export async function GET(req, res) {
         ...user.address,
         ...user.teacherSpecificField,
         ...user.studentSpecificField,
+        address: {
+          ...user.address,
+          postOffice: user.postOffice ? `PO. ${user.postOffice}` : null,
+        },
       };
     });
 
