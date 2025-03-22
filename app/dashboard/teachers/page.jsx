@@ -42,6 +42,13 @@ const columnsConfig = [
 
 const formFields = [
   {
+    name: "profilePic",
+    label: "Add Profile",
+    type: "object",
+    inputType: "image",
+    placeholder: "Profile Pic",
+  },
+  {
     name: "_id",
     label: "Teacher ID",
     type: "text",
@@ -50,6 +57,9 @@ const formFields = [
     validators: {
       minLength: 3,
       minLengthMessage: "Teacher ID must be at least 3 characters long",
+      pattern: "^[A-Za-z0-9-]+$",
+      patternMessage:
+        "Teacher ID can only contain letters, numbers, and hyphens",
     },
   },
   {
@@ -73,16 +83,15 @@ const formFields = [
   {
     name: "contactNumber",
     label: "Contact Number",
-    type: "number",
+    type: "text",
     placeholder: "Contact Number",
     required: true,
   },
   {
     name: "alternativeNumber",
     label: "Alternative Number",
-    type: "number",
+    type: "text",
     placeholder: "Alternative Number",
-    required: true,
   },
   {
     name: "dateOfBirth",
@@ -90,6 +99,10 @@ const formFields = [
     type: "date",
     placeholder: "Date Of Birth",
     required: true,
+    validators: {
+      maxDate: new Date().toISOString().split("T")[0],
+      maxDateMessage: "Date of birth cannot be in the future",
+    },
   },
   {
     name: "dateOfJoining",
@@ -97,6 +110,10 @@ const formFields = [
     type: "date",
     placeholder: "Date Of Joining",
     required: true,
+    validators: {
+      maxDate: new Date().toISOString().split("T")[0],
+      maxDateMessage: "Joining date cannot be in the future",
+    },
   },
   {
     name: "roles",
@@ -141,13 +158,13 @@ const formFields = [
     name: "state",
     label: "State",
     type: "text",
-    placeholder: "District",
+    placeholder: "State",
     required: true,
   },
   {
     name: "pin",
     label: "Pin Code",
-    type: "number",
+    type: "text",
     placeholder: "Pin Code",
     validators: {
       pattern: "^d{6}$",

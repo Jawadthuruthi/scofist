@@ -1,4 +1,5 @@
 import { verifyToken } from "@/lib/auth";
+import cloudinary from "@/lib/cloudinary";
 import connectToDB from "@/lib/db";
 import User from "@/models/User";
 import { NextResponse } from "next/server";
@@ -78,6 +79,7 @@ export async function POST(req, res) {
     if (!authorized) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
+    const body = await req.json();
     const {
       _id,
       name,
@@ -95,7 +97,8 @@ export async function POST(req, res) {
       state,
       pin,
       status,
-    } = await req.json();
+    } = body;
+    console.log(body);
     const newUser = await User.create({
       _id,
       name,
@@ -126,7 +129,14 @@ export async function POST(req, res) {
     console.log(error.message);
 
     // Handle duplicate key error (MongoDB error code 11000)
-    const field = Object.keys(error.keyPattern)[0] === "_id" ? "ID" : "Name";
+    if (error.code === 11000 && error.keyPattern) {
+      const field = Object.keys(error.keyPattern)[0] === "_id" ? "ID" : "Name";
+
+      return NextResponse.json(
+        { message: `Duplicate ${field} already exists.` },
+        { status: 400 }
+      );
+    }
 
     if (error.code === 11000) {
       return NextResponse.json(
@@ -229,13 +239,27 @@ export async function DELETE(req, res) {
     const { ids } = await req.json();
     const _id = ids[0];
     if (ids.length > 1) {
+      const usersToDelete = await User.find(
+        { _id: { $in: ids } },
+        "profilePic"
+      );
+
+      const publicIds = usersToDelete
+        .map((user) => user.profilePic.publicId)
+        .filter(Boolean);
       const deletedUsers = await User.deleteMany({ _id: { $in: ids } });
+      await cloudinary.api.delete_resources(publicIds);
       return NextResponse.json(
         { deletedUsers, message: "Users deleted successfully" },
         { status: 200 }
       );
     }
     const deletedUser = await User.findByIdAndDelete(_id);
+
+    if (deletedUser && deletedUser.profilePic.publicId) {
+      await cloudinary.uploader.destroy(deletedUser.profilePic.publicId);
+    }
+
     return NextResponse.json(
       { deletedUser, message: "User deleted successfully" },
       { status: 200 }

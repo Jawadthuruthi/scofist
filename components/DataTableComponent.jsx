@@ -319,6 +319,7 @@ const DataTableComponent = ({
               onSubmit={handleEdit}
               loading={loading}
               title={editFormTitle}
+              token={token}
             />
           )}
           <PopupForm
@@ -326,6 +327,7 @@ const DataTableComponent = ({
             onSubmit={handleSubmit}
             loading={loading}
             title={createFormTitle}
+            token={token}
           />
         </div>
       </div>

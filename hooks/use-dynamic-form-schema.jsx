@@ -70,16 +70,28 @@ export function useDynamicFormSchema(formFields = null) {
 
           if (validators.minDate) {
             fieldSchema = fieldSchema.min(
-              validators.minDate,
+              new Date(validators.minDate),
               validators.minDateMessage || "Date is too early"
             );
           }
 
           if (validators.maxDate) {
             fieldSchema = fieldSchema.max(
-              validators.maxDate,
+              new Date(validators.maxDate),
               validators.maxDateMessage || "Date is too late"
             );
+          }
+          break;
+
+        case "object":
+          // Handle object type for nested forms
+          if (field.properties && Array.isArray(field.properties)) {
+            // Recursively create schema for nested fields
+            const nestedSchema = createFormSchema(field.properties);
+            fieldSchema = nestedSchema;
+          } else {
+            // Default to empty object if no properties defined
+            fieldSchema = z.object({}).passthrough();
           }
           break;
 

@@ -126,13 +126,13 @@ const useTableColumns = (columnConfig) => {
     // Apply avatar formatting if type includes "avatar"
     if (col.type?.includes("avatar")) {
       columnDefinition.cell = ({ row }) => {
-        const imageSrc = row.getValue(col.accessorKey);
+        const image = row.getValue(col.accessorKey);
         const name = row.getValue("name");
 
         return (
           <Avatar className="w-7 h-7">
             <AvatarImage
-              src={imageSrc}
+              src={image?.url || null}
               alt="Profile"
               onError={(e) => {
                 e.currentTarget.style.display = "none"; // Hide broken image

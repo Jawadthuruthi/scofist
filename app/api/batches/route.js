@@ -97,7 +97,14 @@ export async function POST(req, res) {
     console.log(error.message);
 
     // Handle duplicate key error (MongoDB error code 11000)
-    const field = Object.keys(error.keyPattern)[0] === "_id" ? "ID" : "Name";
+    if (error.code === 11000 && error.keyPattern) {
+      const field = Object.keys(error.keyPattern)[0] === "_id" ? "ID" : "Name";
+
+      return NextResponse.json(
+        { message: `Duplicate ${field} already exists.` },
+        { status: 400 }
+      );
+    }
 
     if (error.code === 11000) {
       return NextResponse.json(

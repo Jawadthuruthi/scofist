@@ -1,4 +1,3 @@
-// PopupForm.jsx
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,11 +32,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { z } from "zod";
 import { useDynamicFormSchema } from "@/hooks/use-dynamic-form-schema";
 import { getDefaultValues } from "@/lib/utils";
+import ImageUploader from "./ImageUploader";
 
-const FormContent = ({ form, formFields, handleSubmit, data, loading }) => (
+const FormContent = ({
+  form,
+  formFields,
+  handleSubmit,
+  data,
+  loading,
+  token,
+}) => (
   <Form {...form}>
     <form
       onSubmit={form.handleSubmit(handleSubmit)}
@@ -59,8 +65,15 @@ const FormContent = ({ form, formFields, handleSubmit, data, loading }) => (
                 </FormLabel>
               )}
               <FormControl>
-                {field.inputType === "select" ||
-                field.inputType === "multiSelect" ? (
+                {field.inputType === "image" ? (
+                  <ImageUploader
+                    value={formField.value}
+                    onChange={formField.onChange}
+                    disabled={field.disabled}
+                    token={token}
+                  />
+                ) : field.inputType === "select" ||
+                  field.inputType === "multiSelect" ? (
                   <MultiSelect
                     options={field.options || []}
                     placeholder={field.placeholder || "Select options"}
@@ -83,6 +96,7 @@ const FormContent = ({ form, formFields, handleSubmit, data, loading }) => (
                     id={field.name}
                     placeholder={field.placeholder}
                     disabled={field.disabled}
+                    value={formField.value}
                   />
                 )}
               </FormControl>
@@ -113,6 +127,7 @@ export default function PopupForm({
   title = "",
   description = "",
   loading = false,
+  token,
 }) {
   const isMobile = useIsMobile();
   const [open, setOpen] = React.useState(false);
@@ -166,6 +181,7 @@ export default function PopupForm({
             handleSubmit={handleSubmit}
             data={data}
             loading={loading}
+            token={token}
           />
         </DialogContent>
       </Dialog>

@@ -67,11 +67,11 @@ const userSchema = new Schema(
       match: [/^(\+?\d{1,3}[-.\s]?)?\d{10,15}$/, "Invalid alternative number"],
     },
     address: {
-      houseName: { type: String, trim: true, uppercase: true },
-      place: { type: String, required: true, trim: true, uppercase: true },
-      postOffice: { type: String, trim: true, uppercase: true },
-      district: { type: String, required: true, trim: true, uppercase: true },
-      state: { type: String, required: true, trim: true, uppercase: true },
+      houseName: { type: String, trim: true },
+      place: { type: String, required: true, trim: true },
+      postOffice: { type: String, trim: true },
+      district: { type: String, required: true, trim: true },
+      state: { type: String, required: true, trim: true },
       pin: {
         type: String,
         validate: {
@@ -89,10 +89,15 @@ const userSchema = new Schema(
       },
     },
     profilePic: {
-      type: String,
-      validate: {
-        validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
-        message: "Invalid URL format",
+      url: {
+        type: String,
+        validate: {
+          validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+          message: "Invalid URL format",
+        },
+      },
+      publicId: {
+        type: String,
       },
     },
     // Role-specific fields
@@ -127,13 +132,17 @@ const userSchema = new Schema(
       },
       guardianName: {
         type: String,
-        required: true,
+        required: function () {
+          return this.roles.includes("Student");
+        },
         trim: true,
         uppercase: true,
       },
       guardianNumber: {
         type: String,
-        required: true,
+        required: function () {
+          return this.roles.includes("Student");
+        },
         validate: {
           validator: (v) => /^\d{10}$/.test(v),
           message: "Invalid guardian contact number",
@@ -141,7 +150,9 @@ const userSchema = new Schema(
       },
       relationship: {
         type: String,
-        required: true,
+        required: function () {
+          return this.roles.includes("Student");
+        },
         trim: true,
         enum: ["Father", "Mother", "Guardian", "Other"],
       },
