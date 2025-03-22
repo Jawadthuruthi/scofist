@@ -53,6 +53,8 @@ export async function GET(req, res) {
       return {
         ...user._doc,
         ...user.address,
+        ...user.teacherSpecificField,
+        ...user.studentSpecificField,
       };
     });
 
