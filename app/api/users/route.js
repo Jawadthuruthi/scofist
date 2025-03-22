@@ -49,9 +49,16 @@ export async function GET(req, res) {
     // Get total count for pagination info
     const total = await User.countDocuments(query);
 
+    const formattedUsers = users.map((user) => {
+      return {
+        ...user._doc,
+        ...user.address,
+      };
+    });
+
     return NextResponse.json(
       {
-        users,
+        users: formattedUsers,
         pagination: {
           page,
           limit,

@@ -390,7 +390,6 @@ const DataTableComponent = ({
                       key={cell.id}
                       className={cell.column.id === "select" && "print:hidden"}
                     >
-                      {console.log(cell)}
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
