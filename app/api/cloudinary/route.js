@@ -1,11 +1,10 @@
-// app/api/upload/route.js
 import { NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
 import { verifyToken } from "@/lib/auth";
 
 export async function POST(req) {
   try {
-    const apiKey = req.headers.get("api-key");
+    const apiKey = await req.headers.get("api-key");
     console.log(apiKey);
     const authorized = await verifyToken(apiKey);
 
@@ -49,7 +48,7 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   try {
-    const apiKey = req.headers.get("api-key");
+    const apiKey = await req.headers.get("api-key");
     const authorized = await verifyToken(apiKey);
 
     if (!authorized) {
