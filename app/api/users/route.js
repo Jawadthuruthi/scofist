@@ -185,13 +185,24 @@ export async function PUT(req, res) {
         {
           $set: {
             name,
-            status,
+            email,
+            profilePic,
             roles,
             contactNumber,
             alternativeNumber,
             dateOfBirth,
-            teacherSpecificField: { dateOfJoining },
-            address: { houseName, place, postOffice, district, state, pin },
+            teacherSpecificField: {
+              dateOfJoining,
+            },
+            address: {
+              houseName,
+              place,
+              postOffice,
+              district,
+              state,
+              pin,
+            },
+            status,
           },
         }
       );
@@ -205,13 +216,24 @@ export async function PUT(req, res) {
       { _id },
       {
         name,
-        status,
+        email,
+        profilePic,
         roles,
         contactNumber,
         alternativeNumber,
         dateOfBirth,
-        teacherSpecificField: { dateOfJoining },
-        address: { houseName, place, postOffice, district, state, pin },
+        teacherSpecificField: {
+          dateOfJoining,
+        },
+        address: {
+          houseName,
+          place,
+          postOffice,
+          district,
+          state,
+          pin,
+        },
+        status,
       },
       { new: true }
     );

@@ -47,6 +47,7 @@ const formFields = [
     type: "object",
     inputType: "image",
     placeholder: "Profile Pic",
+    defaultValue: null,
   },
   {
     name: "_id",
@@ -167,7 +168,7 @@ const formFields = [
     type: "text",
     placeholder: "Pin Code",
     validators: {
-      pattern: "^d{6}$",
+      pattern: "^\\d{6}$",
       patternMessage: "Pin Code must be a 6-digit number",
     },
   },

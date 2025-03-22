@@ -96,7 +96,11 @@ const FormContent = ({
                     id={field.name}
                     placeholder={field.placeholder}
                     disabled={field.disabled}
-                    value={formField.value}
+                    value={
+                      field.type === "date" && formField.value
+                        ? formField.value.split("T")[0]
+                        : formField.value
+                    }
                   />
                 )}
               </FormControl>

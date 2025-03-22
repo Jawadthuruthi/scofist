@@ -45,11 +45,11 @@ const ImageUploader = ({
   maxWidth = null,
   maxHeight = null,
 }) => {
-  const [preview, setPreview] = React.useState(value.url || "");
+  const [preview, setPreview] = React.useState(value?.url || "");
   const [loading, setLoading] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [publicId, setPublicId] = React.useState(
-    value.url ? getPublicIdFromUrl(value.url) : null
+    value?.url ? getPublicIdFromUrl(value?.url) : null
   );
   const [selectedFile, setSelectedFile] = React.useState(null);
   const [localPreview, setLocalPreview] = React.useState(null);
@@ -58,11 +58,11 @@ const ImageUploader = ({
 
   // Update publicId when value changes (for edit mode)
   React.useEffect(() => {
-    if (value.url && value.url !== preview) {
-      setPreview(value.url);
-      setPublicId(getPublicIdFromUrl(value.url));
+    if (value?.url && value?.url !== preview) {
+      setPreview(value?.url);
+      setPublicId(getPublicIdFromUrl(value?.url));
     }
-  }, [value.url]);
+  }, [value?.url]);
 
   // Cleanup progress interval on unmount
   React.useEffect(() => {

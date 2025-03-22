@@ -163,9 +163,39 @@ export function useDynamicFormSchema(formFields = null) {
           }
       }
 
-      // Handle required fields
+      // Handle optional fields - make them pass validation if empty
       if (!required) {
-        fieldSchema = fieldSchema.optional();
+        // For non-array fields, we want to create a union of:
+        // 1. undefined/null/empty string (passes validation)
+        // 2. the full validation schema (applies only when value exists)
+        if (type === "number") {
+          fieldSchema = z.union([
+            z.literal(undefined),
+            z.literal(null),
+            z.literal(""),
+            fieldSchema,
+          ]);
+        } else if (inputType === "multiSelect") {
+          fieldSchema = z.union([
+            z.literal(undefined),
+            z.literal(null),
+            z.array().length(0), // Empty array
+            fieldSchema,
+          ]);
+        } else if (type === "object") {
+          fieldSchema = z.union([
+            z.literal(undefined),
+            z.literal(null),
+            fieldSchema,
+          ]);
+        } else {
+          fieldSchema = z.union([
+            z.literal(undefined),
+            z.literal(null),
+            z.literal(""),
+            fieldSchema,
+          ]);
+        }
       }
 
       // Handle default values
@@ -200,8 +230,17 @@ export function useDynamicFormSchema(formFields = null) {
           const value1 = data[relation.field1];
           const value2 = data[relation.field2];
 
-          // Skip validation if either value is undefined
-          if (value1 === undefined || value2 === undefined) {
+          // Skip validation if either value is undefined, null, or empty
+          if (
+            value1 === undefined ||
+            value1 === null ||
+            value1 === "" ||
+            (Array.isArray(value1) && value1.length === 0) ||
+            value2 === undefined ||
+            value2 === null ||
+            value2 === "" ||
+            (Array.isArray(value2) && value2.length === 0)
+          ) {
             return true;
           }
 
