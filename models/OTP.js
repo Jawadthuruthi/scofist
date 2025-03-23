@@ -1,4 +1,4 @@
-const { Schema, models, model } = require("mongoose");
+import { Schema, model, models } from "mongoose";
 
 const OTP_EXPIRATION_MINUTES = 5;
 const MAX_ATTEMPTS = 3;

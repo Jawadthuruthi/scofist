@@ -1,5 +1,5 @@
-const { Schema, models, model } = require("mongoose");
-const User = require("./User");
+import { Schema, model, models } from "mongoose";
+import User from "./User";
 
 const batchSchema = new Schema(
   {
