@@ -92,7 +92,7 @@ const formFields = [
     placeholder: "Contact Number",
     required: true,
     validators: {
-      pattern: "^\\+?\\d{1,3}[-.\\s]?\\d{10,15}$",
+      pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
       patternMessage: "Invalid contact number format",
     },
   },
@@ -102,7 +102,7 @@ const formFields = [
     type: "text",
     placeholder: "Alternative Number",
     validators: {
-      pattern: "^\\+?\\d{1,3}[-.\\s]?\\d{10,15}$",
+      pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
       patternMessage: "Invalid contact number format",
     },
   },
@@ -197,7 +197,7 @@ const formFields = [
     required: true,
     options: [
       { label: "Active", value: "Active" },
-      { label: "Graduated", value: "Graduated" },
+      { label: "Retired", value: "Retired" },
     ],
   },
 ];
@@ -210,7 +210,7 @@ const filterConfig = [
     inputType: "select",
     options: [
       { label: "Active", value: "Active" },
-      { label: "Graduated", value: "Graduated" },
+      { label: "Retired", value: "Retired" },
     ],
   },
 ];

@@ -1,4 +1,5 @@
 const { Schema, models, model } = require("mongoose");
+const User = require("./User");
 
 const batchSchema = new Schema(
   {
