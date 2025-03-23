@@ -45,4 +45,4 @@ const classSchema = new Schema(
 classSchema.index({ name: 1, batch: 1 }, { unique: true });
 
 const Class = models?.Class || model("Class", classSchema);
-module.exports = Class;
+export default Class;
