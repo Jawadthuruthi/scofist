@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
+import { validators } from "tailwind-merge";
 
 const columnsConfig = [
   {
@@ -47,14 +48,9 @@ const formFields = [
     type: "object",
     inputType: "image",
     placeholder: "Profile Pic",
-    defaultValue: null,
+    defaultValue: {},
     className: "md:col-span-2",
-    maxFileSize: 2 * 1024 * 1024,
-    minWidth: 600,
-    minHeight: 600,
-    maxWidth: 600,
-    maxHeight: 600,
-    aspectRatio: 1,
+    maxFileSize: 2 * 1024 * 1024, // 2MB in bytes
   },
   {
     name: "_id",
@@ -95,12 +91,20 @@ const formFields = [
     type: "text",
     placeholder: "Contact Number",
     required: true,
+    validators: {
+      pattern: "^\\+?\\d{1,3}[-.\\s]?\\d{10,15}$",
+      patternMessage: "Invalid contact number format",
+    },
   },
   {
     name: "alternativeNumber",
     label: "Alternative Number",
     type: "text",
     placeholder: "Alternative Number",
+    validators: {
+      pattern: "^\\+?\\d{1,3}[-.\\s]?\\d{10,15}$",
+      patternMessage: "Invalid contact number format",
+    },
   },
   {
     name: "dateOfBirth",
@@ -136,6 +140,10 @@ const formFields = [
       { label: "Org Admin", value: "Org Admin" },
       { label: "Teacher", value: "Teacher" },
     ],
+    validators: {
+      minLength: 1,
+      minLengthMessage: "Please select at least one role",
+    },
   },
   {
     name: "houseName",

@@ -34,78 +34,77 @@ const FormContent = ({
   token,
 }) => (
   <Form {...form}>
-    <form
-      onSubmit={form.handleSubmit(handleSubmit)}
-      className="grid grid-cols-1 md:grid-cols-2 items-start gap-4 max-h-[70vh] overflow-auto"
-    >
-      {formFields.map((field, index) => (
-        <FormField
-          key={index}
-          control={form.control}
-          name={field.name}
-          render={({ field: formField }) => (
-            <FormItem className={field.className}>
-              {field.label && !field.hideLabel && (
-                <FormLabel htmlFor={field.name}>
-                  {field.label}
-                  {field.required && (
-                    <span className="text-red-500 ml-1">*</span>
-                  )}
-                </FormLabel>
-              )}
-              <FormControl>
-                {field.inputType === "image" ? (
-                  <ImageUploader
-                    value={formField.value}
-                    onChange={formField.onChange}
-                    disabled={field.disabled}
-                    token={token}
-                    maxFileSize={field.maxFileSize}
-                    allowedTypes={field.allowedTypes}
-                    minWidth={field.minWidth}
-                    minHeight={field.minHeight}
-                    maxWidth={field.maxWidth}
-                    maxHeight={field.maxHeight}
-                    aspectRatio={field.aspectRatio}
-                  />
-                ) : field.inputType === "select" ||
-                  field.inputType === "multiSelect" ? (
-                  <MultiSelect
-                    options={field.options || []}
-                    placeholder={field.placeholder || "Select options"}
-                    disableSearch={field.disableSearch || false}
-                    multiSelect={field.inputType === "multiSelect"}
-                    freeSolo={field.freeSolo || false}
-                    variant={field.variant || "default"}
-                    maxCount={field.maxCount || 0}
-                    animation={field.animation || 0}
-                    modalPopover={field.modalPopover || false}
-                    disabled={field.disabled}
-                    value={formField.value}
-                    onValueChange={(value) => formField.onChange(value)}
-                  />
-                ) : (
-                  <Input
-                    {...formField}
-                    type={field.type || "text"}
-                    name={field.name}
-                    id={field.name}
-                    placeholder={field.placeholder}
-                    disabled={field.disabled}
-                    value={
-                      field.type === "date" && formField.value
-                        ? formField.value.split("T")[0]
-                        : formField.value
-                    }
-                  />
+    <form onSubmit={form.handleSubmit(handleSubmit)}>
+      <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-4 max-h-[70vh] overflow-auto">
+        {formFields.map((field, index) => (
+          <FormField
+            key={index}
+            control={form.control}
+            name={field.name}
+            render={({ field: formField }) => (
+              <FormItem className={field.className}>
+                {field.label && !field.hideLabel && (
+                  <FormLabel htmlFor={field.name}>
+                    {field.label}
+                    {field.required && (
+                      <span className="text-red-500 ml-1">*</span>
+                    )}
+                  </FormLabel>
                 )}
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      ))}
-      <div className="flex w-full md:col-span-2 gap-3 mt-2">
+                <FormControl>
+                  {field.inputType === "image" ? (
+                    <ImageUploader
+                      value={formField.value}
+                      onChange={formField.onChange}
+                      disabled={field.disabled}
+                      token={token}
+                      maxFileSize={field.maxFileSize}
+                      allowedTypes={field.allowedTypes}
+                      minWidth={field.minWidth}
+                      minHeight={field.minHeight}
+                      maxWidth={field.maxWidth}
+                      maxHeight={field.maxHeight}
+                      aspectRatio={field.aspectRatio}
+                    />
+                  ) : field.inputType === "select" ||
+                    field.inputType === "multiSelect" ? (
+                    <MultiSelect
+                      options={field.options || []}
+                      placeholder={field.placeholder || "Select options"}
+                      disableSearch={field.disableSearch || false}
+                      multiSelect={field.inputType === "multiSelect"}
+                      freeSolo={field.freeSolo || false}
+                      variant={field.variant || "default"}
+                      maxCount={field.maxCount || 0}
+                      animation={field.animation || 0}
+                      modalPopover={field.modalPopover || false}
+                      disabled={field.disabled}
+                      value={formField.value}
+                      onValueChange={(value) => formField.onChange(value)}
+                    />
+                  ) : (
+                    <Input
+                      {...formField}
+                      type={field.type || "text"}
+                      name={field.name}
+                      id={field.name}
+                      placeholder={field.placeholder}
+                      disabled={field.disabled}
+                      value={
+                        field.type === "date" && formField.value
+                          ? formField.value.split("T")[0]
+                          : formField.value
+                      }
+                    />
+                  )}
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ))}
+      </div>
+      <div className="flex w-full gap-3 mt-2">
         <Button className="w-full" type="submit" disabled={loading}>
           {loading ? (
             <Loader2 className="animate-spin mr-2" />

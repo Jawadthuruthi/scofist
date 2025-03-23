@@ -31,10 +31,6 @@ export async function POST(req) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error sending OTP:", error.message);
-    return NextResponse.json(
-      { message: "Failed to send OTP. Please try again." },
-      { status: 500 }
-    );
+    return apiResponse.error(error);
   }
 }

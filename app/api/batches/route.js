@@ -1,3 +1,4 @@
+import { apiResponse } from "@/lib/apiResponse";
 import { verifyToken } from "@/lib/auth";
 import connectToDB from "@/lib/db";
 import Batch from "@/models/Batch";
@@ -65,11 +66,7 @@ export async function GET(req, res) {
       { status: 200 }
     );
   } catch (error) {
-    console.log(error.message);
-    return NextResponse.json(
-      { message: "Error fetching batches" },
-      { status: 500 }
-    );
+    return apiResponse.error(error);
   }
 }
 
@@ -94,28 +91,7 @@ export async function POST(req, res) {
       { status: 200 }
     );
   } catch (error) {
-    console.log(error.message);
-
-    // Handle duplicate key error (MongoDB error code 11000)
-    if (error.code === 11000 && error.keyPattern) {
-      const field = Object.keys(error.keyPattern)[0] === "_id" ? "ID" : "Name";
-
-      return NextResponse.json(
-        { message: `Duplicate ${field} already exists.` },
-        { status: 400 }
-      );
-    }
-
-    if (error.code === 11000) {
-      return NextResponse.json(
-        { message: `Batch with this ${field} already exists.` },
-        { status: 409 }
-      );
-    }
-    return NextResponse.json(
-      { message: "Error creating batch" },
-      { status: 500 }
-    );
+    return apiResponse.error(error);
   }
 }
 
@@ -153,11 +129,7 @@ export async function PUT(req, res) {
       { status: 200 }
     );
   } catch (error) {
-    console.log(error.message);
-    return NextResponse.json(
-      { message: "Error updating batch" },
-      { status: 500 }
-    );
+    return apiResponse.error(error);
   }
 }
 
@@ -184,10 +156,6 @@ export async function DELETE(req, res) {
       { status: 200 }
     );
   } catch (error) {
-    console.log(error.message);
-    return NextResponse.json(
-      { message: "Error deleting batch" },
-      { status: 500 }
-    );
+    return apiResponse.error(error);
   }
 }

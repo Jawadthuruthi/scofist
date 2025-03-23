@@ -114,6 +114,10 @@ const userSchema = new Schema(
         enum: ["Active", "Retired"],
         default: "Active",
         required: true,
+        validate: {
+          validator: (v) => v === "Active" || v === "Retired",
+          message: "Invalid status value",
+        },
       },
     },
     studentSpecificField: {
