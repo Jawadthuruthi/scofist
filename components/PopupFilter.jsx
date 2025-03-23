@@ -98,7 +98,7 @@ export default function PopupFilter({
               <Filter />
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-[80%] mx-auto sm:max-w-xl">
+          <DialogContent className="max-w-[90%] mx-auto sm:max-w-xl">
             <DialogHeader>
               <DialogTitle>Filter {capitalize(buttonLabel)}</DialogTitle>
             </DialogHeader>
@@ -164,7 +164,7 @@ export default function PopupFilter({
               >
                 Clear All Filters
               </Button>
-              <Button variant="outline" onClick={() => setOpen(false)}>
+              <Button variant="variant" onClick={() => setOpen(false)}>
                 Close
               </Button>
             </DialogFooter>

@@ -8,18 +8,7 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-  DrawerDescription,
-} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Edit, Loader2, Plus } from "lucide-react";
 import { MultiSelect } from "./ui/multi-select";
 import { useForm } from "react-hook-form";
@@ -47,7 +36,7 @@ const FormContent = ({
   <Form {...form}>
     <form
       onSubmit={form.handleSubmit(handleSubmit)}
-      className="grid items-start gap-4 max-h-[80vh] overflow-auto"
+      className="grid grid-cols-1 md:grid-cols-2 items-start gap-4 max-h-[70vh] overflow-auto"
     >
       {formFields.map((field, index) => (
         <FormField
@@ -55,7 +44,7 @@ const FormContent = ({
           control={form.control}
           name={field.name}
           render={({ field: formField }) => (
-            <FormItem>
+            <FormItem className={field.className}>
               {field.label && !field.hideLabel && (
                 <FormLabel htmlFor={field.name}>
                   {field.label}
@@ -71,6 +60,13 @@ const FormContent = ({
                     onChange={formField.onChange}
                     disabled={field.disabled}
                     token={token}
+                    maxFileSize={field.maxFileSize}
+                    allowedTypes={field.allowedTypes}
+                    minWidth={field.minWidth}
+                    minHeight={field.minHeight}
+                    maxWidth={field.maxWidth}
+                    maxHeight={field.maxHeight}
+                    aspectRatio={field.aspectRatio}
                   />
                 ) : field.inputType === "select" ||
                   field.inputType === "multiSelect" ? (
@@ -109,7 +105,7 @@ const FormContent = ({
           )}
         />
       ))}
-      <div className="flex w-full gap-3 mt-2">
+      <div className="flex w-full md:col-span-2 gap-3 mt-2">
         <Button className="w-full" type="submit" disabled={loading}>
           {loading ? (
             <Loader2 className="animate-spin mr-2" />
@@ -133,7 +129,6 @@ export default function PopupForm({
   loading = false,
   token,
 }) {
-  const isMobile = useIsMobile();
   const [open, setOpen] = React.useState(false);
 
   const { schema } = useDynamicFormSchema(formFields);
@@ -161,65 +156,37 @@ export default function PopupForm({
     [onSubmit]
   );
 
-  if (!isMobile) {
-    return (
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline">
-            {data ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          </Button>
-        </DialogTrigger>
+  const filteredFormFields = React.useMemo(
+    () => formFields.filter((field) => (data ? !field?.hideOnEdit : true)),
+    [data, formFields]
+  );
 
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            {description && (
-              <DialogDescription>{description}</DialogDescription>
-            )}
-          </DialogHeader>
-
-          <FormContent
-            key={data ? `edit-${data._id}` : `create ${title}`}
-            form={form}
-            formFields={formFields}
-            handleSubmit={handleSubmit}
-            data={data}
-            loading={loading}
-            token={token}
-          />
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  console.log(filteredFormFields);
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
         <Button variant="outline">
           {data ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
         </Button>
-      </DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>{title}</DrawerTitle>
-          {description && <DrawerDescription>{description}</DrawerDescription>}
-        </DrawerHeader>
-        <div className="px-4">
-          <FormContent
-            form={form}
-            formFields={formFields}
-            handleSubmit={handleSubmit}
-            data={data}
-            loading={loading}
-            token={token}
-          />
-        </div>
-        <DrawerFooter className="pt-2">
-          <DrawerClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+      </DialogTrigger>
+
+      <DialogContent className="max-w-[90%] mx-auto sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
+
+        <FormContent
+          key={data ? `edit-${data._id}` : `create ${title}`}
+          form={form}
+          formFields={filteredFormFields}
+          handleSubmit={handleSubmit}
+          data={data}
+          loading={loading}
+          token={token}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }

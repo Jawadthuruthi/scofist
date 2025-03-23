@@ -41,6 +41,7 @@ const formFields = [
       minLength: 3,
       minLengthMessage: "Batch ID must be at least 3 characters long",
     },
+    hideOnEdit: true,
   },
   {
     name: "name",

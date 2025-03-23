@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 
 export async function GET(req, res) {
   try {
-    const apiKey = await req.headers.get("api-key");
+    const apiKey = req.headers.get("api-key");
     await connectToDB();
     const authorized = await verifyToken(apiKey);
     if (!authorized) {
@@ -75,7 +75,7 @@ export async function GET(req, res) {
 
 export async function POST(req, res) {
   try {
-    const apiKey = await req.headers.get("api-key");
+    const apiKey = req.headers.get("api-key");
     await connectToDB();
     const authorized = await verifyToken(apiKey);
     if (!authorized) {
@@ -121,7 +121,7 @@ export async function POST(req, res) {
 
 export async function PUT(req, res) {
   try {
-    const apiKey = await req.headers.get("api-key");
+    const apiKey = req.headers.get("api-key");
     await connectToDB();
     const authorized = await verifyToken(apiKey);
     if (!authorized) {
@@ -163,7 +163,7 @@ export async function PUT(req, res) {
 
 export async function DELETE(req, res) {
   try {
-    const apiKey = await req.headers.get("api-key");
+    const apiKey = req.headers.get("api-key");
     await connectToDB();
     const authorized = await verifyToken(apiKey);
     if (!authorized) {

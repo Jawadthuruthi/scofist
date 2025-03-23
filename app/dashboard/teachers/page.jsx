@@ -48,6 +48,13 @@ const formFields = [
     inputType: "image",
     placeholder: "Profile Pic",
     defaultValue: null,
+    className: "md:col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    minWidth: 600,
+    minHeight: 600,
+    maxWidth: 600,
+    maxHeight: 600,
+    aspectRatio: 1,
   },
   {
     name: "_id",
@@ -62,6 +69,7 @@ const formFields = [
       patternMessage:
         "Teacher ID can only contain letters, numbers, and hyphens",
     },
+    hideOnEdit: true,
   },
   {
     name: "name",

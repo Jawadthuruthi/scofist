@@ -101,7 +101,7 @@ const ImageUploader = ({
 
   const validateImageDimensions = (img) => {
     return new Promise((resolve) => {
-      const image = new Image();
+      const image = new window.Image();
       image.onload = () => {
         const issues = [];
 
