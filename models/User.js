@@ -21,6 +21,8 @@ const userSchema = new Schema(
     _id: {
       type: String,
       required: true,
+      uppercase: true,
+      trim: true,
       validate: {
         validator: function (v) {
           return /^[A-Za-z0-9-]+$/.test(v);

@@ -22,9 +22,21 @@ export async function GET(req, res) {
     const filterParams = {};
     for (const [key, value] of url.searchParams.entries()) {
       // Skip pagination parameters
-      if (key !== "page" && key !== "limit") {
+      if (key !== "page" && key !== "limit" && key !== "projection") {
         filterParams[key] = value;
       }
+    }
+
+    // Get projection param
+    const projectionParam = url.searchParams.get("projection");
+    let projections = {};
+
+    // Convert projection param to MongoDB projection object
+    if (projectionParam) {
+      const fields = projectionParam.split(",");
+      fields.forEach((field) => {
+        projections[field] = 1; // Include each field
+      });
     }
 
     // Build MongoDB query from filter params
@@ -44,7 +56,7 @@ export async function GET(req, res) {
     }
 
     // Execute query with pagination
-    const batches = await Batch.find(query)
+    const batches = await Batch.find(query, projections)
       .skip(page * limit)
       .limit(limit)
       .sort({ startYear: -1 });

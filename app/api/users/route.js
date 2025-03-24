@@ -23,9 +23,21 @@ export async function GET(req, res) {
     const filterParams = {};
     for (const [key, value] of url.searchParams.entries()) {
       // Skip pagination parameters
-      if (key !== "page" && key !== "limit") {
+      if (key !== "page" && key !== "limit" && key !== "projection") {
         filterParams[key] = value;
       }
+    }
+
+    // Get projection param
+    const projectionParam = url.searchParams.get("projection");
+    let projections = {};
+
+    // Convert projection param to MongoDB projection object
+    if (projectionParam) {
+      const fields = projectionParam.split(",");
+      fields.forEach((field) => {
+        projections[field] = 1;
+      });
     }
 
     // Build MongoDB query from filter params
@@ -34,15 +46,15 @@ export async function GET(req, res) {
     if (filterParams.name) {
       query.name = { $regex: filterParams.name, $options: "i" };
     }
-    if (filterParams.roles) {
-      query.roles = { $in: filterParams.roles };
+    if (filterParams.role) {
+      query.roles = { $in: filterParams.role };
     }
     if (filterParams.status) {
       query.status = filterParams.status;
     }
 
     // Execute query with pagination
-    const users = await User.find(query)
+    const users = await User.find(query, projections)
       .skip(page * limit)
       .limit(limit)
       .sort({ updatedAt: -1 });

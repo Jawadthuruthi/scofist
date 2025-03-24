@@ -6,6 +6,8 @@ const batchSchema = new Schema(
     _id: {
       type: String,
       required: true,
+      uppercase: true,
+      trim: true,
       validate: {
         validator: function (v) {
           return /^[A-Za-z0-9-]+$/.test(v);
@@ -63,6 +65,7 @@ const batchSchema = new Schema(
 
 // Virtual for graduation year format
 batchSchema.virtual("academicYear").get(function () {
+  if (!this.startYear || !this.endYear) return "";
   return `${
     this.startYear
   }-${(this.endYear % 100).toString().padStart(2, "0")}`;
@@ -70,6 +73,7 @@ batchSchema.virtual("academicYear").get(function () {
 
 // Virtual for student count
 batchSchema.virtual("studentCount").get(function () {
+  if (!this.students) return 0;
   return this.students.length;
 });
 

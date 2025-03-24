@@ -160,8 +160,6 @@ export default function PopupForm({
     [data, formFields]
   );
 
-  console.log(filteredFormFields);
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>

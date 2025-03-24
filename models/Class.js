@@ -6,6 +6,8 @@ const classSchema = new Schema(
     _id: {
       type: String,
       required: true,
+      uppercase: true,
+      trim: true,
       validate: {
         validator: function (v) {
           return /^[A-Za-z0-9-]+$/.test(v);
@@ -39,8 +41,8 @@ const classSchema = new Schema(
   }
 );
 
-// Compound unique index for class name within batch
-classSchema.index({ name: 1, batch: 1 }, { unique: true });
+classSchema.index({ batchId: 1 }, { unique: true });
+classSchema.index({ teacherId: 1 }, { unique: true });
 
 const Class = models?.Class || model("Class", classSchema);
 export default Class;

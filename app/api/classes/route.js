@@ -22,9 +22,21 @@ export async function GET(req, res) {
     const filterParams = {};
     for (const [key, value] of url.searchParams.entries()) {
       // Skip pagination parameters
-      if (key !== "page" && key !== "limit") {
+      if (key !== "page" && key !== "limit" && key !== "projection") {
         filterParams[key] = value;
       }
+    }
+
+    // Get projection param
+    const projectionParam = url.searchParams.get("projection");
+    let projections = {};
+
+    // Convert projection param to MongoDB projection object
+    if (projectionParam) {
+      const fields = projectionParam.split(",");
+      fields.forEach((field) => {
+        projections[field] = 1; // Include each field
+      });
     }
 
     // Build MongoDB query from filter params
@@ -41,7 +53,9 @@ export async function GET(req, res) {
     }
 
     // Execute query with pagination
-    const classes = await Class.find(query)
+    const classes = await Class.find(query, projections)
+      .populate("batchId", "name")
+      .populate("teacherId", "name")
       .skip(page * limit)
       .limit(limit)
       .sort({ updatedAt: -1 });
@@ -49,9 +63,17 @@ export async function GET(req, res) {
     // Get total count for pagination info
     const total = await Class.countDocuments(query);
 
+    const formattedClasses = classes.map((cls) => ({
+      ...cls._doc,
+      batchId: cls.batchId._id,
+      teacherId: cls.teacherId._id,
+      batchName: cls.batchId.name,
+      teacherName: cls.teacherId.name,
+    }));
+
     return NextResponse.json(
       {
-        classes,
+        classes: formattedClasses,
         pagination: {
           page,
           limit,

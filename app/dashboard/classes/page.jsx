@@ -38,29 +38,33 @@ export default async function ClassesPage() {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth-token")?.value;
 
-    const batchesResponse = await fetch(`${baseURL}/api/batches`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": token,
-      },
-      next: { revalidate: 60 },
-    });
+    const batchesResponse = await fetch(
+      `${baseURL}/api/batches?projection=_id,name`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": token,
+        },
+        next: { revalidate: 60 },
+      }
+    );
     const batchesData = await batchesResponse.json();
     const batches = batchesData.batches;
 
-    const teachersResponse = await fetch(`${baseURL}/api/users`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": token,
-      },
-      next: { revalidate: 60 },
-    });
+    const teachersResponse = await fetch(
+      `${baseURL}/api/users?projection=_id,name&roles=Teacher`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": token,
+        },
+        next: { revalidate: 60 },
+      }
+    );
     const teachersData = await teachersResponse.json();
     const teachers = teachersData.users;
-
-    console.log(batches.length);
 
     if (!token) {
       return (
@@ -71,6 +75,16 @@ export default async function ClassesPage() {
         />
       );
     }
+
+    const formattedTeachers = teachers.map((teacher) => ({
+      value: teacher._id,
+      label: teacher.name,
+    }));
+
+    const formattedBatches = batches.map((batch) => ({
+      value: batch._id,
+      label: batch.name,
+    }));
 
     const formFields = [
       {
@@ -102,10 +116,7 @@ export default async function ClassesPage() {
         type: "text",
         inputType: "select",
         required: true,
-        options: batches.map((batch) => ({
-          value: batch._id,
-          label: batch.name,
-        })),
+        options: formattedBatches,
       },
       {
         name: "teacherId",
@@ -113,10 +124,7 @@ export default async function ClassesPage() {
         type: "text",
         inputType: "select",
         required: true,
-        options: teachers.map((teacher) => ({
-          value: teacher._id,
-          label: teacher.name,
-        })),
+        options: formattedTeachers,
       },
     ];
 
@@ -126,13 +134,13 @@ export default async function ClassesPage() {
         id: "batchId",
         label: "Select a batch",
         inputType: "select",
-        options: [],
+        options: formattedBatches,
       },
       {
         id: "teacherId",
         label: "Select a teacher",
         inputType: "select",
-        options: [],
+        options: formattedTeachers,
       },
     ];
 
