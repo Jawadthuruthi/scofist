@@ -104,7 +104,7 @@ const FormContent = ({
           />
         ))}
       </div>
-      <div className="flex w-full gap-3 mt-2">
+      <div className="flex w-full gap-3 mt-4">
         <Button className="w-full" type="submit" disabled={loading}>
           {loading ? (
             <Loader2 className="animate-spin mr-2" />

@@ -37,6 +37,8 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --alert: 48 96% 89%;
+    --alert-foreground: 48 90% 10%;
   }
   .dark {
     --background: 240 10% 3.9%;
@@ -71,6 +73,8 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --alert: 48 30% 25%;
+    --alert-foreground: 48 95% 85%;
   }
 }
 
@@ -110,10 +114,16 @@
 }
 
 ::-webkit-scrollbar {
-  @apply hidden;
+  width: 6px;
 }
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 ::-webkit-scrollbar-thumb {
-  @apply bg-primary rounded-full;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
 }
 
 @media (min-width: 800px) {
