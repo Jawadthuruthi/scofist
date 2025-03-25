@@ -46,7 +46,6 @@ export const MultiSelect = React.forwardRef(
       placeholder = "Select options",
       animation = 0,
       maxCount = Infinity,
-      modalPopover = false,
       asChild = false,
       className,
       disableSearch = false,
@@ -130,7 +129,7 @@ export const MultiSelect = React.forwardRef(
       <Popover
         open={isPopoverOpen}
         onOpenChange={setIsPopoverOpen}
-        modal={modalPopover}
+        modal={true}
       >
         <PopoverTrigger asChild>
           <Button

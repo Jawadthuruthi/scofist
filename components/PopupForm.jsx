@@ -35,7 +35,7 @@ const FormContent = ({
 }) => (
   <Form {...form}>
     <form onSubmit={form.handleSubmit(handleSubmit)}>
-      <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-4 max-h-[70vh] overflow-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-4 max-h-[70vh] overflow-y-auto overscroll-contain">
         {formFields.map((field, index) => (
           <FormField
             key={index}
@@ -77,7 +77,6 @@ const FormContent = ({
                       variant={field.variant || "default"}
                       maxCount={field.maxCount || 0}
                       animation={field.animation || 0}
-                      modalPopover={field.modalPopover || false}
                       disabled={field.disabled}
                       value={formField.value}
                       onValueChange={(value) => formField.onChange(value)}
