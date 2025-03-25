@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { validators } from "tailwind-merge";
 
 const columnsConfig = [
   {
@@ -222,7 +221,7 @@ const statusMessages = {
 };
 
 const apiFilters = {
-  roles: ["Teacher"],
+  role: ["Teacher"],
 };
 
 export default async function BatchesPage() {

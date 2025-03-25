@@ -73,6 +73,8 @@ const formFields = [
           errorPath: "startYear",
         },
       ],
+      pattern: "^\\d{4}$",
+      patternMessage: "Graduation year must be a 4-digit number",
     },
   },
   {
@@ -90,6 +92,8 @@ const formFields = [
           errorPath: "endYear",
         },
       ],
+      pattern: "^\\d{4}$",
+      patternMessage: "Graduation year must be a 4-digit number",
     },
   },
   {

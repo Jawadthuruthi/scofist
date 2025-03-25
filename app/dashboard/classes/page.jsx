@@ -38,6 +38,16 @@ export default async function ClassesPage() {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth-token")?.value;
 
+    if (!token) {
+      return (
+        <ErrorPage
+          statusCode={403}
+          title="Access Denied"
+          description="You don't have permission to access this resource."
+        />
+      );
+    }
+
     const batchesResponse = await fetch(
       `${baseURL}/api/batches?projection=_id,name`,
       {
@@ -65,16 +75,6 @@ export default async function ClassesPage() {
     );
     const teachersData = await teachersResponse.json();
     const teachers = teachersData.users;
-
-    if (!token) {
-      return (
-        <ErrorPage
-          statusCode={403}
-          title="Access Denied"
-          description="You don't have permission to access this resource."
-        />
-      );
-    }
 
     const formattedTeachers = teachers.map((teacher) => ({
       value: teacher._id,

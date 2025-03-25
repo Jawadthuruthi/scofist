@@ -196,6 +196,9 @@ const userSchema = new Schema(
           },
           message: "Graduation year must be a 4-digit number",
         },
+        required: function () {
+          return this.studentSpecificField?.status === "Graduated";
+        },
       },
       classId: {
         type: Schema.Types.ObjectId,

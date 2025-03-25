@@ -138,7 +138,7 @@ export default function PopupForm({
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues,
-    mode: "onChange",
+    mode: "all",
     key: data ? `edit-${data._id}` : `create ${title}`,
   });
 

@@ -1,26 +1,11 @@
 import { useMemo, useCallback } from "react";
 import { z } from "zod";
 
-/**
- * Custom hook that provides functionality to dynamically generate Zod validation schemas
- * based on form field configurations.
- *
- * @param {Array} formFields - Optional array of form field configurations to immediately memoize
- * @returns {Object} An object containing the createFormSchema function and memoized schema if formFields were provided
- */
 export function useDynamicFormSchema(formFields = null) {
-  /**
-   * Creates a Zod schema based on form field configurations
-   *
-   * @param {Array} fields - Array of form field configuration objects
-   * @returns {Object} - Compiled Zod schema object
-   */
   const createFormSchema = useCallback((fields) => {
-    // Initialize schema object
     const schemaObj = {};
     const fieldRelationships = [];
 
-    // First pass: Create base schema for each field
     fields.forEach((field) => {
       const {
         name,
@@ -30,6 +15,7 @@ export function useDynamicFormSchema(formFields = null) {
         required = false,
         validators = {},
         label,
+        defaultValue,
       } = field;
 
       let fieldSchema;
@@ -38,7 +24,6 @@ export function useDynamicFormSchema(formFields = null) {
       // Determine field schema based on field type
       switch (type) {
         case "number":
-          // Start with either required or optional base schema
           fieldSchema = required
             ? z.coerce.number({
                 required_error: `${displayName} is required`,
@@ -46,19 +31,27 @@ export function useDynamicFormSchema(formFields = null) {
               })
             : z.coerce.number().optional();
 
+          // Apply min validation
           if (validators.min !== undefined) {
-            fieldSchema = fieldSchema.min(
-              validators.min,
-              validators.minMessage ||
-                `${displayName} must be at least ${validators.min}`
+            fieldSchema = fieldSchema.refine(
+              (val) => val === undefined || val >= validators.min,
+              {
+                message:
+                  validators.minMessage ||
+                  `${displayName} must be at least ${validators.min}`,
+              }
             );
           }
 
+          // Apply max validation
           if (validators.max !== undefined) {
-            fieldSchema = fieldSchema.max(
-              validators.max,
-              validators.maxMessage ||
-                `${displayName} cannot exceed ${validators.max}`
+            fieldSchema = fieldSchema.refine(
+              (val) => val === undefined || val <= validators.max,
+              {
+                message:
+                  validators.maxMessage ||
+                  `${displayName} cannot exceed ${validators.max}`,
+              }
             );
           }
           break;
@@ -93,43 +86,44 @@ export function useDynamicFormSchema(formFields = null) {
 
         case "date":
           fieldSchema = required
-            ? z.coerce.date({
+            ? z.date({
                 required_error: `${displayName} is required`,
                 invalid_type_error: `${displayName} must be a valid date`,
               })
-            : z.coerce.date().optional();
+            : z.union([z.date(), z.string()]).optional();
 
           if (validators.minDate) {
-            fieldSchema = fieldSchema.min(
-              new Date(validators.minDate),
-              validators.minDateMessage || "Date is too early"
+            fieldSchema = fieldSchema.refine(
+              (val) => val !== undefined && val >= new Date(validators.minDate),
+              {
+                message: validators.minDateMessage || "Date is too early",
+              }
             );
           }
 
           if (validators.maxDate) {
-            fieldSchema = fieldSchema.max(
-              new Date(validators.maxDate),
-              validators.maxDateMessage || "Date is too late"
+            fieldSchema = fieldSchema.refine(
+              (val) => val !== undefined && val <= new Date(validators.maxDate),
+              {
+                message: validators.maxDateMessage || "Date is too late",
+              }
             );
           }
           break;
 
         case "object":
-          // Handle object type for nested forms
           if (field.properties && Array.isArray(field.properties)) {
-            // Recursively create schema for nested fields
             const nestedSchema = createFormSchema(field.properties);
             fieldSchema = required ? nestedSchema : nestedSchema.optional();
           } else {
-            // Default to empty object if no properties defined
             fieldSchema = required
               ? z.object({}, { required_error: `${displayName} is required` })
               : z.object({}).optional();
           }
           break;
 
-        default: // text, password, etc.
-          // Handle select and multiSelect fields
+        default:
+          // Handle select and multiSelect
           if (inputType === "select" && options) {
             const values = options.map((option) => option.value);
             fieldSchema = required
@@ -149,18 +143,14 @@ export function useDynamicFormSchema(formFields = null) {
                   });
           } else if (inputType === "multiSelect" && options) {
             const values = options.map((option) => option.value);
-
-            // Create base array schema with selection validation
             let arraySchema = z.array(z.string());
 
-            // Add required validation using refinement instead of min
             if (required) {
               arraySchema = arraySchema.refine((items) => items.length > 0, {
                 message: `${displayName} is required`,
               });
             }
 
-            // Add validation for valid options
             arraySchema = arraySchema.refine(
               (items) => items.every((item) => values.includes(item)),
               {
@@ -168,7 +158,6 @@ export function useDynamicFormSchema(formFields = null) {
               }
             );
 
-            // Add min/max validations
             if (validators.min) {
               arraySchema = arraySchema.refine(
                 (items) => items.length === 0 || items.length >= validators.min,
@@ -187,11 +176,9 @@ export function useDynamicFormSchema(formFields = null) {
               );
             }
 
-            fieldSchema = required
-              ? arraySchema
-              : z.array(z.string()).optional().or(arraySchema);
+            fieldSchema = required ? arraySchema : arraySchema.optional();
           } else {
-            // Regular text input - start with appropriate base schema
+            // Regular text input
             fieldSchema = required
               ? z
                   .string({
@@ -230,30 +217,30 @@ export function useDynamicFormSchema(formFields = null) {
                 }
               );
             }
-
-            // Apply trim to string fields
-            if (typeof fieldSchema.trim === "function") {
-              fieldSchema = fieldSchema.trim();
-            }
           }
       }
 
-      // Apply custom validators if provided
+      // Apply custom validators
       if (validators.custom) {
         fieldSchema = fieldSchema.refine(validators.custom.validation, {
           message: validators.custom.message || `Invalid ${displayName}`,
         });
       }
 
-      // Handle default values
-      if (field.defaultValue !== undefined) {
-        fieldSchema = fieldSchema.default(field.defaultValue);
+      // Handle default values with more robust checking
+      if (defaultValue !== undefined) {
+        try {
+          fieldSchema = fieldSchema.default(() => defaultValue);
+        } catch (error) {
+          console.warn(
+            `Could not set default value for ${name}: ${error.message}`
+          );
+        }
       }
 
-      // Add schema to object
       schemaObj[name] = fieldSchema;
 
-      // Store field relationships for refinement
+      // Rest of the function remains the same...
       if (validators.compareWith) {
         validators.compareWith.forEach((comparison) => {
           fieldRelationships.push({
@@ -267,18 +254,34 @@ export function useDynamicFormSchema(formFields = null) {
       }
     });
 
-    // Create base schema
+    // Remaining code for schema generation is the same as before
     let schema = z.object(schemaObj);
 
-    // Add refinements for field relationships
+    schema = schema.refine(
+      (data) => {
+        console.log(data);
+        const conditionalRequiredFields = formFields.filter(
+          (field) => field.conditionalRequired
+        );
+        return conditionalRequiredFields.every((field) => {
+          const fieldValue = data[field.dependentField];
+          return fieldValue === field.expectedValue;
+        });
+      },
+      {
+        message: "Required fields are missing",
+        path: [],
+      }
+    );
+
+    // Comparison relationships refinement
     fieldRelationships.forEach((relation) => {
       schema = schema.refine(
         (data) => {
+          console.log(data);
           const value1 = data[relation.field1];
           const value2 = data[relation.field2];
 
-          // Skip validation if either value is undefined, null, or empty
-          // Only if both fields have values, we apply the comparison
           if (
             value1 === undefined ||
             value1 === null ||
@@ -321,13 +324,12 @@ export function useDynamicFormSchema(formFields = null) {
     return schema;
   }, []);
 
-  // Memoize the schema if formFields are provided
   const schema = useMemo(() => {
     return formFields ? createFormSchema(formFields) : null;
   }, [formFields, createFormSchema]);
 
   return {
     createFormSchema,
-    schema, // Return the memoized schema if available
+    schema,
   };
 }
