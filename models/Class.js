@@ -1,6 +1,5 @@
 import { model, models, Schema } from "mongoose";
 import User from "./User";
-import { ApiError } from "@/lib/errorHandler";
 
 const classSchema = new Schema(
   {
@@ -50,13 +49,7 @@ classSchema.pre("save", async function (next) {
     });
 
     if (existingBatchClass) {
-      return next(
-        new ApiError(
-          "A class with this batch already exists",
-          400,
-          "DUPLICATE_BATCH"
-        )
-      );
+      return next(new Error("A class with this batch already exists"));
     }
 
     // Check for existing class with same teacher
@@ -67,11 +60,7 @@ classSchema.pre("save", async function (next) {
 
     if (existingTeacherClass) {
       return next(
-        new ApiError(
-          "This teacher is already assigned to another class",
-          400,
-          "TEACHER_ALREADY_ASSIGNED"
-        )
+        new Error("This teacher is already assigned to another class")
       );
     }
 
