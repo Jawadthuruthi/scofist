@@ -300,72 +300,7 @@ export default async function BatchesPage() {
         type: "text",
         placeholder: "Academic Qualification",
       },
-      {
-        name: "droppedOutDate",
-        label: "Dropped Out Date",
-        type: "date",
-        placeholder: "Dropped Out Date",
-        validators: {
-          maxDate: new Date().toISOString().split("T")[0],
-          maxDateMessage: "Dropped out date cannot be in the future",
-        },
-        required: true,
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Dropped Out",
-        },
-      },
-      {
-        name: "droppedOutClass",
-        label: "Dropped Out Class",
-        type: "array",
-        inputType: "select",
-        options: formattedClasses,
-        validators: {
-          minLength: 1,
-          minLengthMessage: "Please select at least one class",
-        },
-        required: true,
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Dropped Out",
-        },
-      },
-      {
-        name: "droppedOutReason",
-        label: "Dropped Out Reason",
-        type: "text",
-        placeholder: "Dropped Out Reason",
-        validators: {
-          minLength: 3,
-          minLengthMessage:
-            "Dropped out reason must be at least 3 characters long",
-        },
-        required: true,
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Dropped Out",
-        },
-      },
-      {
-        name: "graduatedYear",
-        label: "Graduated Year",
-        type: "number",
-        placeholder: "Graduated Year",
-        validators: {
-          pattern: "^\\d{4}$",
-          patternMessage: "Graduation year must be a 4-digit number",
-          max: new Date().getFullYear(),
-          maxMessage: "Graduation year cannot be in the future",
-          min: 2000,
-          minMessage: "Graduation year must be at least 2000",
-        },
-        required: true,
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Graduated",
-        },
-      },
+
       {
         name: "roles",
         label: "Roles",
@@ -434,6 +369,72 @@ export default async function BatchesPage() {
           { label: "Graduated", value: "Graduated" },
           { label: "Dropped Out", value: "Dropped Out" },
         ],
+      },
+      {
+        name: "droppedOutDate",
+        label: "Dropped Out Date",
+        type: "date",
+        placeholder: "Dropped Out Date",
+        validators: {
+          maxDate: new Date().toISOString().split("T")[0],
+          maxDateMessage: "Dropped out date cannot be in the future",
+        },
+        required: true,
+        conditionalRender: {
+          dependentField: "status",
+          expectedValue: "Dropped Out",
+        },
+      },
+      {
+        name: "droppedOutClass",
+        label: "Dropped Out Class",
+        type: "array",
+        inputType: "select",
+        options: formattedClasses,
+        validators: {
+          minLength: 1,
+          minLengthMessage: "Please select at least one class",
+        },
+        required: true,
+        conditionalRender: {
+          dependentField: "status",
+          expectedValue: "Dropped Out",
+        },
+      },
+      {
+        name: "droppedOutReason",
+        label: "Dropped Out Reason",
+        type: "text",
+        placeholder: "Dropped Out Reason",
+        validators: {
+          minLength: 3,
+          minLengthMessage:
+            "Dropped out reason must be at least 3 characters long",
+        },
+        required: true,
+        conditionalRender: {
+          dependentField: "status",
+          expectedValue: "Dropped Out",
+        },
+      },
+      {
+        name: "graduatedYear",
+        label: "Graduated Year",
+        type: "number",
+        placeholder: "Graduated Year",
+        validators: {
+          pattern: "^\\d{4}$",
+          patternMessage: "Graduation year must be a 4-digit number",
+          max: new Date().getFullYear(),
+          maxMessage: "Graduation year cannot be in the future",
+          min: 2000,
+          minMessage: "Graduation year must be at least 2000",
+        },
+        required: true,
+        conditionalRender: {
+          dependentField: "status",
+          expectedValue: "Graduated",
+        },
       },
     ];
 
