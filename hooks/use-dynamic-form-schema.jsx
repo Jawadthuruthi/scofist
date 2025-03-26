@@ -227,7 +227,6 @@ export function useDynamicFormSchema(formFields = null) {
         });
       }
 
-      // Handle default values with more robust checking
       if (defaultValue !== undefined) {
         try {
           fieldSchema = fieldSchema.default(() => defaultValue);
@@ -244,6 +243,7 @@ export function useDynamicFormSchema(formFields = null) {
       if (validators.compareWith) {
         validators.compareWith.forEach((comparison) => {
           fieldRelationships.push({
+            type: "comparison",
             field1: name,
             field2: comparison.field,
             operator: comparison.operator,
@@ -257,68 +257,56 @@ export function useDynamicFormSchema(formFields = null) {
     // Remaining code for schema generation is the same as before
     let schema = z.object(schemaObj);
 
-    schema = schema.refine(
-      (data) => {
-        console.log(data);
-        const conditionalRequiredFields = formFields.filter(
-          (field) => field.conditionalRequired
-        );
-        return conditionalRequiredFields.every((field) => {
-          const fieldValue = data[field.dependentField];
-          return fieldValue === field.expectedValue;
-        });
-      },
-      {
-        message: "Required fields are missing",
-        path: [],
-      }
-    );
-
     // Comparison relationships refinement
     fieldRelationships.forEach((relation) => {
-      schema = schema.refine(
-        (data) => {
-          console.log(data);
-          const value1 = data[relation.field1];
-          const value2 = data[relation.field2];
+      if (relation.type === "comparison") {
+        schema = schema.refine(
+          (data) => {
+            console.log(
+              `Comparing ${relation.field1} and ${relation.field2}:`,
+              data
+            ); // Enhanced logging
+            const value1 = data[relation.field1];
+            const value2 = data[relation.field2];
 
-          if (
-            value1 === undefined ||
-            value1 === null ||
-            value1 === "" ||
-            (Array.isArray(value1) && value1.length === 0) ||
-            value2 === undefined ||
-            value2 === null ||
-            value2 === "" ||
-            (Array.isArray(value2) && value2.length === 0)
-          ) {
-            return true;
-          }
-
-          switch (relation.operator) {
-            case "<":
-              return value1 < value2;
-            case "<=":
-              return value1 <= value2;
-            case ">":
-              return value1 > value2;
-            case ">=":
-              return value1 >= value2;
-            case "==":
-              return value1 === value2;
-            case "!=":
-              return value1 !== value2;
-            default:
+            if (
+              value1 === undefined ||
+              value1 === null ||
+              value1 === "" ||
+              (Array.isArray(value1) && value1.length === 0) ||
+              value2 === undefined ||
+              value2 === null ||
+              value2 === "" ||
+              (Array.isArray(value2) && value2.length === 0)
+            ) {
               return true;
+            }
+
+            switch (relation.operator) {
+              case "<":
+                return value1 < value2;
+              case "<=":
+                return value1 <= value2;
+              case ">":
+                return value1 > value2;
+              case ">=":
+                return value1 >= value2;
+              case "==":
+                return value1 === value2;
+              case "!=":
+                return value1 !== value2;
+              default:
+                return true;
+            }
+          },
+          {
+            message:
+              relation.message ||
+              `Field ${relation.field1} must be ${relation.operator} field ${relation.field2}`,
+            path: [relation.errorPath],
           }
-        },
-        {
-          message:
-            relation.message ||
-            `Field ${relation.field1} must be ${relation.operator} field ${relation.field2}`,
-          path: [relation.errorPath],
-        }
-      );
+        );
+      }
     });
 
     return schema;

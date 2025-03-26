@@ -308,11 +308,11 @@ export default async function BatchesPage() {
         validators: {
           maxDate: new Date().toISOString().split("T")[0],
           maxDateMessage: "Dropped out date cannot be in the future",
-          conditionalRequired: {
-            dependentField: "status",
-            expectedValue: "Dropped Out",
-            message: "Dropped out date is required",
-          },
+        },
+        required: true,
+        conditionalRender: {
+          dependentField: "status",
+          expectedValue: "Dropped Out",
         },
       },
       {
@@ -324,11 +324,11 @@ export default async function BatchesPage() {
         validators: {
           minLength: 1,
           minLengthMessage: "Please select at least one class",
-          conditionalRequired: {
-            dependentField: "status",
-            expectedValue: "Dropped Out",
-            message: "Dropped out class is required",
-          },
+        },
+        required: true,
+        conditionalRender: {
+          dependentField: "status",
+          expectedValue: "Dropped Out",
         },
       },
       {
@@ -340,11 +340,11 @@ export default async function BatchesPage() {
           minLength: 3,
           minLengthMessage:
             "Dropped out reason must be at least 3 characters long",
-          conditionalRequired: {
-            dependentField: "status",
-            expectedValue: "Dropped Out",
-            message: "Dropped out reason is required",
-          },
+        },
+        required: true,
+        conditionalRender: {
+          dependentField: "status",
+          expectedValue: "Dropped Out",
         },
       },
       {
@@ -359,11 +359,11 @@ export default async function BatchesPage() {
           maxMessage: "Graduation year cannot be in the future",
           min: 2000,
           minMessage: "Graduation year must be at least 2000",
-          conditionalRequired: {
-            dependentField: "status",
-            expectedValue: "Graduated",
-            message: "Graduation year is required",
-          },
+        },
+        required: true,
+        conditionalRender: {
+          dependentField: "status",
+          expectedValue: "Graduated",
         },
       },
       {

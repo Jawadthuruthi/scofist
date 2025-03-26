@@ -90,7 +90,7 @@ const FormContent = ({
                       placeholder={field.placeholder}
                       disabled={field.disabled}
                       value={
-                        field.type === "date" && formField.value
+                        field.type === "date" && formField.value === ""
                           ? formField.value.split("T")[0]
                           : formField.value
                       }
@@ -128,8 +128,10 @@ export default function PopupForm({
   token,
 }) {
   const [open, setOpen] = React.useState(false);
+  const [customizedFormField, setCustomizedFormField] =
+    React.useState(formFields);
 
-  const { schema } = useDynamicFormSchema(formFields);
+  const { schema } = useDynamicFormSchema(customizedFormField);
 
   const defaultValues = React.useMemo(() => {
     return getDefaultValues(data, formFields);
@@ -141,6 +143,8 @@ export default function PopupForm({
     mode: "all",
     key: data ? `edit-${data._id}` : `create ${title}`,
   });
+
+  const formValues = form.watch();
 
   const handleSubmit = React.useCallback(
     async (values) => {
@@ -154,10 +158,17 @@ export default function PopupForm({
     [onSubmit]
   );
 
-  const filteredFormFields = React.useMemo(
-    () => formFields.filter((field) => (data ? !field?.hideOnEdit : true)),
-    [data, formFields]
-  );
+  React.useEffect(() => {
+    setCustomizedFormField(
+      formFields.filter(
+        (field) =>
+          (data ? !field?.hideOnEdit : true) &&
+          (!field.conditionalRender ||
+            field.conditionalRender.expectedValue ===
+              formValues[field.conditionalRender.dependentField])
+      )
+    );
+  }, [data, formFields, JSON.stringify(formValues)]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -176,7 +187,7 @@ export default function PopupForm({
         <FormContent
           key={data ? `edit-${data._id}` : `create ${title}`}
           form={form}
-          formFields={filteredFormFields}
+          formFields={customizedFormField}
           handleSubmit={handleSubmit}
           data={data}
           loading={loading}
