@@ -80,44 +80,50 @@ const FormContent = ({
         className="max-w-full overflow-hidden"
       >
         {/* Progress Bar */}
-        <div className="mb-4">
-          <div className="flex mb-1 text-sm font-medium">
-            <span>
-              Step {activeSectionIndex + 1} of {totalSections}
-            </span>
+        {totalSections > 1 && (
+          <div className="mb-4">
+            <div className="flex mb-1 text-sm font-medium">
+              <span>
+                Step {activeSectionIndex + 1} of {totalSections}
+              </span>
+            </div>
+            <Progress value={progress} className="h-2" /> {/* Progress bar */}
           </div>
-          <Progress value={progress} className="h-2" /> {/* Progress bar */}
-        </div>
+        )}
 
         {/* Section Navigation Tabs */}
-        <div className="flex mb-4 border-b max-w-full overflow-x-auto">
-          {sectionOrder.map((section, index) => (
-            <button
-              key={`section-${index}`}
-              type="button"
-              className={`px-4 py-2 text-sm text-nowrap ${
-                activeSectionIndex === index
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground"
-              }`}
-              onClick={() => setActiveSectionIndex(index)}
-            >
-              {section}
-            </button>
-          ))}
-        </div>
+        {totalSections > 1 && (
+          <div className="flex mb-4 border-b max-w-full overflow-x-auto scroll-[none] hide-scrollbar">
+            {sectionOrder.map((section, index) => (
+              <button
+                ref={(el) => (sectionRefs.current[section] = el)}
+                key={`section-${index}`}
+                type="button"
+                className={`px-4 py-2 text-sm text-nowrap ${
+                  activeSectionIndex === index
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground"
+                }`}
+                onClick={() => setActiveSectionIndex(index)}
+              >
+                {section}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Sectioned Form Content */}
         <div className="max-h-[60vh] overflow-y-auto px-2">
           {sectionOrder.map((sectionName, index) => (
             <div
               key={sectionName}
-              ref={(el) => (sectionRefs.current[sectionName] = el)}
-              className={`grid grid-cols-1 md:grid-cols-2 items-start gap-4 ${
+              className={`grid grid-cols-1  items-start gap-4 ${
                 activeSectionIndex === index ? "block" : "hidden"
               }`}
             >
-              <h2 className="text-lg font-bold col-span-2">{sectionName}</h2>
+              {sectionName !== "undefined" && (
+                <h2 className="text-lg font-bold">{sectionName}</h2>
+              )}
               {sections[sectionName].map((field, idx) => (
                 <FormField
                   key={idx}

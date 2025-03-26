@@ -126,6 +126,10 @@
   border-radius: 20px;
 }
 
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 @media (min-width: 800px) {
   .loader::after {
     width: 20%;
