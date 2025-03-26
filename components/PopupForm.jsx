@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Edit, Loader2, Plus } from "lucide-react";
 import { MultiSelect } from "./ui/multi-select";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
@@ -27,51 +27,81 @@ import { getDefaultValues } from "@/lib/utils";
 import ImageUploader from "./ImageUploader";
 import { Progress } from "@/components/ui/progress";
 
-const FormContent = ({
-  form,
-  formFields,
-  handleSubmit,
-  data,
-  loading,
-  token,
-}) => {
+const SectionNavigation = ({ sectionOrder, activeIndex, setActiveIndex }) => (
+  <div className="flex mb-4 border-b max-w-full overflow-x-auto hide-scrollbar">
+    {sectionOrder.map((section, index) => (
+      <button
+        key={section}
+        type="button"
+        className={`px-4 py-2 text-sm text-nowrap ${
+          activeIndex === index
+            ? "border-b-2 border-primary text-primary"
+            : "text-muted-foreground"
+        }`}
+        onClick={() => setActiveIndex(index)}
+      >
+        {section}
+      </button>
+    ))}
+  </div>
+);
+
+const FormFields = ({ form, fields }) =>
+  fields.map((field, idx) => (
+    <FormField
+      key={idx}
+      control={form.control}
+      name={field.name}
+      render={({ field: formField }) => (
+        <FormItem className={field.className}>
+          {field.label && !field.hideLabel && (
+            <FormLabel htmlFor={field.name}>
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </FormLabel>
+          )}
+          <FormControl>
+            {field.inputType === "image" ? (
+              <ImageUploader
+                value={formField.value}
+                onChange={formField.onChange}
+              />
+            ) : field.inputType === "select" ||
+              field.inputType === "multiSelect" ? (
+              <MultiSelect
+                options={field.options || []}
+                placeholder={field.placeholder || "Select options"}
+                multiSelect={field.inputType === "multiSelect"}
+                value={formField.value}
+                onValueChange={(value) => formField.onChange(value)}
+              />
+            ) : (
+              <Input
+                {...formField}
+                type={field.type || "text"}
+                placeholder={field.placeholder}
+              />
+            )}
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  ));
+
+const FormContent = ({ form, formFields, handleSubmit, data, loading }) => {
   const sections = React.useMemo(() => {
     return formFields.reduce((acc, field) => {
-      if (!acc[field.section]) acc[field.section] = [];
+      acc[field.section] = acc[field.section] || [];
       acc[field.section].push(field);
       return acc;
     }, {});
   }, [formFields]);
 
-  const sectionRefs = React.useRef({}); // Store refs for each section
-  const [activeSectionIndex, setActiveSectionIndex] = React.useState(0);
-
-  const sectionOrder = React.useMemo(() => Object.keys(sections), [sections]);
+  const sectionOrder = Object.keys(sections);
+  const [activeSection, setActiveSection] = React.useState(0);
   const totalSections = sectionOrder.length;
-  const progress = ((activeSectionIndex + 1) / totalSections) * 100; // Calculate progress percentage
-
-  const handleNextSection = (e) => {
-    e.preventDefault();
-    if (activeSectionIndex < totalSections - 1) {
-      setActiveSectionIndex(activeSectionIndex + 1);
-    }
-  };
-
-  const handlePreviousSection = () => {
-    if (activeSectionIndex > 0) {
-      setActiveSectionIndex(activeSectionIndex - 1);
-    }
-  };
-
-  // Automatically scroll the active section into view
-  React.useEffect(() => {
-    if (sectionRefs.current[sectionOrder[activeSectionIndex]]) {
-      sectionRefs.current[sectionOrder[activeSectionIndex]].scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
-  }, [activeSectionIndex]);
+  const progress = ((activeSection + 1) / totalSections) * 100;
 
   return (
     <Form {...form}>
@@ -79,112 +109,50 @@ const FormContent = ({
         onSubmit={form.handleSubmit(handleSubmit)}
         className="max-w-full overflow-hidden"
       >
-        {/* Progress Bar */}
         {totalSections > 1 && (
           <div className="mb-4">
             <div className="flex mb-1 text-sm font-medium">
               <span>
-                Step {activeSectionIndex + 1} of {totalSections}
+                Step {activeSection + 1} of {totalSections}
               </span>
             </div>
-            <Progress value={progress} className="h-2" /> {/* Progress bar */}
+            <Progress value={progress} className="h-2" />
           </div>
         )}
-
-        {/* Section Navigation Tabs */}
         {totalSections > 1 && (
-          <div className="flex mb-4 border-b max-w-full overflow-x-auto scroll-[none] hide-scrollbar">
-            {sectionOrder.map((section, index) => (
-              <button
-                ref={(el) => (sectionRefs.current[section] = el)}
-                key={`section-${index}`}
-                type="button"
-                className={`px-4 py-2 text-sm text-nowrap ${
-                  activeSectionIndex === index
-                    ? "border-b-2 border-primary text-primary"
-                    : "text-muted-foreground"
-                }`}
-                onClick={() => setActiveSectionIndex(index)}
-              >
-                {section}
-              </button>
-            ))}
-          </div>
+          <SectionNavigation
+            sectionOrder={sectionOrder}
+            activeIndex={activeSection}
+            setActiveIndex={setActiveSection}
+          />
         )}
-
-        {/* Sectioned Form Content */}
         <div className="max-h-[60vh] overflow-y-auto px-2">
-          {sectionOrder.map((sectionName, index) => (
+          {sectionOrder.map((section, index) => (
             <div
-              key={sectionName}
-              className={`grid grid-cols-1  items-start gap-4 ${
-                activeSectionIndex === index ? "block" : "hidden"
+              key={section}
+              className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${
+                activeSection === index ? "block" : "hidden"
               }`}
             >
-              {sectionName !== "undefined" && (
-                <h2 className="text-lg font-bold">{sectionName}</h2>
+              {section !== "undefined" && (
+                <h2 className="text-lg font-bold md:col-span-2">{section}</h2>
               )}
-              {sections[sectionName].map((field, idx) => (
-                <FormField
-                  key={idx}
-                  control={form.control}
-                  name={field.name}
-                  render={({ field: formField }) => (
-                    <FormItem className={field.className}>
-                      {field.label && !field.hideLabel && (
-                        <FormLabel htmlFor={field.name}>
-                          {field.label}
-                          {field.required && (
-                            <span className="text-red-500 ml-1">*</span>
-                          )}
-                        </FormLabel>
-                      )}
-                      <FormControl>
-                        {field.inputType === "image" ? (
-                          <ImageUploader
-                            value={formField.value}
-                            onChange={formField.onChange}
-                          />
-                        ) : field.inputType === "select" ||
-                          field.inputType === "multiSelect" ? (
-                          <MultiSelect
-                            options={field.options || []}
-                            placeholder={field.placeholder || "Select options"}
-                            multiSelect={field.inputType === "multiSelect"}
-                            value={formField.value}
-                            onValueChange={(value) => formField.onChange(value)}
-                          />
-                        ) : (
-                          <Input
-                            {...formField}
-                            type={field.type || "text"}
-                            placeholder={field.placeholder}
-                          />
-                        )}
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ))}
+              <FormFields form={form} fields={sections[section]} />
             </div>
           ))}
         </div>
-
-        {/* Navigation Buttons */}
         <div className="flex w-full gap-3 mt-4">
-          {activeSectionIndex > 0 && (
+          {activeSection > 0 && (
             <Button
               type="button"
               variant="outline"
               className="w-1/2"
-              onClick={handlePreviousSection}
+              onClick={() => setActiveSection((prev) => prev - 1)}
             >
               Previous
             </Button>
           )}
-
-          {activeSectionIndex === totalSections - 1 ? (
+          {activeSection === totalSections - 1 ? (
             <Button className="w-full" type="submit" disabled={loading}>
               {loading ? (
                 <Loader2 className="animate-spin mr-2" />
@@ -198,7 +166,7 @@ const FormContent = ({
             <Button
               type="button"
               className="w-full"
-              onClick={handleNextSection}
+              onClick={() => setActiveSection((prev) => prev + 1)}
             >
               Next
             </Button>

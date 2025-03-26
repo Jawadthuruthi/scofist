@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { baseURL } from "@/lib/utils";
+import { baseURL, fetchData, formatOptions } from "@/lib/utils";
 
 const columnsConfig = [
   {
@@ -64,6 +64,12 @@ const apiFilters = {
   role: ["Student"],
 };
 
+const API_ENDPOINTS = ["batches", "classes"];
+const SEMESTERS = Array.from({ length: 8 }, (_, i) => ({
+  label: `${i + 1}st`,
+  value: `${i + 1}st`,
+}));
+
 export default async function BatchesPage() {
   try {
     const cookieStore = await cookies();
@@ -79,43 +85,9 @@ export default async function BatchesPage() {
       );
     }
 
-    const batchesResponse = await fetch(
-      `${baseURL}/api/batches?projection=_id,name`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "api-key": token,
-        },
-        next: { revalidate: 60 },
-      }
+    const [batches, classes] = await Promise.all(
+      API_ENDPOINTS.map((endpoint) => fetchData(endpoint, token))
     );
-    const batchesData = await batchesResponse.json();
-    const batches = batchesData.batches;
-
-    const classesResponse = await fetch(
-      `${baseURL}/api/classes?projection=_id,name`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "api-key": token,
-        },
-        next: { revalidate: 60 },
-      }
-    );
-    const classesData = await classesResponse.json();
-    const classes = classesData.classes;
-
-    const formattedBatches = batches.map((batch) => ({
-      value: batch._id,
-      label: batch.name,
-    }));
-
-    const formattedClasses = classes.map((batch) => ({
-      value: batch._id,
-      label: batch.name,
-    }));
 
     const formFields = [
       // Profile Section
@@ -145,6 +117,7 @@ export default async function BatchesPage() {
             "Student ID can only contain letters, numbers, and hyphens",
         },
         hideOnEdit: true,
+        className: "md:col-span-2",
       },
 
       // Personal Details Section
@@ -331,27 +304,27 @@ export default async function BatchesPage() {
       // Academic Information Section
       {
         section: "Academic Information",
-        name: "classId",
-        label: "Assign Class",
+        name: "batchId",
+        label: "Assign Batch",
         type: "text",
         inputType: "select",
-        options: formattedClasses,
+        options: formatOptions(batches),
         validators: {
           minLength: 1,
-          minLengthMessage: "Please select at least one class",
+          minLengthMessage: "Please select at least one batch",
         },
         required: true,
       },
       {
         section: "Academic Information",
-        name: "batchId",
-        label: "Assign Batch",
+        name: "classId",
+        label: "Assign Class",
         type: "text",
         inputType: "select",
-        options: formattedBatches,
+        options: formatOptions(classes),
         validators: {
           minLength: 1,
-          minLengthMessage: "Please select at least one batch",
+          minLengthMessage: "Please select at least one class",
         },
         required: true,
       },
@@ -361,7 +334,7 @@ export default async function BatchesPage() {
         label: "Admission Class",
         type: "text",
         inputType: "select",
-        options: formattedClasses,
+        options: formatOptions(classes),
         validators: {
           minLength: 1,
           minLengthMessage: "Please select at least one class",
@@ -377,6 +350,87 @@ export default async function BatchesPage() {
           maxDate: new Date().toISOString().split("T")[0],
           maxDateMessage: "Admission date cannot be in the future",
         },
+      },
+
+      // Course Section
+
+      {
+        section: "Islamic Course Information",
+        name: "islamicCourseName",
+        label: "Course Name",
+        type: "text",
+        placeholder: "Course Name",
+      },
+      {
+        section: "Academic Course Information",
+        name: "academicCourseName",
+        label: "Course Name",
+        type: "text",
+        placeholder: "Course Name",
+      },
+      {
+        section: "Islamic Course Information",
+        name: "islamicUniversity",
+        label: "University/Board Name",
+        type: "text",
+        placeholder: "University/Board Name",
+      },
+      {
+        section: "Academic Course Information",
+        name: "academicUniversity",
+        label: "University/Board Name",
+        type: "text",
+        placeholder: "University/Board Name",
+      },
+      {
+        section: "Islamic Course Information",
+        name: "islamicCourseRegisterNumber",
+        label: "Register Number",
+        type: "text",
+        placeholder: "Register Number",
+      },
+      {
+        section: "Academic Course Information",
+        name: "academicCourseRegisterNumber",
+        label: "Register Number",
+        type: "text",
+        placeholder: "Register Number",
+      },
+      {
+        section: "Islamic Course Information",
+        name: "islamicCourseYear",
+        label: "Year",
+        type: "text",
+        placeholder: "Year",
+        inputType: "select",
+        options: SEMESTERS,
+      },
+      {
+        section: "Academic Course Information",
+        name: "academicCourseYear",
+        label: "Year",
+        type: "text",
+        placeholder: "Year",
+        inputType: "select",
+        options: SEMESTERS,
+      },
+      {
+        section: "Islamic Course Information",
+        name: "islamicCourseSemester",
+        label: "Semester",
+        type: "text",
+        placeholder: "Semester",
+        inputType: "select",
+        options: SEMESTERS,
+      },
+      {
+        section: "Academic Course Information",
+        name: "academicCourseSemester",
+        label: "Semester",
+        type: "text",
+        placeholder: "Semester",
+        inputType: "select",
+        options: SEMESTERS,
       },
 
       // Status Section
@@ -415,7 +469,7 @@ export default async function BatchesPage() {
         label: "Dropped Out Class",
         type: "array",
         inputType: "select",
-        options: formattedClasses,
+        options: formatOptions(classes),
         validators: {
           minLength: 1,
           minLengthMessage: "Please select at least one class",
@@ -461,7 +515,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Status",
+        section: "Islamic Status",
         name: "islamicQualification",
         label: "Islamic Qualification",
         type: "text",
@@ -472,7 +526,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Status",
+        section: "Academic Status",
         name: "academicQualification",
         label: "Academic Qualification",
         type: "text",

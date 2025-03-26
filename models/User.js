@@ -213,6 +213,50 @@ const userSchema = new Schema(
         required: function () {
           return this.roles.includes("Student");
         },
+        islamicCourse: {
+          name: {
+            type: String,
+            trim: true,
+          },
+          university: {
+            type: String,
+            trim: true,
+          },
+          registerNumber: {
+            type: String,
+            trim: true,
+          },
+          year: {
+            type: String,
+            enum: ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"],
+          },
+          semester: {
+            type: String,
+            enum: ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"],
+          },
+        },
+        academicCourse: {
+          name: {
+            type: String,
+            trim: true,
+          },
+          university: {
+            type: String,
+            trim: true,
+          },
+          registerNumber: {
+            type: String,
+            trim: true,
+          },
+          year: {
+            type: String,
+            enum: ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"],
+          },
+          semester: {
+            type: String,
+            enum: ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"],
+          },
+        },
       },
     },
   },

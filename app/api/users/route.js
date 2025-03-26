@@ -134,6 +134,16 @@ export async function POST(req, res) {
       graduatedYear,
       classId,
       batchId,
+      islamicCourseName,
+      islamicCourseUniversity,
+      islamicCourseRegisterNumber,
+      islamicCourseYear,
+      islamicCourseSemester,
+      academicCourseName,
+      academicCourseUniversity,
+      academicCourseRegisterNumber,
+      academicCourseYear,
+      academicCourseSemester,
     } = body;
     const newUser = await User.create({
       _id,
@@ -164,6 +174,20 @@ export async function POST(req, res) {
         graduatedYear,
         classId,
         batchId,
+        islamicCourse: {
+          name: islamicCourseName,
+          university: islamicCourseUniversity,
+          registerNumber: islamicCourseRegisterNumber,
+          year: islamicCourseYear,
+          semester: islamicCourseSemester,
+        },
+        academicCourse: {
+          name: academicCourseName,
+          university: academicCourseUniversity,
+          registerNumber: academicCourseRegisterNumber,
+          year: academicCourseYear,
+          semester: academicCourseSemester,
+        },
       },
       address: {
         houseName,
