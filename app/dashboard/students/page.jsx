@@ -118,7 +118,9 @@ export default async function BatchesPage() {
     }));
 
     const formFields = [
+      // Profile Section
       {
+        section: "Profile",
         name: "profilePic",
         label: "Add Profile",
         type: "object",
@@ -129,6 +131,7 @@ export default async function BatchesPage() {
         maxFileSize: 2 * 1024 * 1024, // 2MB in bytes
       },
       {
+        section: "Profile",
         name: "_id",
         label: "Student ID",
         type: "text",
@@ -143,7 +146,10 @@ export default async function BatchesPage() {
         },
         hideOnEdit: true,
       },
+
+      // Personal Details Section
       {
+        section: "Personal Details",
         name: "name",
         label: "Name",
         type: "text",
@@ -155,34 +161,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        name: "email",
-        label: "Email",
-        type: "email",
-        placeholder: "abcd@gmaill.com",
-        required: true,
-      },
-      {
-        name: "contactNumber",
-        label: "Contact Number",
-        type: "text",
-        placeholder: "Contact Number",
-        required: true,
-        validators: {
-          pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
-          patternMessage: "Invalid contact number format",
-        },
-      },
-      {
-        name: "alternativeNumber",
-        label: "Alternative Number",
-        type: "text",
-        placeholder: "Alternative Number",
-        validators: {
-          pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
-          patternMessage: "Invalid contact number format",
-        },
-      },
-      {
+        section: "Personal Details",
         name: "dateOfBirth",
         label: "Date Of Birth",
         type: "date",
@@ -194,51 +173,14 @@ export default async function BatchesPage() {
         },
       },
       {
-        name: "classId",
-        label: "Assign Class",
+        section: "Personal Details",
+        name: "bloodGroup",
+        label: "Blood Group",
         type: "text",
-        inputType: "select",
-        options: formattedClasses,
-        validators: {
-          minLength: 1,
-          minLengthMessage: "Please select at least one class",
-        },
-        required: true,
+        placeholder: "Blood Group",
       },
       {
-        name: "batchId",
-        label: "Assign Batch",
-        type: "text",
-        inputType: "select",
-        options: formattedBatches,
-        validators: {
-          minLength: 1,
-          minLengthMessage: "Please select at least one batch",
-        },
-        required: true,
-      },
-      {
-        name: "admissionClassId",
-        label: "Admission Class",
-        type: "text",
-        inputType: "select",
-        options: formattedClasses,
-        validators: {
-          minLength: 1,
-          minLengthMessage: "Please select at least one class",
-        },
-      },
-      {
-        name: "admissionDate",
-        label: "Admission Date",
-        type: "date",
-        placeholder: "Admission Date",
-        validators: {
-          maxDate: new Date().toISOString().split("T")[0],
-          maxDateMessage: "Admission date cannot be in the future",
-        },
-      },
-      {
+        section: "Personal Details",
         name: "aadharNo",
         label: "Aadhar Number",
         type: "text",
@@ -249,59 +191,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        name: "bloodGroup",
-        label: "Blood Group",
-        type: "text",
-        placeholder: "Blood Group",
-      },
-      {
-        name: "guardianName",
-        label: "Guardian Name",
-        type: "text",
-        placeholder: "Guardian Name",
-        required: true,
-        validators: {
-          minLength: 3,
-          minLengthMessage: "Guardian name must be at least 3 characters long",
-        },
-      },
-      {
-        name: "guardianContactNumber",
-        label: "Guardian Contact Number",
-        type: "text",
-        placeholder: "Guardian Contact Number",
-        required: true,
-        validators: {
-          pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
-          patternMessage: "Invalid contact number format",
-        },
-      },
-      {
-        name: "relationship",
-        label: "Guardian Relationship",
-        type: "text",
-        placeholder: "Guardian Relationship",
-        required: true,
-        validators: {
-          minLength: 3,
-          minLengthMessage:
-            "Guardian relationship must be at least 3 characters long",
-        },
-      },
-      {
-        name: "islamicQualification",
-        label: "Islamic Qualification",
-        type: "text",
-        placeholder: "Islamic Qualification",
-      },
-      {
-        name: "academicQualification",
-        label: "Academic Qualification",
-        type: "text",
-        placeholder: "Academic Qualification",
-      },
-
-      {
+        section: "Personal Details",
         name: "roles",
         label: "Roles",
         type: "text",
@@ -314,13 +204,89 @@ export default async function BatchesPage() {
           minLengthMessage: "Please select at least one role",
         },
       },
+
+      // Contact Information Section
       {
+        section: "Contact Information",
+        name: "email",
+        label: "Email",
+        type: "email",
+        placeholder: "abcd@gmaill.com",
+        required: true,
+      },
+      {
+        section: "Contact Information",
+        name: "contactNumber",
+        label: "Contact Number",
+        type: "text",
+        placeholder: "Contact Number",
+        required: true,
+        validators: {
+          pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
+          patternMessage: "Invalid contact number format",
+        },
+      },
+      {
+        section: "Contact Information",
+        name: "alternativeNumber",
+        label: "Alternative Number",
+        type: "text",
+        placeholder: "Alternative Number",
+        validators: {
+          pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
+          patternMessage: "Invalid contact number format",
+        },
+      },
+
+      // Guardian Details Section
+      {
+        section: "Guardian Details",
+        name: "guardianName",
+        label: "Guardian Name",
+        type: "text",
+        placeholder: "Guardian Name",
+        required: true,
+        validators: {
+          minLength: 3,
+          minLengthMessage: "Guardian name must be at least 3 characters long",
+        },
+      },
+      {
+        section: "Guardian Details",
+        name: "guardianContactNumber",
+        label: "Guardian Contact Number",
+        type: "text",
+        placeholder: "Guardian Contact Number",
+        required: true,
+        validators: {
+          pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
+          patternMessage: "Invalid contact number format",
+        },
+      },
+      {
+        section: "Guardian Details",
+        name: "relationship",
+        label: "Guardian Relationship",
+        type: "text",
+        placeholder: "Guardian Relationship",
+        required: true,
+        validators: {
+          minLength: 3,
+          minLengthMessage:
+            "Guardian relationship must be at least 3 characters long",
+        },
+      },
+
+      // Address Details Section
+      {
+        section: "Address Details",
         name: "houseName",
         label: "House Name",
         type: "text",
         placeholder: "House Name",
       },
       {
+        section: "Address Details",
         name: "place",
         label: "Place",
         type: "text",
@@ -328,12 +294,14 @@ export default async function BatchesPage() {
         required: true,
       },
       {
+        section: "Address Details",
         name: "postOffice",
         label: "Post Office",
         type: "text",
         placeholder: "Post Office",
       },
       {
+        section: "Address Details",
         name: "district",
         label: "District",
         type: "text",
@@ -341,6 +309,7 @@ export default async function BatchesPage() {
         required: true,
       },
       {
+        section: "Address Details",
         name: "state",
         label: "State",
         type: "text",
@@ -348,6 +317,7 @@ export default async function BatchesPage() {
         required: true,
       },
       {
+        section: "Address Details",
         name: "pin",
         label: "Pin Code",
         type: "text",
@@ -357,7 +327,61 @@ export default async function BatchesPage() {
           patternMessage: "Pin Code must be a 6-digit number",
         },
       },
+
+      // Academic Information Section
       {
+        section: "Academic Information",
+        name: "classId",
+        label: "Assign Class",
+        type: "text",
+        inputType: "select",
+        options: formattedClasses,
+        validators: {
+          minLength: 1,
+          minLengthMessage: "Please select at least one class",
+        },
+        required: true,
+      },
+      {
+        section: "Academic Information",
+        name: "batchId",
+        label: "Assign Batch",
+        type: "text",
+        inputType: "select",
+        options: formattedBatches,
+        validators: {
+          minLength: 1,
+          minLengthMessage: "Please select at least one batch",
+        },
+        required: true,
+      },
+      {
+        section: "Academic Information",
+        name: "admissionClassId",
+        label: "Admission Class",
+        type: "text",
+        inputType: "select",
+        options: formattedClasses,
+        validators: {
+          minLength: 1,
+          minLengthMessage: "Please select at least one class",
+        },
+      },
+      {
+        section: "Academic Information",
+        name: "admissionDate",
+        label: "Admission Date",
+        type: "date",
+        placeholder: "Admission Date",
+        validators: {
+          maxDate: new Date().toISOString().split("T")[0],
+          maxDateMessage: "Admission date cannot be in the future",
+        },
+      },
+
+      // Status Section
+      {
+        section: "Status",
         name: "status",
         label: "Status",
         type: "text",
@@ -371,6 +395,7 @@ export default async function BatchesPage() {
         ],
       },
       {
+        section: "Status",
         name: "droppedOutDate",
         label: "Dropped Out Date",
         type: "date",
@@ -379,13 +404,13 @@ export default async function BatchesPage() {
           maxDate: new Date().toISOString().split("T")[0],
           maxDateMessage: "Dropped out date cannot be in the future",
         },
-        required: true,
         conditionalRender: {
           dependentField: "status",
           expectedValue: "Dropped Out",
         },
       },
       {
+        section: "Status",
         name: "droppedOutClass",
         label: "Dropped Out Class",
         type: "array",
@@ -395,13 +420,13 @@ export default async function BatchesPage() {
           minLength: 1,
           minLengthMessage: "Please select at least one class",
         },
-        required: true,
         conditionalRender: {
           dependentField: "status",
           expectedValue: "Dropped Out",
         },
       },
       {
+        section: "Status",
         name: "droppedOutReason",
         label: "Dropped Out Reason",
         type: "text",
@@ -411,13 +436,13 @@ export default async function BatchesPage() {
           minLengthMessage:
             "Dropped out reason must be at least 3 characters long",
         },
-        required: true,
         conditionalRender: {
           dependentField: "status",
           expectedValue: "Dropped Out",
         },
       },
       {
+        section: "Status",
         name: "graduatedYear",
         label: "Graduated Year",
         type: "number",
@@ -430,7 +455,28 @@ export default async function BatchesPage() {
           min: 2000,
           minMessage: "Graduation year must be at least 2000",
         },
-        required: true,
+        conditionalRender: {
+          dependentField: "status",
+          expectedValue: "Graduated",
+        },
+      },
+      {
+        section: "Status",
+        name: "islamicQualification",
+        label: "Islamic Qualification",
+        type: "text",
+        placeholder: "Islamic Qualification",
+        conditionalRender: {
+          dependentField: "status",
+          expectedValue: "Graduated",
+        },
+      },
+      {
+        section: "Status",
+        name: "academicQualification",
+        label: "Academic Qualification",
+        type: "text",
+        placeholder: "Academic Qualification",
         conditionalRender: {
           dependentField: "status",
           expectedValue: "Graduated",
