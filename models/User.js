@@ -201,14 +201,14 @@ const userSchema = new Schema(
         },
       },
       classId: {
-        type: Schema.Types.ObjectId,
+        type: String,
         ref: "Class",
         required: function () {
           return this.roles.includes("Student");
         },
       },
       batchId: {
-        type: Schema.Types.ObjectId,
+        type: String,
         ref: "Batch",
         required: function () {
           return this.roles.includes("Student");

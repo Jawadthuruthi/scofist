@@ -65,11 +65,13 @@ const apiFilters = {
 };
 
 const API_ENDPOINTS = ["batches", "classes"];
-const SEMESTERS = Array.from({ length: 8 }, (_, i) => ({
-  label: `${i + 1}st`,
-  value: `${i + 1}st`,
-}));
-
+const SEMESTERS = [
+  { label: "1st", value: "1st" },
+  { label: "2nd", value: "2nd" },
+  { label: "3rd", value: "3rd" },
+  { label: "4th", value: "4th" },
+  { label: "5th", value: "5th" },
+];
 export default async function BatchesPage() {
   try {
     const cookieStore = await cookies();
@@ -90,9 +92,9 @@ export default async function BatchesPage() {
     );
 
     const formFields = [
-      // Profile Section
+      // Personal Details Section
       {
-        section: "Profile",
+        section: "Personal Details",
         name: "profilePic",
         label: "Add Profile",
         type: "object",
@@ -103,7 +105,7 @@ export default async function BatchesPage() {
         maxFileSize: 2 * 1024 * 1024, // 2MB in bytes
       },
       {
-        section: "Profile",
+        section: "Personal Details",
         name: "_id",
         label: "Student ID",
         type: "text",
@@ -117,10 +119,7 @@ export default async function BatchesPage() {
             "Student ID can only contain letters, numbers, and hyphens",
         },
         hideOnEdit: true,
-        className: "md:col-span-2",
       },
-
-      // Personal Details Section
       {
         section: "Personal Details",
         name: "name",
@@ -211,9 +210,8 @@ export default async function BatchesPage() {
         },
       },
 
-      // Guardian Details Section
       {
-        section: "Guardian Details",
+        section: "Contact Information",
         name: "guardianName",
         label: "Guardian Name",
         type: "text",
@@ -225,7 +223,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Guardian Details",
+        section: "Contact Information",
         name: "guardianContactNumber",
         label: "Guardian Contact Number",
         type: "text",
@@ -237,7 +235,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Guardian Details",
+        section: "Contact Information",
         name: "relationship",
         label: "Guardian Relationship",
         type: "text",

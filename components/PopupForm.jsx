@@ -27,10 +27,16 @@ import { getDefaultValues } from "@/lib/utils";
 import ImageUploader from "./ImageUploader";
 import { Progress } from "@/components/ui/progress";
 
-const SectionNavigation = ({ sectionOrder, activeIndex, setActiveIndex }) => (
+const SectionNavigation = ({
+  ref,
+  sectionOrder,
+  activeIndex,
+  setActiveIndex,
+}) => (
   <div className="flex mb-4 border-b max-w-full overflow-x-auto hide-scrollbar">
     {sectionOrder.map((section, index) => (
       <button
+        ref={(el) => (ref.current[index] = el)}
         key={section}
         type="button"
         className={`px-4 py-2 text-sm text-nowrap ${
@@ -90,6 +96,8 @@ const FormFields = ({ form, fields }) =>
   ));
 
 const FormContent = ({ form, formFields, handleSubmit, data, loading }) => {
+  const sectionRefs = React.useRef([]);
+
   const sections = React.useMemo(() => {
     return formFields.reduce((acc, field) => {
       acc[field.section] = acc[field.section] || [];
@@ -99,9 +107,19 @@ const FormContent = ({ form, formFields, handleSubmit, data, loading }) => {
   }, [formFields]);
 
   const sectionOrder = Object.keys(sections);
-  const [activeSection, setActiveSection] = React.useState(0);
+  const [activeSectionIndex, setActiveSectionIndex] = React.useState(0);
   const totalSections = sectionOrder.length;
-  const progress = ((activeSection + 1) / totalSections) * 100;
+  const progress = ((activeSectionIndex + 1) / totalSections) * 100;
+
+  React.useEffect(() => {
+    if (sectionRefs.current[activeSectionIndex]) {
+      sectionRefs.current[activeSectionIndex].scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+        inline: "end",
+      });
+    }
+  }, [activeSectionIndex]);
 
   return (
     <Form {...form}>
@@ -113,7 +131,7 @@ const FormContent = ({ form, formFields, handleSubmit, data, loading }) => {
           <div className="mb-4">
             <div className="flex mb-1 text-sm font-medium">
               <span>
-                Step {activeSection + 1} of {totalSections}
+                Step {activeSectionIndex + 1} of {totalSections}
               </span>
             </div>
             <Progress value={progress} className="h-2" />
@@ -121,9 +139,10 @@ const FormContent = ({ form, formFields, handleSubmit, data, loading }) => {
         )}
         {totalSections > 1 && (
           <SectionNavigation
+            ref={sectionRefs}
             sectionOrder={sectionOrder}
-            activeIndex={activeSection}
-            setActiveIndex={setActiveSection}
+            activeIndex={activeSectionIndex}
+            setActiveIndex={setActiveSectionIndex}
           />
         )}
         <div className="max-h-[60vh] overflow-y-auto px-2">
@@ -131,7 +150,7 @@ const FormContent = ({ form, formFields, handleSubmit, data, loading }) => {
             <div
               key={section}
               className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${
-                activeSection === index ? "block" : "hidden"
+                activeSectionIndex === index ? "block" : "hidden"
               }`}
             >
               {section !== "undefined" && (
@@ -142,17 +161,17 @@ const FormContent = ({ form, formFields, handleSubmit, data, loading }) => {
           ))}
         </div>
         <div className="flex w-full gap-3 mt-4">
-          {activeSection > 0 && (
+          {activeSectionIndex > 0 && (
             <Button
               type="button"
               variant="outline"
               className="w-1/2"
-              onClick={() => setActiveSection((prev) => prev - 1)}
+              onClick={() => setActiveSectionIndex((prev) => prev - 1)}
             >
               Previous
             </Button>
           )}
-          {activeSection === totalSections - 1 ? (
+          {activeSectionIndex === totalSections - 1 ? (
             <Button className="w-full" type="submit" disabled={loading}>
               {loading ? (
                 <Loader2 className="animate-spin mr-2" />
@@ -166,7 +185,7 @@ const FormContent = ({ form, formFields, handleSubmit, data, loading }) => {
             <Button
               type="button"
               className="w-full"
-              onClick={() => setActiveSection((prev) => prev + 1)}
+              onClick={() => setActiveSectionIndex((prev) => prev + 1)}
             >
               Next
             </Button>
@@ -203,7 +222,7 @@ export default function PopupForm({
     key: data ? `edit-${data._id}` : `create ${title}`,
   });
 
-  const formValues = form.watch();
+  const formValues = useWatch({ control: form.control });
 
   const handleSubmit = React.useCallback(
     async (values) => {
@@ -227,7 +246,7 @@ export default function PopupForm({
               formValues[field.conditionalRender.dependentField])
       )
     );
-  }, [data, formFields, JSON.stringify(formValues)]);
+  }, [data, formFields, formValues]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
