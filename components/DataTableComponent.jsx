@@ -26,6 +26,7 @@ import useDataFilter from "@/hooks/use-data-filter";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
 import { capitalize } from "lodash";
+import { Skeleton } from "./ui/skeleton";
 
 const PopupFilter = dynamic(() => import("./PopupFilter"), {
   ssr: false,
@@ -368,16 +369,23 @@ const DataTableComponent = ({
           </TableHeader>
           <TableBody>
             {isInitialLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  <div className="flex justify-center">
-                    <Loader2 className="animate-spin" size={24} />
-                  </div>
-                </TableCell>
-              </TableRow>
+              <>
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-12">
+                    <Skeleton className="w-full h-full rounded" />
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-12">
+                    <Skeleton className="w-full h-full rounded" />
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-12">
+                    <Skeleton className="w-full h-full rounded" />
+                  </TableCell>
+                </TableRow>
+              </>
             ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow

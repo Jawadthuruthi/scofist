@@ -159,7 +159,7 @@ const userSchema = new Schema(
           return this.roles.includes("Student");
         },
         trim: true,
-        enum: ["Father", "Mother", "Guardian", "Other"],
+        uppercase: true,
       },
       status: {
         type: String,

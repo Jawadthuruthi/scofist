@@ -160,7 +160,7 @@ const FormContent = ({ form, formFields, handleSubmit, data, loading }) => {
             </div>
           ))}
         </div>
-        <div className="flex w-full gap-3 mt-4">
+        <div className="flex w-full gap-3 mt-8">
           {activeSectionIndex > 0 && (
             <Button
               type="button"

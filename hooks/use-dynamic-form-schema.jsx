@@ -95,8 +95,7 @@ export function useDynamicFormSchema(formFields = null) {
           if (validators.minDate) {
             fieldSchema = fieldSchema.refine(
               (val) =>
-                val !== undefined &&
-                new Date(val) >= new Date(validators.minDate),
+                val !== "" && new Date(val) >= new Date(validators.minDate),
               {
                 message: validators.minDateMessage || "Date is too early",
               }
@@ -106,8 +105,9 @@ export function useDynamicFormSchema(formFields = null) {
           if (validators.maxDate) {
             fieldSchema = fieldSchema.refine(
               (val) =>
-                val !== undefined &&
-                new Date(val) <= new Date(validators.maxDate),
+                val !== ""
+                  ? new Date(val) <= new Date(validators.maxDate)
+                  : true,
               {
                 message: validators.maxDateMessage || "Date is too late",
               }

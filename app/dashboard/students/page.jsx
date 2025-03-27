@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { baseURL, fetchData, formatOptions } from "@/lib/utils";
+import { fetchData, formatOptions } from "@/lib/utils";
 
 const columnsConfig = [
   {
@@ -36,6 +36,22 @@ const columnsConfig = [
   { accessorKey: "alternativeNumber", header: "Alternative Number" },
   { accessorKey: "dateOfBirth", header: "Date Of Birth", type: ["date"] },
   { accessorKey: "roles", header: "Roles", type: ["array"] },
+  { accessorKey: "islamicCourseName", header: "Islamic Course" },
+  { accessorKey: "islamicUniversity", header: "Islamic University/Board" },
+  {
+    accessorKey: "islamicCourseRegisterNumber",
+    header: "Islamic Course Register Number",
+  },
+  { accessorKey: "islamicCourseYear", header: "Islamic Course Year" },
+  { accessorKey: "islamicCourseSemester", header: "Islamic Course Semester" },
+  { accessorKey: "academicCourseName", header: "Academic Course" },
+  { accessorKey: "academicUniversity", header: "Academic University/Board" },
+  {
+    accessorKey: "academicCourseRegisterNumber",
+    header: "Academic Course Register Number",
+  },
+  { accessorKey: "academicCourseYear", header: "Academic Course Year" },
+  { accessorKey: "academicCourseSemester", header: "Academic Course Semester" },
   { accessorKey: "address", header: "Address", type: ["nested"] },
   { accessorKey: "status", header: "Status", type: ["badge"] },
 ];
@@ -513,7 +529,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Islamic Status",
+        section: "Status",
         name: "islamicQualification",
         label: "Islamic Qualification",
         type: "text",
@@ -524,7 +540,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Academic Status",
+        section: "Status",
         name: "academicQualification",
         label: "Academic Qualification",
         type: "text",

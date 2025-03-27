@@ -19,6 +19,7 @@ import {
   X,
   Check,
   CreditCard,
+  BookOpen,
 } from "lucide-react";
 
 import {
@@ -103,8 +104,8 @@ const items = [
         allowedRoles: ["College Admin"],
       },
       {
-        title: "Time Table",
-        url: "/dashboard/time-table",
+        title: "Time Tables",
+        url: "/dashboard/time-tables",
         icon: Calendar,
         allowedRoles: ["College Admin"],
       },
