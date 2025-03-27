@@ -185,7 +185,10 @@ const FormContent = ({ form, formFields, handleSubmit, data, loading }) => {
             <Button
               type="button"
               className="w-full"
-              onClick={() => setActiveSectionIndex((prev) => prev + 1)}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveSectionIndex((prev) => prev + 1);
+              }}
             >
               Next
             </Button>

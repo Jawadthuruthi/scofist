@@ -197,7 +197,7 @@ const useTableColumns = (columnConfig) => {
     columnDefinition.meta = {
       width: col.width || "auto", // Default: auto
       minWidth: col.minWidth || "100px", // Default min-width
-      maxWidth: col.maxWidth || "300px", // Default max-width
+      maxWidth: col.maxWidth || "auto", // Default max-width
     };
 
     return columnDefinition;

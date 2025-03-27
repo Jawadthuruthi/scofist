@@ -19,7 +19,6 @@ import {
   X,
   Check,
   CreditCard,
-  BookOpen,
 } from "lucide-react";
 
 import {

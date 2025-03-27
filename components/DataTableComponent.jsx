@@ -236,7 +236,11 @@ const DataTableComponent = ({
   const handleSubmit = async (values) => {
     try {
       setLoading(true);
-      await addData.mutateAsync(values);
+      await addData.mutateAsync(
+        Object.fromEntries(
+          Object.entries(values).filter(([key, value]) => Boolean(value))
+        )
+      );
       table.resetRowSelection();
       setPage(0);
       router.refresh();

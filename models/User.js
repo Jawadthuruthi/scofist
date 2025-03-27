@@ -143,15 +143,15 @@ const userSchema = new Schema(
         trim: true,
         uppercase: true,
       },
-      guardianNumber: {
+      guardianContactNumber: {
         type: String,
         required: function () {
           return this.roles.includes("Student");
         },
-        validate: {
-          validator: (v) => /^\d{10}$/.test(v),
-          message: "Invalid guardian contact number",
-        },
+        match: [
+          /^(\+?\d{1,3}[-.\s]?)?\d{10,15}$/,
+          "Invalid guardian contact number",
+        ],
       },
       relationship: {
         type: String,
