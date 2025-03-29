@@ -153,6 +153,13 @@ const userSchema = new Schema(
           "Invalid guardian contact number",
         ],
       },
+      guardianAlternativeNumber: {
+        type: String,
+        match: [
+          /^(\+?\d{1,3}[-.\s]?)?\d{10,15}$/,
+          "Invalid guardian alternative number",
+        ],
+      },
       relationship: {
         type: String,
         required: function () {

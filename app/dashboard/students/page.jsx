@@ -250,6 +250,19 @@ export default async function BatchesPage() {
       },
       {
         section: "Contact Information",
+        name: "relationship",
+        label: "Guardian Relationship",
+        type: "text",
+        placeholder: "Guardian Relationship",
+        required: true,
+        validators: {
+          minLength: 3,
+          minLengthMessage:
+            "Guardian relationship must be at least 3 characters long",
+        },
+      },
+      {
+        section: "Contact Information",
         name: "guardianContactNumber",
         label: "Guardian Contact Number",
         type: "text",
@@ -262,15 +275,14 @@ export default async function BatchesPage() {
       },
       {
         section: "Contact Information",
-        name: "relationship",
-        label: "Guardian Relationship",
+        name: "guardianAlternativeNumber",
+        label: "Guardian Alternative Number",
         type: "text",
-        placeholder: "Guardian Relationship",
+        placeholder: "Guardian Alternative Number",
         required: true,
         validators: {
-          minLength: 3,
-          minLengthMessage:
-            "Guardian relationship must be at least 3 characters long",
+          pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
+          patternMessage: "Invalid alternative number format",
         },
       },
 
