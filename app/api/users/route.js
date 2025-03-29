@@ -72,21 +72,22 @@ export async function GET(req, res) {
           ...user.address,
           postOffice: user.postOffice ? `PO. ${user.postOffice}` : null,
         },
-        islamicCourseName: user.studentSpecificField.islamicCourse.name,
+        islamicCourseName: user.studentSpecificField?.islamicCourse?.name,
         islamicCourseUniversity:
-          user.studentSpecificField.islamicCourse.university,
+          user.studentSpecificField?.islamicCourse?.university,
         islamicCourseRegisterNumber:
-          user.studentSpecificField.islamicCourse.registerNumber,
-        islamicCourseYear: user.studentSpecificField.islamicCourse.year,
-        islamicCourseSemester: user.studentSpecificField.islamicCourse.semester,
-        academicCourseName: user.studentSpecificField.academicCourse.name,
+          user.studentSpecificField?.islamicCourse?.registerNumber,
+        islamicCourseYear: user.studentSpecificField?.islamicCourse?.year,
+        islamicCourseSemester:
+          user.studentSpecificField?.islamicCourse?.semester,
+        academicCourseName: user.studentSpecificField?.academicCourse?.name,
         academicCourseUniversity:
-          user.studentSpecificField.academicCourse.university,
+          user.studentSpecificField?.academicCourse?.university,
         academicCourseRegisterNumber:
-          user.studentSpecificField.academicCourse.registerNumber,
-        academicCourseYear: user.studentSpecificField.academicCourse.year,
+          user.studentSpecificField?.academicCourse?.registerNumber,
+        academicCourseYear: user.studentSpecificField?.academicCourse?.year,
         academicCourseSemester:
-          user.studentSpecificField.academicCourse.semester,
+          user.studentSpecificField?.academicCourse?.semester,
       };
     });
 
