@@ -49,13 +49,14 @@ export async function GET(req, res) {
       query.batchId = batchId;
     }
     if (filterParams.teacherId) {
-      query.teacherId = teacherId;
+      query.teacherId, (subjects = teacherId);
     }
 
     // Execute query with pagination
     const classes = await Class.find(query, projections)
       .populate("batchId", "name")
       .populate("teacherId", "name")
+      .populate("subjects", "name")
       .skip(page * limit)
       .limit(limit)
       .sort({ updatedAt: -1 });
@@ -69,6 +70,8 @@ export async function GET(req, res) {
       teacherId: cls.teacherId._id,
       batchName: cls.batchId.name,
       teacherName: cls.teacherId.name,
+      subjects: cls.subjects.map((subject) => subject._id),
+      subjectsName: cls.subjects.map((subject) => subject.name),
     }));
 
     return NextResponse.json(
@@ -97,12 +100,13 @@ export async function POST(req, res) {
     if (!authorized) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    const { _id, name, batchId, teacherId } = await req.json();
+    const { _id, name, batchId, teacherId, subjects } = await req.json();
     const newClass = await Class.create({
       _id,
       name,
       batchId,
       teacherId,
+      subjects,
     });
     return NextResponse.json(
       { newClass, message: "Class created successfully" },
@@ -122,14 +126,14 @@ export async function PUT(req, res) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
     const body = await req.json();
-    const { ids, name, batchId, teacherId } = body;
+    const { ids, name, batchId, teacherId, subjects } = body;
 
     const _id = ids[0];
 
     if (ids.length > 1) {
       const updatedClasses = await Class.updateMany(
         { _id: { $in: ids } },
-        { $set: { name, batchId, teacherId } }
+        { $set: { name, batchId, teacherId, subjects } }
       );
       return NextResponse.json(
         { updatedClasses, message: "Classes updated successfully" },
@@ -139,7 +143,7 @@ export async function PUT(req, res) {
 
     const updatedClass = await Class.findOneAndUpdate(
       { _id },
-      { name, batchId, teacherId },
+      { name, batchId, teacherId, subjects },
       { new: true }
     );
     return NextResponse.json(

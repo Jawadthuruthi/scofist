@@ -81,6 +81,12 @@ const items = [
     allowedRoles: ["College Admin", "Teacher"],
     subItems: [
       {
+        title: "Teachers",
+        url: "/dashboard/teachers",
+        icon: Users,
+        allowedRoles: ["College Admin"],
+      },
+      {
         title: "Batches",
         url: "/dashboard/batches",
         icon: ClipboardList,
@@ -96,12 +102,6 @@ const items = [
         title: "Students",
         url: "/dashboard/students",
         icon: GraduationCap,
-        allowedRoles: ["College Admin"],
-      },
-      {
-        title: "Teachers",
-        url: "/dashboard/teachers",
-        icon: Users,
         allowedRoles: ["College Admin"],
       },
       {

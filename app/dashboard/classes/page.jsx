@@ -2,7 +2,22 @@ import { cookies } from "next/headers";
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { baseURL } from "@/lib/utils";
+import { fetchData, formatOptions } from "@/lib/utils";
+
+const API_ENDPOINTS = [
+  {
+    pathname: "batches",
+    searchParams: "projection=_id,name,students",
+  },
+  {
+    pathname: "users",
+    searchParams: "role=Teacher&projection=_id,name",
+  },
+  {
+    pathname: "subjects",
+    searchParams: "projection=_id,name",
+  },
+];
 
 const columnsConfig = [
   {
@@ -25,6 +40,7 @@ const columnsConfig = [
   { accessorKey: "name", header: "Name" },
   { accessorKey: "batchName", header: "Batch" },
   { accessorKey: "teacherName", header: "Teacher" },
+  { accessorKey: "subjectsName", header: "Subjects", type: ["array"] },
 ];
 
 const statusMessages = {
@@ -48,43 +64,11 @@ export default async function ClassesPage() {
       );
     }
 
-    const batchesResponse = await fetch(
-      `${baseURL}/api/batches?projection=_id,name`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "api-key": token,
-        },
-        next: { revalidate: 60 },
-      }
+    const [batches, teachers, subjects] = await Promise.all(
+      API_ENDPOINTS.map((endpoint) =>
+        fetchData(endpoint.pathname, token, endpoint.searchParams)
+      )
     );
-    const batchesData = await batchesResponse.json();
-    const batches = batchesData.batches;
-
-    const teachersResponse = await fetch(
-      `${baseURL}/api/users?projection=_id,name&roles=Teacher`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "api-key": token,
-        },
-        next: { revalidate: 60 },
-      }
-    );
-    const teachersData = await teachersResponse.json();
-    const teachers = teachersData.users;
-
-    const formattedTeachers = teachers.map((teacher) => ({
-      value: teacher._id,
-      label: teacher.name,
-    }));
-
-    const formattedBatches = batches.map((batch) => ({
-      value: batch._id,
-      label: batch.name,
-    }));
 
     const formFields = [
       {
@@ -119,7 +103,7 @@ export default async function ClassesPage() {
         type: "text",
         inputType: "select",
         required: true,
-        options: formattedBatches,
+        options: formatOptions(batches),
       },
       {
         name: "teacherId",
@@ -127,7 +111,14 @@ export default async function ClassesPage() {
         type: "text",
         inputType: "select",
         required: true,
-        options: formattedTeachers,
+        options: formatOptions(teachers),
+      },
+      {
+        name: "subjects",
+        label: "Assign Subjects",
+        type: "array",
+        inputType: "multiSelect",
+        options: formatOptions(subjects),
       },
     ];
 
@@ -137,13 +128,13 @@ export default async function ClassesPage() {
         id: "batchId",
         label: "Select a batch",
         inputType: "select",
-        options: formattedBatches,
+        options: formatOptions(batches),
       },
       {
         id: "teacherId",
         label: "Select a teacher",
         inputType: "select",
-        options: formattedTeachers,
+        options: formatOptions(teachers),
       },
     ];
 

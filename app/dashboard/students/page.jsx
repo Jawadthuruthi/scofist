@@ -80,7 +80,16 @@ const apiFilters = {
   role: ["Student"],
 };
 
-const API_ENDPOINTS = ["batches", "classes"];
+const API_ENDPOINTS = [
+  {
+    pathname: "batches",
+    searchParams: "projection=_id,name",
+  },
+  {
+    pathname: "classes",
+    searchParams: "projection=_id,name",
+  },
+];
 const SEMESTERS = [
   { label: "1st", value: "1st" },
   { label: "2nd", value: "2nd" },
@@ -104,7 +113,9 @@ export default async function BatchesPage() {
     }
 
     const [batches, classes] = await Promise.all(
-      API_ENDPOINTS.map((endpoint) => fetchData(endpoint, token))
+      API_ENDPOINTS.map((endpoint) =>
+        fetchData(endpoint.pathname, token, endpoint.searchParams)
+      )
     );
 
     const formFields = [

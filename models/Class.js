@@ -1,6 +1,7 @@
 import { model, models, Schema } from "mongoose";
 import User from "./User";
 import Batch from "./Batch";
+import Subject from "./Subject";
 
 const classSchema = new Schema(
   {
@@ -32,6 +33,12 @@ const classSchema = new Schema(
       required: [true, "Teacher is required"],
       ref: "User",
     },
+    subjects: [
+      {
+        type: String,
+        ref: "Subject",
+      },
+    ],
   },
   {
     timestamps: true,
