@@ -13,10 +13,14 @@ export async function GET(req, res) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
     const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get("page") || "0");
+    const limit = parseInt(url.searchParams.get("limit") || "0");
 
     const filterParams = {};
     for (const [key, value] of url.searchParams.entries()) {
-      filterParams[key] = value;
+      if (key !== "page" && key !== "limit") {
+        filterParams[key] = value;
+      }
     }
 
     const query = {};
@@ -25,12 +29,22 @@ export async function GET(req, res) {
       query.periodNumber = filterParams.periodNumber;
     }
 
-    const periods = await Period.find(query).sort({ periodNumber: -1 });
+    const periods = await Period.find(query)
+      .skip(page * limit)
+      .limit(limit)
+      .sort({ periodNumber: -1 });
+
+    const total = await Period.countDocuments(query);
 
     return NextResponse.json(
       {
         periods,
-
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit) - 1,
+        },
         message: "Periods fetched successfully",
       },
       { status: 200 }

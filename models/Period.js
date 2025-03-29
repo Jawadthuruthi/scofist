@@ -12,27 +12,11 @@ const periodSchema = new Schema(
       type: String,
       trim: true,
       required: true,
-      validate: {
-        validator: (v) => {
-          const startTime = new Date(`2000-01-01T${v}`);
-          const endTime = new Date(`2000-01-01T${this.endTime}`);
-          return startTime < endTime;
-        },
-        message: "Start time must be before end time",
-      },
     },
     endTime: {
       type: String,
       required: true,
       trim: true,
-      validate: {
-        validator: (v) => {
-          const startTime = new Date(`2000-01-01T${this.startTime}`);
-          const endTime = new Date(`2000-01-01T${v}`);
-          return startTime < endTime;
-        },
-        message: "End time must be after start time",
-      },
     },
   },
   {
@@ -42,6 +26,23 @@ const periodSchema = new Schema(
   }
 );
 
+// Validate times at the schema level instead of individual fields
+periodSchema.path("startTime").validate(function (value) {
+  if (!this.endTime) return true; // Skip validation if endTime isn't set yet
+
+  const startTime = new Date(`2000-01-01T${value}`);
+  const endTime = new Date(`2000-01-01T${this.endTime}`);
+  return startTime < endTime;
+}, "Start time must be before end time");
+
+periodSchema.path("endTime").validate(function (value) {
+  if (!this.startTime) return true; // Skip validation if startTime isn't set yet
+
+  const startTime = new Date(`2000-01-01T${this.startTime}`);
+  const endTime = new Date(`2000-01-01T${value}`);
+  return startTime < endTime;
+}, "End time must be after start time");
+
 periodSchema.virtual("duration").get(function () {
   const startTime = new Date(`2000-01-01T${this.startTime}`);
   const endTime = new Date(`2000-01-01T${this.endTime}`);
@@ -50,11 +51,23 @@ periodSchema.virtual("duration").get(function () {
   return `${minutes} minutes`;
 });
 
-periodSchema.virtual("12HourTime").get(function () {
+periodSchema.virtual("formattedTime").get(function () {
   const startTime = new Date(`2000-01-01T${this.startTime}`);
-  const hours = startTime.getHours();
-  const minutes = startTime.getMinutes().toString().padStart(2, "0");
-  return `${hours}:${minutes} ${hours >= 12 ? "PM" : "AM"}`;
+  const startTimeHours = startTime.getHours();
+  const startTimeMinutes = startTime.getMinutes().toString().padStart(2, "0");
+  const startTimePeriod = startTimeHours >= 12 ? "PM" : "AM";
+  const formattedStartHours = startTimeHours % 12 || 12;
+
+  const endTime = new Date(`2000-01-01T${this.endTime}`);
+  const endTimeHours = endTime.getHours();
+  const endTimeMinutes = endTime.getMinutes().toString().padStart(2, "0");
+  const endTimePeriod = endTimeHours >= 12 ? "PM" : "AM";
+  const formattedEndHours = endTimeHours % 12 || 12;
+
+  const formattedStartTime = `${formattedStartHours}:${startTimeMinutes} ${startTimePeriod}`;
+  const formattedEndTime = `${formattedEndHours}:${endTimeMinutes} ${endTimePeriod}`;
+
+  return `${formattedStartTime} - ${formattedEndTime}`;
 });
 
 periodSchema.pre("save", async function (next) {
@@ -106,6 +119,6 @@ periodSchema.pre("save", async function (next) {
   }
 });
 
-const Period = models.period || model("Period", periodSchema);
+const Period = models.Period || model("Period", periodSchema);
 
 export default Period;

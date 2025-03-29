@@ -44,14 +44,14 @@ const columnsConfig = [
   },
   { accessorKey: "islamicCourseYear", header: "Islamic Course Year" },
   { accessorKey: "islamicCourseSemester", header: "Islamic Course Semester" },
-  { accessorKey: "academicCourseName", header: "Academic Course" },
+  { accessorKey: "academicCourseName", header: "General Course" },
   { accessorKey: "academicUniversity", header: "Academic University/Board" },
   {
     accessorKey: "academicCourseRegisterNumber",
-    header: "Academic Course Register Number",
+    header: "General Course Register Number",
   },
-  { accessorKey: "academicCourseYear", header: "Academic Course Year" },
-  { accessorKey: "academicCourseSemester", header: "Academic Course Semester" },
+  { accessorKey: "academicCourseYear", header: "General Course Year" },
+  { accessorKey: "academicCourseSemester", header: "General Course Semester" },
   { accessorKey: "address", header: "Address", type: ["nested"] },
   { accessorKey: "status", header: "Status", type: ["badge"] },
 ];
@@ -504,7 +504,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Academic Course Information",
+        section: "General Course Information",
         name: "academicCourseName",
         label: "Course Name",
         type: "text",
@@ -526,7 +526,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Academic Course Information",
+        section: "General Course Information",
         name: "academicUniversity",
         label: "University/Board Name",
         type: "text",
@@ -548,7 +548,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Academic Course Information",
+        section: "General Course Information",
         name: "academicCourseRegisterNumber",
         label: "Register Number",
         type: "text",
@@ -572,7 +572,7 @@ export default async function BatchesPage() {
         options: SEMESTERS,
       },
       {
-        section: "Academic Course Information",
+        section: "General Course Information",
         name: "academicCourseYear",
         label: "Year",
         type: "text",
@@ -598,7 +598,7 @@ export default async function BatchesPage() {
         options: SEMESTERS,
       },
       {
-        section: "Academic Course Information",
+        section: "General Course Information",
         name: "academicCourseSemester",
         label: "Semester",
         type: "text",

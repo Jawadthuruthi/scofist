@@ -147,7 +147,8 @@ const DataTableComponent = ({
       }
 
       setHasNextPage(
-        page < fetchItemsQuery.data.pagination.totalPages && newItems.length > 0
+        page < fetchItemsQuery.data?.pagination?.totalPages &&
+          newItems.length > 0
       );
     }
   }, [fetchItemsQuery.data, page, resource, limit]);
