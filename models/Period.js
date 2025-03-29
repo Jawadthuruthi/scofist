@@ -91,6 +91,29 @@ periodSchema.pre("save", async function (next) {
         return next(new Error("Period number already exists"));
       }
 
+      // Check period number ordering (periods with lower numbers should start earlier)
+      if (this.periodNumber > 1) {
+        const earlierPeriods = await this.constructor.find({
+          periodNumber: { $lt: this.periodNumber },
+          _id: { $ne: this._id },
+        });
+
+        for (const earlierPeriod of earlierPeriods) {
+          const earlierStart = new Date(
+            `2000-01-01T${earlierPeriod.startTime}`
+          );
+
+          // If this period starts before any period with a lower number
+          if (thisStart < earlierStart) {
+            return next(
+              new Error(
+                `Period ${this.periodNumber} cannot start before period ${earlierPeriod.periodNumber}`
+              )
+            );
+          }
+        }
+      }
+
       // Then check for time overlaps by fetching all periods
       // We exclude the current document if it exists
       const allPeriods = await this.constructor.find({
