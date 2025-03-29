@@ -1,5 +1,6 @@
 import { model, models, Schema } from "mongoose";
 import User from "./User";
+import Batch from "./Batch";
 
 const classSchema = new Schema(
   {
