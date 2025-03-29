@@ -279,7 +279,6 @@ export default async function BatchesPage() {
         label: "Guardian Alternative Number",
         type: "text",
         placeholder: "Guardian Alternative Number",
-        required: true,
         validators: {
           pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
           patternMessage: "Invalid alternative number format",
