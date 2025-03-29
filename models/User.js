@@ -1,4 +1,5 @@
 import { Schema, model, models } from "mongoose";
+import Batch from "./Batch";
 // Reusable enums
 const ROLES = [
   "College Admin",
@@ -23,12 +24,10 @@ const userSchema = new Schema(
       required: true,
       uppercase: true,
       trim: true,
-      validate: {
-        validator: function (v) {
-          return /^[A-Za-z0-9-]+$/.test(v);
-        },
-        message: "Invalid ID format",
-      },
+      match: [
+        /^[A-Z0-9-]+$/,
+        "ID must only contain uppercase letters, numbers, and hyphens (-).",
+      ],
     },
     name: {
       type: String,
@@ -61,10 +60,12 @@ const userSchema = new Schema(
     contactNumber: {
       type: String,
       required: true,
+      trim: true,
       match: [/^(\+?\d{1,3}[-.\s]?)?\d{10,15}$/, "Invalid contact number"],
     },
     alternativeNumber: {
       type: String,
+      trim: true,
       match: [/^(\+?\d{1,3}[-.\s]?)?\d{10,15}$/, "Invalid alternative number"],
     },
     address: {
@@ -75,6 +76,7 @@ const userSchema = new Schema(
       state: { type: String, required: true, trim: true },
       pin: {
         type: String,
+        trim: true,
         validate: {
           validator: (v) => !v || /^\d{6}$/.test(v),
           message: "Invalid 6-digit PIN code",
@@ -92,6 +94,7 @@ const userSchema = new Schema(
     profilePic: {
       url: {
         type: String,
+        trim: true,
         validate: {
           validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
           message: "Invalid URL format",
@@ -122,10 +125,11 @@ const userSchema = new Schema(
       },
     },
     studentSpecificField: {
-      admissionClassId: { type: String, ref: "Class" },
+      admissionClassId: { type: String, trim: true, ref: "Class" },
       admissionDate: Date,
       aadharNo: {
         type: String,
+        trim: true,
         validate: {
           validator: (v) => !v || /^\d{12}$/.test(v),
           message: "Invalid 12-digit Aadhar number",
@@ -133,6 +137,7 @@ const userSchema = new Schema(
       },
       bloodGroup: {
         type: String,
+        trim: true,
         enum: BLOOD_GROUPS,
       },
       guardianName: {
@@ -145,6 +150,7 @@ const userSchema = new Schema(
       },
       guardianContactNumber: {
         type: String,
+        trim: true,
         required: function () {
           return this.roles.includes("Student");
         },
@@ -155,6 +161,7 @@ const userSchema = new Schema(
       },
       guardianAlternativeNumber: {
         type: String,
+        trim: true,
         match: [
           /^(\+?\d{1,3}[-.\s]?)?\d{10,15}$/,
           "Invalid guardian alternative number",
@@ -170,6 +177,7 @@ const userSchema = new Schema(
       },
       status: {
         type: String,
+        trim: true,
         enum: STUDENT_STATUSES,
         default: "Active",
       },
@@ -184,18 +192,21 @@ const userSchema = new Schema(
       },
       droppedOutClass: {
         type: String,
+        trim: true,
         required: function () {
           return this.studentSpecificField?.status === "Dropped Out";
         },
       },
       droppedOutReason: {
         type: String,
+        trim: true,
         required: function () {
           return this.studentSpecificField?.status === "Dropped Out";
         },
       },
       graduatedYear: {
         type: String,
+        trim: true,
         validate: {
           validator: function (v) {
             if (this.studentSpecificField?.status !== "Graduated") return true;
@@ -209,6 +220,7 @@ const userSchema = new Schema(
       },
       classId: {
         type: String,
+        trim: true,
         ref: "Class",
         required: function () {
           return this.roles.includes("Student");
@@ -216,6 +228,7 @@ const userSchema = new Schema(
       },
       batchId: {
         type: String,
+        trim: true,
         ref: "Batch",
         required: function () {
           return this.roles.includes("Student");
@@ -277,20 +290,45 @@ const userSchema = new Schema(
 // Indexes for common query patterns
 userSchema.index({ name: "text" });
 
-// Pre-save hook to trim strings
-userSchema.pre("save", function (next) {
-  const trimStrings = (obj) => {
-    Object.keys(obj).forEach((key) => {
-      if (typeof obj[key] === "string") {
-        obj[key] = obj[key].trim();
+// Pre-save hook: Trim strings and update Batch when a student is added or changes batch
+userSchema.pre("save", async function (next) {
+  try {
+    // Update batch if student is new or batchId is modified
+    if (this.isModified("batchId")) {
+      if (this.isNew) {
+        await Batch.findByIdAndUpdate(this.batchId, {
+          $addToSet: { students: this._id },
+        });
+      } else {
+        const oldStudent = await mongoose.model("User").findById(this._id);
+        if (oldStudent.batchId && oldStudent.batchId !== this.batchId) {
+          await Batch.findByIdAndUpdate(oldStudent.batchId, {
+            $pull: { students: this._id },
+          });
+        }
+        await Batch.findByIdAndUpdate(this.batchId, {
+          $addToSet: { students: this._id },
+        });
       }
-    });
-  };
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
-  trimStrings(this);
-  trimStrings(this.address);
-  trimStrings(this.studentSpecificField);
-  next();
+// Pre-remove hook: Remove student from batch when deleted
+userSchema.pre("remove", async function (next) {
+  try {
+    if (this.batchId) {
+      await Batch.findByIdAndUpdate(this.batchId, {
+        $pull: { students: this._id },
+      });
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 const User = models.User || model("User", userSchema);

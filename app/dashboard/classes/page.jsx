@@ -96,6 +96,9 @@ export default async function ClassesPage() {
         validators: {
           minLength: 3,
           minLengthMessage: "Class ID must be at least 3 characters long",
+          pattern: "^[A-Z0-9-]+$",
+          patternMessage:
+            "Class ID must only contain uppercase letters, numbers, and hyphens (-).",
         },
         hideOnEdit: true,
       },

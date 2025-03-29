@@ -9,12 +9,10 @@ const classSchema = new Schema(
       required: true,
       uppercase: true,
       trim: true,
-      validate: {
-        validator: function (v) {
-          return /^[A-Za-z0-9-]+$/.test(v);
-        },
-        message: "Invalid ID format",
-      },
+      match: [
+        /^[A-Z0-9-]+$/,
+        "Class ID must only contain uppercase letters, numbers, and hyphens (-).",
+      ],
     },
     name: {
       type: String,

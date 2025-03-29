@@ -130,7 +130,7 @@ export default async function BatchesPage() {
         validators: {
           minLength: 3,
           minLengthMessage: "Student ID must be at least 3 characters long",
-          pattern: "^[A-Za-z0-9-]+$",
+          pattern: "^[A-Z0-9-]+$",
           patternMessage:
             "Student ID can only contain letters, numbers, and hyphens",
         },

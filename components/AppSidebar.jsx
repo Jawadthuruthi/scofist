@@ -19,6 +19,7 @@ import {
   X,
   Check,
   CreditCard,
+  BookOpen,
 } from "lucide-react";
 
 import {
@@ -100,6 +101,12 @@ const items = [
         title: "Teachers",
         url: "/dashboard/teachers",
         icon: Users,
+        allowedRoles: ["College Admin"],
+      },
+      {
+        title: "Subjects",
+        url: "/dashboard/subjects",
+        icon: BookOpen,
         allowedRoles: ["College Admin"],
       },
       {

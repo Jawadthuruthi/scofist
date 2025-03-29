@@ -40,6 +40,9 @@ const formFields = [
     validators: {
       minLength: 3,
       minLengthMessage: "Batch ID must be at least 3 characters long",
+      pattern: "^[A-Z0-9-]+$",
+      patternMessage:
+        "Batch ID must only contain uppercase letters, numbers, and hyphens (-).",
     },
     hideOnEdit: true,
   },

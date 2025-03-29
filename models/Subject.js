@@ -8,10 +8,10 @@ const subjectSchema = new Schema(
       required: true,
       uppercase: true,
       trim: true,
-      validate: {
-        validator: (v) => /^[A-Z0-9]+$/.test(v),
-        message: "Subject id must be a valid code",
-      },
+      match: [
+        /^[A-Z0-9-]+$/,
+        "Subject ID must only contain uppercase letters, numbers, and hyphens (-).",
+      ],
     },
     name: {
       type: String,
