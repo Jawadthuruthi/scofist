@@ -1,5 +1,4 @@
 import { apiResponse } from "@/lib/apiResponse";
-import { verifyToken } from "@/lib/auth";
 import connectToDB from "@/lib/db";
 import Class from "@/models/Class";
 import { NextResponse } from "next/server";
@@ -8,10 +7,6 @@ export async function GET(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
 
     // Parse URL to get search params
     const url = new URL(req.url);
@@ -96,10 +91,7 @@ export async function POST(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
     const { _id, name, batchId, teacherId, subjects } = await req.json();
     const newClass = await Class.create({
       _id,
@@ -121,10 +113,7 @@ export async function PUT(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
     const body = await req.json();
     const { ids, name, batchId, teacherId, subjects } = body;
 
@@ -159,10 +148,7 @@ export async function DELETE(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
     const { ids } = await req.json();
     const _id = ids[0];
     if (ids.length > 1) {

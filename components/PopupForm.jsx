@@ -83,9 +83,9 @@ const FormFields = ({ form, fields }) =>
               />
             ) : (
               <Input
-                {...formField}
                 type={field.type || "text"}
                 placeholder={field.placeholder}
+                {...formField}
               />
             )}
           </FormControl>
@@ -216,7 +216,7 @@ export default function PopupForm({
 
   const defaultValues = React.useMemo(() => {
     return getDefaultValues(data, formFields);
-  }, [data, formFields]);
+  }, [data, formFields, schema]);
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -226,6 +226,8 @@ export default function PopupForm({
   });
 
   const formValues = useWatch({ control: form.control });
+
+  console.log(formValues["dateOfBirth"]);
 
   const handleSubmit = React.useCallback(
     async (values) => {

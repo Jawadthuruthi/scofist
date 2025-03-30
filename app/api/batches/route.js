@@ -1,5 +1,4 @@
 import { apiResponse } from "@/lib/apiResponse";
-import { verifyToken } from "@/lib/auth";
 import connectToDB from "@/lib/db";
 import Batch from "@/models/Batch";
 import { NextResponse } from "next/server";
@@ -8,10 +7,6 @@ export async function GET(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
 
     // Parse URL to get search params
     const url = new URL(req.url);
@@ -86,10 +81,7 @@ export async function POST(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
     const { _id, name, startYear, endYear, status } = await req.json();
     const newBatch = await Batch.create({
       _id,
@@ -111,10 +103,7 @@ export async function PUT(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
     const body = await req.json();
     const { ids, name, startYear, endYear, status } = body;
 
@@ -149,10 +138,7 @@ export async function DELETE(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
     const { ids } = await req.json();
     const _id = ids[0];
     if (ids.length > 1) {

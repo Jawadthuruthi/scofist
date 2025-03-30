@@ -1,5 +1,4 @@
 import { apiResponse } from "@/lib/apiResponse";
-import { verifyToken } from "@/lib/auth";
 import cloudinary from "@/lib/cloudinary";
 import connectToDB from "@/lib/db";
 import User from "@/models/User";
@@ -9,10 +8,6 @@ export async function GET(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
 
     // Parse URL to get search params
     const url = new URL(req.url);
@@ -80,14 +75,14 @@ export async function GET(req, res) {
         islamicCourseYear: user.studentSpecificField?.islamicCourse?.year,
         islamicCourseSemester:
           user.studentSpecificField?.islamicCourse?.semester,
-        academicCourseName: user.studentSpecificField?.academicCourse?.name,
-        academicCourseUniversity:
-          user.studentSpecificField?.academicCourse?.university,
-        academicCourseRegisterNumber:
-          user.studentSpecificField?.academicCourse?.registerNumber,
-        academicCourseYear: user.studentSpecificField?.academicCourse?.year,
-        academicCourseSemester:
-          user.studentSpecificField?.academicCourse?.semester,
+        generalCourseName: user.studentSpecificField?.generalCourse?.name,
+        generalCourseUniversity:
+          user.studentSpecificField?.generalCourse?.university,
+        generalCourseRegisterNumber:
+          user.studentSpecificField?.generalCourse?.registerNumber,
+        generalCourseYear: user.studentSpecificField?.generalCourse?.year,
+        generalCourseSemester:
+          user.studentSpecificField?.generalCourse?.semester,
       };
     });
 
@@ -113,10 +108,7 @@ export async function POST(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
     const body = await req.json();
     const {
       _id,
@@ -156,11 +148,11 @@ export async function POST(req, res) {
       islamicCourseRegisterNumber,
       islamicCourseYear,
       islamicCourseSemester,
-      academicCourseName,
-      academicCourseUniversity,
-      academicCourseRegisterNumber,
-      academicCourseYear,
-      academicCourseSemester,
+      generalCourseName,
+      generalCourseUniversity,
+      generalCourseRegisterNumber,
+      generalCourseYear,
+      generalCourseSemester,
     } = body;
     const newUser = await User.create({
       _id,
@@ -199,12 +191,12 @@ export async function POST(req, res) {
           year: islamicCourseYear,
           semester: islamicCourseSemester,
         },
-        academicCourse: {
-          name: academicCourseName,
-          university: academicCourseUniversity,
-          registerNumber: academicCourseRegisterNumber,
-          year: academicCourseYear,
-          semester: academicCourseSemester,
+        generalCourse: {
+          name: generalCourseName,
+          university: generalCourseUniversity,
+          registerNumber: generalCourseRegisterNumber,
+          year: generalCourseYear,
+          semester: generalCourseSemester,
         },
       },
       address: {
@@ -229,10 +221,7 @@ export async function PUT(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
     const body = await req.json();
     const {
       ids,
@@ -272,11 +261,11 @@ export async function PUT(req, res) {
       islamicCourseRegisterNumber,
       islamicCourseYear,
       islamicCourseSemester,
-      academicCourseName,
-      academicCourseUniversity,
-      academicCourseRegisterNumber,
-      academicCourseYear,
-      academicCourseSemester,
+      generalCourseName,
+      generalCourseUniversity,
+      generalCourseRegisterNumber,
+      generalCourseYear,
+      generalCourseSemester,
     } = body;
 
     const _id = ids[0];
@@ -320,12 +309,12 @@ export async function PUT(req, res) {
                 year: islamicCourseYear,
                 semester: islamicCourseSemester,
               },
-              academicCourse: {
-                name: academicCourseName,
-                university: academicCourseUniversity,
-                registerNumber: academicCourseRegisterNumber,
-                year: academicCourseYear,
-                semester: academicCourseSemester,
+              generalCourse: {
+                name: generalCourseName,
+                university: generalCourseUniversity,
+                registerNumber: generalCourseRegisterNumber,
+                year: generalCourseYear,
+                semester: generalCourseSemester,
               },
             },
             address: {
@@ -383,12 +372,12 @@ export async function PUT(req, res) {
             year: islamicCourseYear,
             semester: islamicCourseSemester,
           },
-          academicCourse: {
-            name: academicCourseName,
-            university: academicCourseUniversity,
-            registerNumber: academicCourseRegisterNumber,
-            year: academicCourseYear,
-            semester: academicCourseSemester,
+          generalCourse: {
+            name: generalCourseName,
+            university: generalCourseUniversity,
+            registerNumber: generalCourseRegisterNumber,
+            year: generalCourseYear,
+            semester: generalCourseSemester,
           },
         },
         address: {
@@ -416,10 +405,7 @@ export async function DELETE(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
     const { ids } = await req.json();
     const _id = ids[0];
     if (ids.length > 1) {

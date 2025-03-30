@@ -7,9 +7,58 @@ const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
 
 // Cache configuration
 const userCache = new Map();
-const CACHE_TTL = 30 * 60 * 1000; // Extend to 30 minutes for better performance
+const tokenCache = new Map();
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes for user cache
+const TOKEN_TTL = 5 * 60 * 1000; // 5 minutes for API token cache
 
 export async function middleware(req) {
+  // Check if this is an API route
+  if (req.nextUrl.pathname.startsWith("/api/")) {
+    return handleApiRequest(req);
+  }
+
+  // Handle regular authentication for dashboard routes
+  return handleAuthRequest(req);
+}
+
+async function handleApiRequest(req) {
+  const apiKey = req.headers.get("api-key");
+
+  if (!apiKey) {
+    return NextResponse.json(
+      { message: "Unauthorized - API key missing" },
+      { status: 401 }
+    );
+  }
+
+  // Check token cache first
+  const cachedToken = tokenCache.get(apiKey);
+  if (cachedToken && cachedToken.expiry > Date.now()) {
+    // API key is valid and cached
+    return NextResponse.next();
+  }
+
+  try {
+    // Verify JWT token
+    const verified = await jwtVerify(apiKey, SECRET_KEY);
+
+    // Store in cache with expiry
+    tokenCache.set(apiKey, {
+      payload: verified,
+      expiry: Date.now() + TOKEN_TTL,
+    });
+
+    return NextResponse.next();
+  } catch (error) {
+    console.error("API authentication error:", error.message);
+    return NextResponse.json(
+      { message: "Unauthorized - Invalid API key" },
+      { status: 401 }
+    );
+  }
+}
+
+async function handleAuthRequest(req) {
   const token = req.cookies.get("auth-token")?.value;
 
   if (!token) {
@@ -161,5 +210,5 @@ function redirectToLogin(req) {
 }
 
 export const config = {
-  matcher: "/dashboard/:path*",
+  matcher: ["/dashboard/:path*", "/api/:path*"],
 };

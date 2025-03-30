@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
-import { verifyToken } from "@/lib/auth";
 
 export async function POST(req) {
   try {

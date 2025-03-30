@@ -1,5 +1,4 @@
 import { apiResponse } from "@/lib/apiResponse";
-import { verifyToken } from "@/lib/auth";
 import connectToDB from "@/lib/db";
 import Period from "@/models/Period";
 import { NextResponse } from "next/server";
@@ -8,10 +7,7 @@ export async function GET(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "0");
     const limit = parseInt(url.searchParams.get("limit") || "0");
@@ -58,10 +54,7 @@ export async function POST(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
     const { periodNumber, startTime, endTime } = await req.json();
     const newPeriod = await Period.create({
       periodNumber,
@@ -81,10 +74,7 @@ export async function PUT(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
     const body = await req.json();
     const { ids, periodNumber, startTime, endTime } = body;
 
@@ -119,10 +109,7 @@ export async function DELETE(req, res) {
   try {
     const apiKey = req.headers.get("api-key");
     await connectToDB();
-    const authorized = await verifyToken(apiKey);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
     const { ids } = await req.json();
     const _id = ids[0];
     if (ids.length > 1) {
