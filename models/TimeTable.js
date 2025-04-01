@@ -1,4 +1,7 @@
 import { model, models, Schema } from "mongoose";
+import Class from "./Class";
+import Subject from "./Subject";
+import User from "./User";
 
 const timeTableSchema = new Schema(
   {

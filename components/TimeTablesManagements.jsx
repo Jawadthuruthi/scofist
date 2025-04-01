@@ -403,7 +403,7 @@ const TimeTablesManagements = ({
             </Alert>
           )}
 
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-4 gap-2">
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
@@ -411,7 +411,6 @@ const TimeTablesManagements = ({
               onClick={handleSubmit}
               type="submit"
               disabled={isSubmitting}
-              className="ml-2"
             >
               {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
