@@ -357,7 +357,7 @@ const TimeTablesManagements = ({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-[90%] sm:max-w-[80%] md:max-w-xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-center gap-2">
+            <DialogTitle className="flex items-center justify-center text-center gap-2">
               <div>
                 Edit Time Table
                 <p className=" text-sm">
