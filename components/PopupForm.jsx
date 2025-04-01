@@ -227,8 +227,6 @@ export default function PopupForm({
 
   const formValues = useWatch({ control: form.control });
 
-  console.log(formValues["dateOfBirth"]);
-
   const handleSubmit = React.useCallback(
     async (values) => {
       try {

@@ -1,172 +1,74 @@
-"use client";
+import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import React from "react";
+import TimeTablesManagements from "@/components/TimeTablesManagements";
+import { fetchData } from "@/lib/utils";
+import { cookies } from "next/headers";
 
-const timeTablesPage = () => {
-  const [selectedClass, setSelectedClass] = React.useState(null);
-  const [timeTables, setTimeTables] = React.useState([
-    {
-      id: "",
-      teacherId: "",
-      classId: "",
-      subjectName: "",
-      timeSlots: [
-        {
-          startTime: "",
-          endTime: "",
-          day: "",
-          periodNumber: "",
-        },
-      ],
-    },
-  ]);
+const API_ENDPOINTS = [
+  {
+    pathname: "periods",
+  },
+  {
+    pathname: "subjects",
+  },
+  {
+    pathname: "users",
+    searchParams: "role=Teacher&projection=_id,name",
+  },
+  {
+    pathname: "classes",
+    searchParams: "projection=_id,name",
+  },
+];
 
-  const mockClasses = Array.from({ length: 10 }, (_, index) => ({
-    id: index + 1,
-    name: `Class ${index + 1}`,
-    subjects: Array.from(
-      { length: 10 },
-      (_, subjectIndex) => `Subject ${subjectIndex + 1}`
-    ),
-  }));
-  const mockTeachers = Array.from({ length: 10 }, (_, index) => ({
-    id: index + 1,
-    name: `Teacher ${index + 1}`,
-  }));
+const TimeTablePage = async () => {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth-token")?.value;
 
-  React.useEffect(() => {
-    if (selectedClass) {
-      const filteredTimeTables = timeTables.filter(
-        (timeTable) => timeTable.classId === selectedClass
+    if (!token) {
+      return (
+        <ErrorPage
+          statusCode={403}
+          title="Access Denied"
+          description="You don't have permission to access this resource."
+        />
       );
-      setTimeTables(filteredTimeTables);
-    } else {
-      setTimeTables([]);
     }
-  }, [selectedClass]);
-  const mockTimeTable = [
-    {
-      subjectName: "Mathematics",
-      classId: "10A",
-      teacherId: "Mr. Smith",
-      timeSlots: [
-        { startTime: "09:00", endTime: "10:00", day: "MON" },
-        { startTime: "10:00", endTime: "11:00", day: "WED" },
-      ],
-    },
-    {
-      subjectName: "Science",
-      classId: "10B",
-      teacherId: "Mrs. Johnson",
-      timeSlots: [
-        { startTime: "11:00", endTime: "12:00", day: "TUE" },
-        { startTime: "13:00", endTime: "14:00", day: "THU" },
-      ],
-    },
-  ];
 
-  const periods = mockTimeTable.reduce((acc, timeTable) => {
-    timeTable.timeSlots.forEach((timeSlot) => {
-      const timeRange = `${timeSlot.startTime}-${timeSlot.endTime}`;
-      if (!acc.includes(timeRange)) {
-        acc.push(timeRange);
-      }
-    });
-    return acc; // Missing return statement was added
-  }, []);
+    const [periods, subjects, teachers, classes] = await Promise.all(
+      API_ENDPOINTS.map((endpoint) =>
+        fetchData(endpoint.pathname, token, endpoint.searchParams)
+      )
+    );
 
-  const days = mockTimeTable.reduce((acc, timeTable) => {
-    timeTable.timeSlots.forEach((timeSlot) => {
-      if (!acc.includes(timeSlot.day)) {
-        acc.push(timeSlot.day);
-      }
-    });
-    return acc;
-  }, []);
-
-  return (
-    <>
-      <Header
-        title="TIME TABLES MANAGEMENT"
-        subTitle="Organize and Oversee Time Tables"
+    return (
+      <>
+        <Header
+          title="TIME TABLES MANAGEMENT"
+          subTitle="Organize and Oversee Time Tables"
+        />
+        <TimeTablesManagements
+          periods={periods}
+          subjects={subjects}
+          teachers={teachers}
+          classes={classes}
+          token={token}
+        />
+      </>
+    );
+  } catch (error) {
+    console.error("Error loading classes:", error.message);
+    return (
+      <ErrorPage
+        statusCode={500}
+        title="Internal Server Error"
+        description="An unexpected error occurred while processing your request."
       />
-      <div>
-        <Select>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select a Class" />
-          </SelectTrigger>
-          <SelectContent>
-            {mockClasses.map((mockClass) => (
-              <SelectItem
-                key={mockClass.id}
-                value={mockClass.id}
-                onClick={() => setSelectedClass(mockClass.id)}
-              >
-                {mockClass.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      {/* time table */}
-      <div>
-        <Card>
-          <CardContent className="p-4">
-            <h2 className="text-xl font-bold mb-4">Class Timetable</h2>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Day \ Time</TableHead>
-                  {periods.map((period, index) => (
-                    <TableHead key={index}>{period}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {days.map((day) => (
-                  <TableRow key={day}>
-                    <TableCell className="font-bold">{day}</TableCell>
-                    {periods.map((period, periodIndex) => {
-                      const schedule = mockTimeTable.find((entry) =>
-                        entry.timeSlots.some(
-                          (slot) =>
-                            slot.day === day &&
-                            `${slot.startTime} - ${slot.endTime}` === period
-                        )
-                      );
-                      return (
-                        <TableCell key={periodIndex}>
-                          {schedule
-                            ? `${schedule.subjectName} (${schedule.classId})`
-                            : "-"}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
-    </>
-  );
+    );
+  }
 };
 
-export default timeTablesPage;
+export default TimeTablePage;
+
+export const revalidate = 0;

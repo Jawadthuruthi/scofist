@@ -292,8 +292,8 @@ const DataTableComponent = ({
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between py-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <div className="mr-auto space-x-2 flex">
           <ColumnCustomization table={table} columnsConfig={columnsConfig} />
           <PopupFilter
@@ -338,7 +338,7 @@ const DataTableComponent = ({
         </div>
       </div>
       {!!selectedData.length && (
-        <div className="mb-2 text-muted-foreground">
+        <div className="text-muted-foreground">
           {selectedData?.length} selected
         </div>
       )}
@@ -441,7 +441,7 @@ const DataTableComponent = ({
         )}
       </div>
       {table.getRowModel().rows?.length > 0 && (
-        <div className="py-4 w-full flex justify-end">
+        <div className="w-full flex justify-end">
           <Button onClick={handlePrint}>Print</Button>
         </div>
       )}

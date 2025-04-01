@@ -3,7 +3,6 @@ import cloudinary from "@/lib/cloudinary";
 
 export async function POST(req) {
   try {
-    const apiKey = req.headers.get("api-key");
     const authorized = await verifyToken(apiKey);
 
     if (!authorized) {
@@ -46,7 +45,6 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   try {
-    const apiKey = req.headers.get("api-key");
     const authorized = await verifyToken(apiKey);
 
     if (!authorized) {

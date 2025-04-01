@@ -80,7 +80,7 @@ async function handleAuthRequest(req) {
 
     try {
       // Try to fetch user with increased timeout
-      const user = await fetchUserProfile(userId);
+      const user = await fetchUserProfile(userId, token);
 
       if (user) {
         storeUserInCache(userId, user);
@@ -139,7 +139,7 @@ function storeUserInCache(userId, user, customTtl = CACHE_TTL) {
   });
 }
 
-async function fetchUserProfile(userId) {
+async function fetchUserProfile(userId, token) {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // Extend to 5 seconds
@@ -148,6 +148,7 @@ async function fetchUserProfile(userId) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "api-key": token,
       },
       body: JSON.stringify({ userId }),
       cache: "no-store",

@@ -5,7 +5,6 @@ import { NextResponse } from "next/server";
 
 export async function GET(req, res) {
   try {
-    const apiKey = req.headers.get("api-key");
     await connectToDB();
 
     // Parse URL to get search params
@@ -79,7 +78,6 @@ export async function GET(req, res) {
 
 export async function POST(req, res) {
   try {
-    const apiKey = req.headers.get("api-key");
     await connectToDB();
 
     const { _id, name, startYear, endYear, status } = await req.json();
@@ -101,7 +99,6 @@ export async function POST(req, res) {
 
 export async function PUT(req, res) {
   try {
-    const apiKey = req.headers.get("api-key");
     await connectToDB();
 
     const body = await req.json();
@@ -136,7 +133,6 @@ export async function PUT(req, res) {
 
 export async function DELETE(req, res) {
   try {
-    const apiKey = req.headers.get("api-key");
     await connectToDB();
 
     const { ids } = await req.json();
