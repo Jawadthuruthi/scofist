@@ -255,7 +255,7 @@ const TimeTablesManagements = ({
     <div className="space-y-6">
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>TimeTable Management</CardTitle>
+          <CardTitle>TimeTable</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -355,9 +355,9 @@ const TimeTablesManagements = ({
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-[95%] sm:max-w-[80%] md:max-w-xl">
+        <DialogContent className="max-w-[90%] sm:max-w-[80%] md:max-w-xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center justify-center gap-2">
               <div>
                 Edit Time Table
                 <p className=" text-sm">
