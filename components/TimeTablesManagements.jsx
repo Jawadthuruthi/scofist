@@ -301,8 +301,8 @@ const TimeTablesManagements = ({
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           ) : selectedClass ? (
-            <div className="overflow-x-auto border rounded-md">
-              <Table className="border-collapse w-full">
+            <div className="overflow-x-auto border border-collapse rounded-md">
+              <Table className="w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="border font-bold bg-accent sticky left-0 z-10">
@@ -335,7 +335,7 @@ const TimeTablesManagements = ({
                       {periods.map((period) => (
                         <TableCell
                           key={`${day}-${period._id}`}
-                          className="border text-center cursor-pointer min-w-[120px] transition-colors hover:bg-gray-100"
+                          className="border text-center cursor-pointer transition-colors hover:bg-gray-100"
                           onClick={() => handleCellClick(period, day)}
                         >
                           <CellData period={period.periodNumber} day={day} />

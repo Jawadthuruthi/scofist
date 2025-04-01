@@ -17,10 +17,14 @@ export default async function Layout({ children }) {
       disableTransitionOnChange
     >
       <SidebarProvider defaultOpen={false}>
-        <div className="flex w-[100vw] ">
+        <div className="flex h-screen overflow-hidden">
           <AppSidebar roles={user.roles} />
-          <Topbar user={user} />
-          <main className="flex-1 max-w-full p-4 lg:p-6 mt-14">{children}</main>
+          <div className="flex flex-col flex-1 min-w-0">
+            <Topbar user={user} />
+            <main className="flex-1 p-4 lg:p-6 mt-14 overflow-auto">
+              {children}
+            </main>
+          </div>
         </div>
       </SidebarProvider>
     </ThemeProvider>
