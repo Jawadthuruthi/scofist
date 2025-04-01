@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { useRouter } from "next/navigation";
 
 const TimeTablesManagements = ({
   periods = [],
@@ -51,6 +52,16 @@ const TimeTablesManagements = ({
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [teacherScheduleConflicts, setTeacherScheduleConflicts] = useState([]);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [router]);
 
   // Custom hooks
   const { useFetchItems, useUpdateItem } = useCrud("timeTables", token);
@@ -194,12 +205,14 @@ const TimeTablesManagements = ({
       );
 
       return cellData ? (
-        <div className="flex flex-col items-center justify-center p-2 hover:bg-gray-50">
+        <div className="flex flex-col items-center justify-center p-2 hover:bg-accent">
           <p className="font-medium text-sm">{cellData.subjectId.name}</p>
-          <p className="text-xs  text-gray-600">{cellData.teacherId.name}</p>
+          <p className="text-xs  text-accent-foreground">
+            {cellData.teacherId.name}
+          </p>
         </div>
       ) : (
-        <div className="flex items-center justify-center p-2 hover:bg-gray-50">
+        <div className="flex items-center justify-center p-2 hover:bg-accent">
           <Edit className="text-muted-foreground h-4 w-4" />
         </div>
       );
@@ -292,7 +305,7 @@ const TimeTablesManagements = ({
               <Table className="border-collapse w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="border font-bold bg-gray-50 sticky left-0 z-10">
+                    <TableHead className="border font-bold bg-accent sticky left-0 z-10">
                       Day/Period
                     </TableHead>
                     {periods.map((period) => (
@@ -312,8 +325,8 @@ const TimeTablesManagements = ({
                 </TableHeader>
                 <TableBody>
                   {DAYS.map((day) => (
-                    <TableRow key={day} className="hover:bg-gray-50/50">
-                      <TableCell className="border font-medium bg-gray-50 sticky left-0 z-10">
+                    <TableRow key={day} className="hover:bg-accent/50">
+                      <TableCell className="border font-medium bg-accent sticky left-0 z-10">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
                           {day}

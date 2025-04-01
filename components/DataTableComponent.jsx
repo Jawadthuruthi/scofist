@@ -106,6 +106,14 @@ const DataTableComponent = ({
   const loaderRef = useRef(null);
   const router = useRouter();
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [router]);
+
   const {
     filteredData,
     filters,
