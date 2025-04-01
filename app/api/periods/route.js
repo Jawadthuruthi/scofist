@@ -27,7 +27,7 @@ export async function GET(req, res) {
     const periods = await Period.find(query)
       .skip(page * limit)
       .limit(limit)
-      .sort({ periodNumber: 1 });
+      .sort({ periodNumber: -1 });
 
     const total = await Period.countDocuments(query);
 

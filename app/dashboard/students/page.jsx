@@ -34,10 +34,23 @@ const columnsConfig = [
   { accessorKey: "email", header: "Email" },
   { accessorKey: "contactNumber", header: "Contact Number" },
   { accessorKey: "alternativeNumber", header: "Alternative Number" },
+  { accessorKey: "aadharNo", header: "Aadhar Number" },
+  { accessorKey: "batchName", header: "Batch" },
+  { accessorKey: "className", header: "Class" },
+  { accessorKey: "admissionClassName", header: "Admission Class" },
+  { accessorKey: "admissionDate", header: "Admission Date", type: ["date"] },
   { accessorKey: "dateOfBirth", header: "Date Of Birth", type: ["date"] },
   { accessorKey: "bloodGroup", header: "Blood Group" },
   { accessorKey: "roles", header: "Roles", type: ["array"] },
   { accessorKey: "address", header: "Address", type: ["nested"] },
+  { accessorKey: "guardianName", header: "Guardian Name" },
+  { accessorKey: "relationship", header: "Guardian Relationship" },
+  { accessorKey: "guardianContactNumber", header: "Guardian Contact Number" },
+  {
+    accessorKey: "guardianAlternativeNumber",
+    header: "Guardian Alternative Number",
+  },
+
   { accessorKey: "status", header: "Status", type: ["badge"] },
 ];
 

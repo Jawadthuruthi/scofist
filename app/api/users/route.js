@@ -49,6 +49,9 @@ export async function GET(req, res) {
 
     // Execute query with pagination
     const users = await User.find(query, projections)
+      .populate("studentSpecificField.batchId", "name")
+      .populate("studentSpecificField.classId", "name")
+      .populate("studentSpecificField.admissionClassId", "name")
       .skip(page * limit)
       .limit(limit)
       .sort({ updatedAt: -1 });
@@ -66,6 +69,12 @@ export async function GET(req, res) {
           ...user.address,
           postOffice: user.postOffice ? `PO. ${user.postOffice}` : null,
         },
+        batchId: user.studentSpecificField.batchId?._id,
+        batchName: user.studentSpecificField.batchId?.name,
+        classId: user.studentSpecificField.classId?._id,
+        className: user.studentSpecificField.classId?.name,
+        admissionClassId: user.studentSpecificField.admissionClassId?._id,
+        admissionClassName: user.studentSpecificField.admissionClassId?.name,
         islamicCourseName: user.studentSpecificField?.islamicCourse?.name,
         islamicCourseUniversity:
           user.studentSpecificField?.islamicCourse?.university,
