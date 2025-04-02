@@ -250,7 +250,9 @@ const TimeTablesManagements = ({
     if (!timeTableData.timeSlots) return { total: 0, filled: 0, percentage: 0 };
 
     const totalSlots = periods.length * DAYS.length;
-    const filledSlots = timeTableData.timeSlots.length;
+    const filledSlots = timeTableData?.timeSlots?.filter(
+      (slot) => slot.teacherId !== null || slot.subjectId !== null
+    ).length;
 
     return {
       total: totalSlots,
@@ -447,11 +449,11 @@ const TimeTablesManagements = ({
               <Table className="w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="border font-bold bg-accent sticky left-0 z-10"></TableHead>
+                    <TableHead className="border  bg-accent sticky left-0 rig z-10"></TableHead>
                     {periods.map((period) => (
                       <TableHead
                         key={period._id}
-                        className="text-center font-bold whitespace-nowrap"
+                        className="text-center border-t font-bold whitespace-nowrap"
                       >
                         <div className="flex flex-col items-center text-xxs">
                           <span>{getPeriodTime(period.periodNumber)}</span>
