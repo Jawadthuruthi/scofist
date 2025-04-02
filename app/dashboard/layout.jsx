@@ -17,7 +17,7 @@ export default async function Layout({ children }) {
       disableTransitionOnChange
     >
       <SidebarProvider defaultOpen={false}>
-        <div className="flex h-screen overflow-hidden">
+        <div className="flex h-screen overflow-hidden min-w-full max-w-full">
           <AppSidebar roles={user.roles} />
           <div className="flex flex-col flex-1 min-w-0">
             <Topbar user={user} />

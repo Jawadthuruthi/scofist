@@ -1,5 +1,6 @@
 import { Schema, model, models } from "mongoose";
 import Batch from "./Batch";
+import Class from "./Class";
 // Reusable enums
 const ROLES = [
   "College Admin",

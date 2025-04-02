@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { Edit, Loader2, Calendar, Clock, AlertCircle } from "lucide-react";
+import { Edit, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useRouter } from "next/navigation";
+import usePrint from "@/hooks/use-print";
 
 const TimeTablesManagements = ({
   periods = [],
@@ -42,7 +43,7 @@ const TimeTablesManagements = ({
   subjects = [],
   token,
 }) => {
-  // State management
+  const [category, setCategory] = useState("class");
   const [timeTableData, setTimeTableData] = useState({ timeSlots: [] });
   const [selectedClass, setSelectedClass] = useState(classes[0]?._id || "");
   const [selectedTeacher, setSelectedTeacher] = useState("");
@@ -54,6 +55,12 @@ const TimeTablesManagements = ({
   const [teacherScheduleConflicts, setTeacherScheduleConflicts] = useState([]);
 
   const router = useRouter();
+  const timeTableRef = useRef();
+
+  const handlePrint = usePrint({
+    content: () => timeTableRef.current,
+    documentTitle: `Time Table`,
+  });
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -65,7 +72,14 @@ const TimeTablesManagements = ({
 
   // Custom hooks
   const { useFetchItems, useUpdateItem } = useCrud("timeTables", token);
-  const fetchItemsQuery = useFetchItems(0, 0, { classId: selectedClass });
+  const fetchItemsQuery = useFetchItems(0, 0, {
+    classId:
+      category === "class" || (category === "teacher" && !selectedTeacher)
+        ? selectedClass
+        : undefined,
+    teacherId:
+      category === "teacher" && selectedTeacher ? selectedTeacher : undefined,
+  });
   const updateItem = useUpdateItem();
 
   // Get all timetables to check for teacher conflicts
@@ -121,7 +135,27 @@ const TimeTablesManagements = ({
   useEffect(() => {
     if (fetchItemsQuery.data) {
       const newData = fetchItemsQuery.data["timeTables"] || [];
-      setTimeTableData(newData[0] || { timeSlots: [] });
+      const teachersTimeSlots =
+        category === "teacher" && selectedTeacher
+          ? newData?.reduce((acc, timeTable) => {
+              const slots = timeTable.timeSlots.filter(
+                (slot) => slot.teacherId._id === selectedTeacher
+              );
+              const classId = timeTable.classId;
+              return {
+                timeSlots:
+                  [
+                    ...(acc.timeSlots || []),
+                    ...slots.map((slot) => ({ ...slot, classId })),
+                  ] || [],
+              };
+            }, {})
+          : [];
+      setTimeTableData(
+        (category === "class" || (category === "teacher" && !selectedTeacher)
+          ? newData[0]
+          : teachersTimeSlots) || { timeSlots: {} }
+      );
     }
   }, [fetchItemsQuery.data, selectedClass]);
 
@@ -205,10 +239,13 @@ const TimeTablesManagements = ({
       );
 
       return cellData ? (
-        <div className="flex flex-col items-center justify-center p-2 hover:bg-accent">
-          <p className="font-medium text-sm">{cellData.subjectId.name}</p>
-          <p className="text-xs  text-accent-foreground">
-            {cellData.teacherId.name}
+        <div className="flex flex-col items-center justify-center hover:bg-accent">
+          <p className="font-medium text-xs">{cellData.subjectId.name}</p>
+          <p className="text-[10px] leading-normal  text-accent-foreground">
+            {category === "class" ||
+            (category === "teacher" && !selectedTeacher)
+              ? cellData.teacherId.name
+              : cellData.classId.name}
           </p>
         </div>
       ) : (
@@ -255,26 +292,62 @@ const TimeTablesManagements = ({
     <div className="space-y-6">
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>TimeTable</CardTitle>
+          <CardTitle>Time Table</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="w-full md:w-1/3">
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <div className="w-full md:w-1/4">
+              <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a Class" />
+                  <SelectValue placeholder="Select a Category" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {classes.map((classItem) => (
-                      <SelectItem key={classItem._id} value={classItem._id}>
-                        {classItem.name}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value={"class"}>Class</SelectItem>
+                    <SelectItem value={"teacher"}>Teacher</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
+            {category === "teacher" && (
+              <div className="w-full md:w-1/4">
+                <Select
+                  value={selectedTeacher}
+                  onValueChange={setSelectedTeacher}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a Teacher" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {teachers.map((teacher) => (
+                        <SelectItem key={teacher._id} value={teacher._id}>
+                          {teacher.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {category === "class" && (
+              <div className="w-full md:w-1/4">
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a Class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {classes.map((classItem) => (
+                        <SelectItem key={classItem._id} value={classItem._id}>
+                          {classItem.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {selectedClass && (
               <div className="flex items-center gap-4">
@@ -301,19 +374,20 @@ const TimeTablesManagements = ({
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           ) : selectedClass ? (
-            <div className="overflow-x-auto border border-collapse rounded-md">
+            <div
+              ref={timeTableRef}
+              className="overflow-x-auto border border-collapse rounded-md"
+            >
               <Table className="w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="border font-bold bg-accent sticky left-0 z-10">
-                      Day/Period
-                    </TableHead>
+                    <TableHead className="border font-bold bg-accent sticky left-0 z-10 text-xs"></TableHead>
                     {periods.map((period) => (
                       <TableHead
                         key={period._id}
                         className="border text-center font-bold whitespace-nowrap"
                       >
-                        <div className="flex flex-col items-center">
+                        <div className="flex flex-col items-center text-xs">
                           <span>{getPeriodTime(period.periodNumber)}</span>
                           <span className="text-xs text-muted-foreground">
                             Period {period.periodNumber}
@@ -328,14 +402,13 @@ const TimeTablesManagements = ({
                     <TableRow key={day} className="hover:bg-accent/50">
                       <TableCell className="border font-medium bg-accent sticky left-0 z-10">
                         <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          {day}
+                          {day.slice(0, 3)}
                         </div>
                       </TableCell>
                       {periods.map((period) => (
                         <TableCell
                           key={`${day}-${period._id}`}
-                          className="border text-center cursor-pointer transition-colors hover:bg-gray-100"
+                          className="border text-center cursor-pointer transition-colors hover:bg-accent/50 max-w-32"
                           onClick={() => handleCellClick(period, day)}
                         >
                           <CellData period={period.periodNumber} day={day} />
@@ -351,6 +424,9 @@ const TimeTablesManagements = ({
               Please select a class to view the timetable
             </div>
           )}
+          <div className="w-full flex justify-end my-2">
+            <Button onClick={handlePrint}>Print</Button>
+          </div>
         </CardContent>
       </Card>
 

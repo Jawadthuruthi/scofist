@@ -92,9 +92,16 @@ export async function GET(req, res) {
       query.classId = filterParams.classId;
     }
 
+    if (filterParams.teacherId) {
+      query.timeSlots = {
+        $elemMatch: { teacherId: filterParams.teacherId },
+      };
+    }
+
     // Use Promise.all for parallel queries
     const [timeTables, total] = await Promise.all([
       TimeTable.find(query, projections)
+        .populate("classId", "name")
         .populate("timeSlots.subjectId", "name")
         .populate("timeSlots.teacherId", "name")
         .skip(page * limit)
