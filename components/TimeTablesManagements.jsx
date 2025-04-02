@@ -195,7 +195,7 @@ const TimeTablesManagements = ({
       const teachersTimeSlots = newData.reduce(
         (acc, timeTable) => {
           const slots = timeTable.timeSlots.filter(
-            (slot) => slot.teacherId._id === selectedTeacher
+            (slot) => slot.teacherId?._id === selectedTeacher
           );
           const classId = timeTable.classId;
           return {
@@ -382,7 +382,7 @@ const TimeTablesManagements = ({
               </div>
             )}
 
-            {(category === "class" || !selectedTeacher) && (
+            {category === "class" && (
               <div className="w-full md:w-1/4">
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
                   <SelectTrigger className="w-full">
@@ -432,6 +432,18 @@ const TimeTablesManagements = ({
               ref={timeTableRef}
               className="overflow-x-auto border border-collapse rounded-md"
             >
+              <div className="hidden w-full print:block">
+                <h3 className="text-center text-lg font-semibold mb-4">
+                  {" "}
+                  {`Time Table - ${
+                    category === "class"
+                      ? classes.find((c) => c._id === selectedClass)?.name ||
+                        "Class"
+                      : teachers.find((t) => t._id === selectedTeacher)?.name ||
+                        "Teacher"
+                  }`}
+                </h3>
+              </div>
               <Table className="w-full">
                 <TableHeader>
                   <TableRow>
