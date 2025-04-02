@@ -129,7 +129,7 @@ const filterConfig = [
 
 const statusMessages = {
   create: "Batch added successfully!",
-  edit: "Batch updated successfully!",
+  edit: "Batch Updated successfully!",
   delete: "Batch deleted successfully!",
 };
 

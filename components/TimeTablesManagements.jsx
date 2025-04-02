@@ -206,7 +206,7 @@ const TimeTablesManagements = ({
       });
 
       setOpen(false);
-      toast.success("Time table updated successfully");
+      toast.success("Time table Updated successfully!");
 
       // Refresh data
       fetchItemsQuery.refetch();

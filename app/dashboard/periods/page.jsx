@@ -12,17 +12,18 @@ const columnsConfig = [
     maxWidth: 50,
     minWidth: 50,
   },
-  { accessorKey: "periodNumber", header: "Period Number" },
+  { accessorKey: "periodNumber", header: "Period No." },
   { accessorKey: "startTime", header: "Start Time" },
   { accessorKey: "endTime", header: "End Time" },
+  { accessorKey: "formattedTime", header: "12 Hours Format" },
 ];
 
 const formFields = [
   {
     name: "periodNumber",
-    label: "Period Number",
+    label: "Period No.",
     type: "number",
-    placeholder: "Period Number",
+    placeholder: "Period No.",
     required: true,
   },
   {
@@ -62,14 +63,14 @@ const formFields = [
 ];
 
 const filterConfig = [
-  { id: "periodNumber", label: "Period Number" },
+  { id: "periodNumber", label: "Period No." },
   { id: "startTime", label: "Start Time" },
   { id: "endTime", label: "End Time" },
 ];
 
 const statusMessages = {
   create: "Period added successfully!",
-  edit: "Period updated successfully!",
+  edit: "Period Updated successfully!",
   delete: "Period deleted successfully!",
 };
 

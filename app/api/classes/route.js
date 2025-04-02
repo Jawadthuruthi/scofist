@@ -122,7 +122,7 @@ export async function PUT(req, res) {
         { $set: { name, batchId, teacherId, subjects } }
       );
       return NextResponse.json(
-        { updatedClasses, message: "Classes updated successfully" },
+        { updatedClasses, message: "Classes Updated successfully!" },
         { status: 200 }
       );
     }
@@ -133,7 +133,7 @@ export async function PUT(req, res) {
       { new: true }
     );
     return NextResponse.json(
-      { updatedClass, message: "Class updated successfully" },
+      { updatedClass, message: "Class Updated successfully!" },
       { status: 200 }
     );
   } catch (error) {

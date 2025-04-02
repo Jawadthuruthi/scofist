@@ -239,7 +239,7 @@ export async function PUT(req) {
     return NextResponse.json(
       {
         timeTable: populatedTimeTable,
-        message: "Time Table updated successfully",
+        message: "Time Table Updated successfully!",
       },
       { status: 200 }
     );

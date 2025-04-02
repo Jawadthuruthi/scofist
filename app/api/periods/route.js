@@ -83,7 +83,7 @@ export async function PUT(req, res) {
         { $set: { periodNumber, startTime, endTime } }
       );
       return NextResponse.json(
-        { updatedPeriods, message: "Periods updated successfully" },
+        { updatedPeriods, message: "Periods Updated successfully!" },
         { status: 200 }
       );
     }
@@ -94,7 +94,7 @@ export async function PUT(req, res) {
       { new: true }
     );
     return NextResponse.json(
-      { updatedPeriod, message: "Period updated successfully" },
+      { updatedPeriod, message: "Period Updated successfully!" },
       { status: 200 }
     );
   } catch (error) {

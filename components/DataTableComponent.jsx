@@ -82,7 +82,7 @@ const DataTableComponent = ({
   tableHeight = "calc(100vh - 312px)",
   formFields,
   createSuccessMessage = "Item added successfully!",
-  editSuccessMessage = "Item updated successfully!",
+  editSuccessMessage = "Item Updated successfully!",
   deleteSuccessMessage = "Item deleted successfully!",
   token,
   createFormTitle = "Add New Item",

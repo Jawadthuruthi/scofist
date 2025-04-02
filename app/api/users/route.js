@@ -336,7 +336,7 @@ export async function PUT(req, res) {
         }
       );
       return NextResponse.json(
-        { updatedUsers, message: "Users updated successfully" },
+        { updatedUsers, message: "Users Updated successfully!" },
         { status: 200 }
       );
     }
@@ -399,7 +399,7 @@ export async function PUT(req, res) {
       { new: true }
     );
     return NextResponse.json(
-      { updatedUser, message: "User updated successfully" },
+      { updatedUser, message: "User Updated successfully!" },
       { status: 200 }
     );
   } catch (error) {

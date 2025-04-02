@@ -60,7 +60,7 @@ const filterConfig = [
 
 const statusMessages = {
   create: "Subject added successfully!",
-  edit: "Subject updated successfully!",
+  edit: "Subject Updated successfully!",
   delete: "Subject deleted successfully!",
 };
 

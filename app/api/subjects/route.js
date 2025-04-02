@@ -92,7 +92,7 @@ export async function PUT(req, res) {
         { $set: { name } }
       );
       return NextResponse.json(
-        { updatedSubjects, message: "Subjects updated successfully" },
+        { updatedSubjects, message: "Subjects Updated successfully!" },
         { status: 200 }
       );
     }
@@ -103,7 +103,7 @@ export async function PUT(req, res) {
       { new: true }
     );
     return NextResponse.json(
-      { updatedSubject, message: "Subject updated successfully" },
+      { updatedSubject, message: "Subject Updated successfully!" },
       { status: 200 }
     );
   } catch (error) {

@@ -112,7 +112,7 @@ export async function PUT(req, res) {
         { $set: { name, startYear, endYear, status } }
       );
       return NextResponse.json(
-        { updatedBatches, message: "Batches updated successfully" },
+        { updatedBatches, message: "Batches Updated successfully!" },
         { status: 200 }
       );
     }
@@ -123,7 +123,7 @@ export async function PUT(req, res) {
       { new: true }
     );
     return NextResponse.json(
-      { updatedBatch, message: "Batch updated successfully" },
+      { updatedBatch, message: "Batch Updated successfully!" },
       { status: 200 }
     );
   } catch (error) {

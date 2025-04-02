@@ -216,7 +216,7 @@ const filterConfig = [
 
 const statusMessages = {
   create: "Teacher added successfully!",
-  edit: "Teacher updated successfully!",
+  edit: "Teacher Updated successfully!",
   delete: "Teacher deleted successfully!",
 };
 

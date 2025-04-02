@@ -45,7 +45,7 @@ const columnsConfig = [
 
 const statusMessages = {
   create: "Class added successfully!",
-  edit: "Class updated successfully!",
+  edit: "Class Updated successfully!",
   delete: "Class deleted successfully!",
 };
 
