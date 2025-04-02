@@ -145,19 +145,6 @@ export async function PUT(req) {
       );
     }
 
-    if (
-      !timeSlots ||
-      !timeSlots.subjectId ||
-      !timeSlots.teacherId ||
-      !timeSlots.periodNumber ||
-      !timeSlots.day
-    ) {
-      return NextResponse.json(
-        { message: "Complete timeSlots data is required" },
-        { status: 400 }
-      );
-    }
-
     // Check for teacher schedule conflicts
     const conflicts = await checkTeacherScheduleConflicts(
       timeSlots.teacherId,

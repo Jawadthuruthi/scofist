@@ -53,6 +53,7 @@ const TimeTablesManagements = ({
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [teacherScheduleConflicts, setTeacherScheduleConflicts] = useState([]);
+  const [existingTimeSlotId, setExistingTimeSlotId] = useState(null);
 
   const router = useRouter();
   const timeTableRef = useRef();
@@ -93,10 +94,10 @@ const TimeTablesManagements = ({
     );
   }, [classes, selectedClass, subjects]);
 
-  // Check for schedule conflicts
+  // Check for schedule conflicts with improved logic for editing
   const checkTeacherConflicts = useCallback(
-    (teacherId, periodNumber, day) => {
-      if (!allTimeTablesQuery.data?.timeTables) return [];
+    (teacherId, periodNumber, day, existingSlotId = null) => {
+      if (!allTimeTablesQuery.data?.timeTables || !teacherId) return [];
 
       const conflicts = [];
 
@@ -104,15 +105,17 @@ const TimeTablesManagements = ({
         if (!timeTable.timeSlots) return;
 
         timeTable.timeSlots.forEach((slot) => {
+          // Skip comparing with itself when editing
+          if (existingSlotId && slot._id === existingSlotId) return;
+
           if (
             slot.teacherId._id === teacherId &&
             slot.periodNumber === periodNumber &&
-            slot.day === day &&
-            timeTable.classId !== selectedClass
+            slot.day === day
           ) {
             // Get class name for better context
             const conflictClass = classes.find(
-              (cls) => cls._id === timeTable.classId
+              (cls) => cls._id === timeTable.classId._id
             );
 
             conflicts.push({
@@ -128,36 +131,39 @@ const TimeTablesManagements = ({
 
       return conflicts;
     },
-    [allTimeTablesQuery.data, classes, selectedClass]
+    [allTimeTablesQuery.data, classes]
   );
 
-  // Fetch time table data when class changes
+  // Fetch time table data when class or category changes
   useEffect(() => {
     if (fetchItemsQuery.data) {
       const newData = fetchItemsQuery.data["timeTables"] || [];
-      const teachersTimeSlots =
-        category === "teacher" && selectedTeacher
-          ? newData?.reduce((acc, timeTable) => {
-              const slots = timeTable.timeSlots.filter(
-                (slot) => slot.teacherId._id === selectedTeacher
-              );
-              const classId = timeTable.classId;
-              return {
-                timeSlots:
-                  [
-                    ...(acc.timeSlots || []),
-                    ...slots.map((slot) => ({ ...slot, classId })),
-                  ] || [],
-              };
-            }, {})
-          : [];
-      setTimeTableData(
-        (category === "class" || (category === "teacher" && !selectedTeacher)
-          ? newData[0]
-          : teachersTimeSlots) || { timeSlots: {} }
-      );
+
+      if (category === "teacher" && selectedTeacher) {
+        // Aggregate all slots for this teacher across classes
+        const teachersTimeSlots = newData.reduce(
+          (acc, timeTable) => {
+            const slots = timeTable.timeSlots.filter(
+              (slot) => slot.teacherId._id === selectedTeacher
+            );
+            const classId = timeTable.classId;
+            return {
+              timeSlots: [
+                ...(acc.timeSlots || []),
+                ...slots.map((slot) => ({ ...slot, classId })),
+              ],
+            };
+          },
+          { timeSlots: [] }
+        );
+
+        setTimeTableData(teachersTimeSlots);
+      } else {
+        // For class view, just use the first timetable
+        setTimeTableData(newData[0] || { timeSlots: [] });
+      }
     }
-  }, [fetchItemsQuery.data, selectedClass]);
+  }, [fetchItemsQuery.data, selectedClass, category, selectedTeacher]);
 
   // Handle teacher selection and check for conflicts
   useEffect(() => {
@@ -165,26 +171,26 @@ const TimeTablesManagements = ({
       const conflicts = checkTeacherConflicts(
         selectedTeacher,
         parseInt(selectedPeriod),
-        selectedDay
+        selectedDay,
+        existingTimeSlotId
       );
       setTeacherScheduleConflicts(conflicts);
     } else {
       setTeacherScheduleConflicts([]);
     }
-  }, [selectedTeacher, selectedPeriod, selectedDay, checkTeacherConflicts]);
+  }, [
+    selectedTeacher,
+    selectedPeriod,
+    selectedDay,
+    existingTimeSlotId,
+    checkTeacherConflicts,
+  ]);
 
   // Handle form submission
   const handleSubmit = async (e) => {
     try {
       e.preventDefault();
       setIsSubmitting(true);
-
-      // Validate form inputs
-      if (!selectedSubject || !selectedTeacher) {
-        toast.error("Please select both subject and teacher");
-        setIsSubmitting(false);
-        return;
-      }
 
       const payload = {
         classId: selectedClass,
@@ -196,7 +202,12 @@ const TimeTablesManagements = ({
         },
       };
 
-      // Add _id if it exists
+      // If we're editing an existing slot, include its ID
+      if (existingTimeSlotId) {
+        payload.timeSlots._id = existingTimeSlotId;
+      }
+
+      // Add timetable _id if it exists
       if (timeTableData._id) {
         payload._id = timeTableData._id;
       }
@@ -206,7 +217,7 @@ const TimeTablesManagements = ({
       });
 
       setOpen(false);
-      toast.success("Time table Updated successfully!");
+      toast.success("Time table updated successfully!");
 
       // Refresh data
       fetchItemsQuery.refetch();
@@ -215,6 +226,7 @@ const TimeTablesManagements = ({
       // Reset form
       setSelectedSubject("");
       setSelectedTeacher("");
+      setExistingTimeSlotId(null);
     } catch (error) {
       console.error("Error updating time table:", error.message);
       toast.error(
@@ -238,14 +250,14 @@ const TimeTablesManagements = ({
         (slot) => slot.periodNumber === period && slot.day === day
       );
 
-      return cellData ? (
+      return cellData && cellData.subjectId && cellData.teacherId ? (
         <div className="flex flex-col items-center justify-center hover:bg-accent">
           <p className="font-medium text-xs">{cellData.subjectId.name}</p>
-          <p className="text-[10px] leading-normal  text-accent-foreground">
+          <p className="text-xxs text-accent-foreground">
             {category === "class" ||
             (category === "teacher" && !selectedTeacher)
               ? cellData.teacherId.name
-              : cellData.classId.name}
+              : cellData.classId?.name}
           </p>
         </div>
       ) : (
@@ -256,7 +268,7 @@ const TimeTablesManagements = ({
         </div>
       );
     };
-  }, [timeTableData.timeSlots]);
+  }, [timeTableData.timeSlots, category, selectedTeacher]);
 
   // Open dialog with pre-filled values
   const handleCellClick = (period, day) => {
@@ -268,6 +280,10 @@ const TimeTablesManagements = ({
     setSelectedDay(day);
     setSelectedSubject(existingData?.subjectId?._id || "");
     setSelectedTeacher(existingData?.teacherId?._id || "");
+
+    // Save the ID of the existing time slot if we're editing
+    setExistingTimeSlotId(existingData?._id || null);
+
     setOpen(true);
   };
 
@@ -284,11 +300,6 @@ const TimeTablesManagements = ({
       percentage: Math.round((filledSlots / totalSlots) * 100),
     };
   }, [timeTableData.timeSlots, periods.length]);
-
-  // Parse days for better display
-  const parseDay = (day) => {
-    return day.substring(0, 3);
-  };
 
   return (
     <div className="space-y-6">
@@ -332,7 +343,7 @@ const TimeTablesManagements = ({
                 </Select>
               </div>
             )}
-            {category === "class" && (
+            {(category === "class" || !selectedTeacher) && (
               <div className="w-full md:w-1/4">
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
                   <SelectTrigger className="w-full">
@@ -351,7 +362,7 @@ const TimeTablesManagements = ({
               </div>
             )}
 
-            {selectedClass && (
+            {(selectedClass || selectedTeacher) && (
               <div className="flex items-center gap-4">
                 <Badge
                   variant="outline"
@@ -375,7 +386,7 @@ const TimeTablesManagements = ({
             <div className="flex justify-center items-center h-40">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-          ) : selectedClass ? (
+          ) : selectedClass || selectedTeacher ? (
             <div
               ref={timeTableRef}
               className="overflow-x-auto border border-collapse rounded-md"
@@ -383,15 +394,15 @@ const TimeTablesManagements = ({
               <Table className="w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="border font-bold bg-accent sticky left-0 z-10 text-xs"></TableHead>
+                    <TableHead className="border font-bold bg-accent sticky left-0 z-10"></TableHead>
                     {periods.map((period) => (
                       <TableHead
                         key={period._id}
-                        className="border text-center font-bold whitespace-nowrap"
+                        className="text-center font-bold whitespace-nowrap"
                       >
-                        <div className="flex flex-col items-center text-xs">
+                        <div className="flex flex-col items-center text-xxs">
                           <span>{getPeriodTime(period.periodNumber)}</span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xxs text-muted-foreground">
                             Period {period.periodNumber}
                           </span>
                         </div>
@@ -427,7 +438,7 @@ const TimeTablesManagements = ({
             </div>
           ) : (
             <div className="text-center p-8 border rounded-md">
-              Please select a class to view the timetable
+              Please select a class or teacher to view the timetable
             </div>
           )}
           <div className="w-full flex justify-end my-2">
@@ -441,8 +452,8 @@ const TimeTablesManagements = ({
           <DialogHeader>
             <DialogTitle className="flex items-center justify-center text-center gap-2">
               <div>
-                Edit Time Table
-                <p className=" text-sm">
+                {existingTimeSlotId ? "Edit" : "Add"} Time Table Entry
+                <p className="text-sm">
                   {selectedDay} - Period {selectedPeriod} (
                   {getPeriodTime(parseInt(selectedPeriod))})
                 </p>
@@ -457,6 +468,7 @@ const TimeTablesManagements = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
+                  <SelectItem value={null}>None</SelectItem>
                   {filteredSubjects.map((subject) => (
                     <SelectItem key={subject._id} value={subject._id}>
                       {subject.name}
@@ -472,6 +484,7 @@ const TimeTablesManagements = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
+                  <SelectItem value={null}>None</SelectItem>
                   {teachers.map((teacher) => (
                     <SelectItem key={teacher._id} value={teacher._id}>
                       {teacher.name}

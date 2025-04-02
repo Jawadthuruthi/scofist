@@ -15,12 +15,10 @@ const timeTableSchema = new Schema(
       {
         subjectId: {
           type: String,
-          required: true,
           ref: "Subject",
         },
         teacherId: {
           type: String,
-          required: true,
           ref: "User",
         },
         periodNumber: {

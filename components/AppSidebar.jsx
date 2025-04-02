@@ -276,6 +276,7 @@ export function AppSidebar({ roles }) {
             size="icon"
             onClick={() => {
               setOpen(false);
+              setOpenMobile(false);
             }}
           >
             <X className="w-5 h-5" />
