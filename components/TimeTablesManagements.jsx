@@ -49,7 +49,7 @@ const TimetableSlot = ({
   selectedTeacher,
   onCellClick,
 }) => {
-  const hasData = cellData && cellData.subjectId && cellData.teacherId;
+  const hasData = cellData && (cellData.subjectId || cellData.teacherId);
 
   return (
     <TableCell
@@ -58,12 +58,14 @@ const TimetableSlot = ({
     >
       {hasData ? (
         <div className="flex flex-col items-center justify-center hover:bg-accent">
-          <p className="font-medium text-xs">{cellData.subjectId.name}</p>
+          <p className="font-medium text-xs">
+            {cellData.subjectId?.name || ""}
+          </p>
           <p className="text-xxs text-accent-foreground">
             {category === "class" ||
             (category === "teacher" && !selectedTeacher)
-              ? cellData.teacherId.name
-              : cellData.classId?.name}
+              ? cellData.teacherId?.name || ""
+              : cellData.classId?.name || ""}
           </p>
         </div>
       ) : (
@@ -157,7 +159,7 @@ const TimeTablesManagements = ({
           if (existingSlotId && slot._id === existingSlotId) return;
 
           if (
-            slot.teacherId._id === teacherId &&
+            slot?.teacherId?._id === teacherId &&
             slot.periodNumber === periodNumber &&
             slot.day === day
           ) {
@@ -556,9 +558,6 @@ const TimeTablesManagements = ({
           )}
 
           <DialogFooter className="mt-4 gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
             <Button
               onClick={handleSubmit}
               type="submit"
