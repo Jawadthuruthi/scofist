@@ -250,7 +250,9 @@ const TimeTablesManagements = ({
         </div>
       ) : (
         <div className="flex items-center justify-center p-2 hover:bg-accent">
-          <Edit className="text-muted-foreground h-4 w-4" />
+          {category === "class" && (
+            <Edit className="text-muted-foreground h-4 w-4 print:hidden" />
+          )}
         </div>
       );
     };
@@ -409,7 +411,11 @@ const TimeTablesManagements = ({
                         <TableCell
                           key={`${day}-${period._id}`}
                           className="border text-center cursor-pointer transition-colors hover:bg-accent/50 max-w-32"
-                          onClick={() => handleCellClick(period, day)}
+                          onClick={() => {
+                            if (category === "class") {
+                              handleCellClick(period, day);
+                            }
+                          }}
                         >
                           <CellData period={period.periodNumber} day={day} />
                         </TableCell>
