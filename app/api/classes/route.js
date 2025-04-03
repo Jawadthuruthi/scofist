@@ -10,7 +10,7 @@ export async function GET(req, res) {
     // Parse URL to get search params
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit") || "0");
+    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
 
     // Build filter object from query parameters
     const filterParams = {};
@@ -39,11 +39,14 @@ export async function GET(req, res) {
     if (filterParams.name) {
       query.name = { $regex: filterParams.name, $options: "i" };
     }
+    if (filterParams._id) {
+      query._id = filterParams._id;
+    }
     if (filterParams.batchId) {
-      query.batchId = batchId;
+      query.batchId = filterParams.batchId;
     }
     if (filterParams.teacherId) {
-      query.teacherId, (subjects = teacherId);
+      query.teacherId = filterParams.teacherId;
     }
 
     // Execute query with pagination
@@ -127,13 +130,17 @@ export async function PUT(req, res) {
       );
     }
 
-    const updatedClass = await Class.findOneAndUpdate(
-      { _id },
-      { name, batchId, teacherId, subjects },
-      { new: true }
-    );
+    const existingClass = await Class.findById(_id);
+    if (!existingClass) {
+      return NextResponse.json({ message: "Class not found" }, { status: 404 });
+    }
+
+    Object.assign(existingClass, { name, batchId, teacherId, subjects });
+
+    await existingClass.save();
+
     return NextResponse.json(
-      { updatedClass, message: "Class Updated successfully!" },
+      { message: "Class Updated successfully!" },
       { status: 200 }
     );
   } catch (error) {

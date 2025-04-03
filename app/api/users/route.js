@@ -11,7 +11,7 @@ export async function GET(req, res) {
     // Parse URL to get search params
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit") || "0");
+    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
 
     // Build filter object from query parameters
     const filterParams = {};
@@ -37,6 +37,12 @@ export async function GET(req, res) {
     // Build MongoDB query from filter params
     const query = {};
 
+    if (filterParams._id) {
+      query._id = filterParams._id;
+    }
+    if (filterParams.classId) {
+      query["studentSpecificField.classId"] = filterParams.classId;
+    }
     if (filterParams.name) {
       query.name = { $regex: filterParams.name, $options: "i" };
     }

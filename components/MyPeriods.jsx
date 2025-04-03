@@ -1,0 +1,205 @@
+"use client";
+
+import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Loader2, Calendar, Clock } from "lucide-react";
+
+// UI Components
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
+// Hooks and Utils
+import { formatDate, formatDateForDisplay } from "@/lib/utils";
+import useCrud from "@/hooks/use-crud";
+import Header from "./Header";
+
+const MyPeriods = ({ token, teacherId }) => {
+  const [loading, setLoading] = useState(true);
+  const [periods, setPeriods] = useState([]);
+  const [timeTableData, setTimeTableData] = useState([]);
+
+  const days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+
+  const today = days[new Date().getDay()];
+  const date = formatDateForDisplay(new Date());
+
+  const router = useRouter();
+  const { useFetchItems } = useCrud("timeTables", token);
+  const { useFetchItems: useFetchPeriods } = useCrud("periods", token);
+  const { useFetchItems: useFetchAttendance } = useCrud("attendances", token);
+
+  // Fetch all periods
+  const periodsQuery = useFetchPeriods();
+
+  // Fetch timetables for current teacher
+  const timeTablesQuery = useFetchItems(0, 0, { teacherId });
+
+  const attendanceQuery = useFetchAttendance(null, null, {
+    date: formatDate(new Date()),
+  });
+
+  useEffect(() => {
+    if (periodsQuery.data?.periods) {
+      setPeriods(
+        periodsQuery.data.periods.sort(
+          (a, b) => a.periodNumber - b.periodNumber
+        )
+      );
+    }
+  }, [periodsQuery.data]);
+
+  // Process timetable data when query results change
+  useEffect(() => {
+    if (!timeTablesQuery.data) return;
+
+    // Aggregate all slots for this teacher across classes
+    const teachersTimeSlots = timeTablesQuery.data.timeTables.reduce(
+      (acc, timeTable) => {
+        const slots = timeTable.timeSlots.filter(
+          (slot) => slot.teacherId?._id === teacherId
+        );
+        const classId = timeTable.classId;
+        return [
+          ...acc,
+          ...slots.map((slot) => ({
+            ...slot,
+            classId,
+            periodDetails: periods.find(
+              (p) => p.periodNumber === slot.periodNumber
+            ),
+          })),
+        ];
+      },
+      []
+    );
+
+    setTimeTableData(teachersTimeSlots);
+    setLoading(false);
+  }, [timeTablesQuery.data, teacherId, periods]);
+
+  // Filter slots for selected day
+  const filteredSlots = useMemo(() => {
+    return timeTableData
+      .filter((slot) => slot.day === today)
+      .sort((a, b) => a.periodNumber - b.periodNumber);
+  }, [timeTableData]);
+
+  // Handle opening attendance page
+  const handleAttendanceClick = (slot) => {
+    router.push(
+      `/dashboard/attendances?classId=${slot.classId._id}&subjectId=${slot.subjectId._id}&periodNumber=${slot.periodNumber}&day=${slot.day}`
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="w-full">
+        <div>
+          <Header
+            title="My Teaching Periods"
+            subTitle="View your teaching schedule and take attendance"
+          />
+        </div>
+        <div>
+          {/* Day selector */}
+          <div className="mb-6 py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
+            {date}, {today}
+          </div>
+
+          {/* Periods Table */}
+          {loading ? (
+            <div className="flex justify-center items-center h-40">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : filteredSlots.length > 0 ? (
+            <div className="overflow-x-auto border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-16">Period</TableHead>
+                    <TableHead className="w-32">Time</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSlots.map((slot) => {
+                    const attendanceMarked =
+                      attendanceQuery.data?.attendances.find(
+                        (attendance) =>
+                          attendance.classId._id === slot.classId._id &&
+                          attendance.subjectId._id === slot.subjectId._id &&
+                          attendance.periodNumber === slot.periodNumber
+                      );
+                    return (
+                      <TableRow key={slot._id} className="hover:bg-accent/50">
+                        <TableCell>
+                          <div className="flex items-center justify-center font-medium">
+                            <Badge variant="outline">{slot.periodNumber}</Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-xs whitespace-nowrap">
+                              {slot.periodDetails?.formattedTime ||
+                                `Period ${slot.periodNumber}`}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">
+                            {slot.subjectId?.name}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {slot.classId?.name}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            onClick={() => handleAttendanceClick(slot)}
+                          >
+                            {attendanceMarked
+                              ? "Update Attendance"
+                              : "Take Attendance"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center p-8 border rounded-md">
+              No teaching periods scheduled for {today}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MyPeriods;

@@ -42,6 +42,7 @@ const checkTeacherScheduleConflicts = async (
   day,
   classId
 ) => {
+  if (!teacherId) return [];
   // Find any timetable entries where this teacher is already scheduled
   // for the same day and period but in a different class
   const conflicts = await TimeTable.find({

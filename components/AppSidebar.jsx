@@ -64,8 +64,8 @@ const items = [
     allowedRoles: ["College Admin", "Teacher", "Org Admin"],
   },
   {
-    title: "My Classes",
-    url: "/dashboard/my-classes",
+    title: "My Periods",
+    url: "/dashboard/my-periods",
     icon: Book,
     allowedRoles: ["Teacher"],
   },
@@ -205,6 +205,7 @@ function ComboBox({ roles, activeRole }) {
                     setOpen(false);
                     Cookies.set("active-role", currentValue);
                     window.location.reload();
+                    window.location.href = "/dashboard";
                   }}
                 >
                   <Check
@@ -227,7 +228,7 @@ function ComboBox({ roles, activeRole }) {
 export function AppSidebar({ roles }) {
   const sidebarRef = useRef(null);
   const { setOpen, setOpenMobile } = useSidebar();
-  const activeRole = Cookies.get("active-role") || roles[0];
+  const [activeRole, setActiveRole] = useState(roles[0] || "");
   const pathname = usePathname();
 
   // Close sidebar on outside click
@@ -250,6 +251,13 @@ export function AppSidebar({ roles }) {
     setOpen(false);
     setOpenMobile(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const cookieRole = Cookies.get("active-role");
+    if (cookieRole && roles.includes(cookieRole)) {
+      setActiveRole(cookieRole);
+    }
+  }, [roles]);
 
   // Memoized filtered menu items
   const menuItems = useMemo(() => {
