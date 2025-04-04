@@ -20,7 +20,7 @@ export default function LoginPage() {
     try {
       setLoading(true);
       await axios.post("/api/auth/sendOTP", { email });
-      toast.success("OTP sent successfully");
+      toast.success("OTP sent successfully!");
       setTimeout(() => {
         router.push(`/otp?email=${encodeURIComponent(email)}`);
       }, 1000);

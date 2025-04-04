@@ -40,7 +40,7 @@ export async function GET(req, res) {
           total,
           totalPages: Math.ceil(total / limit) - 1,
         },
-        message: "Periods fetched successfully",
+        message: "Periods fetched successfully!",
       },
       { status: 200 }
     );
@@ -60,7 +60,7 @@ export async function POST(req, res) {
       endTime,
     });
     return NextResponse.json(
-      { newPeriod, message: "Period created successfully" },
+      { newPeriod, message: "Period created successfully!" },
       { status: 200 }
     );
   } catch (error) {
@@ -111,13 +111,13 @@ export async function DELETE(req, res) {
     if (ids.length > 1) {
       const deletedPeriods = await Period.deleteMany({ _id: { $in: ids } });
       return NextResponse.json(
-        { deletedPeriods, message: "Periods deleted successfully" },
+        { deletedPeriods, message: "Periods deleted successfully!" },
         { status: 200 }
       );
     }
     const deletedPeriod = await Period.findByIdAndDelete(_id);
     return NextResponse.json(
-      { deletedPeriod, message: "Period deleted successfully" },
+      { deletedPeriod, message: "Period deleted successfully!" },
       { status: 200 }
     );
   } catch (error) {

@@ -1,5 +1,6 @@
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
+import { markTeacherAttendanceFromStudentAttendance } from "@/lib/teacherAttendanceService";
 import Attendance from "@/models/Attendance";
 import { NextResponse } from "next/server";
 
@@ -77,7 +78,7 @@ export async function GET(req, res) {
           total,
           totalPages: Math.ceil(total / limit) - 1,
         },
-        message: "Attendance records fetched successfully",
+        message: "Attendance records fetched successfully!",
       },
       { status: 200 }
     );
@@ -111,8 +112,13 @@ export async function POST(req, res) {
     }
 
     const newAttendance = await Attendance.create(body);
+    await markTeacherAttendanceFromStudentAttendance(newAttendance);
+
     return NextResponse.json(
-      { attendance: newAttendance, message: "Attendance created successfully" },
+      {
+        attendance: newAttendance,
+        message: "Attendance created successfully!",
+      },
       { status: 201 }
     );
   } catch (error) {
@@ -163,14 +169,14 @@ export async function DELETE(req, res) {
       return NextResponse.json(
         {
           deletedAttendance,
-          message: "Attendance records deleted successfully",
+          message: "Attendance records deleted successfully!",
         },
         { status: 200 }
       );
     }
     const deletedAttendance = await Attendance.findByIdAndDelete(_id);
     return NextResponse.json(
-      { deletedAttendance, message: "Attendance record deleted successfully" },
+      { deletedAttendance, message: "Attendance record deleted successfully!" },
       { status: 200 }
     );
   } catch (error) {

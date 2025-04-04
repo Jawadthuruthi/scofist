@@ -51,7 +51,7 @@ export default function OTPVerification() {
     try {
       setLoading(true);
       await axios.post("/api/auth/verifyOTP", { email, otp });
-      toast.success("OTP verified successfully");
+      toast.success("OTP verified successfully!");
       setTimeout(() => {
         router.push("/dashboard");
       }, 1000);
@@ -72,7 +72,7 @@ export default function OTPVerification() {
     try {
       await axios.post("/api/auth/sendOTP", { email });
       toast.success(
-        "OTP resent successfully. Please check your email for OTP."
+        "OTP resent successfully!. Please check your email for OTP."
       );
     } catch (error) {
       console.error("Error resending OTP:", error.message);

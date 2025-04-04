@@ -199,12 +199,12 @@ const AttendancePage = ({ token, teacherId }) => {
             ...payload,
           },
         });
-        toast.success("Attendance updated successfully");
+        toast.success("Attendance updated successfully!");
       } else {
         await createAttendance.mutateAsync({
           ...payload,
         });
-        toast.success("Attendance recorded successfully");
+        toast.success("Attendance recorded successfully!");
         setAttendanceExists(true);
       }
 
@@ -224,7 +224,7 @@ const AttendancePage = ({ token, teacherId }) => {
       setSaving(true);
       const existingAttendanceId = attendanceQuery.data.attendances[0]._id;
       await deleteAttendance.mutateAsync([existingAttendanceId]);
-      toast.success("Attendance reset successfully");
+      toast.success("Attendance reset successfully!");
       setAttendanceExists(false);
       attendanceQuery.refetch();
     } catch (error) {

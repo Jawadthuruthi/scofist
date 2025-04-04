@@ -80,7 +80,7 @@ export async function GET(req, res) {
           total,
           totalPages: Math.ceil(total / limit) - 1,
         },
-        message: "Classes fetched successfully",
+        message: "Classes fetched successfully!",
       },
       { status: 200 }
     );
@@ -102,7 +102,7 @@ export async function POST(req, res) {
       subjects,
     });
     return NextResponse.json(
-      { newClass, message: "Class created successfully" },
+      { newClass, message: "Class created successfully!" },
       { status: 200 }
     );
   } catch (error) {
@@ -157,13 +157,13 @@ export async function DELETE(req, res) {
     if (ids.length > 1) {
       const deletedClasses = await Class.deleteMany({ _id: { $in: ids } });
       return NextResponse.json(
-        { deletedClasses, message: "Classes deleted successfully" },
+        { deletedClasses, message: "Classes deleted successfully!" },
         { status: 200 }
       );
     }
     const deletedClass = await Class.findByIdAndDelete(_id);
     return NextResponse.json(
-      { deletedClass, message: "Class deleted successfully" },
+      { deletedClass, message: "Class deleted successfully!" },
       { status: 200 }
     );
   } catch (error) {

@@ -1,0 +1,8 @@
+{
+    "crons": [
+        {
+            "path": "/api/teacherAttendances/mark-teacher-absent",
+            "schedule": "0 23 * * *"
+        }
+    ]
+}

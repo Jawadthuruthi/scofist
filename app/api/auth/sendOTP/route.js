@@ -27,7 +27,7 @@ export async function POST(req) {
 
     await sendOtpEmail(user.email, otp);
     return NextResponse.json(
-      { message: "OTP sent successfully" },
+      { message: "OTP sent successfully!" },
       { status: 200 }
     );
   } catch (error) {

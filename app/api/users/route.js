@@ -109,7 +109,7 @@ export async function GET(req, res) {
           total,
           totalPages: Math.ceil(total / limit) - 1,
         },
-        message: "Users fetched successfully",
+        message: "Users fetched successfully!",
       },
       { status: 200 }
     );
@@ -222,7 +222,7 @@ export async function POST(req, res) {
       },
     });
     return NextResponse.json(
-      { newUser, message: "User created successfully" },
+      { newUser, message: "User created successfully!" },
       { status: 200 }
     );
   } catch (error) {
@@ -431,7 +431,7 @@ export async function DELETE(req, res) {
       const deletedUsers = await User.deleteMany({ _id: { $in: ids } });
       await cloudinary.api.delete_resources(publicIds);
       return NextResponse.json(
-        { deletedUsers, message: "Users deleted successfully" },
+        { deletedUsers, message: "Users deleted successfully!" },
         { status: 200 }
       );
     }
@@ -442,7 +442,7 @@ export async function DELETE(req, res) {
     }
 
     return NextResponse.json(
-      { deletedUser, message: "User deleted successfully" },
+      { deletedUser, message: "User deleted successfully!" },
       { status: 200 }
     );
   } catch (error) {

@@ -301,7 +301,7 @@ const ImageUploader = ({
           setSelectedFile(null);
           setLocalPreview(null);
 
-          toast.success("Image uploaded successfully");
+          toast.success("Image uploaded successfully!");
         } catch (error) {
           console.error("Upload failed:", error);
         }
@@ -328,7 +328,7 @@ const ImageUploader = ({
         setPreview("");
         setPublicId(null);
         onChange({ url: "", publicId: null });
-        toast.success("Image removed successfully");
+        toast.success("Image removed successfully!");
       } catch (error) {
         console.error("Error removing image:", error);
       }

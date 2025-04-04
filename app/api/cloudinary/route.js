@@ -66,7 +66,7 @@ export async function DELETE(req) {
 
     if (result.result === "ok") {
       return NextResponse.json(
-        { message: "Image deleted successfully" },
+        { message: "Image deleted successfully!" },
         { status: 200 }
       );
     } else {

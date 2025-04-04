@@ -70,7 +70,7 @@ export async function GET(req, res) {
           total,
           totalPages: Math.ceil(total / limit) - 1,
         },
-        message: "Batches fetched successfully",
+        message: "Batches fetched successfully!",
       },
       { status: 200 }
     );
@@ -92,7 +92,7 @@ export async function POST(req, res) {
       status,
     });
     return NextResponse.json(
-      { newBatch, message: "Batch created successfully" },
+      { newBatch, message: "Batch created successfully!" },
       { status: 200 }
     );
   } catch (error) {
@@ -143,13 +143,13 @@ export async function DELETE(req, res) {
     if (ids.length > 1) {
       const deletedBatches = await Batch.deleteMany({ _id: { $in: ids } });
       return NextResponse.json(
-        { deletedBatches, message: "Batches deleted successfully" },
+        { deletedBatches, message: "Batches deleted successfully!" },
         { status: 200 }
       );
     }
     const deletedBatch = await Batch.findByIdAndDelete(_id);
     return NextResponse.json(
-      { deletedBatch, message: "Batch deleted successfully" },
+      { deletedBatch, message: "Batch deleted successfully!" },
       { status: 200 }
     );
   } catch (error) {

@@ -121,7 +121,7 @@ export async function GET(req, res) {
           total,
           totalPages: limit > 0 ? Math.ceil(total / limit) - 1 : 0,
         },
-        message: "TimeTables fetched successfully",
+        message: "TimeTables fetched successfully!",
       },
       { status: 200 }
     );
@@ -296,7 +296,7 @@ export async function DELETE(req, res) {
 
     if (ids.length > 1) {
       result = await TimeTable.deleteMany({ _id: { $in: ids } });
-      message = `${result.deletedCount} TimeTables deleted successfully`;
+      message = `${result.deletedCount} TimeTables deleted successfully!`;
     } else {
       const _id = ids[0];
       result = await TimeTable.findByIdAndDelete(_id);
@@ -308,7 +308,7 @@ export async function DELETE(req, res) {
         );
       }
 
-      message = "TimeTable deleted successfully";
+      message = "TimeTable deleted successfully!";
     }
 
     return NextResponse.json({ result, message }, { status: 200 });
