@@ -37,7 +37,7 @@ const MyPeriods = ({ token, teacherId }) => {
     "Saturday",
   ];
 
-  const today = days[new Date().getDay()];
+  const today = "Thursday" || days[new Date().getDay()];
   const date = formatDateForDisplay(new Date());
 
   const router = useRouter();
@@ -134,7 +134,7 @@ const MyPeriods = ({ token, teacherId }) => {
                     <TableHead className="hidden md:table-cell">
                       Subject
                     </TableHead>
-                    <TableHead></TableHead>
+                    <TableHead className="max-w-5 w-5 md:max-w-fit md:w-fit"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
