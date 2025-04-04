@@ -37,7 +37,7 @@ const MyPeriods = ({ token, teacherId }) => {
     "Saturday",
   ];
 
-  const today = "Thursday" || days[new Date().getDay()];
+  const today = days[new Date().getDay()];
   const date = formatDateForDisplay(new Date());
 
   const router = useRouter();
