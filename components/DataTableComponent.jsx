@@ -92,6 +92,7 @@ const DataTableComponent = ({
   multiEdit = false,
   limit = 20,
   apiFilters = {},
+  readOnly = false,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -253,7 +254,6 @@ const DataTableComponent = ({
       table.resetRowSelection();
       setPage(0);
       router.refresh();
-      // await fetchItemsQuery.refetch();
       toast.success(createSuccessMessage);
     } catch (error) {
       handleError(error);
@@ -274,7 +274,6 @@ const DataTableComponent = ({
       table.resetRowSelection();
       setPage(0);
       router.refresh();
-      // await fetchItemsQuery.refetch();
       toast.success(editSuccessMessage);
     } catch (error) {
       handleError(error);
@@ -290,7 +289,6 @@ const DataTableComponent = ({
       table.resetRowSelection();
       setPage(0);
       router.refresh();
-      // await fetchItemsQuery.refetch();
       toast.success(deleteSuccessMessage);
     } catch (error) {
       handleError(error);
@@ -317,7 +315,7 @@ const DataTableComponent = ({
           />
         </div>
         <div className="space-x-2">
-          {!!selectedData?.length && (
+          {!!selectedData?.length && !readOnly && (
             <ConfirmationPopup
               onClick={handleDelete}
               action="delete"
@@ -326,23 +324,26 @@ const DataTableComponent = ({
             />
           )}
           {(selectedData.length === 1 ||
-            (selectedData.length > 1 && multiEdit)) && (
+            (selectedData.length > 1 && multiEdit)) &&
+            !readOnly && (
+              <PopupForm
+                data={selectedData[0]}
+                formFields={formFields}
+                onSubmit={handleEdit}
+                loading={loading}
+                title={editFormTitle}
+                token={token}
+              />
+            )}
+          {!readOnly && (
             <PopupForm
-              data={selectedData[0]}
               formFields={formFields}
-              onSubmit={handleEdit}
+              onSubmit={handleSubmit}
               loading={loading}
-              title={editFormTitle}
+              title={createFormTitle}
               token={token}
             />
           )}
-          <PopupForm
-            formFields={formFields}
-            onSubmit={handleSubmit}
-            loading={loading}
-            title={createFormTitle}
-            token={token}
-          />
         </div>
       </div>
       {!!selectedData.length && (

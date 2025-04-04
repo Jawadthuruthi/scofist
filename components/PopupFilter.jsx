@@ -104,7 +104,7 @@ export default function PopupFilter({
             </DialogHeader>
             <div className="py-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filterConfig.map((filterItem) => {
+                {filterConfig?.map((filterItem) => {
                   const filterId = filterItem.id;
                   const currentFilter = filters[filterId] || {};
                   const currentValue = getCurrentValue(
@@ -186,12 +186,6 @@ export default function PopupFilter({
               />
             )}
           </div>
-        )}
-
-        {hasFilters && (
-          <Button variant="destructive" onClick={handleClearFilters}>
-            Clear <Trash2 />
-          </Button>
         )}
       </div>
     </div>

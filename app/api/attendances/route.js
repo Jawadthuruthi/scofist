@@ -2,6 +2,7 @@ import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import { markTeacherAttendanceFromStudentAttendance } from "@/lib/teacherAttendanceService";
 import Attendance from "@/models/Attendance";
+import StudentAttendance from "@/models/StudentAttendance";
 import { NextResponse } from "next/server";
 
 export async function GET(req, res) {
@@ -113,6 +114,31 @@ export async function POST(req, res) {
 
     const newAttendance = await Attendance.create(body);
     await markTeacherAttendanceFromStudentAttendance(newAttendance);
+    const bulkOps = newAttendance.attendanceData.map((student) => {
+      return {
+        updateOne: {
+          filter: { studentId: student.studentId },
+          update: {
+            $push: {
+              attendanceRecords: {
+                classId: newAttendance.classId,
+                subjectId: newAttendance.subjectId,
+                periodNumber: newAttendance.periodNumber,
+                day: newAttendance.day,
+                date: newAttendance.date,
+                present: student.present,
+              },
+            },
+          },
+          upsert: true,
+        },
+      };
+    });
+
+    // Execute the bulk operation if there are students
+    if (bulkOps.length > 0) {
+      await StudentAttendance.bulkWrite(bulkOps);
+    }
 
     return NextResponse.json(
       {
@@ -147,6 +173,30 @@ export async function PUT(req, res) {
       new: true,
       runValidators: true,
     });
+
+    if (data.attendanceData) {
+      const bulkOps = updatedAttendance.attendanceData.map((student) => {
+        return {
+          updateOne: {
+            filter: {
+              studentId: student.studentId,
+              "attendanceRecords.date": updatedAttendance.date,
+              "attendanceRecords.classId": updatedAttendance.classId,
+              "attendanceRecords.subjectId": updatedAttendance.subjectId,
+              "attendanceRecords.periodNumber": updatedAttendance.periodNumber,
+            },
+            update: {
+              $set: { "attendanceRecords.$.present": student.present },
+            },
+          },
+        };
+      });
+
+      // Execute the bulk operation if there are students
+      if (bulkOps.length > 0) {
+        await StudentAttendance.bulkWrite(bulkOps);
+      }
+    }
     return NextResponse.json(
       { updatedAttendance, message: "Attendance record updated successfully!" },
       { status: 200 }
@@ -166,6 +216,33 @@ export async function DELETE(req, res) {
       const deletedAttendance = await Attendance.deleteMany({
         _id: { $in: ids },
       });
+
+      const bulkOps = [];
+
+      for (const attendance of deletedAttendance) {
+        for (const student of attendance.attendanceData) {
+          bulkOps.push({
+            updateOne: {
+              filter: { studentId: student.studentId },
+              update: {
+                $pull: {
+                  attendanceRecords: {
+                    classId: attendance.classId,
+                    subjectId: attendance.subjectId,
+                    date: attendance.date,
+                    periodNumber: attendance.periodNumber,
+                  },
+                },
+              },
+            },
+          });
+        }
+      }
+
+      // Execute student attendance updates in bulk
+      if (bulkOps.length > 0) {
+        await StudentAttendance.bulkWrite(bulkOps);
+      }
       return NextResponse.json(
         {
           deletedAttendance,

@@ -9,10 +9,7 @@ const teacherAttendanceSchema = new Schema(
       type: String,
       required: true,
       ref: "User",
-    },
-    date: {
-      type: String,
-      required: true,
+      index: true,
     },
     attendanceRecords: [
       {
@@ -34,16 +31,21 @@ const teacherAttendanceSchema = new Schema(
           type: String,
           required: true,
         },
+        date: {
+          type: String,
+          required: true,
+        },
         present: {
           type: Boolean,
           default: false,
         },
         autoMarked: {
           type: Boolean,
-          default: true,
+          default: false,
         },
         markedAt: {
           type: Date,
+          default: Date.now,
         },
       },
     ],
@@ -52,9 +54,6 @@ const teacherAttendanceSchema = new Schema(
     timestamps: true,
   }
 );
-
-// Create a compound index for teacher attendance records
-teacherAttendanceSchema.index({ teacherId: 1, date: 1 }, { unique: true });
 
 // Pre-save validation to ensure teacherId has Teacher role
 teacherAttendanceSchema.pre("save", async function (next) {

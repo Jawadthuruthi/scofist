@@ -180,6 +180,35 @@ const useTableColumns = (columnConfig) => {
       };
     }
 
+    if (col.type?.includes("length")) {
+      columnDefinition.cell = ({ row }) => {
+        const length = row.original?.[col.valueKey]?.length || 0;
+        return length;
+      };
+    }
+    if (col.type?.includes("filteredLength")) {
+      columnDefinition.cell = ({ row }) => {
+        const length =
+          row.original?.[col.valueKey]?.filter(
+            (item) => item?.[col.accessorKey] === col.filterValue
+          )?.length || 0;
+        console.log(row, col.valueKey);
+        return length;
+      };
+    }
+
+    if (col?.type?.includes("percentage")) {
+      columnDefinition.cell = ({ row }) => {
+        const total = row.original?.[col.totalKey]?.length || 0;
+        const divide =
+          row.original?.[col.totalKey]?.filter(
+            (item) => item?.[col.filterKey] === col.filterValue
+          )?.length || 0;
+        const percentage = ((divide / total) * 100).toFixed(2);
+        return `${percentage}%`;
+      };
+    }
+
     // Apply actions if type includes "actions"
     if (col.type?.includes("actions")) {
       columnDefinition.cell = ({ row }) => (

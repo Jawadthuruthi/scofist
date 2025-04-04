@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 
 import { Loader2, Trash } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { capitalize } from "lodash";
 
 export default function ConfirmationPopup({
