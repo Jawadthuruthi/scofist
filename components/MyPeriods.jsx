@@ -37,10 +37,9 @@ const MyPeriods = ({ token, teacherId }) => {
     "Saturday",
   ];
 
-  const today = days[new Date().getDay()];
+  const today = "Thursday" || days[new Date().getDay()];
   const date = formatDateForDisplay(new Date());
 
-  const router = useRouter();
   const { useFetchItems } = useCrud("timeTables", token);
   const { useFetchItems: useFetchPeriods } = useCrud("periods", token);
   const { useFetchItems: useFetchAttendance } = useCrud("attendances", token);

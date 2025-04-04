@@ -303,7 +303,6 @@ const AttendancePage = ({ token, teacherId }) => {
                     <TableRow>
                       <TableHead className="w-16">R. No.</TableHead>
                       <TableHead>Students</TableHead>
-                      <TableHead className="text-right">Attendance</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -311,7 +310,11 @@ const AttendancePage = ({ token, teacherId }) => {
                       students.map((student, index) => (
                         <TableRow
                           key={student._id}
-                          className="hover:bg-accent/50"
+                          className={
+                            attendance[student._id]
+                              ? ""
+                              : "bg-destructive/40 hover:bg-destructive/40"
+                          }
                           onClick={() => toggleAttendance(student._id)}
                         >
                           <TableCell>{index + 1}</TableCell>
@@ -330,22 +333,6 @@ const AttendancePage = ({ token, teacherId }) => {
                                 <p className="text-xs text-muted-foreground">
                                   {student._id}
                                 </p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-4">
-                              <div className="flex items-center gap-2">
-                                {attendance[student._id] ? (
-                                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                                ) : (
-                                  <XCircle className="h-5 w-5 text-red-500" />
-                                )}
-                                <span className="text-sm font-medium">
-                                  {attendance[student._id]
-                                    ? "Present"
-                                    : "Absent"}
-                                </span>
                               </div>
                             </div>
                           </TableCell>
