@@ -1,8 +1,8 @@
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
+import { markAbsentTeachers } from "@/lib/teacherAttendanceService";
 import TeacherAttendance from "@/models/TeacherAttendance";
 import { NextResponse } from "next/server";
-import { markAbsentTeachers } from "@/lib/TeacherAttendanceService";
 
 export async function GET(req, res) {
   try {
