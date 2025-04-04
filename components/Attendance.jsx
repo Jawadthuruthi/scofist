@@ -1,28 +1,18 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Loader2,
   CheckCircle2,
   XCircle,
   Save,
-  ArrowLeft,
   Calendar,
   Clock,
-  Users,
 } from "lucide-react";
 
 // UI Components
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -42,7 +32,6 @@ import Header from "./Header";
 
 const AttendancePage = ({ token, teacherId }) => {
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   // Get query parameters
   const classId = searchParams.get("classId");
@@ -260,8 +249,8 @@ const AttendancePage = ({ token, teacherId }) => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <Header
               title="Attendance Management"
-              subTitle={`Mark attendance for ${classDetails?.name} - 
-                ${subjectDetails?.name}`}
+              subTitle={`Mark attendance for ${classDetails?.name.toLowerCase()} - 
+                ${subjectDetails?.name.toLowerCase()}`}
             />
           </div>
         </div>
@@ -308,7 +297,7 @@ const AttendancePage = ({ token, teacherId }) => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-20">R. No.</TableHead>
+                      <TableHead className="w-16">R. No.</TableHead>
                       <TableHead>Students</TableHead>
                       <TableHead className="text-right">Attendance</TableHead>
                     </TableRow>

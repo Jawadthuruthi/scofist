@@ -2,14 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import {
-  Loader2,
-  Calendar,
-  Clock,
-  ExternalLink,
-  CheckCircle2,
-} from "lucide-react";
+import { Loader2, ExternalLink, CheckCircle2 } from "lucide-react";
 
 // UI Components
 import {
@@ -44,7 +37,7 @@ const MyPeriods = ({ token, teacherId }) => {
     "Saturday",
   ];
 
-  const today = "Thursday";
+  const today = days[new Date().getDay()];
   const date = formatDateForDisplay(new Date());
 
   const router = useRouter();
@@ -107,13 +100,6 @@ const MyPeriods = ({ token, teacherId }) => {
       .filter((slot) => slot.day === today)
       .sort((a, b) => a.periodNumber - b.periodNumber);
   }, [timeTableData]);
-
-  // Handle opening attendance page
-  const handleAttendanceClick = (slot) => {
-    router.push(
-      `/dashboard/attendances?classId=${slot.classId._id}&subjectId=${slot.subjectId._id}&periodNumber=${slot.periodNumber}&day=${slot.day}`
-    );
-  };
 
   return (
     <div className="space-y-6">
