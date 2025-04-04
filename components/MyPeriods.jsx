@@ -3,7 +3,13 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Calendar, Clock } from "lucide-react";
+import {
+  Loader2,
+  Calendar,
+  Clock,
+  ExternalLink,
+  CheckCircle2,
+} from "lucide-react";
 
 // UI Components
 import {
@@ -21,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { formatDate, formatDateForDisplay } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import Header from "./Header";
+import Link from "next/link";
 
 const MyPeriods = ({ token, teacherId }) => {
   const [loading, setLoading] = useState(true);
@@ -37,7 +44,7 @@ const MyPeriods = ({ token, teacherId }) => {
     "Saturday",
   ];
 
-  const today = days[new Date().getDay()];
+  const today = "Thursday";
   const date = formatDateForDisplay(new Date());
 
   const router = useRouter();
@@ -113,8 +120,8 @@ const MyPeriods = ({ token, teacherId }) => {
       <div className="w-full">
         <div>
           <Header
-            title="My Teaching Periods"
-            subTitle="View your teaching schedule and take attendance"
+            title="MY PERIODS"
+            subTitle="View schedule & take attendance"
           />
         </div>
         <div>
@@ -133,11 +140,15 @@ const MyPeriods = ({ token, teacherId }) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-16">Period</TableHead>
+                    <TableHead className="w-16 hidden md:table-cell">
+                      Period
+                    </TableHead>
                     <TableHead className="w-32">Time</TableHead>
-                    <TableHead>Subject</TableHead>
                     <TableHead>Class</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className="hidden md:table-cell">
+                      Subject
+                    </TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -151,39 +162,46 @@ const MyPeriods = ({ token, teacherId }) => {
                       );
                     return (
                       <TableRow key={slot._id} className="hover:bg-accent/50">
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           <div className="flex items-center justify-center font-medium">
                             <Badge variant="outline">{slot.periodNumber}</Badge>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-xs whitespace-nowrap">
-                              {slot.periodDetails?.formattedTime ||
-                                `Period ${slot.periodNumber}`}
-                            </span>
+                            {slot.periodDetails?.formattedTime ||
+                              `Period ${slot.periodNumber}`}
                           </div>
+                          {attendanceMarked && (
+                            <div className="flex items-center gap-1 text-xxs text-muted-foreground">
+                              <CheckCircle2 className="text-green-500 h-3 w-3" />
+                              <span>Attendance Marked</span>
+                            </div>
+                          )}
                         </TableCell>
-                        <TableCell>
-                          <div className="font-medium">
+                        <TableCell className="whitespace-nowrap">
+                          <div className="text-xs md:text-base">
+                            {slot.classId?.name}
+                          </div>
+                          <div className="text-xxs md:hidden">
                             {slot.subjectId?.name}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {slot.classId?.name}
-                          </Badge>
+                        <TableCell className="hidden md:table-cell">
+                          {slot.subjectId.name}
                         </TableCell>
+
                         <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            onClick={() => handleAttendanceClick(slot)}
+                          <Link
+                            href={`/dashboard/attendances?classId=${slot.classId._id}&subjectId=${slot.subjectId._id}&periodNumber=${slot.periodNumber}&day=${slot.day}`}
                           >
-                            {attendanceMarked
-                              ? "Update Attendance"
-                              : "Take Attendance"}
-                          </Button>
+                            <ExternalLink className="text-muted-foreground h-5 w-5 md:hidden" />
+                            <Button size="sm" className="hidden md:inline-flex">
+                              {attendanceMarked
+                                ? "Update Attendance"
+                                : "Take Attendance"}
+                            </Button>
+                          </Link>
                         </TableCell>
                       </TableRow>
                     );

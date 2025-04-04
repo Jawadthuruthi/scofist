@@ -70,6 +70,7 @@ const AttendancePage = ({ token, teacherId }) => {
     useFetchItems: useFetchAttendance,
     useAddItem: useCreateAttendance,
     useUpdateItem: useUpdateAttendance,
+    useDeleteItem: useDeleteAttendance,
   } = useCrud("attendances", token);
 
   // Fetch data queries
@@ -90,6 +91,7 @@ const AttendancePage = ({ token, teacherId }) => {
   // Create/Update mutations
   const createAttendance = useCreateAttendance();
   const updateAttendance = useUpdateAttendance();
+  const deleteAttendance = useDeleteAttendance();
 
   // Process fetched data
   useEffect(() => {
@@ -226,6 +228,22 @@ const AttendancePage = ({ token, teacherId }) => {
     }
   };
 
+  const handleDeleteAttendance = async () => {
+    try {
+      setSaving(true);
+      const existingAttendanceId = attendanceQuery.data.attendances[0]._id;
+      await deleteAttendance.mutateAsync([existingAttendanceId]);
+      toast.success("Attendance reset successfully");
+      setAttendanceExists(false);
+      attendanceQuery.refetch();
+    } catch (error) {
+      console.error("Error resetting attendance:", error);
+      toast.error(`Failed to reset attendance: ${error.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Set all present
   const setAllPresent = () => {
     const newAttendance = {};
@@ -290,7 +308,7 @@ const AttendancePage = ({ token, teacherId }) => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-20">Roll No.</TableHead>
+                      <TableHead className="w-20">R. No.</TableHead>
                       <TableHead>Students</TableHead>
                       <TableHead className="text-right">Attendance</TableHead>
                     </TableRow>
@@ -352,14 +370,21 @@ const AttendancePage = ({ token, teacherId }) => {
               </div>
             </>
           )}
-          <div className="flex justify-end">
+          <div className="flex justify-between">
+            <Button
+              onClick={handleDeleteAttendance}
+              disabled={!attendanceExists}
+            >
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Reset
+            </Button>
             <Button
               onClick={handleSaveAttendance}
               disabled={saving || loading || !students.length}
             >
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Save className="mr-2 h-4 w-4" />
-              {attendanceExists ? "Update Attendance" : "Save Attendance"}
+              {attendanceExists ? "Update" : "Save"}
             </Button>
           </div>
         </div>
