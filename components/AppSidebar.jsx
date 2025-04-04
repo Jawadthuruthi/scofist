@@ -262,16 +262,16 @@ export function AppSidebar({ roles }) {
   // Memoized filtered menu items
   const menuItems = useMemo(() => {
     return items
-      .filter((item) => item.allowedRoles?.includes(activeRole)) // Filter parent items
+      .filter((item) => item.allowedRoles?.includes(activeRole))
       .map((item) => ({
-        ...item, // Keep the original item structure
+        ...item,
         subItems: item.subItems
           ? item.subItems.filter((subItem) =>
               subItem.allowedRoles?.includes(activeRole)
-            ) // Filter subItems
-          : undefined, // Ensure subItems is removed if empty
+            )
+          : undefined,
       }))
-      .filter((item) => item.subItems?.length > 0 || !item.subItems); // Remove parents with no subItems
+      .filter((item) => item.subItems?.length > 0 || !item.subItems);
   }, [activeRole]);
 
   return (
