@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useCrud from "@/hooks/use-crud";
 import { formatDate } from "@/lib/utils";
 import Header from "./Header";
+import { capitalize } from "lodash";
 
 const AttendancePage = ({ token, teacherId }) => {
   const searchParams = useSearchParams();
@@ -209,6 +210,7 @@ const AttendancePage = ({ token, teacherId }) => {
 
       // Refresh attendance data
       attendanceQuery.refetch();
+      window.location.href = "/dashboard/my-periods";
     } catch (error) {
       console.error("Error saving attendance:", error);
       toast.error(`Failed to save attendance: ${error.message}`);
@@ -248,9 +250,11 @@ const AttendancePage = ({ token, teacherId }) => {
         <div>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <Header
-              title="Attendance Management"
-              subTitle={`Mark attendance for ${classDetails?.name.toLowerCase()} - 
-                ${subjectDetails?.name.toLowerCase()}`}
+              title="ATTENDANCE MANAGEMENT"
+              subTitle={`Mark Attendance For ${capitalize(
+                classDetails?.name
+              )} - 
+                ${capitalize(subjectDetails?.name)}`}
             />
           </div>
         </div>

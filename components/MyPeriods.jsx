@@ -107,7 +107,7 @@ const MyPeriods = ({ token, teacherId }) => {
         <div>
           <Header
             title="MY PERIODS"
-            subTitle="View schedule & take attendance"
+            subTitle="View Schedule & Take Attendance"
           />
         </div>
         <div>
