@@ -38,6 +38,7 @@ const AdvancedDataTableComponent = ({
                     filterConfig={tab.filterConfig}
                     tableHeight={tab.tableHeight}
                     readOnly={tab.readOnly}
+                    filterTitle={tab.filterTitle}
                   />
                 </CardContent>
               </Card>
@@ -56,6 +57,7 @@ const AdvancedDataTableComponent = ({
               filterConfig={table?.filterConfig}
               tableHeight={table?.tableHeight}
               readOnly={table?.readOnly}
+              filterTitle={tab.filterTitle}
             />
           </CardContent>
         </Card>

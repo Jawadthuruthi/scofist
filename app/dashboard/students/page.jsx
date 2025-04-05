@@ -54,20 +54,6 @@ const columnsConfig = [
   { accessorKey: "status", header: "Status", type: ["badge"] },
 ];
 
-const filterConfig = [
-  { id: "name", label: "Name" },
-  {
-    id: "status",
-    label: "Status",
-    inputType: "select",
-    options: [
-      { label: "Active", value: "Active" },
-      { label: "Graduated", value: "Graduated" },
-      { label: "Dropped Out", value: "Dropped Out" },
-    ],
-  },
-];
-
 const statusMessages = {
   create: "Student added successfully!",
   edit: "Student Updated successfully!",
@@ -621,6 +607,33 @@ export default async function BatchesPage() {
       },
     ];
 
+    const filterConfig = [
+      { id: "name", label: "Name" },
+      { id: "_id", label: "ID" },
+      {
+        id: "classId",
+        label: "Class",
+        inputType: "select",
+        options: formatOptions(classes),
+      },
+      {
+        id: "batchId",
+        label: "Batch",
+        inputType: "select",
+        options: formatOptions(batches),
+      },
+      {
+        id: "status",
+        label: "Status",
+        inputType: "select",
+        options: [
+          { label: "Active", value: "Active" },
+          { label: "Graduated", value: "Graduated" },
+          { label: "Dropped Out", value: "Dropped Out" },
+        ],
+      },
+    ];
+
     return (
       <>
         <Header
@@ -642,6 +655,7 @@ export default async function BatchesPage() {
           filterConfig={filterConfig}
           limit={20}
           apiFilters={apiFilters}
+          filterTitle="Students"
         />
       </>
     );
