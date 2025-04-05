@@ -61,7 +61,7 @@ const statusMessages = {
 };
 
 const apiFilters = {
-  role: ["Student"],
+  roles: ["Student"],
 };
 
 const API_ENDPOINTS = [

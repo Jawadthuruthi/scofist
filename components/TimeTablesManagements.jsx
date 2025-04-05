@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Edit, Loader2, AlertCircle } from "lucide-react";
+import { Edit, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 
 // UI Components
 import {
@@ -49,16 +49,26 @@ const TimetableSlot = ({
   category,
   selectedClass,
   onCellClick,
+  isAttendanceMarked,
+  absentees,
 }) => {
+  const [open, setOpen] = useState(false);
   const hasData = cellData && (cellData.subjectId || cellData.teacherId);
 
   return (
     <TableCell
-      className="border text-center cursor-pointer transition-colors hover:bg-accent/50 max-w-32"
-      onClick={() => onCellClick(periodNumber, day)}
+      className={`${
+        isAttendanceMarked ? "bg-green-300/50" : ""
+      } border text-center cursor-pointer transition-colors max-w-32`}
+      onClick={() => {
+        onCellClick(periodNumber, day);
+        if (category !== "class") {
+          setOpen(true);
+        }
+      }}
     >
       {hasData ? (
-        <div className="flex flex-col items-center justify-center hover:bg-accent">
+        <div className="flex flex-col items-center justify-center">
           <p className="font-medium text-xs">
             {cellData.subjectId?.name || ""}
           </p>
@@ -75,6 +85,9 @@ const TimetableSlot = ({
           )}
         </div>
       )}
+      <Dialog>
+        <DialogContent open={open} onOpenChange={setOpen}></DialogContent>
+      </Dialog>
     </TableCell>
   );
 };
@@ -109,6 +122,21 @@ const TimeTablesManagements = ({
   const router = useRouter();
   const timeTableRef = useRef();
   const { useFetchItems, useUpdateItem } = useCrud("timeTables", token);
+  const { useFetchItems: useFetchAttendance } = useCrud("attendances", token);
+
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 7);
+  const endDate = new Date();
+
+  const fetchAttendanceQuery = useFetchAttendance(0, 0, {
+    startDate: startDate.toISOString().split("T")[0],
+    endDate: endDate.toISOString().split("T")[0],
+    classId: category === "class" && selectedClass ? selectedClass : undefined,
+    teacherId:
+      category === "teacher" && selectedTeacher ? selectedTeacher : undefined,
+    date: category === "date" && date ? date : undefined,
+  });
+  const attendanceData = fetchAttendanceQuery.data?.attendances || [];
 
   // Set up print functionality
   const handlePrint = usePrint({
@@ -441,7 +469,7 @@ const TimeTablesManagements = ({
             )}
 
             {/* Stats Badges */}
-            {(selectedClass || selectedTeacher || date) && (
+            {category === "class" && selectedClass && (
               <div className="flex items-center gap-4">
                 <Badge
                   variant="outline"
@@ -518,6 +546,19 @@ const TimeTablesManagements = ({
                               period.periodNumber,
                               day
                             );
+                            const markedAttendance = attendanceData.filter(
+                              (attendance) =>
+                                attendance.periodNumber ===
+                                  period.periodNumber && attendance.day === day
+                            );
+                            const absentees = markedAttendance?.map(
+                              (attendance) => ({
+                                absentees:
+                                  attendance?.attendanceRecords?.filter(
+                                    (record) => record.present === false
+                                  ),
+                              })
+                            );
                             return (
                               <TimetableSlot
                                 key={`${day}-${period._id}`}
@@ -527,6 +568,10 @@ const TimeTablesManagements = ({
                                 category={category}
                                 selectedClass={selectedClass}
                                 onCellClick={handleCellClick}
+                                isAttendanceMarked={
+                                  markedAttendance?.length > 0
+                                }
+                                absentees={absentees}
                               />
                             );
                           })}
@@ -539,7 +584,7 @@ const TimeTablesManagements = ({
                             className="hover:bg-accent/50"
                           >
                             <TableCell className="border font-medium bg-accent sticky left-0 z-10">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center whitespace-nowrap gap-2">
                                 {classItem.name}
                               </div>
                             </TableCell>
@@ -548,6 +593,21 @@ const TimeTablesManagements = ({
                                 period.periodNumber,
                                 day,
                                 classItem._id
+                              );
+                              const markedAttendance = attendanceData.filter(
+                                (attendance) =>
+                                  attendance.periodNumber ===
+                                    period.periodNumber &&
+                                  attendance.day === day &&
+                                  attendance.classId._id === classItem._id
+                              );
+                              const absentees = markedAttendance.map(
+                                (attendance) => ({
+                                  absentees:
+                                    attendance?.attendanceRecords?.filter(
+                                      (record) => record.present === false
+                                    ),
+                                })
                               );
                               return (
                                 <TimetableSlot
@@ -558,6 +618,10 @@ const TimeTablesManagements = ({
                                   category={category}
                                   selectedClass={selectedClass}
                                   onCellClick={handleCellClick}
+                                  isAttendanceMarked={
+                                    markedAttendance?.length > 0
+                                  }
+                                  absentees={absentees}
                                 />
                               );
                             })}

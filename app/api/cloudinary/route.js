@@ -3,12 +3,6 @@ import cloudinary from "@/lib/cloudinary";
 
 export async function POST(req) {
   try {
-    const authorized = await verifyToken(apiKey);
-
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
     const { image } = await req.json();
 
     if (!image) {
@@ -45,14 +39,7 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   try {
-    const authorized = await verifyToken(apiKey);
-
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
     const { publicId } = await req.json();
-    console.log(publicId);
 
     if (!publicId) {
       return NextResponse.json(

@@ -221,7 +221,7 @@ const statusMessages = {
 };
 
 const apiFilters = {
-  role: ["Teacher"],
+  roles: ["Teacher", "College Admin", "Org Admin"],
 };
 
 export default async function BatchesPage() {

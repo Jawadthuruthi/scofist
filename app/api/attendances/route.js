@@ -52,9 +52,21 @@ export async function GET(req, res) {
     }
     if (filterParams.date) {
       query.date = filterParams.date;
+    } else if (filterParams.startDate && filterParams.endDate) {
+      query.date = {
+        $gte: filterParams.startDate,
+        $lte: filterParams.endDate,
+      };
+    } else if (filterParams.startDate) {
+      query.date = { $gte: filterParams.startDate };
+    } else if (filterParams.endDate) {
+      query.date = { $lte: filterParams.endDate };
     }
     if (filterParams.teacherId) {
       query.teacherId = filterParams.teacherId;
+    }
+    if (filterParams.day) {
+      query.day = filterParams.day;
     }
 
     // Execute query with pagination

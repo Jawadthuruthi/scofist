@@ -1,3 +1,4 @@
+import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import sendOtpEmail from "@/lib/sendOtpEmail";
 import { generateSecureOTP } from "@/lib/utils";
@@ -9,6 +10,7 @@ export async function POST(req) {
   const { email } = await req.json();
   try {
     await connectToDB();
+    console.log("User found:", email);
     const user = await User.findOne({ email });
 
     if (!user) {

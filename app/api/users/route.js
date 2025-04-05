@@ -46,8 +46,10 @@ export async function GET(req, res) {
     if (filterParams.name) {
       query.name = { $regex: filterParams.name, $options: "i" };
     }
-    if (filterParams.role) {
-      query.roles = { $in: filterParams.role };
+    if (filterParams.roles) {
+      query.roles = {
+        $in: filterParams.roles?.split(",").map((role) => role.trim()),
+      };
     }
     if (filterParams.status) {
       query.status = filterParams.status;

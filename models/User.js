@@ -283,7 +283,6 @@ const userSchema = new Schema(
   },
   {
     timestamps: true,
-    // Prevent versioning field (__v) and use updatedAt instead
     versionKey: false,
   }
 );

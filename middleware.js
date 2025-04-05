@@ -30,6 +30,10 @@ async function handleApiRequest(req) {
     return NextResponse.next();
   }
 
+  if (req.nextUrl.pathname.includes("/api/auth")) {
+    return NextResponse.next();
+  }
+
   if (!apiKey) {
     return NextResponse.json(
       { message: "Unauthorized - API key missing" },

@@ -62,7 +62,7 @@ const AttendancePage = ({ token, teacherId }) => {
   const subjectQuery = useFetchSubject(null, null, { _id: subjectId });
   const periodQuery = useFetchPeriod(null, null, { periodNumber });
   const studentsQuery = useFetchUsers(null, null, {
-    role: "Student",
+    roles: ["Student"],
     classId: classId,
   });
   const attendanceQuery = useFetchAttendance(null, null, {
