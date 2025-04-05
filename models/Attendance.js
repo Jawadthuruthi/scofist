@@ -93,8 +93,6 @@ attendanceSchema.pre("save", async function (next) {
       student._id.toString()
     );
 
-    console.log(classStudentIds);
-
     // Check if all attendanceData students belong to the class
     for (const record of this.attendanceData) {
       if (!classStudentIds.includes(record.studentId.toString())) {

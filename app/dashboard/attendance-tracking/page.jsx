@@ -223,7 +223,7 @@ const AttendanceTrackingPage = async () => {
             type: "text",
             inputType: "select",
             nestedArrayField: "attendanceRecords",
-            options: [],
+            options: formatOptions(batches),
           },
           {
             id: "classId",
@@ -231,7 +231,7 @@ const AttendanceTrackingPage = async () => {
             type: "text",
             inputType: "select",
             nestedArrayField: "attendanceRecords",
-            options: [],
+            options: formatOptions(classes),
           },
           {
             id: "subjectId",
@@ -239,7 +239,7 @@ const AttendanceTrackingPage = async () => {
             type: "text",
             inputType: "select",
             nestedArrayField: "attendanceRecords",
-            options: [],
+            options: formatOptions(subjects),
           },
           {
             id: "date",

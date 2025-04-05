@@ -75,13 +75,12 @@ const MyPeriods = ({ token, teacherId }) => {
           (slot) => slot.teacherId?._id === teacherId
         );
         const classId = timeTable.classId;
-        const batchId = timeTable.batchId;
+        console.log("Class ID:", classId);
         return [
           ...acc,
           ...slots.map((slot) => ({
             ...slot,
             classId,
-            batchId,
             periodDetails: periods.find(
               (p) => p.periodNumber === slot.periodNumber
             ),
