@@ -22,6 +22,7 @@ export async function middleware(req) {
 }
 
 async function handleApiRequest(req) {
+  const url = new URL(req.url);
   const apiKey = req.headers.get("api-key");
   const cronSecret = url.searchParams.get("cronSecret");
 
