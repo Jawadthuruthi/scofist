@@ -39,6 +39,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { DAYS } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import usePrint from "@/hooks/use-print";
+import { Input } from "./ui/input";
 
 // Component for rendering a single timetable cell
 const TimetableSlot = ({
@@ -46,7 +47,7 @@ const TimetableSlot = ({
   day,
   cellData,
   category,
-  selectedTeacher,
+  selectedClass,
   onCellClick,
 }) => {
   const hasData = cellData && (cellData.subjectId || cellData.teacherId);
@@ -62,8 +63,7 @@ const TimetableSlot = ({
             {cellData.subjectId?.name || ""}
           </p>
           <p className="text-xxs text-accent-foreground">
-            {category === "class" ||
-            (category === "teacher" && !selectedTeacher)
+            {category === "class" && selectedClass
               ? cellData.teacherId?.name || ""
               : cellData.classId?.name || ""}
           </p>
@@ -92,6 +92,7 @@ const TimeTablesManagements = ({
   const [timeTableData, setTimeTableData] = useState({ timeSlots: [] });
   const [selectedClass, setSelectedClass] = useState(classes[0]?._id || "");
   const [selectedTeacher, setSelectedTeacher] = useState("");
+  const [date, setDate] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [selectedDay, setSelectedDay] = useState("");
@@ -99,6 +100,10 @@ const TimeTablesManagements = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [teacherScheduleConflicts, setTeacherScheduleConflicts] = useState([]);
   const [existingTimeSlotId, setExistingTimeSlotId] = useState(null);
+
+  const day = new Date(date).toLocaleDateString("en-US", {
+    weekday: "long",
+  });
 
   // References and hooks
   const router = useRouter();
@@ -115,13 +120,12 @@ const TimeTablesManagements = ({
   const fetchQuery = useMemo(() => {
     return {
       classId:
-        category === "class" || (category === "teacher" && !selectedTeacher)
-          ? selectedClass
-          : undefined,
+        category === "class" && selectedClass ? selectedClass : undefined,
       teacherId:
         category === "teacher" && selectedTeacher ? selectedTeacher : undefined,
+      day: category === "date" && date ? day : undefined,
     };
-  }, [category, selectedClass, selectedTeacher]);
+  }, [category, selectedClass, selectedTeacher, date]);
 
   const fetchItemsQuery = useFetchItems(0, 0, fetchQuery);
   const allTimeTablesQuery = useFetchItems(0, 0, {});
@@ -192,7 +196,7 @@ const TimeTablesManagements = ({
 
     if (category === "teacher" && selectedTeacher) {
       // Aggregate all slots for this teacher across classes
-      const teachersTimeSlots = newData.reduce(
+      const timeSlotsByTeacher = newData.reduce(
         (acc, timeTable) => {
           const slots = timeTable.timeSlots.filter(
             (slot) => slot.teacherId?._id === selectedTeacher
@@ -208,7 +212,22 @@ const TimeTablesManagements = ({
         { timeSlots: [] }
       );
 
-      setTimeTableData(teachersTimeSlots);
+      setTimeTableData(timeSlotsByTeacher);
+    } else if (category === "date" && date) {
+      const timeSlotsByDate = newData.reduce(
+        (acc, timeTable) => {
+          const slots = timeTable.timeSlots.filter((slot) => slot.day === day);
+          const classId = timeTable.classId;
+          return {
+            timeSlots: [
+              ...(acc.timeSlots || []),
+              ...slots.map((slot) => ({ ...slot, classId })),
+            ],
+          };
+        },
+        { timeSlots: [] }
+      );
+      setTimeTableData(timeSlotsByDate || { timeSlots: [] });
     } else {
       // For class view, just use the first timetable
       setTimeTableData(newData[0] || { timeSlots: [] });
@@ -263,9 +282,12 @@ const TimeTablesManagements = ({
 
   // Get cell data for specific period and day
   const getCellData = useCallback(
-    (periodNumber, day) => {
+    (periodNumber, day, classId) => {
       return timeTableData.timeSlots?.find(
-        (slot) => slot.periodNumber === periodNumber && slot.day === day
+        (slot) =>
+          slot.periodNumber === periodNumber &&
+          slot.day === day &&
+          (!classId || slot.classId?._id === classId)
       );
     },
     [timeTableData.timeSlots]
@@ -355,8 +377,13 @@ const TimeTablesManagements = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="class">Class</SelectItem>
-                    <SelectItem value="teacher">Teacher</SelectItem>
+                    <SelectItem value="class">Manage TimeTable</SelectItem>
+                    <SelectItem value="teacher">
+                      View Time Table By Teacher
+                    </SelectItem>
+                    <SelectItem value="date">
+                      View Time Table By Date
+                    </SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -383,6 +410,16 @@ const TimeTablesManagements = ({
                 </Select>
               </div>
             )}
+            {category === "date" && (
+              <div className="w-full md:w-1/4">
+                <Input
+                  name="date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
+            )}
 
             {category === "class" && (
               <div className="w-full md:w-1/4">
@@ -404,7 +441,7 @@ const TimeTablesManagements = ({
             )}
 
             {/* Stats Badges */}
-            {(selectedClass || selectedTeacher) && (
+            {(selectedClass || selectedTeacher || date) && (
               <div className="flex items-center gap-4">
                 <Badge
                   variant="outline"
@@ -429,7 +466,7 @@ const TimeTablesManagements = ({
             <div className="flex justify-center items-center h-40">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-          ) : selectedClass || selectedTeacher ? (
+          ) : selectedClass || selectedTeacher || date ? (
             <div
               ref={timeTableRef}
               className="overflow-x-auto border border-collapse rounded-md"
@@ -441,8 +478,10 @@ const TimeTablesManagements = ({
                     category === "class"
                       ? classes.find((c) => c._id === selectedClass)?.name ||
                         "Class"
-                      : teachers.find((t) => t._id === selectedTeacher)?.name ||
+                      : category === "teacher"
+                      ? teachers.find((t) => t._id === selectedTeacher)?.name ||
                         "Teacher"
+                      : date || ""
                   }`}
                 </h3>
               </div>
@@ -466,29 +505,65 @@ const TimeTablesManagements = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {DAYS.map((day) => (
-                    <TableRow key={day} className="hover:bg-accent/50">
-                      <TableCell className="border font-medium bg-accent sticky left-0 z-10">
-                        <div className="flex items-center gap-2">
-                          {day.slice(0, 3)}
-                        </div>
-                      </TableCell>
-                      {periods.map((period) => {
-                        const cellData = getCellData(period.periodNumber, day);
+                  {category !== "date"
+                    ? DAYS.map((day) => (
+                        <TableRow key={day} className="hover:bg-accent/50">
+                          <TableCell className="border font-medium bg-accent sticky left-0 z-10">
+                            <div className="flex items-center gap-2">
+                              {day.slice(0, 3)}
+                            </div>
+                          </TableCell>
+                          {periods.map((period) => {
+                            const cellData = getCellData(
+                              period.periodNumber,
+                              day
+                            );
+                            return (
+                              <TimetableSlot
+                                key={`${day}-${period._id}`}
+                                periodNumber={period.periodNumber}
+                                day={day}
+                                cellData={cellData}
+                                category={category}
+                                selectedClass={selectedClass}
+                                onCellClick={handleCellClick}
+                              />
+                            );
+                          })}
+                        </TableRow>
+                      ))
+                    : classes.map((classItem) => {
                         return (
-                          <TimetableSlot
-                            key={`${day}-${period._id}`}
-                            periodNumber={period.periodNumber}
-                            day={day}
-                            cellData={cellData}
-                            category={category}
-                            selectedTeacher={selectedTeacher}
-                            onCellClick={handleCellClick}
-                          />
+                          <TableRow
+                            key={classItem._id}
+                            className="hover:bg-accent/50"
+                          >
+                            <TableCell className="border font-medium bg-accent sticky left-0 z-10">
+                              <div className="flex items-center gap-2">
+                                {classItem.name}
+                              </div>
+                            </TableCell>
+                            {periods.map((period) => {
+                              const cellData = getCellData(
+                                period.periodNumber,
+                                day,
+                                classItem._id
+                              );
+                              return (
+                                <TimetableSlot
+                                  key={`${classItem._id}-${period._id}`}
+                                  periodNumber={period.periodNumber}
+                                  day={day}
+                                  cellData={cellData}
+                                  category={category}
+                                  selectedClass={selectedClass}
+                                  onCellClick={handleCellClick}
+                                />
+                              );
+                            })}
+                          </TableRow>
                         );
                       })}
-                    </TableRow>
-                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -498,7 +573,7 @@ const TimeTablesManagements = ({
             </div>
           )}
 
-          <div className="w-full flex justify-end my-2">
+          <div className="w-full flex justify-end my-4">
             <Button onClick={handlePrint}>Print</Button>
           </div>
         </CardContent>

@@ -98,6 +98,11 @@ export async function GET(req, res) {
         $elemMatch: { teacherId: filterParams.teacherId },
       };
     }
+    if (filterParams.day) {
+      query.timeSlots = {
+        $elemMatch: { day: filterParams.day },
+      };
+    }
 
     // Use Promise.all for parallel queries
     const [timeTables, total] = await Promise.all([
