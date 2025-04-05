@@ -405,7 +405,7 @@ const TimeTablesManagements = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="class">Manage TimeTable</SelectItem>
+                    <SelectItem value="class">Manage Time Table</SelectItem>
                     <SelectItem value="teacher">
                       View Time Table By Teacher
                     </SelectItem>

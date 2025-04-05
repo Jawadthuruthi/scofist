@@ -55,6 +55,9 @@ const formFields = [
     validators: {
       minLength: 3,
       minLengthMessage: "Name must be at least 3 characters long",
+      pattern: "^[A-Z0-9\\-_]+$",
+      patternMessage:
+        "Name must only contain uppercase letters, numbers, hyphens (-), and underscores (_)",
     },
   },
   {
