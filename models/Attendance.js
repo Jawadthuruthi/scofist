@@ -2,6 +2,7 @@ import { model, models, Schema } from "mongoose";
 import Class from "./Class";
 import Subject from "./Subject";
 import User from "./User";
+import Batch from "./Batch";
 
 const attendanceSchema = new Schema(
   {
@@ -9,6 +10,11 @@ const attendanceSchema = new Schema(
       type: String,
       required: true,
       ref: "Class",
+    },
+    batchId: {
+      type: String,
+      required: true,
+      ref: "Batch",
     },
     subjectId: {
       type: String,

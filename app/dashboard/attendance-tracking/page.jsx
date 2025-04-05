@@ -6,6 +6,10 @@ import { fetchData, formatOptions } from "@/lib/utils";
 
 const API_ENDPOINTS = [
   {
+    pathname: "batches",
+    searchParams: "projection=_id,name",
+  },
+  {
     pathname: "classes",
     searchParams: "projection=_id,name",
   },
@@ -31,7 +35,7 @@ const AttendanceTrackingPage = async () => {
       );
     }
 
-    const [classes, subjects] = await Promise.all(
+    const [batches, classes, subjects] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
         fetchData(endpoint.pathname, token, endpoint.searchParams)
       )
@@ -42,6 +46,7 @@ const AttendanceTrackingPage = async () => {
         label: "Student",
         value: "student",
         resource: "studentAttendances",
+        filterTitle: "Student Attendance",
         columnsConfig: [
           { header: "Student ID", accessorKey: "id" },
           { header: "Name", accessorKey: "name" },
@@ -69,6 +74,15 @@ const AttendanceTrackingPage = async () => {
           },
         ],
         filterConfig: [
+          {
+            id: "batchId",
+            label: "Batch",
+            type: "text",
+            inputType: "select",
+            nestedArrayField: "attendanceRecords",
+
+            options: formatOptions(batches),
+          },
           {
             id: "classId",
             label: "Class",
@@ -102,6 +116,7 @@ const AttendanceTrackingPage = async () => {
         label: "Teacher",
         value: "teacher",
         resource: "teacherAttendances",
+        filterTitle: "Teacher Attendance",
         columnsConfig: [
           { header: "Teacher ID", accessorKey: "id" },
           { header: "Name", accessorKey: "name" },
@@ -129,6 +144,15 @@ const AttendanceTrackingPage = async () => {
           },
         ],
         filterConfig: [
+          {
+            id: "batchId",
+            label: "Batch",
+            type: "text",
+            inputType: "select",
+            nestedArrayField: "attendanceRecords",
+
+            options: formatOptions(batches),
+          },
           {
             id: "classId",
             label: "Class",
@@ -165,6 +189,7 @@ const AttendanceTrackingPage = async () => {
       {
         id: "student",
         resource: "studentAttendances",
+        filterTitle: "Student Attendance",
         columnsConfig: [
           { header: "Student ID", accessorKey: "id" },
           { header: "Name", accessorKey: "name" },
@@ -193,12 +218,19 @@ const AttendanceTrackingPage = async () => {
         ],
         filterConfig: [
           {
+            id: "batchId",
+            label: "Batch",
+            type: "text",
+            inputType: "select",
+            nestedArrayField: "attendanceRecords",
+            options: [],
+          },
+          {
             id: "classId",
             label: "Class",
             type: "text",
             inputType: "select",
             nestedArrayField: "attendanceRecords",
-
             options: [],
           },
           {
@@ -207,7 +239,6 @@ const AttendanceTrackingPage = async () => {
             type: "text",
             inputType: "select",
             nestedArrayField: "attendanceRecords",
-
             options: [],
           },
           {

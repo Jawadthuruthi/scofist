@@ -41,6 +41,9 @@ export async function GET(req, res) {
     if (filterParams.classId) {
       query.classId = filterParams.classId;
     }
+    if (filterParams.batchId) {
+      query.batchId = filterParams.batchId;
+    }
     if (filterParams.subjectId) {
       query.subjectId = filterParams.subjectId;
     }
@@ -60,6 +63,7 @@ export async function GET(req, res) {
       .limit(limit)
       .sort({ date: -1 })
       .populate("classId", "name")
+      .populate("batchId", "name")
       .populate("subjectId", "name")
       .populate("teacherId", "name")
       .populate({
@@ -97,6 +101,7 @@ export async function POST(req, res) {
     // Validate required fields
     const requiredFields = [
       "classId",
+      "batchId",
       "subjectId",
       "teacherId",
       "periodNumber",
@@ -122,6 +127,7 @@ export async function POST(req, res) {
             $push: {
               attendanceRecords: {
                 classId: newAttendance.classId,
+                batchId: newAttendance.batchId,
                 subjectId: newAttendance.subjectId,
                 periodNumber: newAttendance.periodNumber,
                 day: newAttendance.day,
@@ -182,6 +188,7 @@ export async function PUT(req, res) {
               studentId: student.studentId,
               "attendanceRecords.date": updatedAttendance.date,
               "attendanceRecords.classId": updatedAttendance.classId,
+              "attendanceRecords.batchId": updatedAttendance.batchId,
               "attendanceRecords.subjectId": updatedAttendance.subjectId,
               "attendanceRecords.periodNumber": updatedAttendance.periodNumber,
             },
@@ -228,6 +235,7 @@ export async function DELETE(req, res) {
                 $pull: {
                   attendanceRecords: {
                     classId: attendance.classId,
+                    batchId: attendance.batchId,
                     subjectId: attendance.subjectId,
                     date: attendance.date,
                     periodNumber: attendance.periodNumber,

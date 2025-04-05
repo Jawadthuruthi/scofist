@@ -75,11 +75,13 @@ const MyPeriods = ({ token, teacherId }) => {
           (slot) => slot.teacherId?._id === teacherId
         );
         const classId = timeTable.classId;
+        const batchId = timeTable.batchId;
         return [
           ...acc,
           ...slots.map((slot) => ({
             ...slot,
             classId,
+            batchId,
             periodDetails: periods.find(
               (p) => p.periodNumber === slot.periodNumber
             ),
@@ -142,6 +144,7 @@ const MyPeriods = ({ token, teacherId }) => {
                       attendanceQuery.data?.attendances.find(
                         (attendance) =>
                           attendance.classId._id === slot.classId._id &&
+                          attendance.classId.batchId === slot.classId.batchId &&
                           attendance.subjectId._id === slot.subjectId._id &&
                           attendance.periodNumber === slot.periodNumber
                       );
@@ -178,7 +181,7 @@ const MyPeriods = ({ token, teacherId }) => {
 
                         <TableCell className="text-right">
                           <Link
-                            href={`/dashboard/attendances?classId=${slot.classId._id}&subjectId=${slot.subjectId._id}&periodNumber=${slot.periodNumber}&day=${slot.day}`}
+                            href={`/dashboard/attendances?classId=${slot.classId._id}&batchId=${slot.classId.batchId}&subjectId=${slot.subjectId._id}&periodNumber=${slot.periodNumber}&day=${slot.day}`}
                           >
                             <ExternalLink className="text-muted-foreground h-5 w-5 md:hidden" />
                             <Button size="sm" className="hidden md:inline-flex">

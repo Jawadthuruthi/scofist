@@ -67,7 +67,7 @@ export default function PopupFilter({
   globalFilter,
   setGlobalFilter,
   hasFilters,
-  buttonLabel = "Table",
+  title = "Table",
 }) {
   const [open, setOpen] = useState(false);
 
@@ -125,7 +125,7 @@ export default function PopupFilter({
           </DialogTrigger>
           <DialogContent className="max-w-[90%] mx-auto sm:max-w-xl">
             <DialogHeader>
-              <DialogTitle>Filter {capitalize(buttonLabel)}</DialogTitle>
+              <DialogTitle>Filter {title}</DialogTitle>
             </DialogHeader>
             <div className="py-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

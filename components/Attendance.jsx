@@ -3,14 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import {
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  Save,
-  Calendar,
-  Clock,
-} from "lucide-react";
+import { Loader2, Save, Calendar, Clock } from "lucide-react";
 
 // UI Components
 import {
@@ -36,6 +29,7 @@ const AttendancePage = ({ token, teacherId }) => {
 
   // Get query parameters
   const classId = searchParams.get("classId");
+  const batchId = searchParams.get("batchId");
   const subjectId = searchParams.get("subjectId");
   const periodNumber = searchParams.get("periodNumber");
   const day = searchParams.get("day");
@@ -182,6 +176,7 @@ const AttendancePage = ({ token, teacherId }) => {
 
       const payload = {
         classId,
+        batchId,
         subjectId,
         teacherId,
         periodNumber: parseInt(periodNumber),

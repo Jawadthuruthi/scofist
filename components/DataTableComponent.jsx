@@ -93,6 +93,7 @@ const DataTableComponent = ({
   limit = 20,
   apiFilters = {},
   readOnly = false,
+  filterTitle = "",
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -311,7 +312,7 @@ const DataTableComponent = ({
             globalFilter={globalFilter}
             setGlobalFilter={setGlobalFilter}
             hasFilters={hasFilters || Object.keys(filters).length > 0}
-            buttonLabel={resource}
+            title={filterTitle || capitalize(resource)}
           />
         </div>
         <div className="space-x-2">
