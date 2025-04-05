@@ -23,6 +23,11 @@ export async function middleware(req) {
 
 async function handleApiRequest(req) {
   const apiKey = req.headers.get("api-key");
+  const cronSecret = url.searchParams.get("cronSecret");
+
+  if (cronSecret === process.env.CRON_SECRET) {
+    return NextResponse.next();
+  }
 
   if (!apiKey) {
     return NextResponse.json(
