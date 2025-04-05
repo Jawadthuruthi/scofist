@@ -22,7 +22,7 @@ const MyTimeTablePage = async () => {
     return (
       <>
         <Header title="MY TIME TABLE" subTitle="View Teaching Schedule" />
-        <TimeTableComponent token={token} teacherId={user._id} />
+        <TimeTableComponent token={token} teacherId={user?._id} />
       </>
     );
   } catch (error) {

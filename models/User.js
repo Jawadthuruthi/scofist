@@ -297,17 +297,17 @@ userSchema.pre("save", async function (next) {
     if (this.isModified("batchId")) {
       if (this.isNew) {
         await Batch.findByIdAndUpdate(this.batchId, {
-          $addToSet: { students: this._id },
+          $addToSet: { students: this?._id },
         });
       } else {
-        const oldStudent = await mongoose.model("User").findById(this._id);
+        const oldStudent = await mongoose.model("User").findById(this?._id);
         if (oldStudent.batchId && oldStudent.batchId !== this.batchId) {
           await Batch.findByIdAndUpdate(oldStudent.batchId, {
-            $pull: { students: this._id },
+            $pull: { students: this?._id },
           });
         }
         await Batch.findByIdAndUpdate(this.batchId, {
-          $addToSet: { students: this._id },
+          $addToSet: { students: this?._id },
         });
       }
     }
@@ -322,7 +322,7 @@ userSchema.pre("remove", async function (next) {
   try {
     if (this.batchId) {
       await Batch.findByIdAndUpdate(this.batchId, {
-        $pull: { students: this._id },
+        $pull: { students: this?._id },
       });
     }
     next();

@@ -39,8 +39,8 @@ export async function GET(req, res) {
     if (filterParams.name) {
       query.name = { $regex: filterParams.name, $options: "i" };
     }
-    if (filterParams._id) {
-      query._id = filterParams._id;
+    if (filterParams?._id) {
+      query?._id = filterParams?._id;
     }
     if (filterParams.batchId) {
       query.batchId = filterParams.batchId;
@@ -63,11 +63,11 @@ export async function GET(req, res) {
 
     const formattedClasses = classes.map((cls) => ({
       ...cls._doc,
-      batchId: cls.batchId._id,
-      teacherId: cls.teacherId._id,
-      batchName: cls.batchId.name,
-      teacherName: cls.teacherId.name,
-      subjects: cls.subjects.map((subject) => subject._id),
+      batchId: cls.batchId?._id,
+      teacherId: cls.teacherId?._id,
+      batchName: cls.batchId?.name,
+      teacherName: cls.teacherId?.name,
+      subjects: cls.subjects.map((subject) => subject?._id),
       subjectsName: cls.subjects.map((subject) => subject.name),
     }));
 

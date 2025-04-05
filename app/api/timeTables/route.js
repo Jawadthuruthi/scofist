@@ -69,10 +69,10 @@ const checkTeacherScheduleConflicts = async (
     );
 
     return {
-      classId: conflict.classId._id,
-      className: conflict.classId.name,
-      subjectId: conflictSlot.subjectId._id,
-      subjectName: conflictSlot.subjectId.name,
+      classId: conflict.classId?._id,
+      className: conflict.classId?.name,
+      subjectId: conflictSlot.subjectId?._id,
+      subjectName: conflictSlot.subjectId?.name,
       day: conflictSlot.day,
       periodNumber: conflictSlot.periodNumber,
     };
@@ -224,7 +224,7 @@ export async function PUT(req) {
     }
 
     // Fetch populated data to return
-    const populatedTimeTable = await TimeTable.findById(updatedTimeTable._id)
+    const populatedTimeTable = await TimeTable.findById(updatedTimeTable?._id)
       .populate("timeSlots.subjectId", "name")
       .populate("timeSlots.teacherId", "name")
       .lean();

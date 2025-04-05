@@ -170,9 +170,9 @@ const TimeTablesManagements = ({
 
   // Filter subjects based on selected class
   const filteredSubjects = useMemo(() => {
-    const selectedClassData = classes.find((cls) => cls._id === selectedClass);
+    const selectedClassData = classes.find((cls) => cls?._id === selectedClass);
     return subjects.filter((subject) =>
-      selectedClassData?.subjects?.includes(subject._id)
+      selectedClassData?.subjects?.includes(subject?._id)
     );
   }, [classes, selectedClass, subjects]);
 
@@ -188,7 +188,7 @@ const TimeTablesManagements = ({
 
         timeTable.timeSlots.forEach((slot) => {
           // Skip comparing with itself when editing
-          if (existingSlotId && slot._id === existingSlotId) return;
+          if (existingSlotId && slot?._id === existingSlotId) return;
 
           if (
             slot?.teacherId?._id === teacherId &&
@@ -197,13 +197,13 @@ const TimeTablesManagements = ({
           ) {
             // Get class name for better context
             const conflictClass = classes.find(
-              (cls) => cls._id === timeTable.classId._id
+              (cls) => cls?._id === timeTable.classId?._id
             );
 
             conflicts.push({
               class: conflictClass?.name || "Unknown Class",
-              subject: slot.subjectId.name,
-              teacherName: slot.teacherId.name,
+              subject: slot.subjectId?.name,
+              teacherName: slot.teacherId?.name,
               day: slot.day,
               period: slot.periodNumber,
             });
@@ -356,12 +356,12 @@ const TimeTablesManagements = ({
 
       // If we're editing an existing slot, include its ID
       if (existingTimeSlotId) {
-        payload.timeSlots._id = existingTimeSlotId;
+        payload.timeSlots?._id = existingTimeSlotId;
       }
 
       // Add timetable _id if it exists
-      if (timeTableData._id) {
-        payload._id = timeTableData._id;
+      if (timeTableData?._id) {
+        payload?._id = timeTableData?._id;
       }
 
       await updateItem.mutateAsync({
@@ -429,7 +429,7 @@ const TimeTablesManagements = ({
                   <SelectContent>
                     <SelectGroup>
                       {teachers.map((teacher) => (
-                        <SelectItem key={teacher._id} value={teacher._id}>
+                        <SelectItem key={teacher?._id} value={teacher?._id}>
                           {teacher.name}
                         </SelectItem>
                       ))}
@@ -458,7 +458,7 @@ const TimeTablesManagements = ({
                   <SelectContent>
                     <SelectGroup>
                       {classes.map((classItem) => (
-                        <SelectItem key={classItem._id} value={classItem._id}>
+                        <SelectItem key={classItem?._id} value={classItem?._id}>
                           {classItem.name}
                         </SelectItem>
                       ))}
@@ -504,10 +504,10 @@ const TimeTablesManagements = ({
                   {" "}
                   {`Time Table - ${
                     category === "class"
-                      ? classes.find((c) => c._id === selectedClass)?.name ||
+                      ? classes.find((c) => c?._id === selectedClass)?.name ||
                         "Class"
                       : category === "teacher"
-                      ? teachers.find((t) => t._id === selectedTeacher)?.name ||
+                      ? teachers.find((t) => t?._id === selectedTeacher)?.name ||
                         "Teacher"
                       : date || ""
                   }`}
@@ -519,7 +519,7 @@ const TimeTablesManagements = ({
                     <TableHead className="border  bg-accent sticky left-0 rig z-10"></TableHead>
                     {periods.map((period) => (
                       <TableHead
-                        key={period._id}
+                        key={period?._id}
                         className="text-center border-t font-bold whitespace-nowrap"
                       >
                         <div className="flex flex-col items-center text-xxs">
@@ -561,7 +561,7 @@ const TimeTablesManagements = ({
                             );
                             return (
                               <TimetableSlot
-                                key={`${day}-${period._id}`}
+                                key={`${day}-${period?._id}`}
                                 periodNumber={period.periodNumber}
                                 day={day}
                                 cellData={cellData}
@@ -580,7 +580,7 @@ const TimeTablesManagements = ({
                     : classes.map((classItem) => {
                         return (
                           <TableRow
-                            key={classItem._id}
+                            key={classItem?._id}
                             className="hover:bg-accent/50"
                           >
                             <TableCell className="border font-medium bg-accent sticky left-0 z-10">
@@ -592,14 +592,14 @@ const TimeTablesManagements = ({
                               const cellData = getCellData(
                                 period.periodNumber,
                                 day,
-                                classItem._id
+                                classItem?._id
                               );
                               const markedAttendance = attendanceData.filter(
                                 (attendance) =>
                                   attendance.periodNumber ===
                                     period.periodNumber &&
                                   attendance.day === day &&
-                                  attendance.classId._id === classItem._id
+                                  attendance.classId?._id === classItem?._id
                               );
                               const absentees = markedAttendance.map(
                                 (attendance) => ({
@@ -611,7 +611,7 @@ const TimeTablesManagements = ({
                               );
                               return (
                                 <TimetableSlot
-                                  key={`${classItem._id}-${period._id}`}
+                                  key={`${classItem?._id}-${period?._id}`}
                                   periodNumber={period.periodNumber}
                                   day={day}
                                   cellData={cellData}
@@ -669,7 +669,7 @@ const TimeTablesManagements = ({
                 <SelectGroup>
                   <SelectItem value={null}>None</SelectItem>
                   {filteredSubjects.map((subject) => (
-                    <SelectItem key={subject._id} value={subject._id}>
+                    <SelectItem key={subject?._id} value={subject?._id}>
                       {subject.name}
                     </SelectItem>
                   ))}
@@ -685,7 +685,7 @@ const TimeTablesManagements = ({
                 <SelectGroup>
                   <SelectItem value={null}>None</SelectItem>
                   {teachers.map((teacher) => (
-                    <SelectItem key={teacher._id} value={teacher._id}>
+                    <SelectItem key={teacher?._id} value={teacher?._id}>
                       {teacher.name}
                     </SelectItem>
                   ))}

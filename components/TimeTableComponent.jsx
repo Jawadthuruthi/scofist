@@ -86,7 +86,7 @@ const TimeTableComponent = ({ token, teacherId }) => {
                 <TableHead className="border  bg-accent sticky left-0 rig z-10"></TableHead>
                 {periods.map((period) => (
                   <TableHead
-                    key={period._id}
+                    key={period?._id}
                     className="text-center border-t font-bold whitespace-nowrap"
                   >
                     <div className="flex flex-col items-center text-xxs">
@@ -111,7 +111,7 @@ const TimeTableComponent = ({ token, teacherId }) => {
                     const cellData = getCellData(period.periodNumber, day);
                     return (
                       <TableCell
-                        key={period._id}
+                        key={period?._id}
                         className="border text-center"
                       >
                         {cellData ? (

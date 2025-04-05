@@ -84,7 +84,7 @@ periodSchema.pre("save", async function (next) {
       // First check for duplicate period number
       const duplicatePeriod = await this.constructor.findOne({
         periodNumber: this.periodNumber,
-        _id: { $ne: this._id },
+        _id: { $ne: this?._id },
       });
 
       if (duplicatePeriod) {
@@ -95,7 +95,7 @@ periodSchema.pre("save", async function (next) {
       if (this.periodNumber > 1) {
         const earlierPeriods = await this.constructor.find({
           periodNumber: { $lt: this.periodNumber },
-          _id: { $ne: this._id },
+          _id: { $ne: this?._id },
         });
 
         for (const earlierPeriod of earlierPeriods) {
@@ -117,7 +117,7 @@ periodSchema.pre("save", async function (next) {
       // Then check for time overlaps by fetching all periods
       // We exclude the current document if it exists
       const allPeriods = await this.constructor.find({
-        _id: { $ne: this._id },
+        _id: { $ne: this?._id },
       });
 
       // Check each period for overlap

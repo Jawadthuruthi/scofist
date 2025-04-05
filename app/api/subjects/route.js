@@ -30,8 +30,8 @@ export async function GET(req, res) {
 
     const query = {};
 
-    if (filterParams._id) {
-      query._id = filterParams._id;
+    if (filterParams?._id) {
+      query?._id = filterParams?._id;
     }
     if (filterParams.name) {
       query.name = { $regex: filterParams.name, $options: "i" };

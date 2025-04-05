@@ -18,7 +18,7 @@ const AttendancePage = async () => {
         />
       );
     }
-    return <Attendance token={token} teacherId={user._id} />;
+    return <Attendance token={token} teacherId={user?._id} />;
   } catch (error) {
     console.error("Error :", error);
     return (

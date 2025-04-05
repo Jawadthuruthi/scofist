@@ -268,7 +268,7 @@ const DataTableComponent = ({
       setLoading(true);
       await updateData.mutateAsync({
         data: {
-          ids: selectedData?.map((item) => item._id),
+          ids: selectedData?.map((item) => item?._id),
           ...values,
         },
       });
@@ -286,7 +286,7 @@ const DataTableComponent = ({
   const handleDelete = async () => {
     try {
       setLoading(true);
-      await deleteData.mutateAsync(selectedData?.map((item) => item._id));
+      await deleteData.mutateAsync(selectedData?.map((item) => item?._id));
       table.resetRowSelection();
       setPage(0);
       router.refresh();

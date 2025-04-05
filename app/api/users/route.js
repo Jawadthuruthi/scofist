@@ -37,8 +37,8 @@ export async function GET(req, res) {
     // Build MongoDB query from filter params
     const query = {};
 
-    if (filterParams._id) {
-      query._id = filterParams._id;
+    if (filterParams?._id) {
+      query._id = filterParams?._id;
     }
     if (filterParams.classId) {
       query["studentSpecificField.classId"] = filterParams.classId;

@@ -90,7 +90,7 @@ attendanceSchema.pre("save", async function (next) {
     }).select("_id");
 
     const classStudentIds = classStudents.map((student) =>
-      student._id.toString()
+      student?._id.toString()
     );
 
     // Check if all attendanceData students belong to the class

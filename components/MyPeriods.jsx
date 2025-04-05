@@ -142,13 +142,13 @@ const MyPeriods = ({ token, teacherId }) => {
                     const attendanceMarked =
                       attendanceQuery.data?.attendances.find(
                         (attendance) =>
-                          attendance.classId._id === slot.classId._id &&
+                          attendance.classId?._id === slot.classId?._id &&
                           attendance.classId.batchId === slot.classId.batchId &&
-                          attendance.subjectId._id === slot.subjectId._id &&
+                          attendance.subjectId?._id === slot.subjectId?._id &&
                           attendance.periodNumber === slot.periodNumber
                       );
                     return (
-                      <TableRow key={slot._id} className="hover:bg-accent/50">
+                      <TableRow key={slot?._id} className="hover:bg-accent/50">
                         <TableCell className="hidden md:table-cell">
                           <div className="flex items-center justify-center font-medium">
                             <Badge variant="outline">{slot.periodNumber}</Badge>
@@ -175,12 +175,12 @@ const MyPeriods = ({ token, teacherId }) => {
                           </div>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {slot.subjectId.name}
+                          {slot.subjectId?.name}
                         </TableCell>
 
                         <TableCell className="text-right">
                           <Link
-                            href={`/dashboard/attendances?classId=${slot.classId._id}&batchId=${slot.classId.batchId}&subjectId=${slot.subjectId._id}&periodNumber=${slot.periodNumber}&day=${slot.day}`}
+                            href={`/dashboard/attendances?classId=${slot.classId?._id}&batchId=${slot.classId.batchId}&subjectId=${slot.subjectId?._id}&periodNumber=${slot.periodNumber}&day=${slot.day}`}
                           >
                             <ExternalLink className="text-muted-foreground h-5 w-5 md:hidden" />
                             <Button size="sm" className="hidden md:inline-flex">

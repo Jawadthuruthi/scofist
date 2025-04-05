@@ -59,7 +59,7 @@ classSchema.pre("save", async function (next) {
     // Store original batchId if we're updating an existing class
     let oldBatchId = null;
     if (!this.isNew && this.isModified("batchId")) {
-      const existingClass = await this.constructor.findById(this._id).lean();
+      const existingClass = await this.constructor.findById(this?._id).lean();
       if (existingClass) {
         oldBatchId = existingClass.batchId;
       }
@@ -70,7 +70,7 @@ classSchema.pre("save", async function (next) {
       const existingBatch = await this.constructor
         .findOne({
           batchId: this.batchId,
-          _id: { $ne: this._id },
+          _id: { $ne: this?._id },
         })
         .lean();
 
@@ -78,19 +78,19 @@ classSchema.pre("save", async function (next) {
         console.log("Validation failed: Duplicate batch");
         return next(
           new Error(
-            `Batch ${this.batchId} is already assigned to class ${existingBatch._id}`
+            `Batch ${this.batchId} is already assigned to class ${existingBatch?._id}`
           )
         );
       }
 
       // Update students with the new classId when batchId is assigned or changed
       console.log(
-        `Updating students for batch ${this.batchId} to class ${this._id}`
+        `Updating students for batch ${this.batchId} to class ${this?._id}`
       );
 
       await User.updateMany(
         { "studentSpecificField.batchId": this.batchId },
-        { $set: { "studentSpecificField.classId": this._id } }
+        { $set: { "studentSpecificField.classId": this?._id } }
       );
 
       // If this is an update and batchId changed, clear classId for students in old batch
@@ -101,7 +101,7 @@ classSchema.pre("save", async function (next) {
         await User.updateMany(
           {
             "studentSpecificField.batchId": oldBatchId,
-            "studentSpecificField.classId": this._id,
+            "studentSpecificField.classId": this?._id,
           },
           { $unset: { "studentSpecificField.classId": "" } }
         );
@@ -112,7 +112,7 @@ classSchema.pre("save", async function (next) {
       const existingTeacherClass = await this.constructor
         .findOne({
           teacherId: this.teacherId,
-          _id: { $ne: this._id },
+          _id: { $ne: this?._id },
         })
         .lean();
 
@@ -120,7 +120,7 @@ classSchema.pre("save", async function (next) {
         console.log("Validation failed: Duplicate teacher");
         return next(
           new Error(
-            `Teacher ${this.teacherId} is already assigned to class ${existingTeacherClass._id}`
+            `Teacher ${this.teacherId} is already assigned to class ${existingTeacherClass?._id}`
           )
         );
       }

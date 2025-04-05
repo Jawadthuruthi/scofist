@@ -190,7 +190,7 @@ function prepareResponse(req, token, user) {
   // Validate user object before JSON.stringify to prevent errors
   const safeUser = {
     ...user,
-    userId: user._id,
+    userId: user?._id,
   };
 
   // Set headers safely with try/catch

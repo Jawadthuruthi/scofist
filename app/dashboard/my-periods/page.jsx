@@ -18,7 +18,7 @@ const MyPeriodsPage = async () => {
         />
       );
     }
-    return <MyPeriods token={token} teacherId={user._id} />;
+    return <MyPeriods token={token} teacherId={user?._id} />;
   } catch (error) {
     console.error("Error :", error);
     return (

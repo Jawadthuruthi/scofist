@@ -99,7 +99,7 @@ const AttendancePage = ({ token, teacherId }) => {
     if (studentsQuery.data?.users && studentsQuery.data.users.length > 0) {
       const initialAttendance = {};
       studentsQuery.data.users.forEach((student) => {
-        initialAttendance[student._id] = true; // Default to present
+        initialAttendance[student?._id] = true; // Default to present
       });
       setAttendance(initialAttendance);
     }
@@ -120,7 +120,7 @@ const AttendancePage = ({ token, teacherId }) => {
         attendanceRecord.attendanceData.length > 0
       ) {
         attendanceRecord.attendanceData.forEach((item) => {
-          existingAttendance[item.studentId._id] = item.present;
+          existingAttendance[item.studentId?._id] = item.present;
         });
         setAttendance(existingAttendance);
       }
@@ -170,8 +170,8 @@ const AttendancePage = ({ token, teacherId }) => {
 
       // Format attendance data
       const attendanceData = students.map((student) => ({
-        studentId: student._id,
-        present: attendance[student._id] || false,
+        studentId: student?._id,
+        present: attendance[student?._id] || false,
       }));
 
       const payload = {
@@ -187,7 +187,7 @@ const AttendancePage = ({ token, teacherId }) => {
 
       if (attendanceExists) {
         // Get the ID of the existing attendance record
-        const existingAttendanceId = attendanceQuery.data.attendances[0]._id;
+        const existingAttendanceId = attendanceQuery.data.attendances[0]?._id;
         await updateAttendance.mutateAsync({
           data: {
             _id: existingAttendanceId,
@@ -217,7 +217,7 @@ const AttendancePage = ({ token, teacherId }) => {
   const handleDeleteAttendance = async () => {
     try {
       setSaving(true);
-      const existingAttendanceId = attendanceQuery.data.attendances[0]._id;
+      const existingAttendanceId = attendanceQuery.data.attendances[0]?._id;
       await deleteAttendance.mutateAsync([existingAttendanceId]);
       toast.success("Attendance reset successfully!");
       setAttendanceExists(false);
@@ -234,7 +234,7 @@ const AttendancePage = ({ token, teacherId }) => {
   const setAllPresent = () => {
     const newAttendance = {};
     students.forEach((student) => {
-      newAttendance[student._id] = true;
+      newAttendance[student?._id] = true;
     });
     setAttendance(newAttendance);
   };
@@ -304,13 +304,13 @@ const AttendancePage = ({ token, teacherId }) => {
                     {students.length > 0 ? (
                       students.map((student, index) => (
                         <TableRow
-                          key={student._id}
+                          key={student?._id}
                           className={
-                            attendance[student._id]
+                            attendance[student?._id]
                               ? ""
                               : "bg-destructive/40 hover:bg-destructive/40"
                           }
-                          onClick={() => toggleAttendance(student._id)}
+                          onClick={() => toggleAttendance(student?._id)}
                         >
                           <TableCell>{index + 1}</TableCell>
                           <TableCell>
@@ -326,7 +326,7 @@ const AttendancePage = ({ token, teacherId }) => {
                                   {student.name}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                  {student._id}
+                                  {student?._id}
                                 </p>
                               </div>
                             </div>

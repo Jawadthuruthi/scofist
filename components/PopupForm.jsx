@@ -222,7 +222,7 @@ export default function PopupForm({
     resolver: zodResolver(schema),
     defaultValues,
     mode: "all",
-    key: data ? `edit-${data._id}` : `create ${title}`,
+    key: data ? `edit-${data?._id}` : `create ${title}`,
   });
 
   const formValues = useWatch({ control: form.control });
@@ -266,7 +266,7 @@ export default function PopupForm({
         </DialogHeader>
 
         <FormContent
-          key={data ? `edit-${data._id}` : `create ${title}`}
+          key={data ? `edit-${data?._id}` : `create ${title}`}
           form={form}
           formFields={customizedFormField}
           handleSubmit={handleSubmit}
