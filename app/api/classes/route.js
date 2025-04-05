@@ -40,7 +40,7 @@ export async function GET(req, res) {
       query.name = { $regex: filterParams.name, $options: "i" };
     }
     if (filterParams?._id) {
-      query?._id = filterParams?._id;
+      query._id = filterParams?._id;
     }
     if (filterParams.batchId) {
       query.batchId = filterParams.batchId;

@@ -356,12 +356,12 @@ const TimeTablesManagements = ({
 
       // If we're editing an existing slot, include its ID
       if (existingTimeSlotId) {
-        payload.timeSlots?._id = existingTimeSlotId;
+        payload.timeSlots._id = existingTimeSlotId;
       }
 
       // Add timetable _id if it exists
       if (timeTableData?._id) {
-        payload?._id = timeTableData?._id;
+        payload._id = timeTableData?._id;
       }
 
       await updateItem.mutateAsync({
@@ -507,8 +507,8 @@ const TimeTablesManagements = ({
                       ? classes.find((c) => c?._id === selectedClass)?.name ||
                         "Class"
                       : category === "teacher"
-                      ? teachers.find((t) => t?._id === selectedTeacher)?.name ||
-                        "Teacher"
+                      ? teachers.find((t) => t?._id === selectedTeacher)
+                          ?.name || "Teacher"
                       : date || ""
                   }`}
                 </h3>

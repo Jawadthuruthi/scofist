@@ -205,7 +205,6 @@ export default async function BatchesPage() {
         label: "Email",
         type: "email",
         placeholder: "abcd@gmaill.com",
-        required: true,
       },
       {
         section: "Contact Information",
