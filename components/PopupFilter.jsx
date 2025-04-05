@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { X, Filter, Trash2 } from "lucide-react";
+import { X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -68,7 +68,7 @@ export default function PopupFilter({
 
   // Enhanced filter change handler that works with different input types and operators
   const handleFilterChange = useCallback(
-    (filterId, value, operator) => {
+    (filterId, value, operator, nestedArrayField) => {
       if (
         (typeof value === "string" && value.trim() === "") ||
         (Array.isArray(value) && value.length === 0) ||
@@ -77,7 +77,7 @@ export default function PopupFilter({
       ) {
         removeFilter(filterId);
       } else {
-        setFilter(filterId, value, operator);
+        setFilter(filterId, value, operator, nestedArrayField);
       }
     },
     [setFilter, removeFilter]
@@ -120,6 +120,7 @@ export default function PopupFilter({
                     OPERATORS.CONTAINS;
                   const options = filterItem.options || [];
                   const type = filterItem.type || "text";
+                  const nestedArrayField = filterItem.nestedArrayField || null;
 
                   return (
                     <div key={filterId} className="space-y-2">
@@ -132,7 +133,12 @@ export default function PopupFilter({
                           options={options}
                           value={currentValue}
                           onValueChange={(value) =>
-                            handleFilterChange(filterId, value, operator)
+                            handleFilterChange(
+                              filterId,
+                              value,
+                              operator,
+                              nestedArrayField
+                            )
                           }
                           placeholder={`Select ${displayName}...`}
                           multiSelect={inputType === "multiSelect"}
@@ -146,7 +152,8 @@ export default function PopupFilter({
                             handleFilterChange(
                               filterId,
                               e.target.value,
-                              operator
+                              operator,
+                              nestedArrayField
                             )
                           }
                         />

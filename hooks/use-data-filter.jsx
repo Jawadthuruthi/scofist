@@ -24,6 +24,7 @@ const OPERATORS = {
 
 /**
  * Custom hook for filtering initialData collections with support for multiple operators
+ * and nested array fields
  *
  * @param {Array} initialData - The original initialData array to filter
  * @param {Object} initialFilters - Optional initial filter criteria
@@ -39,12 +40,17 @@ export default function useDataFilter(initialData = [], initialFilters = {}) {
    * @param {string} field - The field name to filter by
    * @param {any} value - The filter value
    * @param {string} operator - The filter operator (equals, contains, includes, etc.)
+   * @param {string|null} nestedArrayField - Optional name of nested array field for array filtering
    */
   const setFilter = useCallback(
-    (field, value, operator = OPERATORS.CONTAINS) => {
+    (field, value, operator = OPERATORS.CONTAINS, nestedArrayField = null) => {
       setFilters((prevFilters) => ({
         ...prevFilters,
-        [field]: { value, operator },
+        [field]: {
+          value,
+          operator,
+          nestedArrayField,
+        },
       }));
     },
     []
@@ -272,6 +278,28 @@ export default function useDataFilter(initialData = [], initialFilters = {}) {
   );
 
   /**
+   * Checks if any item in an array matches the filter criteria
+   *
+   * @param {Array} arrayItems - The array of items to check
+   * @param {string} field - The field within each array item to check
+   * @param {Object} filterConfig - The filter configuration
+   * @returns {boolean} True if any item in the array matches
+   */
+  const matchesArrayFilter = useCallback(
+    (arrayItems, field, filterConfig) => {
+      if (!Array.isArray(arrayItems) || arrayItems.length === 0) {
+        return false;
+      }
+
+      return arrayItems.some((item) => {
+        const value = item[field];
+        return matchesFilter(value, filterConfig);
+      });
+    },
+    [matchesFilter]
+  );
+
+  /**
    * Filter the initialData based on current filters
    */
   const filteredData = useMemo(() => {
@@ -284,6 +312,7 @@ export default function useDataFilter(initialData = [], initialFilters = {}) {
         const filterValue =
           filterConfig?.value !== undefined ? filterConfig.value : filterConfig;
         const operator = filterConfig?.operator || OPERATORS.CONTAINS;
+        const nestedArrayField = filterConfig?.nestedArrayField || null;
 
         // Skip null checks for operators that specifically work with null/empty
         if (
@@ -301,6 +330,16 @@ export default function useDataFilter(initialData = [], initialFilters = {}) {
           (Array.isArray(filterValue) && filterValue.length === 0)
         ) {
           // Skip other empty filters
+          continue;
+        }
+
+        // Handle nested array fields
+        if (nestedArrayField) {
+          // Get the nested array
+          const arrayItems = item[nestedArrayField];
+          if (!matchesArrayFilter(arrayItems, field, filterConfig)) {
+            return false;
+          }
           continue;
         }
 
@@ -341,7 +380,7 @@ export default function useDataFilter(initialData = [], initialFilters = {}) {
 
       return true;
     });
-  }, [initialData, filters, globalFilter, matchesFilter]);
+  }, [initialData, filters, globalFilter, matchesFilter, matchesArrayFilter]);
 
   return {
     filters,

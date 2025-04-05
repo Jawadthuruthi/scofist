@@ -192,7 +192,6 @@ const useTableColumns = (columnConfig) => {
           row.original?.[col.valueKey]?.filter(
             (item) => item?.[col.accessorKey] === col.filterValue
           )?.length || 0;
-        console.log(row, col.valueKey);
         return length;
       };
     }

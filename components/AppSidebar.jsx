@@ -174,9 +174,9 @@ const items = [
   },
 ];
 
-function ComboBox({ roles, activeRole }) {
+function ComboBox({ roles, role }) {
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(activeRole);
+  const [value, setValue] = useState(role);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -225,10 +225,10 @@ function ComboBox({ roles, activeRole }) {
   );
 }
 
-export function AppSidebar({ roles }) {
+export function AppSidebar({ roles, activeRole }) {
   const sidebarRef = useRef(null);
   const { setOpen, setOpenMobile } = useSidebar();
-  const [activeRole, setActiveRole] = useState(roles[0] || "");
+  const [role, setRole] = useState(activeRole || roles[0] || "");
   const pathname = usePathname();
 
   // Close sidebar on outside click
@@ -252,27 +252,20 @@ export function AppSidebar({ roles }) {
     setOpenMobile(false);
   }, [pathname]);
 
-  useEffect(() => {
-    const cookieRole = Cookies.get("active-role");
-    if (cookieRole && roles.includes(cookieRole)) {
-      setActiveRole(cookieRole);
-    }
-  }, [roles]);
-
   // Memoized filtered menu items
   const menuItems = useMemo(() => {
     return items
-      .filter((item) => item.allowedRoles?.includes(activeRole))
+      .filter((item) => item.allowedRoles?.includes(role))
       .map((item) => ({
         ...item,
         subItems: item.subItems
           ? item.subItems.filter((subItem) =>
-              subItem.allowedRoles?.includes(activeRole)
+              subItem.allowedRoles?.includes(role)
             )
           : undefined,
       }))
       .filter((item) => item.subItems?.length > 0 || !item.subItems);
-  }, [activeRole]);
+  }, [role]);
 
   return (
     <Sidebar ref={sidebarRef}>
@@ -291,7 +284,7 @@ export function AppSidebar({ roles }) {
           </Button>
         </div>
         <div className="mx-4">
-          <ComboBox roles={roles} activeRole={activeRole} />
+          <ComboBox roles={roles} role={role} />
         </div>
         <SidebarGroup className="px-4">
           <SidebarGroupContent>
