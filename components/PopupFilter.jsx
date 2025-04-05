@@ -35,6 +35,7 @@ const OPERATORS = {
   IS_NULL: "isNull",
   IS_NOT_NULL: "isNotNull",
   REGEX: "regex",
+  DATE_RANGE: "dateRange",
 };
 
 // Default operators by input type
@@ -42,6 +43,7 @@ const DEFAULT_OPERATORS = {
   text: OPERATORS.CONTAINS,
   number: OPERATORS.EQUALS,
   date: OPERATORS.EQUALS,
+  dateRange: OPERATORS.DATE_RANGE,
   select: OPERATORS.EQUALS,
   multiSelect: OPERATORS.INCLUDES,
   boolean: OPERATORS.EQUALS,
@@ -50,6 +52,9 @@ const DEFAULT_OPERATORS = {
 const getCurrentValue = (filterItem, currentFilter) => {
   if (currentFilter.value !== undefined) return currentFilter.value;
   if (typeof currentFilter !== "object") return currentFilter;
+  if (filterItem.inputType === "dateRange") {
+    return { startDate: "", endDate: "" };
+  }
   return filterItem.inputType === "multiSelect" ? [] : "";
 };
 
@@ -72,6 +77,11 @@ export default function PopupFilter({
       if (
         (typeof value === "string" && value.trim() === "") ||
         (Array.isArray(value) && value.length === 0) ||
+        (typeof value === "object" &&
+          value !== null &&
+          Object.values(value).every(
+            (v) => v === "" || v === null || v === undefined
+          )) ||
         value === undefined ||
         value === null
       ) {
@@ -81,6 +91,21 @@ export default function PopupFilter({
       }
     },
     [setFilter, removeFilter]
+  );
+
+  // Handle date range change
+  const handleDateRangeChange = useCallback(
+    (filterId, field, value, currentValue, operator, nestedArrayField) => {
+      const updatedValue = { ...currentValue, [field]: value };
+
+      // Only apply filter if at least one date is provided
+      if (updatedValue.startDate || updatedValue.endDate) {
+        handleFilterChange(filterId, updatedValue, operator, nestedArrayField);
+      } else {
+        removeFilter(filterId);
+      }
+    },
+    [handleFilterChange, removeFilter]
   );
 
   // Handle clearing filters and closing the dialog
@@ -121,14 +146,54 @@ export default function PopupFilter({
                   const options = filterItem.options || [];
                   const type = filterItem.type || "text";
                   const nestedArrayField = filterItem.nestedArrayField || null;
+                  const className = filterItem.className || "";
 
                   return (
-                    <div key={filterId} className="space-y-2">
+                    <div key={filterId} className={`space-y-2 ${className}`}>
                       <label className="text-sm font-medium block">
                         {displayName}
                       </label>
 
-                      {inputType === "multiSelect" || inputType === "select" ? (
+                      {inputType === "dateRange" ? (
+                        <div className="flex flex-col space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Input
+                              type="date"
+                              value={currentValue.startDate || ""}
+                              placeholder="Start date"
+                              onChange={(e) =>
+                                handleDateRangeChange(
+                                  filterId,
+                                  "startDate",
+                                  e.target.value,
+                                  currentValue,
+                                  OPERATORS.DATE_RANGE,
+                                  nestedArrayField
+                                )
+                              }
+                              className="flex-1"
+                            />
+                            <span className="text-sm">to</span>
+                            <Input
+                              type="date"
+                              value={currentValue.endDate || ""}
+                              placeholder="End date"
+                              onChange={(e) =>
+                                handleDateRangeChange(
+                                  filterId,
+                                  "endDate",
+                                  e.target.value,
+                                  currentValue,
+                                  OPERATORS.DATE_RANGE,
+                                  nestedArrayField
+                                )
+                              }
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                      ) : inputType === "multiSelect" ||
+                        inputType === "select" ? (
                         <MultiSelect
                           options={options}
                           value={currentValue}
@@ -171,7 +236,7 @@ export default function PopupFilter({
               >
                 Clear All Filters
               </Button>
-              <Button variant="variant" onClick={() => setOpen(false)}>
+              <Button variant="default" onClick={() => setOpen(false)}>
                 Close
               </Button>
             </DialogFooter>

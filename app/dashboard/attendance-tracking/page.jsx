@@ -89,10 +89,11 @@ const AttendanceTrackingPage = async () => {
           },
           {
             id: "date",
-            nestedArrayField: "attendanceRecords",
-
-            label: "Date",
+            label: "Date Range",
             type: "date",
+            inputType: "dateRange",
+            nestedArrayField: "attendanceRecords",
+            className: "col-span-1 md:col-span-2",
           },
         ],
         readOnly: true,
@@ -146,12 +147,14 @@ const AttendanceTrackingPage = async () => {
 
             options: formatOptions(subjects),
           },
+
           {
             id: "date",
-            nestedArrayField: "attendanceRecords",
-
-            label: "Date",
+            label: "Date Range",
             type: "date",
+            inputType: "dateRange",
+            nestedArrayField: "attendanceRecords",
+            className: "col-span-1 md:col-span-2",
           },
         ],
         readOnly: true,
@@ -209,10 +212,11 @@ const AttendanceTrackingPage = async () => {
           },
           {
             id: "date",
-            nestedArrayField: "attendanceRecords",
-
-            label: "Date",
+            label: "Date Range",
             type: "date",
+            inputType: "dateRange",
+            nestedArrayField: "attendanceRecords",
+            className: "col-span-1 md:col-span-2",
           },
         ],
         readOnly: true,
