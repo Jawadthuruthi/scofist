@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import { markAbsentTeachers } from "@/lib/teacherAttendanceService";
 
-export async function POST(req) {
+export async function GET(req) {
   try {
     await connectToDB();
 
