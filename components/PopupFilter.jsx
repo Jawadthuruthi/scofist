@@ -123,7 +123,7 @@ export default function PopupFilter({
               <Filter />
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-[90%] mx-auto sm:max-w-xl">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Filter {title}</DialogTitle>
             </DialogHeader>

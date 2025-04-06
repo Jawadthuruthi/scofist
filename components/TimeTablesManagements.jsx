@@ -33,13 +33,78 @@ import {
 import { Button } from "./ui/button";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Badge } from "./ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 // Hooks and Utils
 import { DAYS } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import usePrint from "@/hooks/use-print";
 import { Input } from "./ui/input";
+
+// Absentees Dialog Component - Extracted to improve readability
+const AbsenteesDialog = ({
+  open,
+  setOpen,
+  cellData,
+  day,
+  periodNumber,
+  absenteesList,
+}) => {
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {day} - Period {periodNumber} Absentees
+          </DialogTitle>
+          <DialogDescription>
+            {cellData?.subjectId?.name
+              ? `Subject: ${cellData.subjectId.name}`
+              : ""}
+            {cellData?.teacherId?.name
+              ? ` • Teacher: ${cellData.teacherId.name}`
+              : ""}
+          </DialogDescription>
+        </DialogHeader>
+        {absenteesList.length > 0 ? (
+          <div className="mt-4">
+            <h4 className="text-sm font-medium mb-2">
+              Absent Students ({absenteesList.length})
+            </h4>
+            <div className="max-h-60 overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Student ID</TableHead>
+                    <TableHead>Student Name</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {absenteesList.map((student) => (
+                    <TableRow key={student.studentId}>
+                      <TableCell>{student.studentId || "Unknown"}</TableCell>
+                      <TableCell>{student.studentName || "-"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center p-6">
+            <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
+            <p>Full attendance for this period</p>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 // Component for rendering a single timetable cell
 const TimetableSlot = ({
@@ -51,100 +116,72 @@ const TimetableSlot = ({
   onCellClick,
   isAttendanceMarked,
   absentees,
+  showAbsenteesDialog,
 }) => {
-  const [open, setOpen] = useState(false);
   const hasData = cellData && (cellData.subjectId || cellData.teacherId);
-  const absenteesList =
-    absentees?.flatMap((item) => item.absentees || []) || [];
+  const absenteesList = useMemo(
+    () => absentees?.flatMap((item) => item.absentees || []) || [],
+    [absentees]
+  );
 
   return (
-    <>
-      <TableCell
-        className={`${
-          isAttendanceMarked ? "bg-green-300/50" : ""
-        } border text-center cursor-pointer transition-colors max-w-32`}
-        onClick={() => {
-          onCellClick(periodNumber, day);
-          if (isAttendanceMarked) {
-            setOpen(true);
-          }
-        }}
-      >
-        {hasData ? (
-          <div className="flex flex-col items-center justify-center">
-            <p className="font-medium text-xs">
-              {cellData.subjectId?.name || ""}
-            </p>
-            <p className="text-xxs text-accent-foreground">
-              {category === "class" && selectedClass
-                ? cellData.teacherId?.name || ""
-                : cellData.classId?.name || ""}
-            </p>
-            {isAttendanceMarked && absenteesList.length > 0 && (
-              <Badge variant="outline" className="mt-1 text-xxs">
-                <UserX className="h-3 w-3 mr-1" />
-                {absenteesList.length}
-              </Badge>
-            )}
-          </div>
-        ) : (
-          <div className="flex items-center justify-center p-2 hover:bg-accent">
-            {category === "class" && (
-              <Edit className="text-muted-foreground h-4 w-4 print:hidden" />
-            )}
-          </div>
-        )}
-      </TableCell>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {day} - Period {periodNumber} Absentees
-            </DialogTitle>
-            <DialogDescription>
-              {cellData?.subjectId?.name
-                ? `Subject: ${cellData.subjectId.name}`
-                : ""}
-              {cellData?.teacherId?.name
-                ? ` • Teacher: ${cellData.teacherId.name}`
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-          {absenteesList.length > 0 ? (
-            <div className="mt-4">
-              <h4 className="text-sm font-medium mb-2">Absent Students:</h4>
-              <div className="max-h-60 overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Student ID</TableHead>
-                      <TableHead>Student Name</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {absenteesList.map((student) => {
-                      return (
-                        <TableRow key={student.studentId}>
-                          <TableCell>
-                            {student.studentId || "Unknown"}
-                          </TableCell>
-                          <TableCell>{student.studentName || "-"}</TableCell>
-                        </TableRow>
+    <TableCell
+      className={`${
+        isAttendanceMarked ? "bg-green-300/50 print:bg-inherit" : ""
+      } border text-center cursor-pointer transition-colors max-w-32`}
+      onClick={() => {
+        onCellClick(periodNumber, day);
+        if (isAttendanceMarked && category !== "class") {
+          showAbsenteesDialog(periodNumber, day, cellData, absenteesList);
+        }
+      }}
+    >
+      {hasData ? (
+        <div className="flex flex-col items-center justify-center">
+          <p className="font-medium text-xs">
+            {cellData.subjectId?.name || ""}
+          </p>
+          <p className="text-xxs text-accent-foreground">
+            {category === "class" && selectedClass
+              ? cellData.teacherId?.name || ""
+              : cellData.classId?.name || ""}
+          </p>
+          {isAttendanceMarked && absenteesList.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge
+                    variant="outline"
+                    className="mt-1 text-xxs print:hidden"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      showAbsenteesDialog(
+                        periodNumber,
+                        day,
+                        cellData,
+                        absenteesList
                       );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center p-6">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
-              <p>Full attendance for this period</p>
-            </div>
+                    }}
+                  >
+                    <UserX className="h-3 w-3 mr-1" />
+                    {absenteesList.length}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>View absent students</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
-        </DialogContent>
-      </Dialog>
-    </>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center p-2 ">
+          {category === "class" && (
+            <Edit className="text-muted-foreground h-4 w-4 print:hidden" />
+          )}
+        </div>
+      )}
+    </TableCell>
   );
 };
 
@@ -165,14 +202,21 @@ const TimeTablesManagements = ({
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [selectedDay, setSelectedDay] = useState("");
-  const [open, setOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
+  const [currentAbsenteesList, setCurrentAbsenteesList] = useState([]);
+  const [currentDialogData, setCurrentDialogData] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [teacherScheduleConflicts, setTeacherScheduleConflicts] = useState([]);
   const [existingTimeSlotId, setExistingTimeSlotId] = useState(null);
 
-  const day = new Date(date).toLocaleDateString("en-US", {
-    weekday: "long",
-  });
+  const day = useMemo(
+    () =>
+      date
+        ? new Date(date).toLocaleDateString("en-US", { weekday: "long" })
+        : "",
+    [date]
+  );
 
   // References and hooks
   const router = useRouter();
@@ -192,6 +236,7 @@ const TimeTablesManagements = ({
       category === "teacher" && selectedTeacher ? selectedTeacher : undefined,
     date: category === "date" && date ? date : undefined,
   });
+
   const attendanceData = fetchAttendanceQuery.data?.attendances || [];
 
   // Set up print functionality
@@ -209,11 +254,25 @@ const TimeTablesManagements = ({
         category === "teacher" && selectedTeacher ? selectedTeacher : undefined,
       day: category === "date" && date ? day : undefined,
     };
-  }, [category, selectedClass, selectedTeacher, date]);
+  }, [category, selectedClass, selectedTeacher, date, day]);
 
   const fetchItemsQuery = useFetchItems(0, 0, fetchQuery);
   const allTimeTablesQuery = useFetchItems(0, 0, {});
   const updateItem = useUpdateItem();
+
+  // Handler for showing absentees dialog
+  const showAbsenteesDialog = useCallback(
+    (periodNumber, day, cellData, absenteesList) => {
+      setCurrentDialogData({
+        periodNumber,
+        day,
+        cellData,
+      });
+      setCurrentAbsenteesList(absenteesList);
+      setAbsenteesDialogOpen(true);
+    },
+    []
+  );
 
   // Periodically refresh data
   useEffect(() => {
@@ -316,7 +375,7 @@ const TimeTablesManagements = ({
       // For class view, just use the first timetable
       setTimeTableData(newData[0] || { timeSlots: [] });
     }
-  }, [fetchItemsQuery.data, category, selectedTeacher]);
+  }, [fetchItemsQuery.data, category, selectedTeacher, day]);
 
   // Check for conflicts when form values change
   useEffect(() => {
@@ -389,7 +448,7 @@ const TimeTablesManagements = ({
       setSelectedSubject(existingData?.subjectId?._id || "");
       setSelectedTeacher(existingData?.teacherId?._id || "");
       setExistingTimeSlotId(existingData?._id || null);
-      setOpen(true);
+      setEditDialogOpen(true);
     },
     [category, getCellData]
   );
@@ -424,7 +483,7 @@ const TimeTablesManagements = ({
         data: payload,
       });
 
-      setOpen(false);
+      setEditDialogOpen(false);
       toast.success("Time table updated successfully!");
 
       // Refresh data
@@ -445,262 +504,249 @@ const TimeTablesManagements = ({
     }
   };
 
+  // Get current view title for display
+  const getCurrentViewTitle = useMemo(() => {
+    if (category === "class") {
+      return classes.find((c) => c?._id === selectedClass)?.name || "Class";
+    } else if (category === "teacher") {
+      return (
+        teachers.find((t) => t?._id === selectedTeacher)?.name || "Teacher"
+      );
+    } else {
+      return date ? `Date: ${date}` : "";
+    }
+  }, [category, selectedClass, selectedTeacher, date, classes, teachers]);
+
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>Time Table</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Filters Section */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="w-full md:w-1/4">
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="class">Manage Time Table</SelectItem>
-                    <SelectItem value="teacher">
-                      View Time Table By Teacher
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="w-full md:w-1/4">
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="class">Manage Time Table</SelectItem>
+                <SelectItem value="teacher">
+                  View Time Table By Teacher
+                </SelectItem>
+                <SelectItem value="date">View Time Table By Date</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {category === "teacher" && (
+          <div className="w-full md:w-1/4">
+            <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a Teacher" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {teachers.map((teacher) => (
+                    <SelectItem key={teacher?._id} value={teacher?._id}>
+                      {teacher.name}
                     </SelectItem>
-                    <SelectItem value="date">
-                      View Time Table By Date
-                    </SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {category === "teacher" && (
-              <div className="w-full md:w-1/4">
-                <Select
-                  value={selectedTeacher}
-                  onValueChange={setSelectedTeacher}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a Teacher" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {teachers.map((teacher) => (
-                        <SelectItem key={teacher?._id} value={teacher?._id}>
-                          {teacher.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {category === "date" && (
-              <div className="w-full md:w-1/4">
-                <Input
-                  name="date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </div>
-            )}
-
-            {category === "class" && (
-              <div className="w-full md:w-1/4">
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a Class" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {classes.map((classItem) => (
-                        <SelectItem key={classItem?._id} value={classItem?._id}>
-                          {classItem.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Stats Badges */}
-            {category === "class" && selectedClass && (
-              <div className="flex items-center gap-4">
-                <Badge
-                  variant="outline"
-                  className="text-xs md:text-sm py-2 px-3"
-                >
-                  Total Periods: {classStats.total}
-                </Badge>
-                <Badge
-                  variant={
-                    classStats.percentage === 100 ? "success" : "secondary"
-                  }
-                  className="text-xs md:text-sm py-2 px-3"
-                >
-                  {classStats.filled} Scheduled ({classStats.percentage}%)
-                </Badge>
-              </div>
-            )}
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
+        )}
+        {category === "date" && (
+          <div className="w-full md:w-1/4">
+            <Input
+              name="date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
+        )}
 
-          {/* Timetable Display */}
-          {fetchItemsQuery.isLoading ? (
-            <div className="flex justify-center items-center h-40">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : selectedClass || selectedTeacher || date ? (
-            <div
-              ref={timeTableRef}
-              className="overflow-x-auto border border-collapse rounded-md"
+        {category === "class" && (
+          <div className="w-full md:w-1/4">
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a Class" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {classes.map((classItem) => (
+                    <SelectItem key={classItem?._id} value={classItem?._id}>
+                      {classItem.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Stats Badges */}
+        {category === "class" && selectedClass && (
+          <div className="flex items-center gap-4">
+            <Badge variant="outline" className="text-xs md:text-sm py-2 px-3">
+              Total Periods: {classStats.total}
+            </Badge>
+            <Badge
+              variant={classStats.percentage === 100 ? "success" : "secondary"}
+              className="text-xs md:text-sm py-2 px-3"
             >
-              <div className="hidden w-full print:block">
-                <h3 className="text-center text-lg font-semibold my-4">
-                  {" "}
-                  {`Time Table - ${
-                    category === "class"
-                      ? classes.find((c) => c?._id === selectedClass)?.name ||
-                        "Class"
-                      : category === "teacher"
-                      ? teachers.find((t) => t?._id === selectedTeacher)
-                          ?.name || "Teacher"
-                      : date || ""
-                  }`}
-                </h3>
-              </div>
-              <Table className="w-full">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="border  bg-accent sticky left-0 rig z-10"></TableHead>
-                    {periods.map((period) => (
-                      <TableHead
-                        key={period?._id}
-                        className="text-center border-t font-bold whitespace-nowrap"
-                      >
-                        <div className="flex flex-col items-center text-xxs">
-                          <span>{getPeriodTime(period.periodNumber)}</span>
-                          <span className="text-xxs text-muted-foreground">
-                            Period {period.periodNumber}
-                          </span>
+              {classStats.filled} Scheduled ({classStats.percentage}%)
+            </Badge>
+          </div>
+        )}
+      </div>
+
+      {/* Timetable Display */}
+      {fetchItemsQuery.isLoading ? (
+        <div className="flex justify-center items-center h-40">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : selectedClass || selectedTeacher || date ? (
+        <div
+          ref={timeTableRef}
+          className="overflow-x-auto border border-collapse rounded-md"
+        >
+          <div className="hidden w-full print:block">
+            <h3 className="text-center text-lg font-semibold my-4">
+              Time Table - {getCurrentViewTitle}
+            </h3>
+          </div>
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="border bg-accent sticky left-0 z-10"></TableHead>
+                {periods.map((period) => (
+                  <TableHead
+                    key={period?._id}
+                    className="text-center border-t font-bold whitespace-nowrap"
+                  >
+                    <div className="flex flex-col items-center text-xxs">
+                      <span>{getPeriodTime(period.periodNumber)}</span>
+                      <span className="text-xxs text-muted-foreground">
+                        Period {period.periodNumber}
+                      </span>
+                    </div>
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {category !== "date"
+                ? DAYS.map((day) => (
+                    <TableRow key={day} className="hover:bg-accent/50">
+                      <TableCell className="border font-medium bg-accent sticky left-0 z-10">
+                        <div className="flex items-center gap-2">
+                          {day.slice(0, 3)}
                         </div>
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {category !== "date"
-                    ? DAYS.map((day) => (
-                        <TableRow key={day} className="hover:bg-accent/50">
-                          <TableCell className="border font-medium bg-accent sticky left-0 z-10">
-                            <div className="flex items-center gap-2">
-                              {day.slice(0, 3)}
-                            </div>
-                          </TableCell>
-                          {periods.map((period) => {
-                            const cellData = getCellData(
-                              period.periodNumber,
-                              day
-                            );
-                            const markedAttendance = attendanceData.filter(
-                              (attendance) =>
-                                attendance.periodNumber ===
-                                  period.periodNumber && attendance.day === day
-                            );
-                            const absentees = markedAttendance?.map(
-                              (attendance) => ({
-                                absentees: attendance?.attendanceData?.filter(
-                                  (record) => record.present === false
-                                ),
-                              })
-                            );
-                            return (
-                              <TimetableSlot
-                                key={`${day}-${period?._id}`}
-                                periodNumber={period.periodNumber}
-                                day={day}
-                                cellData={cellData}
-                                category={category}
-                                selectedClass={selectedClass}
-                                onCellClick={handleCellClick}
-                                isAttendanceMarked={
-                                  markedAttendance?.length > 0
-                                }
-                                absentees={absentees}
-                              />
-                            );
-                          })}
-                        </TableRow>
-                      ))
-                    : classes.map((classItem) => {
+                      </TableCell>
+                      {periods.map((period) => {
+                        const cellData = getCellData(period.periodNumber, day);
+                        const markedAttendance = attendanceData.filter(
+                          (attendance) =>
+                            attendance.periodNumber === period.periodNumber &&
+                            attendance.day === day
+                        );
+                        const absentees = markedAttendance?.map(
+                          (attendance) => ({
+                            absentees: attendance?.attendanceData?.filter(
+                              (record) => record.present === false
+                            ),
+                          })
+                        );
                         return (
-                          <TableRow
-                            key={classItem?._id}
-                            className="hover:bg-accent/50"
-                          >
-                            <TableCell className="border font-medium bg-accent sticky left-0 z-10">
-                              <div className="flex items-center whitespace-nowrap gap-2">
-                                {classItem.name}
-                              </div>
-                            </TableCell>
-                            {periods.map((period) => {
-                              const cellData = getCellData(
-                                period.periodNumber,
-                                day,
-                                classItem?._id
-                              );
-                              const markedAttendance = attendanceData.filter(
-                                (attendance) =>
-                                  attendance.periodNumber ===
-                                    period.periodNumber &&
-                                  attendance.day === day &&
-                                  attendance.classId?._id === classItem?._id
-                              );
-                              const absentees = markedAttendance.map(
-                                (attendance) => ({
-                                  absentees:
-                                    attendance?.attendanceRecords?.filter(
-                                      (record) => record.present === false
-                                    ),
-                                })
-                              );
-                              return (
-                                <TimetableSlot
-                                  key={`${classItem?._id}-${period?._id}`}
-                                  periodNumber={period.periodNumber}
-                                  day={day}
-                                  cellData={cellData}
-                                  category={category}
-                                  selectedClass={selectedClass}
-                                  onCellClick={handleCellClick}
-                                  isAttendanceMarked={
-                                    markedAttendance?.length > 0
-                                  }
-                                  absentees={absentees}
-                                />
-                              );
-                            })}
-                          </TableRow>
+                          <TimetableSlot
+                            key={`${day}-${period.periodNumber}`}
+                            periodNumber={period.periodNumber}
+                            day={day}
+                            cellData={cellData}
+                            category={category}
+                            selectedClass={selectedClass}
+                            onCellClick={handleCellClick}
+                            isAttendanceMarked={markedAttendance?.length > 0}
+                            absentees={absentees}
+                            showAbsenteesDialog={showAbsenteesDialog}
+                          />
                         );
                       })}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center p-8 border rounded-md">
-              Please select a class or teacher to view the timetable
-            </div>
-          )}
+                    </TableRow>
+                  ))
+                : classes.map((classItem) => (
+                    <TableRow
+                      key={classItem?._id}
+                      className="hover:bg-accent/50"
+                    >
+                      <TableCell className="border font-medium bg-accent sticky left-0 z-10">
+                        <div className="flex items-center whitespace-nowrap gap-2">
+                          {classItem.name}
+                        </div>
+                      </TableCell>
+                      {periods.map((period) => {
+                        const cellData = getCellData(
+                          period.periodNumber,
+                          day,
+                          classItem?._id
+                        );
+                        const markedAttendance = attendanceData.filter(
+                          (attendance) =>
+                            attendance.periodNumber === period.periodNumber &&
+                            attendance.day === day &&
+                            attendance.classId?._id === classItem?._id
+                        );
+                        const absentees = markedAttendance.map(
+                          (attendance) => ({
+                            absentees: attendance?.attendanceData?.filter(
+                              (record) => record.present === false
+                            ),
+                          })
+                        );
+                        return (
+                          <TimetableSlot
+                            key={`${classItem?._id}-${period.periodNumber}`}
+                            periodNumber={period.periodNumber}
+                            day={day}
+                            cellData={cellData}
+                            category={category}
+                            selectedClass={selectedClass}
+                            onCellClick={handleCellClick}
+                            isAttendanceMarked={markedAttendance?.length > 0}
+                            absentees={absentees}
+                            showAbsenteesDialog={showAbsenteesDialog}
+                          />
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="text-center p-8 border rounded-md">
+          Please select a class or teacher to view the timetable
+        </div>
+      )}
 
-          <div className="w-full flex justify-end my-4">
-            <Button onClick={handlePrint}>Print</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="w-full flex justify-end my-4">
+        <Button onClick={handlePrint}>Print</Button>
+      </div>
+
+      {/* Absentees Dialog - Now centralized */}
+      <AbsenteesDialog
+        open={absenteesDialogOpen}
+        setOpen={setAbsenteesDialogOpen}
+        cellData={currentDialogData.cellData}
+        day={currentDialogData.day}
+        periodNumber={currentDialogData.periodNumber}
+        absenteesList={currentAbsenteesList}
+      />
 
       {/* Edit Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-[90%] sm:max-w-[80%] md:max-w-xl">
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center justify-center text-center gap-2">
               <div>

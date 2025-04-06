@@ -259,7 +259,7 @@ export default function PopupForm({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-[90%] mx-auto sm:max-w-xl">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}

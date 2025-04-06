@@ -38,7 +38,7 @@ export default function ConfirmationPopup({
           <Trash />
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[80vw] max-w-[425px] mx-auto rounded-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>

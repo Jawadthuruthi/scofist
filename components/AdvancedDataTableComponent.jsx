@@ -21,46 +21,42 @@ const AdvancedDataTableComponent = ({
         >
           <TabsList className="grid w-full grid-cols-2">
             {tabsConfig.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value} className="w-full">
-                {tab.label}
+              <TabsTrigger
+                key={tab?.value}
+                value={tab?.value}
+                className="w-full"
+              >
+                {tab?.label}
               </TabsTrigger>
             ))}
           </TabsList>
           {tabsConfig.map((tab) => (
-            <TabsContent key={tab.value} value={tab.value} className="mt-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <DataTableComponent
-                    resource={tab.resource}
-                    token={token}
-                    initialData={[]}
-                    columnsConfig={tab.columnsConfig}
-                    filterConfig={tab.filterConfig}
-                    tableHeight={tab.tableHeight}
-                    readOnly={tab.readOnly}
-                    filterTitle={tab.filterTitle}
-                  />
-                </CardContent>
-              </Card>
+            <TabsContent key={tab?.value} value={tab?.value} className="mt-4">
+              <DataTableComponent
+                resource={tab?.resource}
+                token={token}
+                initialData={[]}
+                columnsConfig={tab?.columnsConfig}
+                filterConfig={tab?.filterConfig}
+                tableHeight={tab?.tableHeight}
+                readOnly={tab?.readOnly}
+                filterTitle={tab?.filterTitle}
+              />
             </TabsContent>
           ))}
         </Tabs>
       )}
       {tablesConfig?.map((table) => (
-        <Card key={table.id}>
-          <CardContent className="pt-6">
-            <DataTableComponent
-              resource={table?.resource}
-              token={token}
-              initialData={[]}
-              columnsConfig={table?.columnsConfig}
-              filterConfig={table?.filterConfig}
-              tableHeight={table?.tableHeight}
-              readOnly={table?.readOnly}
-              filterTitle={tab.filterTitle}
-            />
-          </CardContent>
-        </Card>
+        <DataTableComponent
+          resource={table?.resource}
+          token={token}
+          initialData={[]}
+          columnsConfig={table?.columnsConfig}
+          filterConfig={table?.filterConfig}
+          tableHeight={table?.tableHeight}
+          readOnly={table?.readOnly}
+          filterTitle={table?.filterTitle}
+        />
       ))}
     </div>
   );

@@ -48,6 +48,14 @@ const AttendanceTrackingPage = async () => {
         resource: "studentAttendances",
         filterTitle: "Student Attendance",
         columnsConfig: [
+          {
+            header: "Sl.No.",
+            accessorKey: "serialNo",
+            type: ["serialNo"],
+            width: 60,
+            maxWidth: 60,
+            minWidth: 60,
+          },
           { header: "Student ID", accessorKey: "id" },
           { header: "Name", accessorKey: "name" },
           {
