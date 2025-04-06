@@ -330,5 +330,61 @@ userSchema.pre("remove", async function (next) {
   }
 });
 
+userSchema.statics.getUserById = async function (id, options = {}) {
+  try {
+    // Validate ID format
+    if (!id || typeof id !== "string") {
+      throw new Error("Invalid user ID provided");
+    }
+
+    // Set default options
+    const defaultOptions = {
+      populateClass: false,
+      populateBatch: false,
+      selectFields: "", // Empty string means select all fields
+      lean: false, // Whether to return a plain JavaScript object instead of a Mongoose document
+    };
+
+    // Merge provided options with defaults
+    const finalOptions = { ...defaultOptions, ...options };
+
+    // Start building the query
+    let query = this.findById(id);
+
+    // Apply field selection if specified
+    if (finalOptions.selectFields) {
+      query = query.select(finalOptions.selectFields);
+    }
+
+    // Apply population based on options
+    if (finalOptions.populateClass) {
+      query = query.populate(
+        "studentSpecificField.classId studentSpecificField.admissionClassId"
+      );
+    }
+
+    if (finalOptions.populateBatch) {
+      query = query.populate("studentSpecificField.batchId");
+    }
+
+    // Convert to plain object if requested
+    if (finalOptions.lean) {
+      query = query.lean();
+    }
+
+    // Execute the query
+    const user = await query.exec();
+
+    if (!user) {
+      throw new Error(`User not found with ID: ${id}`);
+    }
+
+    return user;
+  } catch (error) {
+    // Enhance error with more context
+    throw new Error(`Error fetching user: ${error.message}`);
+  }
+};
+
 const User = models.User || model("User", userSchema);
 export default User;

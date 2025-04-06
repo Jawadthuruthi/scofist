@@ -120,7 +120,7 @@ const AttendancePage = ({ token, teacherId }) => {
         attendanceRecord.attendanceData.length > 0
       ) {
         attendanceRecord.attendanceData.forEach((item) => {
-          existingAttendance[item.studentId?._id] = item.present;
+          existingAttendance[item.studentId] = item.present;
         });
         setAttendance(existingAttendance);
       }
@@ -151,7 +151,6 @@ const AttendancePage = ({ token, teacherId }) => {
       [studentId]: !prev[studentId],
     }));
   };
-
   // Calculate statistics
   const stats = useMemo(() => {
     const total = students.length;

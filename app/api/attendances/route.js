@@ -79,21 +79,36 @@ export async function GET(req, res) {
       .populate("subjectId", "name")
       .populate("teacherId", "name")
       .populate({
-        path: "attendanceData.studentId",
-        select: "name _id",
+        path: "attendanceData",
+        populate: {
+          path: "studentId",
+          select: "name email",
+        },
       });
+
+    const formattedAttendances = attendances.map((attendance) => {
+      return {
+        ...attendance.toObject(),
+        attendanceData: attendance.attendanceData.map((student) => ({
+          ...student.toObject(),
+          studentId: student.studentId._id,
+          studentName: student.studentId.name,
+        })),
+      };
+    });
 
     // Get total count for pagination info
     const total = await Attendance.countDocuments(query);
 
     return NextResponse.json(
       {
-        attendances,
+        attendances: formattedAttendances,
         pagination: {
           page,
           limit,
           total,
-          totalPages: Math.ceil(total / limit) - 1,
+          totalPages:
+            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit) - 1),
         },
         message: "Attendance records fetched successfully!",
       },
@@ -232,13 +247,12 @@ export async function DELETE(req, res) {
     const { ids } = await req.json();
     const _id = ids[0];
     if (ids.length > 1) {
-      const deletedAttendance = await Attendance.deleteMany({
-        _id: { $in: ids },
-      });
+      const deletedAttendances = await Attendance.find({ _id: { $in: ids } });
+      const result = await Attendance.deleteMany({ _id: { $in: ids } });
 
       const bulkOps = [];
 
-      for (const attendance of deletedAttendance) {
+      for (const attendance of deletedAttendances) {
         for (const student of attendance.attendanceData) {
           bulkOps.push({
             updateOne: {
@@ -265,7 +279,7 @@ export async function DELETE(req, res) {
       }
       return NextResponse.json(
         {
-          deletedAttendance,
+          result,
           message: "Attendance records deleted successfully!",
         },
         { status: 200 }

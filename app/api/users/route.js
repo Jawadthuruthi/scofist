@@ -62,7 +62,8 @@ export async function GET(req, res) {
       .populate("studentSpecificField.admissionClassId", "name")
       .skip(page * limit)
       .limit(limit)
-      .sort({ _id: 1 });
+      .sort({ _id: 1 })
+      .collation({ locale: "en_US", numericOrdering: true });
 
     // Get total count for pagination info
     const total = await User.countDocuments(query);
@@ -109,7 +110,8 @@ export async function GET(req, res) {
           page,
           limit,
           total,
-          totalPages: Math.ceil(total / limit) - 1,
+          totalPages:
+            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit) - 1),
         },
         message: "Users fetched successfully!",
       },

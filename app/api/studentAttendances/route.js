@@ -101,7 +101,8 @@ export async function GET(req, res) {
           page,
           limit,
           total,
-          totalPages: Math.ceil(total / limit) - 1,
+          totalPages:
+            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit) - 1),
         },
         message: "Teacher attendance records fetched successfully",
       },

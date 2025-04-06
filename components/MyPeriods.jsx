@@ -75,7 +75,6 @@ const MyPeriods = ({ token, teacherId }) => {
           (slot) => slot.teacherId?._id === teacherId
         );
         const classId = timeTable.classId;
-        console.log("Class ID:", classId);
         return [
           ...acc,
           ...slots.map((slot) => ({
@@ -143,7 +142,7 @@ const MyPeriods = ({ token, teacherId }) => {
                       attendanceQuery.data?.attendances.find(
                         (attendance) =>
                           attendance.classId?._id === slot.classId?._id &&
-                          attendance.classId.batchId === slot.classId.batchId &&
+                          attendance.batchId._id === slot.classId.batchId &&
                           attendance.subjectId?._id === slot.subjectId?._id &&
                           attendance.periodNumber === slot.periodNumber
                       );

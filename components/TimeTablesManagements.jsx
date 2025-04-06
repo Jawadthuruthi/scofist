@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Edit, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Edit, Loader2, AlertCircle, CheckCircle2, UserX } from "lucide-react";
 
 // UI Components
 import {
@@ -54,41 +54,97 @@ const TimetableSlot = ({
 }) => {
   const [open, setOpen] = useState(false);
   const hasData = cellData && (cellData.subjectId || cellData.teacherId);
+  const absenteesList =
+    absentees?.flatMap((item) => item.absentees || []) || [];
 
   return (
-    <TableCell
-      className={`${
-        isAttendanceMarked ? "bg-green-300/50" : ""
-      } border text-center cursor-pointer transition-colors max-w-32`}
-      onClick={() => {
-        onCellClick(periodNumber, day);
-        if (category !== "class") {
-          setOpen(true);
-        }
-      }}
-    >
-      {hasData ? (
-        <div className="flex flex-col items-center justify-center">
-          <p className="font-medium text-xs">
-            {cellData.subjectId?.name || ""}
-          </p>
-          <p className="text-xxs text-accent-foreground">
-            {category === "class" && selectedClass
-              ? cellData.teacherId?.name || ""
-              : cellData.classId?.name || ""}
-          </p>
-        </div>
-      ) : (
-        <div className="flex items-center justify-center p-2 hover:bg-accent">
-          {category === "class" && (
-            <Edit className="text-muted-foreground h-4 w-4 print:hidden" />
+    <>
+      <TableCell
+        className={`${
+          isAttendanceMarked ? "bg-green-300/50" : ""
+        } border text-center cursor-pointer transition-colors max-w-32`}
+        onClick={() => {
+          onCellClick(periodNumber, day);
+          if (isAttendanceMarked) {
+            setOpen(true);
+          }
+        }}
+      >
+        {hasData ? (
+          <div className="flex flex-col items-center justify-center">
+            <p className="font-medium text-xs">
+              {cellData.subjectId?.name || ""}
+            </p>
+            <p className="text-xxs text-accent-foreground">
+              {category === "class" && selectedClass
+                ? cellData.teacherId?.name || ""
+                : cellData.classId?.name || ""}
+            </p>
+            {isAttendanceMarked && absenteesList.length > 0 && (
+              <Badge variant="outline" className="mt-1 text-xxs">
+                <UserX className="h-3 w-3 mr-1" />
+                {absenteesList.length}
+              </Badge>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center p-2 hover:bg-accent">
+            {category === "class" && (
+              <Edit className="text-muted-foreground h-4 w-4 print:hidden" />
+            )}
+          </div>
+        )}
+      </TableCell>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {day} - Period {periodNumber} Absentees
+            </DialogTitle>
+            <DialogDescription>
+              {cellData?.subjectId?.name
+                ? `Subject: ${cellData.subjectId.name}`
+                : ""}
+              {cellData?.teacherId?.name
+                ? ` • Teacher: ${cellData.teacherId.name}`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {absenteesList.length > 0 ? (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium mb-2">Absent Students:</h4>
+              <div className="max-h-60 overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Student ID</TableHead>
+                      <TableHead>Student Name</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {absenteesList.map((student) => {
+                      return (
+                        <TableRow key={student.studentId}>
+                          <TableCell>
+                            {student.studentId || "Unknown"}
+                          </TableCell>
+                          <TableCell>{student.studentName || "-"}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center p-6">
+              <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
+              <p>Full attendance for this period</p>
+            </div>
           )}
-        </div>
-      )}
-      <Dialog>
-        <DialogContent open={open} onOpenChange={setOpen}></DialogContent>
+        </DialogContent>
       </Dialog>
-    </TableCell>
+    </>
   );
 };
 
@@ -324,7 +380,7 @@ const TimeTablesManagements = ({
   // Handle cell click to open edit dialog
   const handleCellClick = useCallback(
     (periodNumber, day) => {
-      if (category !== "class") return;
+      if (category !== "class" || !periodNumber || !day) return;
 
       const existingData = getCellData(periodNumber, day);
 
@@ -553,10 +609,9 @@ const TimeTablesManagements = ({
                             );
                             const absentees = markedAttendance?.map(
                               (attendance) => ({
-                                absentees:
-                                  attendance?.attendanceRecords?.filter(
-                                    (record) => record.present === false
-                                  ),
+                                absentees: attendance?.attendanceData?.filter(
+                                  (record) => record.present === false
+                                ),
                               })
                             );
                             return (
