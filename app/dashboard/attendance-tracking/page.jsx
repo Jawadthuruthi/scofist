@@ -126,6 +126,14 @@ const AttendanceTrackingPage = async () => {
         resource: "teacherAttendances",
         filterTitle: "Teacher Attendance",
         columnsConfig: [
+          {
+            header: "Sl.No.",
+            accessorKey: "serialNo",
+            type: ["serialNo"],
+            width: 60,
+            maxWidth: 60,
+            minWidth: 60,
+          },
           { header: "Teacher ID", accessorKey: "id" },
           { header: "Name", accessorKey: "name" },
           {
@@ -191,6 +199,67 @@ const AttendanceTrackingPage = async () => {
         ],
         readOnly: true,
       },
+      {
+        label: "Toppers",
+        value: "toppers",
+        resource: "attendanceToppers",
+        filterTitle: "Attendance Toppers",
+        columnsConfig: [
+          {
+            header: "Sl.No.",
+            accessorKey: "serialNo",
+            type: ["serialNo"],
+            width: 60,
+            maxWidth: 60,
+            minWidth: 60,
+          },
+          { header: "Student ID", accessorKey: "studentId" },
+          { header: "Name", accessorKey: "studentName" },
+          {
+            header: "Total Class",
+            accessorKey: "totalClasses",
+          },
+          {
+            header: "Present",
+            accessorKey: "presentCount",
+          },
+          {
+            header: "Percentage",
+            accessorKey: "attendancePercentage",
+          },
+        ],
+        filterConfig: [
+          {
+            id: "batchId",
+            label: "Batch",
+            type: "text",
+            inputType: "select",
+            nestedArrayField: "attendanceRecords",
+
+            options: formatOptions(batches),
+          },
+          {
+            id: "classId",
+            label: "Class",
+            type: "text",
+            inputType: "select",
+            nestedArrayField: "attendanceRecords",
+
+            options: formatOptions(classes),
+          },
+
+          {
+            id: "date",
+            label: "Date Range",
+            type: "date",
+            inputType: "dateRange",
+            nestedArrayField: "attendanceRecords",
+            className: "col-span-1 md:col-span-2",
+          },
+        ],
+        readOnly: true,
+        filterType: "api",
+      },
     ];
 
     const tablesConfig = [
@@ -199,6 +268,14 @@ const AttendanceTrackingPage = async () => {
         resource: "studentAttendances",
         filterTitle: "Student Attendance",
         columnsConfig: [
+          {
+            header: "Sl.No.",
+            accessorKey: "serialNo",
+            type: ["serialNo"],
+            width: 60,
+            maxWidth: 60,
+            minWidth: 60,
+          },
           { header: "Student ID", accessorKey: "id" },
           { header: "Name", accessorKey: "name" },
           {

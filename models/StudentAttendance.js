@@ -58,11 +58,28 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
 ) {
   const { classId, batchId, startDate, endDate, limit = 10 } = filterOptions;
 
-  // Validate required filter parameters
-  if (!classId || !batchId || !startDate || !endDate) {
-    throw new Error(
-      "Required filter parameters missing: classId, batchId, startDate, and endDate are required"
-    );
+  // Build match conditions dynamically based on provided filters
+  const matchConditions = {};
+
+  // Add filters only if they are provided
+  if (classId) {
+    matchConditions["attendanceRecords.classId"] = classId;
+  }
+
+  if (batchId) {
+    matchConditions["attendanceRecords.batchId"] = batchId;
+  }
+
+  // Date range condition - only apply if both dates are provided
+  if (startDate && endDate) {
+    matchConditions["attendanceRecords.date"] = {
+      $gte: startDate,
+      $lte: endDate,
+    };
+  } else if (startDate) {
+    matchConditions["attendanceRecords.date"] = { $gte: startDate };
+  } else if (endDate) {
+    matchConditions["attendanceRecords.date"] = { $lte: endDate };
   }
 
   // Create the aggregation pipeline
@@ -70,17 +87,10 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
     // Unwind the attendance records array
     { $unwind: "$attendanceRecords" },
 
-    // Match records based on filter criteria
-    {
-      $match: {
-        "attendanceRecords.classId": classId,
-        "attendanceRecords.batchId": batchId,
-        "attendanceRecords.date": {
-          $gte: startDate,
-          $lte: endDate,
-        },
-      },
-    },
+    // Match records based on filter criteria - only if we have any filters
+    ...(Object.keys(matchConditions).length > 0
+      ? [{ $match: matchConditions }]
+      : []),
 
     // Group by student and calculate attendance metrics
     {
@@ -116,7 +126,7 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
     { $sort: { attendancePercentage: -1 } },
 
     // Limit the results
-    { $limit: limit },
+    { $limit: parseInt(limit) },
 
     // Lookup to get student details
     {
@@ -140,8 +150,8 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
         classId: 1,
         batchId: 1,
         dateRange: {
-          startDate: startDate,
-          endDate: endDate,
+          startDate: startDate || null,
+          endDate: endDate || null,
         },
         totalClasses: 1,
         presentCount: 1,

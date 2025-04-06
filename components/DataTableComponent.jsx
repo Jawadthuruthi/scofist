@@ -153,19 +153,18 @@ const DataTableComponent = ({
 
     if (hasFilters) {
       Object.entries(filters).forEach(([key, filterObj]) => {
-        if (
-          filterObj &&
-          typeof filterObj === "object" &&
-          filterObj.value !== undefined
-        ) {
-          transformedFilters[key] = filterObj.value;
-        } else {
+        const value = filterObj?.value;
+
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+          Object.assign(transformedFilters, value);
+        } else if (value !== undefined) {
+          transformedFilters[key] = value;
+        } else if (filterObj !== undefined) {
           transformedFilters[key] = filterObj;
         }
       });
     }
 
-    // Only include filters in API call when using API filtering
     return {
       ...activeApiFilters,
       ...transformedFilters,

@@ -1,8 +1,9 @@
 "use client";
+
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DataTableComponent from "@/components/DataTableComponent";
+
 const AdvancedDataTableComponent = ({
   token,
   tabsConfig = [],
@@ -10,52 +11,57 @@ const AdvancedDataTableComponent = ({
 }) => {
   const [activeTab, setActiveTab] = useState(tabsConfig[0]?.value || "");
 
+  const isTwoTabs = tabsConfig.length === 2;
+
   return (
     <div className="space-y-6">
-      {tabsConfig?.length > 0 && (
+      {tabsConfig.length > 0 && (
         <Tabs
-          defaultValue={tabsConfig[0]?.value}
+          defaultValue={tabsConfig[0].value}
           value={activeTab}
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList
+            className={isTwoTabs ? "grid grid-cols-2 w-full" : "flex space-x-2"}
+          >
             {tabsConfig.map((tab) => (
-              <TabsTrigger
-                key={tab?.value}
-                value={tab?.value}
-                className="w-full"
-              >
-                {tab?.label}
+              <TabsTrigger key={tab.value} value={tab.value} className="w-full">
+                {tab.label}
               </TabsTrigger>
             ))}
           </TabsList>
+
           {tabsConfig.map((tab) => (
-            <TabsContent key={tab?.value} value={tab?.value} className="mt-4">
+            <TabsContent key={tab.value} value={tab.value} className="mt-4">
               <DataTableComponent
-                resource={tab?.resource}
+                resource={tab.resource}
                 token={token}
                 initialData={[]}
-                columnsConfig={tab?.columnsConfig}
-                filterConfig={tab?.filterConfig}
-                tableHeight={tab?.tableHeight}
-                readOnly={tab?.readOnly}
-                filterTitle={tab?.filterTitle}
+                columnsConfig={tab.columnsConfig}
+                filterConfig={tab.filterConfig}
+                tableHeight={tab.tableHeight}
+                readOnly={tab.readOnly}
+                filterTitle={tab.filterTitle}
+                filterType={tab.filterType}
               />
             </TabsContent>
           ))}
         </Tabs>
       )}
-      {tablesConfig?.map((table) => (
+
+      {tablesConfig.map((table, i) => (
         <DataTableComponent
-          resource={table?.resource}
+          key={i}
+          resource={table.resource}
           token={token}
           initialData={[]}
-          columnsConfig={table?.columnsConfig}
-          filterConfig={table?.filterConfig}
-          tableHeight={table?.tableHeight}
-          readOnly={table?.readOnly}
-          filterTitle={table?.filterTitle}
+          columnsConfig={table.columnsConfig}
+          filterConfig={table.filterConfig}
+          tableHeight={table.tableHeight}
+          readOnly={table.readOnly}
+          filterTitle={table.filterTitle}
+          filterType={table.filterType}
         />
       ))}
     </div>

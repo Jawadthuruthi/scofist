@@ -17,13 +17,6 @@ export async function GET(req, res) {
     const endDate = url.searchParams.get("endDate");
     const limit = parseInt(url.searchParams.get("limit") || "10");
 
-    // Validate required parameters
-    if (!classId || !batchId || !startDate || !endDate) {
-      return apiResponse.badRequest(
-        "Missing required parameters: classId, batchId, startDate, and endDate are required"
-      );
-    }
-
     // Create filter options object
     const filterOptions = {
       classId,
