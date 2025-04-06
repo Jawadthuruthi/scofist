@@ -62,7 +62,7 @@ export async function GET(req, res) {
       .populate("studentSpecificField.admissionClassId", "name")
       .skip(page * limit)
       .limit(limit)
-      .sort({ updatedAt: -1 });
+      .sort({ _id: 1 });
 
     // Get total count for pagination info
     const total = await User.countDocuments(query);
@@ -431,7 +431,9 @@ export async function DELETE(req, res) {
         .map((user) => user.profilePic.publicId)
         .filter(Boolean);
       const deletedUsers = await User.deleteMany({ _id: { $in: ids } });
-      await cloudinary.api.delete_resources(publicIds);
+      if (publicIds.length > 0) {
+        await cloudinary.api.delete_resources(publicIds);
+      }
       return NextResponse.json(
         { deletedUsers, message: "Users deleted successfully!" },
         { status: 200 }
