@@ -13,7 +13,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "users",
-    searchParams: "role=Teacher&projection=_id,name",
+    searchParams: "roles=Teacher&projection=_id,name",
   },
   {
     pathname: "classes",
