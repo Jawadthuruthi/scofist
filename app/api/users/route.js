@@ -55,6 +55,35 @@ export async function GET(req, res) {
       query.status = filterParams.status;
     }
 
+    // Handle global search parameter
+    const globalSearch = url.searchParams.get("global");
+    if (globalSearch) {
+      // Create an $or query to search across multiple fields
+      const searchFields = [
+        "name",
+        "email",
+        "contactNumber",
+        "address.houseName",
+        "address.place",
+        "address.district",
+        "address.state",
+        "studentSpecificField.guardianName",
+        "studentSpecificField.aadharNo",
+        "studentSpecificField.bloodGroup",
+        "studentSpecificField.islamicQualification",
+        "studentSpecificField.academicQualification",
+      ];
+
+      query.$and = [
+        ...(query.$and || []),
+        {
+          $or: searchFields.map((field) => ({
+            [field]: { $regex: globalSearch, $options: "i" },
+          })),
+        },
+      ];
+    }
+
     // Execute query with pagination
     const users = await User.find(query, projections)
       .populate("studentSpecificField.batchId", "name")

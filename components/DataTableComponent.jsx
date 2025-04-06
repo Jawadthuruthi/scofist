@@ -25,7 +25,7 @@ import { useRouter } from "next/navigation";
 import useDataFilter from "@/hooks/use-data-filter";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
-import { capitalize } from "lodash";
+import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
 
 const PopupFilter = dynamic(() => import("./PopupFilter"), {
@@ -94,6 +94,9 @@ const DataTableComponent = ({
   apiFilters = {},
   readOnly = false,
   filterTitle = "",
+  filterType = "client",
+  infiniteScrollThreshold = 0.3,
+  loadAheadCount = 1,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -103,11 +106,17 @@ const DataTableComponent = ({
   const [page, setPage] = useState(0);
   const [data, setData] = useState(initialData);
   const [hasNextPage, setHasNextPage] = useState(true);
+  const [isManualFiltering, setIsManualFiltering] = useState(false);
+  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
+  const [totalPages, setTotalPages] = useState(0);
+  const [activeApiFilters, setActiveApiFilters] = useState(apiFilters);
 
   const tableRef = useRef(null);
+  const tableBodyRef = useRef(null);
   const loaderRef = useRef(null);
   const router = useRouter();
 
+  // Periodic refresh
   useEffect(() => {
     const interval = setInterval(() => {
       router.refresh();
@@ -116,6 +125,7 @@ const DataTableComponent = ({
     return () => clearInterval(interval);
   }, [router]);
 
+  // Client-side filtering
   const {
     filteredData,
     filters,
@@ -132,11 +142,44 @@ const DataTableComponent = ({
     token
   );
 
-  const fetchItemsQuery = useFetchItems(page, limit, apiFilters, {
+  // Determine if we should use API filtering
+  const isApiFiltering = filterType === "api";
+
+  // Create a memoized combined filters object for API calls
+  const combinedApiFilters = useMemo(() => {
+    if (!isApiFiltering) return activeApiFilters;
+
+    const transformedFilters = {};
+
+    if (hasFilters) {
+      Object.entries(filters).forEach(([key, filterObj]) => {
+        if (
+          filterObj &&
+          typeof filterObj === "object" &&
+          filterObj.value !== undefined
+        ) {
+          transformedFilters[key] = filterObj.value;
+        } else {
+          transformedFilters[key] = filterObj;
+        }
+      });
+    }
+
+    // Only include filters in API call when using API filtering
+    return {
+      ...activeApiFilters,
+      ...transformedFilters,
+      ...(globalFilter ? { global: globalFilter } : {}),
+    };
+  }, [isApiFiltering, activeApiFilters, filters, globalFilter, hasFilters]);
+
+  // API fetch with combined filters
+  const fetchItemsQuery = useFetchItems(page, limit, combinedApiFilters, {
     retry: 2,
     retryDelay: 1000,
   });
 
+  // Handle fetch errors
   useEffect(() => {
     if (fetchItemsQuery.error) {
       toast.error(
@@ -146,46 +189,91 @@ const DataTableComponent = ({
     }
   }, [fetchItemsQuery.error]);
 
+  // Process fetched data
   useEffect(() => {
     if (fetchItemsQuery.data) {
       const newItems = fetchItemsQuery.data[resource] || [];
+      const pagination = fetchItemsQuery.data?.pagination || {};
 
-      if (page === 0 && !initialData.length) {
+      setTotalPages(pagination?.totalPages || 0);
+
+      // Reset data if filters changed or on initial load
+      if (isManualFiltering || (page === 0 && !initialData.length)) {
         setData(newItems);
+        setIsManualFiltering(false);
       } else {
-        setData((prev) => [...prev, ...newItems]);
+        // Append data for pagination
+        setData((prev) => {
+          // Filter out duplicates based on _id
+          const existingIds = new Set(prev.map((item) => item._id));
+          const uniqueNewItems = newItems.filter(
+            (item) => !existingIds.has(item._id)
+          );
+          return [...prev, ...uniqueNewItems];
+        });
       }
 
-      setHasNextPage(
-        page < fetchItemsQuery.data?.pagination?.totalPages &&
-          newItems.length > 0
-      );
-    }
-  }, [fetchItemsQuery.data, page, resource, limit]);
+      setHasNextPage(page < pagination?.totalPages - 1 && newItems.length > 0);
 
+      setIsFetchingNextPage(false);
+    }
+  }, [
+    fetchItemsQuery.data,
+    page,
+    resource,
+    limit,
+    isManualFiltering,
+    initialData.length,
+  ]);
+
+  // Loading states
   const isInitialLoading =
     fetchItemsQuery.isLoading && page === 0 && !data.length;
 
-  const isLoadingMore = fetchItemsQuery.isLoading && page > 0;
+  const isLoadingMore =
+    isFetchingNextPage || (fetchItemsQuery.isLoading && page > 0);
 
+  // Fetch next page function with improved logic
   const fetchNextPage = useCallback(() => {
     if (hasNextPage && !isLoadingMore && !fetchItemsQuery.isLoading) {
+      setIsFetchingNextPage(true);
       setPage((prevPage) => prevPage + 1);
     }
   }, [hasNextPage, isLoadingMore, fetchItemsQuery.isLoading]);
 
+  // Improved IntersectionObserver handler with dynamic threshold
   const handleObserver = useCallback(
     (entries) => {
       const [entry] = entries;
-      if (entry.isIntersecting) fetchNextPage();
+      if (entry.isIntersecting && !isLoadingMore) {
+        fetchNextPage();
+      }
     },
-    [hasNextPage, isLoadingMore, fetchItemsQuery.isLoading]
+    [fetchNextPage, isLoadingMore]
   );
 
+  // Enhanced scroll handling with debounce
+  const handleScroll = useCallback(
+    debounce(() => {
+      if (!tableBodyRef.current || isLoadingMore || !hasNextPage) return;
+
+      const container = tableBodyRef.current;
+      const scrollPosition = container.scrollTop + container.clientHeight;
+      const scrollThreshold = container.scrollHeight * infiniteScrollThreshold;
+
+      // Load more data before reaching the bottom
+      if (scrollPosition >= scrollThreshold) {
+        fetchNextPage();
+      }
+    }, 150),
+    [fetchNextPage, isLoadingMore, hasNextPage, infiniteScrollThreshold]
+  );
+
+  // Set up the intersection observer for the loader element
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
-      root: null,
-      rootMargin: "0px",
+      root: tableBodyRef.current,
+      rootMargin: "100px",
       threshold: 0.1,
     });
 
@@ -196,32 +284,147 @@ const DataTableComponent = ({
     return () => observer.disconnect();
   }, [handleObserver]);
 
-  // Auto fetch more data if filtered data is less
+  // Set up scroll event for table body
   useEffect(() => {
-    if (filteredData.length < limit) fetchNextPage();
+    const tableBody = tableBodyRef.current;
+    if (tableBody) {
+      tableBody.addEventListener("scroll", handleScroll);
+      return () => tableBody.removeEventListener("scroll", handleScroll);
+    }
+  }, [handleScroll]);
+
+  // Preemptive loading for smoother scrolling experience
+  useEffect(() => {
+    // Load the next page in advance if we're close to the end and not already loading
+    if (
+      loadAheadCount > 0 &&
+      data.length > 0 &&
+      !isLoadingMore &&
+      hasNextPage &&
+      page < totalPages - loadAheadCount
+    ) {
+      // Check if we've loaded most of the current data
+      const loadThreshold = limit * 0.8;
+      if (data.length >= loadThreshold * (page + 1)) {
+        fetchNextPage();
+      }
+    }
   }, [
-    filteredData,
+    data.length,
+    fetchNextPage,
     hasNextPage,
     isLoadingMore,
-    fetchItemsQuery.isLoading,
     limit,
+    loadAheadCount,
+    page,
+    totalPages,
   ]);
 
+  // Auto fetch more data if filtered data is less than expected
+  useEffect(() => {
+    if (
+      !isApiFiltering &&
+      filteredData.length < limit * (page + 1) &&
+      hasNextPage &&
+      !isLoadingMore
+    ) {
+      fetchNextPage();
+    }
+  }, [
+    filteredData.length,
+    fetchNextPage,
+    hasNextPage,
+    isLoadingMore,
+    isApiFiltering,
+    limit,
+    page,
+  ]);
+
+  // Handle API filtering
+  const handleApiFilter = useCallback(
+    (newFilters, newGlobalFilter) => {
+      if (isApiFiltering) {
+        setIsManualFiltering(true);
+        setPage(0);
+        // The actual filter update is handled by the combinedApiFilters memo
+      }
+    },
+    [isApiFiltering]
+  );
+
+  // Update filters with debounce for API filtering
+  const debouncedApiFilterUpdate = useCallback(
+    debounce((newFilters, newGlobalFilter) => {
+      handleApiFilter(newFilters, newGlobalFilter);
+    }, 300),
+    [handleApiFilter]
+  );
+
+  // Intercept filter changes for API filtering
+  const handleSetFilter = useCallback(
+    (key, value) => {
+      setFilter(key, value);
+      if (isApiFiltering) {
+        debouncedApiFilterUpdate({ ...filters, [key]: value }, globalFilter);
+      }
+    },
+    [setFilter, isApiFiltering, debouncedApiFilterUpdate, filters, globalFilter]
+  );
+
+  const handleRemoveFilter = useCallback(
+    (key) => {
+      removeFilter(key);
+      if (isApiFiltering) {
+        const newFilters = { ...filters };
+        delete newFilters[key];
+        debouncedApiFilterUpdate(newFilters, globalFilter);
+      }
+    },
+    [
+      removeFilter,
+      isApiFiltering,
+      debouncedApiFilterUpdate,
+      filters,
+      globalFilter,
+    ]
+  );
+
+  const handleClearFilters = useCallback(() => {
+    clearFilters();
+    if (isApiFiltering) {
+      debouncedApiFilterUpdate({}, "");
+    }
+  }, [clearFilters, isApiFiltering, debouncedApiFilterUpdate]);
+
+  const handleSetGlobalFilter = useCallback(
+    (value) => {
+      setGlobalFilter(value);
+      if (isApiFiltering) {
+        debouncedApiFilterUpdate(filters, value);
+      }
+    },
+    [setGlobalFilter, isApiFiltering, debouncedApiFilterUpdate, filters]
+  );
+
+  // Print functionality
   const handlePrint = usePrint({
     content: () => tableRef.current,
     documentTitle: `${capitalize(resource)} List`,
   });
 
+  // Table columns
   const columns = useMemo(() => {
     return useTableColumns(columnsConfig);
   }, [columnsConfig]);
 
+  // CRUD operations
   const addData = useAddItem();
   const updateData = useUpdateItem();
   const deleteData = useDeleteItem();
 
+  // Initialize table
   const table = useReactTable({
-    data: filteredData,
+    data: isApiFiltering ? data : filteredData,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -231,19 +434,23 @@ const DataTableComponent = ({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     manualPagination: true,
+    manualFiltering: isApiFiltering,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
+      globalFilter: isApiFiltering ? undefined : globalFilter,
     },
   });
 
+  // Selected rows data
   const selectedData = useMemo(
     () => table.getFilteredSelectedRowModel().rows.map((row) => row.original),
     [rowSelection, table]
   );
 
+  // Form submission handler
   const handleSubmit = async (values) => {
     try {
       setLoading(true);
@@ -263,6 +470,7 @@ const DataTableComponent = ({
     }
   };
 
+  // Edit handler
   const handleEdit = async (values) => {
     try {
       setLoading(true);
@@ -283,6 +491,7 @@ const DataTableComponent = ({
     }
   };
 
+  // Delete handler
   const handleDelete = async () => {
     try {
       setLoading(true);
@@ -298,6 +507,11 @@ const DataTableComponent = ({
     }
   };
 
+  // Display current filter mode
+  const filterModeDisplay = useMemo(() => {
+    return isApiFiltering ? "API Filtering" : "Client Filtering";
+  }, [isApiFiltering]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -306,13 +520,14 @@ const DataTableComponent = ({
           <PopupFilter
             filterConfig={filterConfig}
             filters={filters}
-            setFilter={setFilter}
-            removeFilter={removeFilter}
-            clearFilters={clearFilters}
+            setFilter={handleSetFilter}
+            removeFilter={handleRemoveFilter}
+            clearFilters={handleClearFilters}
             globalFilter={globalFilter}
-            setGlobalFilter={setGlobalFilter}
+            setGlobalFilter={handleSetGlobalFilter}
             hasFilters={hasFilters || Object.keys(filters).length > 0}
             title={filterTitle || capitalize(resource)}
+            filterType={filterType}
           />
         </div>
         <div className="space-x-2">
@@ -354,107 +569,128 @@ const DataTableComponent = ({
       )}
       <div
         ref={tableRef}
-        className={`rounded-md border overflow-auto shadow-sm table-print`}
-        style={{
-          maxHeight: tableHeight,
-        }}
+        className={`rounded-md border shadow-sm table-print relative`}
       >
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead
-                      key={header.id}
-                      style={getCellStyles(header.column.columnDef.meta)}
-                      className={header.id === "select" && "print:hidden"}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isInitialLoading ? (
-              <>
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-12">
-                    <Skeleton className="w-full h-full rounded" />
-                  </TableCell>
+        <div
+          ref={tableBodyRef}
+          className="overflow-auto"
+          style={{
+            maxHeight: tableHeight,
+          }}
+        >
+          <Table>
+            <TableHeader className="sticky top-0 bg-background z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead
+                        key={header.id}
+                        style={getCellStyles(header.column.columnDef.meta)}
+                        className={header.id === "select" && "print:hidden"}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-12">
-                    <Skeleton className="w-full h-full rounded" />
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-12">
-                    <Skeleton className="w-full h-full rounded" />
-                  </TableCell>
-                </TableRow>
-              </>
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      style={getCellStyles(cell.column.columnDef.meta)}
-                      key={cell.id}
-                      className={cell.column.id === "select" && "print:hidden"}
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+              ))}
+            </TableHeader>
+            <TableBody>
+              {isInitialLoading ? (
+                <>
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-12">
+                      <Skeleton className="w-full h-full rounded" />
                     </TableCell>
-                  ))}
+                  </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-12">
+                      <Skeleton className="w-full h-full rounded" />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-12">
+                      <Skeleton className="w-full h-full rounded" />
+                    </TableCell>
+                  </TableRow>
+                </>
+              ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        style={getCellStyles(cell.column.columnDef.meta)}
+                        key={cell.id}
+                        className={
+                          cell.column.id === "select" && "print:hidden"
+                        }
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    <h2 className="text-lg font-bold">No Data.</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {hasFilters || Object.keys(filters).length > 0
+                        ? "No matching records found."
+                        : "Sorry, there is no data available at the moment."}
+                    </p>
+                  </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  <h2 className="text-lg font-bold">No Data.</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {hasFilters || Object.keys(filters).length > 0
-                      ? "No matching records found."
-                      : "Sorry, there is no data available at the moment."}
-                  </p>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-        {hasNextPage && table.getRowModel().rows?.length > 0 && (
-          <div ref={loaderRef} className="w-full p-4 text-center print:hidden">
-            {isLoadingMore ? (
-              <div className="flex justify-center">
-                <Loader2 className="animate-spin" size={24} />
-              </div>
-            ) : (
-              <div className="h-8" />
-            )}
-          </div>
+              )}
+            </TableBody>
+          </Table>
+          {hasNextPage && table.getRowModel().rows?.length > 0 && (
+            <div
+              ref={loaderRef}
+              className="w-full p-4 text-center print:hidden"
+            >
+              {isLoadingMore ? (
+                <div className="flex justify-center">
+                  <Loader2 className="animate-spin" size={24} />
+                </div>
+              ) : (
+                <div className="h-8" />
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="w-full flex justify-between items-center">
+        <div className="text-sm text-muted-foreground">
+          Showing {table.getRowModel().rows.length} items
+          {isApiFiltering &&
+            totalPages > 0 &&
+            ` of ${totalPages * limit}+ total`}
+          {process.env.NODE_ENV === "development" && (
+            <span className="ml-2 px-2 py-1 bg-muted rounded-full text-xs">
+              {filterModeDisplay}
+            </span>
+          )}
+        </div>
+        {table.getRowModel().rows?.length > 0 && (
+          <Button onClick={handlePrint}>Print</Button>
         )}
       </div>
-      {table.getRowModel().rows?.length > 0 && (
-        <div className="w-full flex justify-end">
-          <Button onClick={handlePrint}>Print</Button>
-        </div>
-      )}
     </div>
   );
 };
