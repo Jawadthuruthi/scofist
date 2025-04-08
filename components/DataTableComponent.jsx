@@ -178,6 +178,8 @@ const DataTableComponent = ({
     retryDelay: 1000,
   });
 
+  console.log(fetchItemsQuery.data);
+
   // Handle fetch errors
   useEffect(() => {
     if (fetchItemsQuery.error) {
@@ -322,7 +324,6 @@ const DataTableComponent = ({
   // Auto fetch more data if filtered data is less than expected
   useEffect(() => {
     if (
-      !isApiFiltering &&
       filteredData.length < limit * (page + 1) &&
       hasNextPage &&
       !isLoadingMore
@@ -334,7 +335,6 @@ const DataTableComponent = ({
     fetchNextPage,
     hasNextPage,
     isLoadingMore,
-    isApiFiltering,
     limit,
     page,
   ]);

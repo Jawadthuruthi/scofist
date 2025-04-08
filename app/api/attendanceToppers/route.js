@@ -15,6 +15,7 @@ export async function GET(req, res) {
     const batchId = url.searchParams.get("batchId");
     const startDate = url.searchParams.get("startDate");
     const endDate = url.searchParams.get("endDate");
+    const page = parseInt(url.searchParams.get("page") || "0");
     const limit = parseInt(url.searchParams.get("limit") || "10");
 
     // Create filter options object
@@ -23,20 +24,20 @@ export async function GET(req, res) {
       batchId,
       startDate,
       endDate,
+      page,
       limit,
     };
 
     // Call the static method to get attendance toppers
-    const attendanceToppers = await StudentAttendance.getAttendanceToppers(
-      filterOptions
-    );
+    const result = await StudentAttendance.getAttendanceToppers(filterOptions);
 
     // Return the response
     return NextResponse.json(
       {
         success: true,
-        attendanceToppers,
-        count: attendanceToppers.length,
+        attendanceToppers: result.toppers,
+        pagination: result.pagination,
+        highestPercentage: result.highestPercentage,
         message: "Attendance toppers fetched successfully",
       },
       { status: 200 }

@@ -56,7 +56,7 @@ const AttendanceTrackingPage = async () => {
             maxWidth: 60,
             minWidth: 60,
           },
-          { header: "Student ID", accessorKey: "id" },
+          { header: "Student ID", accessorKey: "_id" },
           { header: "Name", accessorKey: "name" },
           {
             header: "Total Class",
@@ -134,7 +134,7 @@ const AttendanceTrackingPage = async () => {
             maxWidth: 60,
             minWidth: 60,
           },
-          { header: "Teacher ID", accessorKey: "id" },
+          { header: "Teacher ID", accessorKey: "_id" },
           { header: "Name", accessorKey: "name" },
           {
             header: "Total Class",
@@ -276,7 +276,7 @@ const AttendanceTrackingPage = async () => {
             maxWidth: 60,
             minWidth: 60,
           },
-          { header: "Student ID", accessorKey: "id" },
+          { header: "Student ID", accessorKey: "_id" },
           { header: "Name", accessorKey: "name" },
           {
             header: "Total Class",

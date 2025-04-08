@@ -80,7 +80,7 @@ export async function GET(req, res) {
     }
 
     const formattedStudentAttendances = studentAttendances.map((record) => ({
-      id: record.studentId?._id,
+      _id: record.studentId?._id,
       name: record.studentId?.name,
       attendanceRecords: record.attendanceRecords.map((attendance) => ({
         ...attendance.toObject(),

@@ -56,7 +56,14 @@ const studentAttendanceSchema = new Schema(
 studentAttendanceSchema.statics.getAttendanceToppers = async function (
   filterOptions
 ) {
-  const { classId, batchId, startDate, endDate, limit = 10 } = filterOptions;
+  const {
+    classId,
+    batchId,
+    startDate,
+    endDate,
+    page = 0,
+    limit = 10,
+  } = filterOptions;
 
   // Build match conditions dynamically based on provided filters
   const matchConditions = {};
@@ -82,8 +89,8 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
     matchConditions["attendanceRecords.date"] = { $lte: endDate };
   }
 
-  // Create the aggregation pipeline
-  const pipeline = [
+  // Create the aggregation pipeline to calculate attendance percentages
+  const calculationPipeline = [
     // Unwind the attendance records array
     { $unwind: "$attendanceRecords" },
 
@@ -117,51 +124,89 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
         totalClasses: 1,
         presentCount: 1,
         attendancePercentage: {
-          $multiply: [{ $divide: ["$presentCount", "$totalClasses"] }, 100],
+          $round: [
+            {
+              $multiply: [{ $divide: ["$presentCount", "$totalClasses"] }, 100],
+            },
+            2,
+          ],
         },
       },
     },
 
     // Sort by attendance percentage in descending order
     { $sort: { attendancePercentage: -1 } },
-
-    // Limit the results
-    { $limit: parseInt(limit) },
-
-    // Lookup to get student details
-    {
-      $lookup: {
-        from: "users",
-        localField: "studentId",
-        foreignField: "_id",
-        as: "studentDetails",
-      },
-    },
-
-    // Unwind the studentDetails array
-    { $unwind: "$studentDetails" },
-
-    // Project the final output with all requested fields
-    {
-      $project: {
-        _id: 0,
-        studentId: 1,
-        studentName: "$studentDetails.name",
-        classId: 1,
-        batchId: 1,
-        dateRange: {
-          startDate: startDate || null,
-          endDate: endDate || null,
-        },
-        totalClasses: 1,
-        presentCount: 1,
-        attendancePercentage: { $round: ["$attendancePercentage", 2] },
-      },
-    },
   ];
 
-  // Execute the aggregation pipeline
-  return this.aggregate(pipeline);
+  // Execute the calculation pipeline to get the highest attendance percentage
+  const allStudents = await this.aggregate(calculationPipeline);
+
+  // If no students found, return empty array
+  if (allStudents.length === 0) {
+    return {
+      toppers: [],
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: 0,
+        totalPages: 0,
+      },
+      highestPercentage: null,
+    };
+  }
+
+  // Get the highest attendance percentage
+  const highestPercentage = allStudents[0].attendancePercentage;
+
+  // Filter to get only the students with the highest percentage
+  const toppersData = allStudents.filter(
+    (student) => student.attendancePercentage === highestPercentage
+  );
+
+  // Calculate total for pagination
+  const total = toppersData.length;
+
+  // Apply pagination
+  const skip = parseInt(page) * parseInt(limit);
+  const paginatedToppers = toppersData.slice(skip, skip + parseInt(limit));
+
+  // Look up student details for the paginated results
+  const studentIds = paginatedToppers.map((topper) => topper.studentId);
+
+  // Get student details
+  const students = await User.find({ _id: { $in: studentIds } }, { name: 1 });
+
+  // Create a map of student IDs to names for quick lookups
+  const studentMap = {};
+  students.forEach((student) => {
+    studentMap[student._id] = student.name;
+  });
+
+  // Add student names to the toppers data
+  const toppers = paginatedToppers.map((topper) => ({
+    studentId: topper.studentId,
+    studentName: studentMap[topper.studentId] || "Unknown",
+    classId: topper.classId,
+    batchId: topper.batchId,
+    dateRange: {
+      startDate: startDate || null,
+      endDate: endDate || null,
+    },
+    totalClasses: topper.totalClasses,
+    presentCount: topper.presentCount,
+    attendancePercentage: topper.attendancePercentage,
+  }));
+
+  return {
+    toppers,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
+      totalPages: Math.max(0, Math.ceil(total / parseInt(limit)) - 1),
+    },
+    highestPercentage,
+  };
 };
 
 const StudentAttendance =
