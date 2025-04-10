@@ -128,7 +128,7 @@ const MyPeriods = ({ token, teacherId }) => {
                     <TableHead className="w-16 hidden md:table-cell">
                       Period
                     </TableHead>
-                    <TableHead className="w-32">Time</TableHead>
+                    <TableHead>Time</TableHead>
                     <TableHead>Class</TableHead>
                     <TableHead className="hidden md:table-cell">
                       Subject

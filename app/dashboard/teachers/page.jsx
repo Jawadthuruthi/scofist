@@ -36,7 +36,7 @@ const columnsConfig = [
   { accessorKey: "dateOfBirth", header: "Date Of Birth", type: ["date"] },
   { accessorKey: "dateOfJoining", header: "Date Of Joining", type: ["date"] },
   { accessorKey: "roles", header: "Roles", type: ["array"] },
-  { accessorKey: "address", header: "Address", type: ["nested"] },
+  { accessorKey: "address", header: "Address", type: ["nestedObject"] },
   { accessorKey: "status", header: "Status", type: ["badge"] },
 ];
 

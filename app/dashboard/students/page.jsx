@@ -42,7 +42,7 @@ const columnsConfig = [
   { accessorKey: "dateOfBirth", header: "Date Of Birth", type: ["date"] },
   { accessorKey: "bloodGroup", header: "Blood Group" },
   { accessorKey: "roles", header: "Roles", type: ["array"] },
-  { accessorKey: "address", header: "Address", type: ["nested"] },
+  { accessorKey: "address", header: "Address", type: ["nestedObject"] },
   { accessorKey: "guardianName", header: "Guardian Name" },
   { accessorKey: "relationship", header: "Guardian Relationship" },
   { accessorKey: "guardianContactNumber", header: "Guardian Contact Number" },

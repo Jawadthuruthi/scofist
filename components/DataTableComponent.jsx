@@ -178,8 +178,6 @@ const DataTableComponent = ({
     retryDelay: 1000,
   });
 
-  console.log(fetchItemsQuery.data);
-
   // Handle fetch errors
   useEffect(() => {
     if (fetchItemsQuery.error) {

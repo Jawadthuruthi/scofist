@@ -213,19 +213,17 @@ const AttendanceTrackingPage = async () => {
             maxWidth: 60,
             minWidth: 60,
           },
-          { header: "Student ID", accessorKey: "studentId" },
-          { header: "Name", accessorKey: "studentName" },
+          { header: "Class", accessorKey: "className" },
           {
-            header: "Total Class",
-            accessorKey: "totalClasses",
+            header: "Students",
+            accessorKey: "students",
+            type: ["arrayWithValueKey", "list"],
+            valueKey: "studentName",
           },
-          {
-            header: "Present",
-            accessorKey: "presentCount",
-          },
+
           {
             header: "Percentage",
-            accessorKey: "attendancePercentage",
+            accessorKey: "highestPercentage",
           },
         ],
         filterConfig: [

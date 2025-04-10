@@ -89,8 +89,36 @@ const useTableColumns = (columnConfig) => {
         );
       };
     }
-    // Apply nested data if type includes "nested"
-    if (col.type?.includes("nested")) {
+
+    // Apply list if type includes "arrayWithValueKey"
+    if (col.type?.includes("arrayWithValueKey")) {
+      columnDefinition.cell = ({ row }) => {
+        const items = row.getValue(col.accessorKey);
+
+        if (col.type?.includes("list")) {
+          return (
+            <div className="font-medium">
+              {items?.map((item, index) => (
+                <div key={index}>{item?.[col?.valueKey]}</div>
+              ))}
+            </div>
+          );
+        }
+
+        return (
+          <div className="font-medium">
+            {items?.length > 0 ? (
+              items?.map((i) => i?.[col.valueKey]).join(", ")
+            ) : (
+              <span className="text-muted-foreground">-</span>
+            )}
+          </div>
+        );
+      };
+    }
+
+    // Apply nested object data if type includes "nestedObject"
+    if (col.type?.includes("nestedObject")) {
       columnDefinition.cell = ({ row }) => {
         const value = row.getValue(col.accessorKey);
 
