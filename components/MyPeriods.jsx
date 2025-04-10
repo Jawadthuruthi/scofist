@@ -133,7 +133,7 @@ const MyPeriods = ({ token, teacherId }) => {
                     <TableHead className="hidden md:table-cell">
                       Subject
                     </TableHead>
-                    <TableHead className="max-w-5 w-5 md:max-w-fit md:w-fit"></TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -177,7 +177,7 @@ const MyPeriods = ({ token, teacherId }) => {
                           {slot.subjectId?.name}
                         </TableCell>
 
-                        <TableCell className="text-right">
+                        <TableCell align="right">
                           <Link
                             href={`/dashboard/attendances?classId=${slot.classId?._id}&batchId=${slot.classId.batchId}&subjectId=${slot.subjectId?._id}&periodNumber=${slot.periodNumber}&day=${slot.day}`}
                           >
