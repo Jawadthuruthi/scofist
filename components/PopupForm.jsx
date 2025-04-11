@@ -52,7 +52,7 @@ const SectionNavigation = ({
   </div>
 );
 
-const FormFields = ({ form, fields }) =>
+const FormFields = ({ form, fields, token }) =>
   fields.map((field, idx) => (
     <FormField
       key={idx}
@@ -71,6 +71,7 @@ const FormFields = ({ form, fields }) =>
               <ImageUploader
                 value={formField.value}
                 onChange={formField.onChange}
+                token={token}
               />
             ) : field.inputType === "select" ||
               field.inputType === "multiSelect" ? (
@@ -95,7 +96,14 @@ const FormFields = ({ form, fields }) =>
     />
   ));
 
-const FormContent = ({ form, formFields, handleSubmit, data, loading }) => {
+const FormContent = ({
+  form,
+  formFields,
+  handleSubmit,
+  data,
+  loading,
+  token,
+}) => {
   const sectionRefs = React.useRef([]);
 
   const sections = React.useMemo(() => {
@@ -156,7 +164,11 @@ const FormContent = ({ form, formFields, handleSubmit, data, loading }) => {
               {section !== "undefined" && (
                 <h2 className="text-lg font-bold md:col-span-2">{section}</h2>
               )}
-              <FormFields form={form} fields={sections[section]} />
+              <FormFields
+                form={form}
+                fields={sections[section]}
+                token={token}
+              />
             </div>
           ))}
         </div>
@@ -230,10 +242,24 @@ export default function PopupForm({
   const handleSubmit = React.useCallback(
     async (values) => {
       try {
-        await onSubmit(values);
-        setOpen(false);
+        const success = await onSubmit(values);
+        if (success) {
+          setOpen(false);
+        }
       } catch (error) {
         console.error("Form submission failed:", error.message);
+        if (error.details?.errors) {
+          error.details.errors.forEach(({ field, message }) => {
+            const fieldLabel =
+              formFields?.find((f) => f.name === field)?.label || "This value";
+            form.setError(field, {
+              type: "manual",
+              message: `${fieldLabel} ${message}`,
+            });
+          });
+
+          return;
+        }
       }
     },
     [onSubmit]

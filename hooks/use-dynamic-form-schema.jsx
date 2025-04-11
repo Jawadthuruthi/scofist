@@ -265,10 +265,6 @@ export function useDynamicFormSchema(formFields = null) {
     fieldRelationships.forEach((relation) => {
       schema = schema.refine(
         (data) => {
-          console.log(
-            `Comparing ${relation.field1} and ${relation.field2}:`,
-            data
-          ); // Enhanced logging
           const value1 = data[relation.field1];
           const value2 = data[relation.field2];
 

@@ -72,7 +72,13 @@ const getCellStyles = (meta) => ({
 
 const handleError = (error) => {
   console.error(error.message);
-  toast.error(error.message || "Something went wrong. Please try again later.");
+  if (!error.details?.errors) {
+    toast.error(
+      error.message || "Something went wrong. Please try again later."
+    );
+  } else {
+    toast.error("Validation error. Check your input.");
+  }
 };
 
 const DataTableComponent = ({
@@ -460,8 +466,10 @@ const DataTableComponent = ({
       setPage(0);
       router.refresh();
       toast.success(createSuccessMessage);
+      return true;
     } catch (error) {
       handleError(error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -481,8 +489,10 @@ const DataTableComponent = ({
       setPage(0);
       router.refresh();
       toast.success(editSuccessMessage);
+      return true;
     } catch (error) {
       handleError(error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -497,8 +507,10 @@ const DataTableComponent = ({
       setPage(0);
       router.refresh();
       toast.success(deleteSuccessMessage);
+      return true;
     } catch (error) {
       handleError(error);
+      throw error;
     } finally {
       setLoading(false);
     }
