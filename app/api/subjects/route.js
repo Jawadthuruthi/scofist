@@ -40,7 +40,7 @@ export async function GET(req, res) {
     const subjects = await Subject.find(query, projections)
       .skip(page * limit)
       .limit(limit)
-      .sort({ startYear: -1 });
+      .sort({ _id: 1 });
 
     const total = await Subject.countDocuments(query);
 

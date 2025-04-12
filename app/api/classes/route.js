@@ -56,7 +56,7 @@ export async function GET(req, res) {
       .populate("subjects", "name")
       .skip(page * limit)
       .limit(limit)
-      .sort({ updatedAt: -1 });
+      .sort({ _id: 1 });
 
     // Get total count for pagination info
     const total = await Class.countDocuments(query);

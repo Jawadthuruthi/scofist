@@ -247,31 +247,29 @@ export default function PopupForm({
 
   const formValues = useWatch({ control: form.control });
 
-  const handleSubmit = React.useCallback(
-    async (values) => {
-      try {
-        const success = await onSubmit(form.getValues());
-        if (success) {
-          setOpen(false);
-        }
-      } catch (error) {
-        console.error("Form submission failed:", error.message);
-        if (error.details?.errors) {
-          error.details.errors.forEach(({ field, message }) => {
-            const fieldLabel =
-              formFields?.find((f) => f.name === field)?.label || "This value";
-            form.setError(field, {
-              type: "manual",
-              message: `${fieldLabel} ${message}`,
-            });
-          });
-
-          return;
-        }
+  const handleSubmit = React.useCallback(async () => {
+    try {
+      const values = form.getValues();
+      const success = await onSubmit(values);
+      if (success) {
+        setOpen(false);
       }
-    },
-    [onSubmit, onSubmit]
-  );
+    } catch (error) {
+      console.error("Form submission failed:", error.message);
+      if (error.details?.errors) {
+        error.details.errors.forEach(({ field, message }) => {
+          const fieldLabel =
+            formFields?.find((f) => f.name === field)?.label || "This value";
+          form.setError(field, {
+            type: "manual",
+            message: `${fieldLabel} ${message}`,
+          });
+        });
+
+        return;
+      }
+    }
+  }, [onSubmit, onSubmit]);
 
   React.useEffect(() => {
     setCustomizedFormField(
