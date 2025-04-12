@@ -70,8 +70,16 @@ const FormFields = ({ form, fields, token }) =>
             {field.inputType === "image" ? (
               <ImageUploader
                 value={formField.value}
-                onChange={formField.onChange}
+                onChange={(value) => formField.onChange(value)}
+                disabled={field.disabled}
                 token={token}
+                maxFileSize={field.maxFileSize}
+                allowedTypes={field.allowedTypes}
+                minWidth={field.minWidth}
+                minHeight={field.minHeight}
+                maxWidth={field.maxWidth}
+                maxHeight={field.maxHeight}
+                aspectRatio={field.aspectRatio}
               />
             ) : field.inputType === "select" ||
               field.inputType === "multiSelect" ? (
@@ -242,7 +250,7 @@ export default function PopupForm({
   const handleSubmit = React.useCallback(
     async (values) => {
       try {
-        const success = await onSubmit(values);
+        const success = await onSubmit(form.getValues());
         if (success) {
           setOpen(false);
         }
@@ -262,7 +270,7 @@ export default function PopupForm({
         }
       }
     },
-    [onSubmit]
+    [onSubmit, onSubmit]
   );
 
   React.useEffect(() => {
