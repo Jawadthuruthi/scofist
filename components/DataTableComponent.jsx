@@ -349,6 +349,7 @@ const DataTableComponent = ({
       if (isApiFiltering) {
         setIsManualFiltering(true);
         setPage(0);
+        setHasNextPage(true);
         // The actual filter update is handled by the combinedApiFilters memo
       }
     },
@@ -463,7 +464,9 @@ const DataTableComponent = ({
         )
       );
       table.resetRowSelection();
+      setData([]);
       setPage(0);
+      setHasNextPage(true);
       router.refresh();
       toast.success(createSuccessMessage);
       return true;
@@ -486,7 +489,9 @@ const DataTableComponent = ({
         },
       });
       table.resetRowSelection();
+      setData([]);
       setPage(0);
+      setHasNextPage(true);
       router.refresh();
       toast.success(editSuccessMessage);
       return true;
@@ -504,7 +509,9 @@ const DataTableComponent = ({
       setLoading(true);
       await deleteData.mutateAsync(selectedData?.map((item) => item?._id));
       table.resetRowSelection();
+      setData([]);
       setPage(0);
+      setHasNextPage(true);
       router.refresh();
       toast.success(deleteSuccessMessage);
       return true;

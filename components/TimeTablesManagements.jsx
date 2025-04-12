@@ -287,7 +287,7 @@ const TimeTablesManagements = ({
   const filteredSubjects = useMemo(() => {
     const selectedClassData = classes.find((cls) => cls?._id === selectedClass);
     return subjects.filter((subject) =>
-      selectedClassData?.subjects?.includes(subject?._id)
+      selectedClassData?.subjectIds?.includes(subject?._id)
     );
   }, [classes, selectedClass, subjects]);
 

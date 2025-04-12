@@ -67,7 +67,7 @@ export async function GET(req, res) {
       teacherId: cls.teacherId?._id,
       batchName: cls.batchId?.name,
       teacherName: cls.teacherId?.name,
-      subjects: cls.subjects.map((subject) => subject?._id),
+      subjectIds: cls.subjects.map((subject) => subject?._id),
       subjectsName: cls.subjects.map((subject) => subject.name),
     }));
 
