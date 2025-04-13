@@ -218,8 +218,7 @@ const DataTableComponent = ({
         });
       }
 
-      setHasNextPage(page < pagination?.totalPages - 1 && newItems.length > 0);
-
+      setHasNextPage(page < pagination?.totalPages);
       setIsFetchingNextPage(false);
     }
   }, [

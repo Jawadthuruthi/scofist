@@ -39,7 +39,7 @@ export async function GET(req, res) {
           limit,
           total,
           totalPages:
-            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit) - 1),
+            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
         },
         message: "Periods fetched successfully!",
       },
