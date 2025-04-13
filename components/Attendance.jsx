@@ -240,128 +240,118 @@ const AttendancePage = ({ token, teacherId }) => {
 
   return (
     <div className="space-y-6">
-      <div className="w-full">
-        <div>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <Header
-              title="ATTENDANCE MANAGEMENT"
-              subTitle={`Mark Attendance For ${capitalize(
-                classDetails?.name
-              )} - 
+      <div>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+          <Header
+            title="ATTENDANCE MANAGEMENT"
+            subTitle={`Mark Attendance For ${capitalize(classDetails?.name)} - 
                 ${capitalize(subjectDetails?.name)}`}
-            />
-          </div>
+          />
         </div>
-        <div className="p-4 border border-border space-y-4 rounded-md">
-          {loading ? (
-            <div className="flex justify-center items-center h-40">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : (
-            <>
-              {/* Info Bar */}
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
-                      {day}, {attendanceDate}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
-                      Period {periodNumber}: {periodDetails?.formattedTime}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Badge
-                      variant={
-                        stats.presentPercentage > 80 ? "success" : "destructive"
-                      }
-                    >
-                      {stats.present}/{stats.total} Present (
-                      {stats.presentPercentage}%)
-                    </Badge>
-                    <Button variant="outline" size="sm" onClick={setAllPresent}>
-                      Mark All Present
-                    </Button>
-                  </div>
+      </div>
+      <div className="p-4 border border-border space-y-4 rounded-md">
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : (
+          <>
+            {/* Info Bar */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {day}, {attendanceDate}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    Period {periodNumber}: {periodDetails?.formattedTime}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Badge
+                    variant={
+                      stats.presentPercentage > 80 ? "success" : "destructive"
+                    }
+                  >
+                    {stats.present}/{stats.total} Present (
+                    {stats.presentPercentage}%)
+                  </Badge>
+                  <Button variant="outline" size="sm" onClick={setAllPresent}>
+                    Mark All Present
+                  </Button>
                 </div>
               </div>
-
-              {/* Students Table */}
-              <div className="overflow-x-auto border rounded-md">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-16">R. No.</TableHead>
-                      <TableHead>Students</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {students.length > 0 ? (
-                      students.map((student, index) => (
-                        <TableRow
-                          key={student?._id}
-                          className={
-                            attendance[student?._id]
-                              ? ""
-                              : "bg-destructive/40 hover:bg-destructive/40"
-                          }
-                          onClick={() => toggleAttendance(student?._id)}
-                        >
-                          <TableCell>{index + 1}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={student.profilePic?.url} />
-                                <AvatarFallback>
-                                  {student.name.substring(0, 1)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium text-sm">
-                                  {student.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {student?._id}
-                                </p>
-                              </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center py-8">
-                          No students found in this class
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </>
-          )}
-          <div className="flex justify-between">
-            <Button
-              onClick={handleDeleteAttendance}
-              disabled={!attendanceExists}
-            >
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Reset
-            </Button>
-            <Button
-              onClick={handleSaveAttendance}
-              disabled={saving || loading || !students.length}
-            >
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <Save className="mr-2 h-4 w-4" />
-              {attendanceExists ? "Update" : "Save"}
-            </Button>
-          </div>
-        </div>
+            </div>
+          </>
+        )}
+      </div>
+      {/* Students Table */}
+      <div className="overflow-x-auto border rounded-md">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-16">R. No.</TableHead>
+              <TableHead>Students</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {students.length > 0 ? (
+              students.map((student, index) => (
+                <TableRow
+                  key={student?._id}
+                  className={
+                    attendance[student?._id]
+                      ? ""
+                      : "bg-rose-300 dark:bg-rose-700 hover:bg-rose-300 dark:hover:bg-rose-700"
+                  }
+                  onClick={() => toggleAttendance(student?._id)}
+                >
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={student.profilePic?.url} />
+                        <AvatarFallback>
+                          {student.name.substring(0, 1)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-xs">{student.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {student?._id}
+                        </p>
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center py-8">
+                  No students found in this class
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="flex justify-between">
+        <Button onClick={handleDeleteAttendance} disabled={!attendanceExists}>
+          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Reset
+        </Button>
+        <Button
+          onClick={handleSaveAttendance}
+          disabled={saving || loading || !students.length}
+        >
+          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Save className="mr-2 h-4 w-4" />
+          {attendanceExists ? "Update" : "Save"}
+        </Button>
       </div>
     </div>
   );
