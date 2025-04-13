@@ -173,4 +173,4 @@ export default async function ClassesPage() {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 30;

@@ -32,3 +32,5 @@ const MyPeriodsPage = async () => {
 };
 
 export default MyPeriodsPage;
+
+export const revalidate = 30;

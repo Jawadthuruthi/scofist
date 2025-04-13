@@ -670,4 +670,4 @@ export default async function BatchesPage() {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 30;

@@ -8,3 +8,5 @@ const Dashboard = async () => {
 };
 
 export default Dashboard;
+
+export const revalidate = 30;

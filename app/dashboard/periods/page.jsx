@@ -124,4 +124,4 @@ export default async function PeriodsPage() {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 30;
