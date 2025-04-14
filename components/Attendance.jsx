@@ -167,19 +167,7 @@ const AttendancePage = ({ token, teacherId }) => {
     const rawAbsenteeData =
       historicalAttendanceQuery.data.attendances.absenteeTracking;
 
-    // Enhance the data with additional metrics
-    return rawAbsenteeData.map((student) => {
-      // Calculate attendance rate if available (assuming you have total classes data)
-      const totalClasses = student.totalClasses || 10; // Default to 10 if not available
-      const attendedClasses = totalClasses - (student.totalAbsences || 0);
-      const attendanceRate = Math.round((attendedClasses / totalClasses) * 100);
-
-      return {
-        ...student,
-        attendanceRate,
-        // Add any other derived metrics you need
-      };
-    });
+    return rawAbsenteeData;
   };
 
   // Process historical attendance data for absentee tracking
@@ -364,7 +352,7 @@ const AttendancePage = ({ token, teacherId }) => {
             <TableRow>
               <TableHead className="w-16">R.no</TableHead>
               <TableHead>Students</TableHead>
-              <TableHead></TableHead>
+              <TableHead className="w-[150px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

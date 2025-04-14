@@ -108,14 +108,6 @@ const AbsenteeStatus = ({ absenteeInfo }) => {
                 <span>Last absent:</span>
                 <span>{formattedDate}</span>
               </div>
-
-              <div className="mt-3">
-                <div className="flex justify-between mb-1">
-                  <span>Attendance rate:</span>
-                  <span className="font-semibold">{displayRate}%</span>
-                </div>
-                <Progress value={displayRate} className="h-2" />
-              </div>
             </div>
 
             <div className="mt-3 pt-3 border-t border-border text-xs">
