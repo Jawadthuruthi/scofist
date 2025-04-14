@@ -69,6 +69,9 @@ export async function GET(req, res) {
       query.day = filterParams.day;
     }
 
+    // Handle absentee tracking specific query parameter
+    const trackAbsentees = url.searchParams.get("trackAbsentees") === "true";
+
     // Execute query with pagination
     const attendances = await Attendance.find(query, projections)
       .skip(page * limit)
@@ -86,7 +89,7 @@ export async function GET(req, res) {
         },
       });
 
-    const formattedAttendances = attendances.map((attendance) => {
+    let formattedAttendances = attendances.map((attendance) => {
       return {
         ...attendance.toObject(),
         attendanceData: attendance.attendanceData.map((student) => ({
@@ -96,6 +99,60 @@ export async function GET(req, res) {
         })),
       };
     });
+
+    // Enhanced processing for absentee tracking if requested
+    if (trackAbsentees) {
+      // Group attendance records by students and track continuous absences
+      const studentAbsences = {};
+
+      // Process each attendance record
+      formattedAttendances.forEach((attendance) => {
+        attendance.attendanceData.forEach((student) => {
+          if (!studentAbsences[student.studentId]) {
+            studentAbsences[student.studentId] = {
+              studentId: student.studentId,
+              studentName: student.studentName,
+              absences: [],
+              continuousAbsences: 0,
+              lastAbsenceDate: null,
+            };
+          }
+
+          // Add this absence record
+          studentAbsences[student.studentId].absences.push({
+            date: attendance.date,
+            present: student.present,
+          });
+        });
+      });
+
+      // Calculate continuous absences for each student
+      Object.values(studentAbsences).forEach((student) => {
+        // Sort absences by date (newest first)
+        student.absences.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // Count continuous absences
+        for (const absence of student.absences) {
+          if (!absence.present) {
+            student.continuousAbsences++;
+            if (!student.lastAbsenceDate) {
+              student.lastAbsenceDate = absence.date;
+            }
+          } else {
+            // Break at first presence
+            break;
+          }
+        }
+      });
+
+      // Add absentee tracking info to response
+      formattedAttendances = {
+        ...formattedAttendances,
+        absenteeTracking: Object.values(studentAbsences)
+          .filter((student) => student.continuousAbsences > 0)
+          .sort((a, b) => b.continuousAbsences - a.continuousAbsences),
+      };
+    }
 
     // Get total count for pagination info
     const total = await Attendance.countDocuments(query);

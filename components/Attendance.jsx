@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Save, Calendar, Clock } from "lucide-react";
+import { Loader2, Save, Calendar, Clock, AlertCircle } from "lucide-react";
 
 // UI Components
 import {
@@ -23,6 +23,7 @@ import useCrud from "@/hooks/use-crud";
 import { formatDate } from "@/lib/utils";
 import Header from "./Header";
 import { capitalize } from "lodash";
+import AbsenteeStatus from "./AbsenteeStatus";
 
 const AttendancePage = ({ token, teacherId }) => {
   const searchParams = useSearchParams();
@@ -44,6 +45,7 @@ const AttendancePage = ({ token, teacherId }) => {
   const [periodDetails, setPeriodDetails] = useState(null);
   const [attendanceExists, setAttendanceExists] = useState(false);
   const [attendanceDate, setAttendanceDate] = useState(formatDate(new Date()));
+  const [absenteeData, setAbsenteeData] = useState([]);
 
   // CRUD hooks
   const { useFetchItems: useFetchUsers } = useCrud("users", token);
@@ -70,6 +72,13 @@ const AttendancePage = ({ token, teacherId }) => {
     subjectId,
     periodNumber: parseInt(periodNumber),
     date: attendanceDate,
+  });
+
+  // Fetch historical attendance data for absentee tracking
+  const historicalAttendanceQuery = useFetchAttendance(0, 10, {
+    classId,
+    subjectId,
+    trackAbsentees: true,
   });
 
   // Create/Update mutations
@@ -144,6 +153,57 @@ const AttendancePage = ({ token, teacherId }) => {
     attendanceQuery.data,
   ]);
 
+  // Process absentee data
+  const processAbsenteeData = () => {
+    if (
+      !historicalAttendanceQuery.data?.attendances ||
+      !historicalAttendanceQuery.data?.attendances.absenteeTracking ||
+      !students.length
+    ) {
+      return [];
+    }
+
+    // Extract absentee data
+    const rawAbsenteeData =
+      historicalAttendanceQuery.data.attendances.absenteeTracking;
+
+    // Enhance the data with additional metrics
+    return rawAbsenteeData.map((student) => {
+      // Calculate attendance rate if available (assuming you have total classes data)
+      const totalClasses = student.totalClasses || 10; // Default to 10 if not available
+      const attendedClasses = totalClasses - (student.totalAbsences || 0);
+      const attendanceRate = Math.round((attendedClasses / totalClasses) * 100);
+
+      return {
+        ...student,
+        attendanceRate,
+        // Add any other derived metrics you need
+      };
+    });
+  };
+
+  // Process historical attendance data for absentee tracking
+  useEffect(() => {
+    if (
+      historicalAttendanceQuery.isLoading ||
+      !historicalAttendanceQuery.data
+    ) {
+      return;
+    }
+
+    try {
+      const processedData = processAbsenteeData();
+      setAbsenteeData(processedData);
+    } catch (err) {
+      console.error("Error processing absentee data:", err);
+      setAbsenteeData([]);
+    }
+  }, [
+    historicalAttendanceQuery.data,
+    historicalAttendanceQuery.isLoading,
+    students,
+  ]);
+
   // Handle attendance change
   const toggleAttendance = (studentId) => {
     setAttendance((prev) => ({
@@ -151,6 +211,7 @@ const AttendancePage = ({ token, teacherId }) => {
       [studentId]: !prev[studentId],
     }));
   };
+
   // Calculate statistics
   const stats = useMemo(() => {
     const total = students.length;
@@ -161,6 +222,11 @@ const AttendancePage = ({ token, teacherId }) => {
 
     return { total, present, absent, presentPercentage };
   }, [students, attendance]);
+
+  // Check if a student has absence history
+  const getStudentAbsenteeInfo = (studentId) => {
+    return absenteeData.find((student) => student.studentId === studentId);
+  };
 
   // Save attendance
   const handleSaveAttendance = async () => {
@@ -204,6 +270,7 @@ const AttendancePage = ({ token, teacherId }) => {
 
       // Refresh attendance data
       attendanceQuery.refetch();
+      historicalAttendanceQuery.refetch();
       window.location.href = "/dashboard/my-periods";
     } catch (error) {
       console.error("Error saving attendance:", error);
@@ -221,6 +288,7 @@ const AttendancePage = ({ token, teacherId }) => {
       toast.success("Attendance reset successfully!");
       setAttendanceExists(false);
       attendanceQuery.refetch();
+      historicalAttendanceQuery.refetch();
     } catch (error) {
       console.error("Error resetting attendance:", error);
       toast.error(`Failed to reset attendance: ${error.message}`);
@@ -294,41 +362,58 @@ const AttendancePage = ({ token, teacherId }) => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">R. No.</TableHead>
+              <TableHead className="w-16">R.no</TableHead>
               <TableHead>Students</TableHead>
+              <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {students.length > 0 ? (
-              students.map((student, index) => (
-                <TableRow
-                  key={student?._id}
-                  className={
-                    attendance[student?._id]
-                      ? ""
-                      : "bg-rose-300 dark:bg-rose-700 hover:bg-rose-300 dark:hover:bg-rose-700"
-                  }
-                  onClick={() => toggleAttendance(student?._id)}
-                >
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={student.profilePic?.url} />
-                        <AvatarFallback>
-                          {student.name.substring(0, 1)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium text-xs">{student.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {student?._id}
-                        </p>
+              students.map((student, index) => {
+                const absenteeInfo = getStudentAbsenteeInfo(student._id);
+                const hasAbsenceHistory =
+                  absenteeInfo && absenteeInfo.continuousAbsences > 0;
+
+                return (
+                  <TableRow
+                    key={student?._id}
+                    className={
+                      attendance[student?._id]
+                        ? ""
+                        : "bg-rose-300 dark:bg-rose-700 hover:bg-rose-300 dark:hover:bg-rose-700"
+                    }
+                    onClick={() => toggleAttendance(student?._id)}
+                  >
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={student.profilePic?.url} />
+                          <AvatarFallback>
+                            {student.name.substring(0, 1)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-xs whitespace-nowrap">
+                            {student.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {student?._id}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        {/* Show absentee status on desktop */}
+                        {hasAbsenceHistory && (
+                          <AbsenteeStatus absenteeInfo={absenteeInfo} />
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             ) : (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-8">
