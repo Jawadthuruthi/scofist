@@ -128,8 +128,12 @@ export async function GET(req, res) {
 
       // Calculate continuous absences for each student
       Object.values(studentAbsences).forEach((student) => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
         // Sort absences by date (newest first)
-        student.absences.sort((a, b) => new Date(b.date) - new Date(a.date));
+        student.absences
+          .filter((item) => new Date(item.date) >= yesterday)
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
 
         // Count continuous absences
         for (const absence of student.absences) {

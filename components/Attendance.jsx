@@ -77,7 +77,9 @@ const AttendancePage = ({ token, teacherId }) => {
   // Fetch historical attendance data for absentee tracking
   const historicalAttendanceQuery = useFetchAttendance(0, 10, {
     classId,
+    batchId,
     subjectId,
+    teacherId,
     trackAbsentees: true,
   });
 
@@ -167,7 +169,13 @@ const AttendancePage = ({ token, teacherId }) => {
     const rawAbsenteeData =
       historicalAttendanceQuery.data.attendances.absenteeTracking;
 
-    return rawAbsenteeData;
+    const today = new Date(attendanceDate);
+    today.setDate(today.getDate() - 1);
+    const yesterday = formatDate(today);
+
+    return rawAbsenteeData?.filter(
+      (student) => student.lastAbsenceDate === yesterday
+    );
   };
 
   // Process historical attendance data for absentee tracking
