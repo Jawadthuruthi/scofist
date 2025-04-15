@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Edit, Loader2, AlertCircle, CheckCircle2, UserX } from "lucide-react";
+import {
+  Edit,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  UserX,
+  Save,
+} from "lucide-react";
 
 // UI Components
 import {
@@ -45,6 +52,7 @@ import { DAYS } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import usePrint from "@/hooks/use-print";
 import { Input } from "./ui/input";
+import ConfirmationPopup from "./ConfirmationPopup";
 
 // Absentees Dialog Component - Extracted to improve readability
 const AbsenteesDialog = ({
@@ -117,6 +125,7 @@ const TimetableSlot = ({
   isAttendanceMarked,
   absentees,
   showAbsenteesDialog,
+  isPendingChange,
 }) => {
   const hasData = cellData && (cellData.subjectId || cellData.teacherId);
   const absenteesList = useMemo(
@@ -128,6 +137,8 @@ const TimetableSlot = ({
     <TableCell
       className={`${
         isAttendanceMarked ? "bg-green-300/50 print:bg-inherit" : ""
+      } ${
+        isPendingChange ? "bg-blue-300/50 print:bg-inherit" : ""
       } border text-center cursor-pointer transition-colors max-w-32`}
       onClick={() => {
         onCellClick(periodNumber, day);
@@ -209,6 +220,8 @@ const TimeTablesManagements = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [teacherScheduleConflicts, setTeacherScheduleConflicts] = useState([]);
   const [existingTimeSlotId, setExistingTimeSlotId] = useState(null);
+  const [pendingChanges, setPendingChanges] = useState([]);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
 
   const day = useMemo(
     () =>
@@ -221,7 +234,10 @@ const TimeTablesManagements = ({
   // References and hooks
   const router = useRouter();
   const timeTableRef = useRef();
-  const { useFetchItems, useUpdateItem } = useCrud("timeTables", token);
+  const { useFetchItems, useUpdateItem, useDeleteItem } = useCrud(
+    "timeTables",
+    token
+  );
   const { useFetchItems: useFetchAttendance } = useCrud("attendances", token);
 
   const startDate = new Date();
@@ -259,6 +275,7 @@ const TimeTablesManagements = ({
   const fetchItemsQuery = useFetchItems(0, 0, fetchQuery);
   const allTimeTablesQuery = useFetchItems(0, 0, {});
   const updateItem = useUpdateItem();
+  const deleteItem = useDeleteItem();
 
   // Handler for showing absentees dialog
   const showAbsenteesDialog = useCallback(
@@ -331,6 +348,57 @@ const TimeTablesManagements = ({
     [allTimeTablesQuery.data, classes]
   );
 
+  const checkPendingConflicts = (
+    teacherId,
+    periodNumber,
+    day,
+    currentChangeId = null
+  ) => {
+    // Skip if no teacher selected
+    if (!teacherId) return [];
+
+    const conflicts = [];
+
+    // Check against other pending changes
+    pendingChanges.forEach((change) => {
+      // Skip comparing with the current change when editing
+      if (
+        currentChangeId &&
+        change.timeSlots.periodNumber === parseInt(periodNumber) &&
+        change.timeSlots.day === day &&
+        change.classId === selectedClass
+      ) {
+        return;
+      }
+
+      if (
+        change.timeSlots.teacherId === teacherId &&
+        change.timeSlots.periodNumber === parseInt(periodNumber) &&
+        change.timeSlots.day === day
+      ) {
+        // Get class name for the conflict
+        const conflictClass = classes.find(
+          (cls) => cls?._id === change.classId
+        );
+
+        conflicts.push({
+          class: conflictClass?.name || "Unknown Class",
+          subject:
+            subjects.find((s) => s._id === change.timeSlots.subjectId)?.name ||
+            "Unknown Subject",
+          teacherName:
+            teachers.find((t) => t._id === teacherId)?.name ||
+            "Unknown Teacher",
+          day: day,
+          period: periodNumber,
+          isPending: true,
+        });
+      }
+    });
+
+    return conflicts;
+  };
+
   // Process timetable data when query results change
   useEffect(() => {
     if (!fetchItemsQuery.data) return;
@@ -380,13 +448,26 @@ const TimeTablesManagements = ({
   // Check for conflicts when form values change
   useEffect(() => {
     if (selectedTeacher && selectedPeriod && selectedDay) {
-      const conflicts = checkTeacherConflicts(
+      // Get existing conflicts from database
+      const existingConflicts = checkTeacherConflicts(
         selectedTeacher,
         parseInt(selectedPeriod),
         selectedDay,
         existingTimeSlotId
       );
-      setTeacherScheduleConflicts(conflicts);
+
+      // Get conflicts from pending changes
+      const pendingConflicts = checkPendingConflicts(
+        selectedTeacher,
+        selectedPeriod,
+        selectedDay,
+        existingTimeSlotId
+          ? `${selectedDay}-${selectedPeriod}-${selectedClass}`
+          : null
+      );
+
+      // Show all conflicts
+      setTeacherScheduleConflicts([...existingConflicts, ...pendingConflicts]);
     } else {
       setTeacherScheduleConflicts([]);
     }
@@ -396,6 +477,7 @@ const TimeTablesManagements = ({
     selectedDay,
     existingTimeSlotId,
     checkTeacherConflicts,
+    pendingChanges, // Add this dependency
   ]);
 
   // Helper to format period time
@@ -426,6 +508,42 @@ const TimeTablesManagements = ({
   // Get cell data for specific period and day
   const getCellData = useCallback(
     (periodNumber, day, classId) => {
+      // First check pending changes for the specific class
+      const targetClassId = classId || selectedClass;
+      const pendingChange = pendingChanges.find(
+        (change) =>
+          change.timeSlots.periodNumber === periodNumber &&
+          change.timeSlots.day === day &&
+          change.classId === targetClassId // Only show pending changes for this class
+      );
+
+      if (pendingChange) {
+        // Convert pending change to cell data format
+        return {
+          periodNumber,
+          day,
+          subjectId: {
+            _id: pendingChange.timeSlots.subjectId,
+            name:
+              subjects.find((s) => s._id === pendingChange.timeSlots.subjectId)
+                ?.name || "",
+          },
+          teacherId: {
+            _id: pendingChange.timeSlots.teacherId,
+            name:
+              teachers.find((t) => t._id === pendingChange.timeSlots.teacherId)
+                ?.name || "",
+          },
+          classId: {
+            _id: pendingChange.classId,
+            name:
+              classes.find((c) => c._id === pendingChange.classId)?.name || "",
+          },
+          _isPending: true,
+        };
+      }
+
+      // If no pending change, check existing data
       return timeTableData.timeSlots?.find(
         (slot) =>
           slot.periodNumber === periodNumber &&
@@ -433,7 +551,28 @@ const TimeTablesManagements = ({
           (!classId || slot.classId?._id === classId)
       );
     },
-    [timeTableData.timeSlots]
+    [
+      timeTableData.timeSlots,
+      pendingChanges,
+      subjects,
+      teachers,
+      classes,
+      selectedClass,
+    ]
+  );
+
+  // Check if a cell has pending changes
+  const isPendingChange = useCallback(
+    (periodNumber, day, classId) => {
+      const targetClassId = classId || selectedClass;
+      return pendingChanges.some(
+        (change) =>
+          change.timeSlots.periodNumber === periodNumber &&
+          change.timeSlots.day === day &&
+          change.classId === targetClassId
+      );
+    },
+    [pendingChanges, selectedClass]
   );
 
   // Handle cell click to open edit dialog
@@ -453,47 +592,113 @@ const TimeTablesManagements = ({
     [category, getCellData]
   );
 
+  // Handle adding changes to pending queue
+  const handleAddToPendingChanges = (e) => {
+    e.preventDefault();
+
+    if (selectedClass) {
+      const existingConflicts = checkTeacherConflicts(
+        selectedTeacher,
+        parseInt(selectedPeriod),
+        selectedDay,
+        existingTimeSlotId
+      );
+
+      // Get conflicts from pending changes
+      const pendingConflicts = checkPendingConflicts(
+        selectedTeacher,
+        selectedPeriod,
+        selectedDay,
+        existingTimeSlotId
+          ? `${selectedDay}-${selectedPeriod}-${selectedClass}`
+          : null
+      );
+
+      // Combine all conflicts
+      const allConflicts = [...existingConflicts, ...pendingConflicts];
+
+      // If conflicts exist, show error and don't proceed
+      if (allConflicts.length > 0) {
+        toast.error(
+          "Teacher scheduling conflict detected. Cannot add to pending changes."
+        );
+
+        // Update conflict state to display in UI
+        setTeacherScheduleConflicts(allConflicts);
+        return;
+      }
+    }
+
+    const newChange = {
+      classId: selectedClass,
+      timeSlots: {
+        day: selectedDay,
+        periodNumber: parseInt(selectedPeriod),
+        subjectId: selectedSubject,
+        teacherId: selectedTeacher,
+      },
+    };
+
+    // If we're editing an existing slot, include its ID
+    if (existingTimeSlotId) {
+      newChange.timeSlots._id = existingTimeSlotId;
+    }
+
+    // Add timetable _id if it exists
+    if (timeTableData?._id) {
+      newChange._id = timeTableData?._id;
+    }
+
+    // Check if we're updating an existing pending change
+    const existingIndex = pendingChanges.findIndex(
+      (change) =>
+        change.timeSlots.periodNumber === parseInt(selectedPeriod) &&
+        change.timeSlots.day === selectedDay &&
+        change.classId === selectedClass
+    );
+
+    if (existingIndex !== -1) {
+      // Update existing pending change
+      const updatedChanges = [...pendingChanges];
+      updatedChanges[existingIndex] = newChange;
+      setPendingChanges(updatedChanges);
+    } else {
+      // Add new pending change
+      setPendingChanges([...pendingChanges, newChange]);
+    }
+
+    setHasPendingChanges(true);
+    setEditDialogOpen(false);
+    toast.success("Changes added to changes. Save all to apply changes.");
+
+    // Reset form
+    setSelectedSubject("");
+    setSelectedTeacher("");
+    setExistingTimeSlotId(null);
+  };
+
   // Form submission handler
   const handleSubmit = async (e) => {
+    if (pendingChanges.length === 0) {
+      toast.info("No changes to save");
+      return;
+    }
     try {
       e.preventDefault();
       setIsSubmitting(true);
 
-      const payload = {
-        classId: selectedClass,
-        timeSlots: {
-          day: selectedDay,
-          periodNumber: parseInt(selectedPeriod),
-          subjectId: selectedSubject,
-          teacherId: selectedTeacher,
-        },
-      };
-
-      // If we're editing an existing slot, include its ID
-      if (existingTimeSlotId) {
-        payload.timeSlots._id = existingTimeSlotId;
-      }
-
-      // Add timetable _id if it exists
-      if (timeTableData?._id) {
-        payload._id = timeTableData?._id;
-      }
-
       await updateItem.mutateAsync({
-        data: payload,
+        data: pendingChanges,
       });
 
+      setPendingChanges([]);
+      setHasPendingChanges(false);
       setEditDialogOpen(false);
       toast.success("Time table updated successfully!");
 
       // Refresh data
       fetchItemsQuery.refetch();
       allTimeTablesQuery.refetch();
-
-      // Reset form
-      setSelectedSubject("");
-      setSelectedTeacher("");
-      setExistingTimeSlotId(null);
     } catch (error) {
       console.error("Error updating time table:", error.message);
       toast.error(
@@ -502,6 +707,45 @@ const TimeTablesManagements = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleResetTimetable = async () => {
+    try {
+      setIsSubmitting(true);
+
+      // Create a reset request - this will clear all time slots for this class
+      await deleteItem.mutateAsync([timeTableData?._id]);
+
+      // Clear any pending changes for this class
+      const remainingChanges = pendingChanges.filter(
+        (change) => change.classId !== selectedClass
+      );
+
+      setPendingChanges(remainingChanges);
+      if (remainingChanges.length === 0) {
+        setHasPendingChanges(false);
+      }
+
+      toast.success("Time table reset successfully!");
+
+      // Refresh data
+      fetchItemsQuery.refetch();
+      allTimeTablesQuery.refetch();
+    } catch (error) {
+      console.error("Error resetting time table:", error.message);
+      toast.error(
+        `Error resetting time table: ${error.message || "Unknown error"}`
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Discard all pending changes
+  const handleDiscardChanges = () => {
+    setPendingChanges([]);
+    setHasPendingChanges(false);
+    toast.info("All pending changes discarded");
   };
 
   // Get current view title for display
@@ -600,6 +844,32 @@ const TimeTablesManagements = ({
           </div>
         )}
       </div>
+      {category === "class" && hasPendingChanges && (
+        <div className="flex gap-2 mb-4">
+          <div>
+            <Button
+              variant="default"
+              className="flex items-center"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save All Changes ({pendingChanges.length})
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleDiscardChanges}
+              disabled={isSubmitting}
+            >
+              Discard Changes
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Timetable Display */}
       {fetchItemsQuery.isLoading ? (
@@ -658,6 +928,11 @@ const TimeTablesManagements = ({
                             ),
                           })
                         );
+                        const isPending = isPendingChange(
+                          period.periodNumber,
+                          day
+                        );
+
                         return (
                           <TimetableSlot
                             key={`${day}-${period.periodNumber}`}
@@ -670,6 +945,7 @@ const TimeTablesManagements = ({
                             isAttendanceMarked={markedAttendance?.length > 0}
                             absentees={absentees}
                             showAbsenteesDialog={showAbsenteesDialog}
+                            isPendingChange={isPending}
                           />
                         );
                       })}
@@ -704,6 +980,12 @@ const TimeTablesManagements = ({
                             ),
                           })
                         );
+                        const isPending = isPendingChange(
+                          period.periodNumber,
+                          day,
+                          classItem?._id
+                        );
+
                         return (
                           <TimetableSlot
                             key={`${classItem?._id}-${period.periodNumber}`}
@@ -716,6 +998,7 @@ const TimeTablesManagements = ({
                             isAttendanceMarked={markedAttendance?.length > 0}
                             absentees={absentees}
                             showAbsenteesDialog={showAbsenteesDialog}
+                            isPendingChange={isPending}
                           />
                         );
                       })}
@@ -730,7 +1013,16 @@ const TimeTablesManagements = ({
         </div>
       )}
 
-      <div className="w-full flex justify-end my-4">
+      <div className="w-full flex justify-end gap-2 my-4">
+        {category === "class" && selectedClass && (
+          <ConfirmationPopup
+            onClick={handleResetTimetable}
+            action="reset"
+            loading={isSubmitting}
+            title={"Reset Time Table"}
+            icon="Reset"
+          />
+        )}
         <Button onClick={handlePrint}>Print</Button>
       </div>
 
@@ -766,7 +1058,7 @@ const TimeTablesManagements = ({
               <SelectTrigger>
                 <SelectValue placeholder="Select a Subject" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" sideOffset={5}>
                 <SelectGroup>
                   <SelectItem value={null}>None</SelectItem>
                   {filteredSubjects.map((subject) => (
@@ -813,14 +1105,11 @@ const TimeTablesManagements = ({
 
           <DialogFooter className="mt-4 gap-2">
             <Button
-              onClick={handleSubmit}
+              onClick={handleAddToPendingChanges}
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || teacherScheduleConflicts.length > 0}
             >
-              {isSubmitting && (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              )}
-              Save Changes
+              Add to Changes
             </Button>
           </DialogFooter>
         </DialogContent>
