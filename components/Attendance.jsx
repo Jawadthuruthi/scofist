@@ -308,8 +308,8 @@ const AttendancePage = ({ token, teacherId }) => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <Header
             title="ATTENDANCE MANAGEMENT"
-            subTitle={`Mark Attendance For ${capitalize(classDetails?.name)} - 
-                ${capitalize(subjectDetails?.name)}`}
+            subTitle={`Mark Attendance For ${classDetails?.name} - 
+                ${subjectDetails?.name}`}
           />
         </div>
       </div>
@@ -321,7 +321,7 @@ const AttendancePage = ({ token, teacherId }) => {
         ) : (
           <>
             {/* Info Bar */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />

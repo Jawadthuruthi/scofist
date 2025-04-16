@@ -149,7 +149,7 @@ const TimetableSlot = ({
     >
       {hasData ? (
         <div className="flex flex-col items-center justify-center">
-          <p className="font-medium text-xs">
+          <p className="font-medium text-xxs">
             {cellData.subjectId?.name || ""}
           </p>
           <p className="text-xxs text-accent-foreground">
@@ -846,28 +846,26 @@ const TimeTablesManagements = ({
       </div>
       {category === "class" && hasPendingChanges && (
         <div className="flex gap-2 mb-4">
-          <div>
-            <Button
-              variant="default"
-              className="flex items-center"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              Save All Changes ({pendingChanges.length})
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleDiscardChanges}
-              disabled={isSubmitting}
-            >
-              Discard Changes
-            </Button>
-          </div>
+          <Button
+            variant="default"
+            className="flex items-center"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Save All ({pendingChanges.length})
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleDiscardChanges}
+            disabled={isSubmitting}
+          >
+            Discard Changes
+          </Button>
         </div>
       )}
 
