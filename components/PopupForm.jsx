@@ -269,7 +269,7 @@ export default function PopupForm({
         return;
       }
     }
-  }, [onSubmit, onSubmit]);
+  }, [onSubmit]);
 
   React.useEffect(() => {
     setCustomizedFormField(

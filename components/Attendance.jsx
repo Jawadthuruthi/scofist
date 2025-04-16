@@ -305,13 +305,11 @@ const AttendancePage = ({ token, teacherId }) => {
   return (
     <div className="space-y-6">
       <div>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-          <Header
-            title="ATTENDANCE MANAGEMENT"
-            subTitle={`Mark Attendance For ${classDetails?.name} - 
+        <Header
+          title="ATTENDANCE MANAGEMENT"
+          subTitle={`Mark Attendance For ${classDetails?.name} - 
                 ${subjectDetails?.name}`}
-          />
-        </div>
+        />
       </div>
       <div className="p-4 border border-border space-y-4 rounded-md">
         {loading ? (

@@ -60,6 +60,9 @@ const PopupForm = dynamic(() => import("./PopupForm"), {
     </Button>
   ),
 });
+const PrintHeader = dynamic(() => import("./PrintHeader"), {
+  ssr: false,
+});
 
 const getCellStyles = (meta) => ({
   width: meta?.width || "auto",
@@ -586,6 +589,7 @@ const DataTableComponent = ({
         ref={tableRef}
         className={`rounded-md border shadow-sm table-print relative`}
       >
+        <PrintHeader token={token} title={resource} />
         <div
           ref={tableBodyRef}
           className="overflow-auto"
