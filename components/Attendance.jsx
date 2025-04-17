@@ -25,7 +25,7 @@ import Header from "./Header";
 import { capitalize } from "lodash";
 import AbsenteeStatus from "./AbsenteeStatus";
 
-const AttendancePage = ({ token, teacherId }) => {
+const Attendance = ({ token, teacherId }) => {
   const searchParams = useSearchParams();
 
   // Get query parameters
@@ -215,8 +215,9 @@ const AttendancePage = ({ token, teacherId }) => {
     const absent = total - present;
     const presentPercentage =
       total > 0 ? Math.round((present / total) * 100) : 0;
+    const absentPercentage = total > 0 ? Math.round((absent / total) * 100) : 0;
 
-    return { total, present, absent, presentPercentage };
+    return { total, present, absent, presentPercentage, absentPercentage };
   }, [students, attendance]);
 
   // Check if a student has absence history
@@ -293,15 +294,6 @@ const AttendancePage = ({ token, teacherId }) => {
     }
   };
 
-  // Set all present
-  const setAllPresent = () => {
-    const newAttendance = {};
-    students.forEach((student) => {
-      newAttendance[student?._id] = true;
-    });
-    setAttendance(newAttendance);
-  };
-
   return (
     <div className="space-y-6">
       <div>
@@ -342,9 +334,14 @@ const AttendancePage = ({ token, teacherId }) => {
                     {stats.present}/{stats.total} Present (
                     {stats.presentPercentage}%)
                   </Badge>
-                  <Button variant="outline" size="sm" onClick={setAllPresent}>
-                    Mark All Present
-                  </Button>
+                  <Badge
+                    variant={
+                      stats.absentPercentage < 20 ? "success" : "destructive"
+                    }
+                  >
+                    {stats.absent}/{stats.total} Absent (
+                    {stats.absentPercentage}%)
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -352,7 +349,7 @@ const AttendancePage = ({ token, teacherId }) => {
         )}
       </div>
       {/* Students Table */}
-      <div className="overflow-x-auto border rounded-md">
+      <div className="overflow-x-auto max-h-[calc(100vh-415px)] md:max-h-[calc(100vh-339px)]  border rounded-md">
         <Table>
           <TableHeader>
             <TableRow>
@@ -436,4 +433,4 @@ const AttendancePage = ({ token, teacherId }) => {
   );
 };
 
-export default AttendancePage;
+export default Attendance;
