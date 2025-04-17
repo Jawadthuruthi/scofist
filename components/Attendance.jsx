@@ -41,7 +41,6 @@ const Attendance = ({ token, teacherId }) => {
   const [students, setStudents] = useState([]);
   const [attendance, setAttendance] = useState({});
   const [classDetails, setClassDetails] = useState(null);
-  const [subjectDetails, setSubjectDetails] = useState(null);
   const [periodDetails, setPeriodDetails] = useState(null);
   const [attendanceExists, setAttendanceExists] = useState(false);
   const [attendanceDate, setAttendanceDate] = useState(formatDate(new Date()));
@@ -50,7 +49,6 @@ const Attendance = ({ token, teacherId }) => {
   // CRUD hooks
   const { useFetchItems: useFetchUsers } = useCrud("users", token);
   const { useFetchItems: useFetchClass } = useCrud("classes", token);
-  const { useFetchItems: useFetchSubject } = useCrud("subjects", token);
   const { useFetchItems: useFetchPeriod } = useCrud("periods", token);
   const {
     useFetchItems: useFetchAttendance,
@@ -61,7 +59,6 @@ const Attendance = ({ token, teacherId }) => {
 
   // Fetch data queries
   const classQuery = useFetchClass(null, null, { _id: classId });
-  const subjectQuery = useFetchSubject(null, null, { _id: subjectId });
   const periodQuery = useFetchPeriod(null, null, { periodNumber });
   const studentsQuery = useFetchUsers(null, null, {
     roles: ["Student"],
@@ -92,10 +89,6 @@ const Attendance = ({ token, teacherId }) => {
   useEffect(() => {
     if (classQuery.data?.classes[0]) {
       setClassDetails(classQuery.data.classes[0]);
-    }
-
-    if (subjectQuery.data?.subjects[0]) {
-      setSubjectDetails(subjectQuery.data.subjects[0]);
     }
 
     if (periodQuery.data?.periods[0]) {
@@ -140,7 +133,6 @@ const Attendance = ({ token, teacherId }) => {
     // Check if all data is loaded
     if (
       classQuery.data &&
-      subjectQuery.data &&
       periodQuery.data &&
       studentsQuery.data &&
       attendanceQuery.data
@@ -149,7 +141,6 @@ const Attendance = ({ token, teacherId }) => {
     }
   }, [
     classQuery.data,
-    subjectQuery.data,
     periodQuery.data,
     studentsQuery.data,
     attendanceQuery.data,
@@ -294,13 +285,18 @@ const Attendance = ({ token, teacherId }) => {
     }
   };
 
+  const subjectName = useMemo(() => {
+    return classDetails?.subjects?.find((subject) => subject._id === subjectId)
+      ?.name;
+  }, [classDetails]);
+
   return (
     <div className="space-y-6">
       <div>
         <Header
           title="ATTENDANCE MANAGEMENT"
           subTitle={`Mark Attendance For ${classDetails?.name} - 
-                ${subjectDetails?.name}`}
+                ${subjectName}`}
         />
       </div>
       <div className="p-4 border border-border space-y-4 rounded-md">
