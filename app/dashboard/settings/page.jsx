@@ -37,12 +37,7 @@ const formFields = [
     section: "Institution Identity",
     className: "col-span-2 md:col-span-1",
   },
-  {
-    name: "registrationNumber",
-    label: "Registration Number",
-    placeholder: "Enter registration number",
-    section: "Institution Identity",
-  },
+
   {
     name: "establishedYear",
     label: "Established Year",
@@ -147,10 +142,8 @@ export default async function SettingsPage() {
           token={token}
           data={settings}
           resource="settings"
-          title="Institution Settings Management"
-          description="Configure your institution's identity, contact information, and
-            branding elements that will appear across all system-generated
-            documents."
+          title="Institution Settings"
+          description="Configure Your Institution Details"
         />
       </>
     );

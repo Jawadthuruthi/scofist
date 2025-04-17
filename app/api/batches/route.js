@@ -56,8 +56,8 @@ export async function GET(req, res) {
     const batches = await Batch.find(query, projections)
       .skip(page * limit)
       .limit(limit)
-      .sort({ _id: 1 });
-
+      .sort({ _id: 1 })
+      .collation({ locale: "en_US", numericOrdering: true });
     // Get total count for pagination info
     const total = await Batch.countDocuments(query);
 

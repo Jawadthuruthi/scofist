@@ -40,8 +40,8 @@ export async function GET(req, res) {
     const subjects = await Subject.find(query, projections)
       .skip(page * limit)
       .limit(limit)
-      .sort({ _id: 1 });
-
+      .sort({ _id: 1 })
+      .collation({ locale: "en_US", numericOrdering: true });
     const total = await Subject.countDocuments(query);
 
     return NextResponse.json(

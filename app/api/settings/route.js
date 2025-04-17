@@ -39,7 +39,6 @@ export async function POST(req, res) {
         shortName: data.shortName,
         tagline: data.tagline,
         logo: data.logo,
-        registrationNumber: data.registrationNumber,
         establishedYear: data.establishedYear,
         address: {
           line1: data.line1,
@@ -101,7 +100,6 @@ export async function PUT(req, res) {
         shortName: data.shortName,
         tagline: data.tagline,
         logo: data.logo,
-        registrationNumber: data.registrationNumber,
         establishedYear: data.establishedYear,
         address: {
           line1: data.line1,

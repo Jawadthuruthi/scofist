@@ -845,7 +845,14 @@ const TimeTablesManagements = ({
         )}
       </div>
       {category === "class" && hasPendingChanges && (
-        <div className="flex gap-2 mb-4">
+        <div className="flex justify-end gap-2 mb-4">
+          <Button
+            variant="outline"
+            onClick={handleDiscardChanges}
+            disabled={isSubmitting}
+          >
+            Discard Changes
+          </Button>
           <Button
             variant="default"
             className="flex items-center"
@@ -858,13 +865,6 @@ const TimeTablesManagements = ({
               <Save className="h-4 w-4 mr-2" />
             )}
             Save All ({pendingChanges.length})
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleDiscardChanges}
-            disabled={isSubmitting}
-          >
-            Discard Changes
           </Button>
         </div>
       )}

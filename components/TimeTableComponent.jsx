@@ -86,7 +86,7 @@ const AbsenteesDialog = ({
   );
 };
 
-const TimeTableComponent = ({ token, teacherId }) => {
+const TimeTableComponent = ({ token, teacherId, hidePrintButton = false }) => {
   const timeTableRef = useRef(null);
   const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
   const [currentDialogData, setCurrentDialogData] = useState({});
@@ -95,47 +95,96 @@ const TimeTableComponent = ({ token, teacherId }) => {
   const { useFetchItems } = useCrud("timeTables", token);
   const { useFetchItems: useFetchPeriods } = useCrud("periods", token);
   const { useFetchItems: useFetchAttendance } = useCrud("attendances", token);
+  const { useFetchItems: useFetchClasses } = useCrud("classes", token);
 
   // Set date range for attendance data (last 7 days)
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 7);
   const endDate = new Date();
+  const daysOfWeek = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const currentDay = daysOfWeek[new Date().getDay()];
 
-  const fetchItemsQuery = useFetchItems(0, 0, { teacherId });
+  const attendanceApiFilter = teacherId
+    ? {
+        startDate: startDate.toISOString().split("T")[0],
+        endDate: endDate.toISOString().split("T")[0],
+        teacherId: teacherId,
+      }
+    : { date: endDate.toISOString().split("T")[0] };
+
+  const timeTableApiFilter = teacherId ? { teacherId } : { day: currentDay };
+
+  const fetchItemsQuery = useFetchItems(0, 0, timeTableApiFilter);
   const fetchPeriodsQuery = useFetchPeriods(0, 0, {});
-  const fetchAttendanceQuery = useFetchAttendance(0, 0, {
-    startDate: startDate.toISOString().split("T")[0],
-    endDate: endDate.toISOString().split("T")[0],
-    teacherId: teacherId,
-  });
+  const fetchAttendanceQuery = useFetchAttendance(0, 0, attendanceApiFilter);
+  const fetchClassesQuery = useFetchClasses(0, 0, {});
 
   const timeTables = fetchItemsQuery.data?.timeTables || [];
   const periods = fetchPeriodsQuery.data?.periods || [];
   const attendanceData = fetchAttendanceQuery.data?.attendances || [];
+  const classes = fetchClassesQuery.data?.classes || [];
 
-  const timeTableData = timeTables.reduce(
-    (acc, timeTable) => {
-      const slots = timeTable.timeSlots.filter(
-        (slot) => slot.teacherId?._id === teacherId
+  const timeTableData = teacherId
+    ? timeTables.reduce(
+        (acc, timeTable) => {
+          const slots = timeTable.timeSlots.filter(
+            (slot) => slot.teacherId?._id === teacherId
+          );
+          const classId = timeTable.classId;
+          return {
+            timeSlots: [
+              ...(acc.timeSlots || []),
+              ...slots.map((slot) => ({ ...slot, classId })),
+            ],
+          };
+        },
+        { timeSlots: [] }
+      )
+    : timeTables.reduce(
+        (acc, timeTable) => {
+          // Only get slots for the current day
+          const slots = timeTable.timeSlots.filter(
+            (slot) => slot.day === currentDay
+          );
+
+          // Make sure we're associating the correct classId with each slot
+          const classId = timeTable.classId;
+          return {
+            timeSlots: [
+              ...(acc.timeSlots || []),
+              ...slots.map((slot) => ({ ...slot, classId })),
+            ],
+          };
+        },
+        { timeSlots: [] }
       );
-      const classId = timeTable.classId;
-      return {
-        timeSlots: [
-          ...(acc.timeSlots || []),
-          ...slots.map((slot) => ({ ...slot, classId })),
-        ],
-      };
-    },
-    { timeSlots: [] }
-  );
 
   const getCellData = useCallback(
-    (periodNumber, day) => {
-      return timeTableData.timeSlots?.find(
-        (slot) => slot.periodNumber === periodNumber && slot.day === day
-      );
+    (periodNumber, day, classId = null) => {
+      if (teacherId) {
+        // For teacher view
+        return timeTableData.timeSlots?.find(
+          (slot) => slot.periodNumber === periodNumber && slot.day === day
+        );
+      } else {
+        // For class view
+        return timeTableData.timeSlots?.find(
+          (slot) =>
+            slot.periodNumber === periodNumber &&
+            slot.day === day &&
+            (classId ? slot.classId?._id === classId : true)
+        );
+      }
     },
-    [timeTableData.timeSlots]
+    [timeTableData.timeSlots, teacherId]
   );
 
   const getPeriodTime = useCallback(
@@ -200,93 +249,191 @@ const TimeTableComponent = ({ token, teacherId }) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {DAYS.map((day) => (
-                <TableRow key={day} className="hover:bg-accent/50">
-                  <TableCell className="border font-medium bg-accent sticky left-0 z-10">
-                    <div className="flex items-center gap-2">
-                      {day.slice(0, 3)}
-                    </div>
-                  </TableCell>
-                  {periods.map((period) => {
-                    const cellData = getCellData(period.periodNumber, day);
-
-                    // Check for marked attendance
-                    const markedAttendance = attendanceData.filter(
-                      (attendance) =>
-                        attendance.periodNumber === period.periodNumber &&
-                        attendance.day === day &&
-                        attendance.teacherId?._id === teacherId
-                    );
-
-                    // Prepare absentees list
-                    const absentees = markedAttendance?.map((attendance) => ({
-                      absentees: attendance?.attendanceData?.filter(
-                        (record) => record.present === false
-                      ),
-                    }));
-
-                    const absenteesList =
-                      absentees?.flatMap((item) => item.absentees || []) || [];
-                    const isAttendanceMarked = markedAttendance?.length > 0;
-
-                    return (
-                      <TableCell
-                        onClick={() => {
-                          if (isAttendanceMarked) {
-                            showAbsenteesDialog(
-                              period.periodNumber,
-                              day,
-                              cellData,
-                              absenteesList
-                            );
-                          }
-                        }}
-                        key={period?._id}
-                        className={`${
-                          isAttendanceMarked
-                            ? "bg-green-300/50 print:bg-inherit"
-                            : ""
-                        } border text-center  cursor-pointer`}
-                      >
-                        {cellData ? (
-                          <div className="flex flex-col items-center justify-center">
-                            <p className="font-medium text-xs">
-                              {cellData.subjectId?.name || ""}
-                            </p>
-                            <p className="text-xxs text-accent-foreground">
-                              {cellData.classId?.name || ""}
-                            </p>
-
-                            {/* Attendance badge */}
-                            {isAttendanceMarked && absenteesList.length > 0 && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge
-                                      variant="outline"
-                                      className="mt-1 text-xxs print:hidden"
-                                    >
-                                      <UserX className="h-3 w-3 mr-1" />
-                                      {absenteesList.length}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>View absent students</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center">
-                            <span className="text-sm font-semibold">-</span>
-                          </div>
-                        )}
+              {teacherId
+                ? DAYS.map((day) => (
+                    <TableRow key={day} className="hover:bg-accent/50">
+                      <TableCell className="border font-medium bg-accent sticky left-0 z-10">
+                        <div className="flex text-xs items-center gap-2">
+                          {day.slice(0, 3)}
+                        </div>
                       </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))}
+                      {periods.map((period) => {
+                        const cellData = getCellData(period.periodNumber, day);
+
+                        // Check for marked attendance
+                        const markedAttendance = attendanceData.filter(
+                          (attendance) =>
+                            attendance.periodNumber === period.periodNumber &&
+                            attendance.day === day &&
+                            attendance.teacherId?._id === teacherId
+                        );
+
+                        // Prepare absentees list
+                        const absentees = markedAttendance?.map(
+                          (attendance) => ({
+                            absentees: attendance?.attendanceData?.filter(
+                              (record) => record.present === false
+                            ),
+                          })
+                        );
+
+                        const absenteesList =
+                          absentees?.flatMap((item) => item.absentees || []) ||
+                          [];
+                        const isAttendanceMarked = markedAttendance?.length > 0;
+
+                        return (
+                          <TableCell
+                            onClick={() => {
+                              if (isAttendanceMarked) {
+                                showAbsenteesDialog(
+                                  period.periodNumber,
+                                  day,
+                                  cellData,
+                                  absenteesList
+                                );
+                              }
+                            }}
+                            key={period?._id}
+                            className={`${
+                              isAttendanceMarked
+                                ? "bg-green-300/50 print:bg-inherit"
+                                : ""
+                            } border text-center  cursor-pointer`}
+                          >
+                            {cellData ? (
+                              <div className="flex flex-col items-center justify-center">
+                                <p className="font-medium text-xxs">
+                                  {cellData.subjectId?.name || ""}
+                                </p>
+                                <p className="text-xxs text-accent-foreground">
+                                  {cellData.classId?.name || ""}
+                                </p>
+
+                                {/* Attendance badge */}
+                                {isAttendanceMarked &&
+                                  absenteesList.length > 0 && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Badge
+                                            variant="outline"
+                                            className="mt-1 text-xxs print:hidden"
+                                          >
+                                            <UserX className="h-3 w-3 mr-1" />
+                                            {absenteesList.length}
+                                          </Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>View absent students</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center">
+                                <span className="text-sm font-semibold">-</span>
+                              </div>
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))
+                : classes.map((classItem) => (
+                    <TableRow
+                      key={classItem?._id}
+                      className="hover:bg-accent/50"
+                    >
+                      <TableCell className="border font-medium bg-accent sticky left-0 z-10">
+                        <div className="flex items-center text-xs whitespace-nowrap gap-2">
+                          {classItem.name}
+                        </div>
+                      </TableCell>
+                      {periods.map((period) => {
+                        const cellData = getCellData(
+                          period.periodNumber,
+                          currentDay,
+                          classItem?._id
+                        );
+                        const markedAttendance = attendanceData.filter(
+                          (attendance) =>
+                            attendance.periodNumber === period.periodNumber &&
+                            attendance.day === currentDay &&
+                            attendance.classId?._id === classItem?._id
+                        );
+                        const absentees = markedAttendance.map(
+                          (attendance) => ({
+                            absentees: attendance?.attendanceData?.filter(
+                              (record) => record.present === false
+                            ),
+                          })
+                        );
+                        const absenteesList =
+                          absentees?.flatMap((item) => item.absentees || []) ||
+                          [];
+                        const isAttendanceMarked = markedAttendance?.length > 0;
+
+                        return (
+                          <TableCell
+                            onClick={() => {
+                              if (isAttendanceMarked) {
+                                showAbsenteesDialog(
+                                  period.periodNumber,
+                                  currentDay,
+                                  cellData,
+                                  absenteesList
+                                );
+                              }
+                            }}
+                            key={period?._id}
+                            className={`${
+                              isAttendanceMarked
+                                ? "bg-green-300/50 print:bg-inherit"
+                                : ""
+                            } border text-center  cursor-pointer`}
+                          >
+                            {cellData ? (
+                              <div className="flex flex-col items-center justify-center">
+                                <p className="font-medium text-xxs whitespace-nowrap">
+                                  {cellData.teacherId?.name || ""}
+                                </p>
+                                <p className="text-xxs text-accent-foreground whitespace-nowrap">
+                                  {cellData.subjectId?.name || ""}
+                                </p>
+
+                                {/* Attendance badge */}
+                                {isAttendanceMarked &&
+                                  absenteesList.length > 0 && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Badge
+                                            variant="outline"
+                                            className="mt-1 text-xxs print:hidden"
+                                          >
+                                            <UserX className="h-3 w-3 mr-1" />
+                                            {absenteesList.length}
+                                          </Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>View absent students</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center">
+                                <span className="text-sm font-semibold">-</span>
+                              </div>
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
             </TableBody>
           </Table>
         </div>
@@ -302,11 +449,13 @@ const TimeTableComponent = ({ token, teacherId }) => {
         absenteesList={currentAbsenteesList}
       />
 
-      <div className="flex justify-end mt-4">
-        <Button variant="default" onClick={handlePrint}>
-          Print
-        </Button>
-      </div>
+      {!hidePrintButton && (
+        <div className="flex justify-end mt-4">
+          <Button variant="default" onClick={handlePrint}>
+            Print
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

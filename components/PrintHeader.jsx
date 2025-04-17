@@ -23,21 +23,21 @@ export default function PrintHeader({ title, token }) {
       <CardContent className="p-0">
         <div className="flex flex-col print:w-full">
           {/* Header with logo and institution info */}
-          <div className="flex items-center justify-center p-3 bg-gradient-to-b from-white to-gray-50 border-b border-gray-200">
+          <div className="flex items-center justify-center bg-gradient-to-b from-white to-gray-50 border-b border-gray-200">
             {/* Left side - Logo */}
-            <div className="flex-shrink-0 w-28 h-36 mr-4">
+            <div className="flex-shrink-0 w-28 h-28 mr-4">
               {institution.logo && institution.logo.url ? (
                 <Image
                   src={institution.logo.url}
                   alt="Institution Logo"
                   width={112}
-                  height={144}
+                  height={112}
                   className="object-contain"
                   unoptimized
                   priority
                 />
               ) : (
-                <div className="w-28 h-36 bg-gray-50 flex items-center justify-center rounded-md border border-gray-200">
+                <div className="w-28 h-28 bg-gray-50 flex items-center justify-center rounded-md border border-gray-200">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
@@ -63,10 +63,10 @@ export default function PrintHeader({ title, token }) {
               <h1 className="text-lg font-bold mb-0 text-gray-800">
                 {institution.name || "INSTITUTION NAME"}
               </h1>
-              <p className="text-xs text-gray-600">
+              <p className="text-sm text-gray-600">
                 {institution.tagline && <span>({institution.tagline})</span>}
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-sm text-gray-600">
                 {institution.address?.line1 || ""}
                 {institution.address?.line2
                   ? `, ${institution.address.line2}`
@@ -78,13 +78,13 @@ export default function PrintHeader({ title, token }) {
                   ? `-${institution.address.postalCode}`
                   : ""}
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-sm text-gray-600">
                 {institution.contact?.primaryPhone &&
                   `Phone: ${institution.contact.primaryPhone}`}
                 {institution.contact?.secondaryPhone &&
                   `, ${institution.contact.secondaryPhone}`}
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-sm text-gray-600">
                 {institution.contact?.email &&
                   `Email: ${institution.contact.email}`}
                 {institution.contact?.website &&
@@ -94,13 +94,13 @@ export default function PrintHeader({ title, token }) {
           </div>
 
           {/* Black strip for document title */}
-          <div className="bg-black text-white py-2 text-center">
-            <h2 className="text-base md:text-lg font-medium">
-              {title
-                ? title.charAt(0).toUpperCase() + title.slice(1)
-                : "Report"}
-            </h2>
-          </div>
+          {title && title.length > 0 && (
+            <div className="bg-black text-white py-1 text-center">
+              <h2 className="text-lg font-medium">
+                {title.charAt(0).toUpperCase() + title.slice(1)}
+              </h2>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

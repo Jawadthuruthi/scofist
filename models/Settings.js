@@ -8,7 +8,6 @@ const SettingsSchema = new Schema(
       name: { type: String, required: true, trim: true },
       shortName: { type: String, trim: true },
       tagline: { type: String, trim: true },
-      registrationNumber: { type: String, trim: true },
       establishedYear: { type: Number },
       address: {
         line1: { type: String, trim: true },
