@@ -38,7 +38,7 @@ const studentAttendanceSchema = new Schema(
           required: true,
         },
         date: {
-          type: String,
+          type: Date,
           required: true,
         },
         present: {
@@ -90,16 +90,19 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
     }
   }
 
-  // Date range condition - only apply if both dates are provided
   if (startDate && endDate) {
     matchConditions["attendanceRecords.date"] = {
-      $gte: startDate,
-      $lte: endDate,
+      $gte: new Date(`${startDate}T00:00:00.000Z`),
+      $lte: new Date(`${endDate}T23:59:59.999Z`),
     };
   } else if (startDate) {
-    matchConditions["attendanceRecords.date"] = { $gte: startDate };
+    matchConditions["attendanceRecords.date"] = {
+      $gte: new Date(`${startDate}T00:00:00.000Z`),
+    };
   } else if (endDate) {
-    matchConditions["attendanceRecords.date"] = { $lte: endDate };
+    matchConditions["attendanceRecords.date"] = {
+      $lte: new Date(`${endDate}T23:59:59.999Z`),
+    };
   }
 
   // Create the aggregation pipeline to calculate attendance percentages

@@ -63,18 +63,22 @@ export async function GET(req, res) {
       teacherAttendances = teacherAttendances.map((record) => {
         const filteredAttendance = { ...record.toObject() };
 
-        if (dateFilter.date) {
-          filteredAttendance.attendanceRecords =
-            filteredAttendance.attendanceRecords.filter(
-              (r) => r.date === dateFilter.date
-            );
-        } else {
-          filteredAttendance.attendanceRecords =
-            filteredAttendance.attendanceRecords.filter(
-              (r) =>
-                r.date >= dateFilter.date.$gte && r.date <= dateFilter.date.$lte
-            );
-        }
+        filteredAttendance.attendanceRecords =
+          filteredAttendance.attendanceRecords.filter((r) => {
+            const recordDate = new Date(r.date);
+
+            // Exact match
+            if (dateFilter.date instanceof Date) {
+              return (
+                recordDate.toISOString().split("T")[0] ===
+                dateFilter.date.toISOString().split("T")[0]
+              );
+            }
+
+            // Range match
+            const { $gte, $lte } = dateFilter.date;
+            return recordDate >= new Date($gte) && recordDate <= new Date($lte);
+          });
 
         return filteredAttendance;
       });

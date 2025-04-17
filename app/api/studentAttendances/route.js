@@ -41,11 +41,23 @@ export async function GET(req, res) {
 
     // Handle date filtering
     let dateFilter = null;
+
     if (filterParams.date) {
-      dateFilter = { date: filterParams.date };
+      dateFilter = { date: new Date(filterParams.date) };
     } else if (filterParams.startDate && filterParams.endDate) {
       dateFilter = {
-        date: { $gte: filterParams.startDate, $lte: filterParams.endDate },
+        date: {
+          $gte: new Date(`${filterParams.startDate}T00:00:00.000Z`),
+          $lte: new Date(`${filterParams.endDate}T23:59:59.999Z`),
+        },
+      };
+    } else if (filterParams.startDate) {
+      dateFilter = {
+        date: { $gte: new Date(`${filterParams.startDate}T00:00:00.000Z`) },
+      };
+    } else if (filterParams.endDate) {
+      dateFilter = {
+        date: { $lte: new Date(`${filterParams.endDate}T23:59:59.999Z`) },
       };
     }
 
@@ -62,18 +74,25 @@ export async function GET(req, res) {
       studentAttendances = studentAttendances.map((record) => {
         const filteredAttendance = { ...record.toObject() };
 
-        if (dateFilter.date) {
-          filteredAttendance.attendanceRecords =
-            filteredAttendance.attendanceRecords.filter(
-              (r) => r.date === dateFilter.date
-            );
-        } else {
-          filteredAttendance.attendanceRecords =
-            filteredAttendance.attendanceRecords.filter(
-              (r) =>
-                r.date >= dateFilter.date.$gte && r.date <= dateFilter.date.$lte
-            );
-        }
+        // Ensure dates are compared correctly as Date objects
+        filteredAttendance.attendanceRecords =
+          filteredAttendance.attendanceRecords.filter((r) => {
+            const recordDate = new Date(r.date);
+
+            if (dateFilter.date instanceof Date) {
+              // Exact date match
+              return (
+                recordDate.toISOString().split("T")[0] ===
+                dateFilter.date.toISOString().split("T")[0]
+              );
+            } else {
+              // Range match
+              const { $gte, $lte } = dateFilter.date;
+              return (
+                recordDate >= new Date($gte) && recordDate <= new Date($lte)
+              );
+            }
+          });
 
         return filteredAttendance;
       });

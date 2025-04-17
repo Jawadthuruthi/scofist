@@ -51,17 +51,20 @@ export async function GET(req, res) {
       query.periodNumber = parseInt(filterParams.periodNumber);
     }
     if (filterParams.date) {
-      query.date = filterParams.date;
+      query.date = new Date(filterParams.date);
     } else if (filterParams.startDate && filterParams.endDate) {
       query.date = {
-        $gte: filterParams.startDate,
-        $lte: filterParams.endDate,
+        $gte: new Date(`${filterParams.startDate}T00:00:00.000Z`),
+        $lte: new Date(`${filterParams.endDate}T23:59:59.999Z`),
       };
     } else if (filterParams.startDate) {
-      query.date = { $gte: filterParams.startDate };
+      query.date = {
+        $gte: new Date(`${filterParams.startDate}T00:00:00.000Z`),
+      };
     } else if (filterParams.endDate) {
-      query.date = { $lte: filterParams.endDate };
+      query.date = { $lte: new Date(`${filterParams.endDate}T23:59:59.999Z`) };
     }
+
     if (filterParams.teacherId) {
       query.teacherId = filterParams.teacherId;
     }
