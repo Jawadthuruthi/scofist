@@ -1,12 +1,11 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -16,16 +15,14 @@ import {
   GraduationCap,
   BarChart3,
   Calendar,
-  TrendingUp,
-  Loader2,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 
 import useCrud from "@/hooks/use-crud";
 import Header from "@/components/Header";
 import TimeTableComponent from "@/components/TimeTableComponent";
+import { formatDateForDisplay } from "@/lib/utils";
 
 // Moved to a separate utility function for reusability
 const calculateAttendancePercentage = (attendanceRecords) => {
@@ -162,12 +159,7 @@ export default function Dashboard({ token }) {
     },
   });
 
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const currentDate = formatDateForDisplay(new Date());
 
   // Setup crud hooks
   const { useFetchItems: useFetchStudents } = useCrud("users", token);
@@ -299,17 +291,22 @@ export default function Dashboard({ token }) {
           {/* Stats Overview */}
           <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-5">
             <StatCard
-              title="Total Students"
-              value={dashboardData.totalStats.studentCount.toLocaleString()}
-              icon={Users}
-              description="Currently enrolled students"
-            />
-
-            <StatCard
               title="Total Faculty"
               value={dashboardData.totalStats.teachersCount}
               icon={UserCheck}
               description="Active teaching staff"
+            />
+            <StatCard
+              title="Active Batches"
+              value={dashboardData.totalStats.activeBatches}
+              icon={BarChart3}
+              description="Ongoing academic batches"
+            />
+            <StatCard
+              title="Total Students"
+              value={dashboardData.totalStats.studentCount.toLocaleString()}
+              icon={Users}
+              description="Currently enrolled students"
             />
 
             <StatCard
@@ -324,13 +321,6 @@ export default function Dashboard({ token }) {
               value={dashboardData.totalStats.graduatedStudents}
               icon={GraduationCap}
               description="Successfully completed program"
-            />
-
-            <StatCard
-              title="Active Batches"
-              value={dashboardData.totalStats.activeBatches}
-              icon={BarChart3}
-              description="Ongoing academic batches"
             />
           </div>
         </TabsContent>

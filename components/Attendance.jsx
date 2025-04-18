@@ -20,7 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Hooks and Utils
 import useCrud from "@/hooks/use-crud";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDateForDisplay } from "@/lib/utils";
 import Header from "./Header";
 import { capitalize } from "lodash";
 import AbsenteeStatus from "./AbsenteeStatus";
@@ -45,6 +45,8 @@ const Attendance = ({ token, teacherId }) => {
   const [attendanceExists, setAttendanceExists] = useState(false);
   const [attendanceDate, setAttendanceDate] = useState(formatDate(new Date()));
   const [absenteeData, setAbsenteeData] = useState([]);
+
+  const today = formatDateForDisplay(new Date());
 
   // CRUD hooks
   const { useFetchItems: useFetchUsers } = useCrud("users", token);
@@ -311,9 +313,7 @@ const Attendance = ({ token, teacherId }) => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {day}, {attendanceDate}
-                  </span>
+                  <span className="text-sm font-medium">{today}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />

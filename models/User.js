@@ -116,7 +116,6 @@ const userSchema = new Schema(
       status: {
         type: String,
         enum: ["Active", "Retired"],
-        default: "Active",
         required: true,
         validate: {
           validator: (v) => v === "Active" || v === "Retired",
@@ -179,7 +178,6 @@ const userSchema = new Schema(
         type: String,
         trim: true,
         enum: STUDENT_STATUSES,
-        default: "Active",
       },
       islamicQualification: { type: String, trim: true },
       academicQualification: { type: String, trim: true },

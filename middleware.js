@@ -11,6 +11,95 @@ const tokenCache = new Map();
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes for user cache
 const TOKEN_TTL = 5 * 60 * 1000; // 5 minutes for API token cache
 
+// Pages
+const pages = [
+  {
+    title: "Dashboard",
+    path: "/dashboard",
+    allowedRoles: ["College Admin", "Teacher", "Org Admin"],
+  },
+  {
+    title: "My Periods",
+    path: "/dashboard/my-periods",
+    allowedRoles: ["Teacher"],
+  },
+  {
+    title: "My Time Table",
+    path: "/dashboard/my-time-table",
+    allowedRoles: ["Teacher"],
+  },
+  {
+    title: "Teachers",
+    path: "/dashboard/teachers",
+    allowedRoles: ["College Admin"],
+  },
+  {
+    title: "Batches",
+    path: "/dashboard/batches",
+    allowedRoles: ["College Admin"],
+  },
+  {
+    title: "Classes",
+    path: "/dashboard/classes",
+    allowedRoles: ["College Admin"],
+  },
+  {
+    title: "Students",
+    path: "/dashboard/students",
+    allowedRoles: ["College Admin"],
+  },
+  {
+    title: "Subjects",
+    path: "/dashboard/subjects",
+    allowedRoles: ["College Admin"],
+  },
+  {
+    title: "Periods",
+    path: "/dashboard/periods",
+    allowedRoles: ["College Admin"],
+  },
+  {
+    title: "Time Tables",
+    path: "/dashboard/time-tables",
+    allowedRoles: ["College Admin"],
+  },
+  {
+    title: "Marks",
+    path: "/dashboard/marks",
+    allowedRoles: ["College Admin", "Teacher"],
+  },
+  {
+    title: "Leave Records",
+    path: "/dashboard/leave-records",
+    allowedRoles: ["College Admin", "Teacher"],
+  },
+  {
+    title: "Applications",
+    path: "/dashboard/applications",
+    allowedRoles: ["College Admin", "Teacher"],
+  },
+  {
+    title: "Students Transactions",
+    path: "/dashboard/students-transactions",
+    allowedRoles: ["Teacher"],
+  },
+  {
+    title: "Attendance Tracking",
+    path: "/dashboard/attendance-tracking",
+    allowedRoles: ["College Admin", "Teacher"],
+  },
+  {
+    title: "Students Reports",
+    path: "/dashboard/students-reports",
+    allowedRoles: ["College Admin", "Teacher"],
+  },
+  {
+    title: "Settings",
+    path: "/dashboard/settings",
+    allowedRoles: ["College Admin"],
+  },
+];
+
 export async function middleware(req) {
   // Check if this is an API route
   if (req.nextUrl.pathname.startsWith("/api/")) {
@@ -80,6 +169,8 @@ async function handleAuthRequest(req) {
     const { payload } = await jwtVerify(token, SECRET_KEY);
     const { userId } = payload;
 
+    // Check if user is allowed to access this page
+
     // Check cache first
     const cachedUser = getUserFromCache(userId);
 
@@ -114,6 +205,13 @@ async function handleAuthRequest(req) {
     console.error("Authentication error:", error.message);
     return redirectToLogin(req);
   }
+}
+
+function isUserAllowed(activeRole, path) {
+  // Check if user has the required role to access this page
+  const allowedRoles =
+    pages.find((page) => page.path === path)?.allowedRoles || [];
+  return allowedRoles.includes(activeRole);
 }
 
 function createFallbackUser(payload) {
@@ -187,6 +285,13 @@ async function fetchUserProfile(userId, token) {
 function prepareResponse(req, token, user) {
   const res = NextResponse.next();
 
+  if (
+    !!req.cookies.has("active-role") &&
+    !isUserAllowed(req.cookies.get("active-role")?.value, req.nextUrl.pathname)
+  ) {
+    return redirectTo404(req);
+  }
+
   // Validate user object before JSON.stringify to prevent errors
   const safeUser = {
     ...user,
@@ -203,6 +308,9 @@ function prepareResponse(req, token, user) {
 
   // Set cookie if not present
   if (!req.cookies.has("active-role") && user.roles && user.roles.length > 0) {
+    if (!isUserAllowed(user.roles[0], req.nextUrl.pathname)) {
+      return redirectTo404(req);
+    }
     res.cookies.set("active-role", user.roles[0], {
       path: "/",
       sameSite: "lax",
@@ -218,6 +326,11 @@ function redirectToLogin(req) {
   const loginUrl = new URL("/login", req.url);
   loginUrl.searchParams.set("redirect", req.nextUrl.pathname);
   return NextResponse.redirect(loginUrl);
+}
+
+function redirectTo404(req) {
+  const notFoundUrl = new URL("/404", req.url);
+  return NextResponse.redirect(notFoundUrl);
 }
 
 export const config = {

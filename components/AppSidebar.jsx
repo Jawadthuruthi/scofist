@@ -142,6 +142,12 @@ const items = [
     ],
   },
   {
+    title: "Students Transactions",
+    url: "/dashboard/students-transactions",
+    icon: CreditCard,
+    allowedRoles: ["Teacher"],
+  },
+  {
     title: "Reports",
     icon: FileText,
     allowedRoles: ["College Admin", "Teacher"],
@@ -160,12 +166,7 @@ const items = [
       },
     ],
   },
-  {
-    title: "Students Transactions",
-    url: "/dashboard/students-transactions",
-    icon: CreditCard,
-    allowedRoles: ["Teacher"],
-  },
+
   {
     title: "Settings",
     url: "/dashboard/settings",
