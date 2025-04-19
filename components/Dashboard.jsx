@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, memo } from "react";
 import {
   Card,
   CardContent,
@@ -15,22 +15,28 @@ import {
   GraduationCap,
   BarChart3,
   Calendar,
+  AlertCircle,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import useCrud from "@/hooks/use-crud";
 import Header from "@/components/Header";
 import TimeTableComponent from "@/components/TimeTableComponent";
 import { formatDateForDisplay } from "@/lib/utils";
 
-// Moved to a separate utility function for reusability
+/**
+ * Calculates attendance percentage from attendance records
+ * @param {Array} attendanceRecords - List of attendance records
+ * @returns {Object} Object containing attendance statistics
+ */
 const calculateAttendancePercentage = (attendanceRecords) => {
   let totalMarked = 0;
   let totalPresent = 0;
 
   for (const record of attendanceRecords) {
-    const students = record.attendanceData;
+    const students = record.attendanceData || [];
     totalMarked += students.length;
     totalPresent += students.filter((s) => s.present).length;
   }
@@ -46,9 +52,9 @@ const calculateAttendancePercentage = (attendanceRecords) => {
 };
 
 // Dashboard Skeleton component for better loading state
-const DashboardSkeleton = () => (
+const DashboardSkeleton = memo(() => (
   <div className="space-y-4">
-    <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-5">
       {[1, 2, 3, 4, 5].map((i) => (
         <Card key={i}>
           <CardHeader className="pb-2">
@@ -70,10 +76,12 @@ const DashboardSkeleton = () => (
       </CardContent>
     </Card>
   </div>
-);
+));
+
+DashboardSkeleton.displayName = "DashboardSkeleton";
 
 // Stat Card Component for consistent styling
-const StatCard = ({ title, value, icon: Icon, description }) => (
+const StatCard = memo(({ title, value, icon: Icon, description }) => (
   <Card className="overflow-hidden">
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-muted/30">
       <CardTitle className="text-sm font-medium">{title}</CardTitle>
@@ -86,22 +94,43 @@ const StatCard = ({ title, value, icon: Icon, description }) => (
       )}
     </CardContent>
   </Card>
-);
+));
+
+StatCard.displayName = "StatCard";
+
+// Error display component
+const ErrorAlert = memo(({ message }) => (
+  <Alert variant="destructive" className="mb-6">
+    <AlertCircle className="h-4 w-4" />
+    <AlertDescription>{message}</AlertDescription>
+  </Alert>
+));
+
+ErrorAlert.displayName = "ErrorAlert";
 
 // Class Card Component
-const ClassCard = ({ classData, students, batches, attendances }) => {
-  // Find associated data
-  const classStudents = students.filter(
-    (student) => student.className === classData.name
-  ).length;
+const ClassCard = memo(({ classData, students, batches, attendances }) => {
+  // Using useMemo to optimize expensive calculations
+  const { classStudents, classBatch, attendanceStats } = useMemo(() => {
+    // Find associated data
+    const filteredStudents = students.filter(
+      (student) => student.className === classData.name
+    ).length;
 
-  const classBatch = batches.find((batch) => batch._id === classData.batchId);
+    const foundBatch = batches.find((batch) => batch._id === classData.batchId);
 
-  const classAttendance = attendances.filter(
-    (attendance) => attendance.classId._id === classData._id
-  );
+    const filteredAttendance = attendances.filter(
+      (attendance) => attendance.classId?._id === classData._id
+    );
 
-  const attendanceStats = calculateAttendancePercentage(classAttendance);
+    const stats = calculateAttendancePercentage(filteredAttendance);
+
+    return {
+      classStudents: filteredStudents,
+      classBatch: foundBatch,
+      attendanceStats: stats,
+    };
+  }, [classData, students, batches, attendances]);
 
   return (
     <Card className="overflow-hidden hover:border-primary/50 transition-all">
@@ -126,7 +155,7 @@ const ClassCard = ({ classData, students, batches, attendances }) => {
           <div className="flex justify-between">
             <span className="text-muted-foreground">Subjects:</span>
             <span className="font-medium">
-              {7 + Math.floor(Math.random() * 3)}
+              {classData.subjects?.length || "N/A"}
             </span>
           </div>
           <div className="space-y-1">
@@ -140,11 +169,57 @@ const ClassCard = ({ classData, students, batches, attendances }) => {
       </CardContent>
     </Card>
   );
-};
+});
 
+ClassCard.displayName = "ClassCard";
+
+// Stats Overview component
+const StatsOverview = memo(({ totalStats }) => (
+  <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-5">
+    <StatCard
+      title="Total Faculty"
+      value={totalStats.teachersCount}
+      icon={UserCheck}
+      description="Active teaching staff"
+    />
+    <StatCard
+      title="Active Batches"
+      value={totalStats.activeBatches}
+      icon={BarChart3}
+      description="Ongoing academic batches"
+    />
+    <StatCard
+      title="Total Students"
+      value={totalStats.studentCount.toLocaleString()}
+      icon={Users}
+      description="Currently enrolled students"
+    />
+    <StatCard
+      title="Active Students"
+      value={totalStats.activeStudents}
+      icon={BookOpen}
+      description="Currently attending classes"
+    />
+    <StatCard
+      title="Graduated Students"
+      value={totalStats.graduatedStudents}
+      icon={GraduationCap}
+      description="Successfully completed program"
+    />
+  </div>
+));
+
+StatsOverview.displayName = "StatsOverview";
+
+/**
+ * Dashboard component displays school statistics and class information
+ * @param {string} token - Authentication token for API calls
+ * @returns {React.ReactElement} Dashboard component
+ */
 export default function Dashboard({ token }) {
-  // Consolidated state
+  // States for loading and error handling
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [dashboardData, setDashboardData] = useState({
     students: [],
     batches: [],
@@ -160,6 +235,7 @@ export default function Dashboard({ token }) {
   });
 
   const currentDate = formatDateForDisplay(new Date());
+  const todayISO = new Date().toISOString().split("T")[0];
 
   // Setup crud hooks
   const { useFetchItems: useFetchStudents } = useCrud("users", token);
@@ -168,19 +244,26 @@ export default function Dashboard({ token }) {
   const { useFetchItems: useFetchClasses } = useCrud("classes", token);
   const { useFetchItems: useFetchAttendances } = useCrud("attendances", token);
 
-  // Setup queries
+  // Setup queries with error handling
   const fetchStudentsQuery = useFetchStudents(0, 0, { roles: ["Student"] });
   const fetchTeachersQuery = useFetchTeachers(0, 0, { roles: ["Teacher"] });
   const fetchBatchesQuery = useFetchBatches(0, 0, { status: "Active" });
   const fetchClassesQuery = useFetchClasses();
   const fetchAttendanceQuery = useFetchAttendances(null, null, {
-    date: new Date().toISOString().split("T")[0],
+    date: todayISO,
   });
+
+  // Create derived state using useMemo
+  const hasClasses = useMemo(
+    () => dashboardData.classes.length > 0,
+    [dashboardData.classes]
+  );
 
   useEffect(() => {
     // Function to fetch all required data
     const fetchDashboardData = async () => {
       setLoading(true);
+      setError(null);
       try {
         // Consolidated state update to reduce re-renders
         const newData = { ...dashboardData };
@@ -207,23 +290,21 @@ export default function Dashboard({ token }) {
           fetchTeachersQuery.data &&
           fetchBatchesQuery.data
         ) {
+          const students = fetchStudentsQuery.data.users || [];
+
           newData.totalStats = {
             studentCount:
-              fetchStudentsQuery.data.pagination?.total ||
-              fetchStudentsQuery.data.users?.length ||
-              0,
+              fetchStudentsQuery.data.pagination?.total || students.length || 0,
             teachersCount:
               fetchTeachersQuery.data.pagination?.total ||
               fetchTeachersQuery.data.users?.length ||
               0,
             activeStudents:
-              fetchStudentsQuery.data.users?.filter(
-                (student) => student.status === "Active"
-              )?.length || 0,
+              students.filter((student) => student.status === "Active")
+                .length || 0,
             graduatedStudents:
-              fetchStudentsQuery.data.users?.filter(
-                (student) => student.status === "Graduated"
-              )?.length || 0,
+              students.filter((student) => student.status === "Graduated")
+                .length || 0,
             activeBatches:
               fetchBatchesQuery.data.pagination?.total ||
               fetchBatchesQuery.data.batches?.length ||
@@ -234,18 +315,37 @@ export default function Dashboard({ token }) {
         setDashboardData(newData);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
+        setError("Failed to load dashboard data. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
 
+    // Check for errors in queries
+    if (
+      fetchStudentsQuery.error ||
+      fetchTeachersQuery.error ||
+      fetchBatchesQuery.error ||
+      fetchClassesQuery.error ||
+      fetchAttendanceQuery.error
+    ) {
+      setError("An error occurred while fetching data. Please try again.");
+      setLoading(false);
+      return;
+    }
+
     fetchDashboardData();
   }, [
     fetchStudentsQuery.data,
+    fetchStudentsQuery.error,
     fetchBatchesQuery.data,
+    fetchBatchesQuery.error,
     fetchTeachersQuery.data,
+    fetchTeachersQuery.error,
     fetchClassesQuery.data,
+    fetchClassesQuery.error,
     fetchAttendanceQuery.data,
+    fetchAttendanceQuery.error,
   ]);
 
   // Display skeleton during loading
@@ -260,6 +360,8 @@ export default function Dashboard({ token }) {
         subTitle={currentDate}
         icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
       />
+
+      {error && <ErrorAlert message={error} />}
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 md:w-auto">
@@ -289,40 +391,7 @@ export default function Dashboard({ token }) {
           </Card>
 
           {/* Stats Overview */}
-          <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-5">
-            <StatCard
-              title="Total Faculty"
-              value={dashboardData.totalStats.teachersCount}
-              icon={UserCheck}
-              description="Active teaching staff"
-            />
-            <StatCard
-              title="Active Batches"
-              value={dashboardData.totalStats.activeBatches}
-              icon={BarChart3}
-              description="Ongoing academic batches"
-            />
-            <StatCard
-              title="Total Students"
-              value={dashboardData.totalStats.studentCount.toLocaleString()}
-              icon={Users}
-              description="Currently enrolled students"
-            />
-
-            <StatCard
-              title="Active Students"
-              value={dashboardData.totalStats.activeStudents}
-              icon={BookOpen}
-              description="Currently attending classes"
-            />
-
-            <StatCard
-              title="Graduated Students"
-              value={dashboardData.totalStats.graduatedStudents}
-              icon={GraduationCap}
-              description="Successfully completed program"
-            />
-          </div>
+          <StatsOverview totalStats={dashboardData.totalStats} />
         </TabsContent>
 
         <TabsContent value="classes" className="space-y-6">
@@ -338,11 +407,11 @@ export default function Dashboard({ token }) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {dashboardData.classes.length > 0 ? (
+              {hasClasses ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {dashboardData.classes.slice(0, 9).map((classData, index) => (
+                  {dashboardData.classes.slice(0, 9).map((classData) => (
                     <ClassCard
-                      key={index}
+                      key={classData._id}
                       classData={classData}
                       students={dashboardData.students}
                       batches={dashboardData.batches}

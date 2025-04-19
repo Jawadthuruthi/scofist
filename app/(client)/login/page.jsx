@@ -60,7 +60,7 @@ export default function LoginPage() {
               </div>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="animate-spin mr-2" /> : "Send OTP"}
+              {loading ? <Loader2 className="animate-spin mr-2" /> : "Proceed"}
             </Button>
           </form>
         </CardContent>
