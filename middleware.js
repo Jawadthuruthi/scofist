@@ -106,6 +106,9 @@ const pages = [
 ];
 
 export async function middleware(req) {
+  if (req.nextUrl.pathname === "/login") {
+    return handleLoginPageRequest(req);
+  }
   // Check if this is an API route
   if (req.nextUrl.pathname.startsWith("/api/")) {
     return handleApiRequest(req);
@@ -113,6 +116,28 @@ export async function middleware(req) {
 
   // Handle regular authentication for dashboard routes
   return handleAuthRequest(req);
+}
+
+async function handleLoginPageRequest(req) {
+  const token = req.cookies.get("auth-token")?.value;
+
+  // If no token, allow access to login page
+  if (!token) {
+    return NextResponse.next();
+  }
+
+  try {
+    // Verify JWT token to check if it's valid
+    const { payload } = await jwtVerify(token, SECRET_KEY);
+    const { userId } = payload;
+
+    // User is already authenticated, redirect to dashboard
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  } catch (error) {
+    // Token is invalid, allow access to login page
+    console.error("Login page token verification error:", error.message);
+    return NextResponse.next();
+  }
 }
 
 async function handleApiRequest(req) {
