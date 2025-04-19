@@ -21,8 +21,26 @@ const pwaConfig = withPWA({
   disable: process.env.NODE_ENV === "development",
   runtimeCaching: [
     {
+      urlPattern: /^\/dashboard/,
+      handler: "StaleWhileRevalidate",
+      options: {
+        cacheName: "dashboard-pages",
+        expiration: {
+          maxEntrySize: 32,
+          maxAgeSeconds: 24 * 60 * 60, // 24 hours
+        },
+      },
+    },
+    {
       urlPattern: /^\//,
-      handler: "NetworkOnly",
+      handler: "NetworkFirst",
+      options: {
+        cacheName: "others",
+        expiration: {
+          maxEntrySize: 32,
+          maxAgeSeconds: 24 * 60 * 60, // 24 hours
+        },
+      },
     },
   ],
 })(nextConfig);
