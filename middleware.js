@@ -339,5 +339,5 @@ function redirectTo404(req) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/:path*"],
+  matcher: ["/dashboard/:path*", "/api/:path*", "/login"],
 };
