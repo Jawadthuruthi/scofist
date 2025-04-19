@@ -259,6 +259,146 @@ const AttendanceTrackingPage = async () => {
         filterType: "api",
       },
     ];
+    const tabsConfig2 = [
+      {
+        label: "Student",
+        value: "student",
+        resource: "studentAttendances",
+        filterTitle: "Student Attendance",
+        columnsConfig: [
+          {
+            header: "Sl.No.",
+            accessorKey: "serialNo",
+            type: ["serialNo"],
+            width: 60,
+            maxWidth: 60,
+            minWidth: 60,
+          },
+          { header: "Student ID", accessorKey: "_id" },
+          { header: "Name", accessorKey: "name" },
+          {
+            header: "Total Class",
+            accessorKey: "totalClass",
+            valueKey: "attendanceRecords",
+            type: ["length"],
+          },
+          {
+            header: "Present",
+            accessorKey: "present",
+            type: ["filteredLength"],
+            valueKey: "attendanceRecords",
+            filterKey: "present",
+            filterValue: true,
+          },
+          {
+            header: "Percentage",
+            accessorKey: "percentage",
+            type: ["percentage"],
+            totalKey: "attendanceRecords",
+            filterKey: "present",
+            filterValue: true,
+          },
+        ],
+        filterConfig: [
+          {
+            id: "batchId",
+            label: "Batch",
+            type: "text",
+            inputType: "select",
+            nestedArrayField: "attendanceRecords",
+
+            options: formatOptions(batches),
+          },
+          {
+            id: "classId",
+            label: "Class",
+            type: "text",
+            inputType: "select",
+            nestedArrayField: "attendanceRecords",
+
+            options: formatOptions(classes),
+          },
+          {
+            id: "subjectId",
+            label: "Subject",
+            type: "text",
+            inputType: "select",
+            nestedArrayField: "attendanceRecords",
+
+            options: formatOptions(subjects),
+          },
+          {
+            id: "date",
+            label: "Date Range",
+            type: "date",
+            inputType: "dateRange",
+            nestedArrayField: "attendanceRecords",
+            className: "col-span-1 md:col-span-2",
+          },
+        ],
+        readOnly: true,
+      },
+
+      {
+        label: "Toppers",
+        value: "toppers",
+        resource: "attendanceToppers",
+        filterTitle: "Attendance Toppers",
+        columnsConfig: [
+          {
+            header: "Sl.No.",
+            accessorKey: "serialNo",
+            type: ["serialNo"],
+            width: 60,
+            maxWidth: 60,
+            minWidth: 60,
+          },
+          { header: "Class", accessorKey: "className" },
+          {
+            header: "Students",
+            accessorKey: "students",
+            type: ["arrayWithValueKey", "list"],
+            valueKey: "studentName",
+          },
+
+          {
+            header: "Percentage",
+            accessorKey: "highestPercentage",
+          },
+        ],
+        filterConfig: [
+          {
+            id: "batchId",
+            label: "Batch",
+            type: "text",
+            inputType: "select",
+            nestedArrayField: "attendanceRecords",
+
+            options: formatOptions(batches),
+          },
+          {
+            id: "classId",
+            label: "Class",
+            type: "text",
+            inputType: "select",
+            nestedArrayField: "attendanceRecords",
+
+            options: formatOptions(classes),
+          },
+
+          {
+            id: "date",
+            label: "Date Range",
+            type: "date",
+            inputType: "dateRange",
+            nestedArrayField: "attendanceRecords",
+            className: "col-span-1 md:col-span-2",
+          },
+        ],
+        readOnly: true,
+        filterType: "api",
+      },
+    ];
 
     const tablesConfig = [
       {
@@ -344,10 +484,7 @@ const AttendanceTrackingPage = async () => {
             title="ATTENDANCE TRACKING"
             subTitle="Track Attendance Records In Real Time"
           />
-          <AdvancedDataTableComponent
-            tablesConfig={tablesConfig}
-            token={token}
-          />
+          <AdvancedDataTableComponent tabsConfig={tabsConfig2} token={token} />
         </>
       );
     }
