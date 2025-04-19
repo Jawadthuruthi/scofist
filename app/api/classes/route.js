@@ -100,7 +100,7 @@ export async function POST(req, res) {
       name,
       batchId,
       teacherId,
-      subjectIds,
+      subjects: subjectIds,
     });
     return NextResponse.json(
       { newClass, message: "Class created successfully!" },
@@ -123,7 +123,7 @@ export async function PUT(req, res) {
     if (ids.length > 1) {
       const updatedClasses = await Class.updateMany(
         { _id: { $in: ids } },
-        { $set: { name, batchId, teacherId, subjectIds } }
+        { $set: { name, batchId, teacherId, subjects: subjectIds } }
       );
       return NextResponse.json(
         { updatedClasses, message: "Classes Updated successfully!" },
@@ -136,7 +136,12 @@ export async function PUT(req, res) {
       return NextResponse.json({ message: "Class not found" }, { status: 404 });
     }
 
-    Object.assign(existingClass, { name, batchId, teacherId, subjectIds });
+    Object.assign(existingClass, {
+      name,
+      batchId,
+      teacherId,
+      subjects: subjectIds,
+    });
 
     await existingClass.save();
 
