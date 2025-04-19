@@ -212,84 +212,52 @@ export async function PUT(req) {
       );
     }
 
-    // Reduce MongoDB max batch size to prevent timeouts
-    const MONGODB_MAX_BATCH_SIZE = 100; // Reduced from 500
+    // Limit batch size to prevent timeouts
     const batchSize = Math.min(body.length, MONGODB_MAX_BATCH_SIZE);
     const updateBatch = body.slice(0, batchSize);
 
     const results = [];
     const conflicts = [];
 
-    // First, check for all conflicts in one pass to avoid repeated checks
-    const conflictChecks = updateBatch
-      .filter((item) => item.timeSlots?.teacherId)
-      .map((item) => ({
-        item,
-        conflictPromise: checkTeacherScheduleConflicts(
-          item.timeSlots.teacherId,
-          item.timeSlots.periodNumber,
-          item.timeSlots.day,
-          item.classId
-        ),
-      }));
-
-    // Run conflict checks in parallel
-    const conflictResults = await Promise.all(
-      conflictChecks.map((check) => check.conflictPromise)
-    );
-
-    // Map conflict results back to their items
-    conflictChecks.forEach((check, index) => {
-      const slotConflicts = conflictResults[index];
-      if (slotConflicts.length > 0) {
-        conflicts.push({
-          slot: check.item.timeSlots,
-          conflicts: slotConflicts,
-        });
-      }
-    });
-
-    // Process updates for items that passed conflict checks
-    const updatePromises = updateBatch.map(async (item) => {
+    // Process each change in the batch sequentially
+    for (const item of updateBatch) {
       try {
-        // Skip items with conflicts if needed
-        const hasConflict = conflicts.some(
-          (conflict) =>
-            conflict.slot.periodNumber === item.timeSlots.periodNumber &&
-            conflict.slot.day === item.timeSlots.day &&
-            conflict.slot.teacherId === item.timeSlots.teacherId
-        );
+        // Check for teacher schedule conflicts if this slot has a teacher
+        if (item.timeSlots?.teacherId) {
+          const slotConflicts = await checkTeacherScheduleConflicts(
+            item.timeSlots.teacherId,
+            item.timeSlots.periodNumber,
+            item.timeSlots.day,
+            item.classId
+          );
 
-        // Process only if no conflicts or if we want to process regardless
-        if (!hasConflict) {
-          const updatedTimeTable = await processSingleUpdate(item);
-
-          if (updatedTimeTable) {
-            return updatedTimeTable._id;
+          // Collect conflicts but continue processing
+          if (slotConflicts.length > 0) {
+            conflicts.push({
+              slot: item.timeSlots,
+              conflicts: slotConflicts,
+            });
           }
         }
-        return null;
+
+        // Process the update
+        const updatedTimeTable = await processSingleUpdate(item);
+
+        if (updatedTimeTable) {
+          // Fetch populated data to return
+          const populatedTimeTable = await TimeTable.findById(
+            updatedTimeTable._id
+          )
+            .populate("timeSlots.subjectId", "name")
+            .populate("timeSlots.teacherId", "name")
+            .lean();
+
+          results.push(populatedTimeTable);
+        }
       } catch (error) {
         console.error(`Error processing update for item:`, item, error);
-        return null;
+        // Continue with other updates even if one fails
       }
-    });
-
-    // Wait for all updates to complete
-    const updateIds = (await Promise.all(updatePromises)).filter(
-      (id) => id !== null
-    );
-
-    // Fetch populated data for all updated documents in one query
-    if (updateIds.length > 0) {
-      const populatedTimeTables = await TimeTable.find({
-        _id: { $in: updateIds },
-      })
-        .populate("timeSlots.subjectId", "name")
-        .populate("timeSlots.teacherId", "name")
-        .lean();
-
-      results.push(...populatedTimeTables);
     }
 
     return NextResponse.json(
