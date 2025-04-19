@@ -248,9 +248,6 @@ const BatchChart = memo(({ batches, students }) => {
       .filter((item) => item.students > 0); // Only show batches with students
   }, [batches, students]);
 
-  // Define chart colors
-  const COLORS = ["#8884d8", "#83a6ed", "#8dd1e1", "#82ca9d", "#a4de6c"];
-
   if (chartData.length === 0) {
     return (
       <div className="h-[300px] flex items-center justify-center bg-muted/20 rounded-md">
@@ -266,7 +263,7 @@ const BatchChart = memo(({ batches, students }) => {
           data={chartData}
           margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
         >
-          <XAxis dataKey="name" />
+          <XAxis dataKey="name" interval={0} angle={-45} textAnchor="end" />
           <YAxis />
           <Tooltip />
           <Legend />
@@ -380,7 +377,7 @@ export default function Dashboard({ token }) {
   // Setup queries with error handling
   const fetchStudentsQuery = useFetchStudents(0, 0, { roles: ["Student"] });
   const fetchTeachersQuery = useFetchTeachers(0, 0, { roles: ["Teacher"] });
-  const fetchBatchesQuery = useFetchBatches(0, 0, { status: "Active" });
+  const fetchBatchesQuery = useFetchBatches(0, 0, {});
   const fetchClassesQuery = useFetchClasses();
   const fetchAttendanceQuery = useFetchAttendances(null, null, {
     date: todayISO,
@@ -439,9 +436,9 @@ export default function Dashboard({ token }) {
               students.filter((student) => student.status === "Graduated")
                 .length || 0,
             activeBatches:
-              fetchBatchesQuery.data.pagination?.total ||
-              fetchBatchesQuery.data.batches?.length ||
-              0,
+              fetchBatchesQuery.data.batches?.filter(
+                (batch) => batch.status === "Active"
+              )?.length || 0,
           };
         }
 

@@ -114,7 +114,7 @@ export default async function ClassesPage() {
         options: formatOptions(teachers),
       },
       {
-        name: "subjects",
+        name: "subjectIds",
         label: "Assign Subjects",
         type: "array",
         inputType: "multiSelect",

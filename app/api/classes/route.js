@@ -94,13 +94,13 @@ export async function POST(req, res) {
   try {
     await connectToDB();
 
-    const { _id, name, batchId, teacherId, subjects } = await req.json();
+    const { _id, name, batchId, teacherId, subjectIds } = await req.json();
     const newClass = await Class.create({
       _id,
       name,
       batchId,
       teacherId,
-      subjects,
+      subjectIds,
     });
     return NextResponse.json(
       { newClass, message: "Class created successfully!" },
@@ -116,14 +116,14 @@ export async function PUT(req, res) {
     await connectToDB();
 
     const body = await req.json();
-    const { ids, name, batchId, teacherId, subjects } = body;
+    const { ids, name, batchId, teacherId, subjectIds } = body;
 
     const _id = ids[0];
 
     if (ids.length > 1) {
       const updatedClasses = await Class.updateMany(
         { _id: { $in: ids } },
-        { $set: { name, batchId, teacherId, subjects } }
+        { $set: { name, batchId, teacherId, subjectIds } }
       );
       return NextResponse.json(
         { updatedClasses, message: "Classes Updated successfully!" },
@@ -136,7 +136,7 @@ export async function PUT(req, res) {
       return NextResponse.json({ message: "Class not found" }, { status: 404 });
     }
 
-    Object.assign(existingClass, { name, batchId, teacherId, subjects });
+    Object.assign(existingClass, { name, batchId, teacherId, subjectIds });
 
     await existingClass.save();
 
