@@ -342,6 +342,8 @@ function prepareResponse(req, token, user) {
       return redirectTo404(req);
     }
     res.cookies.set("active-role", user.roles[0], {
+      httpOnly: true,
+      secure: true,
       path: "/",
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
