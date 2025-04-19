@@ -106,7 +106,7 @@ const pages = [
 ];
 
 export async function middleware(req) {
-  if (req.nextUrl.pathname === "/login") {
+  if (req.nextUrl.pathname === "/" || req.nextUrl.pathname === "/login") {
     return handleLoginPageRequest(req);
   }
   // Check if this is an API route
@@ -132,7 +132,7 @@ async function handleLoginPageRequest(req) {
     const { userId } = payload;
 
     // User is already authenticated, redirect to dashboard
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    return NextResponse.redirect(new URL("/dashboard/my-periods", req.url));
   } catch (error) {
     // Token is invalid, allow access to login page
     console.error("Login page token verification error:", error.message);
@@ -347,7 +347,7 @@ function prepareResponse(req, token, user) {
       path: "/",
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60,
+      maxAge: 31 * 24 * 60 * 60,
     });
   }
 
@@ -366,5 +366,5 @@ function redirectTo404(req) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/:path*", "/login"],
+  matcher: ["/dashboard/:path*", "/api/:path*", "/", "/login"],
 };
