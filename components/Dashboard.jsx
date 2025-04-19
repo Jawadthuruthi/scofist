@@ -16,6 +16,7 @@ import {
   BarChart3,
   Calendar,
   AlertCircle,
+  BarChart,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +26,18 @@ import useCrud from "@/hooks/use-crud";
 import Header from "@/components/Header";
 import TimeTableComponent from "@/components/TimeTableComponent";
 import { formatDateForDisplay } from "@/lib/utils";
+import {
+  BarChart as RechartsBarChart,
+  Bar,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 /**
  * Calculates attendance percentage from attendance records
@@ -212,6 +225,126 @@ const StatsOverview = memo(({ totalStats }) => (
 StatsOverview.displayName = "StatsOverview";
 
 /**
+ * Chart component to visualize batch data
+ */
+const BatchChart = memo(({ batches, students }) => {
+  // We need to create proper chart data with correct structure
+  const chartData = useMemo(() => {
+    if (!batches || !students) return [];
+
+    return batches
+      .map((batch) => {
+        // Count students in this batch
+        const batchStudents = students.filter(
+          (student) => student.batchId === batch._id
+        ).length;
+
+        return {
+          name: batch.name,
+          students: batchStudents,
+          // We can add more metrics here if needed
+        };
+      })
+      .filter((item) => item.students > 0); // Only show batches with students
+  }, [batches, students]);
+
+  // Define chart colors
+  const COLORS = ["#8884d8", "#83a6ed", "#8dd1e1", "#82ca9d", "#a4de6c"];
+
+  if (chartData.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center bg-muted/20 rounded-md">
+        <p className="text-muted-foreground">No batch data available</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsBarChart
+          data={chartData}
+          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+        >
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="students" name="Number of Students" fill="#8884d8" />
+        </RechartsBarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+});
+
+BatchChart.displayName = "BatchChart";
+
+/**
+ * Student Status Chart component
+ */
+const StudentStatusChart = memo(({ students }) => {
+  // Prepare pie chart data for student status
+  const statusData = useMemo(() => {
+    if (!students || students.length === 0) return [];
+
+    const statusCount = students.reduce((acc, student) => {
+      const status = student.status || "Unknown";
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(statusCount).map(([name, value]) => ({
+      name,
+      value,
+    }));
+  }, [students]);
+
+  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+
+  if (statusData.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center bg-muted/20 rounded-md">
+        <p className="text-muted-foreground">
+          No student status data available
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={statusData}
+            cx="50%"
+            cy="50%"
+            labelLine={true}
+            label={({ name, percent }) =>
+              `${name}: ${(percent * 100).toFixed(0)}%`
+            }
+            outerRadius={80}
+            fill="#8884d8"
+            dataKey="value"
+          >
+            {statusData.map((entry, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={COLORS[index % COLORS.length]}
+              />
+            ))}
+          </Pie>
+          <Tooltip formatter={(value) => [value, "Students"]} />
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+});
+
+StudentStatusChart.displayName = "StudentStatusChart";
+
+/**
  * Dashboard component displays school statistics and class information
  * @param {string} token - Authentication token for API calls
  * @returns {React.ReactElement} Dashboard component
@@ -364,12 +497,15 @@ export default function Dashboard({ token }) {
       {error && <ErrorAlert message={error} />}
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:w-auto">
+        <TabsList className="grid w-full grid-cols-3 md:w-auto">
           <TabsTrigger value="overview" className="px-6">
             Overview
           </TabsTrigger>
           <TabsTrigger value="classes" className="px-6">
             Classes
+          </TabsTrigger>
+          <TabsTrigger value="charts" className="px-6">
+            Charts
           </TabsTrigger>
         </TabsList>
 
@@ -428,6 +564,45 @@ export default function Dashboard({ token }) {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="charts" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Batch Students Chart */}
+            <Card className="border-t-4 border-t-primary">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <BarChart className="h-5 w-5" />
+                  <span>Students By Batch</span>
+                </CardTitle>
+                <CardDescription>
+                  Distribution of students across different batches
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BatchChart
+                  batches={dashboardData.batches}
+                  students={dashboardData.students}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Student Status Chart */}
+            <Card className="border-t-4 border-t-primary">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Users className="h-5 w-5" />
+                  <span>Student Status</span>
+                </CardTitle>
+                <CardDescription>
+                  Distribution of students by enrollment status
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <StudentStatusChart students={dashboardData.students} />
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

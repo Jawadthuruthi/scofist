@@ -209,11 +209,11 @@ export async function POST(req, res) {
       contactNumber,
       alternativeNumber,
       dateOfBirth,
-      teacherSpecificField: {
+      teacherSpecificField: roles.includes("Teacher") && {
         dateOfJoining,
         status,
       },
-      studentSpecificField: {
+      studentSpecificField: roles.includes("Student") && {
         admissionClassId,
         admissionDate,
         aadharNo,
@@ -244,6 +244,7 @@ export async function POST(req, res) {
           year: generalCourseYear,
           semester: generalCourseSemester,
         },
+        status,
       },
       address: {
         houseName,
@@ -327,10 +328,10 @@ export async function PUT(req, res) {
             contactNumber,
             alternativeNumber,
             dateOfBirth,
-            teacherSpecificField: {
+            teacherSpecificField: roles.includes("Teacher") && {
               dateOfJoining,
             },
-            studentSpecificField: {
+            studentSpecificField: roles.includes("Student") && {
               admissionClassId,
               admissionDate,
               aadharNo,
@@ -361,6 +362,7 @@ export async function PUT(req, res) {
                 year: generalCourseYear,
                 semester: generalCourseSemester,
               },
+              status,
             },
             address: {
               houseName,
