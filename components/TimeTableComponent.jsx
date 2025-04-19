@@ -27,6 +27,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import dynamic from "next/dynamic";
+
+const PrintHeader = dynamic(() => import("./PrintHeader"), {
+  ssr: false,
+});
 
 // Absentees Dialog Component
 const AbsenteesDialog = ({
@@ -224,11 +229,7 @@ const TimeTableComponent = ({ token, teacherId, hidePrintButton = false }) => {
           ref={timeTableRef}
           className="overflow-x-auto border border-collapse rounded-md"
         >
-          <div className="hidden w-full print:block">
-            <h3 className="text-center text-lg font-semibold my-4">
-              Time Table
-            </h3>
-          </div>
+          <PrintHeader token={token} title="Time Table" />
           <Table className="w-full">
             <TableHeader>
               <TableRow>
@@ -299,14 +300,14 @@ const TimeTableComponent = ({ token, teacherId, hidePrintButton = false }) => {
                               isAttendanceMarked
                                 ? "bg-green-300/50 print:bg-inherit"
                                 : ""
-                            } border text-center  cursor-pointer`}
+                            } border text-center  cursor-pointer print:max-w-32`}
                           >
                             {cellData ? (
                               <div className="flex flex-col items-center justify-center">
-                                <p className="font-medium text-xxs">
+                                <p className="font-medium text-xxs whitespace-nowrap print:whitespace-normal">
                                   {cellData.subjectId?.name || ""}
                                 </p>
-                                <p className="text-xxs text-accent-foreground">
+                                <p className="text-xxs text-accent-foreground whitespace-nowrap print:whitespace-normal">
                                   {cellData.classId?.name || ""}
                                 </p>
 
@@ -392,14 +393,14 @@ const TimeTableComponent = ({ token, teacherId, hidePrintButton = false }) => {
                               isAttendanceMarked
                                 ? "bg-green-300/50 print:bg-inherit"
                                 : ""
-                            } border text-center  cursor-pointer`}
+                            } border text-center  cursor-pointer print:max-w-32`}
                           >
                             {cellData ? (
                               <div className="flex flex-col items-center justify-center">
-                                <p className="font-medium text-xxs whitespace-nowrap">
+                                <p className="font-medium text-xxs whitespace-nowrap print:whitespace-normal">
                                   {cellData.teacherId?.name || ""}
                                 </p>
-                                <p className="text-xxs text-accent-foreground whitespace-nowrap">
+                                <p className="text-xxs text-accent-foreground whitespace-nowrap print:whitespace-normal">
                                   {cellData.subjectId?.name || ""}
                                 </p>
 

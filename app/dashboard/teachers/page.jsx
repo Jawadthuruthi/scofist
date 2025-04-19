@@ -260,6 +260,7 @@ export default async function BatchesPage() {
           filterConfig={filterConfig}
           limit={20}
           apiFilters={apiFilters}
+          printTitle={"Teachers"}
         />
       </>
     );

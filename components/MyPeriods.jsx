@@ -169,7 +169,7 @@ const MyPeriods = ({ token, teacherId }) => {
                           <div className="text-xs md:text-base">
                             {slot.classId?.name}
                           </div>
-                          <div className="text-xxs md:hidden">
+                          <div className="text-xs md:hidden mt-1">
                             {slot.subjectId?.name}
                           </div>
                         </TableCell>

@@ -36,52 +36,6 @@ const extractQueryParams = (url) => {
   return { page, limit, filterParams, projections };
 };
 
-// Check for teacher schedule conflicts
-const checkTeacherScheduleConflicts = async (
-  teacherId,
-  periodNumber,
-  day,
-  classId
-) => {
-  if (!teacherId) return [];
-  // Find any timetable entries where this teacher is already scheduled
-  // for the same day and period but in a different class
-  const conflicts = await TimeTable.find({
-    timeSlots: {
-      $elemMatch: {
-        teacherId: teacherId,
-        periodNumber: periodNumber,
-        day: day,
-      },
-    },
-    classId: { $ne: classId }, // Exclude the current class
-  })
-    .populate("classId", "name")
-    .populate("timeSlots.subjectId", "name")
-    .lean();
-
-  // Format conflicts for easier consumption
-  const formattedConflicts = conflicts.map((conflict) => {
-    const conflictSlot = conflict.timeSlots.find(
-      (slot) =>
-        slot.teacherId.toString() === teacherId.toString() &&
-        slot.periodNumber === periodNumber &&
-        slot.day === day
-    );
-
-    return {
-      classId: conflict.classId?._id,
-      className: conflict.classId?.name,
-      subjectId: conflictSlot.subjectId?._id,
-      subjectName: conflictSlot.subjectId?.name,
-      day: conflictSlot.day,
-      periodNumber: conflictSlot.periodNumber,
-    };
-  });
-
-  return formattedConflicts;
-};
-
 // Process a single timetable update to prevent duplicating code
 const processSingleUpdate = async (item) => {
   const { _id, classId, timeSlots } = item;
@@ -222,24 +176,6 @@ export async function PUT(req) {
     // Process each change in the batch sequentially
     for (const item of updateBatch) {
       try {
-        // Check for teacher schedule conflicts if this slot has a teacher
-        // if (item.timeSlots?.teacherId) {
-        //   const slotConflicts = await checkTeacherScheduleConflicts(
-        //     item.timeSlots.teacherId,
-        //     item.timeSlots.periodNumber,
-        //     item.timeSlots.day,
-        //     item.classId
-        //   );
-
-        //   // Collect conflicts but continue processing
-        //   if (slotConflicts.length > 0) {
-        //     conflicts.push({
-        //       slot: item.timeSlots,
-        //       conflicts: slotConflicts,
-        //     });
-        //   }
-        // }
-
         // Process the update
         const updatedTimeTable = await processSingleUpdate(item);
 
@@ -277,47 +213,6 @@ export async function PUT(req) {
     );
   } catch (error) {
     console.error("Error updating time table:", error);
-    return apiResponse.error(error);
-  }
-}
-
-// Add an endpoint to specifically check for conflicts without making changes
-export async function POST(req) {
-  try {
-    await connectToDB();
-
-    const body = await req.json();
-    const { teacherId, periodNumber, day, classId } = body;
-
-    // Input validation
-    if (!teacherId || !periodNumber || !day || !classId) {
-      return NextResponse.json(
-        { message: "teacherId, periodNumber, day, and classId are required" },
-        { status: 400 }
-      );
-    }
-
-    // Check for conflicts
-    const conflicts = await checkTeacherScheduleConflicts(
-      teacherId,
-      periodNumber,
-      day,
-      classId
-    );
-
-    return NextResponse.json(
-      {
-        conflicts,
-        hasConflicts: conflicts.length > 0,
-        message:
-          conflicts.length > 0
-            ? "Teacher schedule conflicts detected"
-            : "No conflicts detected",
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("Error checking for conflicts:", error);
     return apiResponse.error(error);
   }
 }

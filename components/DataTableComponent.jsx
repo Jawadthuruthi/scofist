@@ -106,6 +106,7 @@ const DataTableComponent = ({
   filterType = "client",
   infiniteScrollThreshold = 0.3,
   loadAheadCount = 1,
+  printTitle,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -589,7 +590,7 @@ const DataTableComponent = ({
         ref={tableRef}
         className={`rounded-md border shadow-sm table-print relative`}
       >
-        <PrintHeader token={token} title={resource} />
+        <PrintHeader token={token} title={printTitle ? printTitle : resource} />
         <div
           ref={tableBodyRef}
           className="overflow-auto"
