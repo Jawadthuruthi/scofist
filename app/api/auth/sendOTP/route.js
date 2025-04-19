@@ -10,7 +10,6 @@ export async function POST(req) {
   const { email } = await req.json();
   try {
     await connectToDB();
-    console.log("User found:", email);
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -26,6 +25,7 @@ export async function POST(req) {
       { upsert: true, new: true } // Create if not exists
     );
     console.log(otp);
+    console.log("Email:", user.email);
 
     await sendOtpEmail(user.email, otp);
     return NextResponse.json(

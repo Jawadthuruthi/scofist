@@ -84,7 +84,7 @@ export function Topbar({ user }) {
             <Card>
               <CardHeader className="flex items-center space-x-4">
                 <Avatar>
-                  <AvatarImage src={user.profilePic} alt={user.name} />
+                  <AvatarImage src={user.profilePic.url} alt={user.name} />
                   <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>

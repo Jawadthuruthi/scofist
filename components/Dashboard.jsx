@@ -230,14 +230,12 @@ StatsOverview.displayName = "StatsOverview";
 const BatchChart = memo(({ batches, students }) => {
   const chartData = useMemo(() => {
     if (!batches || !students) return [];
-
     return batches
       .map((batch) => {
         // Count students in this batch
         const batchStudents = students.filter(
           (student) => student.batchId === batch._id
         ).length;
-
         return {
           name: batch.name,
           students: batchStudents,
@@ -247,51 +245,61 @@ const BatchChart = memo(({ batches, students }) => {
       .sort((a, b) => b.students - a.students);
   }, [batches, students]);
 
-  // For chart rendering optimization
-
-  // Format x-axis labels for better display
-  const formatXAxisTick = (value) => {
-    // Truncate long names
-    return value.length > 10 ? `${value.substring(0, 10)}...` : value;
-  };
-
   if (chartData.length === 0) {
     return (
-      <div className="h-[300px] flex items-center justify-center bg-muted/20 rounded-md">
-        <p className="text-muted-foreground">No batch data available</p>
+      <div className="h-64 flex items-center justify-center bg-gray-100 rounded-md">
+        <p className="text-gray-500">No batch data available</p>
       </div>
     );
   }
 
+  // Fixed dimensions
+  const BAR_WIDTH = 30;
+  const BAR_GAP = 20;
+  const CHART_PADDING = 70;
+
+  // Calculate total width needed for the chart
+  const totalWidth = useMemo(() => {
+    return Math.max(
+      300,
+      (BAR_WIDTH + BAR_GAP) * chartData.length + CHART_PADDING
+    );
+  }, [chartData.length]);
+
   return (
-    <div className="h-[300px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <RechartsBarChart
-          data={chartData.slice(0, 15)} // Limit to 15 items for performance
-          layout="vertical"
-          margin={{ top: 5, right: 30, left: 70, bottom: 5 }}
-        >
-          <XAxis type="number" />
-          <YAxis
-            dataKey="name"
-            type="category"
-            width={60}
-            tick={{ fontSize: 11 }}
-            tickFormatter={formatXAxisTick}
-          />
-          <Tooltip
-            formatter={(value, name) => [`${value} students`, name]}
-            labelFormatter={(label) => `Batch: ${label}`}
-          />
-          <Legend />
-          <Bar
-            dataKey="students"
-            name="Number of Students"
-            fill="#8884d8"
-            radius={[0, 4, 4, 0]}
-          />
-        </RechartsBarChart>
-      </ResponsiveContainer>
+    <div className="h-64 max-w-full overflow-x-auto overflow-y-hidden rounded-md">
+      <div style={{ width: `${totalWidth}px`, height: "290px" }}>
+        <ResponsiveContainer width="100%" height={290}>
+          <RechartsBarChart
+            data={chartData}
+            margin={{ top: 10, right: 30, left: 20, bottom: 60 }}
+            barSize={BAR_WIDTH}
+            barGap={0}
+            barCategoryGap={BAR_GAP}
+          >
+            <XAxis
+              dataKey="name"
+              interval={0}
+              angle={-35}
+              textAnchor="end"
+              height={70}
+              tick={{ fontSize: 12 }}
+            />
+            <YAxis />
+            <Tooltip
+              formatter={(value, name) => [`${value} students`, name]}
+              labelFormatter={(label) => `Batch: ${label}`}
+            />
+            <Legend />
+            <Bar
+              dataKey="students"
+              name="Number of Students"
+              fill="#8884d8"
+              radius={[4, 4, 0, 0]}
+            />
+          </RechartsBarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 });
@@ -595,7 +603,7 @@ export default function Dashboard({ token }) {
         </TabsContent>
 
         <TabsContent value="charts" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {/* Batch Active Students Chart */}
             <Card className="border-t-4 border-t-primary">
               <CardHeader>
