@@ -2,8 +2,8 @@
     "name": "Scofist",
     "short_name": "App",
     "description": "Join Sa-adiya Da-awa College, where Islamic and academic excellence meet. Offering a range of programs designed for intellectual and spiritual development.",
-    "start_url": "/dashboard/my-periods?source=pwa",
-    "scope": "/dashboard/my-periods",
+    "start_url": "/?source=pwa",
+    "scope": "/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#008000",
@@ -25,6 +25,34 @@
             "sizes": "512x512",
             "type": "image/svg+xml",
             "purpose": "any"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "My Periods",
+            "short_name": "Periods",
+            "description": "View your teaching periods and schedule",
+            "url": "/dashboard/my-periods?source=pwa",
+            "icons": [
+                {
+                    "src": "/favicon.svg",
+                    "sizes": "96x96",
+                    "type": "image/svg+xml"
+                }
+            ]
+        },
+        {
+            "name": "Dashboard",
+            "short_name": "Dashboard",
+            "description": "Go to main dashboard",
+            "url": "/dashboard?source=pwa",
+            "icons": [
+                {
+                    "src": "/favicon.svg",
+                    "sizes": "96x96",
+                    "type": "image/svg+xml"
+                }
+            ]
         }
     ]
 }
