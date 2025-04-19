@@ -228,7 +228,6 @@ StatsOverview.displayName = "StatsOverview";
  * Chart component to visualize batch data
  */
 const BatchChart = memo(({ batches, students }) => {
-  // We need to create proper chart data with correct structure
   const chartData = useMemo(() => {
     if (!batches || !students) return [];
 
@@ -242,11 +241,19 @@ const BatchChart = memo(({ batches, students }) => {
         return {
           name: batch.name,
           students: batchStudents,
-          // We can add more metrics here if needed
         };
       })
-      .filter((item) => item.students > 0); // Only show batches with students
+      .filter((item) => item.students > 0)
+      .sort((a, b) => b.students - a.students);
   }, [batches, students]);
+
+  // For chart rendering optimization
+
+  // Format x-axis labels for better display
+  const formatXAxisTick = (value) => {
+    // Truncate long names
+    return value.length > 10 ? `${value.substring(0, 10)}...` : value;
+  };
 
   if (chartData.length === 0) {
     return (
@@ -260,14 +267,29 @@ const BatchChart = memo(({ batches, students }) => {
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
         <RechartsBarChart
-          data={chartData}
-          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+          data={chartData.slice(0, 15)} // Limit to 15 items for performance
+          layout="vertical"
+          margin={{ top: 5, right: 30, left: 70, bottom: 5 }}
         >
-          <XAxis dataKey="name" interval={0} angle={-45} textAnchor="end" />
-          <YAxis />
-          <Tooltip />
+          <XAxis type="number" />
+          <YAxis
+            dataKey="name"
+            type="category"
+            width={60}
+            tick={{ fontSize: 11 }}
+            tickFormatter={formatXAxisTick}
+          />
+          <Tooltip
+            formatter={(value, name) => [`${value} students`, name]}
+            labelFormatter={(label) => `Batch: ${label}`}
+          />
           <Legend />
-          <Bar dataKey="students" name="Number of Students" fill="#8884d8" />
+          <Bar
+            dataKey="students"
+            name="Number of Students"
+            fill="#8884d8"
+            radius={[0, 4, 4, 0]}
+          />
         </RechartsBarChart>
       </ResponsiveContainer>
     </div>
@@ -354,6 +376,8 @@ export default function Dashboard({ token }) {
     students: [],
     batches: [],
     classes: [],
+    activeStudents: [],
+    graduatedStudents: [],
     attendances: [],
     totalStats: {
       studentCount: 0,
@@ -400,6 +424,13 @@ export default function Dashboard({ token }) {
 
         if (fetchStudentsQuery.data) {
           newData.students = fetchStudentsQuery.data.users || [];
+          newData.activeStudents =
+            newData.students.filter((student) => student.status === "Active") ||
+            [];
+          newData.graduatedStudents =
+            newData.students.filter(
+              (student) => student.status === "Graduated"
+            ) || [];
         }
 
         if (fetchBatchesQuery.data) {
@@ -565,12 +596,12 @@ export default function Dashboard({ token }) {
 
         <TabsContent value="charts" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Batch Students Chart */}
+            {/* Batch Active Students Chart */}
             <Card className="border-t-4 border-t-primary">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <BarChart className="h-5 w-5" />
-                  <span>Students By Batch</span>
+                  <span>Active Students By Batch</span>
                 </CardTitle>
                 <CardDescription>
                   Distribution of students across different batches
@@ -579,7 +610,26 @@ export default function Dashboard({ token }) {
               <CardContent>
                 <BatchChart
                   batches={dashboardData.batches}
-                  students={dashboardData.students}
+                  students={dashboardData.activeStudents}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Batch Graduated Students Chart */}
+            <Card className="border-t-4 border-t-primary">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <BarChart className="h-5 w-5" />
+                  <span>Graduated Students By Batch</span>
+                </CardTitle>
+                <CardDescription>
+                  Distribution of students across different batches
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BatchChart
+                  batches={dashboardData.batches}
+                  students={dashboardData.graduatedStudents}
                 />
               </CardContent>
             </Card>

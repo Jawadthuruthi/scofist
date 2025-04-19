@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 // Constants
 const DEFAULT_PAGE = 0;
 const DEFAULT_LIMIT = 10;
+const MONGODB_MAX_BATCH_SIZE = 500; // MongoDB has limits on transaction size
 
 // Helper functions
 const extractQueryParams = (url) => {
@@ -81,6 +82,67 @@ const checkTeacherScheduleConflicts = async (
   return formattedConflicts;
 };
 
+// Process a single timetable update to prevent duplicating code
+const processSingleUpdate = async (item) => {
+  const { _id, classId, timeSlots } = item;
+
+  // Input validation
+  if (!classId) {
+    throw new Error("Class ID is required");
+  }
+
+  const filter = _id ? { _id } : { classId };
+  let updatedTimeTable;
+
+  if (_id) {
+    // Transaction-like operation: First remove existing slot, then add new one
+    const existingTimeTable = await TimeTable.findOne(filter);
+
+    if (!existingTimeTable) {
+      return null; // Skip this item if timetable not found
+    }
+
+    // Remove slot with same day and period
+    existingTimeTable.timeSlots = existingTimeTable.timeSlots.filter(
+      (slot) =>
+        !(
+          slot.day === timeSlots.day &&
+          slot.periodNumber === timeSlots.periodNumber
+        )
+    );
+
+    // Add new slot
+    existingTimeTable.timeSlots.push(timeSlots);
+    updatedTimeTable = await existingTimeTable.save();
+  } else {
+    // Check if a timetable already exists for this class
+    const existingTimeTable = await TimeTable.findOne({ classId });
+
+    if (existingTimeTable) {
+      // Remove slot with same day and period if exists
+      existingTimeTable.timeSlots = existingTimeTable.timeSlots.filter(
+        (slot) =>
+          !(
+            slot.day === timeSlots.day &&
+            slot.periodNumber === timeSlots.periodNumber
+          )
+      );
+
+      // Add new slot
+      existingTimeTable.timeSlots.push(timeSlots);
+      updatedTimeTable = await existingTimeTable.save();
+    } else {
+      // Create new document
+      updatedTimeTable = await TimeTable.create({
+        classId,
+        timeSlots: [timeSlots],
+      });
+    }
+  }
+
+  return updatedTimeTable;
+};
+
 // API handlers
 export async function GET(req, res) {
   try {
@@ -141,95 +203,61 @@ export async function PUT(req) {
     await connectToDB();
 
     const body = await req.json();
+
+    // Validate request
+    if (!Array.isArray(body)) {
+      return NextResponse.json(
+        { message: "Expected an array of updates" },
+        { status: 400 }
+      );
+    }
+
+    // Limit batch size to prevent timeouts
+    const batchSize = Math.min(body.length, MONGODB_MAX_BATCH_SIZE);
+    const updateBatch = body.slice(0, batchSize);
+
     const results = [];
     const conflicts = [];
 
-    // Process each change in the batch
-    for (const item of body) {
-      const { _id, classId, timeSlots } = item;
-
-      // Input validation
-      if (!classId) {
-        return NextResponse.json(
-          { message: "Class ID is required" },
-          { status: 400 }
-        );
-      }
-
-      // Check for teacher schedule conflicts if this slot has a teacher
-      if (timeSlots.teacherId) {
-        const slotConflicts = await checkTeacherScheduleConflicts(
-          timeSlots.teacherId,
-          timeSlots.periodNumber,
-          timeSlots.day,
-          classId
-        );
-
-        // Collect conflicts but continue processing
-        if (slotConflicts.length > 0) {
-          conflicts.push({
-            slot: timeSlots,
-            conflicts: slotConflicts,
-          });
-        }
-      }
-
-      const filter = _id ? { _id } : { classId };
-      let updatedTimeTable;
-
-      if (_id) {
-        // Transaction-like operation: First remove existing slot, then add new one
-        const existingTimeTable = await TimeTable.findOne(filter);
-
-        if (!existingTimeTable) {
-          continue; // Skip this item if timetable not found
-        }
-
-        // Remove slot with same day and period
-        existingTimeTable.timeSlots = existingTimeTable.timeSlots.filter(
-          (slot) =>
-            !(
-              slot.day === timeSlots.day &&
-              slot.periodNumber === timeSlots.periodNumber
-            )
-        );
-
-        // Add new slot
-        existingTimeTable.timeSlots.push(timeSlots);
-        updatedTimeTable = await existingTimeTable.save();
-      } else {
-        // Check if a timetable already exists for this class
-        const existingTimeTable = await TimeTable.findOne({ classId });
-
-        if (existingTimeTable) {
-          // Remove slot with same day and period if exists
-          existingTimeTable.timeSlots = existingTimeTable.timeSlots.filter(
-            (slot) =>
-              !(
-                slot.day === timeSlots.day &&
-                slot.periodNumber === timeSlots.periodNumber
-              )
+    // Process each change in the batch sequentially
+    for (const item of updateBatch) {
+      try {
+        // Check for teacher schedule conflicts if this slot has a teacher
+        if (item.timeSlots?.teacherId) {
+          const slotConflicts = await checkTeacherScheduleConflicts(
+            item.timeSlots.teacherId,
+            item.timeSlots.periodNumber,
+            item.timeSlots.day,
+            item.classId
           );
 
-          // Add new slot
-          existingTimeTable.timeSlots.push(timeSlots);
-          updatedTimeTable = await existingTimeTable.save();
-        } else {
-          // Create new document
-          updatedTimeTable = await TimeTable.create({
-            classId,
-            timeSlots: [timeSlots],
-          });
+          // Collect conflicts but continue processing
+          if (slotConflicts.length > 0) {
+            conflicts.push({
+              slot: item.timeSlots,
+              conflicts: slotConflicts,
+            });
+          }
         }
+
+        // Process the update
+        const updatedTimeTable = await processSingleUpdate(item);
+
+        if (updatedTimeTable) {
+          // Fetch populated data to return
+          const populatedTimeTable = await TimeTable.findById(
+            updatedTimeTable._id
+          )
+            .populate("timeSlots.subjectId", "name")
+            .populate("timeSlots.teacherId", "name")
+            .lean();
+
+          results.push(populatedTimeTable);
+        }
+      } catch (error) {
+        console.error(`Error processing update for item:`, item, error);
+        // Continue with other updates even if one fails
       }
-
-      // Fetch populated data to return
-      const populatedTimeTable = await TimeTable.findById(updatedTimeTable?._id)
-        .populate("timeSlots.subjectId", "name")
-        .populate("timeSlots.teacherId", "name")
-        .lean();
-
-      results.push(populatedTimeTable);
     }
 
     return NextResponse.json(
@@ -237,6 +265,9 @@ export async function PUT(req) {
         timeTables: results,
         conflicts: conflicts,
         hasConflicts: conflicts.length > 0,
+        processedCount: results.length,
+        totalCount: body.length,
+        isComplete: results.length === body.length,
         message:
           conflicts.length > 0
             ? `Time Tables updated with ${conflicts.length} conflicts detected`

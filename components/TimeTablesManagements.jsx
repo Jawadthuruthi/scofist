@@ -46,6 +46,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import { Progress } from "./ui/progress"; // Import Progress component
 
 // Hooks and Utils
 import { DAYS } from "@/lib/utils";
@@ -196,6 +197,37 @@ const TimetableSlot = ({
   );
 };
 
+// Save Progress Dialog Component
+const SaveProgressDialog = ({ open, progress, total, completed }) => {
+  const percentage = Math.round((progress / total) * 100);
+
+  return (
+    <Dialog open={open}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Saving Timetable Changes</DialogTitle>
+          <DialogDescription>
+            Please wait while your changes are being saved...
+          </DialogDescription>
+        </DialogHeader>
+        <div className="my-6 space-y-4">
+          <Progress value={percentage} className="h-2 w-full" />
+          <p className="text-center">
+            {completed ? (
+              <span className="text-green-600 flex items-center justify-center">
+                <CheckCircle2 className="mr-2 h-5 w-5" />
+                All changes saved successfully!
+              </span>
+            ) : (
+              `Saving changes: ${progress} of ${total} (${percentage}%)`
+            )}
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // Main TimeTablesManagement component
 const TimeTablesManagements = ({
   periods = [],
@@ -222,6 +254,12 @@ const TimeTablesManagements = ({
   const [existingTimeSlotId, setExistingTimeSlotId] = useState(null);
   const [pendingChanges, setPendingChanges] = useState([]);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
+
+  // Save progress tracking
+  const [saveProgressOpen, setSaveProgressOpen] = useState(false);
+  const [saveProgress, setSaveProgress] = useState(0);
+  const [saveTotal, setSaveTotal] = useState(0);
+  const [saveCompleted, setSaveCompleted] = useState(false);
 
   const day = useMemo(
     () =>
@@ -477,7 +515,8 @@ const TimeTablesManagements = ({
     selectedDay,
     existingTimeSlotId,
     checkTeacherConflicts,
-    pendingChanges, // Add this dependency
+    pendingChanges,
+    selectedClass,
   ]);
 
   // Helper to format period time
@@ -669,7 +708,7 @@ const TimeTablesManagements = ({
 
     setHasPendingChanges(true);
     setEditDialogOpen(false);
-    toast.success("Changes added to changes. Save all to apply changes.");
+    toast.success("Changes added to queue. Save all to apply changes.");
 
     // Reset form
     setSelectedSubject("");
@@ -677,28 +716,78 @@ const TimeTablesManagements = ({
     setExistingTimeSlotId(null);
   };
 
-  // Form submission handler
+  // Process changes in batches to prevent timeout
+  const processBatchedChanges = async (changes, batchSize = 10) => {
+    const batches = [];
+    for (let i = 0; i < changes.length; i += batchSize) {
+      batches.push(changes.slice(i, i + batchSize));
+    }
+
+    // Open progress dialog
+    setSaveProgressOpen(true);
+    setSaveTotal(changes.length);
+    setSaveProgress(0);
+    setSaveCompleted(false);
+
+    let processedCount = 0;
+    let results = [];
+
+    try {
+      // Process each batch in sequence
+      for (const batch of batches) {
+        const batchResult = await updateItem.mutateAsync({
+          data: batch,
+        });
+
+        // Update progress
+        processedCount += batch.length;
+        setSaveProgress(processedCount);
+
+        // Collect results
+        if (batchResult && Array.isArray(batchResult.timeTables)) {
+          results = [...results, ...batchResult.timeTables];
+        }
+
+        // Small delay to allow UI updates
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+
+      setSaveCompleted(true);
+
+      // Close dialog after a delay
+      setTimeout(() => {
+        setSaveProgressOpen(false);
+        setPendingChanges([]);
+        setHasPendingChanges(false);
+      }, 1500);
+
+      toast.success("All timetable changes saved successfully!");
+
+      // Refresh data
+      fetchItemsQuery.refetch();
+      allTimeTablesQuery.refetch();
+
+      return results;
+    } catch (error) {
+      setSaveProgressOpen(false);
+      console.error("Error in batch processing:", error);
+      throw error;
+    }
+  };
+
+  // Form submission handler with batched processing
   const handleSubmit = async (e) => {
     if (pendingChanges.length === 0) {
       toast.info("No changes to save");
       return;
     }
+
     try {
       e.preventDefault();
       setIsSubmitting(true);
 
-      await updateItem.mutateAsync({
-        data: pendingChanges,
-      });
-
-      setPendingChanges([]);
-      setHasPendingChanges(false);
-      setEditDialogOpen(false);
-      toast.success("Time table updated successfully!");
-
-      // Refresh data
-      fetchItemsQuery.refetch();
-      allTimeTablesQuery.refetch();
+      // Use batched processing instead of sending all at once
+      await processBatchedChanges(pendingChanges, 15); // Process in batches of 15
     } catch (error) {
       console.error("Error updating time table:", error.message);
       toast.error(
@@ -1024,7 +1113,7 @@ const TimeTablesManagements = ({
         <Button onClick={handlePrint}>Print</Button>
       </div>
 
-      {/* Absentees Dialog - Now centralized */}
+      {/* Absentees Dialog */}
       <AbsenteesDialog
         open={absenteesDialogOpen}
         setOpen={setAbsenteesDialogOpen}
@@ -1032,6 +1121,14 @@ const TimeTablesManagements = ({
         day={currentDialogData.day}
         periodNumber={currentDialogData.periodNumber}
         absenteesList={currentAbsenteesList}
+      />
+
+      {/* Save Progress Dialog */}
+      <SaveProgressDialog
+        open={saveProgressOpen}
+        progress={saveProgress}
+        total={saveTotal}
+        completed={saveCompleted}
       />
 
       {/* Edit Dialog */}
