@@ -223,22 +223,22 @@ export async function PUT(req) {
     for (const item of updateBatch) {
       try {
         // Check for teacher schedule conflicts if this slot has a teacher
-        if (item.timeSlots?.teacherId) {
-          const slotConflicts = await checkTeacherScheduleConflicts(
-            item.timeSlots.teacherId,
-            item.timeSlots.periodNumber,
-            item.timeSlots.day,
-            item.classId
-          );
+        // if (item.timeSlots?.teacherId) {
+        //   const slotConflicts = await checkTeacherScheduleConflicts(
+        //     item.timeSlots.teacherId,
+        //     item.timeSlots.periodNumber,
+        //     item.timeSlots.day,
+        //     item.classId
+        //   );
 
-          // Collect conflicts but continue processing
-          if (slotConflicts.length > 0) {
-            conflicts.push({
-              slot: item.timeSlots,
-              conflicts: slotConflicts,
-            });
-          }
-        }
+        //   // Collect conflicts but continue processing
+        //   if (slotConflicts.length > 0) {
+        //     conflicts.push({
+        //       slot: item.timeSlots,
+        //       conflicts: slotConflicts,
+        //     });
+        //   }
+        // }
 
         // Process the update
         const updatedTimeTable = await processSingleUpdate(item);
