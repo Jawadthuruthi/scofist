@@ -190,16 +190,17 @@ export async function POST(req, res) {
       classId,
       batchId,
       islamicCourseName,
-      islamicCourseUniversity,
+      islamicUniversity, // Field name in request
       islamicCourseRegisterNumber,
       islamicCourseYear,
       islamicCourseSemester,
-      generalCourseName,
-      generalCourseUniversity,
+      academicCourseName, // Field name in request
+      generalUniversity, // Field name in request
       generalCourseRegisterNumber,
       generalCourseYear,
       generalCourseSemester,
     } = body;
+
     const newUser = await User.create({
       _id,
       name,
@@ -232,14 +233,14 @@ export async function POST(req, res) {
         batchId,
         islamicCourse: {
           name: islamicCourseName,
-          university: islamicCourseUniversity,
+          university: islamicUniversity, // Map from request
           registerNumber: islamicCourseRegisterNumber,
           year: islamicCourseYear,
           semester: islamicCourseSemester,
         },
         generalCourse: {
-          name: generalCourseName,
-          university: generalCourseUniversity,
+          name: academicCourseName, // Map from request
+          university: generalUniversity, // Map from request
           registerNumber: generalCourseRegisterNumber,
           year: generalCourseYear,
           semester: generalCourseSemester,
@@ -255,6 +256,7 @@ export async function POST(req, res) {
         pin,
       },
     });
+
     return NextResponse.json(
       { newUser, message: "User created successfully!" },
       { status: 200 }
@@ -269,7 +271,6 @@ export async function PUT(req, res) {
     await connectToDB();
 
     const body = await req.json();
-    console.log(body);
     const {
       ids,
       name,
@@ -303,13 +304,14 @@ export async function PUT(req, res) {
       graduatedYear,
       classId,
       batchId,
+      // Mapping fields from request body
       islamicCourseName,
-      islamicCourseUniversity,
+      islamicUniversity,
       islamicCourseRegisterNumber,
       islamicCourseYear,
       islamicCourseSemester,
-      generalCourseName,
-      generalCourseUniversity,
+      academicCourseName,
+      generalUniversity,
       generalCourseRegisterNumber,
       generalCourseYear,
       generalCourseSemester,
@@ -317,66 +319,141 @@ export async function PUT(req, res) {
 
     const _id = ids[0];
 
+    // Create an update object with only provided fields
+    const updateData = { $set: {} };
+
+    // Basic user fields
+    if (name !== undefined) updateData.$set.name = name;
+    if (email !== undefined) updateData.$set.email = email;
+    if (profilePic && Object.keys(profilePic).length > 0)
+      updateData.$set.profilePic = profilePic;
+    if (roles !== undefined) updateData.$set.roles = roles;
+    if (contactNumber !== undefined)
+      updateData.$set.contactNumber = contactNumber;
+    if (alternativeNumber !== undefined)
+      updateData.$set.alternativeNumber = alternativeNumber;
+    if (dateOfBirth !== undefined) updateData.$set.dateOfBirth = dateOfBirth;
+
+    // Address fields
+    if (houseName !== undefined)
+      updateData.$set["address.houseName"] = houseName;
+    if (place !== undefined) updateData.$set["address.place"] = place;
+    if (postOffice !== undefined)
+      updateData.$set["address.postOffice"] = postOffice;
+    if (district !== undefined) updateData.$set["address.district"] = district;
+    if (state !== undefined) updateData.$set["address.state"] = state;
+    if (pin !== undefined) updateData.$set["address.pin"] = pin;
+
+    // Teacher specific fields
+    if (roles && roles.includes("Teacher")) {
+      if (dateOfJoining !== undefined)
+        updateData.$set["teacherSpecificField.dateOfJoining"] = dateOfJoining;
+      if (status !== undefined)
+        updateData.$set["teacherSpecificField.status"] = status;
+    }
+
+    // Student specific fields
+    if (roles && roles.includes("Student")) {
+      if (admissionClassId !== undefined)
+        updateData.$set["studentSpecificField.admissionClassId"] =
+          admissionClassId;
+      if (admissionDate !== undefined)
+        updateData.$set["studentSpecificField.admissionDate"] = admissionDate;
+      if (aadharNo !== undefined)
+        updateData.$set["studentSpecificField.aadharNo"] = aadharNo;
+      if (bloodGroup !== undefined)
+        updateData.$set["studentSpecificField.bloodGroup"] = bloodGroup;
+      if (guardianName !== undefined)
+        updateData.$set["studentSpecificField.guardianName"] = guardianName;
+      if (guardianContactNumber !== undefined)
+        updateData.$set["studentSpecificField.guardianContactNumber"] =
+          guardianContactNumber;
+      if (guardianAlternativeNumber !== undefined)
+        updateData.$set["studentSpecificField.guardianAlternativeNumber"] =
+          guardianAlternativeNumber;
+      if (relationship !== undefined)
+        updateData.$set["studentSpecificField.relationship"] = relationship;
+      if (islamicQualification !== undefined)
+        updateData.$set["studentSpecificField.islamicQualification"] =
+          islamicQualification;
+      if (academicQualification !== undefined)
+        updateData.$set["studentSpecificField.academicQualification"] =
+          academicQualification;
+      if (classId !== undefined)
+        updateData.$set["studentSpecificField.classId"] = classId;
+      if (batchId !== undefined)
+        updateData.$set["studentSpecificField.batchId"] = batchId;
+      if (status !== undefined)
+        updateData.$set["studentSpecificField.status"] = status;
+
+      // Islamic course details
+      if (islamicCourseName !== undefined)
+        updateData.$set["studentSpecificField.islamicCourse.name"] =
+          islamicCourseName;
+      if (islamicUniversity !== undefined)
+        updateData.$set["studentSpecificField.islamicCourse.university"] =
+          islamicUniversity;
+      if (islamicCourseRegisterNumber !== undefined)
+        updateData.$set["studentSpecificField.islamicCourse.registerNumber"] =
+          islamicCourseRegisterNumber;
+      if (islamicCourseYear !== undefined)
+        updateData.$set["studentSpecificField.islamicCourse.year"] =
+          islamicCourseYear;
+      if (islamicCourseSemester !== undefined)
+        updateData.$set["studentSpecificField.islamicCourse.semester"] =
+          islamicCourseSemester;
+
+      // General/Academic course details
+      if (academicCourseName !== undefined)
+        updateData.$set["studentSpecificField.generalCourse.name"] =
+          academicCourseName;
+      if (generalUniversity !== undefined)
+        updateData.$set["studentSpecificField.generalCourse.university"] =
+          generalUniversity;
+      if (generalCourseRegisterNumber !== undefined)
+        updateData.$set["studentSpecificField.generalCourse.registerNumber"] =
+          generalCourseRegisterNumber;
+      if (generalCourseYear !== undefined)
+        updateData.$set["studentSpecificField.generalCourse.year"] =
+          generalCourseYear;
+      if (generalCourseSemester !== undefined)
+        updateData.$set["studentSpecificField.generalCourse.semester"] =
+          generalCourseSemester;
+
+      // Status-dependent fields
+      if (status === "Dropped Out") {
+        if (droppedOutDate !== undefined)
+          updateData.$set["studentSpecificField.droppedOutDate"] =
+            droppedOutDate;
+        if (droppedOutClass !== undefined)
+          updateData.$set["studentSpecificField.droppedOutClass"] =
+            droppedOutClass;
+        if (droppedOutReason !== undefined)
+          updateData.$set["studentSpecificField.droppedOutReason"] =
+            droppedOutReason;
+      }
+
+      if (status === "Graduated") {
+        if (graduatedYear !== undefined)
+          updateData.$set["studentSpecificField.graduatedYear"] = graduatedYear;
+      }
+    } else if (status !== undefined) {
+      // For non-student roles
+      updateData.$set.status = status;
+    }
+
+    // Only proceed with update if there are fields to update
+    if (Object.keys(updateData.$set).length === 0) {
+      return NextResponse.json(
+        { message: "No fields to update" },
+        { status: 400 }
+      );
+    }
+
     if (ids.length > 1) {
       const updatedUsers = await User.updateMany(
         { _id: { $in: ids } },
-        {
-          $set: {
-            name,
-            email,
-            profilePic,
-            roles,
-            contactNumber,
-            alternativeNumber,
-            dateOfBirth,
-            teacherSpecificField: roles.includes("Teacher") && {
-              dateOfJoining,
-              status,
-            },
-            studentSpecificField: roles.includes("Student") && {
-              admissionClassId,
-              admissionDate,
-              aadharNo,
-              bloodGroup,
-              guardianName,
-              guardianContactNumber,
-              guardianAlternativeNumber,
-              relationship,
-              islamicQualification,
-              academicQualification,
-              droppedOutDate,
-              droppedOutClass,
-              droppedOutReason,
-              graduatedYear,
-              classId,
-              batchId,
-              islamicCourse: {
-                name: islamicCourseName,
-                university: islamicCourseUniversity,
-                registerNumber: islamicCourseRegisterNumber,
-                year: islamicCourseYear,
-                semester: islamicCourseSemester,
-              },
-              generalCourse: {
-                name: generalCourseName,
-                university: generalCourseUniversity,
-                registerNumber: generalCourseRegisterNumber,
-                year: generalCourseYear,
-                semester: generalCourseSemester,
-              },
-              status,
-            },
-            address: {
-              houseName,
-              place,
-              postOffice,
-              district,
-              state,
-              pin,
-            },
-            status,
-          },
-        }
+        updateData
       );
       return NextResponse.json(
         { updatedUsers, message: "Users Updated successfully!" },
@@ -384,63 +461,10 @@ export async function PUT(req, res) {
       );
     }
 
-    const updatedUser = await User.findOneAndUpdate(
-      { _id },
-      {
-        name,
-        email,
-        profilePic,
-        roles,
-        contactNumber,
-        alternativeNumber,
-        dateOfBirth,
-        teacherSpecificField: {
-          dateOfJoining,
-        },
-        studentSpecificField: {
-          admissionClassId,
-          admissionDate,
-          aadharNo,
-          bloodGroup,
-          guardianName,
-          guardianContactNumber,
-          guardianAlternativeNumber,
-          relationship,
-          islamicQualification,
-          academicQualification,
-          droppedOutDate,
-          droppedOutClass,
-          droppedOutReason,
-          graduatedYear,
-          classId,
-          batchId,
-          islamicCourse: {
-            name: islamicCourseName,
-            university: islamicCourseUniversity,
-            registerNumber: islamicCourseRegisterNumber,
-            year: islamicCourseYear,
-            semester: islamicCourseSemester,
-          },
-          generalCourse: {
-            name: generalCourseName,
-            university: generalCourseUniversity,
-            registerNumber: generalCourseRegisterNumber,
-            year: generalCourseYear,
-            semester: generalCourseSemester,
-          },
-        },
-        address: {
-          houseName,
-          place,
-          postOffice,
-          district,
-          state,
-          pin,
-        },
-        status,
-      },
-      { new: true }
-    );
+    const updatedUser = await User.findOneAndUpdate({ _id }, updateData, {
+      new: true,
+    });
+
     return NextResponse.json(
       { updatedUser, message: "User Updated successfully!" },
       { status: 200 }
@@ -456,6 +480,7 @@ export async function DELETE(req, res) {
 
     const { ids } = await req.json();
     const _id = ids[0];
+
     if (ids.length > 1) {
       const usersToDelete = await User.find(
         { _id: { $in: ids } },
@@ -465,15 +490,19 @@ export async function DELETE(req, res) {
       const publicIds = usersToDelete
         .map((user) => user.profilePic.publicId)
         .filter(Boolean);
+
       const deletedUsers = await User.deleteMany({ _id: { $in: ids } });
+
       if (publicIds.length > 0) {
         await cloudinary.api.delete_resources(publicIds);
       }
+
       return NextResponse.json(
         { deletedUsers, message: "Users deleted successfully!" },
         { status: 200 }
       );
     }
+
     const deletedUser = await User.findByIdAndDelete(_id);
 
     if (deletedUser && deletedUser.profilePic.publicId) {

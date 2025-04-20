@@ -656,6 +656,7 @@ export default async function BatchesPage() {
           apiFilters={apiFilters}
           filterTitle="Students"
           printTitle={"Students"}
+          filterType="api"
         />
       </>
     );

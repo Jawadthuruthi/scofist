@@ -1,6 +1,7 @@
-import { Schema, model, models } from "mongoose";
+import { Schema, model, models, mongoose } from "mongoose";
 import Batch from "./Batch";
 import Class from "./Class";
+
 // Reusable enums
 const ROLES = [
   "College Admin",
@@ -17,6 +18,17 @@ const ROLES = [
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 const STUDENT_STATUSES = ["Active", "Dropped Out", "Graduated"];
+const COURSE_YEARS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"];
+const COURSE_SEMESTERS = [
+  "1st",
+  "2nd",
+  "3rd",
+  "4th",
+  "5th",
+  "6th",
+  "7th",
+  "8th",
+];
 
 const userSchema = new Schema(
   {
@@ -236,49 +248,50 @@ const userSchema = new Schema(
         required: function () {
           return this.roles.includes("Student");
         },
-        islamicCourse: {
-          name: {
-            type: String,
-            trim: true,
-          },
-          university: {
-            type: String,
-            trim: true,
-          },
-          registerNumber: {
-            type: String,
-            trim: true,
-          },
-          year: {
-            type: String,
-            enum: ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"],
-          },
-          semester: {
-            type: String,
-            enum: ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"],
-          },
+      },
+      // Corrected structure - moved these outside of batchId
+      islamicCourse: {
+        name: {
+          type: String,
+          trim: true,
         },
-        generalCourse: {
-          name: {
-            type: String,
-            trim: true,
-          },
-          university: {
-            type: String,
-            trim: true,
-          },
-          registerNumber: {
-            type: String,
-            trim: true,
-          },
-          year: {
-            type: String,
-            enum: ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"],
-          },
-          semester: {
-            type: String,
-            enum: ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"],
-          },
+        university: {
+          type: String,
+          trim: true,
+        },
+        registerNumber: {
+          type: String,
+          trim: true,
+        },
+        year: {
+          type: String,
+          enum: COURSE_YEARS,
+        },
+        semester: {
+          type: String,
+          enum: COURSE_SEMESTERS,
+        },
+      },
+      generalCourse: {
+        name: {
+          type: String,
+          trim: true,
+        },
+        university: {
+          type: String,
+          trim: true,
+        },
+        registerNumber: {
+          type: String,
+          trim: true,
+        },
+        year: {
+          type: String,
+          enum: COURSE_YEARS,
+        },
+        semester: {
+          type: String,
+          enum: COURSE_SEMESTERS,
         },
       },
     },
@@ -296,20 +309,31 @@ userSchema.index({ name: "text" });
 userSchema.pre("save", async function (next) {
   try {
     // Update batch if student is new or batchId is modified
-    if (this.isModified("batchId")) {
+    if (
+      this.roles.includes("Student") &&
+      this.studentSpecificField?.batchId &&
+      this.isModified("studentSpecificField.batchId")
+    ) {
       if (this.isNew) {
-        await Batch.findByIdAndUpdate(this.batchId, {
-          $addToSet: { students: this?._id },
+        await Batch.findByIdAndUpdate(this.studentSpecificField.batchId, {
+          $addToSet: { students: this._id },
         });
       } else {
-        const oldStudent = await mongoose.model("User").findById(this?._id);
-        if (oldStudent.batchId && oldStudent.batchId !== this.batchId) {
-          await Batch.findByIdAndUpdate(oldStudent.batchId, {
-            $pull: { students: this?._id },
-          });
+        const oldStudent = await mongoose.model("User").findById(this._id);
+        if (
+          oldStudent.studentSpecificField?.batchId &&
+          oldStudent.studentSpecificField.batchId !==
+            this.studentSpecificField.batchId
+        ) {
+          await Batch.findByIdAndUpdate(
+            oldStudent.studentSpecificField.batchId,
+            {
+              $pull: { students: this._id },
+            }
+          );
         }
-        await Batch.findByIdAndUpdate(this.batchId, {
-          $addToSet: { students: this?._id },
+        await Batch.findByIdAndUpdate(this.studentSpecificField.batchId, {
+          $addToSet: { students: this._id },
         });
       }
     }
@@ -322,9 +346,9 @@ userSchema.pre("save", async function (next) {
 // Pre-remove hook: Remove student from batch when deleted
 userSchema.pre("remove", async function (next) {
   try {
-    if (this.batchId) {
-      await Batch.findByIdAndUpdate(this.batchId, {
-        $pull: { students: this?._id },
+    if (this.roles.includes("Student") && this.studentSpecificField?.batchId) {
+      await Batch.findByIdAndUpdate(this.studentSpecificField.batchId, {
+        $pull: { students: this._id },
       });
     }
     next();
