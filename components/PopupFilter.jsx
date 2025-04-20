@@ -13,7 +13,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { MultiSelect } from "./ui/multi-select";
-import { capitalize } from "lodash";
 
 // Define all available operators
 const OPERATORS = {

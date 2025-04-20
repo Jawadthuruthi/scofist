@@ -369,8 +369,8 @@ const DataTableComponent = ({
 
   // Intercept filter changes for API filtering
   const handleSetFilter = useCallback(
-    (key, value) => {
-      setFilter(key, value);
+    (key, value, operator, nestedArrayField) => {
+      setFilter(key, value, operator, nestedArrayField);
       if (isApiFiltering) {
         debouncedApiFilterUpdate({ ...filters, [key]: value }, globalFilter);
       }
