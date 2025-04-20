@@ -204,7 +204,14 @@ function ComboBox({ roles, role }) {
                   onSelect={(currentValue) => {
                     setValue(currentValue === value ? "" : currentValue);
                     setOpen(false);
-                    Cookies.set("active-role", currentValue);
+                    try {
+                      Cookies.set("active-role", currentValue, {
+                        path: "/",
+                      });
+                      console.log("Cookie set successfully");
+                    } catch (error) {
+                      console.error("Error setting cookie:", error);
+                    }
                     window.location.reload();
                     window.location.href = "/dashboard";
                   }}

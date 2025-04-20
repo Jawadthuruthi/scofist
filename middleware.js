@@ -314,9 +314,10 @@ async function fetchUserProfile(userId, token) {
 
 function prepareResponse(req, token, user) {
   const res = NextResponse.next();
+  console.log(req.cookies.has("active-role"));
 
   if (
-    !!req.cookies.has("active-role") &&
+    req.cookies.has("active-role") &&
     !isUserAllowed(req.cookies.get("active-role")?.value, req.nextUrl.pathname)
   ) {
     return redirectTo404(req);
@@ -337,23 +338,24 @@ function prepareResponse(req, token, user) {
   }
 
   // Set cookie if not present
-  if (!req.cookies.has("active-role") && user.roles && user.roles.length > 0) {
-    if (!isUserAllowed(user.roles[0], req.nextUrl.pathname)) {
-      return redirectTo404(req);
-    }
-    const activeRole = user.roles.includes("Teacher")
-      ? "Teacher"
-      : user?.roles[0];
-    console.log(activeRole);
+  // Get current activeRole from cookie or default to first valid role
+  let activeRole = req.cookies.get("active-role")?.value;
+
+  // If the current cookie value is not one of the user's roles, reset it
+  if (!activeRole || !user.roles.includes(activeRole)) {
+    activeRole = user.roles.includes("Teacher") ? "Teacher" : user.roles[0];
+
     res.cookies.set("active-role", activeRole, {
       path: "/",
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
-      maxAge: 31 * 24 * 60 * 60,
     });
   }
 
-  console.log(res);
+  // Now validate access
+  if (!isUserAllowed(activeRole, req.nextUrl.pathname)) {
+    return redirectTo404(req);
+  }
 
   return res;
 }
