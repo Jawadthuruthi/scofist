@@ -105,6 +105,7 @@ const DataTableComponent = ({
   filterTitle = "",
   filterType = "client",
   infiniteScrollThreshold = 0.3,
+  loadAheadCount = 1,
   printTitle,
 }) => {
   const [sorting, setSorting] = useState([]);
@@ -123,14 +124,13 @@ const DataTableComponent = ({
   const tableRef = useRef(null);
   const tableBodyRef = useRef(null);
   const loaderRef = useRef(null);
-  const scrollTimeoutRef = useRef(null);
   const router = useRouter();
 
-  // Periodic refresh - reduced frequency
+  // Periodic refresh
   useEffect(() => {
     const interval = setInterval(() => {
       router.refresh();
-    }, 180000); // 3 minutes
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [router]);
@@ -184,7 +184,7 @@ const DataTableComponent = ({
 
   // API fetch with combined filters
   const fetchItemsQuery = useFetchItems(page, limit, combinedApiFilters, {
-    retry: 1,
+    retry: 2,
     retryDelay: 1000,
   });
 
@@ -221,8 +221,7 @@ const DataTableComponent = ({
           return [...prev, ...uniqueNewItems];
         });
       }
-
-      setHasNextPage(page < pagination?.totalPages - 1);
+      setHasNextPage(page < (pagination?.totalPages || 1) - 1);
       setIsFetchingNextPage(false);
     }
   }, [
@@ -241,15 +240,15 @@ const DataTableComponent = ({
   const isLoadingMore =
     isFetchingNextPage || (fetchItemsQuery.isLoading && page > 0);
 
-  // Fetch next page function
+  // Fetch next page function with improved logic
   const fetchNextPage = useCallback(() => {
-    if (hasNextPage && !isLoadingMore) {
-      setIsFetchingNextPage(true);
-      setPage((prevPage) => prevPage + 1);
-    }
+    if (!hasNextPage || isLoadingMore) return;
+
+    setIsFetchingNextPage(true);
+    setPage((prevPage) => prevPage + 1);
   }, [hasNextPage, isLoadingMore]);
 
-  // Intersection Observer handler
+  // Improved IntersectionObserver handler
   const handleObserver = useCallback(
     (entries) => {
       const [entry] = entries;
@@ -260,30 +259,28 @@ const DataTableComponent = ({
     [fetchNextPage, isLoadingMore, hasNextPage]
   );
 
-  // Optimized scroll handling
-  const handleScroll = useCallback(() => {
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
-
-    scrollTimeoutRef.current = setTimeout(() => {
+  // Enhanced scroll handling with debounce
+  const handleScroll = useCallback(
+    debounce(() => {
       if (!tableBodyRef.current || isLoadingMore || !hasNextPage) return;
 
       const container = tableBodyRef.current;
       const scrollPosition = container.scrollTop + container.clientHeight;
       const scrollThreshold = container.scrollHeight * infiniteScrollThreshold;
 
+      // Load more data before reaching the bottom
       if (scrollPosition >= scrollThreshold) {
         fetchNextPage();
       }
-    }, 150);
-  }, [fetchNextPage, isLoadingMore, hasNextPage, infiniteScrollThreshold]);
+    }, 100),
+    [fetchNextPage, isLoadingMore, hasNextPage, infiniteScrollThreshold]
+  );
 
   // Set up the intersection observer for the loader element
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
       root: tableBodyRef.current,
-      rootMargin: "150px",
+      rootMargin: "100px",
       threshold: 0.1,
     });
 
@@ -291,41 +288,38 @@ const DataTableComponent = ({
       observer.observe(loaderRef.current);
     }
 
-    return () => {
-      if (observer && loaderRef.current) {
-        observer.disconnect();
-      }
-    };
+    return () => observer.disconnect();
   }, [handleObserver]);
 
   // Set up scroll event for table body
   useEffect(() => {
     const tableBody = tableBodyRef.current;
     if (tableBody) {
-      tableBody.addEventListener("scroll", handleScroll, { passive: true });
+      tableBody.addEventListener("scroll", handleScroll);
       return () => tableBody.removeEventListener("scroll", handleScroll);
     }
   }, [handleScroll]);
 
-  // Client-side filtering specific logic
+  // Check if we need to load more data for client-side filtering
   useEffect(() => {
-    // Check if using client filtering and has less filtered data than should be visible
-    if (
-      !isApiFiltering &&
-      filteredData.length < limit * (page + 1) &&
-      hasNextPage &&
-      !isLoadingMore
-    ) {
-      fetchNextPage();
+    if (!isApiFiltering && hasNextPage && !isLoadingMore) {
+      const displayedRows = filteredData.length;
+      const targetRowCount = limit * (page + 1);
+
+      // If we're filtering and don't have enough displayed data, fetch more
+      if (hasFilters && displayedRows < targetRowCount) {
+        fetchNextPage();
+      }
     }
   }, [
     filteredData.length,
-    isApiFiltering,
+    hasFilters,
     fetchNextPage,
     hasNextPage,
     isLoadingMore,
     limit,
     page,
+    isApiFiltering,
   ]);
 
   // Handle API filtering
@@ -334,6 +328,7 @@ const DataTableComponent = ({
       setIsManualFiltering(true);
       setPage(0);
       setHasNextPage(true);
+      setData([]);
       fetchItemsQuery.refetch();
     }
   }, [isApiFiltering, fetchItemsQuery]);
@@ -346,7 +341,7 @@ const DataTableComponent = ({
     [handleApiFilter]
   );
 
-  // Filter handlers
+  // Intercept filter changes for API filtering
   const handleSetFilter = useCallback(
     (key, value, operator, nestedArrayField) => {
       setFilter(key, value, operator, nestedArrayField);
@@ -372,9 +367,6 @@ const DataTableComponent = ({
     if (isApiFiltering) {
       debouncedApiFilterUpdate();
     }
-    setData([]);
-    setPage(0);
-    setHasNextPage(true);
   }, [clearFilters, isApiFiltering, debouncedApiFilterUpdate]);
 
   const handleSetGlobalFilter = useCallback(
@@ -431,20 +423,25 @@ const DataTableComponent = ({
     [table, rowSelection]
   );
 
+  // Reset table state and data
+  const resetTableState = useCallback(() => {
+    table.resetRowSelection();
+    setData([]);
+    setPage(0);
+    setHasNextPage(true);
+    router.refresh();
+  }, [table, router]);
+
   // Form submission handler
   const handleSubmit = async (values) => {
     try {
       setLoading(true);
-      await addData.mutateAsync(
-        Object.fromEntries(
-          Object.entries(values).filter(([_, value]) => Boolean(value))
-        )
+      const filteredValues = Object.fromEntries(
+        Object.entries(values).filter(([_, value]) => Boolean(value))
       );
-      table.resetRowSelection();
-      setData([]);
-      setPage(0);
-      setHasNextPage(true);
-      router.refresh();
+
+      await addData.mutateAsync(filteredValues);
+      resetTableState();
       toast.success(createSuccessMessage);
       return true;
     } catch (error) {
@@ -465,11 +462,7 @@ const DataTableComponent = ({
           ...values,
         },
       });
-      table.resetRowSelection();
-      setData([]);
-      setPage(0);
-      setHasNextPage(true);
-      router.refresh();
+      resetTableState();
       toast.success(editSuccessMessage);
       return true;
     } catch (error) {
@@ -485,11 +478,7 @@ const DataTableComponent = ({
     try {
       setLoading(true);
       await deleteData.mutateAsync(selectedData?.map((item) => item?._id));
-      table.resetRowSelection();
-      setData([]);
-      setPage(0);
-      setHasNextPage(true);
-      router.refresh();
+      resetTableState();
       toast.success(deleteSuccessMessage);
       return true;
     } catch (error) {
@@ -499,6 +488,11 @@ const DataTableComponent = ({
       setLoading(false);
     }
   };
+
+  // Display current filter mode (only in development)
+  const filterModeDisplay = useMemo(() => {
+    return isApiFiltering ? "API Filtering" : "Client Filtering";
+  }, [isApiFiltering]);
 
   return (
     <div className="space-y-4">
@@ -571,22 +565,20 @@ const DataTableComponent = ({
             <TableHeader className="sticky top-0 bg-background z-10">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead
-                        key={header.id}
-                        style={getCellStyles(header.column.columnDef.meta)}
-                        className={header.id === "select" ? "print:hidden" : ""}
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    );
-                  })}
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      style={getCellStyles(header.column.columnDef.meta)}
+                      className={header.id === "select" ? "print:hidden" : ""}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  ))}
                 </TableRow>
               ))}
             </TableHeader>
@@ -605,7 +597,7 @@ const DataTableComponent = ({
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
+                    data-state={row.getIsSelected() ? "selected" : undefined}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
@@ -662,6 +654,11 @@ const DataTableComponent = ({
           {isApiFiltering &&
             totalPages > 0 &&
             ` of ${totalPages * limit}+ total`}
+          {process.env.NODE_ENV === "development" && (
+            <span className="ml-2 px-2 py-1 bg-muted rounded-full text-xs">
+              {filterModeDisplay}
+            </span>
+          )}
         </div>
         {table.getRowModel().rows?.length > 0 && (
           <Button onClick={handlePrint}>Print</Button>
