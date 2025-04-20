@@ -97,8 +97,8 @@ export async function GET(req, res) {
         ...attendance.toObject(),
         attendanceData: attendance.attendanceData.map((student) => ({
           ...student.toObject(),
-          studentId: student.studentId._id,
-          studentName: student.studentId.name,
+          studentId: student.studentId?._id,
+          studentName: student.studentId?.name,
         })),
       };
     });
