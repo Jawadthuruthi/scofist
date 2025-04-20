@@ -330,6 +330,7 @@ export async function PUT(req, res) {
             dateOfBirth,
             teacherSpecificField: roles.includes("Teacher") && {
               dateOfJoining,
+              status,
             },
             studentSpecificField: roles.includes("Student") && {
               admissionClassId,

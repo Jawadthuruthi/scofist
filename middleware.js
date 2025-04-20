@@ -120,6 +120,7 @@ export async function middleware(req) {
 
 async function handleLoginPageRequest(req) {
   const token = req.cookies.get("auth-token")?.value;
+  const activeRole = req.cookies.get("active-role")?.value;
 
   // If no token, allow access to login page
   if (!token) {
@@ -129,10 +130,12 @@ async function handleLoginPageRequest(req) {
   try {
     // Verify JWT token to check if it's valid
     const { payload } = await jwtVerify(token, SECRET_KEY);
-    const { userId } = payload;
 
-    // User is already authenticated, redirect to dashboard
-    return NextResponse.redirect(new URL("/dashboard/my-periods", req.url));
+    if (activeRole === "Teacher") {
+      return NextResponse.redirect(new URL("/dashboard/my-periods", req.url));
+    }
+
+    return NextResponse.redirect(new URL("/dashboard", req.url));
   } catch (error) {
     // Token is invalid, allow access to login page
     console.error("Login page token verification error:", error.message);
@@ -314,7 +317,6 @@ async function fetchUserProfile(userId, token) {
 
 function prepareResponse(req, token, user) {
   const res = NextResponse.next();
-  console.log(req.cookies.has("active-role"));
 
   if (
     req.cookies.has("active-role") &&

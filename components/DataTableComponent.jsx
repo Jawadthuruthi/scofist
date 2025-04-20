@@ -221,8 +221,7 @@ const DataTableComponent = ({
           return [...prev, ...uniqueNewItems];
         });
       }
-
-      setHasNextPage(page < pagination?.totalPages);
+      setHasNextPage(page < (pagination?.totalPages || 1) - 1);
       setIsFetchingNextPage(false);
     }
   }, [
@@ -243,21 +242,21 @@ const DataTableComponent = ({
 
   // Fetch next page function with improved logic
   const fetchNextPage = useCallback(() => {
-    if (hasNextPage && !isLoadingMore && !fetchItemsQuery.isLoading) {
-      setIsFetchingNextPage(true);
-      setPage((prevPage) => prevPage + 1);
-    }
-  }, [hasNextPage, isLoadingMore, fetchItemsQuery.isLoading]);
+    if (!hasNextPage || isLoadingMore) return;
 
-  // Improved IntersectionObserver handler with dynamic threshold
+    setIsFetchingNextPage(true);
+    setPage((prevPage) => prevPage + 1);
+  }, [hasNextPage, isLoadingMore]);
+
+  // Improved IntersectionObserver handler
   const handleObserver = useCallback(
     (entries) => {
       const [entry] = entries;
-      if (entry.isIntersecting && !isLoadingMore) {
+      if (entry.isIntersecting && !isLoadingMore && hasNextPage) {
         fetchNextPage();
       }
     },
-    [fetchNextPage, isLoadingMore]
+    [fetchNextPage, isLoadingMore, hasNextPage]
   );
 
   // Enhanced scroll handling with debounce
@@ -273,7 +272,7 @@ const DataTableComponent = ({
       if (scrollPosition >= scrollThreshold) {
         fetchNextPage();
       }
-    }, 150),
+    }, 100),
     [fetchNextPage, isLoadingMore, hasNextPage, infiniteScrollThreshold]
   );
 
@@ -301,68 +300,43 @@ const DataTableComponent = ({
     }
   }, [handleScroll]);
 
-  // Preemptive loading for smoother scrolling experience
+  // Check if we need to load more data for client-side filtering
   useEffect(() => {
-    // Load the next page in advance if we're close to the end and not already loading
-    if (
-      loadAheadCount > 0 &&
-      data.length > 0 &&
-      !isLoadingMore &&
-      hasNextPage &&
-      page < totalPages - loadAheadCount
-    ) {
-      // Check if we've loaded most of the current data
-      const loadThreshold = limit * 0.8;
-      if (data.length >= loadThreshold * (page + 1)) {
+    if (!isApiFiltering && hasNextPage && !isLoadingMore) {
+      const displayedRows = filteredData.length;
+      const targetRowCount = limit * (page + 1);
+
+      // If we're filtering and don't have enough displayed data, fetch more
+      if (hasFilters && displayedRows < targetRowCount) {
         fetchNextPage();
       }
     }
   }, [
-    data.length,
-    fetchNextPage,
-    hasNextPage,
-    isLoadingMore,
-    limit,
-    loadAheadCount,
-    page,
-    totalPages,
-  ]);
-
-  // Auto fetch more data if filtered data is less than expected
-  useEffect(() => {
-    if (
-      filteredData.length < limit * (page + 1) &&
-      hasNextPage &&
-      !isLoadingMore
-    ) {
-      fetchNextPage();
-    }
-  }, [
     filteredData.length,
+    hasFilters,
     fetchNextPage,
     hasNextPage,
     isLoadingMore,
     limit,
     page,
+    isApiFiltering,
   ]);
 
   // Handle API filtering
-  const handleApiFilter = useCallback(
-    (newFilters, newGlobalFilter) => {
-      if (isApiFiltering) {
-        setIsManualFiltering(true);
-        setPage(0);
-        setHasNextPage(true);
-        // The actual filter update is handled by the combinedApiFilters memo
-      }
-    },
-    [isApiFiltering]
-  );
+  const handleApiFilter = useCallback(() => {
+    if (isApiFiltering) {
+      setIsManualFiltering(true);
+      setPage(0);
+      setHasNextPage(true);
+      setData([]);
+      fetchItemsQuery.refetch();
+    }
+  }, [isApiFiltering, fetchItemsQuery]);
 
   // Update filters with debounce for API filtering
   const debouncedApiFilterUpdate = useCallback(
-    debounce((newFilters, newGlobalFilter) => {
-      handleApiFilter(newFilters, newGlobalFilter);
+    debounce(() => {
+      handleApiFilter();
     }, 300),
     [handleApiFilter]
   );
@@ -372,34 +346,26 @@ const DataTableComponent = ({
     (key, value, operator, nestedArrayField) => {
       setFilter(key, value, operator, nestedArrayField);
       if (isApiFiltering) {
-        debouncedApiFilterUpdate({ ...filters, [key]: value }, globalFilter);
+        debouncedApiFilterUpdate();
       }
     },
-    [setFilter, isApiFiltering, debouncedApiFilterUpdate, filters, globalFilter]
+    [setFilter, isApiFiltering, debouncedApiFilterUpdate]
   );
 
   const handleRemoveFilter = useCallback(
     (key) => {
       removeFilter(key);
       if (isApiFiltering) {
-        const newFilters = { ...filters };
-        delete newFilters[key];
-        debouncedApiFilterUpdate(newFilters, globalFilter);
+        debouncedApiFilterUpdate();
       }
     },
-    [
-      removeFilter,
-      isApiFiltering,
-      debouncedApiFilterUpdate,
-      filters,
-      globalFilter,
-    ]
+    [removeFilter, isApiFiltering, debouncedApiFilterUpdate]
   );
 
   const handleClearFilters = useCallback(() => {
     clearFilters();
     if (isApiFiltering) {
-      debouncedApiFilterUpdate({}, "");
+      debouncedApiFilterUpdate();
     }
   }, [clearFilters, isApiFiltering, debouncedApiFilterUpdate]);
 
@@ -407,10 +373,10 @@ const DataTableComponent = ({
     (value) => {
       setGlobalFilter(value);
       if (isApiFiltering) {
-        debouncedApiFilterUpdate(filters, value);
+        debouncedApiFilterUpdate();
       }
     },
-    [setGlobalFilter, isApiFiltering, debouncedApiFilterUpdate, filters]
+    [setGlobalFilter, isApiFiltering, debouncedApiFilterUpdate]
   );
 
   // Print functionality
@@ -454,23 +420,28 @@ const DataTableComponent = ({
   // Selected rows data
   const selectedData = useMemo(
     () => table.getFilteredSelectedRowModel().rows.map((row) => row.original),
-    [rowSelection, table]
+    [table]
   );
+
+  // Reset table state and data
+  const resetTableState = useCallback(() => {
+    table.resetRowSelection();
+    setData([]);
+    setPage(0);
+    setHasNextPage(true);
+    router.refresh();
+  }, [table, router]);
 
   // Form submission handler
   const handleSubmit = async (values) => {
     try {
       setLoading(true);
-      await addData.mutateAsync(
-        Object.fromEntries(
-          Object.entries(values).filter(([key, value]) => Boolean(value))
-        )
+      const filteredValues = Object.fromEntries(
+        Object.entries(values).filter(([_, value]) => Boolean(value))
       );
-      table.resetRowSelection();
-      setData([]);
-      setPage(0);
-      setHasNextPage(true);
-      router.refresh();
+
+      await addData.mutateAsync(filteredValues);
+      resetTableState();
       toast.success(createSuccessMessage);
       return true;
     } catch (error) {
@@ -491,11 +462,7 @@ const DataTableComponent = ({
           ...values,
         },
       });
-      table.resetRowSelection();
-      setData([]);
-      setPage(0);
-      setHasNextPage(true);
-      router.refresh();
+      resetTableState();
       toast.success(editSuccessMessage);
       return true;
     } catch (error) {
@@ -511,11 +478,7 @@ const DataTableComponent = ({
     try {
       setLoading(true);
       await deleteData.mutateAsync(selectedData?.map((item) => item?._id));
-      table.resetRowSelection();
-      setData([]);
-      setPage(0);
-      setHasNextPage(true);
-      router.refresh();
+      resetTableState();
       toast.success(deleteSuccessMessage);
       return true;
     } catch (error) {
@@ -526,7 +489,7 @@ const DataTableComponent = ({
     }
   };
 
-  // Display current filter mode
+  // Display current filter mode (only in development)
   const filterModeDisplay = useMemo(() => {
     return isApiFiltering ? "API Filtering" : "Client Filtering";
   }, [isApiFiltering]);
@@ -588,7 +551,7 @@ const DataTableComponent = ({
       )}
       <div
         ref={tableRef}
-        className={`rounded-md border shadow-sm table-print relative`}
+        className="rounded-md border shadow-sm table-print relative"
       >
         <PrintHeader token={token} title={printTitle ? printTitle : resource} />
         <div
@@ -602,56 +565,46 @@ const DataTableComponent = ({
             <TableHeader className="sticky top-0 bg-background z-10">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead
-                        key={header.id}
-                        style={getCellStyles(header.column.columnDef.meta)}
-                        className={header.id === "select" && "print:hidden"}
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    );
-                  })}
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      style={getCellStyles(header.column.columnDef.meta)}
+                      className={header.id === "select" ? "print:hidden" : ""}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  ))}
                 </TableRow>
               ))}
             </TableHeader>
             <TableBody>
               {isInitialLoading ? (
-                <>
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-12">
-                      <Skeleton className="w-full h-full rounded" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-12">
-                      <Skeleton className="w-full h-full rounded" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-12">
-                      <Skeleton className="w-full h-full rounded" />
-                    </TableCell>
-                  </TableRow>
-                </>
+                Array(3)
+                  .fill(0)
+                  .map((_, index) => (
+                    <TableRow key={`skeleton-${index}`}>
+                      <TableCell colSpan={columns.length} className="h-12">
+                        <Skeleton className="w-full h-full rounded" />
+                      </TableCell>
+                    </TableRow>
+                  ))
               ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
+                    data-state={row.getIsSelected() ? "selected" : undefined}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
                         style={getCellStyles(cell.column.columnDef.meta)}
                         key={cell.id}
                         className={
-                          cell.column.id === "select" && "print:hidden"
+                          cell.column.id === "select" ? "print:hidden" : ""
                         }
                       >
                         {flexRender(
