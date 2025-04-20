@@ -116,7 +116,9 @@ const userSchema = new Schema(
       status: {
         type: String,
         enum: ["Active", "Retired"],
-        required: true,
+        required: function () {
+          return this.roles.includes("Teacher");
+        },
         validate: {
           validator: (v) => v === "Active" || v === "Retired",
           message: "Invalid status value",
@@ -178,6 +180,9 @@ const userSchema = new Schema(
         type: String,
         trim: true,
         enum: STUDENT_STATUSES,
+        required: function () {
+          return this.roles.includes("Student");
+        },
       },
       islamicQualification: { type: String, trim: true },
       academicQualification: { type: String, trim: true },
