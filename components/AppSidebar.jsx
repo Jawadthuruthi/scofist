@@ -207,6 +207,7 @@ function ComboBox({ roles, role }) {
                     try {
                       Cookies.set("active-role", currentValue, {
                         path: "/",
+                        expires: 1,
                       });
                       console.log("Cookie set successfully");
                     } catch (error) {
