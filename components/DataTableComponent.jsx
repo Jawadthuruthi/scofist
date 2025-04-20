@@ -105,7 +105,6 @@ const DataTableComponent = ({
   filterTitle = "",
   filterType = "client",
   infiniteScrollThreshold = 0.3,
-  loadAheadCount = 1,
   printTitle,
 }) => {
   const [sorting, setSorting] = useState([]);
@@ -124,13 +123,14 @@ const DataTableComponent = ({
   const tableRef = useRef(null);
   const tableBodyRef = useRef(null);
   const loaderRef = useRef(null);
+  const scrollTimeoutRef = useRef(null);
   const router = useRouter();
 
-  // Periodic refresh
+  // Periodic refresh - reduced frequency
   useEffect(() => {
     const interval = setInterval(() => {
       router.refresh();
-    }, 60000);
+    }, 180000); // 3 minutes
 
     return () => clearInterval(interval);
   }, [router]);
@@ -184,7 +184,7 @@ const DataTableComponent = ({
 
   // API fetch with combined filters
   const fetchItemsQuery = useFetchItems(page, limit, combinedApiFilters, {
-    retry: 2,
+    retry: 1,
     retryDelay: 1000,
   });
 
@@ -221,7 +221,8 @@ const DataTableComponent = ({
           return [...prev, ...uniqueNewItems];
         });
       }
-      setHasNextPage(page < (pagination?.totalPages || 1) - 1);
+
+      setHasNextPage(page < pagination?.totalPages - 1);
       setIsFetchingNextPage(false);
     }
   }, [
@@ -240,15 +241,15 @@ const DataTableComponent = ({
   const isLoadingMore =
     isFetchingNextPage || (fetchItemsQuery.isLoading && page > 0);
 
-  // Fetch next page function with improved logic
+  // Fetch next page function
   const fetchNextPage = useCallback(() => {
-    if (!hasNextPage || isLoadingMore) return;
-
-    setIsFetchingNextPage(true);
-    setPage((prevPage) => prevPage + 1);
+    if (hasNextPage && !isLoadingMore) {
+      setIsFetchingNextPage(true);
+      setPage((prevPage) => prevPage + 1);
+    }
   }, [hasNextPage, isLoadingMore]);
 
-  // Improved IntersectionObserver handler
+  // Intersection Observer handler
   const handleObserver = useCallback(
     (entries) => {
       const [entry] = entries;
@@ -259,28 +260,30 @@ const DataTableComponent = ({
     [fetchNextPage, isLoadingMore, hasNextPage]
   );
 
-  // Enhanced scroll handling with debounce
-  const handleScroll = useCallback(
-    debounce(() => {
+  // Optimized scroll handling
+  const handleScroll = useCallback(() => {
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    scrollTimeoutRef.current = setTimeout(() => {
       if (!tableBodyRef.current || isLoadingMore || !hasNextPage) return;
 
       const container = tableBodyRef.current;
       const scrollPosition = container.scrollTop + container.clientHeight;
       const scrollThreshold = container.scrollHeight * infiniteScrollThreshold;
 
-      // Load more data before reaching the bottom
       if (scrollPosition >= scrollThreshold) {
         fetchNextPage();
       }
-    }, 100),
-    [fetchNextPage, isLoadingMore, hasNextPage, infiniteScrollThreshold]
-  );
+    }, 150);
+  }, [fetchNextPage, isLoadingMore, hasNextPage, infiniteScrollThreshold]);
 
   // Set up the intersection observer for the loader element
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
       root: tableBodyRef.current,
-      rootMargin: "100px",
+      rootMargin: "150px",
       threshold: 0.1,
     });
 
@@ -288,38 +291,41 @@ const DataTableComponent = ({
       observer.observe(loaderRef.current);
     }
 
-    return () => observer.disconnect();
+    return () => {
+      if (observer && loaderRef.current) {
+        observer.disconnect();
+      }
+    };
   }, [handleObserver]);
 
   // Set up scroll event for table body
   useEffect(() => {
     const tableBody = tableBodyRef.current;
     if (tableBody) {
-      tableBody.addEventListener("scroll", handleScroll);
+      tableBody.addEventListener("scroll", handleScroll, { passive: true });
       return () => tableBody.removeEventListener("scroll", handleScroll);
     }
   }, [handleScroll]);
 
-  // Check if we need to load more data for client-side filtering
+  // Client-side filtering specific logic
   useEffect(() => {
-    if (!isApiFiltering && hasNextPage && !isLoadingMore) {
-      const displayedRows = filteredData.length;
-      const targetRowCount = limit * (page + 1);
-
-      // If we're filtering and don't have enough displayed data, fetch more
-      if (hasFilters && displayedRows < targetRowCount) {
-        fetchNextPage();
-      }
+    // Check if using client filtering and has less filtered data than should be visible
+    if (
+      !isApiFiltering &&
+      filteredData.length < limit * (page + 1) &&
+      hasNextPage &&
+      !isLoadingMore
+    ) {
+      fetchNextPage();
     }
   }, [
     filteredData.length,
-    hasFilters,
+    isApiFiltering,
     fetchNextPage,
     hasNextPage,
     isLoadingMore,
     limit,
     page,
-    isApiFiltering,
   ]);
 
   // Handle API filtering
@@ -328,7 +334,6 @@ const DataTableComponent = ({
       setIsManualFiltering(true);
       setPage(0);
       setHasNextPage(true);
-      setData([]);
       fetchItemsQuery.refetch();
     }
   }, [isApiFiltering, fetchItemsQuery]);
@@ -341,7 +346,7 @@ const DataTableComponent = ({
     [handleApiFilter]
   );
 
-  // Intercept filter changes for API filtering
+  // Filter handlers
   const handleSetFilter = useCallback(
     (key, value, operator, nestedArrayField) => {
       setFilter(key, value, operator, nestedArrayField);
@@ -367,6 +372,9 @@ const DataTableComponent = ({
     if (isApiFiltering) {
       debouncedApiFilterUpdate();
     }
+    setData([]);
+    setPage(0);
+    setHasNextPage(true);
   }, [clearFilters, isApiFiltering, debouncedApiFilterUpdate]);
 
   const handleSetGlobalFilter = useCallback(
@@ -420,28 +428,23 @@ const DataTableComponent = ({
   // Selected rows data
   const selectedData = useMemo(
     () => table.getFilteredSelectedRowModel().rows.map((row) => row.original),
-    [table]
+    [table, rowSelection]
   );
-
-  // Reset table state and data
-  const resetTableState = useCallback(() => {
-    table.resetRowSelection();
-    setData([]);
-    setPage(0);
-    setHasNextPage(true);
-    router.refresh();
-  }, [table, router]);
 
   // Form submission handler
   const handleSubmit = async (values) => {
     try {
       setLoading(true);
-      const filteredValues = Object.fromEntries(
-        Object.entries(values).filter(([_, value]) => Boolean(value))
+      await addData.mutateAsync(
+        Object.fromEntries(
+          Object.entries(values).filter(([_, value]) => Boolean(value))
+        )
       );
-
-      await addData.mutateAsync(filteredValues);
-      resetTableState();
+      table.resetRowSelection();
+      setData([]);
+      setPage(0);
+      setHasNextPage(true);
+      router.refresh();
       toast.success(createSuccessMessage);
       return true;
     } catch (error) {
@@ -462,7 +465,11 @@ const DataTableComponent = ({
           ...values,
         },
       });
-      resetTableState();
+      table.resetRowSelection();
+      setData([]);
+      setPage(0);
+      setHasNextPage(true);
+      router.refresh();
       toast.success(editSuccessMessage);
       return true;
     } catch (error) {
@@ -478,7 +485,11 @@ const DataTableComponent = ({
     try {
       setLoading(true);
       await deleteData.mutateAsync(selectedData?.map((item) => item?._id));
-      resetTableState();
+      table.resetRowSelection();
+      setData([]);
+      setPage(0);
+      setHasNextPage(true);
+      router.refresh();
       toast.success(deleteSuccessMessage);
       return true;
     } catch (error) {
@@ -488,11 +499,6 @@ const DataTableComponent = ({
       setLoading(false);
     }
   };
-
-  // Display current filter mode (only in development)
-  const filterModeDisplay = useMemo(() => {
-    return isApiFiltering ? "API Filtering" : "Client Filtering";
-  }, [isApiFiltering]);
 
   return (
     <div className="space-y-4">
@@ -565,20 +571,22 @@ const DataTableComponent = ({
             <TableHeader className="sticky top-0 bg-background z-10">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      style={getCellStyles(header.column.columnDef.meta)}
-                      className={header.id === "select" ? "print:hidden" : ""}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead
+                        key={header.id}
+                        style={getCellStyles(header.column.columnDef.meta)}
+                        className={header.id === "select" ? "print:hidden" : ""}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableHeader>
@@ -597,7 +605,7 @@ const DataTableComponent = ({
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
-                    data-state={row.getIsSelected() ? "selected" : undefined}
+                    data-state={row.getIsSelected() && "selected"}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
@@ -654,11 +662,6 @@ const DataTableComponent = ({
           {isApiFiltering &&
             totalPages > 0 &&
             ` of ${totalPages * limit}+ total`}
-          {process.env.NODE_ENV === "development" && (
-            <span className="ml-2 px-2 py-1 bg-muted rounded-full text-xs">
-              {filterModeDisplay}
-            </span>
-          )}
         </div>
         {table.getRowModel().rows?.length > 0 && (
           <Button onClick={handlePrint}>Print</Button>

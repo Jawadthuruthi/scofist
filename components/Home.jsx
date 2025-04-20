@@ -35,7 +35,7 @@ const Home = ({ user }) => {
             modern education for tomorrow's leaders.
           </p>
           <div className="flex flex-col sm:flex-row w-40 mx-auto sm:w-auto gap-4 justify-center">
-            <Link href={user ? "/dashboard/my-periods" : "/login"}>
+            <Link href={user ? "/dashboard" : "/login"}>
               <Button
                 size="lg"
                 className="w-full py-6 sm:w-40 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg shadow-md hover:shadow-lg transition-all"

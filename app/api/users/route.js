@@ -269,6 +269,7 @@ export async function PUT(req, res) {
     await connectToDB();
 
     const body = await req.json();
+    console.log(body);
     const {
       ids,
       name,
