@@ -344,6 +344,7 @@ function prepareResponse(req, token, user) {
     const activeRole = user.roles.includes("Teacher")
       ? "Teacher"
       : user?.roles[0];
+    console.log(activeRole);
     res.cookies.set("active-role", activeRole, {
       path: "/",
       sameSite: "lax",
@@ -351,6 +352,8 @@ function prepareResponse(req, token, user) {
       maxAge: 31 * 24 * 60 * 60,
     });
   }
+
+  console.log(res);
 
   return res;
 }
