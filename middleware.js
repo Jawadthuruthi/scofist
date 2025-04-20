@@ -341,9 +341,10 @@ function prepareResponse(req, token, user) {
     if (!isUserAllowed(user.roles[0], req.nextUrl.pathname)) {
       return redirectTo404(req);
     }
-    res.cookies.set("active-role", user.roles[0], {
-      httpOnly: true,
-      secure: true,
+    const activeRole = user.roles.includes("Teacher")
+      ? "Teacher"
+      : user?.roles[0];
+    res.cookies.set("active-role", activeRole, {
       path: "/",
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
