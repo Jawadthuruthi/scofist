@@ -39,74 +39,120 @@ export async function GET(req, res) {
       query.studentId = filterParams.studentId;
     }
 
-    // Handle date filtering
-    let dateFilter = null;
+    // Handle date filtering with aggregation pipeline if needed
+    let dateMatch = {};
 
     if (filterParams.date) {
-      dateFilter = { date: new Date(filterParams.date) };
-    } else if (filterParams.startDate && filterParams.endDate) {
-      dateFilter = {
-        date: {
-          $gte: new Date(`${filterParams.startDate}T00:00:00.000Z`),
-          $lte: new Date(`${filterParams.endDate}T23:59:59.999Z`),
+      // Convert string date to Date object for exact date match
+      const exactDate = new Date(filterParams.date);
+      dateMatch = {
+        "attendanceRecords.date": {
+          $gte: new Date(exactDate.setHours(0, 0, 0, 0)),
+          $lte: new Date(exactDate.setHours(23, 59, 59, 999)),
         },
       };
-    } else if (filterParams.startDate) {
-      dateFilter = {
-        date: { $gte: new Date(`${filterParams.startDate}T00:00:00.000Z`) },
-      };
-    } else if (filterParams.endDate) {
-      dateFilter = {
-        date: { $lte: new Date(`${filterParams.endDate}T23:59:59.999Z`) },
-      };
+    } else if (filterParams.startDate || filterParams.endDate) {
+      dateMatch["attendanceRecords.date"] = {};
+
+      if (filterParams.startDate) {
+        const startDate = new Date(filterParams.startDate);
+        dateMatch["attendanceRecords.date"].$gte = new Date(
+          startDate.setHours(0, 0, 0, 0)
+        );
+      }
+
+      if (filterParams.endDate) {
+        const endDate = new Date(filterParams.endDate);
+        dateMatch["attendanceRecords.date"].$lte = new Date(
+          endDate.setHours(23, 59, 59, 999)
+        );
+      }
     }
+
+    console.log("Date filter:", dateMatch);
 
     // Execute query with pagination
-    let studentAttendances = await StudentAttendance.find(query, projections)
-      .skip(page * limit)
-      .limit(limit)
-      .populate("studentId", "name")
-      .populate("attendanceRecords.classId", "name")
-      .populate("attendanceRecords.subjectId", "name");
+    let studentAttendances;
 
-    // Filter attendance records by date if needed
-    if (dateFilter) {
-      studentAttendances = studentAttendances.map((record) => {
-        const filteredAttendance = { ...record.toObject() };
+    // If we need to filter by date, use aggregation
+    if (Object.keys(dateMatch).length > 0) {
+      studentAttendances = await StudentAttendance.aggregate([
+        { $match: query },
+        {
+          $addFields: {
+            // Filter attendance records by date
+            filteredRecords: {
+              $filter: {
+                input: "$attendanceRecords",
+                as: "record",
+                cond: {
+                  $and: [
+                    dateMatch["attendanceRecords.date"].$gte
+                      ? {
+                          $gte: [
+                            "$$record.date",
+                            dateMatch["attendanceRecords.date"].$gte,
+                          ],
+                        }
+                      : true,
+                    dateMatch["attendanceRecords.date"].$lte
+                      ? {
+                          $lte: [
+                            "$$record.date",
+                            dateMatch["attendanceRecords.date"].$lte,
+                          ],
+                        }
+                      : true,
+                  ],
+                },
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            studentId: 1,
+            attendanceRecords: "$filteredRecords",
+            _id: 1,
+          },
+        },
+        { $skip: page * limit },
+        { $limit: limit },
+      ]).exec();
 
-        // Ensure dates are compared correctly as Date objects
-        filteredAttendance.attendanceRecords =
-          filteredAttendance.attendanceRecords.filter((r) => {
-            const recordDate = new Date(r.date);
+      // Manually populate references since aggregate doesn't support populate
+      const populatedAttendances = await StudentAttendance.populate(
+        studentAttendances,
+        [
+          { path: "studentId", select: "name" },
+          { path: "attendanceRecords.classId", select: "name" },
+          { path: "attendanceRecords.subjectId", select: "name" },
+        ]
+      );
 
-            if (dateFilter.date instanceof Date) {
-              // Exact date match
-              return (
-                recordDate.toISOString().split("T")[0] ===
-                dateFilter.date.toISOString().split("T")[0]
-              );
-            } else {
-              // Range match
-              const { $gte, $lte } = dateFilter.date;
-              return (
-                recordDate >= new Date($gte) && recordDate <= new Date($lte)
-              );
-            }
-          });
-
-        return filteredAttendance;
-      });
+      studentAttendances = populatedAttendances;
+    } else {
+      // No date filtering needed, use regular find
+      studentAttendances = await StudentAttendance.find(query, projections)
+        .skip(page * limit)
+        .limit(limit)
+        .populate("studentId", "name")
+        .populate("attendanceRecords.classId", "name")
+        .populate("attendanceRecords.subjectId", "name")
+        .lean(); // Convert to plain JS objects
     }
 
+    // Format the results
     const formattedStudentAttendances = studentAttendances.map((record) => ({
       _id: record.studentId?._id,
       name: record.studentId?.name,
-      attendanceRecords: record.attendanceRecords.map((attendance) => ({
-        ...attendance.toObject(),
-        className: attendance.classId?.name,
-        subjectName: attendance.subjectId?.name,
-        classId: attendance.classId?._id,
-        subjectId: attendance.subjectId?._id,
+      attendanceRecords: (record.attendanceRecords || []).map((attendance) => ({
+        // No need for toObject here since we're using lean() or aggregate
+        ...(attendance || {}),
+        className: attendance?.classId?.name,
+        subjectName: attendance?.subjectId?.name,
+        classId: attendance?.classId?._id,
+        subjectId: attendance?.subjectId?._id,
       })),
     }));
 
@@ -123,11 +169,12 @@ export async function GET(req, res) {
           totalPages:
             limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
         },
-        message: "Teacher attendance records fetched successfully",
+        message: "Student attendance records fetched successfully",
       },
       { status: 200 }
     );
   } catch (error) {
+    console.error("Student attendance fetch error:", error);
     return apiResponse.error(error);
   }
 }

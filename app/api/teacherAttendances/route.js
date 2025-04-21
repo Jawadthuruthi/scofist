@@ -40,55 +40,92 @@ export async function GET(req, res) {
       query.teacherId = filterParams.teacherId;
     }
 
-    // Handle date filtering
-    let dateFilter = null;
-    if (filterParams.date) {
-      dateFilter = { date: filterParams.date };
-    } else if (filterParams.startDate && filterParams.endDate) {
-      dateFilter = {
-        date: { $gte: filterParams.startDate, $lte: filterParams.endDate },
-      };
-    }
+    // Use aggregation for efficient date filtering
+    let pipeline = [];
 
-    // Execute query with pagination
-    let teacherAttendances = await TeacherAttendance.find(query, projections)
-      .skip(page * limit)
-      .limit(limit)
-      .populate("teacherId", "name")
-      .populate("attendanceRecords.classId", "name")
-      .populate("attendanceRecords.subjectId", "name");
+    // Initial match to filter by teacherId
+    pipeline.push({ $match: query });
 
-    // Filter attendance records by date if needed
-    if (dateFilter) {
-      teacherAttendances = teacherAttendances.map((record) => {
-        const filteredAttendance = { ...record.toObject() };
+    // Handle date filtering with $addFields and $filter
+    if (filterParams.date || (filterParams.startDate && filterParams.endDate)) {
+      let dateCondition = {};
 
-        filteredAttendance.attendanceRecords =
-          filteredAttendance.attendanceRecords.filter((r) => {
-            const recordDate = new Date(r.date);
+      if (filterParams.date) {
+        // Convert to Date objects for exact date matching - start and end of day
+        const exactDate = new Date(filterParams.date);
+        const startOfDay = new Date(exactDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(exactDate);
+        endOfDay.setHours(23, 59, 59, 999);
 
-            // Exact match
-            if (dateFilter.date instanceof Date) {
-              return (
-                recordDate.toISOString().split("T")[0] ===
-                dateFilter.date.toISOString().split("T")[0]
-              );
-            }
+        dateCondition = {
+          $and: [
+            { $gte: ["$$record.date", startOfDay] },
+            { $lte: ["$$record.date", endOfDay] },
+          ],
+        };
+      } else {
+        // Date range filtering
+        const conditions = [];
 
-            // Range match
-            const { $gte, $lte } = dateFilter.date;
-            return recordDate >= new Date($gte) && recordDate <= new Date($lte);
-          });
+        if (filterParams.startDate) {
+          const startDate = new Date(filterParams.startDate);
+          startDate.setHours(0, 0, 0, 0);
+          conditions.push({ $gte: ["$$record.date", startDate] });
+        }
 
-        return filteredAttendance;
+        if (filterParams.endDate) {
+          const endDate = new Date(filterParams.endDate);
+          endDate.setHours(23, 59, 59, 999);
+          conditions.push({ $lte: ["$$record.date", endDate] });
+        }
+
+        dateCondition = { $and: conditions };
+      }
+
+      // Filter records by date using $filter operator
+      pipeline.push({
+        $addFields: {
+          attendanceRecords: {
+            $filter: {
+              input: "$attendanceRecords",
+              as: "record",
+              cond: dateCondition,
+            },
+          },
+        },
       });
     }
 
-    const formattedStudentAttendances = teacherAttendances.map((record) => ({
+    // Only include docs with matching attendance records
+    pipeline.push({
+      $match: {
+        "attendanceRecords.0": { $exists: true }, // At least one record after filtering
+      },
+    });
+
+    // Pagination
+    pipeline.push({ $skip: page * limit });
+    if (limit !== Infinity) {
+      pipeline.push({ $limit: limit });
+    }
+
+    // Execute the aggregation pipeline
+    let teacherAttendances = await TeacherAttendance.aggregate(pipeline).exec();
+
+    // Manually populate references since aggregation doesn't support populate
+    teacherAttendances = await TeacherAttendance.populate(teacherAttendances, [
+      { path: "teacherId", select: "name" },
+      { path: "attendanceRecords.classId", select: "name" },
+      { path: "attendanceRecords.subjectId", select: "name" },
+    ]);
+
+    // Format the results
+    const formattedTeacherAttendances = teacherAttendances.map((record) => ({
       _id: record.teacherId?._id,
       name: record.teacherId?.name,
-      attendanceRecords: record.attendanceRecords.map((attendance) => ({
-        ...attendance.toObject(),
+      attendanceRecords: (record.attendanceRecords || []).map((attendance) => ({
+        ...(attendance || {}),
         classId: attendance.classId?._id,
         className: attendance.classId?.name,
         subjectId: attendance.subjectId?._id,
@@ -96,12 +133,17 @@ export async function GET(req, res) {
       })),
     }));
 
-    // Get total count for pagination info
-    const total = await TeacherAttendance.countDocuments(query);
+    // Get total count for pagination info - use efficient countDocuments
+    const countPipeline = [
+      ...pipeline.filter((stage) => !stage.$skip && !stage.$limit),
+    ];
+    countPipeline.push({ $count: "total" });
+    const countResult = await TeacherAttendance.aggregate(countPipeline).exec();
+    const total = countResult.length > 0 ? countResult[0].total : 0;
 
     return NextResponse.json(
       {
-        teacherAttendances: formattedStudentAttendances,
+        teacherAttendances: formattedTeacherAttendances,
         pagination: {
           page,
           limit,
@@ -114,6 +156,7 @@ export async function GET(req, res) {
       { status: 200 }
     );
   } catch (error) {
+    console.error("Error fetching teacher attendances:", error);
     return apiResponse.error(error);
   }
 }
@@ -151,52 +194,89 @@ export async function POST(req, res) {
       }
     }
 
-    // Check if attendance record exists for this teacher
-    let teacherAttendance = await TeacherAttendance.findOne({
+    // Use findOneAndUpdate to atomically update in one operation
+    const teacherAttendance = await TeacherAttendance.findOne({
       teacherId: body.teacherId,
     });
 
     if (teacherAttendance) {
-      // Update existing record - add new attendance records
+      // Update existing records and add new ones in memory
+      const updatedRecords = [...teacherAttendance.attendanceRecords];
       const newRecords = [];
 
       for (const newRecord of body.attendanceRecords) {
-        const existingIndex = teacherAttendance.attendanceRecords.findIndex(
+        // Convert dates to ISO strings for comparison
+        const newRecordDateString = new Date(newRecord.date)
+          .toISOString()
+          .split("T")[0];
+
+        const existingIndex = updatedRecords.findIndex(
           (existing) =>
             existing.classId.toString() === newRecord.classId.toString() &&
             existing.subjectId.toString() === newRecord.subjectId.toString() &&
             existing.periodNumber === newRecord.periodNumber &&
             existing.day === newRecord.day &&
-            existing.date === newRecord.date
+            new Date(existing.date).toISOString().split("T")[0] ===
+              newRecordDateString
         );
 
         if (existingIndex === -1) {
-          newRecords.push(newRecord);
+          // Add new record with current timestamp
+          newRecords.push({
+            ...newRecord,
+            markedAt: new Date(),
+          });
         } else {
-          // Update existing record
-          teacherAttendance.attendanceRecords[existingIndex] = {
-            ...teacherAttendance.attendanceRecords[existingIndex].toObject(),
+          // Update existing record with new values and timestamp
+          updatedRecords[existingIndex] = {
+            ...updatedRecords[existingIndex],
             ...newRecord,
             markedAt: new Date(),
           };
         }
       }
 
-      teacherAttendance.attendanceRecords.push(...newRecords);
-      await teacherAttendance.save();
-    } else {
-      // Create new record
-      teacherAttendance = await TeacherAttendance.create(body);
-    }
+      // Use updateOne to efficiently update the document
+      await TeacherAttendance.updateOne(
+        { teacherId: body.teacherId },
+        {
+          $set: { attendanceRecords: [...updatedRecords, ...newRecords] },
+        }
+      );
 
-    return NextResponse.json(
-      {
-        teacherAttendance,
-        message: "Teacher attendance created successfully",
-      },
-      { status: 201 }
-    );
+      // Return updated document
+      const updated = await TeacherAttendance.findOne({
+        teacherId: body.teacherId,
+      });
+      return NextResponse.json(
+        {
+          teacherAttendance: updated,
+          message: "Teacher attendance updated successfully",
+        },
+        { status: 200 }
+      );
+    } else {
+      // Create new record using insertOne for better performance
+      const newAttendance = {
+        teacherId: body.teacherId,
+        attendanceRecords: body.attendanceRecords.map((record) => ({
+          ...record,
+          markedAt: new Date(),
+        })),
+      };
+
+      const result = await TeacherAttendance.create(newAttendance);
+
+      return NextResponse.json(
+        {
+          teacherAttendance: result,
+          message: "Teacher attendance created successfully",
+        },
+        { status: 201 }
+      );
+    }
   } catch (error) {
+    console.error("Error creating teacher attendance:", error);
     return apiResponse.error(error);
   }
 }
@@ -215,40 +295,48 @@ export async function PUT(req, res) {
       );
     }
 
-    const teacherAttendance = await TeacherAttendance.findOne({ teacherId });
+    // Use array filter to update multiple records in one operation
+    const updateOperations = attendanceRecordIds.map((id) => {
+      return {
+        "attendanceRecords.$[elem]": {
+          ...updates,
+          markedAt: new Date(),
+        },
+      };
+    });
 
-    if (!teacherAttendance) {
+    // Use update with array filters for efficient updates
+    const result = await TeacherAttendance.updateOne(
+      { teacherId },
+      { $set: updateOperations[0] },
+      {
+        arrayFilters: [{ "elem._id": { $in: attendanceRecordIds } }],
+        new: true,
+      }
+    );
+
+    if (result.matchedCount === 0) {
       return NextResponse.json(
         { message: "Teacher attendance record not found" },
         { status: 404 }
       );
     }
 
-    // Update specific attendance records
-    attendanceRecordIds.forEach((recordId) => {
-      const recordIndex = teacherAttendance.attendanceRecords.findIndex(
-        (record) => record?._id.toString() === recordId
-      );
-
-      if (recordIndex !== -1) {
-        teacherAttendance.attendanceRecords[recordIndex] = {
-          ...teacherAttendance.attendanceRecords[recordIndex].toObject(),
-          ...updates,
-          markedAt: new Date(),
-        };
-      }
-    });
-
-    await teacherAttendance.save();
+    // Fetch the updated document
+    const updatedAttendance = await TeacherAttendance.findOne({ teacherId })
+      .populate("teacherId", "name")
+      .populate("attendanceRecords.classId", "name")
+      .populate("attendanceRecords.subjectId", "name");
 
     return NextResponse.json(
       {
-        teacherAttendance,
+        teacherAttendance: updatedAttendance,
         message: "Teacher attendance record updated successfully!",
       },
       { status: 200 }
     );
   } catch (error) {
+    console.error("Error updating teacher attendance:", error);
     return apiResponse.error(error);
   }
 }
@@ -266,30 +354,33 @@ export async function DELETE(req, res) {
       );
     }
 
-    const teacherAttendance = await TeacherAttendance.findOne({ teacherId });
+    // Use $pull operator to efficiently remove items from array
+    const result = await TeacherAttendance.updateOne(
+      { teacherId },
+      {
+        $pull: {
+          attendanceRecords: {
+            _id: { $in: attendanceRecordIds.map((id) => id.toString()) },
+          },
+        },
+      }
+    );
 
-    if (!teacherAttendance) {
+    if (result.matchedCount === 0) {
       return NextResponse.json(
         { message: "Teacher attendance record not found" },
         { status: 404 }
       );
     }
 
-    // Remove specific attendance records
-    teacherAttendance.attendanceRecords =
-      teacherAttendance.attendanceRecords.filter(
-        (record) => !attendanceRecordIds.includes(record?._id.toString())
-      );
-
-    await teacherAttendance.save();
-
     return NextResponse.json(
       {
-        message: "Attendance records deleted successfully",
+        message: `Successfully deleted ${result.modifiedCount} attendance records`,
       },
       { status: 200 }
     );
   } catch (error) {
+    console.error("Error deleting attendance records:", error);
     return apiResponse.error(error);
   }
 }

@@ -119,6 +119,7 @@ const AttendanceTrackingPage = async () => {
           },
         ],
         readOnly: true,
+        filterType: "api",
       },
       {
         label: "Teacher",
@@ -198,6 +199,7 @@ const AttendanceTrackingPage = async () => {
           },
         ],
         readOnly: true,
+        filterType: "api",
       },
       {
         label: "Toppers",
@@ -258,6 +260,7 @@ const AttendanceTrackingPage = async () => {
           },
         ],
         readOnly: true,
+        filterType: "api",
         filterType: "api",
       },
     ];
@@ -339,6 +342,7 @@ const AttendanceTrackingPage = async () => {
           },
         ],
         readOnly: true,
+        filterType: "api",
       },
 
       {
@@ -399,6 +403,7 @@ const AttendanceTrackingPage = async () => {
           },
         ],
         readOnly: true,
+        filterType: "api",
         filterType: "api",
       },
     ];

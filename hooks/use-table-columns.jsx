@@ -73,20 +73,14 @@ const useTableColumns = (columnConfig) => {
       };
     }
 
-    // Apply list if type includes "array"
     if (col.type?.includes("array")) {
       columnDefinition.cell = ({ row }) => {
         const value = row.getValue(col.accessorKey);
 
-        return (
-          <div className="font-medium">
-            {value.length > 0 ? (
-              value.join(", ")
-            ) : (
-              <span className="text-muted-foreground">-</span>
-            )}
-          </div>
-        );
+        const displayValue = Array.isArray(value)
+          ? value.join(", ")
+          : value || "-";
+        return <div className="font-medium">{displayValue}</div>;
       };
     }
 
