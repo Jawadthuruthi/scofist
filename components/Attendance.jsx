@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Save, Calendar, Clock, AlertCircle } from "lucide-react";
+import { Loader2, Save, Calendar, Clock } from "lucide-react";
 
 // UI Components
 import {
@@ -22,18 +22,25 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useCrud from "@/hooks/use-crud";
 import { formatDate, formatDateForDisplay } from "@/lib/utils";
 import Header from "./Header";
-import { capitalize } from "lodash";
 import AbsenteeStatus from "./AbsenteeStatus";
 
 const Attendance = ({ token, teacherId }) => {
   const searchParams = useSearchParams();
 
-  // Get query parameters
-  const classId = searchParams.get("classId");
-  const batchId = searchParams.get("batchId");
-  const subjectId = searchParams.get("subjectId");
-  const periodNumber = searchParams.get("periodNumber");
-  const day = searchParams.get("day");
+  // Extract and memoize query parameters
+  const queryParams = useMemo(
+    () => ({
+      classId: searchParams.get("classId"),
+      batchId: searchParams.get("batchId"),
+      subjectId: searchParams.get("subjectId"),
+      periodNumber: searchParams.get("periodNumber"),
+      day: searchParams.get("day"),
+    }),
+    [searchParams]
+  );
+
+  // Destructure for convenience
+  const { classId, batchId, subjectId, periodNumber, day } = queryParams;
 
   // State management
   const [loading, setLoading] = useState(true);
@@ -43,12 +50,12 @@ const Attendance = ({ token, teacherId }) => {
   const [classDetails, setClassDetails] = useState(null);
   const [periodDetails, setPeriodDetails] = useState(null);
   const [attendanceExists, setAttendanceExists] = useState(false);
-  const [attendanceDate, setAttendanceDate] = useState(formatDate(new Date()));
-  const [absenteeData, setAbsenteeData] = useState([]);
+  const [attendanceDate] = useState(formatDate(new Date()));
+  const [existingAttendanceId, setExistingAttendanceId] = useState(null);
 
-  const today = formatDateForDisplay(new Date());
+  const today = useMemo(() => formatDateForDisplay(new Date()), []);
 
-  // CRUD hooks
+  // CRUD hooks with optimized options
   const { useFetchItems: useFetchUsers } = useCrud("users", token);
   const { useFetchItems: useFetchClass } = useCrud("classes", token);
   const { useFetchItems: useFetchPeriod } = useCrud("periods", token);
@@ -59,149 +66,188 @@ const Attendance = ({ token, teacherId }) => {
     useDeleteItem: useDeleteAttendance,
   } = useCrud("attendances", token);
 
-  // Fetch data queries
-  const classQuery = useFetchClass(null, null, { _id: classId });
-  const periodQuery = useFetchPeriod(null, null, { periodNumber });
-  const studentsQuery = useFetchUsers(null, null, {
-    roles: ["Student"],
-    classId: classId,
-  });
-  const attendanceQuery = useFetchAttendance(null, null, {
-    classId,
-    subjectId,
-    periodNumber: parseInt(periodNumber),
-    date: attendanceDate,
-  });
+  // Fetch data with appropriate stale times
+  const classQuery = useFetchClass(
+    null,
+    null,
+    { _id: classId },
+    {
+      staleTime: 1000 * 60 * 60, // Classes don't change frequently
+      enabled: !!classId,
+    }
+  );
 
-  // Fetch historical attendance data for absentee tracking
-  const historicalAttendanceQuery = useFetchAttendance(0, 10, {
-    classId,
-    batchId,
-    subjectId,
-    teacherId,
-    trackAbsentees: true,
-  });
+  const periodQuery = useFetchPeriod(
+    null,
+    null,
+    { periodNumber },
+    {
+      staleTime: 1000 * 60 * 60, // Periods are static
+      enabled: !!periodNumber,
+    }
+  );
 
-  // Create/Update mutations
+  const studentsQuery = useFetchUsers(
+    null,
+    null,
+    {
+      roles: ["Student"],
+      classId,
+    },
+    {
+      staleTime: 1000 * 60 * 10, // Students in a class don't change frequently
+      enabled: !!classId,
+    }
+  );
+
+  const attendanceQuery = useFetchAttendance(
+    null,
+    null,
+    {
+      classId,
+      subjectId,
+      periodNumber: parseInt(periodNumber),
+      date: attendanceDate,
+    },
+    {
+      staleTime: 1000 * 30, // Attendance might change frequently
+      enabled: !!classId && !!subjectId && !!periodNumber,
+    }
+  );
+
+  // Fetch absentee data with more targeted query
+  const historicalAttendanceQuery = useFetchAttendance(
+    0,
+    10,
+    {
+      classId,
+      batchId,
+      subjectId,
+      teacherId,
+      trackAbsentees: true,
+    },
+    {
+      staleTime: 1000 * 60 * 5, // Historical data changes less frequently
+      enabled: !!classId && !!batchId && !!subjectId && !!teacherId,
+    }
+  );
+
+  // API mutations
   const createAttendance = useCreateAttendance();
   const updateAttendance = useUpdateAttendance();
   const deleteAttendance = useDeleteAttendance();
 
-  // Process fetched data
+  // Memoize class subject name for better performance
+  const subjectName = useMemo(() => {
+    return classDetails?.subjects?.find((subject) => subject._id === subjectId)
+      ?.name;
+  }, [classDetails, subjectId]);
+
+  // Process class and period data - once on initial load
   useEffect(() => {
-    if (classQuery.data?.classes[0]) {
+    if (classQuery.data?.classes?.[0]) {
       setClassDetails(classQuery.data.classes[0]);
     }
 
-    if (periodQuery.data?.periods[0]) {
+    if (periodQuery.data?.periods?.[0]) {
       setPeriodDetails(periodQuery.data.periods[0]);
     }
+  }, [classQuery.data, periodQuery.data]);
 
-    if (studentsQuery.data?.users) {
-      setStudents(studentsQuery.data.users);
-    }
+  // Process student data with optimized update
+  useEffect(() => {
+    if (studentsQuery.data?.users?.length > 0) {
+      const studentsList = studentsQuery.data.users;
+      setStudents(studentsList);
 
-    // Set up initial attendance state when students are loaded
-    if (studentsQuery.data?.users && studentsQuery.data.users.length > 0) {
+      // Initialize attendance map efficiently
       const initialAttendance = {};
-      studentsQuery.data.users.forEach((student) => {
-        initialAttendance[student?._id] = true; // Default to present
+      studentsList.forEach((student) => {
+        initialAttendance[student._id] = true; // Default to present
       });
-      setAttendance(initialAttendance);
+
+      // Only set attendance if we don't have existing attendance data
+      if (Object.keys(attendance).length === 0) {
+        setAttendance(initialAttendance);
+      }
     }
+  }, [studentsQuery.data, attendance]);
 
-    if (
-      attendanceQuery.data?.attendances &&
-      attendanceQuery.data.attendances.length > 0
-    ) {
-      setAttendanceExists(true);
-      const existingAttendance = {};
-
-      // Get the first attendance record
+  // Process attendance data with optimized update
+  useEffect(() => {
+    if (attendanceQuery.data?.attendances?.length > 0) {
       const attendanceRecord = attendanceQuery.data.attendances[0];
+      setAttendanceExists(true);
+      setExistingAttendanceId(attendanceRecord._id);
 
-      // Set up attendance state based on existing data
-      if (
-        attendanceRecord.attendanceData &&
-        attendanceRecord.attendanceData.length > 0
-      ) {
+      // Only update attendance if we have attendance data
+      if (attendanceRecord.attendanceData?.length > 0) {
+        const existingAttendance = {};
+
+        // Build attendance map more efficiently
         attendanceRecord.attendanceData.forEach((item) => {
           existingAttendance[item.studentId] = item.present;
         });
+
         setAttendance(existingAttendance);
       }
+    } else {
+      setAttendanceExists(false);
+      setExistingAttendanceId(null);
     }
+  }, [attendanceQuery.data]);
 
-    // Check if all data is loaded
+  // Set loading state based on all query states
+  useEffect(() => {
     if (
-      classQuery.data &&
-      periodQuery.data &&
-      studentsQuery.data &&
-      attendanceQuery.data
+      classQuery.isLoading ||
+      periodQuery.isLoading ||
+      studentsQuery.isLoading ||
+      attendanceQuery.isLoading
     ) {
+      setLoading(true);
+    } else {
       setLoading(false);
     }
   }, [
-    classQuery.data,
-    periodQuery.data,
-    studentsQuery.data,
-    attendanceQuery.data,
+    classQuery.isLoading,
+    periodQuery.isLoading,
+    studentsQuery.isLoading,
+    attendanceQuery.isLoading,
   ]);
 
-  // Process absentee data
-  const processAbsenteeData = () => {
+  // Memoize absentee data processing for better performance
+  const absenteeData = useMemo(() => {
     if (
-      !historicalAttendanceQuery.data?.attendances ||
-      !historicalAttendanceQuery.data?.attendances.absenteeTracking ||
+      !historicalAttendanceQuery.data?.attendances?.absenteeTracking ||
       !students.length
     ) {
       return [];
     }
 
-    // Extract absentee data
     const rawAbsenteeData =
       historicalAttendanceQuery.data.attendances.absenteeTracking;
 
-    const today = new Date(attendanceDate);
-    today.setDate(today.getDate() - 1);
-    const yesterday = formatDate(today);
+    // Calculate yesterday's date
+    const yesterday = new Date(attendanceDate);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = formatDate(yesterday);
 
-    return rawAbsenteeData?.filter(
-      (student) => student.lastAbsenceDate === yesterday
+    // Filter for yesterday's absences
+    return rawAbsenteeData.filter(
+      (student) => student.lastAbsenceDate === yesterdayStr
     );
-  };
+  }, [historicalAttendanceQuery.data, students, attendanceDate]);
 
-  // Process historical attendance data for absentee tracking
-  useEffect(() => {
-    if (
-      historicalAttendanceQuery.isLoading ||
-      !historicalAttendanceQuery.data
-    ) {
-      return;
-    }
-
-    try {
-      const processedData = processAbsenteeData();
-      setAbsenteeData(processedData);
-    } catch (err) {
-      console.error("Error processing absentee data:", err);
-      setAbsenteeData([]);
-    }
-  }, [
-    historicalAttendanceQuery.data,
-    historicalAttendanceQuery.isLoading,
-    students,
-  ]);
-
-  // Handle attendance change
-  const toggleAttendance = (studentId) => {
+  // Memoize attendance toggle handler
+  const toggleAttendance = useCallback((studentId) => {
     setAttendance((prev) => ({
       ...prev,
       [studentId]: !prev[studentId],
     }));
-  };
+  }, []);
 
-  // Calculate statistics
+  // Memoize stats calculation for better performance
   const stats = useMemo(() => {
     const total = students.length;
     const present = Object.values(attendance).filter((status) => status).length;
@@ -211,22 +257,27 @@ const Attendance = ({ token, teacherId }) => {
     const absentPercentage = total > 0 ? Math.round((absent / total) * 100) : 0;
 
     return { total, present, absent, presentPercentage, absentPercentage };
-  }, [students, attendance]);
+  }, [students.length, attendance]);
 
-  // Check if a student has absence history
-  const getStudentAbsenteeInfo = (studentId) => {
-    return absenteeData.find((student) => student.studentId === studentId);
-  };
+  // Memoize absentee info lookup function
+  const getStudentAbsenteeInfo = useCallback(
+    (studentId) => {
+      return absenteeData.find((student) => student.studentId === studentId);
+    },
+    [absenteeData]
+  );
 
-  // Save attendance
-  const handleSaveAttendance = async () => {
+  // Optimize save attendance function
+  const handleSaveAttendance = useCallback(async () => {
+    if (saving) return;
+
     try {
       setSaving(true);
 
-      // Format attendance data
+      // Format attendance data more efficiently
       const attendanceData = students.map((student) => ({
-        studentId: student?._id,
-        present: attendance[student?._id] || false,
+        studentId: student._id,
+        present: attendance[student._id] ?? false,
       }));
 
       const payload = {
@@ -240,9 +291,7 @@ const Attendance = ({ token, teacherId }) => {
         attendanceData,
       };
 
-      if (attendanceExists) {
-        // Get the ID of the existing attendance record
-        const existingAttendanceId = attendanceQuery.data.attendances[0]?._id;
+      if (attendanceExists && existingAttendanceId) {
         await updateAttendance.mutateAsync({
           data: {
             _id: existingAttendanceId,
@@ -251,16 +300,12 @@ const Attendance = ({ token, teacherId }) => {
         });
         toast.success("Attendance updated successfully!");
       } else {
-        await createAttendance.mutateAsync({
-          ...payload,
-        });
+        await createAttendance.mutateAsync(payload);
         toast.success("Attendance recorded successfully!");
         setAttendanceExists(true);
       }
 
-      // Refresh attendance data
-      attendanceQuery.refetch();
-      historicalAttendanceQuery.refetch();
+      // Use a single function to handle redirect
       window.location.href = "/dashboard/my-periods";
     } catch (error) {
       console.error("Error saving attendance:", error);
@@ -268,29 +313,53 @@ const Attendance = ({ token, teacherId }) => {
     } finally {
       setSaving(false);
     }
-  };
+  }, [
+    saving,
+    students,
+    attendance,
+    classId,
+    batchId,
+    subjectId,
+    teacherId,
+    periodNumber,
+    day,
+    attendanceDate,
+    attendanceExists,
+    existingAttendanceId,
+    updateAttendance,
+    createAttendance,
+  ]);
 
-  const handleDeleteAttendance = async () => {
+  // Optimize delete attendance function
+  const handleDeleteAttendance = useCallback(async () => {
+    if (saving || !attendanceExists || !existingAttendanceId) return;
+
     try {
       setSaving(true);
-      const existingAttendanceId = attendanceQuery.data.attendances[0]?._id;
       await deleteAttendance.mutateAsync([existingAttendanceId]);
       toast.success("Attendance reset successfully!");
       setAttendanceExists(false);
-      attendanceQuery.refetch();
-      historicalAttendanceQuery.refetch();
+      setExistingAttendanceId(null);
+
+      // Reset attendance to all present
+      const resetAttendance = {};
+      students.forEach((student) => {
+        resetAttendance[student._id] = true;
+      });
+      setAttendance(resetAttendance);
     } catch (error) {
       console.error("Error resetting attendance:", error);
       toast.error(`Failed to reset attendance: ${error.message}`);
     } finally {
       setSaving(false);
     }
-  };
-
-  const subjectName = useMemo(() => {
-    return classDetails?.subjects?.find((subject) => subject._id === subjectId)
-      ?.name;
-  }, [classDetails]);
+  }, [
+    saving,
+    attendanceExists,
+    existingAttendanceId,
+    deleteAttendance,
+    students,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -345,7 +414,7 @@ const Attendance = ({ token, teacherId }) => {
         )}
       </div>
       {/* Students Table */}
-      <div className="overflow-x-auto max-h-[calc(100vh-415px)] md:max-h-[calc(100vh-339px)]  border rounded-md">
+      <div className="overflow-x-auto max-h-[calc(100vh-415px)] md:max-h-[calc(100vh-339px)] border rounded-md">
         <Table>
           <TableHeader>
             <TableRow>
@@ -363,13 +432,13 @@ const Attendance = ({ token, teacherId }) => {
 
                 return (
                   <TableRow
-                    key={student?._id}
+                    key={student._id}
                     className={
-                      attendance[student?._id]
+                      attendance[student._id]
                         ? ""
                         : "bg-rose-300 dark:bg-rose-700 hover:bg-rose-300 dark:hover:bg-rose-700"
                     }
-                    onClick={() => toggleAttendance(student?._id)}
+                    onClick={() => toggleAttendance(student._id)}
                   >
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>
@@ -385,18 +454,15 @@ const Attendance = ({ token, teacherId }) => {
                             {student.name}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {student?._id}
+                            {student._id}
                           </p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        {/* Show absentee status on desktop */}
-                        {hasAbsenceHistory && (
-                          <AbsenteeStatus absenteeInfo={absenteeInfo} />
-                        )}
-                      </div>
+                      {hasAbsenceHistory && (
+                        <AbsenteeStatus absenteeInfo={absenteeInfo} />
+                      )}
                     </TableCell>
                   </TableRow>
                 );
@@ -412,7 +478,10 @@ const Attendance = ({ token, teacherId }) => {
         </Table>
       </div>
       <div className="flex justify-between">
-        <Button onClick={handleDeleteAttendance} disabled={!attendanceExists}>
+        <Button
+          onClick={handleDeleteAttendance}
+          disabled={!attendanceExists || saving || loading}
+        >
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Reset
         </Button>

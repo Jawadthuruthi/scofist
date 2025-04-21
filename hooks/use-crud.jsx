@@ -12,6 +12,7 @@ const useCrud = (resource, token) => {
 
   // Fetch items with pagination support
   const useFetchItems = (page = 0, limit = 20, filters = {}, options = {}) => {
+    console.log(options);
     return useQuery({
       queryKey: [resource, page, limit, filters],
       queryFn: () => fetchItems(resource, token, page, limit, filters),
@@ -24,7 +25,7 @@ const useCrud = (resource, token) => {
     return useQuery({
       queryKey: [resource, id],
       queryFn: () => fetchItemById(resource, id, token),
-      enabled: !!id && enabled, // Only fetch when ID is provided
+      enabled: !!id && enabled,
     });
   };
 
