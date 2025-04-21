@@ -33,130 +33,162 @@ export async function GET(req, res) {
       });
     }
 
-    // Build MongoDB query
-    const query = {};
+    // Build MongoDB query for the student document level
+    const documentQuery = {};
     if (filterParams.studentId) {
-      query.studentId = filterParams.studentId;
+      documentQuery.studentId = filterParams.studentId;
     }
+
+    // Store record-level filters separately - these will be used later for filtering the records array
+    const recordFilters = {};
     if (filterParams.classId) {
-      query["attendanceRecords.classId"] = filterParams.classId;
+      recordFilters.classId = filterParams.classId;
     }
     if (filterParams.batchId) {
-      query["attendanceRecords.batchId"] = filterParams.batchId;
+      recordFilters.batchId = filterParams.batchId;
     }
     if (filterParams.subjectId) {
-      query["attendanceRecords.subjectId"] = filterParams.subjectId;
+      recordFilters.subjectId = filterParams.subjectId;
     }
 
-    // Handle date filtering with aggregation pipeline if needed
-    let dateMatch = {};
-
+    // Handle date filtering
+    let dateFilter = null;
     if (filterParams.date) {
       // Convert string date to Date object for exact date match
       const exactDate = new Date(filterParams.date);
-      dateMatch = {
-        "attendanceRecords.date": {
-          $gte: new Date(exactDate.setHours(0, 0, 0, 0)),
-          $lte: new Date(exactDate.setHours(23, 59, 59, 999)),
-        },
+      const startOfDay = new Date(exactDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(exactDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      dateFilter = {
+        start: startOfDay,
+        end: endOfDay,
       };
     } else if (filterParams.startDate || filterParams.endDate) {
-      dateMatch["attendanceRecords.date"] = {};
+      dateFilter = {};
 
       if (filterParams.startDate) {
         const startDate = new Date(filterParams.startDate);
-        dateMatch["attendanceRecords.date"].$gte = new Date(
-          startDate.setHours(0, 0, 0, 0)
-        );
+        startDate.setHours(0, 0, 0, 0);
+        dateFilter.start = startDate;
       }
 
       if (filterParams.endDate) {
         const endDate = new Date(filterParams.endDate);
-        dateMatch["attendanceRecords.date"].$lte = new Date(
-          endDate.setHours(23, 59, 59, 999)
-        );
+        endDate.setHours(23, 59, 59, 999);
+        dateFilter.end = endDate;
       }
     }
 
-    console.log("Date filter:", dateMatch);
+    console.log("Filters:", { documentQuery, recordFilters, dateFilter });
 
-    // Execute query with pagination
-    let studentAttendances;
+    // For better performance, always use aggregation with properly structured pipeline
+    const pipeline = [
+      // First match at document level (studentId filter)
+      { $match: documentQuery },
 
-    // If we need to filter by date, use aggregation
-    if (Object.keys(dateMatch).length > 0) {
-      studentAttendances = await StudentAttendance.aggregate([
-        { $match: query },
-        {
-          $addFields: {
-            // Filter attendance records by date
-            filteredRecords: {
-              $filter: {
-                input: "$attendanceRecords",
-                as: "record",
-                cond: {
-                  $and: [
-                    dateMatch["attendanceRecords.date"].$gte
-                      ? {
-                          $gte: [
-                            "$$record.date",
-                            dateMatch["attendanceRecords.date"].$gte,
-                          ],
-                        }
-                      : true,
-                    dateMatch["attendanceRecords.date"].$lte
-                      ? {
-                          $lte: [
-                            "$$record.date",
-                            dateMatch["attendanceRecords.date"].$lte,
-                          ],
-                        }
-                      : true,
-                  ],
-                },
+      // Add the filtered records field using $filter operator
+      {
+        $addFields: {
+          filteredRecords: {
+            $filter: {
+              input: "$attendanceRecords",
+              as: "record",
+              cond: {
+                $and: [
+                  // Filter by class if specified
+                  ...(recordFilters.classId
+                    ? [
+                        {
+                          $eq: ["$$record.classId", recordFilters.classId],
+                        },
+                      ]
+                    : []),
+
+                  // Filter by batch if specified
+                  ...(recordFilters.batchId
+                    ? [
+                        {
+                          $eq: ["$$record.batchId", recordFilters.batchId],
+                        },
+                      ]
+                    : []),
+
+                  // Filter by subject if specified - THIS IS THE KEY FIX
+                  ...(recordFilters.subjectId
+                    ? [
+                        {
+                          $eq: ["$$record.subjectId", recordFilters.subjectId],
+                        },
+                      ]
+                    : []),
+
+                  // Date filtering - start date if specified
+                  ...(dateFilter?.start
+                    ? [
+                        {
+                          $gte: ["$$record.date", dateFilter.start],
+                        },
+                      ]
+                    : []),
+
+                  // Date filtering - end date if specified
+                  ...(dateFilter?.end
+                    ? [
+                        {
+                          $lte: ["$$record.date", dateFilter.end],
+                        },
+                      ]
+                    : []),
+                ],
               },
             },
           },
         },
-        {
-          $project: {
-            studentId: 1,
-            attendanceRecords: "$filteredRecords",
-            _id: 1,
-          },
+      },
+
+      // Now project to only include documents with matching records
+      {
+        $match: {
+          "filteredRecords.0": { $exists: true }, // Ensures at least one record matched
         },
-        { $skip: page * limit },
-        { $limit: limit },
-      ]).exec();
+      },
 
-      // Manually populate references since aggregate doesn't support populate
-      const populatedAttendances = await StudentAttendance.populate(
-        studentAttendances,
-        [
-          { path: "studentId", select: "name" },
-          { path: "attendanceRecords.classId", select: "name" },
-          { path: "attendanceRecords.subjectId", select: "name" },
-        ]
-      );
+      // Replace the original records with the filtered ones
+      {
+        $project: {
+          studentId: 1,
+          attendanceRecords: "$filteredRecords",
+          _id: 1,
+        },
+      },
 
-      studentAttendances = populatedAttendances;
-    } else {
-      // No date filtering needed, use regular find
-      studentAttendances = await StudentAttendance.find(query, projections)
-        .skip(page * limit)
-        .limit(limit)
-        .populate("studentId", "name")
-        .populate("attendanceRecords.classId", "name")
-        .populate("attendanceRecords.subjectId", "name")
-        .lean(); // Convert to plain JS objects
-    }
+      // Apply pagination
+      { $skip: page * limit },
+      ...(limit !== Infinity ? [{ $limit: limit }] : []),
+    ];
+
+    // Execute the aggregation pipeline
+    const studentAttendances = await StudentAttendance.aggregate(
+      pipeline
+    ).exec();
+
+    // Populate references
+    const populatedAttendances = await StudentAttendance.populate(
+      studentAttendances,
+      [
+        { path: "studentId", select: "name" },
+        { path: "attendanceRecords.classId", select: "name" },
+        { path: "attendanceRecords.subjectId", select: "name" },
+      ]
+    );
 
     // Format the results
-    const formattedStudentAttendances = studentAttendances.map((record) => ({
+    const formattedStudentAttendances = populatedAttendances.map((record) => ({
       _id: record.studentId?._id,
       name: record.studentId?.name,
       attendanceRecords: (record.attendanceRecords || []).map((attendance) => ({
-        // No need for toObject here since we're using lean() or aggregate
         ...(attendance || {}),
         className: attendance?.classId?.name,
         subjectName: attendance?.subjectId?.name,
@@ -165,8 +197,80 @@ export async function GET(req, res) {
       })),
     }));
 
-    // Get total count for pagination info
-    const total = await StudentAttendance.countDocuments(query);
+    // Get total count more efficiently
+    const countPipeline = [
+      // First match at document level (studentId filter)
+      { $match: documentQuery },
+
+      // Add the filtered records field using $filter
+      {
+        $addFields: {
+          filteredRecords: {
+            $filter: {
+              input: "$attendanceRecords",
+              as: "record",
+              cond: {
+                $and: [
+                  // Same filters as main pipeline
+                  ...(recordFilters.classId
+                    ? [
+                        {
+                          $eq: ["$$record.classId", recordFilters.classId],
+                        },
+                      ]
+                    : []),
+
+                  ...(recordFilters.batchId
+                    ? [
+                        {
+                          $eq: ["$$record.batchId", recordFilters.batchId],
+                        },
+                      ]
+                    : []),
+
+                  ...(recordFilters.subjectId
+                    ? [
+                        {
+                          $eq: ["$$record.subjectId", recordFilters.subjectId],
+                        },
+                      ]
+                    : []),
+
+                  ...(dateFilter?.start
+                    ? [
+                        {
+                          $gte: ["$$record.date", dateFilter.start],
+                        },
+                      ]
+                    : []),
+
+                  ...(dateFilter?.end
+                    ? [
+                        {
+                          $lte: ["$$record.date", dateFilter.end],
+                        },
+                      ]
+                    : []),
+                ],
+              },
+            },
+          },
+        },
+      },
+
+      // Only count documents with matching records
+      {
+        $match: {
+          "filteredRecords.0": { $exists: true },
+        },
+      },
+
+      // Count documents
+      { $count: "total" },
+    ];
+
+    const countResult = await StudentAttendance.aggregate(countPipeline).exec();
+    const total = countResult.length > 0 ? countResult[0].total : 0;
 
     return NextResponse.json(
       {

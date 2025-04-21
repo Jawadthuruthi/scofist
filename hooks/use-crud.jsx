@@ -12,7 +12,6 @@ const useCrud = (resource, token) => {
 
   // Fetch items with pagination support
   const useFetchItems = (page = 0, limit = 20, filters = {}, options = {}) => {
-    console.log(options);
     return useQuery({
       queryKey: [resource, page, limit, filters],
       queryFn: () => fetchItems(resource, token, page, limit, filters),
