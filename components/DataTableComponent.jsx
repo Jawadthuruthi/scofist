@@ -115,6 +115,7 @@ const DataTableComponent = ({
   const [rowSelection, setRowSelection] = useState({});
   const [page, setPage] = useState(0);
   const [data, setData] = useState(initialData);
+  const [dataCount, setDataCount] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(true);
   const [isManualFiltering, setIsManualFiltering] = useState(false);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
@@ -205,6 +206,7 @@ const DataTableComponent = ({
       const pagination = fetchItemsQuery.data?.pagination || {};
 
       setTotalPages(pagination?.totalPages || 0);
+      setDataCount(pagination?.total || 0);
 
       // Reset data if filters changed or on initial load
       if (isManualFiltering || (page === 0 && !initialData.length)) {
@@ -651,9 +653,7 @@ const DataTableComponent = ({
       <div className="w-full flex justify-between items-center">
         <div className="text-sm text-muted-foreground">
           Showing {table.getRowModel().rows.length} items
-          {isApiFiltering &&
-            totalPages > 0 &&
-            ` of ${totalPages * limit}+ total`}
+          {isApiFiltering && totalPages > 0 && ` of ${dataCount}+ total`}
           {process.env.NODE_ENV === "development" && (
             <span className="ml-2 px-2 py-1 bg-muted rounded-full text-xs">
               {filterModeDisplay}

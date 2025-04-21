@@ -38,6 +38,15 @@ export async function GET(req, res) {
     if (filterParams.studentId) {
       query.studentId = filterParams.studentId;
     }
+    if (filterParams.classId) {
+      query["attendanceRecords.classId"] = filterParams.classId;
+    }
+    if (filterParams.batchId) {
+      query["attendanceRecords.batchId"] = filterParams.batchId;
+    }
+    if (filterParams.subjectId) {
+      query["attendanceRecords.subjectId"] = filterParams.subjectId;
+    }
 
     // Handle date filtering with aggregation pipeline if needed
     let dateMatch = {};
