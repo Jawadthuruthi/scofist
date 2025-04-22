@@ -115,7 +115,7 @@ export async function GET(req, res) {
                       ]
                     : []),
 
-                  // Filter by subject if specified - THIS IS THE KEY FIX
+                  // Filter by subject if specified
                   ...(recordFilters.subjectId
                     ? [
                         {
