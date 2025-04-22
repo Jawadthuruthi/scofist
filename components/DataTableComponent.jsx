@@ -123,6 +123,7 @@ const DataTableComponent = ({
 
   const tableRef = useRef(null);
   const tableBodyRef = useRef(null);
+  const isFetchingRef = useRef(false);
   const loaderRef = useRef(null);
   const router = useRouter();
 
@@ -224,6 +225,7 @@ const DataTableComponent = ({
       }
       setHasNextPage(page < (pagination?.totalPages || 1) - 1);
       setIsFetchingNextPage(false);
+      isFetchingRef.current = false;
     }
   }, [
     fetchItemsQuery.data,
@@ -234,6 +236,10 @@ const DataTableComponent = ({
     initialData.length,
   ]);
 
+  useEffect(() => {
+    console.log("Page changed:", page);
+  }, [page]);
+
   // Loading states
   const isInitialLoading =
     fetchItemsQuery.isLoading && page === 0 && !data.length;
@@ -241,13 +247,18 @@ const DataTableComponent = ({
   const isLoadingMore =
     isFetchingNextPage || (fetchItemsQuery.isLoading && page > 0);
 
-  // Fetch next page function with improved logic
   const fetchNextPage = useCallback(() => {
-    if (!hasNextPage || isLoadingMore) return;
+    if (!hasNextPage || isLoadingMore || isFetchingRef.current) {
+      console.log("Skipping fetch: already fetching or no more pages");
+      return;
+    }
+
+    console.log(`Fetching next page: ${page + 1}`);
+    isFetchingRef.current = true; // lock
 
     setIsFetchingNextPage(true);
     setPage((prevPage) => prevPage + 1);
-  }, [hasNextPage, isLoadingMore]);
+  }, [hasNextPage, isLoadingMore, page]);
 
   // Improved IntersectionObserver handler
   const handleObserver = useCallback(
