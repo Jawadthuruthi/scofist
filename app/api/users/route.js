@@ -192,7 +192,7 @@ export async function GET(req, res) {
         generalCourseYear: generalCourse.year,
         generalCourseSemester: generalCourse.semester,
 
-        status: user.roles.includes("Student")
+        status: user.roles?.includes("Student")
           ? studentSpecificField.status
           : teacherSpecificField.status,
       };
