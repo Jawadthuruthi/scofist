@@ -105,7 +105,6 @@ const DataTableComponent = ({
   filterTitle = "",
   filterType = "client",
   infiniteScrollThreshold = 0.3,
-  loadAheadCount = 1,
   printTitle,
 }) => {
   const [sorting, setSorting] = useState([]);
@@ -199,6 +198,7 @@ const DataTableComponent = ({
     }
   }, [fetchItemsQuery.error]);
 
+  // Process fetched data
   useEffect(() => {
     if (fetchItemsQuery.data) {
       const newItems = fetchItemsQuery.data[resource] || [];
@@ -222,29 +222,7 @@ const DataTableComponent = ({
           return [...prev, ...uniqueNewItems];
         });
       }
-
-      // Fix hasNextPage calculation to be more reliable
-      const currentTotal = page * limit + newItems.length;
-      const hasMore = currentTotal < pagination?.total;
-      console.log(
-        `Page: ${page}, Items: ${newItems.length}, Total: ${pagination?.total}, Has more: ${hasMore}`
-      );
-
-      setHasNextPage(hasMore);
-
-      // Handle edge case where no new items are returned but server indicates more pages
-      if (newItems.length === 0 && page > 0) {
-        console.log("No new items returned but server indicates more pages");
-        // If we got no new items but we're not on the last page, try one more page
-        if (page < pagination?.totalPages - 1) {
-          setPage(page + 1);
-        } else {
-          // If we're on what should be the last page, stop fetching
-          setHasNextPage(false);
-        }
-      } else {
-        setHasNextPage(page < pagination?.totalPages - 1);
-      }
+      setHasNextPage(page < (pagination?.totalPages || 1) - 1);
       setIsFetchingNextPage(false);
     }
   }, [
@@ -263,49 +241,36 @@ const DataTableComponent = ({
   const isLoadingMore =
     isFetchingNextPage || (fetchItemsQuery.isLoading && page > 0);
 
-  // Fetch next page function
+  // Fetch next page function with improved logic
   const fetchNextPage = useCallback(() => {
-    if (!hasNextPage || isLoadingMore) {
-      console.log(
-        `Not fetching next page: hasNextPage=${hasNextPage}, isLoadingMore=${isLoadingMore}`
-      );
-      return;
-    }
+    if (!hasNextPage || isLoadingMore) return;
 
-    console.log(`Fetching next page: ${page + 1}`);
     setIsFetchingNextPage(true);
     setPage((prevPage) => prevPage + 1);
-  }, [hasNextPage, isLoadingMore, page]);
+  }, [hasNextPage, isLoadingMore]);
 
-  // IntersectionObserver handler
+  // Improved IntersectionObserver handler
   const handleObserver = useCallback(
     (entries) => {
       const [entry] = entries;
       if (entry.isIntersecting && !isLoadingMore && hasNextPage) {
-        console.log("Intersection observer triggered, loading more data");
         fetchNextPage();
       }
     },
     [fetchNextPage, isLoadingMore, hasNextPage]
   );
 
+  // Enhanced scroll handling with debounce
   const handleScroll = useCallback(
     debounce(() => {
       if (!tableBodyRef.current || isLoadingMore || !hasNextPage) return;
 
       const container = tableBodyRef.current;
       const scrollPosition = container.scrollTop + container.clientHeight;
-      const scrollThreshold =
-        container.scrollHeight * Math.min(0.8, infiniteScrollThreshold);
+      const scrollThreshold = container.scrollHeight * infiniteScrollThreshold;
 
-      // Added logging for debugging
-      console.log(
-        `Scroll position: ${scrollPosition}, Threshold: ${scrollThreshold}`
-      );
-
-      // Load more data before reaching the bottom with a more aggressive threshold
+      // Load more data before reaching the bottom
       if (scrollPosition >= scrollThreshold) {
-        console.log("Scroll threshold reached, loading more data");
         fetchNextPage();
       }
     }, 100),
@@ -316,7 +281,7 @@ const DataTableComponent = ({
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
       root: tableBodyRef.current,
-      rootMargin: "300px", // Increased from 100px to detect earlier
+      rootMargin: "100px",
       threshold: 0.1,
     });
 
