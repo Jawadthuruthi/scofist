@@ -191,6 +191,10 @@ export async function GET(req, res) {
         generalCourseRegisterNumber: generalCourse.registerNumber,
         generalCourseYear: generalCourse.year,
         generalCourseSemester: generalCourse.semester,
+
+        status: user.roles.includes("Student")
+          ? studentSpecificField.status
+          : teacherSpecificField.status,
       };
     });
     console.timeEnd("Data formatting");
