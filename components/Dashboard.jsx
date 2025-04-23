@@ -427,9 +427,9 @@ const StudentStatusChart = memo(({ students, isLoading }) => {
 StudentStatusChart.displayName = "StudentStatusChart";
 
 // Lazy-loaded TimeTable Component
-const LazyTimeTable = memo(({ token }) => (
+const LazyTimeTable = memo(({ token, role }) => (
   <Suspense fallback={<ChartSkeleton height="400px" />}>
-    <TimeTableComponent token={token} hidePrintButton={true} />
+    <TimeTableComponent token={token} hidePrintButton={true} role={role} />
   </Suspense>
 ));
 
@@ -440,7 +440,7 @@ LazyTimeTable.displayName = "LazyTimeTable";
  * @param {string} token - Authentication token for API calls
  * @returns {React.ReactElement} Dashboard component
  */
-export default function Dashboard({ token }) {
+export default function Dashboard({ token, role }) {
   // States for loading and error handling
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
@@ -653,7 +653,6 @@ export default function Dashboard({ token }) {
     fetchAttendanceQuery.data,
     fetchAttendanceQuery.error,
   ]);
-
   return (
     <div className="flex flex-col space-y-6">
       <Header
@@ -695,7 +694,7 @@ export default function Dashboard({ token }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <LazyTimeTable token={token} />
+              <LazyTimeTable token={token} role={role} />
             </CardContent>
           </Card>
 

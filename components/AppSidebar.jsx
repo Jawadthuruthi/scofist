@@ -61,7 +61,7 @@ const items = [
     title: "Dashboard",
     url: "/dashboard",
     icon: Home,
-    allowedRoles: ["College Admin", "Teacher", "Org Admin"],
+    allowedRoles: ["College Admin", "Teacher", "Org Admin", "Student"],
   },
   {
     title: "My Periods",

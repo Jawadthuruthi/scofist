@@ -6,6 +6,7 @@ export default async function DashboardPage() {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth-token")?.value;
+    const activeRole = cookieStore.get("active-role")?.value;
 
     if (!token) {
       return (
@@ -17,7 +18,7 @@ export default async function DashboardPage() {
       );
     }
 
-    return <Dashboard token={token} />;
+    return <Dashboard token={token} role={activeRole} />;
   } catch (error) {
     console.error("Error loading batches:", error.message);
     return (

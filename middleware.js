@@ -16,7 +16,7 @@ const pages = [
   {
     title: "Dashboard",
     path: "/dashboard",
-    allowedRoles: ["College Admin", "Teacher", "Org Admin"],
+    allowedRoles: ["College Admin", "Teacher", "Org Admin", "Student"],
   },
   {
     title: "My Periods",

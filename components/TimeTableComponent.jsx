@@ -91,7 +91,12 @@ const AbsenteesDialog = ({
   );
 };
 
-const TimeTableComponent = ({ token, teacherId, hidePrintButton = false }) => {
+const TimeTableComponent = ({
+  token,
+  teacherId,
+  hidePrintButton = false,
+  role,
+}) => {
   const timeTableRef = useRef(null);
   const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
   const [currentDialogData, setCurrentDialogData] = useState({});
@@ -127,10 +132,44 @@ const TimeTableComponent = ({ token, teacherId, hidePrintButton = false }) => {
 
   const timeTableApiFilter = teacherId ? { teacherId } : { day: currentDay };
 
-  const fetchItemsQuery = useFetchItems(0, 0, timeTableApiFilter);
-  const fetchPeriodsQuery = useFetchPeriods(0, 0, {});
-  const fetchAttendanceQuery = useFetchAttendance(0, 0, attendanceApiFilter);
-  const fetchClassesQuery = useFetchClasses(0, 0, {});
+  const fetchItemsQuery = useFetchItems(0, 0, timeTableApiFilter, {
+    enabled: !role
+      ? !!teacherId
+      : ["Teacher", "College Admin", "Org Admin"].includes(role),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+  });
+  const fetchPeriodsQuery = useFetchPeriods(
+    0,
+    0,
+    {},
+    {
+      enabled: !role
+        ? !!teacherId
+        : ["Teacher", "College Admin", "Org Admin"].includes(role),
+      staleTime: 60000,
+      refetchOnWindowFocus: false,
+    }
+  );
+  const fetchAttendanceQuery = useFetchAttendance(0, 0, attendanceApiFilter, {
+    enabled: !role
+      ? !!teacherId
+      : ["Teacher", "College Admin", "Org Admin"].includes(role),
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+  const fetchClassesQuery = useFetchClasses(
+    0,
+    0,
+    {},
+    {
+      enabled: !role
+        ? !!teacherId
+        : ["Teacher", "College Admin", "Org Admin"].includes(role),
+      staleTime: 60000,
+      refetchOnWindowFocus: false,
+    }
+  );
 
   const timeTables = fetchItemsQuery.data?.timeTables || [];
   const periods = fetchPeriodsQuery.data?.periods || [];
