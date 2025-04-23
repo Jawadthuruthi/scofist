@@ -683,20 +683,22 @@ export default function Dashboard({ token, role }) {
 
         <TabsContent value="overview" className="space-y-6">
           {/* Time Table Component with lazy loading */}
-          <Card className="border-t-4 border-t-primary">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5" />
-                <span>Today's Schedule</span>
-              </CardTitle>
-              <CardDescription>
-                View your scheduled classes and attendance for today
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <LazyTimeTable token={token} role={role} />
-            </CardContent>
-          </Card>
+          {["Teacher", "College Admin", "Org Admin"].includes(role) && (
+            <Card className="border-t-4 border-t-primary">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Calendar className="h-5 w-5" />
+                  <span>Today's Schedule</span>
+                </CardTitle>
+                <CardDescription>
+                  View your scheduled classes and attendance for today
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <LazyTimeTable token={token} role={role} />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Stats Overview with loading state */}
           <StatsOverview
