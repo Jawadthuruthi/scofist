@@ -305,38 +305,46 @@ const userSchema = new Schema(
 // Indexes for common query patterns
 userSchema.index({ name: "text" });
 
-// Pre-save hook: Trim strings and update Batch when a student is added or changes batch
 userSchema.pre("save", async function (next) {
   try {
-    // Update batch if student is new or batchId is modified
+    const isStudent = this.roles.includes("Student");
+    const newBatchId = this.studentSpecificField?.batchId;
+
+    // When student and batchId exists
     if (
-      this.roles.includes("Student") &&
-      this.studentSpecificField?.batchId &&
+      isStudent &&
+      newBatchId &&
       this.isModified("studentSpecificField.batchId")
     ) {
-      if (this.isNew) {
-        await Batch.findByIdAndUpdate(this.studentSpecificField.batchId, {
-          $addToSet: { students: this._id },
-        });
-      } else {
-        const oldStudent = await mongoose.model("User").findById(this._id);
-        if (
-          oldStudent.studentSpecificField?.batchId &&
-          oldStudent.studentSpecificField.batchId !==
-            this.studentSpecificField.batchId
-        ) {
-          await Batch.findByIdAndUpdate(
-            oldStudent.studentSpecificField.batchId,
-            {
-              $pull: { students: this._id },
-            }
-          );
-        }
-        await Batch.findByIdAndUpdate(this.studentSpecificField.batchId, {
-          $addToSet: { students: this._id },
+      const oldUser = await mongoose.model("User").findById(this._id).lean();
+
+      // Remove from old batch if batchId is changed
+      if (
+        oldUser?.studentSpecificField?.batchId &&
+        oldUser.studentSpecificField.batchId !== newBatchId
+      ) {
+        await Batch.findByIdAndUpdate(oldUser.studentSpecificField.batchId, {
+          $pull: { students: this._id },
         });
       }
+
+      // Add to new batch
+      await Batch.findByIdAndUpdate(newBatchId, {
+        $addToSet: { students: this._id },
+      });
+
+      // 🆕 Update classId from batch (only if classId not manually set)
+      if (!this.studentSpecificField.classId) {
+        const relatedClass = await Class.findOne({ batchId: newBatchId }).sort({
+          createdAt: 1,
+        });
+
+        if (relatedClass?._id) {
+          this.studentSpecificField.classId = relatedClass._id;
+        }
+      }
     }
+
     next();
   } catch (error) {
     next(error);

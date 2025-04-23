@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo, memo } from "react";
+import { useState, useEffect, useMemo, memo, Suspense } from "react";
 import {
   Card,
   CardContent,
@@ -17,6 +17,7 @@ import {
   Calendar,
   AlertCircle,
   BarChart,
+  Loader2,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,6 +46,10 @@ import {
  * @returns {Object} Object containing attendance statistics
  */
 const calculateAttendancePercentage = (attendanceRecords) => {
+  if (!attendanceRecords || attendanceRecords.length === 0) {
+    return { totalMarked: 0, totalPresent: 0, percentage: 0 };
+  }
+
   let totalMarked = 0;
   let totalPresent = 0;
 
@@ -64,36 +69,77 @@ const calculateAttendancePercentage = (attendanceRecords) => {
   };
 };
 
-// Dashboard Skeleton component for better loading state
-const DashboardSkeleton = memo(() => (
-  <div className="space-y-4">
-    <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-5">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Card key={i}>
-          <CardHeader className="pb-2">
-            <Skeleton className="h-4 w-1/2" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-8 w-16" />
-          </CardContent>
-        </Card>
+// Dashboard Loading Skeleton Components
+const StatCardSkeleton = () => (
+  <Card className="overflow-hidden">
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-muted/30">
+      <Skeleton className="h-4 w-16" />
+      <Skeleton className="h-4 w-4 rounded-full" />
+    </CardHeader>
+    <CardContent className="pt-4">
+      <Skeleton className="h-7 w-14 mb-1" />
+      <Skeleton className="h-3 w-24" />
+    </CardContent>
+  </Card>
+);
+
+const StatsOverviewSkeleton = () => (
+  <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-5">
+    {Array(5)
+      .fill(0)
+      .map((_, i) => (
+        <StatCardSkeleton key={i} />
       ))}
-    </div>
-    <Card>
-      <CardHeader>
-        <Skeleton className="h-6 w-1/3" />
-        <Skeleton className="h-4 w-1/2" />
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="h-[300px] w-full" />
-      </CardContent>
-    </Card>
   </div>
-));
+);
 
-DashboardSkeleton.displayName = "DashboardSkeleton";
+const ChartSkeleton = ({ height = "300px" }) => (
+  <div
+    className={`h-[${height}] bg-muted/10 rounded-lg flex items-center justify-center`}
+  >
+    <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+  </div>
+);
 
-// Stat Card Component for consistent styling
+const ClassCardSkeleton = () => (
+  <Card className="overflow-hidden">
+    <CardHeader className="pb-2 bg-muted/30">
+      <Skeleton className="h-5 w-24 mb-1" />
+      <Skeleton className="h-3 w-32" />
+    </CardHeader>
+    <CardContent className="pt-4">
+      <div className="space-y-3">
+        <div className="flex justify-between">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-6" />
+        </div>
+        <div className="flex justify-between">
+          <Skeleton className="h-4 w-14" />
+          <Skeleton className="h-4 w-6" />
+        </div>
+        <div>
+          <div className="flex justify-between">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-10" />
+          </div>
+          <Skeleton className="h-2 w-full mt-1" />
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const ClassesSkeleton = () => (
+  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    {Array(6)
+      .fill(0)
+      .map((_, i) => (
+        <ClassCardSkeleton key={i} />
+      ))}
+  </div>
+);
+
+// Memoized Components
 const StatCard = memo(({ title, value, icon: Icon, description }) => (
   <Card className="overflow-hidden">
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-muted/30">
@@ -111,7 +157,6 @@ const StatCard = memo(({ title, value, icon: Icon, description }) => (
 
 StatCard.displayName = "StatCard";
 
-// Error display component
 const ErrorAlert = memo(({ message }) => (
   <Alert variant="destructive" className="mb-6">
     <AlertCircle className="h-4 w-4" />
@@ -126,15 +171,20 @@ const ClassCard = memo(({ classData, students, batches, attendances }) => {
   // Using useMemo to optimize expensive calculations
   const { classStudents, classBatch, attendanceStats } = useMemo(() => {
     // Find associated data
-    const filteredStudents = students.filter(
-      (student) => student.className === classData.name
-    ).length;
+    const filteredStudents = students
+      ? students.filter((student) => student.className === classData.name)
+          .length
+      : 0;
 
-    const foundBatch = batches.find((batch) => batch._id === classData.batchId);
+    const foundBatch = batches
+      ? batches.find((batch) => batch._id === classData.batchId)
+      : null;
 
-    const filteredAttendance = attendances.filter(
-      (attendance) => attendance.classId?._id === classData._id
-    );
+    const filteredAttendance = attendances
+      ? attendances.filter(
+          (attendance) => attendance.classId?._id === classData._id
+        )
+      : [];
 
     const stats = calculateAttendancePercentage(filteredAttendance);
 
@@ -187,47 +237,53 @@ const ClassCard = memo(({ classData, students, batches, attendances }) => {
 ClassCard.displayName = "ClassCard";
 
 // Stats Overview component
-const StatsOverview = memo(({ totalStats }) => (
-  <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-5">
-    <StatCard
-      title="Total Faculty"
-      value={totalStats.teachersCount}
-      icon={UserCheck}
-      description="Active teaching staff"
-    />
-    <StatCard
-      title="Active Batches"
-      value={totalStats.activeBatches}
-      icon={BarChart3}
-      description="Ongoing academic batches"
-    />
-    <StatCard
-      title="Total Students"
-      value={totalStats.studentCount.toLocaleString()}
-      icon={Users}
-      description="Currently enrolled students"
-    />
-    <StatCard
-      title="Active Students"
-      value={totalStats.activeStudents}
-      icon={BookOpen}
-      description="Currently attending classes"
-    />
-    <StatCard
-      title="Graduated Students"
-      value={totalStats.graduatedStudents}
-      icon={GraduationCap}
-      description="Successfully completed program"
-    />
-  </div>
-));
+const StatsOverview = memo(({ totalStats, isLoading }) => {
+  if (isLoading) return <StatsOverviewSkeleton />;
+
+  return (
+    <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-5">
+      <StatCard
+        title="Total Faculty"
+        value={totalStats.teachersCount}
+        icon={UserCheck}
+        description="Active teaching staff"
+      />
+      <StatCard
+        title="Active Batches"
+        value={totalStats.activeBatches}
+        icon={BarChart3}
+        description="Ongoing academic batches"
+      />
+      <StatCard
+        title="Total Students"
+        value={totalStats.studentCount.toLocaleString()}
+        icon={Users}
+        description="Currently enrolled students"
+      />
+      <StatCard
+        title="Active Students"
+        value={totalStats.activeStudents}
+        icon={BookOpen}
+        description="Currently attending classes"
+      />
+      <StatCard
+        title="Graduated Students"
+        value={totalStats.graduatedStudents}
+        icon={GraduationCap}
+        description="Successfully completed program"
+      />
+    </div>
+  );
+});
 
 StatsOverview.displayName = "StatsOverview";
 
 /**
- * Chart component to visualize batch data
+ * Batch Chart component with lazy loading
  */
-const BatchChart = memo(({ batches, students }) => {
+const BatchChart = memo(({ batches, students, isLoading }) => {
+  if (isLoading) return <ChartSkeleton />;
+
   const chartData = useMemo(() => {
     if (!batches || !students) return [];
     return batches
@@ -247,7 +303,7 @@ const BatchChart = memo(({ batches, students }) => {
 
   if (chartData.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center bg-gray-100 rounded-md">
+      <div className="h-64 flex items-center justify-center bg-muted/20 rounded-md">
         <p className="text-gray-500">No batch data available</p>
       </div>
     );
@@ -259,12 +315,10 @@ const BatchChart = memo(({ batches, students }) => {
   const CHART_PADDING = 70;
 
   // Calculate total width needed for the chart
-  const totalWidth = useMemo(() => {
-    return Math.max(
-      300,
-      (BAR_WIDTH + BAR_GAP) * chartData.length + CHART_PADDING
-    );
-  }, [chartData.length]);
+  const totalWidth = Math.max(
+    300,
+    (BAR_WIDTH + BAR_GAP) * chartData.length + CHART_PADDING
+  );
 
   return (
     <div className="h-64 max-w-full overflow-x-auto overflow-y-hidden rounded-md">
@@ -309,7 +363,9 @@ BatchChart.displayName = "BatchChart";
 /**
  * Student Status Chart component
  */
-const StudentStatusChart = memo(({ students }) => {
+const StudentStatusChart = memo(({ students, isLoading }) => {
+  if (isLoading) return <ChartSkeleton />;
+
   // Prepare pie chart data for student status
   const statusData = useMemo(() => {
     if (!students || students.length === 0) return [];
@@ -371,6 +427,15 @@ const StudentStatusChart = memo(({ students }) => {
 
 StudentStatusChart.displayName = "StudentStatusChart";
 
+// Lazy-loaded TimeTable Component
+const LazyTimeTable = memo(({ token }) => (
+  <Suspense fallback={<ChartSkeleton height="400px" />}>
+    <TimeTableComponent token={token} hidePrintButton={true} />
+  </Suspense>
+));
+
+LazyTimeTable.displayName = "LazyTimeTable";
+
 /**
  * Dashboard component displays school statistics and class information
  * @param {string} token - Authentication token for API calls
@@ -378,8 +443,9 @@ StudentStatusChart.displayName = "StudentStatusChart";
  */
 export default function Dashboard({ token }) {
   // States for loading and error handling
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("overview");
+
   const [dashboardData, setDashboardData] = useState({
     students: [],
     batches: [],
@@ -399,21 +465,87 @@ export default function Dashboard({ token }) {
   const currentDate = formatDateForDisplay(new Date());
   const todayISO = new Date().toISOString().split("T")[0];
 
-  // Setup crud hooks
+  // Setup crud hooks with stale time and caching options
   const { useFetchItems: useFetchStudents } = useCrud("users", token);
   const { useFetchItems: useFetchTeachers } = useCrud("users", token);
   const { useFetchItems: useFetchBatches } = useCrud("batches", token);
   const { useFetchItems: useFetchClasses } = useCrud("classes", token);
   const { useFetchItems: useFetchAttendances } = useCrud("attendances", token);
 
-  // Setup queries with error handling
-  const fetchStudentsQuery = useFetchStudents(0, 0, { roles: ["Student"] });
-  const fetchTeachersQuery = useFetchTeachers(0, 0, { roles: ["Teacher"] });
-  const fetchBatchesQuery = useFetchBatches(0, 0, {});
-  const fetchClassesQuery = useFetchClasses();
-  const fetchAttendanceQuery = useFetchAttendances(null, null, {
-    date: todayISO,
-  });
+  // Setup queries with error handling and optimized fetch strategy
+  const fetchStudentsQuery = useFetchStudents(
+    0,
+    0,
+    { roles: ["Student"] },
+    {
+      staleTime: 60000, // 1 minute
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const fetchTeachersQuery = useFetchTeachers(
+    0,
+    0,
+    { roles: ["Teacher"] },
+    {
+      staleTime: 60000,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const fetchBatchesQuery = useFetchBatches(
+    0,
+    0,
+    {},
+    {
+      staleTime: 60000,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const fetchClassesQuery = useFetchClasses(
+    0,
+    0,
+    {},
+    {
+      staleTime: 60000,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const fetchAttendanceQuery = useFetchAttendances(
+    0,
+    0,
+    {
+      date: todayISO,
+    },
+    {
+      staleTime: 30000, // 30 seconds - attendance may change more frequently
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  // Track loading states individually
+  const isLoadingStudents =
+    fetchStudentsQuery.isLoading || fetchStudentsQuery.isFetching;
+  const isLoadingTeachers =
+    fetchTeachersQuery.isLoading || fetchTeachersQuery.isFetching;
+  const isLoadingBatches =
+    fetchBatchesQuery.isLoading || fetchBatchesQuery.isFetching;
+  const isLoadingClassData =
+    fetchClassesQuery.isLoading || fetchClassesQuery.isFetching;
+  const isLoadingAttendance =
+    fetchAttendanceQuery.isLoading || fetchAttendanceQuery.isFetching;
+
+  // Derived loading states for specific sections
+  const isLoadingStats =
+    isLoadingStudents || isLoadingTeachers || isLoadingBatches;
+  const isLoadingCharts = isLoadingStudents || isLoadingBatches;
+  const isLoadingClassesSection =
+    isLoadingClassData ||
+    isLoadingStudents ||
+    isLoadingBatches ||
+    isLoadingAttendance;
 
   // Create derived state using useMemo
   const hasClasses = useMemo(
@@ -423,8 +555,7 @@ export default function Dashboard({ token }) {
 
   useEffect(() => {
     // Function to fetch all required data
-    const fetchDashboardData = async () => {
-      setLoading(true);
+    const processDashboardData = () => {
       setError(null);
       try {
         // Consolidated state update to reduce re-renders
@@ -482,11 +613,9 @@ export default function Dashboard({ token }) {
         }
 
         setDashboardData(newData);
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        setError("Failed to load dashboard data. Please try again later.");
-      } finally {
-        setLoading(false);
+      } catch (err) {
+        console.error("Error processing dashboard data:", err);
+        setError("Failed to process dashboard data. Please try again later.");
       }
     };
 
@@ -498,12 +627,21 @@ export default function Dashboard({ token }) {
       fetchClassesQuery.error ||
       fetchAttendanceQuery.error
     ) {
-      setError("An error occurred while fetching data. Please try again.");
-      setLoading(false);
+      const errorMessage =
+        "An error occurred while fetching data. Please try again.";
+      console.error(
+        "API Error:",
+        fetchStudentsQuery.error ||
+          fetchTeachersQuery.error ||
+          fetchBatchesQuery.error ||
+          fetchClassesQuery.error ||
+          fetchAttendanceQuery.error
+      );
+      setError(errorMessage);
       return;
     }
 
-    fetchDashboardData();
+    processDashboardData();
   }, [
     fetchStudentsQuery.data,
     fetchStudentsQuery.error,
@@ -517,11 +655,6 @@ export default function Dashboard({ token }) {
     fetchAttendanceQuery.error,
   ]);
 
-  // Display skeleton during loading
-  if (loading) {
-    return <DashboardSkeleton />;
-  }
-
   return (
     <div className="flex flex-col space-y-6">
       <Header
@@ -532,7 +665,12 @@ export default function Dashboard({ token }) {
 
       {error && <ErrorAlert message={error} />}
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs
+        defaultValue="overview"
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-6"
+      >
         <TabsList className="grid w-full grid-cols-3 md:w-auto">
           <TabsTrigger value="overview" className="px-6">
             Overview
@@ -546,7 +684,7 @@ export default function Dashboard({ token }) {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          {/* Time Table Component */}
+          {/* Time Table Component with lazy loading */}
           <Card className="border-t-4 border-t-primary">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -558,12 +696,15 @@ export default function Dashboard({ token }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <TimeTableComponent token={token} hidePrintButton={true} />
+              <LazyTimeTable token={token} />
             </CardContent>
           </Card>
 
-          {/* Stats Overview */}
-          <StatsOverview totalStats={dashboardData.totalStats} />
+          {/* Stats Overview with loading state */}
+          <StatsOverview
+            totalStats={dashboardData.totalStats}
+            isLoading={isLoadingStats}
+          />
         </TabsContent>
 
         <TabsContent value="classes" className="space-y-6">
@@ -579,7 +720,9 @@ export default function Dashboard({ token }) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {hasClasses ? (
+              {isLoadingClassesSection ? (
+                <ClassesSkeleton />
+              ) : hasClasses ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {dashboardData.classes.slice(0, 9).map((classData) => (
                     <ClassCard
@@ -592,7 +735,7 @@ export default function Dashboard({ token }) {
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-32 bg-muted rounded-md">
+                <div className="flex items-center justify-center h-32 bg-muted/20 rounded-md">
                   <p className="text-muted-foreground">
                     No class data available
                   </p>
@@ -619,6 +762,7 @@ export default function Dashboard({ token }) {
                 <BatchChart
                   batches={dashboardData.batches}
                   students={dashboardData.activeStudents}
+                  isLoading={isLoadingCharts}
                 />
               </CardContent>
             </Card>
@@ -638,6 +782,7 @@ export default function Dashboard({ token }) {
                 <BatchChart
                   batches={dashboardData.batches}
                   students={dashboardData.graduatedStudents}
+                  isLoading={isLoadingCharts}
                 />
               </CardContent>
             </Card>
@@ -654,7 +799,10 @@ export default function Dashboard({ token }) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <StudentStatusChart students={dashboardData.students} />
+                <StudentStatusChart
+                  students={dashboardData.students}
+                  isLoading={isLoadingStudents}
+                />
               </CardContent>
             </Card>
           </div>

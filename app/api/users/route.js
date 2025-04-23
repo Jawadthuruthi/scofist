@@ -103,8 +103,7 @@ export async function GET(req, res) {
       .skip(page * limit)
       .limit(limit)
       .sort({ _id: 1 })
-      .collation({ locale: "en_US", numericOrdering: true })
-      .lean(); // Add lean for performance
+      .collation({ locale: "en_US", numericOrdering: true });
 
     console.timeEnd("Database query");
 
@@ -275,7 +274,6 @@ export async function POST(req, res) {
       droppedOutClass,
       droppedOutReason,
       graduatedYear,
-      classId,
       batchId,
       islamicCourseName,
       islamicUniversity,
@@ -331,7 +329,6 @@ export async function POST(req, res) {
         islamicQualification,
         academicQualification,
         status,
-        classId,
         batchId,
         islamicCourse: {
           name: islamicCourseName,
@@ -489,7 +486,6 @@ export async function PUT(req, res) {
           bodyField: "academicQualification",
           dbField: "studentSpecificField.academicQualification",
         },
-        { bodyField: "classId", dbField: "studentSpecificField.classId" },
         { bodyField: "batchId", dbField: "studentSpecificField.batchId" },
         { bodyField: "status", dbField: "studentSpecificField.status" },
       ];

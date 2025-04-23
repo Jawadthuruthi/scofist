@@ -1,6 +1,5 @@
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
-import { markAbsentTeachers } from "@/lib/teacherAttendanceService";
 import TeacherAttendance from "@/models/TeacherAttendance";
 import { NextResponse } from "next/server";
 
@@ -166,12 +165,6 @@ export async function POST(req, res) {
     await connectToDB();
 
     const body = await req.json();
-
-    // Check if this is a request to mark absent teachers
-    if (body.action === "markAbsent" && body.date) {
-      const result = await markAbsentTeachers(body.date);
-      return NextResponse.json(result, { status: 200 });
-    }
 
     // Validate required fields for manual teacher attendance creation
     const requiredFields = ["teacherId", "attendanceRecords"];

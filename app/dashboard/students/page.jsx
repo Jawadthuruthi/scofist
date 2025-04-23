@@ -344,19 +344,7 @@ export default async function BatchesPage() {
         },
         required: true,
       },
-      {
-        section: "Academic Information",
-        name: "classId",
-        label: "Assign Class",
-        type: "text",
-        inputType: "select",
-        options: formatOptions(classes),
-        validators: {
-          minLength: 1,
-          minLengthMessage: "Please select at least one class",
-        },
-        required: true,
-      },
+
       {
         section: "Academic Information",
         name: "admissionClassId",
