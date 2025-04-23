@@ -297,8 +297,7 @@ const BatchChart = memo(({ batches, students, isLoading }) => {
           students: batchStudents,
         };
       })
-      .filter((item) => item.students > 0)
-      .sort((a, b) => b.students - a.students);
+      .filter((item) => item.students > 0);
   }, [batches, students]);
 
   if (chartData.length === 0) {
