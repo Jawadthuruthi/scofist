@@ -85,6 +85,7 @@ export default async function BatchesPage() {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth-token")?.value;
+    const activeRole = cookieStore.get("active-role")?.value;
 
     if (!token) {
       return (
@@ -621,16 +622,27 @@ export default async function BatchesPage() {
       },
     ];
 
+    const filteredColumnsConfig = columnsConfig.filter((column) => {
+      if (activeRole !== "College Admin") {
+        return column.header !== "Select";
+      }
+      return true;
+    });
+
     return (
       <>
         <Header
-          title="STUDENTS MANAGEMENT"
+          title={
+            activeRole !== "College Admin"
+              ? "STUDENTS DETAILS"
+              : "STUDENTS MANAGEMENT"
+          }
           subTitle="Organize and Oversee Students"
         />
         <DataTableComponent
           resource="users"
           initialData={[]}
-          columnsConfig={columnsConfig}
+          columnsConfig={filteredColumnsConfig}
           formFields={formFields}
           token={token}
           createFormTitle="Add New Student"
@@ -645,6 +657,7 @@ export default async function BatchesPage() {
           filterTitle="Students"
           printTitle={"Students"}
           filterType="api"
+          readOnly={activeRole !== "College Admin"}
         />
       </>
     );

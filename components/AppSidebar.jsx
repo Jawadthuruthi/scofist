@@ -76,6 +76,12 @@ const items = [
     allowedRoles: ["Teacher"],
   },
   {
+    title: "Students",
+    url: "/dashboard/students",
+    icon: GraduationCap,
+    allowedRoles: ["Teacher", "Student"],
+  },
+  {
     title: "Managements",
     icon: Briefcase,
     allowedRoles: ["College Admin", "Teacher"],

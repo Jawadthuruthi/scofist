@@ -51,7 +51,7 @@ const pages = [
   {
     title: "Students",
     path: "/dashboard/students",
-    allowedRoles: ["College Admin"],
+    allowedRoles: ["College Admin", "Teacher", "Student"],
   },
   {
     title: "Subjects",

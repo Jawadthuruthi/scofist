@@ -440,7 +440,7 @@ LazyTimeTable.displayName = "LazyTimeTable";
 
 const FacultyProfileCard = memo(({ faculty }) => {
   return (
-    <Card className="overflow-hidden hover:border-primary/50 transition-all col-span-6 sm:col-span-3 lg:col-span-2">
+    <Card className="overflow-hidden hover:border-primary/50 transition-all col-span-6 md:col-span-3 lg:col-span-2">
       <div className="flex">
         <div className="w-20 xs:w-32 h-20 xs:h-32 relative bg-muted/30">
           {faculty.profilePic?.url ? (
@@ -478,7 +478,7 @@ const FacultyProfileCard = memo(({ faculty }) => {
 FacultyProfileCard.displayName = "FacultyProfileCard";
 
 const FacultyProfileSkeleton = () => (
-  <Card className="overflow-hidden col-span-6 sm:col-span-3 lg:col-span-2">
+  <Card className="overflow-hidden col-span-6 md:col-span-3 lg:col-span-2">
     <div className="flex flex-col md:flex-row">
       <div className="w-20 h-20 md:w-32 md:h-32 bg-muted/30">
         <Skeleton className="h-full w-full" />
