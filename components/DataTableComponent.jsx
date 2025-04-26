@@ -438,9 +438,6 @@ const DataTableComponent = ({
   // Reset table state and data
   const resetTableState = useCallback(() => {
     table.resetRowSelection();
-    setData([]);
-    setPage(0);
-    setHasNextPage(true);
     router.refresh();
   }, [table, router]);
 

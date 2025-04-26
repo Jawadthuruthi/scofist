@@ -39,6 +39,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import Image from "next/image";
 
 /**
  * Calculates attendance percentage from attendance records
@@ -435,6 +436,63 @@ const LazyTimeTable = memo(({ token, role }) => (
 
 LazyTimeTable.displayName = "LazyTimeTable";
 
+// Faculty Profile Component
+
+const FacultyProfileCard = memo(({ faculty }) => {
+  return (
+    <Card className="overflow-hidden hover:border-primary/50 transition-all col-span-6 sm:col-span-3 lg:col-span-2">
+      <div className="flex">
+        <div className="w-20 xs:w-32 h-20 xs:h-32 relative bg-muted/30">
+          {faculty.profilePic?.url ? (
+            <Image
+              src={faculty.profilePic.url}
+              alt={faculty.name}
+              fill
+              className="object-cover"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full bg-muted">
+              <UserCheck className="h-12 w-12 text-muted-foreground" />
+            </div>
+          )}
+        </div>
+        <div className="p-2 md:p-4">
+          <div className="flex justify-between mb-1 md:mb-2">
+            <div>
+              <h3 className="font-semibold text-sm">{faculty.name}</h3>
+              <p className="text-muted-foreground text-xs">{faculty.email}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-1 md:gap-2 text-xs">
+            <div className="whitespace-nowrap">
+              <span className="text-muted-foreground">Contact: </span>
+              <span>{faculty.contactNumber || "N/A"}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+});
+
+FacultyProfileCard.displayName = "FacultyProfileCard";
+
+const FacultyProfileSkeleton = () => (
+  <Card className="overflow-hidden col-span-6 sm:col-span-3 lg:col-span-2">
+    <div className="flex flex-col md:flex-row">
+      <div className="w-20 h-20 md:w-32 md:h-32 bg-muted/30">
+        <Skeleton className="h-full w-full" />
+      </div>
+      <div className="p-4 flex-1">
+        <div>
+          <Skeleton className="h-6 w-32 mb-2" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+      </div>
+    </div>
+  </Card>
+);
+
 /**
  * Dashboard component displays school statistics and class information
  * @param {string} token - Authentication token for API calls
@@ -485,7 +543,7 @@ export default function Dashboard({ token, role }) {
   const fetchTeachersQuery = useFetchTeachers(
     0,
     0,
-    { roles: ["Teacher"] },
+    { roles: ["Teacher"], status: "Active" },
     {
       staleTime: 60000,
       refetchOnWindowFocus: false,
@@ -581,6 +639,13 @@ export default function Dashboard({ token, role }) {
 
         if (fetchAttendanceQuery.data) {
           newData.attendances = fetchAttendanceQuery.data.attendances || [];
+        }
+
+        if (fetchTeachersQuery.data) {
+          newData.teachers =
+            fetchTeachersQuery.data.users.sort(
+              (a, b) => new Date(a.dateOfBirth) - new Date(b.dateOfBirth)
+            ) || [];
         }
 
         // Calculate total statistics
@@ -705,6 +770,29 @@ export default function Dashboard({ token, role }) {
             totalStats={dashboardData.totalStats}
             isLoading={isLoadingStats}
           />
+
+          {/* Faculty Profiles */}
+          <Card className="border-t-4 border-t-primary">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Calendar className="h-5 w-5" />
+                <span>Faculty Profiles</span>
+              </CardTitle>
+              <CardDescription>
+                View active teaching staff profile and information
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-6 gap-4">
+              {isLoadingTeachers
+                ? Array.from({ length: 6 }).map((_, index) => (
+                    <FacultyProfileSkeleton key={index} />
+                  ))
+                : dashboardData.teachers?.length > 0 &&
+                  dashboardData.teachers?.map((teacher) => (
+                    <FacultyProfileCard key={teacher._id} faculty={teacher} />
+                  ))}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="classes" className="space-y-6">
