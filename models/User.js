@@ -237,9 +237,6 @@ const userSchema = new Schema(
         type: String,
         trim: true,
         ref: "Class",
-        required: function () {
-          return this.roles.includes("Student");
-        },
       },
       batchId: {
         type: String,
