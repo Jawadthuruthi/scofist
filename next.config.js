@@ -26,7 +26,11 @@ const pwaConfig = withPWA({
   ],
   runtimeCaching: [
     {
-      urlPattern: /^\//,
+      urlPattern: /^\/$/,
+      handler: "NetworkOnly",
+    },
+    {
+      urlPattern: /^\/(.*)$/,
       handler: "NetworkOnly",
     },
   ],
