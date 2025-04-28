@@ -443,4 +443,4 @@ const AttendanceTrackingPage = async () => {
 
 export default AttendanceTrackingPage;
 
-export const revalidate = 30;
+export const revalidate = 60;

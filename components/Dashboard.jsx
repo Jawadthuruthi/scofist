@@ -40,6 +40,7 @@ import {
   Cell,
 } from "recharts";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 /**
  * Calculates attendance percentage from attendance records
@@ -428,11 +429,21 @@ const StudentStatusChart = memo(({ students, isLoading }) => {
 StudentStatusChart.displayName = "StudentStatusChart";
 
 // Lazy-loaded TimeTable Component
-const LazyTimeTable = memo(({ token, role }) => (
-  <Suspense fallback={<ChartSkeleton height="400px" />}>
-    <TimeTableComponent token={token} hidePrintButton={true} role={role} />
-  </Suspense>
-));
+const LazyTimeTable = memo(
+  ({ token, role, timeTable, periods, attendances, classes }) => (
+    <Suspense fallback={<ChartSkeleton height="400px" />}>
+      <TimeTableComponent
+        token={token}
+        hidePrintButton={true}
+        role={role}
+        timeTable={timeTable}
+        periods={periods}
+        attendances={attendances}
+        classes={classes}
+      />
+    </Suspense>
+  )
+);
 
 LazyTimeTable.displayName = "LazyTimeTable";
 
@@ -498,18 +509,39 @@ const FacultyProfileSkeleton = () => (
  * @param {string} token - Authentication token for API calls
  * @returns {React.ReactElement} Dashboard component
  */
-export default function Dashboard({ token, role }) {
+export default function Dashboard({
+  token,
+  role,
+  classes = [],
+  batches = [],
+  teachers = [],
+  timeTable = [],
+  periods = [],
+  attendances = [],
+}) {
   // States for loading and error handling
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
 
+  const router = useRouter();
+
+  // Periodic refresh
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [router]);
+
   const [dashboardData, setDashboardData] = useState({
     students: [],
-    batches: [],
-    classes: [],
+    batches,
+    classes,
+    teachers,
     activeStudents: [],
     graduatedStudents: [],
-    attendances: [],
+    attendances,
     totalStats: {
       studentCount: 0,
       activeStudents: 0,
@@ -520,13 +552,9 @@ export default function Dashboard({ token, role }) {
   });
 
   const currentDate = formatDateForDisplay(new Date());
-  const todayISO = new Date().toISOString().split("T")[0];
 
   // Setup crud hooks with stale time and caching options
   const { useFetchItems: useFetchStudents } = useCrud("users", token);
-  const { useFetchItems: useFetchTeachers } = useCrud("users", token);
-  const { useFetchItems: useFetchBatches } = useCrud("batches", token);
-  const { useFetchItems: useFetchClasses } = useCrud("classes", token);
   const { useFetchItems: useFetchAttendances } = useCrud("attendances", token);
 
   // Setup queries with error handling and optimized fetch strategy
@@ -540,69 +568,13 @@ export default function Dashboard({ token, role }) {
     }
   );
 
-  const fetchTeachersQuery = useFetchTeachers(
-    0,
-    0,
-    { roles: ["Teacher"], status: "Active" },
-    {
-      staleTime: 60000,
-      refetchOnWindowFocus: false,
-    }
-  );
-
-  const fetchBatchesQuery = useFetchBatches(
-    0,
-    0,
-    {},
-    {
-      staleTime: 60000,
-      refetchOnWindowFocus: false,
-    }
-  );
-
-  const fetchClassesQuery = useFetchClasses(
-    0,
-    0,
-    {},
-    {
-      staleTime: 60000,
-      refetchOnWindowFocus: false,
-    }
-  );
-
-  const fetchAttendanceQuery = useFetchAttendances(
-    0,
-    0,
-    {
-      date: todayISO,
-    },
-    {
-      staleTime: 30000, // 30 seconds - attendance may change more frequently
-      refetchOnWindowFocus: false,
-    }
-  );
-
   // Track loading states individually
   const isLoadingStudents =
     fetchStudentsQuery.isLoading || fetchStudentsQuery.isFetching;
-  const isLoadingTeachers =
-    fetchTeachersQuery.isLoading || fetchTeachersQuery.isFetching;
-  const isLoadingBatches =
-    fetchBatchesQuery.isLoading || fetchBatchesQuery.isFetching;
-  const isLoadingClassData =
-    fetchClassesQuery.isLoading || fetchClassesQuery.isFetching;
-  const isLoadingAttendance =
-    fetchAttendanceQuery.isLoading || fetchAttendanceQuery.isFetching;
 
   // Derived loading states for specific sections
-  const isLoadingStats =
-    isLoadingStudents || isLoadingTeachers || isLoadingBatches;
-  const isLoadingCharts = isLoadingStudents || isLoadingBatches;
-  const isLoadingClassesSection =
-    isLoadingClassData ||
-    isLoadingStudents ||
-    isLoadingBatches ||
-    isLoadingAttendance;
+  const isLoadingStats = isLoadingStudents;
+  const isLoadingCharts = isLoadingStudents;
 
   // Create derived state using useMemo
   const hasClasses = useMemo(
@@ -629,40 +601,15 @@ export default function Dashboard({ token, role }) {
             ) || [];
         }
 
-        if (fetchBatchesQuery.data) {
-          newData.batches = fetchBatchesQuery.data.batches || [];
-        }
-
-        if (fetchClassesQuery.data) {
-          newData.classes = fetchClassesQuery.data.classes || [];
-        }
-
-        if (fetchAttendanceQuery.data) {
-          newData.attendances = fetchAttendanceQuery.data.attendances || [];
-        }
-
-        if (fetchTeachersQuery.data) {
-          newData.teachers =
-            fetchTeachersQuery.data.users.sort(
-              (a, b) => new Date(a.dateOfBirth) - new Date(b.dateOfBirth)
-            ) || [];
-        }
-
         // Calculate total statistics
-        if (
-          fetchStudentsQuery.data &&
-          fetchTeachersQuery.data &&
-          fetchBatchesQuery.data
-        ) {
+
+        if (fetchStudentsQuery.data) {
           const students = fetchStudentsQuery.data.users || [];
 
           newData.totalStats = {
             studentCount:
               fetchStudentsQuery.data.pagination?.total || students.length || 0,
-            teachersCount:
-              fetchTeachersQuery.data.pagination?.total ||
-              fetchTeachersQuery.data.users?.length ||
-              0,
+            teachersCount: students.length || 0,
             activeStudents:
               students.filter((student) => student.status === "Active")
                 .length || 0,
@@ -670,9 +617,8 @@ export default function Dashboard({ token, role }) {
               students.filter((student) => student.status === "Graduated")
                 .length || 0,
             activeBatches:
-              fetchBatchesQuery.data.batches?.filter(
-                (batch) => batch.status === "Active"
-              )?.length || 0,
+              batches?.filter((batch) => batch.status === "Active")?.length ||
+              0,
           };
         }
 
@@ -684,40 +630,16 @@ export default function Dashboard({ token, role }) {
     };
 
     // Check for errors in queries
-    if (
-      fetchStudentsQuery.error ||
-      fetchTeachersQuery.error ||
-      fetchBatchesQuery.error ||
-      fetchClassesQuery.error ||
-      fetchAttendanceQuery.error
-    ) {
+    if (fetchStudentsQuery.error) {
       const errorMessage =
         "An error occurred while fetching data. Please try again.";
-      console.error(
-        "API Error:",
-        fetchStudentsQuery.error ||
-          fetchTeachersQuery.error ||
-          fetchBatchesQuery.error ||
-          fetchClassesQuery.error ||
-          fetchAttendanceQuery.error
-      );
+      console.error("API Error:", fetchStudentsQuery.error);
       setError(errorMessage);
       return;
     }
 
     processDashboardData();
-  }, [
-    fetchStudentsQuery.data,
-    fetchStudentsQuery.error,
-    fetchBatchesQuery.data,
-    fetchBatchesQuery.error,
-    fetchTeachersQuery.data,
-    fetchTeachersQuery.error,
-    fetchClassesQuery.data,
-    fetchClassesQuery.error,
-    fetchAttendanceQuery.data,
-    fetchAttendanceQuery.error,
-  ]);
+  }, [fetchStudentsQuery.data, fetchStudentsQuery.error]);
   return (
     <div className="flex flex-col space-y-6">
       <Header
@@ -760,7 +682,14 @@ export default function Dashboard({ token, role }) {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                <LazyTimeTable token={token} role={role} />
+                <LazyTimeTable
+                  token={token}
+                  role={role}
+                  timeTable={timeTable}
+                  periods={periods}
+                  attendances={attendances}
+                  classes={classes}
+                />
               </CardContent>
             </Card>
           )}
@@ -783,14 +712,10 @@ export default function Dashboard({ token, role }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-6 gap-4">
-              {isLoadingTeachers
-                ? Array.from({ length: 6 }).map((_, index) => (
-                    <FacultyProfileSkeleton key={index} />
-                  ))
-                : dashboardData.teachers?.length > 0 &&
-                  dashboardData.teachers?.map((teacher) => (
-                    <FacultyProfileCard key={teacher._id} faculty={teacher} />
-                  ))}
+              {dashboardData.teachers?.length > 0 &&
+                dashboardData.teachers?.map((teacher) => (
+                  <FacultyProfileCard key={teacher._id} faculty={teacher} />
+                ))}
             </CardContent>
           </Card>
         </TabsContent>
@@ -808,7 +733,7 @@ export default function Dashboard({ token, role }) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoadingClassesSection ? (
+              {isLoadingStudents ? (
                 <ClassesSkeleton />
               ) : hasClasses ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

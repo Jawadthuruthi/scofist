@@ -159,4 +159,4 @@ export default async function SettingsPage() {
   }
 }
 
-export const revalidate = 30;
+export const revalidate = 60;

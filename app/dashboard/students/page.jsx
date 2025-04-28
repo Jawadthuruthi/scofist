@@ -29,7 +29,7 @@ const columnsConfig = [
     maxWidth: 70,
     minWidth: 70,
   },
-  { accessorKey: "_id", header: "Student ID" },
+  { accessorKey: "_id", header: "Student ID", type: ["sortable"] },
   { accessorKey: "name", header: "Name" },
   { accessorKey: "email", header: "Email" },
   { accessorKey: "contactNumber", header: "Contact Number" },
@@ -673,4 +673,4 @@ export default async function BatchesPage() {
   }
 }
 
-export const revalidate = 30;
+export const revalidate = 60;
