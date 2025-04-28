@@ -308,37 +308,13 @@ userSchema.pre("save", async function (next) {
     const newBatchId = this.studentSpecificField?.batchId;
 
     // When student and batchId exists
-    if (
-      isStudent &&
-      newBatchId &&
-      this.isModified("studentSpecificField.batchId")
-    ) {
-      const oldUser = await mongoose.model("User").findById(this._id).lean();
-
-      // Remove from old batch if batchId is changed
-      if (
-        oldUser?.studentSpecificField?.batchId &&
-        oldUser.studentSpecificField.batchId !== newBatchId
-      ) {
-        await Batch.findByIdAndUpdate(oldUser.studentSpecificField.batchId, {
-          $pull: { students: this._id },
-        });
-      }
-
-      // Add to new batch
-      await Batch.findByIdAndUpdate(newBatchId, {
-        $addToSet: { students: this._id },
+    if (isStudent && newBatchId) {
+      const relatedClass = await Class.findOne({ batchId: newBatchId }).sort({
+        createdAt: 1,
       });
 
-      // 🆕 Update classId from batch (only if classId not manually set)
-      if (!this.studentSpecificField.classId) {
-        const relatedClass = await Class.findOne({ batchId: newBatchId }).sort({
-          createdAt: 1,
-        });
-
-        if (relatedClass?._id) {
-          this.studentSpecificField.classId = relatedClass._id;
-        }
+      if (relatedClass?._id) {
+        this.studentSpecificField.classId = relatedClass._id;
       }
     }
 
@@ -347,76 +323,6 @@ userSchema.pre("save", async function (next) {
     next(error);
   }
 });
-
-// Pre-remove hook: Remove student from batch when deleted
-userSchema.pre("remove", async function (next) {
-  try {
-    if (this.roles.includes("Student") && this.studentSpecificField?.batchId) {
-      await Batch.findByIdAndUpdate(this.studentSpecificField.batchId, {
-        $pull: { students: this._id },
-      });
-    }
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-userSchema.statics.getUserById = async function (id, options = {}) {
-  try {
-    // Validate ID format
-    if (!id || typeof id !== "string") {
-      throw new Error("Invalid user ID provided");
-    }
-
-    // Set default options
-    const defaultOptions = {
-      populateClass: false,
-      populateBatch: false,
-      selectFields: "", // Empty string means select all fields
-      lean: false, // Whether to return a plain JavaScript object instead of a Mongoose document
-    };
-
-    // Merge provided options with defaults
-    const finalOptions = { ...defaultOptions, ...options };
-
-    // Start building the query
-    let query = this.findById(id);
-
-    // Apply field selection if specified
-    if (finalOptions.selectFields) {
-      query = query.select(finalOptions.selectFields);
-    }
-
-    // Apply population based on options
-    if (finalOptions.populateClass) {
-      query = query.populate(
-        "studentSpecificField.classId studentSpecificField.admissionClassId"
-      );
-    }
-
-    if (finalOptions.populateBatch) {
-      query = query.populate("studentSpecificField.batchId");
-    }
-
-    // Convert to plain object if requested
-    if (finalOptions.lean) {
-      query = query.lean();
-    }
-
-    // Execute the query
-    const user = await query.exec();
-
-    if (!user) {
-      throw new Error(`User not found with ID: ${id}`);
-    }
-
-    return user;
-  } catch (error) {
-    // Enhance error with more context
-    throw new Error(`Error fetching user: ${error.message}`);
-  }
-};
 
 const User = models.User || model("User", userSchema);
 export default User;
