@@ -55,7 +55,7 @@ const SectionNavigation = ({
   </div>
 );
 
-const FormFields = ({ form, fields, token }) =>
+const FormFields = ({ form, fields, apiKey }) =>
   fields.map((field, idx) => (
     <FormField
       key={idx}
@@ -75,7 +75,7 @@ const FormFields = ({ form, fields, token }) =>
                 value={formField.value}
                 onChange={(value) => formField.onChange(value)}
                 disabled={field.disabled}
-                token={token}
+                apiKey={apiKey}
                 maxFileSize={field.maxFileSize}
                 allowedTypes={field.allowedTypes}
                 minWidth={field.minWidth}
@@ -113,7 +113,7 @@ const FormContent = ({
   handleSubmit,
   data,
   loading,
-  token,
+  apiKey,
 }) => {
   const sectionRefs = React.useRef([]);
 
@@ -178,7 +178,7 @@ const FormContent = ({
               <FormFields
                 form={form}
                 fields={sections[section]}
-                token={token}
+                apiKey={apiKey}
               />
             </div>
           ))}
@@ -227,7 +227,7 @@ export default function FormComponent({
   title = "",
   description = "",
   loading = false,
-  token,
+  apiKey,
   resource,
 }) {
   const [customizedFormField, setCustomizedFormField] =
@@ -248,7 +248,7 @@ export default function FormComponent({
 
   const formValues = useWatch({ control: form.control });
 
-  const { useAddItem, useUpdateItem } = useCrud(resource, token);
+  const { useAddItem, useUpdateItem } = useCrud(resource, apiKey);
 
   const addItem = useAddItem();
   const updateItem = useUpdateItem();
@@ -311,7 +311,7 @@ export default function FormComponent({
           handleSubmit={handleSubmit}
           data={data}
           loading={loading}
-          token={token}
+          apiKey={apiKey}
         />
       </CardContent>
     </Card>

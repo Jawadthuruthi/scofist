@@ -52,7 +52,7 @@ const SectionNavigation = ({
   </div>
 );
 
-const FormFields = ({ form, fields, token }) =>
+const FormFields = ({ form, fields, apiKey }) =>
   fields.map((field, idx) => (
     <FormField
       key={idx}
@@ -72,7 +72,7 @@ const FormFields = ({ form, fields, token }) =>
                 value={formField.value}
                 onChange={(value) => formField.onChange(value)}
                 disabled={field.disabled}
-                token={token}
+                apiKey={apiKey}
                 maxFileSize={field.maxFileSize}
                 allowedTypes={field.allowedTypes}
                 minWidth={field.minWidth}
@@ -110,7 +110,7 @@ const FormContent = ({
   handleSubmit,
   data,
   loading,
-  token,
+  apiKey,
 }) => {
   const sectionRefs = React.useRef([]);
 
@@ -175,7 +175,7 @@ const FormContent = ({
               <FormFields
                 form={form}
                 fields={sections[section]}
-                token={token}
+                apiKey={apiKey}
               />
             </div>
           ))}
@@ -226,7 +226,7 @@ export default function PopupForm({
   title = "",
   description = "",
   loading = false,
-  token,
+  apiKey,
 }) {
   const [open, setOpen] = React.useState(false);
   const [customizedFormField, setCustomizedFormField] =
@@ -304,7 +304,7 @@ export default function PopupForm({
           handleSubmit={handleSubmit}
           data={data}
           loading={loading}
-          token={token}
+          apiKey={apiKey}
         />
       </DialogContent>
     </Dialog>

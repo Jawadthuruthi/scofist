@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
@@ -226,18 +225,7 @@ const apiFilters = {
 
 export default async function BatchesPage() {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth-token")?.value;
-
-    if (!token) {
-      return (
-        <ErrorPage
-          statusCode={403}
-          title="Access Denied"
-          description="You don't have permission to access this resource."
-        />
-      );
-    }
+    const apiKey = process.env.API_KEY;
 
     return (
       <>
@@ -250,7 +238,7 @@ export default async function BatchesPage() {
           initialData={[]}
           columnsConfig={columnsConfig}
           formFields={formFields}
-          token={token}
+          apiKey={apiKey}
           createFormTitle="Add New Teacher"
           editFormTitle="Edit Teacher"
           deleteFormTitle="Delete Teacher"

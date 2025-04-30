@@ -84,22 +84,12 @@ const SEMESTERS = [
 export default async function BatchesPage() {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get("auth-token")?.value;
+    const apiKey = process.env.API_KEY;
     const activeRole = cookieStore.get("active-role")?.value;
-
-    if (!token) {
-      return (
-        <ErrorPage
-          statusCode={403}
-          title="Access Denied"
-          description="You don't have permission to access this resource."
-        />
-      );
-    }
 
     const [batches, classes] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
-        fetchData(endpoint.pathname, token, endpoint.searchParams)
+        fetchData(endpoint.pathname, apiKey, endpoint.searchParams)
       )
     );
 
@@ -644,7 +634,7 @@ export default async function BatchesPage() {
           initialData={[]}
           columnsConfig={filteredColumnsConfig}
           formFields={formFields}
-          token={token}
+          apiKey={apiKey}
           createFormTitle="Add New Student"
           editFormTitle="Edit Student"
           deleteFormTitle="Delete Student"

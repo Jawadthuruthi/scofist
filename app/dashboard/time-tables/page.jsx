@@ -2,7 +2,6 @@ import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import TimeTablesManagements from "@/components/TimeTablesManagements";
 import { fetchData } from "@/lib/utils";
-import { cookies } from "next/headers";
 
 const API_ENDPOINTS = [
   {
@@ -23,22 +22,11 @@ const API_ENDPOINTS = [
 
 const TimeTablePage = async () => {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth-token")?.value;
-
-    if (!token) {
-      return (
-        <ErrorPage
-          statusCode={403}
-          title="Access Denied"
-          description="You don't have permission to access this resource."
-        />
-      );
-    }
+    const apiKey = process.env.API_KEY;
 
     const [periods, subjects, teachers, classes] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
-        fetchData(endpoint.pathname, token, endpoint.searchParams)
+        fetchData(endpoint.pathname, apiKey, endpoint.searchParams)
       )
     );
 
@@ -53,7 +41,7 @@ const TimeTablePage = async () => {
           subjects={subjects}
           teachers={teachers}
           classes={classes}
-          token={token}
+          apiKey={apiKey}
         />
       </>
     );

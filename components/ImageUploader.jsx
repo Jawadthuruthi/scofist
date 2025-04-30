@@ -36,7 +36,7 @@ const ImageUploader = ({
   value,
   onChange,
   disabled,
-  token,
+  apiKey,
   maxFileSize = DEFAULT_MAX_FILE_SIZE,
   allowedTypes = DEFAULT_ALLOWED_TYPES,
   aspectRatio = null,
@@ -130,10 +130,10 @@ const ImageUploader = ({
             const ratioText = Number.isInteger(aspectRatio)
               ? `${aspectRatio}:1`
               : aspectRatio === 1.33
-              ? "4:3"
-              : aspectRatio === 1.78
-              ? "16:9"
-              : `${aspectRatio.toFixed(2)}:1`;
+                ? "4:3"
+                : aspectRatio === 1.78
+                  ? "16:9"
+                  : `${aspectRatio.toFixed(2)}:1`;
             issues.push(
               `Image aspect ratio should be approximately ${ratioText}`
             );
@@ -185,7 +185,7 @@ const ImageUploader = ({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "api-key": token,
+          "api-key": apiKey,
         },
         body: JSON.stringify({ image: base64Image }),
       });
@@ -224,7 +224,7 @@ const ImageUploader = ({
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "api-key": token,
+          "api-key": apiKey,
         },
         body: JSON.stringify({ publicId }),
       });
@@ -383,10 +383,10 @@ const ImageUploader = ({
       const ratioText = Number.isInteger(aspectRatio)
         ? `${aspectRatio}:1`
         : aspectRatio === 1.33
-        ? "4:3"
-        : aspectRatio === 1.78
-        ? "16:9"
-        : `${aspectRatio.toFixed(2)}:1`;
+          ? "4:3"
+          : aspectRatio === 1.78
+            ? "16:9"
+            : `${aspectRatio.toFixed(2)}:1`;
       constraints.push(`Aspect ratio: ${ratioText}`);
     }
 

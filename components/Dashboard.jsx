@@ -41,6 +41,7 @@ import {
 } from "recharts";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 /**
  * Calculates attendance percentage from attendance records
@@ -430,12 +431,12 @@ StudentStatusChart.displayName = "StudentStatusChart";
 
 // Lazy-loaded TimeTable Component
 const LazyTimeTable = memo(
-  ({ token, role, timeTable, periods, attendances, classes }) => (
+  ({ apiKey, activeRole, timeTable, periods, attendances, classes }) => (
     <Suspense fallback={<ChartSkeleton height="400px" />}>
       <TimeTableComponent
-        token={token}
+        apiKey={apiKey}
         hidePrintButton={true}
-        role={role}
+        role={activeRole}
         timeTable={timeTable}
         periods={periods}
         attendances={attendances}
@@ -488,30 +489,13 @@ const FacultyProfileCard = memo(({ faculty }) => {
 
 FacultyProfileCard.displayName = "FacultyProfileCard";
 
-const FacultyProfileSkeleton = () => (
-  <Card className="overflow-hidden col-span-6 md:col-span-3 lg:col-span-2">
-    <div className="flex flex-col md:flex-row">
-      <div className="w-20 h-20 md:w-32 md:h-32 bg-muted/30">
-        <Skeleton className="h-full w-full" />
-      </div>
-      <div className="p-4 flex-1">
-        <div>
-          <Skeleton className="h-6 w-32 mb-2" />
-          <Skeleton className="h-4 w-48" />
-        </div>
-      </div>
-    </div>
-  </Card>
-);
-
 /**
  * Dashboard component displays school statistics and class information
- * @param {string} token - Authentication token for API calls
+ * @param {string} apiKey - Authentication api-key for API calls
  * @returns {React.ReactElement} Dashboard component
  */
 export default function Dashboard({
-  token,
-  role,
+  apiKey,
   classes = [],
   batches = [],
   teachers = [],
@@ -522,6 +506,8 @@ export default function Dashboard({
   // States for loading and error handling
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
+
+  const activeRole = Cookies.get("active-role");
 
   const router = useRouter();
 
@@ -554,8 +540,8 @@ export default function Dashboard({
   const currentDate = formatDateForDisplay(new Date());
 
   // Setup crud hooks with stale time and caching options
-  const { useFetchItems: useFetchStudents } = useCrud("users", token);
-  const { useFetchItems: useFetchAttendances } = useCrud("attendances", token);
+  const { useFetchItems: useFetchStudents } = useCrud("users", apiKey);
+  const { useFetchItems: useFetchAttendances } = useCrud("attendances", apiKey);
 
   // Setup queries with error handling and optimized fetch strategy
   const fetchStudentsQuery = useFetchStudents(
@@ -609,7 +595,7 @@ export default function Dashboard({
           newData.totalStats = {
             studentCount:
               fetchStudentsQuery.data.pagination?.total || students.length || 0,
-            teachersCount: students.length || 0,
+            teachersCount: teachers.length || 0,
             activeStudents:
               students.filter((student) => student.status === "Active")
                 .length || 0,
@@ -670,29 +656,30 @@ export default function Dashboard({
 
         <TabsContent value="overview" className="space-y-6">
           {/* Time Table Component with lazy loading */}
-          {["Teacher", "College Admin", "Org Admin"].includes(role) && (
-            <Card className="border-t-4 border-t-primary">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Calendar className="h-5 w-5" />
-                  <span>Today's Schedule</span>
-                </CardTitle>
-                <CardDescription>
-                  View your scheduled classes and attendance for today
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <LazyTimeTable
-                  token={token}
-                  role={role}
-                  timeTable={timeTable}
-                  periods={periods}
-                  attendances={attendances}
-                  classes={classes}
-                />
-              </CardContent>
-            </Card>
-          )}
+          {activeRole &&
+            ["Teacher", "College Admin", "Org Admin"].includes(activeRole) && (
+              <Card className="border-t-4 border-t-primary">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Calendar className="h-5 w-5" />
+                    <span>Today's Schedule</span>
+                  </CardTitle>
+                  <CardDescription>
+                    View your scheduled classes and attendance for today
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <LazyTimeTable
+                    apiKey={apiKey}
+                    role={activeRole}
+                    timeTable={timeTable}
+                    periods={periods}
+                    attendances={attendances}
+                    classes={classes}
+                  />
+                </CardContent>
+              </Card>
+            )}
 
           {/* Stats Overview with loading state */}
           <StatsOverview
@@ -713,9 +700,13 @@ export default function Dashboard({
             </CardHeader>
             <CardContent className="grid grid-cols-6 gap-4">
               {dashboardData.teachers?.length > 0 &&
-                dashboardData.teachers?.map((teacher) => (
-                  <FacultyProfileCard key={teacher._id} faculty={teacher} />
-                ))}
+                dashboardData.teachers
+                  ?.sort(
+                    (a, b) => new Date(a.dateOfBirth) - new Date(b.dateOfBirth)
+                  )
+                  ?.map((teacher) => (
+                    <FacultyProfileCard key={teacher._id} faculty={teacher} />
+                  ))}
             </CardContent>
           </Card>
         </TabsContent>

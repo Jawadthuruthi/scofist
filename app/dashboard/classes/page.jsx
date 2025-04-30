@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
@@ -51,22 +50,11 @@ const statusMessages = {
 
 export default async function ClassesPage() {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth-token")?.value;
-
-    if (!token) {
-      return (
-        <ErrorPage
-          statusCode={403}
-          title="Access Denied"
-          description="You don't have permission to access this resource."
-        />
-      );
-    }
+    const apiKey = process.env.API_KEY;
 
     const [batches, teachers, subjects] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
-        fetchData(endpoint.pathname, token, endpoint.searchParams)
+        fetchData(endpoint.pathname, apiKey, endpoint.searchParams)
       )
     );
 
@@ -149,7 +137,7 @@ export default async function ClassesPage() {
           initialData={[]}
           columnsConfig={columnsConfig}
           formFields={formFields}
-          token={token}
+          apiKey={apiKey}
           createFormTitle="Add New Class"
           editFormTitle="Edit Class"
           deleteFormTitle="Delete Class"

@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import ErrorPage from "@/components/ErrorPage";
 import Dashboard from "@/components/Dashboard";
 import { fetchData, WEEKDAYS } from "@/lib/utils";
@@ -18,7 +17,7 @@ const API_ENDPOINTS = [
   {
     pathname: "users",
     searchParams:
-      "projection=_id,name,email,profilePic,contactNumber&roles=Teacher&status=Active",
+      "projection=_id,name,email,profilePic,contactNumber,dateOfBirth&roles=Teacher&status=Active",
   },
   {
     pathname: "timeTables",
@@ -35,31 +34,18 @@ const API_ENDPOINTS = [
 
 export default async function DashboardPage() {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth-token")?.value;
-    const activeRole = cookieStore.get("active-role")?.value;
-
-    if (!token) {
-      return (
-        <ErrorPage
-          statusCode={403}
-          title="Access Denied"
-          description="You don't have permission to access this resource."
-        />
-      );
-    }
+    const apiKey = process.env.API_KEY;
 
     const [classes, batches, teachers, timeTable, periods, attendances] =
       await Promise.all(
         API_ENDPOINTS.map((endpoint) =>
-          fetchData(endpoint.pathname, token, endpoint.searchParams)
+          fetchData(endpoint.pathname, apiKey, endpoint.searchParams)
         )
       );
 
     return (
       <Dashboard
-        token={token}
-        role={activeRole}
+        apiKey={apiKey}
         classes={classes}
         batches={batches}
         teachers={teachers}

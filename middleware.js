@@ -7,9 +7,7 @@ const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
 
 // Cache configuration
 const userCache = new Map();
-const tokenCache = new Map();
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes for user cache
-const TOKEN_TTL = 5 * 60 * 1000; // 5 minutes for API token cache
 
 // Pages
 const pages = [
@@ -156,38 +154,14 @@ async function handleApiRequest(req) {
     return NextResponse.next();
   }
 
-  if (!apiKey) {
+  if (apiKey !== process.env.API_KEY) {
     return NextResponse.json(
       { message: "Unauthorized - API key missing" },
       { status: 401 }
     );
   }
 
-  // Check token cache first
-  const cachedToken = tokenCache.get(apiKey);
-  if (cachedToken && cachedToken.expiry > Date.now()) {
-    // API key is valid and cached
-    return NextResponse.next();
-  }
-
-  try {
-    // Verify JWT token
-    const verified = await jwtVerify(apiKey, SECRET_KEY);
-
-    // Store in cache with expiry
-    tokenCache.set(apiKey, {
-      payload: verified,
-      expiry: Date.now() + TOKEN_TTL,
-    });
-
-    return NextResponse.next();
-  } catch (error) {
-    console.error("API authentication error:", error.message);
-    return NextResponse.json(
-      { message: "Unauthorized - Invalid API key" },
-      { status: 401 }
-    );
-  }
+  return NextResponse.next();
 }
 
 async function handleAuthRequest(req) {
@@ -214,7 +188,7 @@ async function handleAuthRequest(req) {
 
     try {
       // Try to fetch user with increased timeout
-      const user = await fetchUserProfile(userId, token);
+      const user = await fetchUserProfile(userId, process.env.API_KEY);
 
       if (user) {
         storeUserInCache(userId, user);
@@ -280,7 +254,7 @@ function storeUserInCache(userId, user, customTtl = CACHE_TTL) {
   });
 }
 
-async function fetchUserProfile(userId, token) {
+async function fetchUserProfile(userId, apiKey) {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // Extend to 5 seconds
@@ -289,7 +263,7 @@ async function fetchUserProfile(userId, token) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "api-key": token,
+        "api-key": apiKey,
       },
       body: JSON.stringify({ userId }),
       cache: "no-store",

@@ -22,22 +22,13 @@ const API_ENDPOINTS = [
 const AttendanceTrackingPage = async () => {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get("auth-token")?.value;
-    const activeRole = cookieStore.get("active-role")?.value;
+    const apiKey = process.env.API_KEY;
 
-    if (!token) {
-      return (
-        <ErrorPage
-          statusCode={403}
-          title="Access Denied"
-          description="You don't have permission to access this resource."
-        />
-      );
-    }
+    const activeRole = cookieStore.get("active-role")?.value;
 
     const [batches, classes, subjects] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
-        fetchData(endpoint.pathname, token, endpoint.searchParams)
+        fetchData(endpoint.pathname, apiKey, endpoint.searchParams)
       )
     );
 
@@ -415,7 +406,10 @@ const AttendanceTrackingPage = async () => {
             title="ATTENDANCE TRACKING"
             subTitle="Track Attendance Records In Real Time"
           />
-          <AdvancedDataTableComponent tabsConfig={tabsConfig2} token={token} />
+          <AdvancedDataTableComponent
+            tabsConfig={tabsConfig2}
+            apiKey={apiKey}
+          />
         </>
       );
     }
@@ -426,7 +420,7 @@ const AttendanceTrackingPage = async () => {
           title="ATTENDANCE TRACKING"
           subTitle="Track Attendance Records In Real Time"
         />
-        <AdvancedDataTableComponent tabsConfig={tabsConfig} token={token} />
+        <AdvancedDataTableComponent tabsConfig={tabsConfig} apiKey={apiKey} />
       </>
     );
   } catch (error) {

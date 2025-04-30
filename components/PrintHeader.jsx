@@ -5,9 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import useCrud from "@/hooks/use-crud";
 
-export default function PrintHeader({ title, token }) {
+export default function PrintHeader({ title, apiKey }) {
   const [data, setData] = useState({});
-  const { useFetchItems } = useCrud("settings", token);
+  const { useFetchItems } = useCrud("settings", apiKey);
   const fetchSettingsQuery = useFetchItems();
 
   useEffect(() => {

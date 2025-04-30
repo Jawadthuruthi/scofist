@@ -1,24 +1,16 @@
 import ErrorPage from "@/components/ErrorPage";
 import MyPeriods from "@/components/MyPeriods";
 import { parseUser } from "@/lib/utils";
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 
 const MyPeriodsPage = async () => {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth-token")?.value;
+    const apiKey = process.env.API_KEY;
+
     const headerStore = await headers();
     const user = parseUser(headerStore);
-    if (!token) {
-      return (
-        <ErrorPage
-          statusCode={403}
-          title="Access Denied"
-          description="You don't have permission to access this resource."
-        />
-      );
-    }
-    return <MyPeriods token={token} teacherId={user?._id} />;
+
+    return <MyPeriods apiKey={apiKey} teacherId={user?._id} />;
   } catch (error) {
     console.error("Error :", error);
     return (

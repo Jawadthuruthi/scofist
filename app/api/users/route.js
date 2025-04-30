@@ -399,6 +399,7 @@ export async function PUT(req) {
     const user = await User.findById(_id);
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
+      console.log(updateFields);
     }
 
     // Update top-level fields

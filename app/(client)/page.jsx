@@ -10,5 +10,3 @@ export default async function HomePage() {
 
   return <Home user={verifiedToken?.payload} />;
 }
-
-export const dynamic = "force-dynamic";

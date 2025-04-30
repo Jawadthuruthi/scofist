@@ -93,10 +93,9 @@ const AbsenteesDialog = ({
 };
 
 const TimeTableComponent = ({
-  token,
+  apiKey,
   teacherId,
   hidePrintButton = false,
-  role,
   timeTable = [],
   periods = [],
   attendances = [],
@@ -216,7 +215,7 @@ const TimeTableComponent = ({
         ref={timeTableRef}
         className="overflow-x-auto border border-collapse rounded-md"
       >
-        <PrintHeader token={token} title="Time Table" />
+        <PrintHeader apiKey={apiKey} title="Time Table" />
         <Table className="w-full">
           <TableHeader>
             <TableRow>

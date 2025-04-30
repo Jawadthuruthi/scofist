@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import FormComponent from "@/components/FormComponent";
@@ -111,20 +110,9 @@ const formFields = [
 
 export default async function SettingsPage() {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth-token")?.value;
+    const apiKey = process.env.API_KEY;
 
-    if (!token) {
-      return (
-        <ErrorPage
-          statusCode={403}
-          title="Access Denied"
-          description="You don't have permission to access this resource."
-        />
-      );
-    }
-
-    const data = await fetchData("settings", token);
+    const data = await fetchData("settings", apiKey);
     const settings = {
       ...data.institution,
       ...data.institution.address,
@@ -139,7 +127,7 @@ export default async function SettingsPage() {
         />
         <FormComponent
           formFields={formFields}
-          token={token}
+          apiKey={apiKey}
           data={settings}
           resource="settings"
           title="Institution Settings"
@@ -159,4 +147,4 @@ export default async function SettingsPage() {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 0;

@@ -24,7 +24,7 @@ import { formatDate, formatDateForDisplay } from "@/lib/utils";
 import Header from "./Header";
 import AbsenteeStatus from "./AbsenteeStatus";
 
-const Attendance = ({ token, teacherId }) => {
+const Attendance = ({ apiKey, teacherId }) => {
   const searchParams = useSearchParams();
 
   // Extract and memoize query parameters
@@ -56,15 +56,15 @@ const Attendance = ({ token, teacherId }) => {
   const today = useMemo(() => formatDateForDisplay(new Date()), []);
 
   // CRUD hooks with optimized options
-  const { useFetchItems: useFetchUsers } = useCrud("users", token);
-  const { useFetchItems: useFetchClass } = useCrud("classes", token);
-  const { useFetchItems: useFetchPeriod } = useCrud("periods", token);
+  const { useFetchItems: useFetchUsers } = useCrud("users", apiKey);
+  const { useFetchItems: useFetchClass } = useCrud("classes", apiKey);
+  const { useFetchItems: useFetchPeriod } = useCrud("periods", apiKey);
   const {
     useFetchItems: useFetchAttendance,
     useAddItem: useCreateAttendance,
     useUpdateItem: useUpdateAttendance,
     useDeleteItem: useDeleteAttendance,
-  } = useCrud("attendances", token);
+  } = useCrud("attendances", apiKey);
 
   // Fetch data with appropriate stale times
   const classQuery = useFetchClass(

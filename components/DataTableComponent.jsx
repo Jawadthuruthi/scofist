@@ -93,7 +93,7 @@ const DataTableComponent = ({
   createSuccessMessage = "Item added successfully!",
   editSuccessMessage = "Item Updated successfully!",
   deleteSuccessMessage = "Item deleted successfully!",
-  token,
+  apiKey,
   createFormTitle = "Add New Item",
   editFormTitle = "Edit Item",
   deleteFormTitle = "Delete Item",
@@ -150,7 +150,7 @@ const DataTableComponent = ({
 
   const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud(
     resource,
-    token
+    apiKey
   );
 
   // Determine if we should use API filtering
@@ -542,7 +542,7 @@ const DataTableComponent = ({
                 onSubmit={handleEdit}
                 loading={loading}
                 title={editFormTitle}
-                token={token}
+                apiKey={apiKey}
               />
             )}
           {!readOnly && (
@@ -551,7 +551,7 @@ const DataTableComponent = ({
               onSubmit={handleSubmit}
               loading={loading}
               title={createFormTitle}
-              token={token}
+              apiKey={apiKey}
             />
           )}
         </div>
@@ -565,7 +565,10 @@ const DataTableComponent = ({
         ref={tableRef}
         className="rounded-md border shadow-sm table-print relative"
       >
-        <PrintHeader token={token} title={printTitle ? printTitle : resource} />
+        <PrintHeader
+          apiKey={apiKey}
+          title={printTitle ? printTitle : resource}
+        />
         <div
           ref={tableBodyRef}
           className="overflow-auto"

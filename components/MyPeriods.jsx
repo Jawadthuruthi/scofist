@@ -21,7 +21,7 @@ import useCrud from "@/hooks/use-crud";
 import Header from "./Header";
 import Link from "next/link";
 
-const MyPeriods = ({ token, teacherId }) => {
+const MyPeriods = ({ apiKey, teacherId }) => {
   const [loading, setLoading] = useState(true);
 
   // Use refs or state instead of deriving too many values
@@ -41,9 +41,9 @@ const MyPeriods = ({ token, teacherId }) => {
   const date = useMemo(() => formatDateForDisplay(new Date()), []);
   const formattedDate = useMemo(() => formatDate(new Date()), []);
 
-  const { useFetchItems } = useCrud("timeTables", token);
-  const { useFetchItems: useFetchPeriods } = useCrud("periods", token);
-  const { useFetchItems: useFetchAttendance } = useCrud("attendances", token);
+  const { useFetchItems } = useCrud("timeTables", apiKey);
+  const { useFetchItems: useFetchPeriods } = useCrud("periods", apiKey);
+  const { useFetchItems: useFetchAttendance } = useCrud("attendances", apiKey);
 
   // Reduce network requests by passing proper options
   const periodsQuery = useFetchPeriods(

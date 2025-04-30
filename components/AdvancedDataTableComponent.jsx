@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DataTableComponent from "@/components/DataTableComponent";
 
 const AdvancedDataTableComponent = ({
-  token,
+  apiKey,
   tabsConfig = [],
   tablesConfig = [],
 }) => {
@@ -36,7 +36,7 @@ const AdvancedDataTableComponent = ({
             <TabsContent key={tab.value} value={tab.value} className="mt-4">
               <DataTableComponent
                 resource={tab.resource}
-                token={token}
+                apiKey={apiKey}
                 initialData={[]}
                 columnsConfig={tab.columnsConfig}
                 filterConfig={tab.filterConfig}
@@ -54,7 +54,7 @@ const AdvancedDataTableComponent = ({
         <DataTableComponent
           key={i}
           resource={table.resource}
-          token={token}
+          apiKey={apiKey}
           initialData={[]}
           columnsConfig={table.columnsConfig}
           filterConfig={table.filterConfig}

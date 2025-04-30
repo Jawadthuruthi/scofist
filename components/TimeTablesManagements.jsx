@@ -234,7 +234,7 @@ const TimeTablesManagements = ({
   classes = [],
   teachers = [],
   subjects = [],
-  token,
+  apiKey,
 }) => {
   // State management
   const [category, setCategory] = useState("class");
@@ -274,9 +274,9 @@ const TimeTablesManagements = ({
   const timeTableRef = useRef();
   const { useFetchItems, useUpdateItem, useDeleteItem } = useCrud(
     "timeTables",
-    token
+    apiKey
   );
-  const { useFetchItems: useFetchAttendance } = useCrud("attendances", token);
+  const { useFetchItems: useFetchAttendance } = useCrud("attendances", apiKey);
 
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 7);

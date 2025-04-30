@@ -7,14 +7,14 @@ import {
   deleteItem,
 } from "@/lib/api";
 
-const useCrud = (resource, token) => {
+const useCrud = (resource, apiKey) => {
   const queryClient = useQueryClient();
 
   // Fetch items with pagination support
   const useFetchItems = (page = 0, limit = 20, filters = {}, options = {}) => {
     return useQuery({
       queryKey: [resource, page, limit, filters],
-      queryFn: () => fetchItems(resource, token, page, limit, filters),
+      queryFn: () => fetchItems(resource, apiKey, page, limit, filters),
       ...options,
     });
   };
@@ -23,7 +23,7 @@ const useCrud = (resource, token) => {
   const useFetchItemById = (id, enabled = true) => {
     return useQuery({
       queryKey: [resource, id],
-      queryFn: () => fetchItemById(resource, id, token),
+      queryFn: () => fetchItemById(resource, id, apiKey),
       enabled: !!id && enabled,
     });
   };
@@ -31,7 +31,7 @@ const useCrud = (resource, token) => {
   // Add an item
   const useAddItem = () => {
     return useMutation({
-      mutationFn: (data) => addItem(resource, data, token),
+      mutationFn: (data) => addItem(resource, data, apiKey),
       onSuccess: () => {
         queryClient.removeQueries([resource]);
         queryClient.invalidateQueries([resource]);
@@ -42,7 +42,7 @@ const useCrud = (resource, token) => {
   // Update an item
   const useUpdateItem = () => {
     return useMutation({
-      mutationFn: ({ data }) => updateItem(resource, data, token),
+      mutationFn: ({ data }) => updateItem(resource, data, apiKey),
       onSuccess: () => {
         queryClient.removeQueries([resource]);
         queryClient.invalidateQueries([resource]);
@@ -53,7 +53,7 @@ const useCrud = (resource, token) => {
   // Delete an item
   const useDeleteItem = () => {
     return useMutation({
-      mutationFn: (ids) => deleteItem(resource, ids, token),
+      mutationFn: (ids) => deleteItem(resource, ids, apiKey),
       onSuccess: () => {
         queryClient.removeQueries([resource]);
         queryClient.invalidateQueries([resource]);
