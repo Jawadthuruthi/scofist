@@ -6,7 +6,7 @@ import { headers } from "next/headers";
 
 const MyTimeTablePage = async () => {
   try {
-    const apiKey = process.env.API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
 
     const headerStore = await headers();
     const user = parseUser(headerStore);

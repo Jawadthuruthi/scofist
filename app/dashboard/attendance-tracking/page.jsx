@@ -22,7 +22,7 @@ const API_ENDPOINTS = [
 const AttendanceTrackingPage = async () => {
   try {
     const cookieStore = await cookies();
-    const apiKey = process.env.API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
 
     const activeRole = cookieStore.get("active-role")?.value;
 

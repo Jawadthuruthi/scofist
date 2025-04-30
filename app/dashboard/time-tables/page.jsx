@@ -22,7 +22,7 @@ const API_ENDPOINTS = [
 
 const TimeTablePage = async () => {
   try {
-    const apiKey = process.env.API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
 
     const [periods, subjects, teachers, classes] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>

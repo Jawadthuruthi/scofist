@@ -110,7 +110,7 @@ const formFields = [
 
 export default async function SettingsPage() {
   try {
-    const apiKey = process.env.API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
 
     const data = await fetchData("settings", apiKey);
     const settings = {
