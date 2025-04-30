@@ -25,4 +25,4 @@ const AttendancePage = async () => {
 
 export default AttendancePage;
 
-export const revalidate = 60;
+export const revalidate = 0;
