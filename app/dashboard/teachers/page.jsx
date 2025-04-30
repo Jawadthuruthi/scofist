@@ -225,7 +225,7 @@ const apiFilters = {
 
 export default async function BatchesPage() {
   try {
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+    const apiKey = process.env.API_KEY;
 
     return (
       <>

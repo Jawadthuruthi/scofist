@@ -34,7 +34,7 @@ const API_ENDPOINTS = [
 
 export default async function DashboardPage() {
   try {
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+    const apiKey = process.env.API_KEY;
 
     const [classes, batches, teachers, timeTable, periods, attendances] =
       await Promise.all(

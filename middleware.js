@@ -154,7 +154,7 @@ async function handleApiRequest(req) {
     return NextResponse.next();
   }
 
-  if (apiKey !== process.env.NEXT_PUBLIC_API_KEY) {
+  if (apiKey !== process.env.API_KEY) {
     return NextResponse.json(
       { message: "Unauthorized - API key missing" },
       { status: 401 }
@@ -188,10 +188,7 @@ async function handleAuthRequest(req) {
 
     try {
       // Try to fetch user with increased timeout
-      const user = await fetchUserProfile(
-        userId,
-        process.env.NEXT_PUBLIC_API_KEY
-      );
+      const user = await fetchUserProfile(userId, process.env.API_KEY);
 
       if (user) {
         storeUserInCache(userId, user);

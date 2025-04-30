@@ -50,7 +50,7 @@ const statusMessages = {
 
 export default async function ClassesPage() {
   try {
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+    const apiKey = process.env.API_KEY;
 
     const [batches, teachers, subjects] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
@@ -162,3 +162,4 @@ export default async function ClassesPage() {
 }
 
 export const revalidate = 60;
+export const dynamic = "force-static";
