@@ -656,7 +656,7 @@ export default function Dashboard({
 
         <TabsContent value="overview" className="space-y-6">
           {/* Time Table Component with lazy loading */}
-          {activeRole &&
+          {!!activeRole &&
             ["Teacher", "College Admin", "Org Admin"].includes(activeRole) && (
               <Card className="border-t-4 border-t-primary">
                 <CardHeader>
