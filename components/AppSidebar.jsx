@@ -21,6 +21,7 @@ import {
   CreditCard,
   BookOpen,
   Timer,
+  BookUser,
 } from "lucide-react";
 
 import {
@@ -80,6 +81,12 @@ const items = [
     url: "/dashboard/students",
     icon: GraduationCap,
     allowedRoles: ["Teacher", "Student"],
+  },
+  {
+    title: "Students Contacts",
+    url: "/dashboard/students-contacts",
+    icon: BookUser,
+    allowedRoles: ["Teacher"],
   },
   {
     title: "Managements",

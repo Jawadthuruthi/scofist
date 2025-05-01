@@ -89,7 +89,7 @@ export default async function BatchesPage() {
 
     const [batches, classes] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
-        fetchData(endpoint.pathname, apiKey, endpoint.searchParams)
+        fetchData(endpoint.pathname, endpoint.searchParams)
       )
     );
 
@@ -613,8 +613,19 @@ export default async function BatchesPage() {
     ];
 
     const filteredColumnsConfig = columnsConfig.filter((column) => {
-      if (activeRole !== "College Admin") {
+      if (activeRole === "Teacher") {
         return column.header !== "Select";
+      }
+      if (activeRole === "Student") {
+        return [
+          "serialNo",
+          "profilePic",
+          "_id",
+          "name",
+          "batchName",
+          "className",
+          "status",
+        ].includes(column.accessorKey);
       }
       return true;
     });

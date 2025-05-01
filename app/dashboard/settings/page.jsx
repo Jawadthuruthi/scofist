@@ -112,7 +112,7 @@ export default async function SettingsPage() {
   try {
     const apiKey = process.env.API_KEY;
 
-    const data = await fetchData("settings", apiKey);
+    const data = await fetchData("settings");
     const settings = {
       ...data.institution,
       ...data.institution.address,

@@ -32,7 +32,7 @@ const MyTimeTablePage = async () => {
 
     const [timeTable, periods, attendances] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
-        fetchData(endpoint.pathname, apiKey, endpoint.searchParams)
+        fetchData(endpoint.pathname, endpoint.searchParams)
       )
     );
     return (

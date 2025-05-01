@@ -3,7 +3,8 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowUpDown, Pencil, Trash, User } from "lucide-react";
+import { ArrowUpDown, ExternalLink, Pencil, Trash, User } from "lucide-react";
+import Link from "next/link";
 
 const useTableColumns = (columnConfig) => {
   return columnConfig.map((col) => {
@@ -183,6 +184,15 @@ const useTableColumns = (columnConfig) => {
         >
           {row.getValue(col.accessorKey)}
         </a>
+      );
+    }
+    if (col.type?.includes("externalLink")) {
+      columnDefinition.cell = ({ row }) => (
+        <Link
+          href={`${row.original[col.accessorKey] || col.accessorKey}/${row.original[col.endpointKey]}`}
+        >
+          <ExternalLink className="text-muted-foreground h-5 w-5" />
+        </Link>
       );
     }
 

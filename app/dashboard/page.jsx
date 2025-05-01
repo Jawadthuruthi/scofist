@@ -39,7 +39,7 @@ export default async function DashboardPage() {
     const [classes, batches, teachers, timeTable, periods, attendances] =
       await Promise.all(
         API_ENDPOINTS.map((endpoint) =>
-          fetchData(endpoint.pathname, apiKey, endpoint.searchParams)
+          fetchData(endpoint.pathname, endpoint.searchParams)
         )
       );
 

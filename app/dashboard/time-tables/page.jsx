@@ -26,7 +26,7 @@ const TimeTablePage = async () => {
 
     const [periods, subjects, teachers, classes] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
-        fetchData(endpoint.pathname, apiKey, endpoint.searchParams)
+        fetchData(endpoint.pathname, endpoint.searchParams)
       )
     );
 

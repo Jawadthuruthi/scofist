@@ -82,6 +82,12 @@ const pages = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
+    title: "Students Contacts",
+    path: "/dashboard/students-contacts",
+    pattern: /^\/dashboard\/students-contacts(?:\/[^/]+)?$/,
+    allowedRoles: ["Teacher"],
+  },
+  {
     title: "Students Transactions",
     path: "/dashboard/students-transactions",
     allowedRoles: ["Teacher"],
@@ -215,9 +221,12 @@ async function handleAuthRequest(req) {
 }
 
 function isUserAllowed(activeRole, path) {
-  // Check if user has the required role to access this page
-  const allowedRoles =
-    pages.find((page) => page.path === path)?.allowedRoles || [];
+  const page = pages.find(
+    (page) => page.path === path || (page.pattern && page.pattern.test(path))
+  );
+
+  // Check if user has the required role
+  const allowedRoles = page?.allowedRoles || [];
   return allowedRoles.includes(activeRole);
 }
 
