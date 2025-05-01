@@ -231,12 +231,9 @@ const Attendance = ({ apiKey, teacherId }) => {
     // Calculate yesterday's date
     const yesterday = new Date(attendanceDate);
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = formatDate(yesterday);
 
     // Filter for yesterday's absences
-    return rawAbsenteeData.filter(
-      (student) => student.lastAbsenceDate === yesterdayStr
-    );
+    return rawAbsenteeData;
   }, [historicalAttendanceQuery.data, students, attendanceDate]);
 
   // Memoize attendance toggle handler
@@ -420,7 +417,7 @@ const Attendance = ({ apiKey, teacherId }) => {
             <TableRow>
               <TableHead className="w-16">R.no</TableHead>
               <TableHead>Students</TableHead>
-              <TableHead className="w-[150px]"></TableHead>
+              <TableHead className="w-[70px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

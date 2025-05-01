@@ -56,15 +56,12 @@ const AbsenteeStatus = ({ absenteeInfo }) => {
     ? new Date(lastAbsenceDate).toLocaleDateString()
     : "N/A";
 
-  // Calculate attendance rate if not provided
-  const displayRate = attendanceRate || 0;
-
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className={`flex items-center gap-2 rounded-full px-2 py-1 border ${getSeverityInfo.borderColor} ${getSeverityInfo.bgColor}`}
+            className={`flex items-center max-w-fit gap-2 rounded-full px-2 py-1 border ${getSeverityInfo.borderColor} ${getSeverityInfo.bgColor}`}
           >
             {getSeverityInfo.icon}
             <Badge
@@ -72,13 +69,12 @@ const AbsenteeStatus = ({ absenteeInfo }) => {
                 getSeverityInfo.level === "high"
                   ? "destructive"
                   : getSeverityInfo.level === "medium"
-                  ? "warning"
-                  : "outline"
+                    ? "warning"
+                    : "outline"
               }
               className="text-xs whitespace-nowrap"
             >
-              {continuousAbsences}{" "}
-              {continuousAbsences === 1 ? "absence" : "absences"}
+              {continuousAbsences}
             </Badge>
           </div>
         </TooltipTrigger>

@@ -51,7 +51,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
     0,
     {},
     {
-      staleTime: 1000 * 60 * 60, // Periods rarely change - cache for an hour
+      staleTime: 1000 * 60 * 60,
     }
   );
 
@@ -60,7 +60,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
     0,
     { teacherId },
     {
-      staleTime: 1000 * 60 * 60, // Timetables rarely change during the day
+      staleTime: 1000 * 60 * 60,
     }
   );
 
@@ -72,7 +72,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
       teacherId,
     },
     {
-      staleTime: 1000 * 60 * 2, // Refresh every 2 minutes
+      staleTime: 1000 * 60 * 2,
     }
   );
 

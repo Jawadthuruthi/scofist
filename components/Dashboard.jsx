@@ -43,6 +43,15 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 
+const useIsClient = () => {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  return isClient;
+};
 /**
  * Calculates attendance percentage from attendance records
  * @param {Array} attendanceRecords - List of attendance records
@@ -88,7 +97,7 @@ const StatCardSkeleton = () => (
 
 const StatsOverviewSkeleton = () => (
   <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-5">
-    {Array(5)
+    {Array(4)
       .fill(0)
       .map((_, i) => (
         <StatCardSkeleton key={i} />
@@ -244,7 +253,7 @@ const StatsOverview = memo(({ totalStats, isLoading }) => {
   if (isLoading) return <StatsOverviewSkeleton />;
 
   return (
-    <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-4">
       <StatCard
         title="Total Faculty"
         value={totalStats.teachersCount}
@@ -256,12 +265,6 @@ const StatsOverview = memo(({ totalStats, isLoading }) => {
         value={totalStats.activeBatches}
         icon={BarChart3}
         description="Ongoing academic batches"
-      />
-      <StatCard
-        title="Total Students"
-        value={totalStats.studentCount.toLocaleString()}
-        icon={Users}
-        description="Currently enrolled students"
       />
       <StatCard
         title="Active Students"
@@ -472,7 +475,7 @@ const FacultyProfileCard = memo(({ faculty }) => {
           <div className="flex justify-between mb-1 md:mb-2">
             <div>
               <h3 className="font-semibold text-sm">{faculty.name}</h3>
-              <p className="text-muted-foreground text-xs">{faculty.email}</p>
+              <p className="text-muted-foreground text-xs">{faculty.place}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-1 md:gap-2 text-xs">
@@ -510,6 +513,8 @@ export default function Dashboard({
   const activeRole = Cookies.get("active-role");
 
   const router = useRouter();
+
+  const isClient = useIsClient();
 
   // Periodic refresh
   useEffect(() => {
@@ -656,7 +661,8 @@ export default function Dashboard({
 
         <TabsContent value="overview" className="space-y-6">
           {/* Time Table Component with lazy loading */}
-          {!!activeRole &&
+          {isClient &&
+            !!activeRole &&
             ["Teacher", "College Admin", "Org Admin"].includes(activeRole) && (
               <Card className="border-t-4 border-t-primary">
                 <CardHeader>

@@ -131,15 +131,18 @@ export async function GET(req, res) {
 
       // Calculate continuous absences for each student
       Object.values(studentAbsences).forEach((student) => {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
+        const istNow = new Date().toLocaleString("en-US", {
+          timeZone: "Asia/Kolkata",
+        });
+        const todayIST = new Date(istNow);
+        todayIST.setUTCHours(0, 0, 0, 0);
         // Sort absences by date (newest first)
-        student.absences
-          .filter((item) => new Date(item.date) >= yesterday)
+        const studentAbsencesArray = student.absences
+          .filter((item) => new Date(item.date) <= todayIST)
           .sort((a, b) => new Date(b.date) - new Date(a.date));
 
         // Count continuous absences
-        for (const absence of student.absences) {
+        for (const absence of studentAbsencesArray) {
           if (!absence.present) {
             student.continuousAbsences++;
             if (!student.lastAbsenceDate) {
