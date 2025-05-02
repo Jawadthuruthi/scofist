@@ -170,7 +170,7 @@ const usePrint = ({
                 
                 /* Keep original dimensions */
                 #printable-content {
-                  width: 98% !important;
+                  width: 100% !important;
                   height: auto !important;
                   min-height: ${originalHeight}px !important;
                   max-width: none !important;
