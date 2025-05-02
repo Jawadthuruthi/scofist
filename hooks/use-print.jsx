@@ -38,7 +38,7 @@ const usePrint = ({
     };
   }, []);
 
-  // Get all styles from document
+  // Get all styles from document with error handling
   const getDocumentStyles = useCallback(() => {
     try {
       // Get styles from the main document
@@ -160,6 +160,8 @@ const usePrint = ({
                 html, body {
                   height: 100%;
                   width: 100%;
+                  margin: 0 !important;
+                  padding: 0 !important;
                   box-sizing: border-box;
                   
                   overflow: visible !important;
@@ -168,15 +170,24 @@ const usePrint = ({
                   print-color-adjust: exact;
                 }
                 
-                /* Keep original dimensions */
+                /* FIX: Ensure content maintains dimensions regardless of print dialog settings */
                 #printable-content {
                   width: 100% !important;
                   height: auto !important;
                   min-height: ${originalHeight}px !important;
-                  max-width: none !important;
+                  max-width: 100% !important;
+                  position: relative !important;
                   box-sizing: border-box !important;
                   transform-origin: top left !important;
-                 
+                  overflow: hidden !important;
+                  display: block !important;
+                  float: none !important;
+                }
+                
+                /* Constrain all child elements */
+                #printable-content * {
+                  max-width: 100% !important;
+                  box-sizing: border-box !important;
                 }
                 
                 /* Better handling of page breaks */
@@ -191,7 +202,7 @@ const usePrint = ({
                 }
                 
                 /* Avoid page breaking inside important elements */
-                h1, h2, h3, h4, h5, h6, img, table {
+                h1, h2, h3, h4, h5, h6, img, table, figure {
                   page-break-inside: avoid;
                   break-inside: avoid;
                 }
@@ -205,25 +216,34 @@ const usePrint = ({
                 }
               }
               
+              /* Base content styling ensures consistent display */
               #printable-content {
-                width: ${originalWidth}px;
+                width: 100%;
                 min-height: ${originalHeight}px;
                 box-sizing: border-box;
                 font-family: 'Montserrat', sans-serif !important;
+                position: relative;
+                overflow: hidden;
+              }
+              
+              /* Lock images to prevent overflow */
+              #printable-content img {
+                max-width: 100% !important;
+                height: auto !important;
               }
               
               /* Application styles */
               ${stylesText}
             </style>
           </head>
-          <body style="font-family: 'Montserrat', sans-serif !important;">
+          <body style="font-family: 'Montserrat', sans-serif !important; margin: 0; padding: 0;">
             <div id="printable-content" style="font-family: 'Montserrat', sans-serif !important;"></div>
           </body>
         </html>
       `);
       frameDocument.close();
 
-      // Function to enforce fonts and styles recursively with performance optimization
+      // Optimize style application with a more efficient approach
       const applyStylesToNode = (node) => {
         if (node.nodeType !== 1) return; // Skip non-element nodes
 
@@ -241,7 +261,7 @@ const usePrint = ({
         }
       };
 
-      // Clone content and deep copy all computed styles to maintain appearance
+      // Clone content and maintain computed styles
       const clonedContent = contentElement.cloneNode(true);
 
       // Apply font styling
@@ -252,20 +272,54 @@ const usePrint = ({
         frameDocument.getElementById("printable-content");
       printableContainer.appendChild(clonedContent);
 
-      // Count images to ensure they're loaded
+      // Track resources for better loading strategy
       const images = frameDocument.querySelectorAll("img");
-      let loadedImages = 0;
       const totalImages = images.length;
 
       // Function that handles the actual printing
       const executePrint = () => {
         try {
+          // Make final adjustments before printing
+          const printableContent =
+            frameDocument.getElementById("printable-content");
+          if (printableContent) {
+            // FIX: Ensure dimensions are explicitly set again right before printing
+            printableContent.style.width = "100%";
+            printableContent.style.maxWidth = "100%";
+            printableContent.style.minHeight = `${originalHeight}px`;
+
+            // Set overflow to hidden to prevent content from expanding beyond its container
+            printableContent.style.overflow = "hidden";
+
+            // Add a data attribute to track dimensions
+            printableContent.setAttribute("data-original-width", originalWidth);
+            printableContent.setAttribute(
+              "data-original-height",
+              originalHeight
+            );
+          }
+
           // Focus and print
           frameWindow.focus();
+
+          // FIX: Add event listeners before print to maintain layout during print dialog changes
+          const handleBeforePrint = () => {
+            const content = frameDocument.getElementById("printable-content");
+            if (content) {
+              // Reinforce dimensions right before printing starts
+              content.style.width = `100%`;
+              content.style.maxWidth = `100%`;
+              content.style.minHeight = `${originalHeight}px`;
+              content.style.overflow = "hidden";
+            }
+          };
+
+          frameWindow.addEventListener("beforeprint", handleBeforePrint);
           frameWindow.print();
 
           // Handle print completion
           frameWindow.onafterprint = () => {
+            frameWindow.removeEventListener("beforeprint", handleBeforePrint);
             if (iframeRef.current) {
               document.body.removeChild(iframe);
               iframeRef.current = null;
@@ -275,6 +329,7 @@ const usePrint = ({
 
           // Fallback for browsers that don't support onafterprint
           printTimeoutRef.current = setTimeout(() => {
+            frameWindow.removeEventListener("beforeprint", handleBeforePrint);
             if (iframeRef.current) {
               document.body.removeChild(iframe);
               iframeRef.current = null;
@@ -293,53 +348,44 @@ const usePrint = ({
         }
       };
 
-      // Wait for resources to load before printing
+      // More efficient resource loading strategy
       const waitForResourcesAndPrint = () => {
-        // Use a Promise for font loading
-        frameDocument.fonts.ready
-          .then(() => {
-            // Give time for rendering and apply any last-minute adjustments
-            setTimeout(() => {
-              // Recheck dimensions and update if needed
-              const container =
-                frameDocument.getElementById("printable-content");
-              if (container) {
-                // Ensure dimensions are preserved in print mode
-                container.style.width = `${originalWidth}px`;
-                container.style.minHeight = `${originalHeight}px`;
-              }
+        // Create a single promise for all resources
+        Promise.all([
+          // Font loading promise
+          frameDocument.fonts.ready,
 
-              executePrint();
-            }, 500); // Reduced timeout for better performance
+          // Images loading promise - only if there are images
+          ...(totalImages > 0
+            ? [
+                Promise.all(
+                  Array.from(images).map(
+                    (img) =>
+                      new Promise((resolve) => {
+                        if (img.complete) resolve();
+                        else {
+                          img.onload = resolve;
+                          img.onerror = resolve; // Continue even if image fails
+                        }
+                      })
+                  )
+                ),
+              ]
+            : []),
+        ])
+          .then(() => {
+            // Short delay for final rendering
+            setTimeout(executePrint, 250);
           })
-          .catch((fontError) => {
-            console.warn("Font loading issue:", fontError);
-            // Continue with printing even if fonts fail
-            executePrint();
+          .catch((error) => {
+            console.warn("Resource loading issue:", error);
+            // Continue with printing even if resource loading fails
+            setTimeout(executePrint, 250);
           });
       };
 
-      // If there are images, wait for them to load
-      if (totalImages > 0) {
-        const imagePromises = Array.from(images).map((img) => {
-          return new Promise((resolve) => {
-            if (img.complete) {
-              resolve();
-            } else {
-              img.onload = resolve;
-              img.onerror = resolve; // Resolve even on error to continue printing
-            }
-          });
-        });
-
-        // Wait for all images to load (or fail)
-        Promise.all(imagePromises)
-          .then(waitForResourcesAndPrint)
-          .catch(() => waitForResourcesAndPrint()); // Continue even if Promise.all fails
-      } else {
-        // No images, proceed directly
-        waitForResourcesAndPrint();
-      }
+      // Start resource loading process
+      waitForResourcesAndPrint();
     } catch (error) {
       console.error("Print Error:", error);
       if (onPrintError) onPrintError(error);
