@@ -1,18 +1,76 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useEffect } from "react";
 
 /**
- * An enhanced print hook that combines the reliability of the original implementation
- * with additional cross-device compatibility improvements.
+ * An enhanced print hook that maintains layout regardless of print dialog settings
+ * with improved performance and cross-device compatibility.
  *
  * @param {Object} options Configuration options
  * @param {Function} options.content Function that returns the element to print
  * @param {string} options.documentTitle Title for the print document
  * @param {Function} options.onAfterPrint Callback after printing completes
  * @param {Function} options.onPrintError Callback when print errors occur
+ * @param {Object} options.pageStyle Custom page styles (optional)
  * @returns {Function} Print function to trigger printing
  */
-const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
+const usePrint = ({
+  content,
+  documentTitle,
+  onAfterPrint,
+  onPrintError,
+  pageStyle = {},
+}) => {
   const iframeRef = useRef(null);
+  const printTimeoutRef = useRef(null);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (printTimeoutRef.current) {
+        clearTimeout(printTimeoutRef.current);
+      }
+      if (iframeRef.current) {
+        try {
+          document.body.removeChild(iframeRef.current);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+    };
+  }, []);
+
+  // Get all styles from document
+  const getDocumentStyles = useCallback(() => {
+    try {
+      // Get styles from the main document
+      const styleSheets = Array.from(document.styleSheets).filter(
+        (styleSheet) => {
+          try {
+            return (
+              !styleSheet.href ||
+              styleSheet.href.startsWith(window.location.origin)
+            );
+          } catch {
+            return false;
+          }
+        }
+      );
+
+      return styleSheets
+        .map((styleSheet) => {
+          try {
+            return Array.from(styleSheet.cssRules)
+              .map((rule) => rule.cssText)
+              .join("\n");
+          } catch {
+            return "";
+          }
+        })
+        .join("\n");
+    } catch (styleError) {
+      console.warn("Error processing styles:", styleError);
+      return "";
+    }
+  }, []);
 
   const handlePrint = useCallback(() => {
     try {
@@ -26,9 +84,19 @@ const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
         throw new Error("Content function did not return a valid element.");
       }
 
+      // Calculate the original dimensions before cloning
+      const originalRect = contentElement.getBoundingClientRect();
+      const originalWidth = originalRect.width;
+      const originalHeight = originalRect.height;
+
       // Clean up previous iframe if exists
       if (iframeRef.current) {
         document.body.removeChild(iframeRef.current);
+      }
+
+      // Clear any existing timeout
+      if (printTimeoutRef.current) {
+        clearTimeout(printTimeoutRef.current);
       }
 
       // Create iframe for printing
@@ -48,38 +116,21 @@ const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
       const frameWindow = iframe.contentWindow;
       const frameDocument = frameWindow.document;
 
-      // Collect all stylesheet information
-      let stylesText = "";
+      // Get styles text
+      const stylesText = getDocumentStyles();
 
-      try {
-        // Get styles from the main document
-        const styleSheets = Array.from(document.styleSheets).filter(
-          (styleSheet) => {
-            try {
-              return (
-                !styleSheet.href ||
-                styleSheet.href.startsWith(window.location.origin)
-              );
-            } catch {
-              return false;
-            }
-          }
-        );
+      // Default page style that maintains dimensions
+      const defaultPageStyle = {
+        margin: "0",
+        padding: "0",
+        size: "auto",
+        ...pageStyle,
+      };
 
-        stylesText = styleSheets
-          .map((styleSheet) => {
-            try {
-              return Array.from(styleSheet.cssRules)
-                .map((rule) => rule.cssText)
-                .join("\n");
-            } catch {
-              return "";
-            }
-          })
-          .join("\n");
-      } catch (styleError) {
-        console.warn("Error processing styles:", styleError);
-      }
+      // Convert page style object to CSS
+      const pageStyleCSS = Object.entries(defaultPageStyle)
+        .map(([key, value]) => `${key}: ${value};`)
+        .join(" ");
 
       // Write content to iframe with better device compatibility
       frameDocument.open();
@@ -104,20 +155,29 @@ const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
               
               /* Improved print styles for all devices */
               @media print {
-                @page { 
-                  margin: 0.5cm; 
-                  size: auto;
-                }
+                @page { ${pageStyleCSS} }
                 
                 html, body {
                   height: 100%;
                   width: 100%;
                   margin: 0;
-                  padding: 0;
+                  padding: 16px;
                   overflow: visible !important;
                   -webkit-print-color-adjust: exact; 
                   color-adjust: exact;
                   print-color-adjust: exact;
+                }
+                
+                /* Keep original dimensions */
+                #printable-content {
+                  width: 100% !important;
+                  height: auto !important;
+                  min-height: ${originalHeight}px !important;
+                  max-width: none !important;
+                  box-sizing: border-box !important;
+                  transform-origin: top left !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
                 }
                 
                 /* Better handling of page breaks */
@@ -131,6 +191,12 @@ const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
                   break-before: page;
                 }
                 
+                /* Avoid page breaking inside important elements */
+                h1, h2, h3, h4, h5, h6, img, table {
+                  page-break-inside: avoid;
+                  break-inside: avoid;
+                }
+                
                 /* Hide elements not meant for printing */
                 .print\\:hidden, 
                 button, 
@@ -141,8 +207,8 @@ const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
               }
               
               #printable-content {
-                width: 100%;
-                min-height: 100%;
+                width: ${originalWidth}px;
+                min-height: ${originalHeight}px;
                 box-sizing: border-box;
                 font-family: 'Montserrat', sans-serif !important;
               }
@@ -158,23 +224,29 @@ const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
       `);
       frameDocument.close();
 
-      // Function to enforce fonts recursively
-      const applyFontsRecursively = (node) => {
+      // Function to enforce fonts and styles recursively with performance optimization
+      const applyStylesToNode = (node) => {
+        if (node.nodeType !== 1) return; // Skip non-element nodes
+
+        // Apply font family
         if (node.style) {
           node.style.fontFamily = "'Montserrat', sans-serif";
         }
-        if (node.childNodes && node.childNodes.length > 0) {
-          for (let i = 0; i < node.childNodes.length; i++) {
-            if (node.childNodes[i].nodeType === 1) {
-              applyFontsRecursively(node.childNodes[i]);
-            }
+
+        // Use more efficient children iteration
+        const children = node.children;
+        if (children && children.length > 0) {
+          for (let i = 0; i < children.length; i++) {
+            applyStylesToNode(children[i]);
           }
         }
       };
 
-      // Clone content and process it
+      // Clone content and deep copy all computed styles to maintain appearance
       const clonedContent = contentElement.cloneNode(true);
-      applyFontsRecursively(clonedContent);
+
+      // Apply font styling
+      applyStylesToNode(clonedContent);
 
       // Append to the iframe
       const printableContainer =
@@ -186,75 +258,85 @@ const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
       let loadedImages = 0;
       const totalImages = images.length;
 
+      // Function that handles the actual printing
+      const executePrint = () => {
+        try {
+          // Focus and print
+          frameWindow.focus();
+          frameWindow.print();
+
+          // Handle print completion
+          frameWindow.onafterprint = () => {
+            if (iframeRef.current) {
+              document.body.removeChild(iframe);
+              iframeRef.current = null;
+            }
+            if (onAfterPrint) onAfterPrint();
+          };
+
+          // Fallback for browsers that don't support onafterprint
+          printTimeoutRef.current = setTimeout(() => {
+            if (iframeRef.current) {
+              document.body.removeChild(iframe);
+              iframeRef.current = null;
+              if (onAfterPrint) onAfterPrint();
+            }
+          }, 2000);
+        } catch (printError) {
+          console.error("Print operation error:", printError);
+          if (onPrintError) onPrintError(printError);
+
+          // Clean up on error
+          if (iframeRef.current) {
+            document.body.removeChild(iframe);
+            iframeRef.current = null;
+          }
+        }
+      };
+
+      // Wait for resources to load before printing
       const waitForResourcesAndPrint = () => {
-        // Ensure fonts are loaded before printing
+        // Use a Promise for font loading
         frameDocument.fonts.ready
           .then(() => {
-            // Give additional time for rendering
+            // Give time for rendering and apply any last-minute adjustments
             setTimeout(() => {
-              try {
-                // Focus and print
-                frameWindow.focus();
-                frameWindow.print();
-
-                // Handle print completion
-                frameWindow.onafterprint = () => {
-                  document.body.removeChild(iframe);
-                  iframeRef.current = null;
-                  if (onAfterPrint) onAfterPrint();
-                };
-
-                // Fallback for browsers that don't support onafterprint
-                setTimeout(() => {
-                  if (iframeRef.current) {
-                    document.body.removeChild(iframe);
-                    iframeRef.current = null;
-                    if (onAfterPrint) onAfterPrint();
-                  }
-                }, 2000);
-              } catch (printError) {
-                console.error("Print operation error:", printError);
-                if (onPrintError) onPrintError(printError);
-
-                // Clean up on error
-                if (iframeRef.current) {
-                  document.body.removeChild(iframe);
-                  iframeRef.current = null;
-                }
+              // Recheck dimensions and update if needed
+              const container =
+                frameDocument.getElementById("printable-content");
+              if (container) {
+                // Ensure dimensions are preserved in print mode
+                container.style.width = `${originalWidth}px`;
+                container.style.minHeight = `${originalHeight}px`;
               }
-            }, 1000);
+
+              executePrint();
+            }, 500); // Reduced timeout for better performance
           })
           .catch((fontError) => {
             console.warn("Font loading issue:", fontError);
             // Continue with printing even if fonts fail
-            frameWindow.focus();
-            frameWindow.print();
+            executePrint();
           });
       };
 
       // If there are images, wait for them to load
       if (totalImages > 0) {
-        images.forEach((img) => {
-          if (img.complete) {
-            loadedImages++;
-            if (loadedImages === totalImages) {
-              waitForResourcesAndPrint();
+        const imagePromises = Array.from(images).map((img) => {
+          return new Promise((resolve) => {
+            if (img.complete) {
+              resolve();
+            } else {
+              img.onload = resolve;
+              img.onerror = resolve; // Resolve even on error to continue printing
             }
-          } else {
-            img.onload = () => {
-              loadedImages++;
-              if (loadedImages === totalImages) {
-                waitForResourcesAndPrint();
-              }
-            };
-            img.onerror = () => {
-              loadedImages++;
-              if (loadedImages === totalImages) {
-                waitForResourcesAndPrint();
-              }
-            };
-          }
+          });
         });
+
+        // Wait for all images to load (or fail)
+        Promise.all(imagePromises)
+          .then(waitForResourcesAndPrint)
+          .catch(() => waitForResourcesAndPrint()); // Continue even if Promise.all fails
       } else {
         // No images, proceed directly
         waitForResourcesAndPrint();
@@ -269,7 +351,14 @@ const usePrint = ({ content, documentTitle, onAfterPrint, onPrintError }) => {
         iframeRef.current = null;
       }
     }
-  }, [content, documentTitle, onAfterPrint, onPrintError]);
+  }, [
+    content,
+    documentTitle,
+    onAfterPrint,
+    onPrintError,
+    pageStyle,
+    getDocumentStyles,
+  ]);
 
   return handlePrint;
 };

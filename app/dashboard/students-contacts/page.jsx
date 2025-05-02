@@ -22,7 +22,7 @@ const StudentsContactsPage = async () => {
       <>
         <Header
           title="STUDENTS CONTACTS"
-          subtitle="Browse The List Of Students Contacts By Class"
+          subTitle="Browse The List Of Students Contacts By Class"
         />
         <TableComponent
           data={classes}

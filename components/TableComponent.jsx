@@ -34,6 +34,7 @@ const TableComponent = ({
   apiKey,
   printTitle,
   hidePrintBtn = false,
+  hidePrintLogo = false,
 }) => {
   const [sorting, setSorting] = useState([]);
 
@@ -60,9 +61,15 @@ const TableComponent = ({
     <div className="space-y-4">
       <div
         ref={tableRef}
-        className="rounded-md border shadow-sm table-print relative"
+        className="rounded-md overflow-hidden border shadow-sm table-print relative"
       >
-        <PrintHeader apiKey={apiKey} title={printTitle} />
+        {!hidePrintBtn && (
+          <PrintHeader
+            apiKey={apiKey}
+            title={printTitle}
+            hidePrintLogo={hidePrintLogo}
+          />
+        )}
         <div
           className="overflow-auto"
           style={{

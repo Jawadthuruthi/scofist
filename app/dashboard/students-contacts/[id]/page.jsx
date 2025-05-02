@@ -29,6 +29,8 @@ const columnsConfig = [
   },
 ];
 
+const apiKey = process.env.API_KEY;
+
 const StudentsContactsListPage = async ({ params }) => {
   try {
     const { id } = await params;
@@ -43,9 +45,14 @@ const StudentsContactsListPage = async ({ params }) => {
           title={
             data?.length > 0 ? data[0].className : "STUDENTS CONTACTS LIST"
           }
-          subTitle="Browse The List Of Students Contacts"
+          subTitle="View Students Contact Details"
         />
-        <TableComponent data={data} columnsConfig={columnsConfig} />
+        <TableComponent
+          data={data}
+          columnsConfig={columnsConfig}
+          printTitle={`Students Contacts${data?.length > 0 ? ` - ${data[0].className}` : ""}`}
+          apiKey={apiKey}
+        />
       </>
     );
   } catch (error) {
