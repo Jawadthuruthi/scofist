@@ -172,10 +172,10 @@ const usePrint = ({
                 
                 /* FIX: Ensure content maintains dimensions regardless of print dialog settings */
                 #printable-content {
-                  width: ${originalWidth}px !important;
+                  width: 100% !important;
                   height: auto !important;
                   min-height: ${originalHeight}px !important;
-                  max-width: ${originalWidth}px !important;
+                  max-width: 100% !important;
                   position: relative !important;
                   box-sizing: border-box !important;
                   transform-origin: top left !important;
@@ -218,7 +218,7 @@ const usePrint = ({
               
               /* Base content styling ensures consistent display */
               #printable-content {
-                width: ${originalWidth}px;
+                width: 100%;
                 min-height: ${originalHeight}px;
                 box-sizing: border-box;
                 font-family: 'Montserrat', sans-serif !important;
@@ -284,8 +284,8 @@ const usePrint = ({
             frameDocument.getElementById("printable-content");
           if (printableContent) {
             // FIX: Ensure dimensions are explicitly set again right before printing
-            printableContent.style.width = `${originalWidth}px`;
-            printableContent.style.maxWidth = `${originalWidth}px`;
+            printableContent.style.width = "100%";
+            printableContent.style.maxWidth = "100%";
             printableContent.style.minHeight = `${originalHeight}px`;
 
             // Set overflow to hidden to prevent content from expanding beyond its container
@@ -307,8 +307,8 @@ const usePrint = ({
             const content = frameDocument.getElementById("printable-content");
             if (content) {
               // Reinforce dimensions right before printing starts
-              content.style.width = `${originalWidth}px`;
-              content.style.maxWidth = `${originalWidth}px`;
+              content.style.width = `100%`;
+              content.style.maxWidth = `100%`;
               content.style.minHeight = `${originalHeight}px`;
               content.style.overflow = "hidden";
             }
