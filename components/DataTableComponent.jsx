@@ -435,15 +435,6 @@ const DataTableComponent = ({
     [table, rowSelection]
   );
 
-  // Reset table state and data
-  const resetTableState = useCallback(() => {
-    table.resetRowSelection();
-    setPage(0);
-    setData([]);
-    setHasNextPage(true);
-    router.refresh();
-  }, [table, router]);
-
   // Form submission handler
   const handleSubmit = async (values) => {
     try {
@@ -453,7 +444,10 @@ const DataTableComponent = ({
       );
 
       await addData.mutateAsync(filteredValues);
-      resetTableState();
+      table.resetRowSelection();
+      setPage(0);
+      setIsManualFiltering(true);
+      await fetchItemsQuery.refetch();
       toast.success(createSuccessMessage);
       return true;
     } catch (error) {
@@ -461,6 +455,7 @@ const DataTableComponent = ({
       throw error;
     } finally {
       setLoading(false);
+      setIsManualFiltering(false);
     }
   };
 
@@ -474,7 +469,10 @@ const DataTableComponent = ({
           ...values,
         },
       });
-      resetTableState();
+      table.resetRowSelection();
+      setPage(0);
+      setIsManualFiltering(true);
+      await fetchItemsQuery.refetch();
       toast.success(editSuccessMessage);
       return true;
     } catch (error) {
@@ -482,6 +480,7 @@ const DataTableComponent = ({
       throw error;
     } finally {
       setLoading(false);
+      setIsManualFiltering(false);
     }
   };
 
@@ -490,7 +489,10 @@ const DataTableComponent = ({
     try {
       setLoading(true);
       await deleteData.mutateAsync(selectedData?.map((item) => item?._id));
-      resetTableState();
+      table.resetRowSelection();
+      setPage(0);
+      setIsManualFiltering(true);
+      await fetchItemsQuery.refetch();
       toast.success(deleteSuccessMessage);
       return true;
     } catch (error) {
@@ -498,6 +500,7 @@ const DataTableComponent = ({
       throw error;
     } finally {
       setLoading(false);
+      setIsManualFiltering(false);
     }
   };
 

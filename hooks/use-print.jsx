@@ -121,7 +121,7 @@ const usePrint = ({
 
       // Default page style that maintains dimensions
       const defaultPageStyle = {
-        margin: "0",
+        margin: "0.5rem",
         padding: "0",
         size: "auto",
         ...pageStyle,
@@ -160,8 +160,8 @@ const usePrint = ({
                 html, body {
                   height: 100%;
                   width: 100%;
-                  margin: 0;
-                  padding: 16px;
+                  box-sizing: border-box;
+                  
                   overflow: visible !important;
                   -webkit-print-color-adjust: exact; 
                   color-adjust: exact;
@@ -170,14 +170,13 @@ const usePrint = ({
                 
                 /* Keep original dimensions */
                 #printable-content {
-                  width: 100% !important;
+                  width: 98% !important;
                   height: auto !important;
                   min-height: ${originalHeight}px !important;
                   max-width: none !important;
                   box-sizing: border-box !important;
                   transform-origin: top left !important;
-                  margin: 0 !important;
-                  padding: 0 !important;
+                 
                 }
                 
                 /* Better handling of page breaks */
@@ -217,7 +216,7 @@ const usePrint = ({
               ${stylesText}
             </style>
           </head>
-          <body style="font-family: 'Montserrat', sans-serif !important; margin: 0; padding: 0;">
+          <body style="font-family: 'Montserrat', sans-serif !important;">
             <div id="printable-content" style="font-family: 'Montserrat', sans-serif !important;"></div>
           </body>
         </html>

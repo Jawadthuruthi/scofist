@@ -140,7 +140,7 @@ const TimetableSlot = ({
         isAttendanceMarked ? "bg-green-300/50 print:bg-inherit" : ""
       } ${
         isPendingChange ? "bg-blue-300/50 print:bg-inherit" : ""
-      } border text-center cursor-pointer transition-colors max-w-32`}
+      } border text-center cursor-pointer transition-colors whitespace-nowrap print:whitespace-normal print:max-w-32 print:p-1`}
       onClick={() => {
         onCellClick(periodNumber, day);
         if (isAttendanceMarked && category !== "class") {
