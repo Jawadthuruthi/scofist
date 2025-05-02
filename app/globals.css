@@ -156,7 +156,10 @@
   }
 
   .table-print {
-    max-height: max-content !important;
+    width: max-content;
+    min-width: max-content;
+    overflow: visible;
+    max-height: max-content;
   }
 }
 

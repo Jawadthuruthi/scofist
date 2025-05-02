@@ -574,7 +574,7 @@ const DataTableComponent = ({
         />
         <div
           ref={tableBodyRef}
-          className="overflow-auto print:max-w-max"
+          className="overflow-auto print:overflow-hidden"
           style={{
             maxHeight: tableHeight,
           }}
