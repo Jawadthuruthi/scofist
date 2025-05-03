@@ -93,6 +93,7 @@ const Attendance = ({ apiKey, teacherId }) => {
     {
       roles: ["Student"],
       classId,
+      status: "Active",
     },
     {
       staleTime: 1000 * 60 * 10, // Students in a class don't change frequently
