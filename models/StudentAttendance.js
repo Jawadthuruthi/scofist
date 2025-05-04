@@ -215,7 +215,11 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
   });
 
   // Convert to array of class results
-  const classResults = Object.values(resultsByClass);
+  let classResults = Object.values(resultsByClass);
+
+  classResults.sort((a, b) => {
+    return a.classId.localeCompare(b.classId);
+  });
 
   // Apply pagination to the class results
   const total = classResults.length;
