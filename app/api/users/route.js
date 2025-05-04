@@ -122,8 +122,6 @@ export async function GET(req, res) {
       const address = user.address || {};
       const teacherSpecificField = user.teacherSpecificField || {};
       const studentSpecificField = user.studentSpecificField || {};
-      const islamicCourse = studentSpecificField.islamicCourse || {};
-      const generalCourse = studentSpecificField.generalCourse || {};
 
       // Format the user data efficiently
       return {
@@ -180,19 +178,6 @@ export async function GET(req, res) {
         className: studentSpecificField.classId?.name,
         batchId: studentSpecificField.batchId?._id,
         batchName: studentSpecificField.batchId?.name,
-
-        // Course information
-        islamicCourseName: islamicCourse.name,
-        islamicCourseUniversity: islamicCourse.university,
-        islamicCourseRegisterNumber: islamicCourse.registerNumber,
-        islamicCourseYear: islamicCourse.year,
-        islamicCourseSemester: islamicCourse.semester,
-
-        generalCourseName: generalCourse.name,
-        generalCourseUniversity: generalCourse.university,
-        generalCourseRegisterNumber: generalCourse.registerNumber,
-        generalCourseYear: generalCourse.year,
-        generalCourseSemester: generalCourse.semester,
 
         status: user.roles?.includes("Student")
           ? studentSpecificField.status
@@ -278,16 +263,6 @@ export async function POST(req, res) {
       droppedOutReason,
       graduatedYear,
       batchId,
-      islamicCourseName,
-      islamicUniversity,
-      islamicCourseRegisterNumber,
-      islamicCourseYear,
-      islamicCourseSemester,
-      academicCourseName,
-      generalUniversity,
-      generalCourseRegisterNumber,
-      generalCourseYear,
-      generalCourseSemester,
     } = body;
 
     // Build user object efficiently
@@ -333,20 +308,6 @@ export async function POST(req, res) {
         academicQualification,
         status,
         batchId,
-        islamicCourse: {
-          name: islamicCourseName,
-          university: islamicUniversity,
-          registerNumber: islamicCourseRegisterNumber,
-          year: islamicCourseYear,
-          semester: islamicCourseSemester,
-        },
-        generalCourse: {
-          name: academicCourseName,
-          university: generalUniversity,
-          registerNumber: generalCourseRegisterNumber,
-          year: generalCourseYear,
-          semester: generalCourseSemester,
-        },
       };
 
       // Add status-dependent fields only when they're needed
@@ -470,54 +431,6 @@ export async function PUT(req) {
       studentFields.forEach((field) => {
         if (updateFields[field] !== undefined) {
           user.studentSpecificField[field] = updateFields[field] || undefined;
-        }
-      });
-
-      // Update Islamic course
-      if (!user.studentSpecificField.islamicCourse)
-        user.studentSpecificField.islamicCourse = {};
-      const islamicFields = [
-        "islamicCourseName",
-        "islamicUniversity",
-        "islamicCourseRegisterNumber",
-        "islamicCourseYear",
-        "islamicCourseSemester",
-      ];
-      islamicFields.forEach((field, idx) => {
-        const realField = [
-          "name",
-          "university",
-          "registerNumber",
-          "year",
-          "semester",
-        ][idx];
-        if (updateFields[field] !== undefined) {
-          user.studentSpecificField.islamicCourse[realField] =
-            updateFields[field] || undefined;
-        }
-      });
-
-      // Update General course
-      if (!user.studentSpecificField.generalCourse)
-        user.studentSpecificField.generalCourse = {};
-      const generalFields = [
-        "academicCourseName",
-        "generalUniversity",
-        "generalCourseRegisterNumber",
-        "generalCourseYear",
-        "generalCourseSemester",
-      ];
-      generalFields.forEach((field, idx) => {
-        const realField = [
-          "name",
-          "university",
-          "registerNumber",
-          "year",
-          "semester",
-        ][idx];
-        if (updateFields[field] !== undefined) {
-          user.studentSpecificField.generalCourse[realField] =
-            updateFields[field] || undefined;
         }
       });
 

@@ -246,51 +246,6 @@ const userSchema = new Schema(
           return this.roles.includes("Student");
         },
       },
-      // Corrected structure - moved these outside of batchId
-      islamicCourse: {
-        name: {
-          type: String,
-          trim: true,
-        },
-        university: {
-          type: String,
-          trim: true,
-        },
-        registerNumber: {
-          type: String,
-          trim: true,
-        },
-        year: {
-          type: String,
-          enum: COURSE_YEARS,
-        },
-        semester: {
-          type: String,
-          enum: COURSE_SEMESTERS,
-        },
-      },
-      generalCourse: {
-        name: {
-          type: String,
-          trim: true,
-        },
-        university: {
-          type: String,
-          trim: true,
-        },
-        registerNumber: {
-          type: String,
-          trim: true,
-        },
-        year: {
-          type: String,
-          enum: COURSE_YEARS,
-        },
-        semester: {
-          type: String,
-          enum: COURSE_SEMESTERS,
-        },
-      },
     },
   },
   {

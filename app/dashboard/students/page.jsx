@@ -359,10 +359,8 @@ export default async function BatchesPage() {
           maxDateMessage: "Admission date cannot be in the future",
         },
       },
-
-      // Status Section
       {
-        section: "Status",
+        section: "Academic Information",
         name: "status",
         label: "Status",
         type: "text",
@@ -376,7 +374,7 @@ export default async function BatchesPage() {
         ],
       },
       {
-        section: "Status",
+        section: "Academic Information",
         name: "droppedOutDate",
         label: "Dropped Out Date",
         type: "date",
@@ -391,7 +389,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Status",
+        section: "Academic Information",
         name: "droppedOutClass",
         label: "Dropped Out Class",
         type: "array",
@@ -407,7 +405,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Status",
+        section: "Academic Information",
         name: "droppedOutReason",
         label: "Dropped Out Reason",
         type: "text",
@@ -423,7 +421,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Status",
+        section: "Academic Information",
         name: "graduatedYear",
         label: "Graduated Year",
         type: "number",
@@ -442,7 +440,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Status",
+        section: "Academic Information",
         name: "islamicQualification",
         label: "Islamic Qualification",
         type: "text",
@@ -453,7 +451,7 @@ export default async function BatchesPage() {
         },
       },
       {
-        section: "Status",
+        section: "Academic Information",
         name: "academicQualification",
         label: "Academic Qualification",
         type: "text",
@@ -462,126 +460,6 @@ export default async function BatchesPage() {
           dependentField: "status",
           expectedValue: "Graduated",
         },
-      },
-      // Course Section
-
-      {
-        section: "Islamic Course Information",
-        name: "islamicCourseName",
-        label: "Course Name",
-        type: "text",
-        placeholder: "Course Name",
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Active",
-        },
-      },
-      {
-        section: "Islamic Course Information",
-        name: "islamicUniversity",
-        label: "University/Board Name",
-        type: "text",
-        placeholder: "University/Board Name",
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Active",
-        },
-      },
-      {
-        section: "Islamic Course Information",
-        name: "islamicCourseRegisterNumber",
-        label: "Register Number",
-        type: "text",
-        placeholder: "Register Number",
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Active",
-        },
-      },
-      {
-        section: "Islamic Course Information",
-        name: "islamicCourseYear",
-        label: "Year",
-        type: "text",
-        placeholder: "Year",
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Active",
-        },
-        inputType: "select",
-        options: SEMESTERS,
-      },
-      {
-        section: "Islamic Course Information",
-        name: "islamicCourseSemester",
-        label: "Semester",
-        type: "text",
-        placeholder: "Semester",
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Active",
-        },
-        inputType: "select",
-        options: SEMESTERS,
-      },
-      {
-        section: "General Course Information",
-        name: "academicCourseName",
-        label: "Course Name",
-        type: "text",
-        placeholder: "Course Name",
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Active",
-        },
-      },
-      {
-        section: "General Course Information",
-        name: "generalUniversity",
-        label: "University/Board Name",
-        type: "text",
-        placeholder: "University/Board Name",
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Active",
-        },
-      },
-      {
-        section: "General Course Information",
-        name: "generalCourseRegisterNumber",
-        label: "Register Number",
-        type: "text",
-        placeholder: "Register Number",
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Active",
-        },
-      },
-      {
-        section: "General Course Information",
-        name: "generalCourseYear",
-        label: "Year",
-        type: "text",
-        placeholder: "Year",
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Active",
-        },
-        inputType: "select",
-        options: SEMESTERS,
-      },
-      {
-        section: "General Course Information",
-        name: "generalCourseSemester",
-        label: "Semester",
-        type: "text",
-        placeholder: "Semester",
-        conditionalRender: {
-          dependentField: "status",
-          expectedValue: "Active",
-        },
-        inputType: "select",
-        options: SEMESTERS,
       },
     ];
 
