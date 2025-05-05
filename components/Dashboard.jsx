@@ -184,8 +184,10 @@ const ClassCard = memo(({ classData, students, batches, attendances }) => {
   const { classStudents, classBatch, attendanceStats } = useMemo(() => {
     // Find associated data
     const filteredStudents = students
-      ? students.filter((student) => student.className === classData.name)
-          .length
+      ? students.filter(
+          (student) =>
+            student.className === classData.name && student.status === "Active"
+        ).length
       : 0;
 
     const foundBatch = batches

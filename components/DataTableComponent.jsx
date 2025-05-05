@@ -445,8 +445,7 @@ const DataTableComponent = ({
 
       await addData.mutateAsync(filteredValues);
       table.resetRowSelection();
-      setPage(0);
-      setIsManualFiltering(true);
+
       await fetchItemsQuery.refetch();
       toast.success(createSuccessMessage);
       return true;
@@ -470,8 +469,7 @@ const DataTableComponent = ({
         },
       });
       table.resetRowSelection();
-      setPage(0);
-      setIsManualFiltering(true);
+
       await fetchItemsQuery.refetch();
       toast.success(editSuccessMessage);
       return true;
@@ -490,8 +488,7 @@ const DataTableComponent = ({
       setLoading(true);
       await deleteData.mutateAsync(selectedData?.map((item) => item?._id));
       table.resetRowSelection();
-      setPage(0);
-      setIsManualFiltering(true);
+
       await fetchItemsQuery.refetch();
       toast.success(deleteSuccessMessage);
       return true;
