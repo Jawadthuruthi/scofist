@@ -38,6 +38,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  LabelList,
 } from "recharts";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -290,6 +291,21 @@ StatsOverview.displayName = "StatsOverview";
  * Batch Chart component with lazy loading
  */
 const BatchChart = memo(({ batches, students, isLoading }) => {
+  const [barWidth, setBarWidth] = useState(30);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const vw = window.innerWidth;
+      const calculatedWidth = Math.max(30, Math.floor(vw * 0.05));
+      setBarWidth(calculatedWidth);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
   if (isLoading) return <ChartSkeleton />;
 
   const chartData = useMemo(() => {
@@ -317,7 +333,7 @@ const BatchChart = memo(({ batches, students, isLoading }) => {
   }
 
   // Fixed dimensions
-  const BAR_WIDTH = 30;
+  const BAR_WIDTH = barWidth;
   const BAR_GAP = 20;
   const CHART_PADDING = 70;
 
@@ -329,7 +345,10 @@ const BatchChart = memo(({ batches, students, isLoading }) => {
 
   return (
     <div className="h-64 max-w-full overflow-x-auto overflow-y-hidden rounded-md">
-      <div style={{ width: `${totalWidth}px`, height: "290px" }}>
+      <div
+        className="mx-auto"
+        style={{ width: `${totalWidth}px`, height: "290px" }}
+      >
         <ResponsiveContainer width="100%" height={290}>
           <RechartsBarChart
             data={chartData}
@@ -357,7 +376,9 @@ const BatchChart = memo(({ batches, students, isLoading }) => {
               name="Number of Students"
               fill="#8884d8"
               radius={[4, 4, 0, 0]}
-            />
+            >
+              <LabelList dataKey="students" position="inside" fill="#ffffff" />
+            </Bar>
           </RechartsBarChart>
         </ResponsiveContainer>
       </div>
@@ -758,7 +779,7 @@ export default function Dashboard({
         </TabsContent>
 
         <TabsContent value="charts" className="space-y-6">
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-6 grid-cols-1">
             {/* Batch Active Students Chart */}
             <Card className="border-t-4 border-t-primary">
               <CardHeader>
