@@ -290,16 +290,30 @@ const IdCard = ({ student, institution, academicYear }) => {
             <StudentDetails student={student} academicYear={academicYear} />
 
             <div className="mt-auto bg-indigo-50 p-2 rounded-md">
-              <div className="text-xs text-gray-700">
-                <p className="text-center mb-1 font-medium">
-                  If found, please return to:
-                </p>
-                <p className="text-center font-bold text-indigo-700">
+              <div className="text-xs text-center text-gray-700">
+                <p className=" font-bold text-indigo-700">
                   {institution.name || "Educational Institution"}
                 </p>
-                <p className="text-center">
-                  {institution.contact?.primaryPhone ||
-                    "Contact phone not provided"}
+                <p className="text-xxs text-gray-700">
+                  {institution.tagline && <span>({institution.tagline})</span>}
+                </p>
+                <p className="text-xxs text-gray-700">
+                  {institution.address?.line1 || ""}
+                  {institution.address?.line2
+                    ? `, ${institution.address.line2}`
+                    : ""}
+                  {institution.address?.city
+                    ? `, ${institution.address.city}`
+                    : ""}
+                  {institution.address?.postalCode
+                    ? `-${institution.address.postalCode}`
+                    : ""}
+                </p>
+                <p className="text-xxs text-gray-700">
+                  {institution.contact?.primaryPhone &&
+                    `Phone: ${institution.contact.primaryPhone}`}
+                  {institution.contact?.secondaryPhone &&
+                    `, ${institution.contact.secondaryPhone}`}
                 </p>
               </div>
             </div>
@@ -315,32 +329,36 @@ const StudentDetails = ({ student, academicYear }) => {
   return (
     <div className="text-xs space-y-1">
       <div className="flex items-start">
-        <span className="mr-1 font-semibold">Class:</span>
+        <span className="mr-1 font-semibold min-w-20 w-20">Class:</span>
         <span className="text-gray-700">{student.className}</span>
       </div>
       <div className="flex items-start">
-        <span className="mr-1 font-semibold">Dob:</span>
+        <span className="mr-1 font-semibold min-w-20 w-20">Batch:</span>
+        <span className="text-gray-700">{student.batchName}</span>
+      </div>
+      <div className="flex items-start">
+        <span className="mr-1 font-semibold min-w-20 w-20">Dob:</span>
         <span className="text-gray-700">
           {formatDateForDisplay(new Date(student.dateOfBirth)) ||
             "No DOB provided"}
         </span>
       </div>
       <div className="flex items-start">
-        <span className="mr-1 font-semibold">S/o:</span>
+        <span className="mr-1 font-semibold min-w-20 w-20">S/o:</span>
         <span className="text-gray-700">
           {student.guardianName || "No guardian provided"}
         </span>
       </div>
       <div className="flex items-start">
-        <span className="mr-1 font-semibold whitespace-nowrap">
-          Contact Number:
+        <span className="mr-1 font-semibold min-w-20 w-20 whitespace-nowrap">
+          Contact No:
         </span>
         <span className="text-gray-700">
           {student.guardianContactNumber || "No contact provided"}
         </span>
       </div>
       <div className="flex items-start">
-        <span className="mr-1 font-semibold">Address:</span>
+        <span className="mr-1 font-semibold min-w-20 w-20">Address:</span>
         <span className="text-gray-700">
           {Object.values(student.address || {})
             .filter(Boolean)
@@ -348,13 +366,13 @@ const StudentDetails = ({ student, academicYear }) => {
         </span>
       </div>
       <div className="flex items-start">
-        <span className="mr-1 font-semibold">Phone Number:</span>
+        <span className="mr-1 font-semibold min-w-20 w-20">Phone No:</span>
         <span className="text-gray-700">
           {student.contactNumber || "No phone provided"}
         </span>
       </div>
       <div className="flex items-start">
-        <span className="mr-1 font-semibold">Validity:</span>
+        <span className="mr-1 font-semibold min-w-20 w-20">Validity:</span>
         <span className="text-gray-700">{academicYear}</span>
       </div>
     </div>
@@ -444,16 +462,28 @@ const PrintableIdCard = ({ student, institution, academicYear }) => {
 
           <StudentDetails student={student} academicYear={academicYear} />
 
-          <div className="bg-indigo-50 p-1 rounded text-xs mt-auto">
-            <p className="text-center mb-0.5 font-medium text-xs">
-              If found, please return to:
-            </p>
-            <p className="text-center font-bold text-indigo-700 text-xs">
+          <div className="bg-indigo-50 p-1 rounded text-center text-xs mt-auto">
+            <p className="font-bold text-indigo-700 text-xs">
               {institution.name || "Educational Institution"}
             </p>
-            <p className="text-center text-xs">
-              {institution.contact?.primaryPhone ||
-                "Contact phone not provided"}
+            <p className="text-xxs text-gray-700">
+              {institution.tagline && <span>({institution.tagline})</span>}
+            </p>
+            <p className="text-xxs text-gray-700">
+              {institution.address?.line1 || ""}
+              {institution.address?.line2
+                ? `, ${institution.address.line2}`
+                : ""}
+              {institution.address?.city ? `, ${institution.address.city}` : ""}
+              {institution.address?.postalCode
+                ? `-${institution.address.postalCode}`
+                : ""}
+            </p>
+            <p className="text-xxs text-gray-700">
+              {institution.contact?.primaryPhone &&
+                `Phone: ${institution.contact.primaryPhone}`}
+              {institution.contact?.secondaryPhone &&
+                `, ${institution.contact.secondaryPhone}`}
             </p>
           </div>
         </div>
