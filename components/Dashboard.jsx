@@ -290,7 +290,8 @@ StatsOverview.displayName = "StatsOverview";
 /**
  * Batch Chart component with lazy loading
  */
-const BatchChart = memo(({ batches, students, isLoading }) => {
+
+const BatchChart = memo(({ batches = [], students = [], isLoading }) => {
   const [barWidth, setBarWidth] = useState(30);
 
   useEffect(() => {
@@ -306,10 +307,11 @@ const BatchChart = memo(({ batches, students, isLoading }) => {
       window.removeEventListener("resize", handleResize);
     };
   }, []);
-  if (isLoading) return <ChartSkeleton />;
 
+  // Move useMemo before any conditional returns
   const chartData = useMemo(() => {
     if (!batches || !students) return [];
+
     return batches
       .map((batch) => {
         // Count students in this batch
@@ -323,6 +325,8 @@ const BatchChart = memo(({ batches, students, isLoading }) => {
       })
       .filter((item) => item.students > 0);
   }, [batches, students]);
+
+  if (isLoading) return <ChartSkeleton />;
 
   if (chartData.length === 0) {
     return (
