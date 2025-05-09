@@ -24,6 +24,9 @@ const StudentsIdCard = ({ students = [], institution = {}, classes = [] }) => {
 
   const handlePrint = usePrint({
     content: () => pageRef.current,
+    pageStyle: {
+      size: "A4 landscape",
+    },
   });
 
   const currentYear = new Date().getFullYear();
