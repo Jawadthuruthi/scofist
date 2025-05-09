@@ -100,8 +100,8 @@ export async function GET(req, res) {
 
     // Use lean for better performance when appropriate
     const users = await User.find(query, projections)
-      .populate("studentSpecificField.batchId", "name")
-      .populate("studentSpecificField.classId", "name")
+      .populate("studentSpecificField.batchId")
+      .populate("studentSpecificField.classId")
       .populate("studentSpecificField.admissionClassId", "name")
       .skip(page * limit)
       .limit(limit)
@@ -178,6 +178,8 @@ export async function GET(req, res) {
         className: studentSpecificField.classId?.name,
         batchId: studentSpecificField.batchId?._id,
         batchName: studentSpecificField.batchId?.name,
+        classData: studentSpecificField.classId,
+        batchData: studentSpecificField.batchId,
 
         status: user.roles?.includes("Student")
           ? studentSpecificField.status

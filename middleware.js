@@ -103,6 +103,11 @@ const pages = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
+    title: "Students ID Card",
+    path: "/dashboard/students-id-card",
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Settings",
     path: "/dashboard/settings",
     allowedRoles: ["College Admin"],

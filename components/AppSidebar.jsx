@@ -22,6 +22,7 @@ import {
   BookOpen,
   Timer,
   BookUser,
+  IdCard,
 } from "lucide-react";
 
 import {
@@ -176,6 +177,12 @@ const items = [
         url: "/dashboard/students-reports",
         icon: FileSearch,
         allowedRoles: ["College Admin", "Teacher"],
+      },
+      {
+        title: "Students ID Card",
+        url: "/dashboard/students-id-card",
+        icon: IdCard,
+        allowedRoles: ["College Admin"],
       },
     ],
   },
