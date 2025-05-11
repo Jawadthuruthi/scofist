@@ -563,19 +563,16 @@ const DataTableComponent = ({
       )}
       <div
         ref={tableRef}
-        className="rounded-md border shadow-sm table-print relative"
+        className="rounded-md border overflow-auto shadow-sm table-print relative"
+        style={{
+          maxHeight: tableHeight,
+        }}
       >
         <PrintHeader
           apiKey={apiKey}
           title={printTitle ? printTitle : resource}
         />
-        <div
-          ref={tableBodyRef}
-          className="overflow-auto"
-          style={{
-            maxHeight: tableHeight,
-          }}
-        >
+        <div ref={tableBodyRef}>
           <Table>
             <TableHeader className="sticky top-0 bg-background z-10">
               {table.getHeaderGroups().map((headerGroup) => (
