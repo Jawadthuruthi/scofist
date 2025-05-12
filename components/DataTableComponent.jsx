@@ -122,7 +122,6 @@ const DataTableComponent = ({
   const [activeApiFilters, setActiveApiFilters] = useState(apiFilters);
 
   const tableRef = useRef(null);
-  const tableBodyRef = useRef(null);
   const isFetchingRef = useRef(false);
   const loaderRef = useRef(null);
   const router = useRouter();
@@ -274,9 +273,9 @@ const DataTableComponent = ({
   // Enhanced scroll handling with debounce
   const handleScroll = useCallback(
     debounce(() => {
-      if (!tableBodyRef.current || isLoadingMore || !hasNextPage) return;
+      if (!tableRef.current || isLoadingMore || !hasNextPage) return;
 
-      const container = tableBodyRef.current;
+      const container = tableRef.current;
       const scrollPosition = container.scrollTop + container.clientHeight;
       const scrollThreshold = container.scrollHeight * infiniteScrollThreshold;
 
@@ -291,7 +290,7 @@ const DataTableComponent = ({
   // Set up the intersection observer for the loader element
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
-      root: tableBodyRef.current,
+      root: tableRef.current,
       rootMargin: "100px",
       threshold: 0.1,
     });
@@ -305,7 +304,7 @@ const DataTableComponent = ({
 
   // Set up scroll event for table body
   useEffect(() => {
-    const tableBody = tableBodyRef.current;
+    const tableBody = tableRef.current;
     if (tableBody) {
       tableBody.addEventListener("scroll", handleScroll);
       return () => tableBody.removeEventListener("scroll", handleScroll);
@@ -572,7 +571,7 @@ const DataTableComponent = ({
           apiKey={apiKey}
           title={printTitle ? printTitle : resource}
         />
-        <div ref={tableBodyRef}>
+        <div>
           <Table>
             <TableHeader className="sticky top-0 bg-background z-10">
               {table.getHeaderGroups().map((headerGroup) => (
