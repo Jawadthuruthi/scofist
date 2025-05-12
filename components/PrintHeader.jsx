@@ -28,7 +28,7 @@ export default function PrintHeader({ title, apiKey, hidePrintLogo = false }) {
   return (
     <Card className="w-full border-0 hidden print:block">
       <CardContent className="p-0">
-        <div className="flex flex-col print:w-full">
+        <div className="flex flex-col w-full">
           {/* Header with logo and institution info */}
           {!hidePrintLogo && (
             <div className="flex items-center justify-center bg-gradient-to-b from-white to-gray-50 border-b border-gray-200">

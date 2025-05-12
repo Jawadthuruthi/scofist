@@ -34,7 +34,10 @@ const useCrud = (resource, apiKey) => {
       mutationFn: (data) => addItem(resource, data, apiKey),
       onSuccess: () => {
         queryClient.removeQueries([resource]);
-        queryClient.invalidateQueries([resource]);
+        queryClient.invalidateQueries({
+          queryKey: [resource],
+          exact: false,
+        });
       },
     });
   };
@@ -45,7 +48,10 @@ const useCrud = (resource, apiKey) => {
       mutationFn: ({ data }) => updateItem(resource, data, apiKey),
       onSuccess: () => {
         queryClient.removeQueries([resource]);
-        queryClient.invalidateQueries([resource]);
+        queryClient.invalidateQueries({
+          queryKey: [resource],
+          exact: false,
+        });
       },
     });
   };
@@ -56,7 +62,10 @@ const useCrud = (resource, apiKey) => {
       mutationFn: (ids) => deleteItem(resource, ids, apiKey),
       onSuccess: () => {
         queryClient.removeQueries([resource]);
-        queryClient.invalidateQueries([resource]);
+        queryClient.invalidateQueries({
+          queryKey: [resource],
+          exact: false,
+        });
       },
     });
   };
