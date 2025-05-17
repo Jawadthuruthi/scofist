@@ -190,6 +190,18 @@ const usePrint = ({
                   box-sizing: border-box !important;
                 }
                 
+                /* FIX: Prevent page breaks between header and table content */
+                #printable-content > .print\\:block,
+                #printable-content > div:first-child {
+                  page-break-after: avoid;
+                  break-after: avoid;
+                }
+                
+                #printable-content .print-table-wrapper {
+                  page-break-before: avoid;
+                  break-before: avoid; 
+                }
+                
                 /* Better handling of page breaks */
                 .page-break-after {
                   page-break-after: always;
@@ -213,6 +225,21 @@ const usePrint = ({
                 [role="button"],
                 .no-print {
                   display: none !important;
+                }
+                
+                /* Keep header and first few rows together */
+                table {
+                  page-break-inside: auto;
+                }
+                
+                /* FIX: Ensure header and first few rows stay together */
+                table thead {
+                  display: table-header-group;
+                }
+                
+                table tbody tr:nth-child(-n+3) {
+                  page-break-inside: avoid;
+                  break-inside: avoid;
                 }
               }
               
@@ -271,6 +298,17 @@ const usePrint = ({
       const printableContainer =
         frameDocument.getElementById("printable-content");
       printableContainer.appendChild(clonedContent);
+
+      // Add classes for print layout
+      const headerElement = printableContainer.querySelector(".print\\:block");
+      if (headerElement) {
+        headerElement.classList.add("print-header");
+      }
+
+      const tableWrapper = printableContainer.querySelector("div:has(table)");
+      if (tableWrapper) {
+        tableWrapper.classList.add("print-table-wrapper");
+      }
 
       // Track resources for better loading strategy
       const images = frameDocument.querySelectorAll("img");

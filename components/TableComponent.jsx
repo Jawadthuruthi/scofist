@@ -35,6 +35,7 @@ const TableComponent = ({
   printTitle,
   hidePrintBtn = false,
   hidePrintLogo = false,
+  tableHeight = "calc(100vh - 250px)",
 }) => {
   const [sorting, setSorting] = useState([]);
 
@@ -61,7 +62,10 @@ const TableComponent = ({
     <div className="space-y-4">
       <div
         ref={tableRef}
-        className="rounded-md overflow-hidden border shadow-sm table-print relative"
+        className="rounded-md border overflow-auto shadow-sm table-print relative"
+        style={{
+          maxHeight: tableHeight,
+        }}
       >
         {!hidePrintBtn && (
           <PrintHeader
@@ -70,13 +74,7 @@ const TableComponent = ({
             hidePrintLogo={hidePrintLogo}
           />
         )}
-        <div
-          className="overflow-auto"
-          style={{
-            maxHeight: "calc(100vh - 250px)",
-          }}
-        >
-          {" "}
+        <div className="print-table-wrapper">
           {table.getRowModel().rows.length > 0 ? (
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">

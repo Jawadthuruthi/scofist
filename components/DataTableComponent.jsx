@@ -568,77 +568,79 @@ const DataTableComponent = ({
           apiKey={apiKey}
           title={printTitle ? printTitle : resource}
         />
-        <Table>
-          <TableHeader className="sticky top-0 bg-background z-10">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    style={getCellStyles(header.column.columnDef.meta)}
-                    className={header.id === "select" ? "print:hidden" : ""}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isInitialLoading ? (
-              Array(3)
-                .fill(0)
-                .map((_, index) => (
-                  <TableRow key={`skeleton-${index}`}>
-                    <TableCell colSpan={columns.length} className="h-12">
-                      <Skeleton className="w-full h-full rounded" />
-                    </TableCell>
-                  </TableRow>
-                ))
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() ? "selected" : undefined}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      style={getCellStyles(cell.column.columnDef.meta)}
-                      key={cell.id}
-                      className={
-                        cell.column.id === "select" ? "print:hidden" : ""
-                      }
+        <div className="print-table-wrapper">
+          <Table>
+            <TableHeader className="sticky top-0 bg-background z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      style={getCellStyles(header.column.columnDef.meta)}
+                      className={header.id === "select" ? "print:hidden" : ""}
                     >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  <h2 className="text-lg font-bold">No Data.</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {hasFilters || Object.keys(filters).length > 0
-                      ? "No matching records found."
-                      : "Sorry, there is no data available at the moment."}
-                  </p>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {isInitialLoading ? (
+                Array(3)
+                  .fill(0)
+                  .map((_, index) => (
+                    <TableRow key={`skeleton-${index}`}>
+                      <TableCell colSpan={columns.length} className="h-12">
+                        <Skeleton className="w-full h-full rounded" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+              ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() ? "selected" : undefined}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        style={getCellStyles(cell.column.columnDef.meta)}
+                        key={cell.id}
+                        className={
+                          cell.column.id === "select" ? "print:hidden" : ""
+                        }
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    <h2 className="text-lg font-bold">No Data.</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {hasFilters || Object.keys(filters).length > 0
+                        ? "No matching records found."
+                        : "Sorry, there is no data available at the moment."}
+                    </p>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
         {hasNextPage && table.getRowModel().rows?.length > 0 && (
           <div ref={loaderRef} className="w-full p-4 text-center print:hidden">
             {isLoadingMore ? (
