@@ -36,7 +36,7 @@ const StudentsContactsListPage = async ({ params }) => {
     const { id } = await params;
     const data = await fetchData(
       "users",
-      `projection=_id,name,profilePic,contactNumber,studentSpecificField.guardianName,studentSpecificField.guardianContactNumber&classId=${id}&roles=Student`
+      `projection=_id,name,profilePic,contactNumber,studentSpecificField.guardianName,studentSpecificField.guardianContactNumber&classId=${id}&roles=Student&status=Active`
     );
 
     return (
