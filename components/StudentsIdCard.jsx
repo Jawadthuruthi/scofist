@@ -116,7 +116,7 @@ const StudentsIdCard = ({ students = [], institution = {}, classes = [] }) => {
       </div>
 
       {/* Screen Preview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 print:hidden">
+      <div className="grid grid-cols-12 gap-4 print:hidden">
         {filteredStudents.map((student) => (
           <IdCard
             key={student._id}
@@ -202,124 +202,121 @@ const StudentsIdCard = ({ students = [], institution = {}, classes = [] }) => {
 // Extracted component for ID card preview
 const IdCard = ({ student, institution, academicYear }) => {
   return (
-    <div className="preview-container">
-      {/* Front & Back Side Preview */}
-      <div className="flex flex-col md:flex-row gap-4">
-        {/* Front Side Preview */}
-        <Card className="w-full md:w-1/2 shadow-md overflow-hidden border-none">
-          <CardContent className="p-0">
-            <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-indigo-800 text-white p-4">
-              {/* Centered Institution Title */}
-              <div className="text-center mb-3">
-                <h2 className="font-bold text-sm uppercase tracking-wider">
-                  {institution.name || "Educational Institution"}
-                </h2>
-                <p className="text-xs opacity-90">
-                  {institution.tagline || "Excellence in Education"}
-                </p>
-              </div>
+    <div className="preview-container col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 gap-4">
+      {/* Front Side Preview */}
+      <Card className=" shadow-md overflow-hidden border-none mb-4">
+        <CardContent className="p-0">
+          <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-indigo-800 text-white p-4">
+            {/* Centered Institution Title */}
+            <div className="text-center mb-3">
+              <h2 className="font-bold text-sm uppercase tracking-wider">
+                {institution.name || "Educational Institution"}
+              </h2>
+              <p className="text-xs opacity-90">
+                {institution.tagline || "Excellence in Education"}
+              </p>
+            </div>
 
-              {/* Institution Logo */}
-              <div className="flex justify-center mb-3">
-                <div className="h-12 w-12 bg-white rounded-full relative overflow-hidden shadow-md">
-                  {institution.logo ? (
+            {/* Institution Logo */}
+            <div className="flex justify-center mb-3">
+              <div className="h-12 w-12 bg-white rounded-full relative overflow-hidden shadow-md">
+                {institution.logo ? (
+                  <div className="relative h-full w-full">
+                    <Image
+                      src={institution.logo.url || ""}
+                      alt="Institution Logo"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center">
+                    <Shield className="text-indigo-700" size={24} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Student Photo and Details - Centered Layout */}
+            <div className="flex flex-col items-center">
+              <div className="mb-3">
+                <div className="w-20 h-24 bg-white border-2 border-white rounded-md relative overflow-hidden shadow-md">
+                  {student.profilePic?.url ? (
                     <div className="relative h-full w-full">
                       <Image
-                        src={institution.logo.url || ""}
-                        alt="Institution Logo"
+                        src={student.profilePic.url || ""}
+                        alt={`${student.name}'s photo`}
                         fill
                         className="object-cover"
                       />
                     </div>
                   ) : (
                     <div className="h-full w-full flex items-center justify-center">
-                      <Shield className="text-indigo-700" size={24} />
+                      <User size={28} className="text-gray-400" />
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Student Photo and Details - Centered Layout */}
-              <div className="flex flex-col items-center">
-                <div className="mb-3">
-                  <div className="w-20 h-24 bg-white border-2 border-white rounded-md relative overflow-hidden shadow-md">
-                    {student.profilePic?.url ? (
-                      <div className="relative h-full w-full">
-                        <Image
-                          src={student.profilePic.url || ""}
-                          alt={`${student.name}'s photo`}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center">
-                        <User size={28} className="text-gray-400" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Student Name and ID - Centered */}
-                <div className="text-center space-y-1">
-                  <h2 className="text-base font-bold mt-1 bg-white/20 inline-block px-2 py-0.5 rounded">
-                    Admn No: {student._id?.substring(0, 8).toUpperCase()}
-                  </h2>
-                  <h3 className="font-bold text-xs">{student.name}</h3>
-                </div>
+              {/* Student Name and ID - Centered */}
+              <div className="text-center space-y-1">
+                <h2 className="text-base font-bold mt-1 bg-white/20 inline-block px-2 py-0.5 rounded">
+                  Admn No: {student._id?.substring(0, 8).toUpperCase()}
+                </h2>
+                <h3 className="font-bold text-xs">{student.name}</h3>
               </div>
             </div>
+          </div>
 
-            <div className="p-2 bg-gradient-to-b from-indigo-50 to-white">
-              <div className="text-xs text-center font-medium text-indigo-800">
-                OFFICIAL STUDENT IDENTIFICATION
-              </div>
+          <div className="p-2 bg-gradient-to-b from-indigo-50 to-white">
+            <div className="text-xs text-center font-medium text-indigo-800">
+              OFFICIAL STUDENT IDENTIFICATION
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Back Side Preview */}
-        <Card className="w-full md:w-1/2 shadow-md overflow-hidden border border-gray-200">
-          <CardContent className="p-4 bg-white flex flex-col h-full">
-            <div className="border-b border-gray-200 pb-2 mb-3">
-              <h3 className="text-sm font-semibold text-gray-800 text-center">
-                Contact Information
-              </h3>
+      {/* Back Side Preview */}
+      <Card className=" shadow-md overflow-hidden border border-gray-200">
+        <CardContent className="p-4 bg-white flex flex-col h-full">
+          <div className="border-b border-gray-200 pb-2 mb-3">
+            <h3 className="text-sm font-semibold text-gray-800 text-center">
+              Contact Information
+            </h3>
+          </div>
+
+          <StudentDetails student={student} academicYear={academicYear} />
+
+          <div className="mt-auto bg-indigo-50 p-2 rounded-md">
+            <div className="text-xs text-center text-gray-700">
+              <p className=" font-bold text-indigo-700">
+                {institution.name || "Educational Institution"}
+              </p>
+              <p className="text-xxs text-gray-700">
+                {institution.tagline && <span>({institution.tagline})</span>}
+              </p>
+              <p className="text-xxs text-gray-700">
+                {institution.address?.line1 || ""}
+                {institution.address?.line2
+                  ? `, ${institution.address.line2}`
+                  : ""}
+                {institution.address?.city
+                  ? `, ${institution.address.city}`
+                  : ""}
+                {institution.address?.postalCode
+                  ? `-${institution.address.postalCode}`
+                  : ""}
+              </p>
+              <p className="text-xxs text-gray-700">
+                {institution.contact?.primaryPhone &&
+                  `Phone: ${institution.contact.primaryPhone}`}
+                {institution.contact?.secondaryPhone &&
+                  `, ${institution.contact.secondaryPhone}`}
+              </p>
             </div>
-
-            <StudentDetails student={student} academicYear={academicYear} />
-
-            <div className="mt-auto bg-indigo-50 p-2 rounded-md">
-              <div className="text-xs text-center text-gray-700">
-                <p className=" font-bold text-indigo-700">
-                  {institution.name || "Educational Institution"}
-                </p>
-                <p className="text-xxs text-gray-700">
-                  {institution.tagline && <span>({institution.tagline})</span>}
-                </p>
-                <p className="text-xxs text-gray-700">
-                  {institution.address?.line1 || ""}
-                  {institution.address?.line2
-                    ? `, ${institution.address.line2}`
-                    : ""}
-                  {institution.address?.city
-                    ? `, ${institution.address.city}`
-                    : ""}
-                  {institution.address?.postalCode
-                    ? `-${institution.address.postalCode}`
-                    : ""}
-                </p>
-                <p className="text-xxs text-gray-700">
-                  {institution.contact?.primaryPhone &&
-                    `Phone: ${institution.contact.primaryPhone}`}
-                  {institution.contact?.secondaryPhone &&
-                    `, ${institution.contact.secondaryPhone}`}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
@@ -383,11 +380,11 @@ const StudentDetails = ({ student, academicYear }) => {
 const PrintableIdCard = ({ student, institution, academicYear }) => {
   return (
     <div
-      className="w-1/4 p-2 flex flex-col"
+      className="w-1/2 h-1/2 p-2 flex space-x-2"
       style={{ pageBreakInside: "avoid" }}
     >
       {/* Front Side Card */}
-      <div className="border rounded shadow mb-2 overflow-hidden h-1/2">
+      <div className="border rounded shadow w-full overflow-hidden ">
         <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-indigo-800 text-white p-2 h-full flex flex-col">
           <div className="text-center mb-1">
             <h2 className="font-bold text-xs uppercase tracking-wider">
@@ -452,7 +449,7 @@ const PrintableIdCard = ({ student, institution, academicYear }) => {
       </div>
 
       {/* Back Side Card */}
-      <div className="border rounded shadow overflow-hidden h-1/2">
+      <div className="border rounded shadow w-full overflow-hidden">
         <div className="p-2 bg-white h-full flex flex-col">
           <div className="border-b border-gray-200 pb-1 mb-1">
             <h3 className="text-xs font-semibold text-gray-800 text-center">
