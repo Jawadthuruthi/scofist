@@ -12,7 +12,6 @@ const institutionFormField = [
     className: "col-span-2",
     maxFileSize: 2 * 1024 * 1024,
     allowedTypes: ["image/jpeg", "image/png", "image/svg+xml"],
-    aspectRatio: 1,
     defaultValue: {},
   },
   {
