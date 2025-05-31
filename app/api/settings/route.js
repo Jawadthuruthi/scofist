@@ -39,18 +39,9 @@ export async function POST(req, res) {
     const formattedData = {
       institution: {
         name: data.name,
-        shortName: data.shortName,
         tagline: data.tagline,
         logo: data.logo,
-        establishedYear: data.establishedYear,
-        address: {
-          line1: data.line1,
-          line2: data.line2,
-          city: data.city,
-          state: data.state,
-          country: data.country,
-          pinCode: data.pinCode,
-        },
+        address: data.address,
         contact: {
           primaryPhone: data.primaryPhone,
           secondaryPhone: data.secondaryPhone,
@@ -101,18 +92,9 @@ export async function PUT(req, res) {
     const formattedData = {
       institution: {
         name: data.name,
-        shortName: data.shortName,
         tagline: data.tagline,
         logo: data.logo,
-        establishedYear: data.establishedYear,
-        address: {
-          line1: data.line1,
-          line2: data.line2,
-          city: data.city,
-          state: data.state,
-          country: data.country,
-          pinCode: data.pinCode,
-        },
+        address: data.address,
         contact: {
           primaryPhone: data.primaryPhone,
           secondaryPhone: data.secondaryPhone,

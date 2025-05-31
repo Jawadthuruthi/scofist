@@ -6,17 +6,8 @@ const SettingsSchema = new Schema(
     // Institution Identity
     institution: {
       name: { type: String, required: true, trim: true },
-      shortName: { type: String, trim: true },
       tagline: { type: String, trim: true },
-      establishedYear: { type: Number },
-      address: {
-        line1: { type: String, trim: true },
-        line2: { type: String, trim: true },
-        city: { type: String, trim: true },
-        state: { type: String, trim: true },
-        pinCode: { type: String, trim: true },
-        country: { type: String, trim: true, default: "India" },
-      },
+      address: { type: String, trim: true },
       contact: {
         primaryPhone: { type: String, trim: true },
         secondaryPhone: { type: String, trim: true },

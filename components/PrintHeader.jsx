@@ -76,9 +76,7 @@ export default function PrintHeader({ title, apiKey, hidePrintLogo = false }) {
                 </p>
                 <p className="text-sm text-gray-600">
                   {institution.address?.line1 || ""}
-                  {institution.address?.line2
-                    ? `, ${institution.address.line2}`
-                    : ""}
+
                   {institution.address?.city
                     ? `, ${institution.address.city}`
                     : ""}
