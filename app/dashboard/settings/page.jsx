@@ -76,7 +76,6 @@ export default async function SettingsPage() {
     const data = await fetchData("settings", "", 0);
     const settings = {
       ...data.institution,
-      ...data.institution.address,
       ...data.institution.contact,
       ...data.idCard,
     };

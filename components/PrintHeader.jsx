@@ -75,14 +75,7 @@ export default function PrintHeader({ title, apiKey, hidePrintLogo = false }) {
                   {institution.tagline && <span>({institution.tagline})</span>}
                 </p>
                 <p className="text-sm text-gray-600">
-                  {institution.address?.line1 || ""}
-
-                  {institution.address?.city
-                    ? `, ${institution.address.city}`
-                    : ""}
-                  {institution.address?.postalCode
-                    ? `-${institution.address.postalCode}`
-                    : ""}
+                  {institution.address || ""}
                 </p>
                 <p className="text-sm text-gray-600">
                   {institution.contact?.primaryPhone &&
