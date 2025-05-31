@@ -28,6 +28,11 @@ const getPublicIdFromUrl = (url) => {
   return null;
 };
 
+function parseAspectRatio(aspectRatioStr) {
+  const [w, h] = aspectRatioStr.split(":").map(Number);
+  return w / h;
+}
+
 // File validation configurations
 const DEFAULT_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
 const DEFAULT_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif"];
@@ -122,21 +127,13 @@ const ImageUploader = ({
         }
 
         if (aspectRatio) {
+          const [w, h] = aspectRatio.split(":").map(Number);
+          const targetRatio = w / h;
           const currentRatio = image.width / image.height;
-          const targetRatio = aspectRatio;
-          const tolerance = 0.1; // 10% tolerance
+          const tolerance = 0.1;
 
           if (Math.abs(currentRatio - targetRatio) > tolerance) {
-            const ratioText = Number.isInteger(aspectRatio)
-              ? `${aspectRatio}:1`
-              : aspectRatio === 1.33
-                ? "4:3"
-                : aspectRatio === 1.78
-                  ? "16:9"
-                  : `${aspectRatio.toFixed(2)}:1`;
-            issues.push(
-              `Image aspect ratio should be approximately ${ratioText}`
-            );
+            issues.push(`Image aspect ratio should be approximately ${w}:${h}`);
           }
         }
 
@@ -380,14 +377,9 @@ const ImageUploader = ({
     }
 
     if (aspectRatio) {
-      const ratioText = Number.isInteger(aspectRatio)
-        ? `${aspectRatio}:1`
-        : aspectRatio === 1.33
-          ? "4:3"
-          : aspectRatio === 1.78
-            ? "16:9"
-            : `${aspectRatio.toFixed(2)}:1`;
-      constraints.push(`Aspect ratio: ${ratioText}`);
+      constraints.push(
+        `Aspect ratio: ${aspectRatio === 1 ? "1:1" : aspectRatio}`
+      );
     }
 
     return constraints.join(" • ");

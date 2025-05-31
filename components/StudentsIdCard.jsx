@@ -16,7 +16,12 @@ import {
 } from "./ui/select";
 import { formatDateForDisplay } from "@/lib/utils";
 
-const StudentsIdCard = ({ students = [], institution = {}, classes = [] }) => {
+const StudentsIdCard = ({
+  students = [],
+  institution = {},
+  classes = [],
+  idCardBackgroundImageUrl = "",
+}) => {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedStudent, setSelectedStudent] = useState("");
 
@@ -73,6 +78,7 @@ const StudentsIdCard = ({ students = [], institution = {}, classes = [] }) => {
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
+                <SelectItem value={null}>None</SelectItem>
                 {classes.map((classItem) => (
                   <SelectItem key={classItem._id} value={classItem._id}>
                     {classItem.name}
@@ -93,6 +99,7 @@ const StudentsIdCard = ({ students = [], institution = {}, classes = [] }) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
+                  <SelectItem value={null}>None</SelectItem>
                   {studentsInSelectedClass.map((student) => (
                     <SelectItem key={student._id} value={student._id}>
                       {student.name}
@@ -123,6 +130,7 @@ const StudentsIdCard = ({ students = [], institution = {}, classes = [] }) => {
             student={student}
             institution={institution}
             academicYear={academicYear}
+            idCardBackgroundImageUrl={idCardBackgroundImageUrl}
           />
         ))}
       </div>
@@ -155,6 +163,7 @@ const StudentsIdCard = ({ students = [], institution = {}, classes = [] }) => {
                     student={student}
                     institution={institution}
                     academicYear={academicYear}
+                    idCardBackgroundImageUrl={idCardBackgroundImageUrl}
                   />
                 ))}
             </div>
@@ -200,13 +209,21 @@ const StudentsIdCard = ({ students = [], institution = {}, classes = [] }) => {
 };
 
 // Extracted component for ID card preview
-const IdCard = ({ student, institution, academicYear }) => {
+const IdCard = ({
+  student,
+  institution,
+  academicYear,
+  idCardBackgroundImageUrl,
+}) => {
   return (
     <div className="preview-container col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 gap-4">
       {/* Front Side Preview */}
       <Card className=" shadow-md overflow-hidden border-none mb-4">
         <CardContent className="p-0">
-          <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-indigo-800 text-white p-4">
+          <div
+            style={{ backgroundImage: `url(${idCardBackgroundImageUrl})` }}
+            className="bg-cover bg-center w-full h-full p-4 rounded shadow"
+          >
             {/* Centered Institution Title */}
             <div className="text-center mb-3">
               <h2 className="font-bold text-sm uppercase tracking-wider">
@@ -377,7 +394,12 @@ const StudentDetails = ({ student, academicYear }) => {
 };
 
 // Extracted component for printable ID card
-const PrintableIdCard = ({ student, institution, academicYear }) => {
+const PrintableIdCard = ({
+  student,
+  institution,
+  academicYear,
+  idCardBackgroundImageUrl,
+}) => {
   return (
     <div
       className="w-1/2 h-1/2 p-2 flex space-x-2"
@@ -385,7 +407,10 @@ const PrintableIdCard = ({ student, institution, academicYear }) => {
     >
       {/* Front Side Card */}
       <div className="border rounded shadow w-full overflow-hidden ">
-        <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-indigo-800 text-white p-2 h-full flex flex-col">
+        <div
+          style={{ backgroundImage: `url(${idCardBackgroundImageUrl})` }}
+          className="bg-cover bg-center w-full h-full p-4 rounded shadow flex flex-col"
+        >
           <div className="text-center mb-1">
             <h2 className="font-bold text-xs uppercase tracking-wider">
               {institution.name || "Educational Institution"}

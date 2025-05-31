@@ -15,6 +15,7 @@ const studentsIdCardPage = async () => {
       <StudentsIdCard
         students={students}
         institution={settings.institution}
+        idCardBackgroundImageUrl={settings.idCard?.backgroundImage?.url}
         classes={classes}
       />
     );

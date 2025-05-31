@@ -1,7 +1,10 @@
+import _ from "lodash";
+
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import Settings from "@/models/Settings";
 import { NextResponse } from "next/server";
+import { removeEmptyValuesDeep } from "@/lib/utils";
 
 export async function GET(req, res) {
   try {
@@ -55,6 +58,7 @@ export async function POST(req, res) {
           website: data.website,
         },
       },
+      idCard: data.backgroundImage,
     };
 
     // Check if settings already exist
@@ -116,7 +120,11 @@ export async function PUT(req, res) {
           website: data.website,
         },
       },
+      idCard: { backgroundImage: data.backgroundImage },
     };
+
+    const cleanedData = removeEmptyValuesDeep(formattedData);
+    console.log("Cleaned data:", cleanedData);
 
     // Check if settings exist
     const existingSettings = await Settings.findOne({});
@@ -131,7 +139,7 @@ export async function PUT(req, res) {
     // Update settings
     const updatedSettings = await Settings.findByIdAndUpdate(
       existingSettings._id,
-      formattedData,
+      { $set: cleanedData },
       { new: true }
     );
 
