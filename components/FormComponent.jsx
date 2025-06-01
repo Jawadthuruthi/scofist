@@ -261,10 +261,10 @@ export default function FormComponent({
         await updateItem.mutateAsync({
           data: values,
         });
-        toast.success("Item updated successfully!");
+        toast.success("Updated successfully!");
       } else {
         await addItem.mutateAsync(values);
-        toast.success("Item added successfully!");
+        toast.success("Saved successfully!");
       }
     } catch (error) {
       console.error("Form submission failed:", error.message);

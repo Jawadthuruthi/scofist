@@ -467,7 +467,7 @@ const PrintableIdCard = ({
             </div>
           </div>
 
-          <div className="bg-white/10 text-xs text-center mt-1 p-0.5 rounded">
+          <div className="bg-white/10 text-xs font-bold text-center mt-1 p-0.5 rounded">
             OFFICIAL STUDENT ID
           </div>
         </div>
