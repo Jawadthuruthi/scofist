@@ -295,7 +295,7 @@ const IdCard = ({
 
       {/* Back Side Preview */}
       <Card className=" shadow-md overflow-hidden border border-gray-200">
-        <CardContent className="p-4 bg-white flex flex-col h-full">
+        <CardContent className="p-4 flex flex-col h-full">
           <div className="border-b border-gray-200 pb-2 mb-3">
             <h3 className="text-sm font-semibold text-gray-800 text-center">
               Contact Information
@@ -312,18 +312,7 @@ const IdCard = ({
               <p className="text-xxs text-gray-700">
                 {institution.tagline && <span>({institution.tagline})</span>}
               </p>
-              <p className="text-xxs text-gray-700">
-                {institution.address?.line1 || ""}
-                {institution.address?.line2
-                  ? `, ${institution.address.line2}`
-                  : ""}
-                {institution.address?.city
-                  ? `, ${institution.address.city}`
-                  : ""}
-                {institution.address?.postalCode
-                  ? `-${institution.address.postalCode}`
-                  : ""}
-              </p>
+              <p className="text-xxs text-gray-700">Sa adabad Deli Kalanad</p>
               <p className="text-xxs text-gray-700">
                 {institution.contact?.primaryPhone &&
                   `Phone: ${institution.contact.primaryPhone}`}
@@ -341,53 +330,63 @@ const IdCard = ({
 // Extracted component for student details (reused in both preview and print views)
 const StudentDetails = ({ student, academicYear }) => {
   return (
-    <div className="text-xs space-y-1">
-      <div className="flex items-start">
-        <span className="mr-1 font-semibold min-w-20 w-20">Class:</span>
-        <span className="text-gray-700">{student.className}</span>
-      </div>
-      <div className="flex items-start">
-        <span className="mr-1 font-semibold min-w-20 w-20">Batch:</span>
-        <span className="text-gray-700">{student.batchName}</span>
-      </div>
-      <div className="flex items-start">
-        <span className="mr-1 font-semibold min-w-20 w-20">Dob:</span>
-        <span className="text-gray-700">
-          {formatDateForDisplay(new Date(student.dateOfBirth)) ||
-            "No DOB provided"}
-        </span>
-      </div>
-      <div className="flex items-start">
-        <span className="mr-1 font-semibold min-w-20 w-20">S/o:</span>
-        <span className="text-gray-700">
-          {student.guardianName || "No guardian provided"}
-        </span>
-      </div>
-      <div className="flex items-start">
-        <span className="mr-1 font-semibold min-w-20 w-20 whitespace-nowrap">
-          Contact No:
-        </span>
-        <span className="text-gray-700">
-          {student.guardianContactNumber || "No contact provided"}
-        </span>
-      </div>
-      <div className="flex items-start">
-        <span className="mr-1 font-semibold min-w-20 w-20">Address:</span>
-        <span className="text-gray-700">
-          {Object.values(student.address || {})
-            .filter(Boolean)
-            .join(", ") || "No address provided"}
-        </span>
-      </div>
-      <div className="flex items-start">
-        <span className="mr-1 font-semibold min-w-20 w-20">Phone No:</span>
-        <span className="text-gray-700">
-          {student.contactNumber || "No phone provided"}
-        </span>
-      </div>
-      <div className="flex items-start">
-        <span className="mr-1 font-semibold min-w-20 w-20">Validity:</span>
-        <span className="text-gray-700">{academicYear}</span>
+    <div className="relative">
+      <div
+        className="absolute inset-0 bg-center bg-no-repeat z-0"
+        style={{
+          backgroundImage: 'url("/sdc_seal.png")',
+          opacity: 0.4,
+          backgroundSize: "250px",
+        }}
+      ></div>
+      <div className="relative text-xs space-y-1 z-10">
+        <div className="flex items-start">
+          <span className="mr-1 font-semibold min-w-20 w-20">Class:</span>
+          <span className="text-gray-700">{student.className}</span>
+        </div>
+        <div className="flex items-start">
+          <span className="mr-1 font-semibold min-w-20 w-20">Batch:</span>
+          <span className="text-gray-700">{student.batchName}</span>
+        </div>
+        <div className="flex items-start">
+          <span className="mr-1 font-semibold min-w-20 w-20">Dob:</span>
+          <span className="text-gray-700">
+            {formatDateForDisplay(new Date(student.dateOfBirth)) ||
+              "No DOB provided"}
+          </span>
+        </div>
+        <div className="flex items-start">
+          <span className="mr-1 font-semibold min-w-20 w-20">S/o:</span>
+          <span className="text-gray-700">
+            {student.guardianName || "No guardian provided"}
+          </span>
+        </div>
+        <div className="flex items-start">
+          <span className="mr-1 font-semibold min-w-20 w-20 whitespace-nowrap">
+            Contact No:
+          </span>
+          <span className="text-gray-700">
+            {student.guardianContactNumber || "No contact provided"}
+          </span>
+        </div>
+        <div className="flex items-start">
+          <span className="mr-1 font-semibold min-w-20 w-20">Address:</span>
+          <span className="text-gray-700">
+            {Object.values(student.address || {})
+              .filter(Boolean)
+              .join(", ") || "No address provided"}
+          </span>
+        </div>
+        <div className="flex items-start">
+          <span className="mr-1 font-semibold min-w-20 w-20">Phone No:</span>
+          <span className="text-gray-700">
+            {student.contactNumber || "No phone provided"}
+          </span>
+        </div>
+        <div className="flex items-start">
+          <span className="mr-1 font-semibold min-w-20 w-20">Validity:</span>
+          <span className="text-gray-700">{academicYear}</span>
+        </div>
       </div>
     </div>
   );
@@ -485,22 +484,13 @@ const PrintableIdCard = ({
           <StudentDetails student={student} academicYear={academicYear} />
 
           <div className="bg-indigo-50 p-1 rounded text-center text-xs mt-auto">
-            <p className="font-bold text-indigo-700 text-xs">
+            <p className="font-bold text-indigo-700 text-xs px-8">
               {institution.name || "Educational Institution"}
             </p>
             <p className="text-xxs text-gray-700">
               {institution.tagline && <span>({institution.tagline})</span>}
             </p>
-            <p className="text-xxs text-gray-700">
-              {institution.address?.line1 || ""}
-              {institution.address?.line2
-                ? `, ${institution.address.line2}`
-                : ""}
-              {institution.address?.city ? `, ${institution.address.city}` : ""}
-              {institution.address?.postalCode
-                ? `-${institution.address.postalCode}`
-                : ""}
-            </p>
+            <p className="text-xxs text-gray-700">Sa adabad Deli Kalanad</p>
             <p className="text-xxs text-gray-700">
               {institution.contact?.primaryPhone &&
                 `Phone: ${institution.contact.primaryPhone}`}
