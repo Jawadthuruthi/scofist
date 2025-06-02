@@ -312,7 +312,9 @@ const IdCard = ({
               <p className="text-xxs text-gray-700">
                 {institution.tagline && <span>({institution.tagline})</span>}
               </p>
-              <p className="text-xxs text-gray-700">Sa adabad Deli Kalanad</p>
+              <p className="text-xxs text-gray-700">
+                Sa-adabad, Deli, P.O Kalanad, Kasaragod
+              </p>
               <p className="text-xxs text-gray-700">
                 {institution.contact?.primaryPhone &&
                   `Phone: ${institution.contact.primaryPhone}`}
@@ -490,7 +492,9 @@ const PrintableIdCard = ({
             <p className="text-xxs text-gray-700">
               {institution.tagline && <span>({institution.tagline})</span>}
             </p>
-            <p className="text-xxs text-gray-700">Sa adabad Deli Kalanad</p>
+            <p className="text-xxs text-gray-700">
+              Sa-adabad, Deli, P.O Kalanad, Kasaragod
+            </p>
             <p className="text-xxs text-gray-700">
               {institution.contact?.primaryPhone &&
                 `Phone: ${institution.contact.primaryPhone}`}
