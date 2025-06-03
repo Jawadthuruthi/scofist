@@ -532,6 +532,7 @@ export default function Dashboard({
   timeTable = [],
   periods = [],
   attendances = [],
+  settings = {},
 }) {
   // States for loading and error handling
   const [error, setError] = useState(null);
@@ -690,7 +691,8 @@ export default function Dashboard({
           {/* Time Table Component with lazy loading */}
           {isClient &&
             !!activeRole &&
-            ["Teacher", "College Admin", "Org Admin"].includes(activeRole) && (
+            ["Teacher", "College Admin", "Org Admin"].includes(activeRole) &&
+            settings?.general?.isWorkingDay && (
               <Card className="border-t-4 border-t-primary">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">

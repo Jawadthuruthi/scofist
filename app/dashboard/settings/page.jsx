@@ -3,6 +3,28 @@ import Header from "@/components/Header";
 import FormComponent from "@/components/FormComponent";
 import { fetchData } from "@/lib/utils";
 
+const generalFormField = [
+  {
+    name: "isWorkingDay",
+    label: "Enable/Disable Working Day",
+    required: true,
+    type: "boolean",
+    inputType: "toggle",
+    defaultValue: true,
+    hideLabel: true,
+    className: "col-span-2",
+  },
+  {
+    name: "occasion",
+    label: "Occasion",
+    required: true,
+    conditionalRender: {
+      dependentField: "isWorkingDay",
+      expectedValue: false,
+    },
+  },
+];
+
 const institutionFormField = [
   {
     name: "logo",
@@ -74,9 +96,17 @@ export default async function SettingsPage() {
     const apiKey = process.env.API_KEY;
 
     const data = await fetchData("settings", "", 0);
-    const settings = {
+
+    const general = {
+      ...data.general,
+    };
+
+    const institution = {
       ...data.institution,
       ...data.institution.contact,
+    };
+
+    const idCard = {
       ...data.idCard,
     };
 
@@ -85,9 +115,17 @@ export default async function SettingsPage() {
         <Header title="SETTINGS" subTitle="Customize System Behavior" />
         <div className="space-y-8">
           <FormComponent
+            formFields={generalFormField}
+            apiKey={apiKey}
+            data={general}
+            resource="settings"
+            title="General"
+            description="Customize Your System Settings"
+          />
+          <FormComponent
             formFields={institutionFormField}
             apiKey={apiKey}
-            data={settings}
+            data={institution}
             resource="settings"
             title="Institution Profile"
             description="Configure Your Institution Details"
@@ -95,7 +133,7 @@ export default async function SettingsPage() {
           <FormComponent
             formFields={idCardFormField}
             apiKey={apiKey}
-            data={settings}
+            data={idCard}
             resource="settings"
             title="ID Card"
             description="Set Your ID Card Background"

@@ -70,6 +70,23 @@ export function useDynamicFormSchema(formFields = null) {
                 .optional();
           break;
 
+        case "boolean":
+          fieldSchema = required
+            ? z
+                .boolean({
+                  required_error: `${displayName} is required`,
+                })
+                .refine((val) => typeof val === "boolean", {
+                  message: `${displayName} must be a boolean value`,
+                })
+            : z
+                .boolean()
+                .refine((val) => typeof val === "boolean", {
+                  message: `${displayName} must be a boolean value`,
+                })
+                .optional();
+          break;
+
         case "url":
           fieldSchema = required
             ? z

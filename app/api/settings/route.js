@@ -50,6 +50,10 @@ export async function POST(req, res) {
         },
       },
       idCard: data.backgroundImage,
+      general: {
+        isWorkingDay: data.isWorkingDay,
+        occasion: data.occasion,
+      },
     };
 
     // Check if settings already exist
@@ -89,6 +93,7 @@ export async function PUT(req, res) {
     await connectToDB();
 
     const data = await req.json();
+    console.log(data);
     const formattedData = {
       institution: {
         name: data.name,
@@ -103,6 +108,10 @@ export async function PUT(req, res) {
         },
       },
       idCard: { backgroundImage: data.backgroundImage },
+      general: {
+        isWorkingDay: data.isWorkingDay,
+        occasion: data.occasion,
+      },
     };
 
     const cleanedData = removeEmptyValuesDeep(formattedData);

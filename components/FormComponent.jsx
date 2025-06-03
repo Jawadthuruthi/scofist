@@ -29,6 +29,8 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
+import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
 
 const SectionNavigation = ({
   ref,
@@ -93,6 +95,18 @@ const FormFields = ({ form, fields, apiKey }) =>
                 value={formField.value}
                 onValueChange={(value) => formField.onChange(value)}
               />
+            ) : field.inputType === "toggle" ? (
+              <div className="flex items-center space-x-2">
+                <Label htmlFor={field.name} className="text-sm font-medium">
+                  {field.label}
+                </Label>
+                <Switch
+                  id={field.name}
+                  checked={formField.value || false}
+                  onCheckedChange={(checked) => formField.onChange(checked)}
+                  disabled={field.disabled}
+                />
+              </div>
             ) : (
               <Input
                 type={field.type || "text"}

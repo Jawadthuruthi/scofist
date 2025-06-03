@@ -30,18 +30,28 @@ const API_ENDPOINTS = [
     pathname: "attendances",
     searchParams: `date=${istTime.toISOString().split("T")[0]}`,
   },
+  {
+    pathname: "settings",
+  },
 ];
 
 export default async function DashboardPage() {
   try {
     const apiKey = process.env.API_KEY;
 
-    const [classes, batches, teachers, timeTable, periods, attendances] =
-      await Promise.all(
-        API_ENDPOINTS.map((endpoint) =>
-          fetchData(endpoint.pathname, endpoint.searchParams)
-        )
-      );
+    const [
+      classes,
+      batches,
+      teachers,
+      timeTable,
+      periods,
+      attendances,
+      settings,
+    ] = await Promise.all(
+      API_ENDPOINTS.map((endpoint) =>
+        fetchData(endpoint.pathname, endpoint.searchParams)
+      )
+    );
 
     return (
       <Dashboard
@@ -52,6 +62,7 @@ export default async function DashboardPage() {
         timeTable={timeTable}
         periods={periods}
         attendances={attendances}
+        settings={settings}
       />
     );
   } catch (error) {

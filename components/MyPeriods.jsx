@@ -44,6 +44,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
   const { useFetchItems } = useCrud("timeTables", apiKey);
   const { useFetchItems: useFetchPeriods } = useCrud("periods", apiKey);
   const { useFetchItems: useFetchAttendance } = useCrud("attendances", apiKey);
+  const { useFetchItems: useFetchSettings } = useCrud("settings", apiKey);
 
   // Reduce network requests by passing proper options
   const periodsQuery = useFetchPeriods(
@@ -75,6 +76,16 @@ const MyPeriods = ({ apiKey, teacherId }) => {
       staleTime: 1000 * 60 * 2,
     }
   );
+
+  const settingsQuery = useFetchSettings(
+    0,
+    0,
+    {},
+    {
+      staleTime: 1000 * 60 * 60,
+    }
+  );
+  const settings = settingsQuery.data?.settings;
 
   // Memoize periods to avoid unnecessary re-renders
   const periods = useMemo(() => {
@@ -168,7 +179,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
             <div className="flex justify-center items-center h-40">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-          ) : filteredSlots.length > 0 ? (
+          ) : filteredSlots.length > 0 && settings?.general?.isWorkingDay ? (
             <div className="overflow-x-auto border rounded-md">
               <Table>
                 <TableHeader>
@@ -236,7 +247,9 @@ const MyPeriods = ({ apiKey, teacherId }) => {
             </div>
           ) : (
             <div className="text-center p-8 border rounded-md">
-              No teaching periods scheduled for {today}
+              {!settings?.general?.isWorkingDay
+                ? settings?.general?.occasion || "Today is a non-working day."
+                : "No periods scheduled for " + today + "."}
             </div>
           )}
         </div>

@@ -3,7 +3,21 @@ import { Schema, model, models } from "mongoose";
 
 const SettingsSchema = new Schema(
   {
-    // Institution Identity
+    general: {
+      isWorkingDay: {
+        type: Boolean,
+        default: true,
+        required: true,
+      },
+      occasion: {
+        type: String,
+        trim: true,
+        default: "",
+        required: function () {
+          return !this.isWorkingDay;
+        },
+      },
+    },
     institution: {
       name: { type: String, required: true, trim: true },
       tagline: { type: String, trim: true },
