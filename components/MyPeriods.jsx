@@ -246,7 +246,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
               </Table>
             </div>
           ) : (
-            <div className="text-center p-8 border rounded-md">
+            <div className="text-center p-8 border rounded-md font-bold text-muted-foreground text-lg">
               {!settings?.general?.isWorkingDay
                 ? settings?.general?.occasion || "Today is a non-working day."
                 : "No periods scheduled for " + today + "."}
