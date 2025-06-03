@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import { markAbsentTeachers } from "@/lib/teacherAttendanceService";
-import { Settings } from "lucide-react";
+import Settings from "@/models/Settings";
 
 export async function GET(req) {
   try {
     await connectToDB();
 
-    // Get today's date in IST (UTC+5:30)
     const today = new Date();
     const istTime = new Date(today.getTime() + 5.5 * 60 * 60 * 1000);
     const dateString = istTime.toISOString().split("T")[0];
