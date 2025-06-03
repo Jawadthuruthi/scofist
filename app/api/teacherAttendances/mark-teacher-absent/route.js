@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import { markAbsentTeachers } from "@/lib/teacherAttendanceService";
+import { Settings } from "lucide-react";
 
 export async function GET(req) {
   try {
@@ -10,6 +11,15 @@ export async function GET(req) {
     const today = new Date();
     const istTime = new Date(today.getTime() + 5.5 * 60 * 60 * 1000);
     const dateString = istTime.toISOString().split("T")[0];
+
+    const settings = await Settings.findOne({});
+
+    if (!settings?.general?.isWorkingDay) {
+      return NextResponse.json(
+        { message: "School is closed today" },
+        { status: 400 }
+      );
+    }
 
     const result = await markAbsentTeachers(dateString);
 
