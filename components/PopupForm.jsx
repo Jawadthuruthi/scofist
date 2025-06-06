@@ -288,20 +288,36 @@ export default function PopupForm({
         )
         .map((field) => {
           if (field.filter) {
+            const dependentValue = formValues[field.filter.dependentField];
+            const selectedValues = form.getValues(field.name) || [];
+
+            const filteredOptions = field.options.filter((option) => {
+              return (
+                !dependentValue ||
+                (field.filter.key
+                  ? option[field.filter.dependentField]?.[field.filter.key] ===
+                    dependentValue
+                  : option[field.filter.dependentField] === dependentValue)
+              );
+            });
+
+            const selectedOptions = field.options.filter((option) =>
+              selectedValues.includes(option.value)
+            );
+
+            const mergedOptions = [
+              ...filteredOptions,
+              ...selectedOptions.filter(
+                (opt) => !filteredOptions.some((fo) => fo.value === opt.value)
+              ),
+            ];
+
             return {
               ...field,
-              options: field.options.filter((option) => {
-                const dependentValue = formValues[field.filter.dependentField];
-                return (
-                  !dependentValue ||
-                  (field.filter.key
-                    ? option[field.filter.dependentField][field.filter.key] ===
-                      dependentValue
-                    : option[field.filter.dependentField] === dependentValue)
-                );
-              }),
+              options: mergedOptions,
             };
           }
+
           return field;
         })
     );

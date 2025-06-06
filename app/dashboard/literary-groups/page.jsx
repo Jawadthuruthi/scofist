@@ -5,12 +5,12 @@ import { fetchData, formatOptions } from "@/lib/utils";
 
 const API_ENDPOINTS = [
   {
-    pathname: "batches",
-    searchParams: "projection=_id,name,students",
+    pathname: "classes",
+    searchParams: "projection=_id,name",
   },
   {
     pathname: "users",
-    searchParams: "roles=Student&projection=_id,name,batchId&status=Active",
+    searchParams: "roles=Student&projection=_id,name,classId&status=Active",
   },
 ];
 
@@ -46,7 +46,7 @@ export default async function GroupsPage() {
   try {
     const apiKey = process.env.API_KEY;
 
-    const [batches, students] = await Promise.all(
+    const [classes, students] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
         fetchData(endpoint.pathname, endpoint.searchParams)
       )
@@ -80,11 +80,11 @@ export default async function GroupsPage() {
         },
       },
       {
-        name: "batchId",
-        label: "Assign a batch",
+        name: "classId",
+        label: "Select a class",
         type: "text",
         inputType: "select",
-        options: formatOptions(batches),
+        options: formatOptions(classes),
       },
       {
         name: "studentsId",
@@ -95,7 +95,7 @@ export default async function GroupsPage() {
         options: formatOptions(students),
         showSelectedCount: true,
         filter: {
-          dependentField: "batchId",
+          dependentField: "classId",
         },
       },
     ];
