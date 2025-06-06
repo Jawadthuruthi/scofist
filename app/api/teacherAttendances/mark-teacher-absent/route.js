@@ -15,7 +15,7 @@ export async function GET(req) {
 
     if (!settings?.general?.isWorkingDay) {
       return NextResponse.json(
-        { message: "School is closed today" },
+        { message: "college is closed today" },
         { status: 400 }
       );
     }

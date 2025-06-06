@@ -89,6 +89,11 @@ const FormFields = ({ form, fields, apiKey }) =>
                 multiSelect={field.inputType === "multiSelect"}
                 value={formField.value}
                 onValueChange={(value) => formField.onChange(value)}
+                variant={field.variant || "default"}
+                maxCount={field.maxCount}
+                disableSearch={field.disableSearch}
+                freeSolo={field.freeSolo}
+                showSelectedCount={field.showSelectedCount}
               />
             ) : (
               <Input
@@ -273,13 +278,32 @@ export default function PopupForm({
 
   React.useEffect(() => {
     setCustomizedFormField(
-      formFields.filter(
-        (field) =>
-          (data ? !field?.hideOnEdit : true) &&
-          (!field.conditionalRender ||
-            field.conditionalRender.expectedValue ===
-              formValues[field.conditionalRender.dependentField])
-      )
+      formFields
+        .filter(
+          (field) =>
+            (data ? !field?.hideOnEdit : true) &&
+            (!field.conditionalRender ||
+              field.conditionalRender.expectedValue ===
+                formValues[field.conditionalRender.dependentField])
+        )
+        .map((field) => {
+          if (field.filter) {
+            return {
+              ...field,
+              options: field.options.filter((option) => {
+                const dependentValue = formValues[field.filter.dependentField];
+                return (
+                  !dependentValue ||
+                  (field.filter.key
+                    ? option[field.filter.dependentField][field.filter.key] ===
+                      dependentValue
+                    : option[field.filter.dependentField] === dependentValue)
+                );
+              }),
+            };
+          }
+          return field;
+        })
     );
   }, [data, formFields, formValues]);
 

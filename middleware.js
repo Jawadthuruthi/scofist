@@ -14,7 +14,16 @@ const pages = [
   {
     title: "Dashboard",
     path: "/dashboard",
-    allowedRoles: ["College Admin", "Teacher", "Org Admin", "Student"],
+    allowedRoles: [
+      "College Admin",
+      "Teacher",
+      "Org Admin",
+      "Student",
+      "Program Committee",
+      "Program Leader",
+      "Finance",
+      "Literary Leader",
+    ],
   },
   {
     title: "My Periods",
@@ -106,6 +115,11 @@ const pages = [
     title: "Students ID Card",
     path: "/dashboard/students-id-card",
     allowedRoles: ["College Admin"],
+  },
+  {
+    title: "Literary Groups",
+    path: "/dashboard/literary-groups",
+    allowedRoles: ["Literary Leader"],
   },
   {
     title: "Settings",
@@ -213,7 +227,7 @@ async function handleAuthRequest(req) {
       const fallbackUser = createFallbackUser(payload);
 
       // Store fallback user with shorter TTL
-      storeUserInCache(userId, fallbackUser, 5 * 60 * 1000); // 5 minutes
+      storeUserInCache(userId, fallbackUser, 1 * 60 * 1000); // 1 minutes
 
       return prepareResponse(req, token, fallbackUser);
     }

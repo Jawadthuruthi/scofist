@@ -86,6 +86,7 @@ const handleError = (error) => {
 
 const DataTableComponent = ({
   resource,
+  apiEndpoint = "",
   initialData = [],
   columnsConfig,
   tableHeight = "calc(100vh - 312px)",
@@ -148,7 +149,7 @@ const DataTableComponent = ({
   } = useDataFilter(data);
 
   const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud(
-    resource,
+    apiEndpoint ? apiEndpoint : resource,
     apiKey
   );
 
@@ -393,7 +394,7 @@ const DataTableComponent = ({
   // Print functionality
   const handlePrint = usePrint({
     content: () => tableRef.current,
-    documentTitle: `${capitalize(resource)} List`,
+    documentTitle: `${capitalize(apiEndpoint)} List`,
   });
 
   // Table columns

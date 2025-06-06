@@ -63,7 +63,16 @@ const items = [
     title: "Dashboard",
     url: "/dashboard",
     icon: Home,
-    allowedRoles: ["College Admin", "Teacher", "Org Admin", "Student"],
+    allowedRoles: [
+      "College Admin",
+      "Teacher",
+      "Org Admin",
+      "Student",
+      "Program Committee",
+      "Program Leader",
+      "Finance",
+      "Literary Leader",
+    ],
   },
   {
     title: "My Periods",
@@ -186,7 +195,12 @@ const items = [
       },
     ],
   },
-
+  {
+    title: "Literary Groups",
+    url: "/dashboard/literary-groups",
+    allowedRoles: ["Literary Leader"],
+    icon: Users,
+  },
   {
     title: "Settings",
     url: "/dashboard/settings",

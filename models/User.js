@@ -13,7 +13,6 @@ const ROLES = [
   "Program Leader",
   "Finance",
   "Literary Leader",
-  "Literary Manager",
 ];
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];

@@ -81,6 +81,20 @@ const useTableColumns = (columnConfig) => {
         const displayValue = Array.isArray(value)
           ? value.join(", ")
           : value || "-";
+        if (col.type?.includes("vertical")) {
+          return (
+            <div
+              style={{ maxHeight: "100px" }}
+              className="font-medium overflow-y-auto"
+            >
+              {Array.isArray(value) ? (
+                value.map((item, index) => <div key={index}>{item}</div>)
+              ) : (
+                <span>{displayValue}</span>
+              )}
+            </div>
+          );
+        }
         return <div className="font-medium">{displayValue}</div>;
       };
     }

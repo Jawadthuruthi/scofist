@@ -52,6 +52,7 @@ export const MultiSelect = React.forwardRef(
       multiSelect = true,
       value = multiSelect ? [] : "",
       freeSolo = false,
+      showSelectedCount = false,
       ...props
     },
     ref
@@ -150,62 +151,82 @@ export const MultiSelect = React.forwardRef(
               <div className="flex justify-between items-center w-full">
                 <div className="flex flex-wrap items-center">
                   {/* Handle multiSelect = true (array) */}
-                  {multiSelect
-                    ? selectedValues.slice(0, maxCount).map((value) => {
-                        const option = options.find((o) => o.value === value);
-                        const IconComponent = option?.icon;
-                        return (
-                          <Badge
-                            key={value}
-                            className={cn(
-                              isAnimating ? "animate-bounce" : "",
-                              multiSelectVariants(variant)
-                            )}
-                            style={{ animationDuration: `${animation}s` }}
-                          >
-                            {IconComponent && (
-                              <IconComponent className="h-4 w-4 mr-2" />
-                            )}
-                            {option?.label}
-                            <XCircle
-                              className="ml-2 h-4 w-4 cursor-pointer"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                toggleOption(value);
-                              }}
-                            />
-                          </Badge>
-                        );
-                      })
-                    : // Handle multiSelect = false (single value)
-                      (() => {
-                        const option = options.find(
-                          (o) => o.value === selectedValues
-                        );
-                        if (!option) return null;
-                        const IconComponent = option?.icon;
-                        return (
-                          <Badge
-                            className={cn(
-                              isAnimating ? "animate-bounce" : "",
-                              multiSelectVariants(variant)
-                            )}
-                            style={{ animationDuration: `${animation}s` }}
-                          >
-                            {IconComponent && (
-                              <IconComponent className="h-4 w-4 mr-2" />
-                            )}
-                            {option?.label}
-                            <XCircle
-                              className="ml-2 h-4 w-4 cursor-pointer"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleClear(); // Clear single value
-                              }}
-                            />
-                          </Badge>
-                        );
-                      })()}
+                  {multiSelect && !showSelectedCount ? (
+                    selectedValues.slice(0, maxCount).map((value) => {
+                      const option = options.find((o) => o.value === value);
+                      const IconComponent = option?.icon;
+                      return (
+                        <Badge
+                          key={value}
+                          className={cn(
+                            isAnimating ? "animate-bounce" : "",
+                            multiSelectVariants(variant)
+                          )}
+                          style={{ animationDuration: `${animation}s` }}
+                        >
+                          {IconComponent && (
+                            <IconComponent className="h-4 w-4 mr-2" />
+                          )}
+
+                          {option?.label}
+                          <XCircle
+                            className="ml-2 h-4 w-4 cursor-pointer"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleOption(value);
+                            }}
+                          />
+                        </Badge>
+                      );
+                    })
+                  ) : multiSelect && showSelectedCount ? (
+                    <Badge
+                      className={cn(
+                        isAnimating ? "animate-bounce" : "",
+                        multiSelectVariants(variant)
+                      )}
+                      style={{ animationDuration: `${animation}s` }}
+                    >
+                      {`${selectedValues.length} selected`}
+                      <XCircle
+                        className="ml-2 h-4 w-4 cursor-pointer"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleClear(); // Clear all selections
+                        }}
+                      />
+                    </Badge>
+                  ) : (
+                    // Handle multiSelect = false (single value)
+                    (() => {
+                      const option = options.find(
+                        (o) => o.value === selectedValues
+                      );
+                      if (!option) return null;
+                      const IconComponent = option?.icon;
+                      return (
+                        <Badge
+                          className={cn(
+                            isAnimating ? "animate-bounce" : "",
+                            multiSelectVariants(variant)
+                          )}
+                          style={{ animationDuration: `${animation}s` }}
+                        >
+                          {IconComponent && (
+                            <IconComponent className="h-4 w-4 mr-2" />
+                          )}
+                          {option?.label}
+                          <XCircle
+                            className="ml-2 h-4 w-4 cursor-pointer"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleClear(); // Clear single value
+                            }}
+                          />
+                        </Badge>
+                      );
+                    })()
+                  )}
                   {/* Show `+ more` badge only for multiSelect mode */}
                   {multiSelect && selectedValues.length > maxCount && (
                     <Badge
