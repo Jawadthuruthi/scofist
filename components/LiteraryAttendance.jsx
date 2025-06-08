@@ -1,0 +1,152 @@
+"use client";
+
+import { formatDate, formatDateForDisplay } from "@/lib/utils";
+import Header from "./Header";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+import { Button } from "./ui/button";
+import { CheckCircle2, ExternalLink } from "lucide-react";
+import Link from "next/link";
+import useCrud from "@/hooks/use-crud";
+import { useRouter } from "next/navigation";
+
+const days = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+const LiteraryAttendance = ({ students = [], classes = [], apiKey }) => {
+  const [activeTab, setActiveTab] = useState("all");
+  const [attendance, setAttendance] = useState({});
+
+  const router = useRouter();
+
+  const today = useMemo(() => days[new Date().getDay()], [days]);
+  const date = useMemo(() => formatDateForDisplay(new Date()), []);
+  const formattedDate = useMemo(() => formatDate(new Date()), []);
+
+  useEffect(() => {
+    router.refresh();
+  }, []);
+
+  const { useFetchItems: useFetch } = useCrud("literary/attendances", apiKey);
+
+  const attendanceQuery = useFetch(
+    0,
+    0,
+    {
+      date: formattedDate,
+    },
+    {
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
+    }
+  );
+
+  const attendanceData = useMemo(() => {
+    return attendanceQuery.data?.attendances || [];
+  }, [attendanceQuery.data]);
+
+  useEffect(() => {
+    if (students?.length > 0) {
+      // Initialize attendance map efficiently
+      const initialAttendance = {};
+      students.forEach((student) => {
+        initialAttendance[student._id] = true; // Default to present
+      });
+
+      // Only set attendance if we don't have existing attendance data
+      if (Object.keys(attendance).length === 0) {
+        setAttendance(initialAttendance);
+      }
+    }
+  }, [students, attendance]);
+
+  const isAttendanceMarked = useCallback(
+    (classId) => {
+      return attendanceData.some(
+        (att) =>
+          att.classId === classId &&
+          att.date === formattedDate &&
+          att.category === "ALL"
+      );
+    },
+    [attendanceData]
+  );
+
+  return (
+    <div className="space-y-6">
+      <Header
+        title="LITERARY ATTENDANCE"
+        subTitle="Manage Literary Attendance"
+      />
+      <div className="mb-6 py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
+        {date}, {today}
+      </div>
+      <Tabs value={activeTab} defaultValue="all" onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-2 w-full">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="group">Group</TabsTrigger>
+        </TabsList>
+        <TabsContent value="all">
+          <div className="overflow-x-auto border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Class</TableHead>
+
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {classes.map((cls) => (
+                  <TableRow key={cls._id} className="hover:bg-accent/50">
+                    <TableCell className="whitespace-nowrap">
+                      <div className="text-xs md:text-base">{cls?.name}</div>
+                      {isAttendanceMarked(cls._id) && (
+                        <div className="flex items-center gap-1 text-xxs text-muted-foreground">
+                          <CheckCircle2 className="text-green-500 h-3 w-3" />
+                          <span>Attendance Marked</span>
+                        </div>
+                      )}
+                    </TableCell>
+
+                    <TableCell align="right">
+                      <Link
+                        href={`/dashboard/literary-attendance/mark-attendance?classId=${cls?._id}&category=ALL&apiKey=${apiKey}&date=${formattedDate}&day=${today}&batchId=${cls.batchId}`}
+                        prefetch={false}
+                      >
+                        <ExternalLink className="text-muted-foreground h-5 w-5 md:hidden" />
+                        <Button size="sm" className="hidden md:inline-flex">
+                          {isAttendanceMarked(cls._id)
+                            ? "Update Attendance"
+                            : "Take Attendance"}
+                        </Button>
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+        <TabsContent value="group"></TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default LiteraryAttendance;

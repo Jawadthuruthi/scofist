@@ -202,6 +202,12 @@ const items = [
     icon: Users,
   },
   {
+    title: "Attendance",
+    url: "/dashboard/literary-attendance",
+    allowedRoles: ["Literary Leader"],
+    icon: ClipboardList,
+  },
+  {
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,

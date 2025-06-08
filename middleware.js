@@ -122,6 +122,17 @@ const pages = [
     allowedRoles: ["Literary Leader"],
   },
   {
+    title: "Literary Attendance",
+    path: "/dashboard/literary-attendance",
+    allowedRoles: ["Literary Leader"],
+  },
+  {
+    title: "Literary Attendance Mark",
+    path: "/dashboard/literary-attendance/mark-attendance",
+    pattern: /^\/dashboard\/literary-attendance\/mark-attendance(?:\/[^/]+)?$/,
+    allowedRoles: ["Literary Leader"],
+  },
+  {
     title: "Settings",
     path: "/dashboard/settings",
     allowedRoles: ["College Admin"],

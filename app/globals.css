@@ -156,7 +156,11 @@
   }
 
   .table-print {
-    max-height: none !important;
+    max-height: 100% !important;
+    overflow: visible !important;
+  }
+  .scrollable {
+    max-height: 100% !important;
     overflow: visible !important;
   }
 }
@@ -210,4 +214,9 @@
   margin-top: 5px;
   font-weight: 500;
   letter-spacing: 0.5px;
+}
+
+.scrollable {
+  overflow: auto;
+  max-height: 100px;
 }
