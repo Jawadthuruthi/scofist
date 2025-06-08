@@ -28,7 +28,12 @@ const days = [
   "Saturday",
 ];
 
-const LiteraryAttendance = ({ students = [], classes = [], apiKey }) => {
+const LiteraryAttendance = ({
+  students = [],
+  classes = [],
+  apiKey,
+  groups = [],
+}) => {
   const [activeTab, setActiveTab] = useState("all");
   const [attendance, setAttendance] = useState({});
 
@@ -76,15 +81,23 @@ const LiteraryAttendance = ({ students = [], classes = [], apiKey }) => {
   }, [students, attendance]);
 
   const isAttendanceMarked = useCallback(
-    (classId) => {
+    (id) => {
+      if (activeTab === "group") {
+        return attendanceData.some(
+          (att) =>
+            att.groupId === id &&
+            att.date === formattedDate &&
+            att.category === "GROUP"
+        );
+      }
       return attendanceData.some(
         (att) =>
-          att.classId === classId &&
+          att.classId === id &&
           att.date === formattedDate &&
           att.category === "ALL"
       );
     },
-    [attendanceData]
+    [attendanceData, activeTab, formattedDate]
   );
 
   return (
@@ -143,7 +156,48 @@ const LiteraryAttendance = ({ students = [], classes = [], apiKey }) => {
             </Table>
           </div>
         </TabsContent>
-        <TabsContent value="group"></TabsContent>
+        <TabsContent value="group">
+          <div className="overflow-x-auto border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Group</TableHead>
+
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groups.map((group) => (
+                  <TableRow key={group._id} className="hover:bg-accent/50">
+                    <TableCell className="whitespace-nowrap">
+                      <div className="text-xs md:text-base">{group?.name}</div>
+                      {isAttendanceMarked(group._id) && (
+                        <div className="flex items-center gap-1 text-xxs text-muted-foreground">
+                          <CheckCircle2 className="text-green-500 h-3 w-3" />
+                          <span>Attendance Marked</span>
+                        </div>
+                      )}
+                    </TableCell>
+
+                    <TableCell align="right">
+                      <Link
+                        href={`/dashboard/literary-attendance/mark-attendance?groupId=${group?._id}&category=GROUP&apiKey=${apiKey}&date=${formattedDate}&day=${today}`}
+                        prefetch={false}
+                      >
+                        <ExternalLink className="text-muted-foreground h-5 w-5 md:hidden" />
+                        <Button size="sm" className="hidden md:inline-flex">
+                          {isAttendanceMarked(group._id)
+                            ? "Update Attendance"
+                            : "Take Attendance"}
+                        </Button>
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
   );

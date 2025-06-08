@@ -55,6 +55,11 @@ const LiteraryAttendance = () => {
     queryParams.apiKey
   );
 
+  const { useFetchItems: useFetchParticipants } = useCrud(
+    "literary/groups",
+    queryParams.apiKey
+  );
+
   const saveAttendance = useSaveAttendance();
   const updateAttendance = useUpdateAttendance();
   const deleteAttendance = useDeleteAttendance();
@@ -72,15 +77,39 @@ const LiteraryAttendance = () => {
     return attendanceQuery.data?.attendances || [];
   }, [attendanceQuery.data]);
 
-  const studentsQuery = useFetchStudents(0, 0, {
-    classId: queryParams.classId ? queryParams.classId : undefined,
-    batchId: queryParams.batchId ? queryParams.batchId : undefined,
-    role: "Student",
-  });
+  const studentsQuery = useFetchStudents(
+    0,
+    0,
+    {
+      classId: queryParams.classId,
+      batchId: queryParams.batchId,
+      role: "Student",
+      status: "Active",
+    },
+    {
+      enabled: !!queryParams.classId || !!queryParams.batchId,
+      refetchOnWindowFocus: true,
+    }
+  );
+
+  const participantsQuery = useFetchParticipants(
+    0,
+    0,
+    {
+      _id: queryParams.groupId,
+    },
+    {
+      enabled: !!queryParams.groupId,
+      refetchOnWindowFocus: true,
+    }
+  );
 
   const students = useMemo(() => {
+    if (queryParams.groupId) {
+      return participantsQuery.data?.groups[0]?.studentsDetails || [];
+    }
     return studentsQuery.data?.users || [];
-  }, [studentsQuery.data]);
+  }, [studentsQuery.data, participantsQuery.data]);
 
   useEffect(() => {
     if (studentsQuery.isLoading || attendanceQuery.isLoading) {
@@ -128,6 +157,15 @@ const LiteraryAttendance = () => {
   }, [students.length, attendance]);
 
   const attendanceExists = useMemo(() => {
+    if (!!queryParams.groupId) {
+      return attendanceData.some(
+        (att) =>
+          att.groupId === queryParams.groupId &&
+          att.date === queryParams.date &&
+          att.category === queryParams.category &&
+          att.day === queryParams.day
+      );
+    }
     return attendanceData.some(
       (att) =>
         att.classId === queryParams.classId &&
@@ -138,6 +176,16 @@ const LiteraryAttendance = () => {
   }, [attendanceData]);
 
   const existingAttendance = useMemo(() => {
+    if (!!queryParams.groupId) {
+      return attendanceData.find(
+        (att) =>
+          att.groupId === queryParams.groupId &&
+          att.date === queryParams.date &&
+          att.category === queryParams.category &&
+          att.day === queryParams.day
+      );
+    }
+
     return attendanceData.find(
       (att) =>
         att.classId === queryParams.classId &&

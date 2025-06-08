@@ -60,9 +60,12 @@ export async function GET(req, res) {
       return {
         ...group.toObject(),
         studentsId: group.studentsId.map((student) => student._id),
-        students: group.studentsId.map(
+        studentsName: group.studentsId.map(
           (student) => `${student._id} ${student.name}`
         ),
+        studentsDetails: group.studentsId.map((student) => ({
+          ...student.toObject(),
+        })),
       };
     });
 

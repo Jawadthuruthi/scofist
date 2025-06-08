@@ -9,17 +9,31 @@ const API_ENDPOINTS = [
   {
     pathname: "classes",
   },
+  {
+    pathname: "literary/groups",
+    key: "groups",
+  },
 ];
 
 const apiKey = process.env.API_KEY;
 const literaryAttendancePage = async () => {
-  const [students, classes] = await Promise.all(
+  const [students, classes, groups] = await Promise.all(
     API_ENDPOINTS.map((endpoint) =>
-      fetchData(endpoint.pathname, endpoint.searchParams)
+      fetchData(
+        endpoint.pathname,
+        endpoint.searchParams,
+        endpoint.revalidate,
+        endpoint.key
+      )
     )
   );
   return (
-    <LiteraryAttendance students={students} classes={classes} apiKey={apiKey} />
+    <LiteraryAttendance
+      students={students}
+      classes={classes}
+      groups={groups}
+      apiKey={apiKey}
+    />
   );
 };
 

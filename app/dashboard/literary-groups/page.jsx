@@ -33,7 +33,11 @@ const columnsConfig = [
   },
   { accessorKey: "_id", header: "Group ID" },
   { accessorKey: "name", header: "Name" },
-  { accessorKey: "students", header: "Students", type: ["array", "vertical"] },
+  {
+    accessorKey: "studentsName",
+    header: "Students",
+    type: ["array", "vertical"],
+  },
 ];
 
 const statusMessages = {
