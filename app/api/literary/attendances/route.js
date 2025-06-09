@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import LiteraryAttendance from "@/models/LiteraryAttendance";
 import { apiResponse } from "@/lib/apiResponse";
+import StudentLiteraryAttendance from "@/models/StudentLiteraryAttendance";
 
 export async function GET(req, res) {
   try {
@@ -129,8 +130,7 @@ export async function POST(req, res) {
 
     const data = await req.json();
 
-    const { groupId, classId, batchId, date, day, attendanceData, category } =
-      data;
+    const { date } = data;
 
     const attendance = new LiteraryAttendance({
       ...data,
@@ -138,6 +138,33 @@ export async function POST(req, res) {
     });
 
     await attendance.save();
+
+    const bulkOps = attendance.attendanceData.map((student) => {
+      return {
+        updateOne: {
+          filter: { studentId: student.studentId },
+          update: {
+            $push: {
+              attendanceRecords: {
+                classId: attendance.classId || undefined,
+                batchId: attendance.batchId || undefined,
+                groupId: attendance.groupId || undefined,
+                category: attendance.category,
+                day: attendance.day,
+                date: attendance.date,
+                present: student.present,
+              },
+            },
+          },
+          upsert: true,
+        },
+      };
+    });
+
+    // Execute the bulk operation if there are students
+    if (bulkOps.length > 0) {
+      await StudentLiteraryAttendance.bulkWrite(bulkOps);
+    }
 
     return NextResponse.json(
       { message: "Literary attendance created successfully!" },
@@ -172,6 +199,30 @@ export async function PUT(req, res) {
 
     attendance.attendanceData = attendanceData;
     await attendance.save();
+
+    if (data.attendanceData) {
+      const bulkOps = attendance.attendanceData.map((student) => {
+        return {
+          updateOne: {
+            filter: {
+              studentId: student.studentId,
+              "attendanceRecords.date": attendance.date,
+              "attendanceRecords.classId": attendance.classId || undefined,
+              "attendanceRecords.batchId": attendance.batchId || undefined,
+              "attendanceRecords.groupId": attendance.groupId || undefined,
+              "attendanceRecords.category": attendance.category,
+            },
+            update: {
+              $set: { "attendanceRecords.$.present": student.present },
+            },
+          },
+        };
+      });
+
+      if (bulkOps.length > 0) {
+        await StudentLiteraryAttendance.bulkWrite(bulkOps);
+      }
+    }
 
     return NextResponse.json(
       { message: "Literary attendance updated successfully!" },

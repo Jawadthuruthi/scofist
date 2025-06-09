@@ -132,6 +132,12 @@ const pages = [
     pattern: /^\/dashboard\/literary-attendance\/mark-attendance(?:\/[^/]+)?$/,
     allowedRoles: ["Literary Leader"],
   },
+
+  {
+    title: "Attendance Tracking",
+    path: "/dashboard/literary-attendance/attendance-tracking",
+    allowedRoles: ["Literary Leader"],
+  },
   {
     title: "Settings",
     path: "/dashboard/settings",

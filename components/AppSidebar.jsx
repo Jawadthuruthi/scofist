@@ -208,6 +208,12 @@ const items = [
     icon: ClipboardList,
   },
   {
+    title: "Attendance Tracking",
+    url: "/dashboard/literary-attendance/attendance-tracking",
+    allowedRoles: ["Literary Leader"],
+    icon: UserCheck,
+  },
+  {
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,

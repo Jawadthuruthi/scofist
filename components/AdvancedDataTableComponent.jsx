@@ -44,6 +44,8 @@ const AdvancedDataTableComponent = ({
                 readOnly={tab.readOnly}
                 filterTitle={tab.filterTitle}
                 filterType={tab.filterType}
+                apiEndpoint={tab.apiEndpoint}
+                apiFilters={tab.apiFilters}
               />
             </TabsContent>
           ))}
@@ -62,6 +64,8 @@ const AdvancedDataTableComponent = ({
           readOnly={table.readOnly}
           filterTitle={table.filterTitle}
           filterType={table.filterType}
+          apiEndpoint={table.apiEndpoint}
+          apiFilters={table.apiFilters}
         />
       ))}
     </div>
