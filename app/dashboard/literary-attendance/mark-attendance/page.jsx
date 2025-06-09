@@ -83,11 +83,11 @@ const LiteraryAttendance = () => {
     {
       classId: queryParams.classId,
       batchId: queryParams.batchId,
-      role: "Student",
+      roles: "Student",
       status: "Active",
     },
     {
-      enabled: !!queryParams.classId || !!queryParams.batchId,
+      enabled: queryParams.category === "ALL",
       refetchOnWindowFocus: true,
     }
   );

@@ -47,7 +47,7 @@ export async function GET(req, res) {
     const groups = await LiteraryGroup.find(query, projections)
       .populate({
         path: "studentsId",
-        select: ["_id", "name"],
+        select: ["_id", "name", "profilePic"],
       })
       .skip(page * limit)
       .limit(limit)
@@ -93,6 +93,19 @@ export async function POST(req, res) {
     await connectToDB();
 
     const body = await req.json();
+
+    const isStudentExistsInOtherGroups = await LiteraryGroup.findOne({
+      studentsId: { $in: body.studentsId },
+    });
+
+    if (isStudentExistsInOtherGroups) {
+      return NextResponse.json(
+        {
+          message: "One or more students are already part of another group!",
+        },
+        { status: 400 }
+      );
+    }
     const group = new LiteraryGroup(body);
     await group.save();
 
@@ -111,6 +124,20 @@ export async function PUT(req, res) {
 
     const body = await req.json();
     const { _id, ...updateData } = body;
+
+    const isStudentExistsInOtherGroups = await LiteraryGroup.findOne({
+      studentsId: { $in: body.studentsId },
+      _id: { $ne: _id },
+    });
+
+    if (isStudentExistsInOtherGroups) {
+      return NextResponse.json(
+        {
+          message: "One or more students are already part of another group!",
+        },
+        { status: 400 }
+      );
+    }
 
     const updatedGroup = await LiteraryGroup.findByIdAndUpdate(
       _id,
