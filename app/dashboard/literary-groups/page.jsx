@@ -1,7 +1,7 @@
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { fetchData, formatOptions } from "@/lib/utils";
+import { fetchData, formatOptions, OPERATORS } from "@/lib/utils";
 
 const API_ENDPOINTS = [
   {
@@ -104,7 +104,14 @@ export default async function GroupsPage() {
       },
     ];
 
-    const filterConfig = [{ id: "name", label: "Name" }];
+    const filterConfig = [
+      { id: "name", label: "Group Name" },
+      {
+        id: "studentsName",
+        label: "Student ID/Name",
+        operator: OPERATORS.CONTAINS,
+      },
+    ];
 
     return (
       <>
@@ -127,6 +134,7 @@ export default async function GroupsPage() {
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
           limit={20}
+          printTitle="Literary Groups"
         />
       </>
     );
