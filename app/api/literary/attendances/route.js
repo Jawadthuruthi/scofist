@@ -3,18 +3,34 @@ import connectToDB from "@/lib/db";
 import LiteraryAttendance from "@/models/LiteraryAttendance";
 import { apiResponse } from "@/lib/apiResponse";
 import StudentLiteraryAttendance from "@/models/StudentLiteraryAttendance";
+import { formatDateForDisplay } from "@/lib/utils";
 
 export async function GET(req, res) {
   try {
     await connectToDB();
 
     const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get("page") || "0");
+    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
 
     const trackAbsentees = url.searchParams.get("trackAbsentees") === "true";
 
     const filterParams = {};
     for (const [key, value] of url.searchParams.entries()) {
-      filterParams[key] = value;
+      // Skip pagination parameters
+      if (key !== "page" && key !== "limit" && key !== "projection") {
+        filterParams[key] = value;
+      }
+    }
+
+    const projectionParam = url.searchParams.get("projection");
+    let projections = {};
+
+    if (projectionParam) {
+      const fields = projectionParam.split(",");
+      fields.forEach((field) => {
+        projections[field] = 1; // Include each field
+      });
     }
 
     const query = {};
@@ -27,7 +43,26 @@ export async function GET(req, res) {
       };
     }
 
-    const literaryAttendances = await LiteraryAttendance.find(query)
+    if (filterParams.groupId) {
+      query.groupId = filterParams.groupId;
+    }
+
+    if (filterParams.classId) {
+      query.classId = filterParams.classId;
+    }
+
+    if (filterParams.batchId) {
+      query.batchId = filterParams.batchId;
+    }
+
+    if (filterParams.category) {
+      query.category = filterParams.category;
+    }
+
+    const literaryAttendances = await LiteraryAttendance.find(
+      query,
+      projections
+    )
       .populate("groupId", "name")
       .populate("classId", "name")
       .populate("batchId", "name")
@@ -36,7 +71,8 @@ export async function GET(req, res) {
     let formattedAttendances = literaryAttendances.map((attendance) => {
       return {
         ...attendance.toObject(),
-        date: new Date(attendance.date).toISOString().slice(0, 10), // Format date to YYYY-MM-DD
+        date: new Date(attendance.date).toISOString().slice(0, 10),
+        dateForDisplay: formatDateForDisplay(attendance.date),
         groupId: attendance?.groupId?._id,
         groupDetails: attendance?.groupId,
         classId: attendance?.classId?._id,
@@ -108,13 +144,21 @@ export async function GET(req, res) {
       });
     }
 
+    const total = await LiteraryAttendance.countDocuments(query);
+
     return NextResponse.json(
       {
         attendances: formattedAttendances,
         absentees: Object.values(studentAbsences)
           .filter((student) => student.continuousAbsences > 0)
           .sort((a, b) => b.continuousAbsences - a.continuousAbsences),
-
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages:
+            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
+        },
         message: "Literary attendances fetched successfully!",
       },
       { status: 200 }
@@ -238,7 +282,51 @@ export async function DELETE(req, res) {
     await connectToDB();
 
     const { ids } = await req.json();
-    const literaryAttendance = await LiteraryAttendance.findByIdAndDelete(ids);
+    const _id = ids[0];
+
+    const deletedAttendances = await LiteraryAttendance.find({
+      _id: { $in: ids },
+    });
+    const bulkOps = [];
+
+    for (const attendance of deletedAttendances) {
+      for (const student of attendance.attendanceData) {
+        bulkOps.push({
+          updateOne: {
+            filter: { studentId: student.studentId },
+            update: {
+              $pull: {
+                attendanceRecords: {
+                  classId: attendance.classId,
+                  batchId: attendance.batchId,
+                  groupId: attendance.groupId,
+                  date: attendance.date,
+                  category: attendance.category,
+                },
+              },
+            },
+          },
+        });
+      }
+    }
+
+    // Execute student attendance updates in bulk
+    if (bulkOps.length > 0) {
+      await StudentLiteraryAttendance.bulkWrite(bulkOps);
+    }
+    if (ids.length > 1) {
+      const result = await LiteraryAttendance.deleteMany({ _id: { $in: ids } });
+
+      return NextResponse.json(
+        {
+          result,
+          message: "Literary Attendance records deleted successfully!",
+        },
+        { status: 200 }
+      );
+    }
+    const deletedAttendance = await LiteraryAttendance.findByIdAndDelete(_id);
+
     return NextResponse.json(
       { message: "Literary attendance deleted successfully!" },
       { status: 200 }

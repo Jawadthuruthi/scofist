@@ -174,6 +174,57 @@ const AttendanceTrackingPage = async () => {
           category: "GROUP",
         },
       },
+      {
+        label: "HISTORY",
+        value: "history",
+        resource: "attendances",
+        apiEndpoint: "literary/attendances",
+        filterTitle: "Literary Attendance History",
+        columnsConfig: [
+          {
+            header: "Sl.No.",
+            accessorKey: "serialNo",
+            type: ["serialNo"],
+            width: 60,
+            maxWidth: 60,
+            minWidth: 60,
+          },
+          { header: "Date", accessorKey: "dateForDisplay" },
+        ],
+        filterConfig: [
+          {
+            id: "category",
+            label: "Category",
+            type: "text",
+            inputType: "select",
+
+            options: [
+              { label: "All", value: "ALL" },
+              { label: "Group", value: "GROUP" },
+            ],
+          },
+          {
+            id: "groupId",
+            label: "Group",
+            type: "text",
+            inputType: "select",
+            conditionalRender: {
+              dependentField: "category",
+              expectedValue: "GROUP",
+            },
+            options: formatOptions(groups),
+          },
+          {
+            id: "date",
+            label: "Date Range",
+            type: "date",
+            inputType: "dateRange",
+            className: "col-span-1 md:col-span-2",
+          },
+        ],
+        readOnly: true,
+        filterType: "api",
+      },
     ];
 
     return (

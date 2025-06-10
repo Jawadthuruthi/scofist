@@ -313,37 +313,39 @@ export async function DELETE(req, res) {
 
     const { ids } = await req.json();
     const _id = ids[0];
-    if (ids.length > 1) {
-      const deletedAttendances = await Attendance.find({ _id: { $in: ids } });
-      const result = await Attendance.deleteMany({ _id: { $in: ids } });
 
-      const bulkOps = [];
+    const deletedAttendances = await Attendance.find({ _id: { $in: ids } });
+    const bulkOps = [];
 
-      for (const attendance of deletedAttendances) {
-        for (const student of attendance.attendanceData) {
-          bulkOps.push({
-            updateOne: {
-              filter: { studentId: student.studentId },
-              update: {
-                $pull: {
-                  attendanceRecords: {
-                    classId: attendance.classId,
-                    batchId: attendance.batchId,
-                    subjectId: attendance.subjectId,
-                    date: attendance.date,
-                    periodNumber: attendance.periodNumber,
-                  },
+    for (const attendance of deletedAttendances) {
+      for (const student of attendance.attendanceData) {
+        bulkOps.push({
+          updateOne: {
+            filter: { studentId: student.studentId },
+            update: {
+              $pull: {
+                attendanceRecords: {
+                  classId: attendance.classId,
+                  batchId: attendance.batchId,
+                  subjectId: attendance.subjectId,
+                  date: attendance.date,
+                  periodNumber: attendance.periodNumber,
                 },
               },
             },
-          });
-        }
+          },
+        });
       }
+    }
 
-      // Execute student attendance updates in bulk
-      if (bulkOps.length > 0) {
-        await StudentAttendance.bulkWrite(bulkOps);
-      }
+    // Execute student attendance updates in bulk
+    if (bulkOps.length > 0) {
+      await StudentAttendance.bulkWrite(bulkOps);
+    }
+
+    if (ids.length > 1) {
+      const result = await Attendance.deleteMany({ _id: { $in: ids } });
+
       return NextResponse.json(
         {
           result,
