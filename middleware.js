@@ -96,11 +96,7 @@ const pages = [
     pattern: /^\/dashboard\/students-contacts(?:\/[^/]+)?$/,
     allowedRoles: ["Teacher"],
   },
-  {
-    title: "Students Transactions",
-    path: "/dashboard/students-transactions",
-    allowedRoles: ["Teacher"],
-  },
+
   {
     title: "Attendance Tracking",
     path: "/dashboard/attendance-tracking",
@@ -137,6 +133,11 @@ const pages = [
     title: "Attendance Tracking",
     path: "/dashboard/literary-attendance/attendance-tracking",
     allowedRoles: ["Literary Leader"],
+  },
+  {
+    title: "Students Fund",
+    path: "/dashboard/students-fund",
+    allowedRoles: ["College Admin", "Teacher"],
   },
   {
     title: "Settings",

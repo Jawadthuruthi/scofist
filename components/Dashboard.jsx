@@ -97,7 +97,7 @@ const StatCardSkeleton = () => (
 );
 
 const StatsOverviewSkeleton = () => (
-  <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-5">
+  <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-4">
     {Array(4)
       .fill(0)
       .map((_, i) => (
