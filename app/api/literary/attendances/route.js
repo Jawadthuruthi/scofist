@@ -14,6 +14,7 @@ export async function GET(req, res) {
     const limit = parseInt(url.searchParams.get("limit")) || Infinity;
 
     const trackAbsentees = url.searchParams.get("trackAbsentees") === "true";
+    const trackHistory = url.searchParams.get("trackHistory") === "true";
 
     const filterParams = {};
     for (const [key, value] of url.searchParams.entries()) {
@@ -57,6 +58,22 @@ export async function GET(req, res) {
 
     if (filterParams.category) {
       query.category = filterParams.category;
+    }
+
+    if (filterParams.date || filterParams.startDate || filterParams.endDate) {
+      const start = filterParams.date || filterParams.startDate;
+      const end = filterParams.date || filterParams.endDate;
+
+      const startDate = new Date(start);
+      startDate.setHours(0, 0, 0, 0);
+
+      const endDate = new Date(end);
+      endDate.setHours(23, 59, 59, 999);
+
+      query.date = {
+        $gte: startDate,
+        $lt: endDate,
+      };
     }
 
     const literaryAttendances = await LiteraryAttendance.find(
@@ -143,6 +160,25 @@ export async function GET(req, res) {
         }
       });
     }
+    console.log(literaryAttendances.length);
+
+    const attendanceHistory = [];
+
+    if (trackHistory) {
+      formattedAttendances?.forEach((attendance) => {
+        const dateExists = attendanceHistory.some(
+          (item) => item.date === attendance.date
+        );
+        if (!dateExists) {
+          attendanceHistory.push({
+            date: attendance.date,
+            dateForDisplay: attendance.dateForDisplay,
+            category: attendance.category,
+            _id: attendance._id,
+          });
+        }
+      });
+    }
 
     const total = await LiteraryAttendance.countDocuments(query);
 
@@ -152,6 +188,7 @@ export async function GET(req, res) {
         absentees: Object.values(studentAbsences)
           .filter((student) => student.continuousAbsences > 0)
           .sort((a, b) => b.continuousAbsences - a.continuousAbsences),
+        history: attendanceHistory,
         pagination: {
           page,
           limit,

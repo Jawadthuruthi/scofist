@@ -480,7 +480,7 @@ LazyTimeTable.displayName = "LazyTimeTable";
 
 // Faculty Profile Component
 
-const FacultyProfileCard = memo(({ faculty }) => {
+const FacultyProfileCard = memo(({ faculty, assignedClass }) => {
   return (
     <Card className="overflow-hidden hover:border-primary/50 transition-all col-span-6 md:col-span-3 lg:col-span-2">
       <div className="flex">
@@ -505,10 +505,14 @@ const FacultyProfileCard = memo(({ faculty }) => {
               <p className="text-muted-foreground text-xs">{faculty.place}</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-1 md:gap-2 text-xs">
+          <div className="text-xs">
             <div className="whitespace-nowrap">
               <span className="text-muted-foreground">Contact: </span>
               <span>{faculty.contactNumber || "N/A"}</span>
+            </div>
+            <div className="whitespace-nowrap">
+              <span className="text-muted-foreground">Class: </span>
+              <span>{assignedClass || "N/A"}</span>
             </div>
           </div>
         </div>
@@ -739,9 +743,18 @@ export default function Dashboard({
                   ?.sort(
                     (a, b) => new Date(a.dateOfBirth) - new Date(b.dateOfBirth)
                   )
-                  ?.map((teacher) => (
-                    <FacultyProfileCard key={teacher._id} faculty={teacher} />
-                  ))}
+                  ?.map((teacher) => {
+                    const assignedClass =
+                      classes.find((c) => c.teacherId === teacher._id)?.name ||
+                      "No Class Assigned";
+                    return (
+                      <FacultyProfileCard
+                        key={teacher._id}
+                        faculty={teacher}
+                        assignedClass={assignedClass}
+                      />
+                    );
+                  })}
             </CardContent>
           </Card>
         </TabsContent>

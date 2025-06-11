@@ -177,7 +177,7 @@ const AttendanceTrackingPage = async () => {
       {
         label: "HISTORY",
         value: "history",
-        resource: "attendances",
+        resource: "history",
         apiEndpoint: "literary/attendances",
         filterTitle: "Literary Attendance History",
         columnsConfig: [
@@ -197,22 +197,10 @@ const AttendanceTrackingPage = async () => {
             label: "Category",
             type: "text",
             inputType: "select",
-
             options: [
               { label: "All", value: "ALL" },
               { label: "Group", value: "GROUP" },
             ],
-          },
-          {
-            id: "groupId",
-            label: "Group",
-            type: "text",
-            inputType: "select",
-            conditionalRender: {
-              dependentField: "category",
-              expectedValue: "GROUP",
-            },
-            options: formatOptions(groups),
           },
           {
             id: "date",
@@ -224,6 +212,10 @@ const AttendanceTrackingPage = async () => {
         ],
         readOnly: true,
         filterType: "api",
+        apiFilters: {
+          trackHistory: true,
+          projection: "_id,date",
+        },
       },
     ];
 
