@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -46,12 +46,11 @@ import {
   Plus,
   Minus,
   History,
-  User,
-  GraduationCap,
   Calendar,
   FileText,
 } from "lucide-react";
 import Header from "./Header";
+import useCrud from "@/hooks/use-crud";
 
 const StudentsFund = ({
   classes = [
@@ -86,8 +85,8 @@ const StudentsFund = ({
     },
   ],
   apiKey,
-  role = "College Admin", // or "Teacher"
-  teacherId = "T001",
+  role,
+  teacherId,
 }) => {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -97,39 +96,44 @@ const StudentsFund = ({
   const [note, setNote] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
-  const [transactionHistory, setTransactionHistory] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Mock transaction history data
-  const mockHistory = [
+  const { useFetchItems, useAddItem } = useCrud("studentsFund", apiKey);
+
+  const fetchStudentFundQuery = useFetchItems(
+    null,
+    null,
     {
-      _id: "1",
-      teacherId: "T001",
-      teacherName: "Dr. Anderson",
-      amount: 500,
-      type: "Deposit",
-      note: "Monthly allowance deposit",
-      date: "2024-06-10T10:30:00Z",
+      studentId: selectedStudent,
     },
     {
-      _id: "2",
-      teacherId: "T002",
-      teacherName: "Prof. Williams",
-      amount: 150,
-      type: "Withdrawal",
-      note: "Book purchase expenses",
-      date: "2024-06-08T14:20:00Z",
-    },
-    {
-      _id: "3",
-      teacherId: "T001",
-      teacherName: "Dr. Anderson",
-      amount: 300,
-      type: "Deposit",
-      note: "Scholarship fund addition",
-      date: "2024-06-05T09:15:00Z",
-    },
-  ];
+      enabled: !!selectedStudent,
+    }
+  );
+  const addStudentFund = useAddItem();
+
+  const studentFund = useMemo(() => {
+    return fetchStudentFundQuery.data?.studentFund || {};
+  }, [fetchStudentFundQuery.data]);
+
+  const transactions = useMemo(() => {
+    return (
+      studentFund?.transactions?.filter((t) => t.teacherId === teacherId) || []
+    );
+  }, [studentFund]);
+
+  useEffect(() => {
+    if (fetchStudentFundQuery.data && studentFund) {
+      const balance = transactions?.reduce((total, transaction) => {
+        if (transaction.type === "Deposit") {
+          return total + transaction.amount;
+        } else {
+          return total - transaction.amount;
+        }
+      }, 0);
+      setStudentBalance(balance);
+    }
+  }, [fetchStudentFundQuery.data]);
 
   // Filter classes based on role
   const availableClasses =
@@ -149,15 +153,6 @@ const StudentsFund = ({
     }
   }, [role, availableClasses]);
 
-  // Mock function to fetch student balance
-  useEffect(() => {
-    if (selectedStudent) {
-      // Simulate API call
-      setStudentBalance(1250); // Mock balance
-      setTransactionHistory(mockHistory);
-    }
-  }, [selectedStudent]);
-
   const handleTransaction = () => {
     if (!amount || !transactionType) return;
     setShowConfirmDialog(true);
@@ -166,29 +161,17 @@ const StudentsFund = ({
   const confirmTransaction = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const newBalance =
-        transactionType === "Deposit"
-          ? studentBalance + parseFloat(amount)
-          : studentBalance - parseFloat(amount);
-
-      setStudentBalance(newBalance);
-
-      // Add to history
-      const newTransaction = {
-        _id: Date.now().toString(),
-        teacherId: teacherId,
-        teacherName: "Current User",
-        amount: parseFloat(amount),
+      const transaction = {
+        teacherId,
         type: transactionType,
-        note: note,
-        date: new Date().toISOString(),
+        amount: parseFloat(amount),
+        note,
       };
-
-      setTransactionHistory((prev) => [newTransaction, ...prev]);
-
+      await addStudentFund.mutateAsync({
+        studentId: selectedStudent,
+        transaction,
+      });
+      await fetchStudentFundQuery.refetch();
       // Reset form
       setAmount("");
       setNote("");
@@ -303,7 +286,7 @@ const StudentsFund = ({
                       Current Balance
                     </p>
                     <p className="text-lg md:text-2xl font-bold text-green-600">
-                      ₹{studentBalance.toLocaleString()}
+                      {studentBalance ? `₹ ${studentBalance}` : "0"}
                     </p>
                   </div>
                 </div>
@@ -394,7 +377,7 @@ const StudentsFund = ({
               {selectedStudent ? (
                 <div className="space-y-4">
                   <ScrollArea className="h-[320px] pr-4">
-                    {transactionHistory.slice(0, 5).map((transaction) => (
+                    {transactions?.slice(0, 5).map((transaction) => (
                       <div
                         key={transaction._id}
                         className="border-b pb-4 mb-4 last:border-b-0"
@@ -443,7 +426,7 @@ const StudentsFund = ({
                       </DialogHeader>
                       <ScrollArea className="h-[500px] pr-4">
                         <div className="space-y-4">
-                          {transactionHistory.map((transaction) => (
+                          {transactions?.map((transaction) => (
                             <div
                               key={transaction._id}
                               className="border rounded-lg p-4"
@@ -465,17 +448,13 @@ const StudentsFund = ({
                               </div>
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                  <p className="text-sm text-gray-600">
-                                    Amount
-                                  </p>
                                   <p className="font-bold text-lg">
                                     {transaction.type === "Deposit" ? "+" : "-"}
                                     ₹{transaction.amount.toLocaleString()}
                                   </p>
                                 </div>
                               </div>
-                              <div className="mt-3">
-                                <p className="text-sm text-gray-600">Note</p>
+                              <div>
                                 <p className="text-gray-800">
                                   {transaction.note}
                                 </p>

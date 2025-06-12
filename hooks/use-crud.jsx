@@ -7,14 +7,14 @@ import {
   deleteItem,
 } from "@/lib/api";
 
-const useCrud = (resource, apiKey) => {
+const useCrud = (apiEndpoint, apiKey) => {
   const queryClient = useQueryClient();
 
   // Fetch items with pagination support
   const useFetchItems = (page = 0, limit = 20, filters = {}, options = {}) => {
     return useQuery({
-      queryKey: [resource, page, limit, filters],
-      queryFn: () => fetchItems(resource, apiKey, page, limit, filters),
+      queryKey: [apiEndpoint, page, limit, filters],
+      queryFn: () => fetchItems(apiEndpoint, apiKey, page, limit, filters),
       ...options,
     });
   };
@@ -22,8 +22,8 @@ const useCrud = (resource, apiKey) => {
   // Fetch a single item by ID
   const useFetchItemById = (id, enabled = true) => {
     return useQuery({
-      queryKey: [resource, id],
-      queryFn: () => fetchItemById(resource, id, apiKey),
+      queryKey: [apiEndpoint, id],
+      queryFn: () => fetchItemById(apiEndpoint, id, apiKey),
       enabled: !!id && enabled,
     });
   };
@@ -31,11 +31,11 @@ const useCrud = (resource, apiKey) => {
   // Add an item
   const useAddItem = () => {
     return useMutation({
-      mutationFn: (data) => addItem(resource, data, apiKey),
+      mutationFn: (data) => addItem(apiEndpoint, data, apiKey),
       onSuccess: () => {
-        queryClient.removeQueries([resource]);
+        queryClient.removeQueries([apiEndpoint]);
         queryClient.invalidateQueries({
-          queryKey: [resource],
+          queryKey: [apiEndpoint],
           exact: false,
         });
       },
@@ -45,11 +45,11 @@ const useCrud = (resource, apiKey) => {
   // Update an item
   const useUpdateItem = () => {
     return useMutation({
-      mutationFn: ({ data }) => updateItem(resource, data, apiKey),
+      mutationFn: ({ data }) => updateItem(apiEndpoint, data, apiKey),
       onSuccess: () => {
-        queryClient.removeQueries([resource]);
+        queryClient.removeQueries([apiEndpoint]);
         queryClient.invalidateQueries({
-          queryKey: [resource],
+          queryKey: [apiEndpoint],
           exact: false,
         });
       },
@@ -59,11 +59,11 @@ const useCrud = (resource, apiKey) => {
   // Delete an item
   const useDeleteItem = () => {
     return useMutation({
-      mutationFn: (ids) => deleteItem(resource, ids, apiKey),
+      mutationFn: (ids) => deleteItem(apiEndpoint, ids, apiKey),
       onSuccess: () => {
-        queryClient.removeQueries([resource]);
+        queryClient.removeQueries([apiEndpoint]);
         queryClient.invalidateQueries({
-          queryKey: [resource],
+          queryKey: [apiEndpoint],
           exact: false,
         });
       },

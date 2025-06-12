@@ -7,6 +7,8 @@ const studentsFundSchema = new Schema(
       type: String,
       required: true,
       ref: "User",
+      unique: true,
+      index: true,
     },
     transactions: [
       {
@@ -26,7 +28,6 @@ const studentsFundSchema = new Schema(
         },
         note: {
           type: String,
-          required: true,
         },
         date: {
           type: Date,
