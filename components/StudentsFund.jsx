@@ -159,7 +159,7 @@ const StudentsFund = ({
   }, [selectedStudent]);
 
   const handleTransaction = () => {
-    if (!amount || !note || !transactionType) return;
+    if (!amount || !transactionType) return;
     setShowConfirmDialog(true);
   };
 
@@ -214,86 +214,58 @@ const StudentsFund = ({
   const selectedStudentData = students.find((s) => s._id === selectedStudent);
 
   return (
-    <div className="min-h-screen md:max-w-7xl mx-auto">
-      <Header
-        title="STUDENTS FUND"
-        subTitle="Log, Track, and Review Student Fund Activities"
-      />
+    <div className="min-h-screen">
+      <Header title="STUDENTS FUND" subTitle="Review Student Fund Activities" />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Class Selection */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GraduationCap className="h-5 w-5" />
-                Class Selection
-              </CardTitle>
-              <CardDescription>
-                {role === "College Admin"
-                  ? "Select a class to manage student funds"
-                  : "Your assigned class"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {role === "College Admin" ? (
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a class" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableClasses.map((cls) => (
-                      <SelectItem key={cls._id} value={cls._id}>
-                        {cls.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div className="p-4 bg-blue-50 rounded-lg border">
-                  <p className="font-medium text-blue-900">
-                    {availableClasses[0]?.name || "No class assigned"}
-                  </p>
-                  <p className="text-sm text-blue-600">
-                    Class ID: {availableClasses[0]?._id}
-                  </p>
-                </div>
-              )}
+            <CardContent className="p-6 space-y-6">
+              <>
+                {role === "College Admin" ? (
+                  <Select
+                    value={selectedClass}
+                    onValueChange={setSelectedClass}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableClasses.map((cls) => (
+                        <SelectItem key={cls._id} value={cls._id}>
+                          {cls.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="p-4 bg-blue-50 rounded-lg border">
+                    <p className="font-medium text-blue-900">
+                      {availableClasses[0]?.name || "No class assigned"}
+                    </p>
+                  </div>
+                )}
+                {selectedClass && (
+                  <Select
+                    value={selectedStudent}
+                    onValueChange={setSelectedStudent}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a student" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableStudents.map((student) => (
+                        <SelectItem key={student._id} value={student._id}>
+                          {student.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </>
             </CardContent>
           </Card>
-
-          {/* Student Selection */}
-          {selectedClass && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Student Selection
-                </CardTitle>
-                <CardDescription>
-                  Choose a student to manage their fund
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Select
-                  value={selectedStudent}
-                  onValueChange={setSelectedStudent}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a student" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableStudents.map((student) => (
-                      <SelectItem key={student._id} value={student._id}>
-                        {student.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Student Balance & Transaction Form */}
           {selectedStudent && (
@@ -309,7 +281,7 @@ const StudentsFund = ({
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Student Info & Balance */}
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border">
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:bg-gradient-to-r dark:from-blue-200 dark:to-indigo-200 rounded-lg border">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-7 md:h-12 w-7 md:w-12">
                       <AvatarImage src={selectedStudentData?.profilePic.url} />
@@ -355,7 +327,7 @@ const StudentsFund = ({
                       transactionType === "Withdrawal" ? "default" : "outline"
                     }
                     onClick={() => setTransactionType("Withdrawal")}
-                    className="h-16 flex-col gap-2"
+                    className={`h-16 flex-col gap-2 ${transactionType === "Withdrawal" ? "!bg-destructive !text-destructive-foreground" : ""}`}
                   >
                     <Minus className="h-5 w-5" />
                     Withdrawal
@@ -387,7 +359,7 @@ const StudentsFund = ({
                       placeholder="Enter transaction note or description"
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
-                      rows={3}
+                      rows={1}
                     />
                   </div>
                 )}
@@ -396,7 +368,7 @@ const StudentsFund = ({
                 {transactionType && (
                   <Button
                     onClick={handleTransaction}
-                    disabled={!amount || !note || loading}
+                    disabled={!amount || loading}
                     className="w-full"
                     size="lg"
                   >
@@ -421,7 +393,7 @@ const StudentsFund = ({
             <CardContent>
               {selectedStudent ? (
                 <div className="space-y-4">
-                  <ScrollArea className="h-[400px] pr-4">
+                  <ScrollArea className="h-[320px] pr-4">
                     {transactionHistory.slice(0, 5).map((transaction) => (
                       <div
                         key={transaction._id}
@@ -447,9 +419,6 @@ const StudentsFund = ({
                         </p>
                         <p className="text-sm text-gray-600 mb-1">
                           {transaction.note}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          By: {transaction.teacherName}
                         </p>
                       </div>
                     ))}
@@ -502,14 +471,6 @@ const StudentsFund = ({
                                   <p className="font-bold text-lg">
                                     {transaction.type === "Deposit" ? "+" : "-"}
                                     ₹{transaction.amount.toLocaleString()}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-600">
-                                    Processed by
-                                  </p>
-                                  <p className="font-medium">
-                                    {transaction.teacherName}
                                   </p>
                                 </div>
                               </div>

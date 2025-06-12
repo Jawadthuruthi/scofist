@@ -23,7 +23,7 @@ export default async function Layout({ children }) {
           <AppSidebar roles={user.roles} activeRole={activeRole} />
           <div className="flex flex-col flex-1 min-w-0">
             <Topbar user={user} />
-            <main className="flex-1 p-4 lg:p-6 mt-14 overflow-auto">
+            <main className="flex-1 p-4 lg:p-6 mt-14 overflow-auto hide-scrollbar container">
               {children}
             </main>
           </div>
