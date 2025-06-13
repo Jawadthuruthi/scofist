@@ -31,13 +31,15 @@ const StudentsFundPage = async () => {
       )
     );
 
-    const formattedBatches = batches?.map((batch) => {
-      const cls = classes?.find((cls) => cls.batchId === batch._id);
-      return {
-        ...batch,
-        name: cls ? `${batch.name} (${cls.name})` : batch.name,
-      };
-    });
+    const formattedBatches = batches
+      ?.sort((a, b) => b.startYear - a.startYear)
+      ?.map((batch) => {
+        const cls = classes?.find((cls) => cls.batchId === batch._id);
+        return {
+          ...batch,
+          name: cls ? `${batch.name} (${cls.name})` : batch.name,
+        };
+      });
 
     return (
       <StudentsFund

@@ -24,13 +24,13 @@ export async function GET(req, res) {
     }
 
     const studentFund = await StudentsFund.findOne(query);
-    const studentsFund = {};
 
-    if (!query.studentId) {
-      studentsFund = await StudentsFund.find(query);
-    }
+    const allStudentsFund = await StudentsFund.find({
+      teacherId: searchParams.teacherId,
+      batchId: searchParams.batchId,
+    }).populate("studentId");
 
-    return NextResponse.json({ studentFund, studentsFund }, { status: 200 });
+    return NextResponse.json({ studentFund, allStudentsFund }, { status: 200 });
   } catch (error) {
     return apiResponse.error(error);
   }
@@ -72,6 +72,28 @@ export async function POST(req, res) {
       );
       return NextResponse.json({ newStudentsFund }, { status: 200 });
     }
+  } catch (error) {
+    return apiResponse.error(error);
+  }
+}
+
+export async function PUT(req, res) {
+  try {
+    await connectToDB();
+    const { studentId, teacherId, batchId } = await req.json();
+    const studentFund = await StudentsFund.findOneAndUpdate(
+      {
+        studentId,
+        teacherId,
+        batchId,
+      },
+      {
+        $set: {
+          transactions: [],
+        },
+      }
+    );
+    return NextResponse.json({ studentFund }, { status: 200 });
   } catch (error) {
     return apiResponse.error(error);
   }

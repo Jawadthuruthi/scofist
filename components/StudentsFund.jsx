@@ -35,6 +35,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -48,9 +49,18 @@ import {
   History,
   Calendar,
   FileText,
+  Trash2,
 } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
 
 const StudentsFund = ({
   batches = [],
@@ -67,9 +77,13 @@ const StudentsFund = ({
   const [note, setNote] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [showBalanceDialog, setShowBalanceDialog] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { useFetchItems, useAddItem } = useCrud("studentsFund", apiKey);
+  const { useFetchItems, useAddItem, useUpdateItem } = useCrud(
+    "studentsFund",
+    apiKey
+  );
 
   const fetchStudentFundQuery = useFetchItems(
     null,
@@ -83,7 +97,14 @@ const StudentsFund = ({
       enabled: !!selectedStudent && !!teacherId && !!selectedBatch,
     }
   );
+
+  const allStudentsFund = useMemo(() => {
+    return fetchStudentFundQuery.data?.allStudentsFund || [];
+  }, [fetchStudentFundQuery.data]);
+
   const addStudentFund = useAddItem();
+
+  const updateStudentFund = useUpdateItem();
 
   const studentFund = useMemo(() => {
     return fetchStudentFundQuery.data?.studentFund || {};
@@ -144,6 +165,21 @@ const StudentsFund = ({
     } finally {
       setLoading(false);
       setShowConfirmDialog(false);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    try {
+      await updateStudentFund.mutateAsync({
+        data: {
+          studentId: selectedStudent,
+          teacherId,
+          batchId: selectedBatch,
+        },
+      });
+      await fetchStudentFundQuery.refetch();
+    } catch (error) {
+      console.error("Failed to clear history:", error);
     }
   };
 
@@ -384,7 +420,7 @@ const StudentsFund = ({
                           All transactions for {selectedStudentData?.name}
                         </DialogDescription>
                       </DialogHeader>
-                      <ScrollArea className="h-[500px] pr-4">
+                      <ScrollArea className="h-[80vw] md:h-[500px] pr-4">
                         <div className="space-y-4">
                           {transactions?.map((transaction) => (
                             <div
@@ -422,6 +458,54 @@ const StudentsFund = ({
                             </div>
                           ))}
                         </div>
+                      </ScrollArea>
+                      <DialogFooter>
+                        <Button
+                          variant="outline"
+                          className="w-full !bg-destructive !text-destructive-foreground"
+                          onClick={handleClearHistory}
+                          disabled={updateStudentFund.isPending}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Clear All History
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  <Dialog
+                    open={showBalanceDialog}
+                    onOpenChange={setShowBalanceDialog}
+                  >
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full">
+                        <FileText className="h-4 w-4 mr-2" />
+                        View All Students Balance
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[80vh]">
+                      <DialogHeader>
+                        <DialogTitle>All Students Balance</DialogTitle>
+                        <DialogDescription>
+                          Review the current fund balance for each student.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <ScrollArea className="h-[500px] pr-4">
+                        <Table className="border border-border w-full">
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Student Name</TableHead>
+                              <TableHead>Balance</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {allStudentsFund.map((student) => (
+                              <TableRow key={student._id}>
+                                <TableCell>{student.studentId?.name}</TableCell>
+                                <TableCell>{student.balance}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
                       </ScrollArea>
                     </DialogContent>
                   </Dialog>
