@@ -7,16 +7,24 @@ const studentsFundSchema = new Schema(
       type: String,
       required: true,
       ref: "User",
-      unique: true,
-      index: true,
+    },
+    teacherId: {
+      type: String,
+      required: true,
+      ref: "User",
+    },
+    batchId: {
+      type: String,
+      required: true,
+      ref: "Batch",
+    },
+    balance: {
+      type: Number,
+      required: true,
+      default: 0,
     },
     transactions: [
       {
-        teacherId: {
-          type: String,
-          required: true,
-          ref: "User",
-        },
         amount: {
           type: Number,
           required: true,
@@ -39,6 +47,11 @@ const studentsFundSchema = new Schema(
   {
     timestamps: true,
   }
+);
+
+studentsFundSchema.index(
+  { studentId: 1, batchId: 1, teacherId: 1 },
+  { unique: true }
 );
 
 const StudentsFund =

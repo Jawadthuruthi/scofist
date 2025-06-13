@@ -53,43 +53,14 @@ import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
 
 const StudentsFund = ({
-  classes = [
-    { _id: "CS-2024", name: "Computer Science 2024", teacherId: "T001" },
-    { _id: "EE-2024", name: "Electrical Engineering 2024", teacherId: "T002" },
-    { _id: "ME-2024", name: "Mechanical Engineering 2024", teacherId: "T001" },
-  ],
-  students = [
-    {
-      _id: "S001",
-      name: "John Smith",
-      profilePic: "",
-      studentSpecificField: { classId: "CS-2024" },
-    },
-    {
-      _id: "S002",
-      name: "Sarah Johnson",
-      profilePic: "",
-      studentSpecificField: { classId: "CS-2024" },
-    },
-    {
-      _id: "S003",
-      name: "Mike Davis",
-      profilePic: "",
-      studentSpecificField: { classId: "EE-2024" },
-    },
-    {
-      _id: "S004",
-      name: "Emily Brown",
-      profilePic: "",
-      studentSpecificField: { classId: "ME-2024" },
-    },
-  ],
+  batches = [],
+  students = [],
   apiKey,
   role,
   teacherId,
 }) => {
-  const [selectedClass, setSelectedClass] = useState("");
   const [selectedStudent, setSelectedStudent] = useState("");
+  const [selectedBatch, setSelectedBatch] = useState("");
   const [studentBalance, setStudentBalance] = useState(0);
   const [transactionType, setTransactionType] = useState("");
   const [amount, setAmount] = useState("");
@@ -105,9 +76,11 @@ const StudentsFund = ({
     null,
     {
       studentId: selectedStudent,
+      teacherId,
+      batchId: selectedBatch,
     },
     {
-      enabled: !!selectedStudent,
+      enabled: !!selectedStudent && !!teacherId && !!selectedBatch,
     }
   );
   const addStudentFund = useAddItem();
@@ -118,60 +91,48 @@ const StudentsFund = ({
 
   const transactions = useMemo(() => {
     return (
-      studentFund?.transactions
-        ?.filter((t) => t.teacherId === teacherId)
-        ?.sort((a, b) => new Date(b.date) - new Date(a.date)) || []
+      studentFund?.transactions?.sort(
+        (a, b) => new Date(b.date) - new Date(a.date)
+      ) || []
     );
   }, [studentFund]);
 
   useEffect(() => {
     if (fetchStudentFundQuery.data && studentFund) {
-      const balance = transactions?.reduce((total, transaction) => {
-        if (transaction.type === "Deposit") {
-          return total + transaction.amount;
-        } else {
-          return total - transaction.amount;
-        }
-      }, 0);
-      setStudentBalance(balance);
+      const balance = studentFund.balance;
+      setStudentBalance(balance || 0);
     }
   }, [fetchStudentFundQuery.data]);
 
-  // Filter classes based on role
-  const availableClasses =
-    role === "Teacher"
-      ? classes.filter((cls) => cls.teacherId === teacherId)
-      : classes;
-
-  // Filter students based on selected class
-  const availableStudents = selectedClass
-    ? students.filter((student) => student?.classId === selectedClass)
+  // Filter students based on selected batch
+  const availableStudents = selectedBatch
+    ? students.filter((student) => student?.batchId === selectedBatch)
     : [];
-
-  // Auto-select class for teachers
-  useEffect(() => {
-    if (role === "Teacher" && availableClasses.length === 1) {
-      setSelectedClass(availableClasses[0]._id);
-    }
-  }, [role, availableClasses]);
 
   const handleTransaction = () => {
     if (!amount || !transactionType) return;
     setShowConfirmDialog(true);
+    setStudentBalance(
+      transactionType === "Deposit"
+        ? studentBalance + parseFloat(amount)
+        : studentBalance - parseFloat(amount)
+    );
   };
 
   const confirmTransaction = async () => {
     setLoading(true);
     try {
       const transaction = {
-        teacherId,
         type: transactionType,
         amount: parseFloat(amount),
         note,
       };
       await addStudentFund.mutateAsync({
         studentId: selectedStudent,
+        teacherId,
+        batchId: selectedBatch,
         transaction,
+        balance: studentBalance,
       });
       await fetchStudentFundQuery.refetch();
       // Reset form
@@ -208,30 +169,20 @@ const StudentsFund = ({
           <Card>
             <CardContent className="p-6 space-y-6">
               <>
-                {role === "College Admin" ? (
-                  <Select
-                    value={selectedClass}
-                    onValueChange={setSelectedClass}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableClasses.map((cls) => (
-                        <SelectItem key={cls._id} value={cls._id}>
-                          {cls.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="p-4 bg-blue-50 rounded-lg border">
-                    <p className="font-medium text-blue-900">
-                      {availableClasses[0]?.name || "No class assigned"}
-                    </p>
-                  </div>
-                )}
-                {selectedClass && (
+                <Select value={selectedBatch} onValueChange={setSelectedBatch}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a batch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {batches.map((batch) => (
+                      <SelectItem key={batch._id} value={batch._id}>
+                        {batch.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {selectedBatch && (
                   <Select
                     value={selectedStudent}
                     onValueChange={setSelectedStudent}
@@ -379,34 +330,41 @@ const StudentsFund = ({
               {selectedStudent ? (
                 <div className="space-y-4">
                   <ScrollArea className="h-[320px] pr-4">
-                    {transactions?.slice(0, 5).map((transaction) => (
-                      <div
-                        key={transaction._id}
-                        className="border-b pb-4 mb-4 last:border-b-0"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge
-                            variant={
-                              transaction.type === "Deposit"
-                                ? "default"
-                                : "destructive"
-                            }
-                          >
-                            {transaction.type}
-                          </Badge>
-                          <span className="text-sm text-gray-500">
-                            {formatDate(transaction.date)}
-                          </span>
+                    {transactions?.length > 0 ? (
+                      transactions?.slice(0, 5).map((transaction) => (
+                        <div
+                          key={transaction._id}
+                          className="border-b pb-4 mb-4 last:border-b-0"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <Badge
+                              variant={
+                                transaction.type === "Deposit"
+                                  ? "default"
+                                  : "destructive"
+                              }
+                            >
+                              {transaction.type}
+                            </Badge>
+                            <span className="text-sm text-gray-500">
+                              {formatDate(transaction.date)}
+                            </span>
+                          </div>
+                          <p className="font-semibold text-lg">
+                            {transaction.type === "Deposit" ? "+" : "-"}₹
+                            {transaction.amount.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            {transaction.note}
+                          </p>
                         </div>
-                        <p className="font-semibold text-lg">
-                          {transaction.type === "Deposit" ? "+" : "-"}₹
-                          {transaction.amount.toLocaleString()}
-                        </p>
-                        <p className="text-sm text-gray-600 mb-1">
-                          {transaction.note}
-                        </p>
+                      ))
+                    ) : (
+                      <div className="text-center text-gray-500 py-8">
+                        <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No transactions found</p>
                       </div>
-                    ))}
+                    )}
                   </ScrollArea>
 
                   <Dialog
@@ -507,13 +465,7 @@ const StudentsFund = ({
               </div>
               <div>
                 <p className="text-gray-600">New Balance</p>
-                <p className="font-medium">
-                  ₹
-                  {(transactionType === "Deposit"
-                    ? studentBalance + parseFloat(amount || 0)
-                    : studentBalance - parseFloat(amount || 0)
-                  ).toLocaleString()}
-                </p>
+                <p className="font-medium">₹{studentBalance || 0}</p>
               </div>
             </div>
             <div className="mt-3">

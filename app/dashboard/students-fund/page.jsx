@@ -7,7 +7,10 @@ const API_ENDPOINTS = [
   {
     pathname: "users",
     searchParams:
-      "projection=_id,name,profilePic,studentSpecificField&status=Active&roles=Student",
+      "projection=_id,name,profilePic,studentSpecificField&roles=Student",
+  },
+  {
+    pathname: "batches",
   },
   {
     pathname: "classes",
@@ -22,15 +25,23 @@ const StudentsFundPage = async () => {
   const apiKey = process.env.API_KEY;
 
   try {
-    const [students, classes] = await Promise.all(
+    const [students, batches, classes] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
         fetchData(endpoint.pathname, endpoint.searchParams)
       )
     );
 
+    const formattedBatches = batches?.map((batch) => {
+      const cls = classes?.find((cls) => cls.batchId === batch._id);
+      return {
+        ...batch,
+        name: cls ? `${batch.name} (${cls.name})` : batch.name,
+      };
+    });
+
     return (
       <StudentsFund
-        classes={classes}
+        batches={formattedBatches}
         students={students}
         role={activeRole}
         teacherId={user?.userId}
