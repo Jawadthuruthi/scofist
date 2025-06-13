@@ -118,7 +118,9 @@ const StudentsFund = ({
 
   const transactions = useMemo(() => {
     return (
-      studentFund?.transactions?.filter((t) => t.teacherId === teacherId) || []
+      studentFund?.transactions
+        ?.filter((t) => t.teacherId === teacherId)
+        ?.sort((a, b) => new Date(b.date) - new Date(a.date)) || []
     );
   }, [studentFund]);
 

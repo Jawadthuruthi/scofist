@@ -238,7 +238,7 @@ function ComboBox({ roles, role }) {
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
+      <PopoverContent className="absolute w-60 max-w-[90vw] p-0 z-[9999] pointer-events-auto">
         <Command>
           <CommandList>
             <CommandEmpty>No role found.</CommandEmpty>
