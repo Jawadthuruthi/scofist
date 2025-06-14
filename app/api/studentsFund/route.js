@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import StudentsFund from "@/models/StudentsFund";
 import { apiResponse } from "@/lib/apiResponse";
-import { format } from "date-fns-tz";
+import { format, utcToZonedTime } from "date-fns-tz";
 
 export async function GET(req, res) {
   try {
@@ -24,14 +24,34 @@ export async function GET(req, res) {
       query.batchId = searchParams.batchId;
     }
 
-    const studentFund = await StudentsFund.findOne(query);
+    const studentFund = await StudentsFund.findOne(query).lean();
+    if (!studentFund) {
+      return NextResponse.json({ message: "No fund found" }, { status: 404 });
+    }
+
+    const formattedStudentFund = {
+      ...studentFund,
+      transactions: studentFund.transactions.map((tx) => {
+        const utcDate = new Date(tx.date);
+
+        const istDate = new Date(utcDate.getTime() + 5.5 * 60 * 60 * 1000);
+
+        return {
+          ...tx,
+          date: istDate,
+        };
+      }),
+    };
 
     const allStudentsFund = await StudentsFund.find({
       teacherId: searchParams.teacherId,
       batchId: searchParams.batchId,
     }).populate("studentId");
 
-    return NextResponse.json({ studentFund, allStudentsFund }, { status: 200 });
+    return NextResponse.json(
+      { studentFund: formattedStudentFund, allStudentsFund },
+      { status: 200 }
+    );
   } catch (error) {
     return apiResponse.error(error);
   }
@@ -42,10 +62,7 @@ export async function POST(req, res) {
     await connectToDB();
     const { studentId, teacherId, batchId, balance, transaction } =
       await req.json();
-    const now = new Date();
-    const timeZone = "Asia/Kolkata";
 
-    const istDate = format(now, "yyyy-MM-dd HH:mm:ss", { timeZone });
     const isStudentFundExist = await StudentsFund.findOne({
       studentId: studentId,
       batchId: batchId,
@@ -57,7 +74,7 @@ export async function POST(req, res) {
         batchId,
         teacherId,
         balance,
-        transactions: [{ ...transaction, date: istDate }],
+        transactions: [{ ...transaction }],
       });
       await newStudentsFund.save();
       return NextResponse.json({ newStudentsFund }, { status: 200 });
@@ -67,7 +84,7 @@ export async function POST(req, res) {
         {
           balance,
           $push: {
-            transactions: { ...transaction, date: istDate },
+            transactions: { ...transaction },
           },
         },
         { new: true }

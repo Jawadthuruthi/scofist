@@ -124,7 +124,7 @@ const StudentsFund = ({
       const balance = studentFund.balance;
       setStudentBalance(balance || 0);
     }
-  }, [fetchStudentFundQuery.data]);
+  }, [fetchStudentFundQuery.data, selectedStudent]);
 
   // Filter students based on selected batch
   const availableStudents = selectedBatch
