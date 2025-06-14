@@ -101,7 +101,7 @@ const StudentsFund = ({
 
   const allStudentsFund = useMemo(() => {
     return fetchStudentFundQuery.data?.allStudentsFund || [];
-  }, [fetchStudentFundQuery.data]);
+  }, [fetchStudentFundQuery.data, selectedBatch]);
 
   const addStudentFund = useAddItem();
 
@@ -117,7 +117,7 @@ const StudentsFund = ({
         (a, b) => new Date(b.date) - new Date(a.date)
       ) || []
     );
-  }, [studentFund]);
+  }, [studentFund, selectedStudent]);
 
   useEffect(() => {
     if (fetchStudentFundQuery.data && studentFund) {
