@@ -251,103 +251,114 @@ const StudentsFund = ({
                   Current balance and transaction controls
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Student Info & Balance */}
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:bg-gradient-to-r dark:from-blue-200 dark:to-indigo-200 rounded-lg border">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-7 md:h-12 w-7 md:w-12">
-                      <AvatarImage src={selectedStudentData?.profilePic.url} />
-                      <AvatarFallback>
-                        {selectedStudentData?.name?.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-semibold text-sm md:text-base text-gray-900">
-                        {selectedStudentData?.name}
-                      </h3>
+              {fetchStudentFundQuery.isLoading ? (
+                <CardContent className="space-y-6">
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="mr-2 animate-spin" />
+                    <span>Loading...</span>
+                  </div>
+                </CardContent>
+              ) : (
+                <CardContent className="space-y-6">
+                  {/* Student Info & Balance */}
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:bg-gradient-to-r dark:from-blue-200 dark:to-indigo-200 rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-7 md:h-12 w-7 md:w-12">
+                        <AvatarImage
+                          src={selectedStudentData?.profilePic.url}
+                        />
+                        <AvatarFallback>
+                          {selectedStudentData?.name?.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h3 className="font-semibold text-sm md:text-base text-gray-900">
+                          {selectedStudentData?.name}
+                        </h3>
+                        <p className="text-xs md:text-sm text-gray-600">
+                          Student ID: {selectedStudent}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
                       <p className="text-xs md:text-sm text-gray-600">
-                        Student ID: {selectedStudent}
+                        Current Balance
+                      </p>
+                      <p className="text-lg md:text-2xl font-bold text-green-600">
+                        {studentBalance ? `₹ ${studentBalance}` : "0"}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs md:text-sm text-gray-600">
-                      Current Balance
-                    </p>
-                    <p className="text-lg md:text-2xl font-bold text-green-600">
-                      {studentBalance ? `₹ ${studentBalance}` : "0"}
-                    </p>
+
+                  <Separator />
+
+                  {/* Transaction Type Selection */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button
+                      variant={
+                        transactionType === "Deposit" ? "default" : "outline"
+                      }
+                      onClick={() => setTransactionType("Deposit")}
+                      className="h-16 flex-col gap-2"
+                    >
+                      <Plus className="h-5 w-5" />
+                      Deposit
+                    </Button>
+                    <Button
+                      variant={
+                        transactionType === "Withdrawal" ? "default" : "outline"
+                      }
+                      onClick={() => setTransactionType("Withdrawal")}
+                      className={`h-16 flex-col gap-2 ${transactionType === "Withdrawal" ? "!bg-destructive !text-destructive-foreground" : ""}`}
+                    >
+                      <Minus className="h-5 w-5" />
+                      Withdrawal
+                    </Button>
                   </div>
-                </div>
 
-                <Separator />
+                  {/* Amount Input */}
+                  {transactionType && (
+                    <div className="space-y-2">
+                      <Label htmlFor="amount">Amount (₹)</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        placeholder="Enter amount"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        min="1"
+                        step="0.01"
+                      />
+                    </div>
+                  )}
 
-                {/* Transaction Type Selection */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    variant={
-                      transactionType === "Deposit" ? "default" : "outline"
-                    }
-                    onClick={() => setTransactionType("Deposit")}
-                    className="h-16 flex-col gap-2"
-                  >
-                    <Plus className="h-5 w-5" />
-                    Deposit
-                  </Button>
-                  <Button
-                    variant={
-                      transactionType === "Withdrawal" ? "default" : "outline"
-                    }
-                    onClick={() => setTransactionType("Withdrawal")}
-                    className={`h-16 flex-col gap-2 ${transactionType === "Withdrawal" ? "!bg-destructive !text-destructive-foreground" : ""}`}
-                  >
-                    <Minus className="h-5 w-5" />
-                    Withdrawal
-                  </Button>
-                </div>
+                  {/* Note Input */}
+                  {transactionType && (
+                    <div className="space-y-2">
+                      <Label htmlFor="note">Note</Label>
+                      <Textarea
+                        id="note"
+                        placeholder="Enter transaction note or description"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        rows={1}
+                      />
+                    </div>
+                  )}
 
-                {/* Amount Input */}
-                {transactionType && (
-                  <div className="space-y-2">
-                    <Label htmlFor="amount">Amount (₹)</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      placeholder="Enter amount"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      min="1"
-                      step="0.01"
-                    />
-                  </div>
-                )}
-
-                {/* Note Input */}
-                {transactionType && (
-                  <div className="space-y-2">
-                    <Label htmlFor="note">Note</Label>
-                    <Textarea
-                      id="note"
-                      placeholder="Enter transaction note or description"
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      rows={1}
-                    />
-                  </div>
-                )}
-
-                {/* Submit Button */}
-                {transactionType && (
-                  <Button
-                    onClick={handleTransaction}
-                    disabled={!amount || loading}
-                    className="w-full"
-                    size="lg"
-                  >
-                    {loading ? "Processing..." : `Confirm ${transactionType}`}
-                  </Button>
-                )}
-              </CardContent>
+                  {/* Submit Button */}
+                  {transactionType && (
+                    <Button
+                      onClick={handleTransaction}
+                      disabled={!amount || loading}
+                      className="w-full"
+                      size="lg"
+                    >
+                      {loading ? "Processing..." : `Confirm ${transactionType}`}
+                    </Button>
+                  )}
+                </CardContent>
+              )}
             </Card>
           )}
         </div>

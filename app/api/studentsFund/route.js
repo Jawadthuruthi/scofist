@@ -41,10 +41,17 @@ export async function POST(req, res) {
     await connectToDB();
     const { studentId, teacherId, batchId, balance, transaction } =
       await req.json();
-    const now = new Date();
-    const istDate = new Date(
-      now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-    );
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    const istDate = formatter.format(new Date());
     const isStudentFundExist = await StudentsFund.findOne({
       studentId: studentId,
       batchId: batchId,
