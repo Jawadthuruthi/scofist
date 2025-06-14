@@ -134,15 +134,15 @@ const StudentsFund = ({
   const handleTransaction = () => {
     if (!amount || !transactionType) return;
     setShowConfirmDialog(true);
-    setStudentBalance(
-      transactionType === "Deposit"
-        ? studentBalance.toFixed(2) + parseFloat(amount)
-        : studentBalance.toFixed(2) - parseFloat(amount)
-    );
   };
 
   const confirmTransaction = async () => {
     setLoading(true);
+    const balance =
+      (transactionType === "Deposit"
+        ? parseInt(studentBalance) + parseFloat(amount)
+        : parseInt(studentBalance) - parseFloat(amount)) || 0;
+
     try {
       const transaction = {
         type: transactionType,
@@ -154,9 +154,10 @@ const StudentsFund = ({
         teacherId,
         batchId: selectedBatch,
         transaction,
-        balance: studentBalance,
+        balance,
       });
       await fetchStudentFundQuery.refetch();
+
       // Reset form
       setAmount("");
       setNote("");
@@ -287,7 +288,7 @@ const StudentsFund = ({
                       </p>
                       <p className="text-lg md:text-2xl font-bold text-green-600">
                         {studentBalance
-                          ? `₹ ${studentBalance.toFixed(2)}`
+                          ? `₹ ${parseInt(studentBalance).toFixed(2)}`
                           : "0"}
                       </p>
                     </div>
@@ -563,7 +564,12 @@ const StudentsFund = ({
               </div>
               <div>
                 <p className="text-gray-600">New Balance</p>
-                <p className="font-medium">₹{studentBalance.toFixed(2) || 0}</p>
+                <p className="font-medium">
+                  ₹
+                  {transactionType === "Deposit"
+                    ? parseInt(studentBalance) + parseFloat(amount)
+                    : parseInt(studentBalance) - parseFloat(amount) || 0}
+                </p>
               </div>
             </div>
             <div className="mt-3">
