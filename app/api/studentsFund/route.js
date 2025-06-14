@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import StudentsFund from "@/models/StudentsFund";
 import { apiResponse } from "@/lib/apiResponse";
-import { format, utcToZonedTime } from "date-fns-tz";
 
 export async function GET(req, res) {
   try {
@@ -24,34 +23,14 @@ export async function GET(req, res) {
       query.batchId = searchParams.batchId;
     }
 
-    const studentFund = await StudentsFund.findOne(query).lean();
-    if (!studentFund) {
-      return NextResponse.json({ message: "No fund found" }, { status: 404 });
-    }
-
-    const formattedStudentFund = {
-      ...studentFund,
-      transactions: studentFund.transactions.map((tx) => {
-        const utcDate = new Date(tx.date);
-
-        const istDate = new Date(utcDate.getTime() - 5.5 * 60 * 60 * 1000);
-
-        return {
-          ...tx,
-          date: istDate,
-        };
-      }),
-    };
+    const studentFund = await StudentsFund.findOne(query);
 
     const allStudentsFund = await StudentsFund.find({
       teacherId: searchParams.teacherId,
       batchId: searchParams.batchId,
     }).populate("studentId");
 
-    return NextResponse.json(
-      { studentFund: formattedStudentFund, allStudentsFund },
-      { status: 200 }
-    );
+    return NextResponse.json({ studentFund, allStudentsFund }, { status: 200 });
   } catch (error) {
     return apiResponse.error(error);
   }
@@ -74,7 +53,7 @@ export async function POST(req, res) {
         batchId,
         teacherId,
         balance,
-        transactions: [{ ...transaction }],
+        transactions: [{ ...transaction, date: new Date() }],
       });
       await newStudentsFund.save();
       return NextResponse.json({ newStudentsFund }, { status: 200 });
@@ -84,7 +63,7 @@ export async function POST(req, res) {
         {
           balance,
           $push: {
-            transactions: { ...transaction },
+            transactions: { ...transaction, date: new Date() },
           },
         },
         { new: true }

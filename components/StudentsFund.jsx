@@ -109,7 +109,7 @@ const StudentsFund = ({
 
   const studentFund = useMemo(() => {
     return fetchStudentFundQuery.data?.studentFund || {};
-  }, [fetchStudentFundQuery.data]);
+  }, [fetchStudentFundQuery.data, selectedStudent]);
 
   const transactions = useMemo(() => {
     return (
@@ -124,7 +124,7 @@ const StudentsFund = ({
       const balance = studentFund.balance;
       setStudentBalance(balance || 0);
     }
-  }, [fetchStudentFundQuery.data, selectedStudent]);
+  }, [studentFund, selectedStudent]);
 
   // Filter students based on selected batch
   const availableStudents = selectedBatch
