@@ -42,8 +42,9 @@ export async function POST(req, res) {
     const { studentId, teacherId, batchId, balance, transaction } =
       await req.json();
     const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-    const istDate = new Date(now.getTime() + istOffset);
+    const istDate = new Date(
+      now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+    );
     const isStudentFundExist = await StudentsFund.findOne({
       studentId: studentId,
       batchId: batchId,

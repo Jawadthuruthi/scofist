@@ -171,7 +171,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
         <div>
           {/* Day selector */}
           <div className="mb-6 py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
-            {date}, {today}
+            {date}
           </div>
 
           {/* Periods Table */}

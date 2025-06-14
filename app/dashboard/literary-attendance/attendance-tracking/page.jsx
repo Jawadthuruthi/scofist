@@ -5,10 +5,6 @@ import { fetchData, formatOptions } from "@/lib/utils";
 
 const API_ENDPOINTS = [
   {
-    pathname: "batches",
-    searchParams: "projection=_id,name",
-  },
-  {
     pathname: "classes",
     searchParams: "projection=_id,name",
   },
@@ -22,7 +18,7 @@ const AttendanceTrackingPage = async () => {
   try {
     const apiKey = process.env.API_KEY;
 
-    const [batches, classes, groups] = await Promise.all(
+    const [classes, groups] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
         fetchData(
           endpoint.pathname,
@@ -52,7 +48,7 @@ const AttendanceTrackingPage = async () => {
           { header: "Student ID", accessorKey: "_id" },
           { header: "Name", accessorKey: "name" },
           {
-            header: "Total Class",
+            header: "Total",
             accessorKey: "totalClass",
             valueKey: "attendanceRecords",
             type: ["length"],
@@ -75,15 +71,6 @@ const AttendanceTrackingPage = async () => {
           },
         ],
         filterConfig: [
-          {
-            id: "batchId",
-            label: "Batch",
-            type: "text",
-            inputType: "select",
-            nestedArrayField: "attendanceRecords",
-
-            options: formatOptions(batches),
-          },
           {
             id: "classId",
             label: "Class",
