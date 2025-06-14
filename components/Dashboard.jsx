@@ -537,12 +537,11 @@ export default function Dashboard({
   periods = [],
   attendances = [],
   settings = {},
+  activeRole,
 }) {
   // States for loading and error handling
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
-
-  const activeRole = Cookies.get("active-role");
 
   const router = useRouter();
 
@@ -663,6 +662,19 @@ export default function Dashboard({
 
     processDashboardData();
   }, [fetchStudentsQuery.data, fetchStudentsQuery.error]);
+
+  if (activeRole === "Literary Leader") {
+    return (
+      <div className="flex flex-col space-y-6">
+        <Header
+          title="DASHBOARD"
+          subTitle={currentDate}
+          icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col space-y-6">
       <Header

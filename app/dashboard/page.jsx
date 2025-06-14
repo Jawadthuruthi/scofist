@@ -1,6 +1,7 @@
 import ErrorPage from "@/components/ErrorPage";
 import Dashboard from "@/components/Dashboard";
 import { fetchData, WEEKDAYS } from "@/lib/utils";
+import { cookies } from "next/headers";
 
 const today = new Date();
 const istTime = new Date(today.getTime() + 5.5 * 60 * 60 * 1000);
@@ -37,6 +38,8 @@ const API_ENDPOINTS = [
 
 export default async function DashboardPage() {
   try {
+    const cookieStore = await cookies();
+    const activeRole = cookieStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
 
     const [
@@ -63,6 +66,7 @@ export default async function DashboardPage() {
         periods={periods}
         attendances={attendances}
         settings={settings}
+        activeRole={activeRole}
       />
     );
   } catch (error) {

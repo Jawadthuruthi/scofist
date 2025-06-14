@@ -74,13 +74,7 @@ const API_ENDPOINTS = [
     searchParams: "projection=_id,name",
   },
 ];
-const SEMESTERS = [
-  { label: "1st", value: "1st" },
-  { label: "2nd", value: "2nd" },
-  { label: "3rd", value: "3rd" },
-  { label: "4th", value: "4th" },
-  { label: "5th", value: "5th" },
-];
+
 export default async function BatchesPage() {
   try {
     const cookieStore = await cookies();
@@ -182,7 +176,13 @@ export default async function BatchesPage() {
         inputType: "multiSelect",
         defaultValue: ["Student"],
         required: true,
-        options: [{ label: "Student", value: "Student" }],
+        options: [
+          { label: "Student", value: "Student" },
+          { label: "Literary Leader", value: "Literary Leader" },
+          { label: "Librarian", value: "Librarian" },
+          { label: "Program Committee", value: "Program Committee" },
+          { label: "Program Leader", value: "Program Leader" },
+        ],
         validators: {
           minLength: 1,
           minLengthMessage: "Please select at least one role",

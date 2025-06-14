@@ -62,6 +62,8 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
+import { MultiSelect } from "./ui/multi-select";
+import { formatOptions } from "@/lib/utils";
 
 const StudentsFund = ({
   batches = [],
@@ -103,13 +105,19 @@ const StudentsFund = ({
     return fetchStudentFundQuery.data?.allStudentsFund || [];
   }, [fetchStudentFundQuery.data, selectedBatch]);
 
+  const allStudentBalance = useMemo(() => {
+    return allStudentsFund.reduce((total, studentFund) => {
+      return total + (studentFund.balance || 0);
+    }, 0);
+  }, [allStudentsFund]);
+
   const addStudentFund = useAddItem();
 
   const updateStudentFund = useUpdateItem();
 
   const studentFund = useMemo(() => {
     return fetchStudentFundQuery.data?.studentFund || {};
-  }, [fetchStudentFundQuery.data, selectedStudent]);
+  }, [fetchStudentFundQuery.data, selectedStudent, selectedBatch]);
 
   const transactions = useMemo(() => {
     return (
@@ -221,21 +229,13 @@ const StudentsFund = ({
                 </Select>
 
                 {selectedBatch && (
-                  <Select
-                    value={selectedStudent}
+                  <MultiSelect
+                    options={formatOptions(availableStudents)}
                     onValueChange={setSelectedStudent}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a student" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableStudents.map((student) => (
-                        <SelectItem key={student._id} value={student._id}>
-                          {student.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    value={selectedStudent}
+                    label="Select a student"
+                    multiSelect={false}
+                  />
                 )}
               </>
             </CardContent>
@@ -263,7 +263,7 @@ const StudentsFund = ({
               ) : (
                 <CardContent className="space-y-6">
                   {/* Student Info & Balance */}
-                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:bg-gradient-to-r dark:from-blue-200 dark:to-indigo-200 rounded-lg border">
+                  <div className="flex items-center justify-between p-4 bg-accent rounded-lg border">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-7 md:h-12 w-7 md:w-12">
                         <AvatarImage
@@ -274,19 +274,21 @@ const StudentsFund = ({
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <h3 className="font-semibold text-sm md:text-base text-gray-900">
+                        <h3 className="font-semibold text-sm md:text-base text-foreground">
                           {selectedStudentData?.name}
                         </h3>
-                        <p className="text-xs md:text-sm text-gray-600">
+                        <p className="text-xs md:text-sm text-accent-foreground">
                           Student ID: {selectedStudent}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs md:text-sm text-gray-600">
+                      <p className="text-xs md:text-sm text-accent-foreground">
                         Current Balance
                       </p>
-                      <p className="text-lg md:text-2xl font-bold text-green-600">
+                      <p
+                        className={`"text-lg md:text-2xl font-bold " ${studentBalance < 0 ? "text-destructive" : "text-green-600"}`}
+                      >
                         {studentBalance
                           ? `₹ ${parseInt(studentBalance).toFixed(2)}`
                           : "0"}
@@ -380,7 +382,7 @@ const StudentsFund = ({
             <CardContent>
               {selectedStudent ? (
                 <div className="space-y-4">
-                  <ScrollArea className="h-[320px] pr-4">
+                  <ScrollArea className="h-[320px]">
                     {transactions?.length > 0 ? (
                       transactions?.slice(0, 5).map((transaction) => (
                         <div
@@ -397,7 +399,7 @@ const StudentsFund = ({
                             >
                               {transaction.type}
                             </Badge>
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-accent-foreground">
                               {formatDate(transaction.date)}
                             </span>
                           </div>
@@ -405,13 +407,13 @@ const StudentsFund = ({
                             {transaction.type === "Deposit" ? "+" : "-"}₹
                             {transaction.amount.toLocaleString()}
                           </p>
-                          <p className="text-sm text-gray-600 mb-1">
+                          <p className="text-sm text-accent-foreground mb-1">
                             {transaction.note}
                           </p>
                         </div>
                       ))
                     ) : (
-                      <div className="text-center text-gray-500 py-8">
+                      <div className="text-center text-accent-foreground py-8">
                         <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
                         <p>No transactions found</p>
                       </div>
@@ -435,7 +437,7 @@ const StudentsFund = ({
                           All transactions for {selectedStudentData?.name}
                         </DialogDescription>
                       </DialogHeader>
-                      <ScrollArea className="h-[80vw] md:h-[500px] pr-4">
+                      <ScrollArea className="h-[80vw] md:h-[500px]">
                         <div className="space-y-4">
                           {transactions?.map((transaction) => (
                             <div
@@ -452,7 +454,7 @@ const StudentsFund = ({
                                 >
                                   {transaction.type}
                                 </Badge>
-                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <div className="flex items-center gap-2 text-sm text-accent-foreground">
                                   <Calendar className="h-4 w-4" />
                                   {formatDate(transaction.date)}
                                 </div>
@@ -478,11 +480,33 @@ const StudentsFund = ({
                         <Button
                           variant="outline"
                           className="w-full !bg-destructive !text-destructive-foreground"
-                          onClick={handleClearHistory}
-                          disabled={updateStudentFund.isPending}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Clear All History
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <span className="flex items-center gap-2">
+                                <Trash2 className="h-4 w-4" />
+                                Clear History
+                              </span>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Clear History</DialogTitle>
+                                <DialogDescription>
+                                  Are you sure you want to clear the history for{" "}
+                                  {selectedStudentData?.name}?
+                                </DialogDescription>
+                              </DialogHeader>
+                              <DialogFooter>
+                                <Button
+                                  className="w-full !bg-destructive !text-destructive-foreground"
+                                  onClick={handleClearHistory}
+                                  disabled={updateStudentFund.isPending}
+                                >
+                                  Clear History
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -504,7 +528,15 @@ const StudentsFund = ({
                           Review the current fund balance for each student.
                         </DialogDescription>
                       </DialogHeader>
-                      <ScrollArea className="h-[500px] pr-4">
+                      <ScrollArea className="h-[500px]">
+                        <div className="flex justify-between border border-border items-center bg-accent/10 p-2 rounded-md mb-4">
+                          <span className="text-base font-medium text-muted-foreground">
+                            Total Balance
+                          </span>
+                          <span className="text-lg font-extrabold text-primary">
+                            {allStudentBalance}
+                          </span>
+                        </div>
                         <Table className="border border-border w-full">
                           <TableHeader>
                             <TableRow>
@@ -526,7 +558,7 @@ const StudentsFund = ({
                   </Dialog>
                 </div>
               ) : (
-                <div className="text-center text-gray-500 py-8">
+                <div className="text-center text-accent-foreground py-8">
                   <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Select a student to view transaction history</p>
                 </div>
@@ -546,24 +578,24 @@ const StudentsFund = ({
               {transactionType?.toLowerCase()} transaction?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="my-4 p-4 bg-gray-50 rounded-lg">
+          <div className="my-4 p-4 bg-accent rounded-lg">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-600">Student</p>
+                <p className="text-accent-foreground">Student</p>
                 <p className="font-medium">{selectedStudentData?.name}</p>
               </div>
               <div>
-                <p className="text-gray-600">Transaction Type</p>
+                <p className="text-accent-foreground">Transaction Type</p>
                 <p className="font-medium">{transactionType}</p>
               </div>
               <div>
-                <p className="text-gray-600">Amount</p>
+                <p className="text-accent-foreground">Amount</p>
                 <p className="font-medium">
                   ₹{parseFloat(amount || 0).toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-gray-600">New Balance</p>
+                <p className="text-accent-foreground">New Balance</p>
                 <p className="font-medium">
                   ₹
                   {transactionType === "Deposit"
@@ -573,7 +605,7 @@ const StudentsFund = ({
               </div>
             </div>
             <div className="mt-3">
-              <p className="text-gray-600 text-sm">Note</p>
+              <p className="text-accent-foreground text-sm">Note</p>
               <p className="text-sm">{note}</p>
             </div>
           </div>
