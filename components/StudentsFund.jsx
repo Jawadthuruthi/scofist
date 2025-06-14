@@ -136,8 +136,8 @@ const StudentsFund = ({
     setShowConfirmDialog(true);
     setStudentBalance(
       transactionType === "Deposit"
-        ? studentBalance + parseFloat(amount)
-        : studentBalance - parseFloat(amount)
+        ? studentBalance.toFixed(2) + parseFloat(amount)
+        : studentBalance.toFixed(2) - parseFloat(amount)
     );
   };
 
@@ -286,7 +286,9 @@ const StudentsFund = ({
                         Current Balance
                       </p>
                       <p className="text-lg md:text-2xl font-bold text-green-600">
-                        {studentBalance ? `₹ ${studentBalance}` : "0"}
+                        {studentBalance
+                          ? `₹ ${studentBalance.toFixed(2)}`
+                          : "0"}
                       </p>
                     </div>
                   </div>
@@ -561,7 +563,7 @@ const StudentsFund = ({
               </div>
               <div>
                 <p className="text-gray-600">New Balance</p>
-                <p className="font-medium">₹{studentBalance || 0}</p>
+                <p className="font-medium">₹{studentBalance.toFixed(2) || 0}</p>
               </div>
             </div>
             <div className="mt-3">

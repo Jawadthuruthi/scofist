@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import StudentsFund from "@/models/StudentsFund";
 import { apiResponse } from "@/lib/apiResponse";
+import { format } from "date-fns-tz";
 
 export async function GET(req, res) {
   try {
@@ -41,17 +42,10 @@ export async function POST(req, res) {
     await connectToDB();
     const { studentId, teacherId, batchId, balance, transaction } =
       await req.json();
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: "Asia/Kolkata",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
-    const istDate = formatter.format(new Date());
+    const now = new Date();
+    const timeZone = "Asia/Kolkata";
+
+    const istDate = format(now, "yyyy-MM-dd HH:mm:ss", { timeZone });
     const isStudentFundExist = await StudentsFund.findOne({
       studentId: studentId,
       batchId: batchId,
