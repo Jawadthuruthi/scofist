@@ -189,7 +189,7 @@ const LiteraryAttendance = ({
         subTitle="Manage Literary Attendance"
       />
       <div className="mb-6 py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
-        {date}, {today}
+        {date}
       </div>
       <Tabs value={activeTab} defaultValue="all" onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-2 w-full">

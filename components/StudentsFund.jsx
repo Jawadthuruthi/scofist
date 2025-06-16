@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -64,14 +64,9 @@ import {
 } from "./ui/table";
 import { MultiSelect } from "./ui/multi-select";
 import { formatOptions } from "@/lib/utils";
+import usePrint from "@/hooks/use-print";
 
-const StudentsFund = ({
-  batches = [],
-  students = [],
-  apiKey,
-  role,
-  teacherId,
-}) => {
+const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const [selectedStudent, setSelectedStudent] = useState("");
   const [selectedBatch, setSelectedBatch] = useState("");
   const [studentBalance, setStudentBalance] = useState(0);
@@ -81,8 +76,15 @@ const StudentsFund = ({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [showBalanceDialog, setShowBalanceDialog] = useState(false);
+  const [showClearHistoryDialogue, setShowClearHistoryDialogue] =
+    useState(false);
   const [loading, setLoading] = useState(false);
 
+  const printRef = useRef();
+
+  const handlePrint = usePrint({
+    content: () => printRef.current,
+  });
   const { useFetchItems, useAddItem, useUpdateItem } = useCrud(
     "studentsFund",
     apiKey
@@ -188,6 +190,8 @@ const StudentsFund = ({
         },
       });
       await fetchStudentFundQuery.refetch();
+      setShowHistoryDialog(false);
+      setShowClearHistoryDialogue(false);
     } catch (error) {
       console.error("Failed to clear history:", error);
     }
@@ -438,7 +442,7 @@ const StudentsFund = ({
                         </DialogDescription>
                       </DialogHeader>
                       <ScrollArea className="h-[80vw] md:h-[500px]">
-                        <div className="space-y-4">
+                        <div className="space-y-4" ref={printRef}>
                           {transactions?.map((transaction) => (
                             <div
                               key={transaction._id}
@@ -477,37 +481,51 @@ const StudentsFund = ({
                         </div>
                       </ScrollArea>
                       <DialogFooter>
-                        <Button
-                          variant="outline"
-                          className="w-full !bg-destructive !text-destructive-foreground"
-                        >
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <span className="flex items-center gap-2">
-                                <Trash2 className="h-4 w-4" />
-                                Clear History
-                              </span>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Clear History</DialogTitle>
-                                <DialogDescription>
-                                  Are you sure you want to clear the history for{" "}
-                                  {selectedStudentData?.name}?
-                                </DialogDescription>
-                              </DialogHeader>
-                              <DialogFooter>
-                                <Button
-                                  className="w-full !bg-destructive !text-destructive-foreground"
-                                  onClick={handleClearHistory}
-                                  disabled={updateStudentFund.isPending}
-                                >
+                        <div className="flex items-center justify-between w-full gap-2">
+                          <Button variant="outline" onClick={handlePrint}>
+                            Print
+                          </Button>
+                          <Button variant="destructive">
+                            <Dialog
+                              open={showClearHistoryDialogue}
+                              onOpenChange={setShowClearHistoryDialogue}
+                            >
+                              <DialogTrigger asChild>
+                                <span className="flex items-center gap-2">
+                                  <Trash2 className="h-4 w-4" />
                                   Clear History
-                                </Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-                        </Button>
+                                </span>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Clear History</DialogTitle>
+                                  <DialogDescription>
+                                    Are you sure you want to clear the history
+                                    for {selectedStudentData?.name}?
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setShowClearHistoryDialogue(false);
+                                      setShowHistoryDialog(false);
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    className="!bg-destructive !text-destructive-foreground"
+                                    onClick={handleClearHistory}
+                                    disabled={updateStudentFund.isPending}
+                                  >
+                                    Clear
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          </Button>
+                        </div>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
