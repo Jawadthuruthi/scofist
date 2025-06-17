@@ -443,6 +443,14 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                       </DialogHeader>
                       <ScrollArea className="h-[80vw] md:h-[500px]">
                         <div className="space-y-4" ref={printRef}>
+                          <div className="hidden print:block">
+                            <h2 className="text-xl font-bold">
+                              Complete Transaction History
+                            </h2>
+                            <p className="mb-4">
+                              All transactions for {selectedStudentData?.name}
+                            </p>
+                          </div>
                           {transactions?.map((transaction) => (
                             <div
                               key={transaction._id}

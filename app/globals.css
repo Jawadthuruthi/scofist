@@ -150,6 +150,12 @@
 }
 
 @media print {
+  [data-radix-portal] {
+    all: unset !important;
+    display: block !important;
+    position: static !important;
+  }
+
   ::-webkit-scrollbar,
   button[role="checkbox"] {
     display: none;
