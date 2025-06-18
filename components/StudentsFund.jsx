@@ -40,7 +40,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DollarSign,
@@ -81,9 +80,13 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const [loading, setLoading] = useState(false);
 
   const printRef = useRef();
+  const allStudentsFundRef = useRef();
 
   const handlePrint = usePrint({
     content: () => printRef.current,
+  });
+  const handleAllStudentsFundPrint = usePrint({
+    content: () => allStudentsFundRef.current,
   });
   const { useFetchItems, useAddItem, useUpdateItem } = useCrud(
     "studentsFund",
@@ -141,6 +144,10 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
     ? students.filter((student) => student?.batchId === selectedBatch)
     : [];
 
+  const selectedBatchData = useMemo(() => {
+    return batches.find((batch) => batch._id === selectedBatch)?.name || "";
+  }, [selectedBatch]);
+
   const handleTransaction = () => {
     if (!amount || !transactionType) return;
     setShowConfirmDialog(true);
@@ -150,8 +157,8 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
     setLoading(true);
     const balance =
       (transactionType === "Deposit"
-        ? parseInt(studentBalance) + parseFloat(amount)
-        : parseInt(studentBalance) - parseFloat(amount)) || 0;
+        ? studentBalance + parseFloat(amount)
+        : studentBalance - parseFloat(amount)) || 0;
 
     try {
       const transaction = {
@@ -294,7 +301,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         className={`"text-lg md:text-2xl font-bold " ${studentBalance < 0 ? "text-destructive" : "text-green-600"}`}
                       >
                         {studentBalance
-                          ? `₹ ${parseInt(studentBalance).toFixed(2)}`
+                          ? `₹ ${studentBalance?.toFixed(2)}`
                           : "0"}
                       </p>
                     </div>
@@ -386,7 +393,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
             <CardContent>
               {selectedStudent ? (
                 <div className="space-y-4">
-                  <ScrollArea className="h-[320px]">
+                  <div className="max-h-[320px] overflow-y-auto hide-scrollbar">
                     {transactions?.length > 0 ? (
                       transactions?.slice(0, 5).map((transaction) => (
                         <div
@@ -422,7 +429,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         <p>No transactions found</p>
                       </div>
                     )}
-                  </ScrollArea>
+                  </div>
 
                   <Dialog
                     open={showHistoryDialog}
@@ -434,60 +441,61 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         View Full History
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[80vh]">
+                    <DialogContent className="max-w-4xl h-[80vh]">
                       <DialogHeader>
                         <DialogTitle>Complete Transaction History</DialogTitle>
                         <DialogDescription>
                           All transactions for {selectedStudentData?.name}
                         </DialogDescription>
                       </DialogHeader>
-                      <ScrollArea className="h-[80vw] md:h-[500px]">
-                        <div className="space-y-4" ref={printRef}>
-                          <div className="hidden print:block">
-                            <h2 className="text-xl font-bold">
-                              Complete Transaction History
-                            </h2>
-                            <p className="mb-4">
-                              All transactions for {selectedStudentData?.name}
-                            </p>
-                          </div>
-                          {transactions?.map((transaction) => (
-                            <div
-                              key={transaction._id}
-                              className="border rounded-lg p-4"
-                            >
-                              <div className="flex items-center justify-between mb-3">
-                                <Badge
-                                  variant={
-                                    transaction.type === "Deposit"
-                                      ? "default"
-                                      : "destructive"
-                                  }
-                                >
-                                  {transaction.type}
-                                </Badge>
-                                <div className="flex items-center gap-2 text-sm text-accent-foreground">
-                                  <Calendar className="h-4 w-4" />
-                                  {formatDate(transaction.date)}
-                                </div>
+                      <div
+                        className="space-y-4 max-h-full overflow-y-auto hide-scrollbar"
+                        ref={printRef}
+                      >
+                        <div className="hidden print:block">
+                          <h2 className="text-xl font-bold">
+                            Complete Transaction History
+                          </h2>
+                          <p className="mb-4">
+                            All transactions for {selectedStudentData?.name}
+                          </p>
+                        </div>
+                        {transactions?.map((transaction) => (
+                          <div
+                            key={transaction._id}
+                            className="border rounded-lg p-4"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <Badge
+                                variant={
+                                  transaction.type === "Deposit"
+                                    ? "default"
+                                    : "destructive"
+                                }
+                              >
+                                {transaction.type}
+                              </Badge>
+                              <div className="flex items-center gap-2 text-sm text-accent-foreground">
+                                <Calendar className="h-4 w-4" />
+                                {formatDate(transaction.date)}
                               </div>
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <p className="font-bold text-lg">
-                                    {transaction.type === "Deposit" ? "+" : "-"}
-                                    ₹{transaction.amount.toLocaleString()}
-                                  </p>
-                                </div>
-                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <p className="text-gray-800">
-                                  {transaction.note}
+                                <p className="font-bold text-lg">
+                                  {transaction.type === "Deposit" ? "+" : "-"}₹
+                                  {transaction.amount.toLocaleString()}
                                 </p>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
+                            <div>
+                              <p className="text-gray-800">
+                                {transaction.note}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                       <DialogFooter>
                         <div className="flex items-center justify-between w-full gap-2">
                           <Button variant="outline" onClick={handlePrint}>
@@ -512,7 +520,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                                     for {selectedStudentData?.name}?
                                   </DialogDescription>
                                 </DialogHeader>
-                                <DialogFooter>
+                                <DialogFooter className="gap-2">
                                   <Button
                                     variant="outline"
                                     onClick={() => {
@@ -547,20 +555,33 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         View All Students Balance
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[80vh]">
+                    <DialogContent className="max-w-4xl h-[80vh]">
                       <DialogHeader>
                         <DialogTitle>All Students Balance</DialogTitle>
                         <DialogDescription>
-                          Review the current fund balance for each student.
+                          Review the current fund balance for each student of{" "}
+                          {selectedBatchData?.name}.
                         </DialogDescription>
                       </DialogHeader>
-                      <ScrollArea className="h-[500px]">
+                      <div
+                        className="max-h-full overflow-y-auto hide-scrollbar"
+                        ref={allStudentsFundRef}
+                      >
+                        <div className="hidden print:block">
+                          <h2 className="text-xl font-bold">
+                            All Students Balance
+                          </h2>
+                          <p className="mb-4">
+                            Review the current fund balance for each student of{" "}
+                            {selectedBatchData?.name}.
+                          </p>
+                        </div>
                         <div className="flex justify-between border border-border items-center bg-accent/10 p-2 rounded-md mb-4">
                           <span className="text-base font-medium text-muted-foreground">
                             Total Balance
                           </span>
                           <span className="text-lg font-extrabold text-primary">
-                            {allStudentBalance}
+                            {allStudentBalance?.toFixed(2)}
                           </span>
                         </div>
                         <Table className="border border-border w-full">
@@ -574,12 +595,22 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                             {allStudentsFund.map((student) => (
                               <TableRow key={student._id}>
                                 <TableCell>{student.studentId?.name}</TableCell>
-                                <TableCell>{student.balance}</TableCell>
+                                <TableCell>
+                                  {student.balance?.toFixed(2)}
+                                </TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
                         </Table>
-                      </ScrollArea>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          variant="outline"
+                          onClick={handleAllStudentsFundPrint}
+                        >
+                          Print
+                        </Button>
+                      </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </div>
@@ -625,8 +656,8 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                 <p className="font-medium">
                   ₹
                   {transactionType === "Deposit"
-                    ? parseInt(studentBalance) + parseFloat(amount)
-                    : parseInt(studentBalance) - parseFloat(amount) || 0}
+                    ? studentBalance + parseFloat(amount)
+                    : studentBalance - parseFloat(amount) || 0}
                 </p>
               </div>
             </div>

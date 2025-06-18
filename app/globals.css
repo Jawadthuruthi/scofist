@@ -116,6 +116,7 @@
 ::-webkit-scrollbar {
   height: 6px;
   width: 6px;
+  padding-left: 0.5rem;
 }
 
 ::-webkit-scrollbar-track {
