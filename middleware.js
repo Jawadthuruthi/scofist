@@ -88,8 +88,16 @@ const pages = [
   {
     title: "Applications",
     path: "/dashboard/applications",
-    allowedRoles: ["College Admin", "Teacher"],
+    allowedRoles: ["College Admin"],
   },
+
+  {
+    title: "Applicant Details",
+    path: "/dashboard/applications",
+    pattern: /^\/dashboard\/applications(?:\/[^/]+)?$/,
+    allowedRoles: ["College Admin"],
+  },
+
   {
     title: "Students Contacts",
     path: "/dashboard/students-contacts",

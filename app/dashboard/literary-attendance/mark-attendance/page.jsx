@@ -2,7 +2,7 @@
 
 import { formatDateForDisplay } from "@/lib/utils";
 import Header from "@/components/Header";
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
+import AbsenteeStatus from "@/components/AbsenteeStatus";
 
 const LiteraryAttendance = () => {
   const [attendance, setAttendance] = useState({});
@@ -54,6 +55,10 @@ const LiteraryAttendance = () => {
     "users",
     queryParams.apiKey
   );
+  const { useFetchItems: useFetchAbsentees } = useCrud(
+    "literary/attendances",
+    queryParams.apiKey
+  );
 
   const { useFetchItems: useFetchParticipants } = useCrud(
     "literary/groups",
@@ -72,10 +77,30 @@ const LiteraryAttendance = () => {
     category: queryParams.category,
     day: queryParams.day,
   });
+  const absenteesQuery = useFetchAbsentees(0, 0, {
+    classId: queryParams.classId ? queryParams.classId : undefined,
+    batchId: queryParams.batchId ? queryParams.batchId : undefined,
+    groupId: queryParams.groupId ? queryParams.groupId : undefined,
+    category: queryParams.category,
+    trackAbsentees: true,
+  });
 
   const attendanceData = useMemo(() => {
     return attendanceQuery.data?.attendances || [];
   }, [attendanceQuery.data]);
+
+  const previousAbsentees = useMemo(() => {
+    return absenteesQuery.data?.absentees || [];
+  });
+
+  const getStudentAbsenteeInfo = useCallback(
+    (studentId) => {
+      return previousAbsentees.find(
+        (student) => student.studentId === studentId
+      );
+    },
+    [previousAbsentees]
+  );
 
   const studentsQuery = useFetchStudents(
     0,
@@ -278,7 +303,7 @@ const LiteraryAttendance = () => {
       ) : (
         <>
           <div className="mb-6 py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
-            {formattedDate}, {queryParams.day}
+            {formattedDate}
           </div>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between border border-border p-4 rounded-lg">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
@@ -325,11 +350,15 @@ const LiteraryAttendance = () => {
                 <TableRow>
                   <TableHead className="w-16">Sl.no</TableHead>
                   <TableHead>Students</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {students.length > 0 ? (
                   students.map((student, index) => {
+                    const absenteeInfo = getStudentAbsenteeInfo(student._id);
+                    const hasAbsenceHistory =
+                      absenteeInfo && absenteeInfo.continuousAbsences > 0;
                     return (
                       <TableRow
                         key={student._id}
@@ -358,6 +387,11 @@ const LiteraryAttendance = () => {
                               </p>
                             </div>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {hasAbsenceHistory && (
+                            <AbsenteeStatus absenteeInfo={absenteeInfo} />
+                          )}
                         </TableCell>
                       </TableRow>
                     );

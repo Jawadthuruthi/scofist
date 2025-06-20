@@ -160,7 +160,6 @@ export async function GET(req, res) {
         }
       });
     }
-    console.log(literaryAttendances.length);
 
     const attendanceHistory = [];
 

@@ -89,6 +89,8 @@ const LiteraryAttendance = ({
   const [activeTab, setActiveTab] = useState("all");
   const [attendance, setAttendance] = useState({});
   const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [selectedGroupId, setSelectedGroupId] = useState("");
 
   const router = useRouter();
 
@@ -225,6 +227,7 @@ const LiteraryAttendance = ({
                           className={`flex items-center ml-auto max-w-fit gap-2 rounded-full px-2 py-1 border cursor-pointer`}
                           onClick={() => {
                             setAbsenteesDialogOpen(true);
+                            setSelectedClassId(cls._id);
                           }}
                         >
                           <AlertTriangle className="text-red-500 h-4 w-4" />
@@ -290,6 +293,7 @@ const LiteraryAttendance = ({
                           className={`flex items-center ml-auto max-w-fit gap-2 rounded-full px-2 py-1 border cursor-pointer`}
                           onClick={() => {
                             setAbsenteesDialogOpen(true);
+                            setSelectedGroupId(group._id);
                           }}
                         >
                           <AlertTriangle className="text-red-500 h-4 w-4" />
@@ -333,8 +337,8 @@ const LiteraryAttendance = ({
         date={date}
         absentees={
           activeTab === "all"
-            ? classBasedAbsentees[classes[0]?._id] || []
-            : groupBasedAbsentees[groups[0]?._id] || []
+            ? classBasedAbsentees[selectedClassId] || []
+            : groupBasedAbsentees[selectedGroupId] || []
         }
       />
     </div>

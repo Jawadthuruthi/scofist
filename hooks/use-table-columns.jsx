@@ -198,9 +198,10 @@ const useTableColumns = (columnConfig) => {
       );
     }
     if (col.type?.includes("externalLink")) {
+      const searchParams = col.searchParams ? `?${col.searchParams}` : "";
       columnDefinition.cell = ({ row }) => (
         <Link
-          href={`${row.original[col.accessorKey] || col.accessorKey}/${row.original[col.endpointKey]}`}
+          href={`${row.original[col.accessorKey] || col.accessorKey}/${row.original[col.endpointKey] + searchParams}`}
         >
           <ExternalLink className="text-muted-foreground h-5 w-5" />
         </Link>

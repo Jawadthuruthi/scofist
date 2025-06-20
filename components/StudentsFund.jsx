@@ -498,7 +498,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                       </div>
                       <DialogFooter>
                         <div className="flex items-center justify-between w-full gap-2">
-                          <Button variant="outline" onClick={handlePrint}>
+                          <Button variant="default" onClick={handlePrint}>
                             Print
                           </Button>
                           <Button variant="destructive">
@@ -605,7 +605,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                       </div>
                       <DialogFooter>
                         <Button
-                          variant="outline"
+                          variant="default"
                           onClick={handleAllStudentsFundPrint}
                         >
                           Print

@@ -5,7 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import useCrud from "@/hooks/use-crud";
 
-export default function PrintHeader({ title, apiKey, hidePrintLogo = false }) {
+export default function PrintHeader({
+  title,
+  apiKey,
+  hidePrintLogo = false,
+  displayOnScreen = false,
+}) {
   const [data, setData] = useState({});
   const { useFetchItems } = useCrud("settings", apiKey);
   const fetchSettingsQuery = useFetchItems(
@@ -26,7 +31,9 @@ export default function PrintHeader({ title, apiKey, hidePrintLogo = false }) {
   const institution = data?.institution || {};
 
   return (
-    <Card className="w-full border-0 hidden print:block">
+    <Card
+      className={`w-full border-0 print:block mb-4 ${displayOnScreen ? "" : "hidden"}`}
+    >
       <CardContent className="p-0">
         <div className="flex flex-col w-full">
           {/* Header with logo and institution info */}

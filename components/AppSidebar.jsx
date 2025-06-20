@@ -167,6 +167,7 @@ const items = [
         title: "Applications",
         url: "/dashboard/applications",
         icon: FolderCheck,
+        allowedRoles: ["College Admin"],
       },
     ],
   },
