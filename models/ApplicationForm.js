@@ -70,10 +70,15 @@ const applicationFormSchema = new Schema(
     sslcRegistrationNumber: {
       type: String,
       trim: true,
+      required: function () {
+        return this.admissionClass === "+1";
+      },
     },
     sslcGraduationYear: {
       type: Number,
-      required: true,
+      required: function () {
+        return this.admissionClass === "+1";
+      },
     },
     islamicEducationQualification: {
       type: String,

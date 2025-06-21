@@ -1,13 +1,11 @@
 "use client";
 import React, { useMemo, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import PrintHeader from "@/components/PrintHeader";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { FileText } from "lucide-react";
 import usePrint from "@/hooks/use-print";
 
 const ApplicationDisplayPage = () => {
@@ -327,7 +325,6 @@ const ApplicationDisplayPage = () => {
           onClick={handlePrint}
           className="order-2 sm:order-1"
         >
-          <FileText className="h-4 w-4 mr-2" />
           Print
         </Button>
         <Button variant="outline" className="order-1 sm:order-2">

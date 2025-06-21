@@ -162,7 +162,6 @@ const TimeTableComponent = ({
         },
         { timeSlots: [] }
       );
-
   const getCellData = useCallback(
     (periodNumber, day, classId = null) => {
       if (teacherId) {
@@ -180,7 +179,7 @@ const TimeTableComponent = ({
         );
       }
     },
-    [timeTableData.timeSlots, teacherId]
+    [timeTableData.timeSlots, teacherId, currentDay]
   );
 
   const getPeriodTime = useCallback(
@@ -374,7 +373,7 @@ const TimeTableComponent = ({
                               : ""
                           } border text-center  cursor-pointer print:max-w-32`}
                         >
-                          {cellData ? (
+                          {!!cellData ? (
                             <div className="flex flex-col items-center justify-center">
                               <p className="font-medium text-xxs whitespace-nowrap print:whitespace-normal">
                                 {cellData.teacherId?.name || ""}

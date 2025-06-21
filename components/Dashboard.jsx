@@ -42,7 +42,6 @@ import {
 } from "recharts";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
 
 const useIsClient = () => {
   const [isClient, setIsClient] = useState(false);
@@ -577,7 +576,6 @@ export default function Dashboard({
 
   // Setup crud hooks with stale time and caching options
   const { useFetchItems: useFetchStudents } = useCrud("users", apiKey);
-  const { useFetchItems: useFetchAttendances } = useCrud("attendances", apiKey);
 
   // Setup queries with error handling and optimized fetch strategy
   const fetchStudentsQuery = useFetchStudents(

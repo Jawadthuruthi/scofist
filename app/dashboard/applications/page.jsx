@@ -19,14 +19,7 @@ const columnsConfig = [
     maxWidth: 60,
     minWidth: 60,
   },
-  {
-    accessorKey: "profilePic",
-    header: "Image",
-    type: ["avatar"],
-    width: 70,
-    maxWidth: 70,
-    minWidth: 70,
-  },
+
   { accessorKey: "name", header: "Name" },
   { accessorKey: "status", header: "Status", type: ["badge"] },
   {
@@ -185,6 +178,7 @@ export default async function ApplicationsPage() {
         placeholder: "Admission Class",
         inputType: "select",
         required: true,
+        freeSolo: true,
         options: [
           {
             label: "8",

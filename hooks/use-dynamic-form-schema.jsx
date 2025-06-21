@@ -16,6 +16,7 @@ export function useDynamicFormSchema(formFields = null) {
         validators = {},
         label,
         defaultValue,
+        freeSolo = false,
       } = field;
 
       let fieldSchema;
@@ -153,15 +154,18 @@ export function useDynamicFormSchema(formFields = null) {
                     required_error: `${displayName} is required`,
                   })
                   .min(1, `${displayName} is required`)
-                  .refine((value) => values.includes(value), {
+                  .refine((value) => freeSolo || values.includes(value), {
                     message: `Please select a valid option for ${displayName}`,
                   })
               : z
                   .string()
                   .optional()
-                  .refine((value) => !value || values.includes(value), {
-                    message: `Please select a valid option for ${displayName}`,
-                  });
+                  .refine(
+                    (value) => !value || freeSolo || values.includes(value),
+                    {
+                      message: `Please select a valid option for ${displayName}`,
+                    }
+                  );
           } else if (inputType === "multiSelect" && options) {
             const values = options.map((option) => option.value);
             let arraySchema = z.array(z.string());

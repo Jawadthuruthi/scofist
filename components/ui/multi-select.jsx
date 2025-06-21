@@ -6,6 +6,7 @@ import {
   XIcon,
   Search,
   WandSparkles,
+  Plus,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -32,6 +33,8 @@ const multiSelectVariants = (variant) => {
     destructive:
       "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
     inverted: "inverted",
+    freeSolo:
+      "border-dashed border-primary/50 bg-primary/5 text-primary hover:bg-primary/10",
   };
 
   return cn(baseClasses, variantClasses[variant || "default"]);
@@ -53,6 +56,13 @@ export const MultiSelect = React.forwardRef(
       value = multiSelect ? [] : "",
       freeSolo = false,
       showSelectedCount = false,
+      freeSoloValidator = null, // Function to validate free solo input
+      freeSoloTransformer = null, // Function to transform free solo input
+      freeSoloPlaceholder = "Type to add option...",
+      allowDuplicates = false,
+      minLength = 1,
+      maxLength = 50,
+      caseSensitive = false,
       ...props
     },
     ref
@@ -61,29 +71,175 @@ export const MultiSelect = React.forwardRef(
     const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
     const [isAnimating, setIsAnimating] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState("");
+    const [menuItems, setMenuItems] = React.useState(options || []);
+    const [inputError, setInputError] = React.useState("");
 
     // Filter options based on search query
     const filteredOptions = React.useMemo(() => {
-      if (!searchQuery) return options;
-      return options.filter((option) =>
+      if (!searchQuery) return menuItems;
+      return menuItems.filter((option) =>
         option.label.toLowerCase().includes(searchQuery.toLowerCase())
       );
-    }, [options, searchQuery]);
+    }, [menuItems, searchQuery]);
+
+    // Check if current search query can be added as a new option
+    const canAddNewOption = React.useMemo(() => {
+      if (!freeSolo || !searchQuery.trim()) return false;
+
+      const trimmedQuery = searchQuery.trim();
+
+      // Length validation
+      if (trimmedQuery.length < minLength || trimmedQuery.length > maxLength) {
+        return false;
+      }
+
+      // Check for duplicates
+      const compareValue = caseSensitive
+        ? trimmedQuery
+        : trimmedQuery.toLowerCase();
+      const existsInOptions = menuItems.some((option) =>
+        caseSensitive
+          ? option.value === trimmedQuery
+          : option.value.toLowerCase() === compareValue
+      );
+      const existsInSelected = multiSelect
+        ? selectedValues.some((value) =>
+            caseSensitive
+              ? value === trimmedQuery
+              : value.toLowerCase() === compareValue
+          )
+        : caseSensitive
+          ? selectedValues === trimmedQuery
+          : selectedValues.toLowerCase() === compareValue;
+
+      if (!allowDuplicates && (existsInOptions || existsInSelected)) {
+        return false;
+      }
+
+      // Custom validation
+      if (freeSoloValidator && !freeSoloValidator(trimmedQuery)) {
+        return false;
+      }
+
+      return true;
+    }, [
+      searchQuery,
+      freeSolo,
+      minLength,
+      maxLength,
+      caseSensitive,
+      allowDuplicates,
+      menuItems,
+      selectedValues,
+      multiSelect,
+      freeSoloValidator,
+    ]);
+
+    // Validate input and set error message
+    const validateInput = (input) => {
+      const trimmedInput = input.trim();
+
+      if (!trimmedInput) {
+        setInputError("");
+        return;
+      }
+
+      if (trimmedInput.length < minLength) {
+        setInputError(`Minimum ${minLength} characters required`);
+        return;
+      }
+
+      if (trimmedInput.length > maxLength) {
+        setInputError(`Maximum ${maxLength} characters allowed`);
+        return;
+      }
+
+      const compareValue = caseSensitive
+        ? trimmedInput
+        : trimmedInput.toLowerCase();
+      const existsInOptions = menuItems.some((option) =>
+        caseSensitive
+          ? option.value === trimmedInput
+          : option.value.toLowerCase() === compareValue
+      );
+      const existsInSelected = multiSelect
+        ? selectedValues.some((value) =>
+            caseSensitive
+              ? value === trimmedInput
+              : value.toLowerCase() === compareValue
+          )
+        : caseSensitive
+          ? selectedValues === trimmedInput
+          : selectedValues.toLowerCase() === compareValue;
+
+      if (!allowDuplicates && (existsInOptions || existsInSelected)) {
+        setInputError("Option already exists");
+        return;
+      }
+
+      if (freeSoloValidator && !freeSoloValidator(trimmedInput)) {
+        setInputError("Invalid input");
+        return;
+      }
+
+      setInputError("");
+    };
+
+    // Add new option from free solo input
+    const addNewOption = (inputValue) => {
+      const trimmedValue = inputValue.trim();
+      if (!trimmedValue || !canAddNewOption) return;
+
+      // Transform the value if transformer is provided
+      const finalValue = freeSoloTransformer
+        ? freeSoloTransformer(trimmedValue)
+        : trimmedValue;
+
+      // Add to selected values
+      const newSelectedValues = multiSelect
+        ? [...selectedValues, finalValue]
+        : finalValue;
+
+      setSelectedValues(newSelectedValues);
+      onValueChange(newSelectedValues);
+
+      // Add to menu items for future reference
+      setMenuItems((prevItems) => [
+        ...prevItems,
+        {
+          label: finalValue,
+          value: finalValue,
+          isCustom: true, // Mark as custom option
+        },
+      ]);
+
+      // Clear search
+      setSearchQuery("");
+      setInputError("");
+    };
 
     const handleSearchInputKeyDown = (event) => {
       if (event.key === "Enter" && freeSolo) {
-        const newValue = event.target.value.trim();
-        if (newValue && !selectedValues.includes(newValue)) {
-          const newSelectedValues = [...selectedValues, newValue];
-          setSelectedValues(newSelectedValues);
-          onValueChange(newSelectedValues);
-        }
-        setSearchQuery("");
-      } else if (event.key === "Backspace" && !searchQuery) {
+        event.preventDefault();
+        addNewOption(searchQuery);
+      } else if (event.key === "Backspace" && !searchQuery && multiSelect) {
+        // Remove last selected item when backspacing with empty input
         const newSelectedValues = [...selectedValues];
         newSelectedValues.pop();
         setSelectedValues(newSelectedValues);
         onValueChange(newSelectedValues);
+      } else if (event.key === "Escape") {
+        setSearchQuery("");
+        setInputError("");
+        setIsPopoverOpen(false);
+      }
+    };
+
+    const handleSearchChange = (e) => {
+      const newValue = e.target.value;
+      setSearchQuery(newValue);
+      if (freeSolo) {
+        validateInput(newValue);
       }
     };
 
@@ -92,19 +248,21 @@ export const MultiSelect = React.forwardRef(
         ? selectedValues.includes(option)
           ? selectedValues.filter((value) => value !== option)
           : [...selectedValues, option]
-        : option; // Store as a single value when `multiSelect = false`
+        : option;
 
       setSelectedValues(newSelectedValues);
       onValueChange(newSelectedValues);
 
       if (!multiSelect) {
-        setIsPopoverOpen(false); // Close popover after selecting one item
+        setIsPopoverOpen(false);
       }
     };
 
     const handleClear = () => {
       setSelectedValues(multiSelect ? [] : "");
       onValueChange(multiSelect ? [] : "");
+      setSearchQuery("");
+      setInputError("");
     };
 
     const clearExtraOptions = () => {
@@ -117,13 +275,19 @@ export const MultiSelect = React.forwardRef(
     };
 
     const toggleAll = () => {
-      if (selectedValues.length === options.length) {
+      if (selectedValues.length === menuItems.length) {
         handleClear();
       } else {
-        const allValues = options.map((option) => option.value);
+        const allValues = menuItems.map((option) => option.value);
         setSelectedValues(allValues);
         onValueChange(allValues);
       }
+    };
+
+    // Determine badge variant for custom options
+    const getBadgeVariant = (value) => {
+      const option = menuItems.find((o) => o.value === value);
+      return option?.isCustom ? "freeSolo" : variant;
     };
 
     return (
@@ -153,22 +317,24 @@ export const MultiSelect = React.forwardRef(
                   {/* Handle multiSelect = true (array) */}
                   {multiSelect && !showSelectedCount ? (
                     selectedValues.slice(0, maxCount).map((value) => {
-                      const option = options.find((o) => o.value === value);
+                      const option = menuItems.find((o) => o.value === value);
                       const IconComponent = option?.icon;
+                      const badgeVariant = getBadgeVariant(value);
+
                       return (
                         <Badge
                           key={value}
                           className={cn(
                             isAnimating ? "animate-bounce" : "",
-                            multiSelectVariants(variant)
+                            multiSelectVariants(badgeVariant)
                           )}
                           style={{ animationDuration: `${animation}s` }}
+                          title={option?.isCustom ? "Custom option" : ""}
                         >
                           {IconComponent && (
                             <IconComponent className="h-4 w-4 mr-2" />
                           )}
-
-                          {option?.label}
+                          {option?.label || value}
                           <XCircle
                             className="ml-2 h-4 w-4 cursor-pointer"
                             onClick={(event) => {
@@ -192,35 +358,37 @@ export const MultiSelect = React.forwardRef(
                         className="ml-2 h-4 w-4 cursor-pointer"
                         onClick={(event) => {
                           event.stopPropagation();
-                          handleClear(); // Clear all selections
+                          handleClear();
                         }}
                       />
                     </Badge>
                   ) : (
                     // Handle multiSelect = false (single value)
                     (() => {
-                      const option = options.find(
+                      const option = menuItems.find(
                         (o) => o.value === selectedValues
                       );
-                      if (!option) return null;
                       const IconComponent = option?.icon;
+                      const badgeVariant = getBadgeVariant(selectedValues);
+
                       return (
                         <Badge
                           className={cn(
                             isAnimating ? "animate-bounce" : "",
-                            multiSelectVariants(variant)
+                            multiSelectVariants(badgeVariant)
                           )}
                           style={{ animationDuration: `${animation}s` }}
+                          title={option?.isCustom ? "Custom option" : ""}
                         >
                           {IconComponent && (
                             <IconComponent className="h-4 w-4 mr-2" />
                           )}
-                          {option?.label}
+                          {option?.label || selectedValues}
                           <XCircle
                             className="ml-2 h-4 w-4 cursor-pointer"
                             onClick={(event) => {
                               event.stopPropagation();
-                              handleClear(); // Clear single value
+                              handleClear();
                             }}
                           />
                         </Badge>
@@ -237,7 +405,7 @@ export const MultiSelect = React.forwardRef(
                       )}
                       style={{ animationDuration: `${animation}s` }}
                     >
-                      {`${selectedValues.length - maxCount} selected`}
+                      {`${selectedValues.length - maxCount} more`}
                       <XCircle
                         className="ml-2 h-4 w-4 cursor-pointer"
                         onClick={(event) => {
@@ -277,19 +445,34 @@ export const MultiSelect = React.forwardRef(
           className="w-auto p-0"
           align="start"
           onEscapeKeyDown={() => setIsPopoverOpen(false)}
+          portalled={false}
         >
           <div className="flex flex-col">
             {/* Search input */}
             {!disableSearch && (
-              <div className="flex items-center border-b px-3">
-                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                <input
-                  className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleSearchInputKeyDown}
-                />
+              <div className="flex flex-col border-b">
+                <div className="flex items-center px-3">
+                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                  <input
+                    className="flex z-40 h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder={freeSolo ? freeSoloPlaceholder : "Search..."}
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    onKeyDown={handleSearchInputKeyDown}
+                  />
+                </div>
+                {/* Error message */}
+                {inputError && (
+                  <div className="px-3 pb-2 text-xs text-destructive">
+                    {inputError}
+                  </div>
+                )}
+                {/* Add new option hint */}
+                {freeSolo && canAddNewOption && (
+                  <div className="px-3 pb-2 text-xs text-muted-foreground">
+                    Press Enter to add "{searchQuery.trim()}"
+                  </div>
+                )}
               </div>
             )}
 
@@ -302,14 +485,29 @@ export const MultiSelect = React.forwardRef(
                 overscrollBehavior: "contain",
               }}
             >
-              {filteredOptions.length === 0 && (
+              {/* Add new option button for free solo */}
+              {freeSolo && canAddNewOption && (
+                <div className="p-1 border-b">
+                  <div
+                    className="flex items-center rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground border-dashed border border-primary/50 bg-primary/5"
+                    onClick={() => addNewOption(searchQuery)}
+                  >
+                    <Plus className="mr-2 h-4 w-4 text-primary" />
+                    <span className="text-primary">
+                      Add "{searchQuery.trim()}"
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {filteredOptions.length === 0 && !canAddNewOption && (
                 <div className="py-6 text-center text-sm">
                   No results found.
                 </div>
               )}
 
               <div className="p-1">
-                {multiSelect && (
+                {multiSelect && filteredOptions.length > 0 && (
                   <div
                     className="flex items-center rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
                     onClick={toggleAll}
@@ -317,12 +515,12 @@ export const MultiSelect = React.forwardRef(
                     <div
                       className={cn(
                         "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                        selectedValues.length === options.length
+                        selectedValues.length === menuItems.length
                           ? "bg-primary text-primary-foreground"
                           : "opacity-50"
                       )}
                     >
-                      {selectedValues.length === options.length && (
+                      {selectedValues.length === menuItems.length && (
                         <CheckIcon className="h-4 w-4" />
                       )}
                     </div>
@@ -333,11 +531,17 @@ export const MultiSelect = React.forwardRef(
                   const isSelected = multiSelect
                     ? selectedValues.includes(option.value)
                     : option.value === selectedValues;
+
                   return (
                     <div
                       key={option.value}
-                      className="flex items-center rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                      className={cn(
+                        "flex items-center rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground",
+                        option.isCustom &&
+                          "bg-primary/5 border-l-2 border-primary/20"
+                      )}
                       onClick={() => toggleOption(option.value)}
+                      title={option.isCustom ? "Custom option" : ""}
                     >
                       <div
                         className={cn(
@@ -352,7 +556,18 @@ export const MultiSelect = React.forwardRef(
                       {option.icon && (
                         <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
                       )}
-                      <span>{option.label}</span>
+                      <span
+                        className={cn(
+                          option.isCustom && "text-primary font-medium"
+                        )}
+                      >
+                        {option.label}
+                      </span>
+                      {option.isCustom && (
+                        <Badge variant="outline" className="ml-auto text-xs">
+                          Custom
+                        </Badge>
+                      )}
                     </div>
                   );
                 })}
@@ -365,7 +580,7 @@ export const MultiSelect = React.forwardRef(
                 {selectedValues.length > 0 && (
                   <>
                     <button
-                      className="flex-1 py-2 text-sm justify-center cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                      className="flex-1 py-2 text-sm justify-center cursor-pointer hover:bg-accent hover:text-accent-foreground flex items-center"
                       onClick={handleClear}
                     >
                       Clear
@@ -374,7 +589,7 @@ export const MultiSelect = React.forwardRef(
                   </>
                 )}
                 <button
-                  className="flex-1 py-2 text-sm justify-center cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                  className="flex-1 py-2 text-sm justify-center cursor-pointer hover:bg-accent hover:text-accent-foreground flex items-center"
                   onClick={() => setIsPopoverOpen(false)}
                 >
                   Close
