@@ -20,10 +20,7 @@ const API_ENDPOINTS = [
     searchParams:
       "projection=_id,name,email,profilePic,contactNumber,dateOfBirth,address&roles=Teacher&status=Active",
   },
-  {
-    pathname: "timeTables",
-    searchParams: `day=${currentDay}`,
-  },
+
   {
     pathname: "periods",
   },
@@ -42,19 +39,12 @@ export default async function DashboardPage() {
     const activeRole = cookieStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
 
-    const [
-      classes,
-      batches,
-      teachers,
-      timeTable,
-      periods,
-      attendances,
-      settings,
-    ] = await Promise.all(
-      API_ENDPOINTS.map((endpoint) =>
-        fetchData(endpoint.pathname, endpoint.searchParams)
-      )
-    );
+    const [classes, batches, teachers, periods, attendances, settings] =
+      await Promise.all(
+        API_ENDPOINTS.map((endpoint) =>
+          fetchData(endpoint.pathname, endpoint.searchParams)
+        )
+      );
 
     return (
       <Dashboard
@@ -62,7 +52,6 @@ export default async function DashboardPage() {
         classes={classes}
         batches={batches}
         teachers={teachers}
-        timeTable={timeTable}
         periods={periods}
         attendances={attendances}
         settings={settings}

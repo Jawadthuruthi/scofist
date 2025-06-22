@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import useCrud from "@/hooks/use-crud";
 import usePrint from "@/hooks/use-print";
 import { DAYS } from "@/lib/utils";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Table,
   TableBody,
@@ -33,6 +33,17 @@ import { useRouter } from "next/navigation";
 const PrintHeader = dynamic(() => import("./PrintHeader"), {
   ssr: false,
 });
+
+const daysOfWeek = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+const currentDay = daysOfWeek[new Date().getDay()];
 
 // Absentees Dialog Component
 const AbsenteesDialog = ({
@@ -96,7 +107,6 @@ const TimeTableComponent = ({
   apiKey,
   teacherId,
   hidePrintButton = false,
-  timeTable = [],
   periods = [],
   attendances = [],
   classes = [],
@@ -105,6 +115,16 @@ const TimeTableComponent = ({
   const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
   const [currentDialogData, setCurrentDialogData] = useState({});
   const [currentAbsenteesList, setCurrentAbsenteesList] = useState([]);
+
+  const { useFetchItems } = useCrud("timeTables", apiKey);
+  const fetchTimeTableQuery = useFetchItems(null, null, {
+    day: teacherId ? null : currentDay,
+    teacherId: teacherId ? teacherId : null,
+  });
+
+  const timeTable = useMemo(() => {
+    return fetchTimeTableQuery.data?.timeTables || [];
+  }, [fetchTimeTableQuery.data]);
 
   const router = useRouter();
 
@@ -116,17 +136,6 @@ const TimeTableComponent = ({
 
     return () => clearInterval(interval);
   }, [router]);
-
-  const daysOfWeek = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-  const currentDay = daysOfWeek[new Date().getDay()];
 
   const timeTableData = teacherId
     ? timeTable.reduce(
@@ -162,6 +171,7 @@ const TimeTableComponent = ({
         },
         { timeSlots: [] }
       );
+
   const getCellData = useCallback(
     (periodNumber, day, classId = null) => {
       if (teacherId) {

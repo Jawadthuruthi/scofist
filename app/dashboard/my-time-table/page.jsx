@@ -18,10 +18,6 @@ const MyTimeTablePage = async () => {
 
     const API_ENDPOINTS = [
       {
-        pathname: "timeTables",
-        searchParams: `teacherId=${user?._id}`,
-      },
-      {
         pathname: "periods",
       },
       {
@@ -30,7 +26,7 @@ const MyTimeTablePage = async () => {
       },
     ];
 
-    const [timeTable, periods, attendances] = await Promise.all(
+    const [periods, attendances] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
         fetchData(endpoint.pathname, endpoint.searchParams)
       )
@@ -42,7 +38,6 @@ const MyTimeTablePage = async () => {
           apiKey={apiKey}
           teacherId={user?._id}
           periods={periods}
-          timeTable={timeTable}
           attendances={attendances}
         />
       </>
@@ -61,4 +56,4 @@ const MyTimeTablePage = async () => {
 
 export default MyTimeTablePage;
 
-export const revalidate = 0;
+export const revalidate = 60;
