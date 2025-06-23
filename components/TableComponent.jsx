@@ -15,7 +15,7 @@ import {
   getCoreRowModel,
 } from "@tanstack/react-table";
 import { useMemo, useRef, useState } from "react";
-import usePrint from "@/hooks/use-print";
+import { useReactToPrint } from "react-to-print";
 import useTableColumns from "@/hooks/use-table-columns";
 import PrintHeader from "./PrintHeader";
 
@@ -45,8 +45,8 @@ const TableComponent = ({
     return useTableColumns(columnsConfig);
   }, [columnsConfig]);
 
-  const handlePrint = usePrint({
-    content: () => tableRef.current,
+  const handlePrint = useReactToPrint({
+    contentRef: tableRef,
   });
 
   const table = useReactTable({

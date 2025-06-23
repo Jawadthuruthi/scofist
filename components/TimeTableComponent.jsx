@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import useCrud from "@/hooks/use-crud";
-import usePrint from "@/hooks/use-print";
+import { useReactToPrint } from "react-to-print";
 import { DAYS } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -213,8 +213,8 @@ const TimeTableComponent = ({
     []
   );
 
-  const handlePrint = usePrint({
-    content: () => timeTableRef.current,
+  const handlePrint = useReactToPrint({
+    contentRef: timeTableRef,
     documentTitle: `Time Table`,
   });
 

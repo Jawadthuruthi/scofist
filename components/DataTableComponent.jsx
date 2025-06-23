@@ -17,7 +17,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
-import usePrint from "@/hooks/use-print";
 import useTableColumns from "@/hooks/use-table-columns";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
@@ -27,6 +26,7 @@ import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
 import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
+import { useReactToPrint } from "react-to-print";
 
 const PopupFilter = dynamic(() => import("./PopupFilter"), {
   ssr: false,
@@ -391,9 +391,8 @@ const DataTableComponent = ({
     [setGlobalFilter, isApiFiltering, debouncedApiFilterUpdate]
   );
 
-  // Print functionality
-  const handlePrint = usePrint({
-    content: () => tableRef.current,
+  const handlePrint = useReactToPrint({
+    contentRef: tableRef,
     documentTitle: `${capitalize(apiEndpoint)} List`,
   });
 

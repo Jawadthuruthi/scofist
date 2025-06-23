@@ -51,7 +51,7 @@ import { Progress } from "./ui/progress"; // Import Progress component
 // Hooks and Utils
 import { DAYS } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
-import usePrint from "@/hooks/use-print";
+import { useReactToPrint } from "react-to-print";
 import { Input } from "./ui/input";
 import ConfirmationPopup from "./ConfirmationPopup";
 
@@ -294,8 +294,8 @@ const TimeTablesManagements = ({
   const attendanceData = fetchAttendanceQuery.data?.attendances || [];
 
   // Set up print functionality
-  const handlePrint = usePrint({
-    content: () => timeTableRef.current,
+  const handlePrint = useReactToPrint({
+    contentRef: timeTableRef,
     documentTitle: `Time Table`,
   });
 

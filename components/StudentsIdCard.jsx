@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { Printer, User, Shield } from "lucide-react";
-import usePrint from "@/hooks/use-print";
+import { useReactToPrint } from "react-to-print";
 import Header from "./Header";
 import {
   Select,
@@ -27,11 +27,8 @@ const StudentsIdCard = ({
 
   const pageRef = useRef(null);
 
-  const handlePrint = usePrint({
-    content: () => pageRef.current,
-    pageStyle: {
-      size: "A4 landscape",
-    },
+  const handlePrint = useReactToPrint({
+    contentRef: pageRef,
   });
 
   const currentYear = new Date().getFullYear();

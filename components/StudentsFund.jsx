@@ -63,7 +63,7 @@ import {
 } from "./ui/table";
 import { MultiSelect } from "./ui/multi-select";
 import { formatOptions } from "@/lib/utils";
-import usePrint from "@/hooks/use-print";
+import { useReactToPrint } from "react-to-print";
 
 const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -82,11 +82,11 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const printRef = useRef();
   const allStudentsFundRef = useRef();
 
-  const handlePrint = usePrint({
-    content: () => printRef.current,
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
   });
-  const handleAllStudentsFundPrint = usePrint({
-    content: () => allStudentsFundRef.current,
+  const handleAllStudentsFundPrint = useReactToPrint({
+    contentRef: allStudentsFundRef,
   });
   const { useFetchItems, useAddItem, useUpdateItem } = useCrud(
     "studentsFund",

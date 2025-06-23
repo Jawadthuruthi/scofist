@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import PrintHeader from "@/components/PrintHeader";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import usePrint from "@/hooks/use-print";
+import { useReactToPrint } from "react-to-print";
 
 const ApplicationDisplayPage = () => {
   // Sample data - replace with actual props or API data
@@ -38,8 +38,8 @@ const ApplicationDisplayPage = () => {
 
   const printRef = useRef();
 
-  const handlePrint = usePrint({
-    content: () => printRef.current,
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
   });
 
   const searchParams = useSearchParams();
