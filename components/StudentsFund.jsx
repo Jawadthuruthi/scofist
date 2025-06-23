@@ -140,9 +140,9 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   }, [studentFund, selectedStudent]);
 
   // Filter students based on selected batch
-  const availableStudents = selectedBatch
-    ? students.filter((student) => student?.batchId === selectedBatch)
-    : [];
+  const availableStudents = useMemo(() => {
+    return students.filter((student) => student.batchId === selectedBatch);
+  }, [selectedBatch]);
 
   const selectedBatchData = useMemo(() => {
     return batches.find((batch) => batch._id === selectedBatch)?.name || "";
@@ -244,7 +244,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                     options={formatOptions(availableStudents)}
                     onValueChange={setSelectedStudent}
                     value={selectedStudent}
-                    label="Select a student"
+                    placeholder="Select a student"
                     multiSelect={false}
                   />
                 )}

@@ -74,6 +74,10 @@ export const MultiSelect = React.forwardRef(
     const [menuItems, setMenuItems] = React.useState(options || []);
     const [inputError, setInputError] = React.useState("");
 
+    React.useEffect(() => {
+      setMenuItems(options);
+    }, [options]);
+
     // Filter options based on search query
     const filteredOptions = React.useMemo(() => {
       if (!searchQuery) return menuItems;
