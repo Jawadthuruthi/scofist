@@ -394,6 +394,37 @@ const DataTableComponent = ({
   const handlePrint = useReactToPrint({
     contentRef: tableRef,
     documentTitle: `${capitalize(apiEndpoint)} List`,
+    onBeforeGetContent: () => {
+      // Mark that we're entering print mode
+      setIsPrinting(true);
+
+      // Lock the content dimensions before printing starts
+      if (tableRef.current) {
+        const element = tableRef.current;
+        const computedStyle = window.getComputedStyle(element);
+
+        // Store the current dimensions as fixed values
+        element.style.width = computedStyle.width;
+        element.style.height = computedStyle.height;
+        element.style.maxWidth = computedStyle.width;
+        element.style.maxHeight = computedStyle.height;
+        element.style.overflow = "hidden"; // Prevent expansion
+      }
+    },
+    onAfterPrint: () => {
+      // Clean up after printing
+      setIsPrinting(false);
+
+      // Restore original styling
+      if (tableRef.current) {
+        const element = tableRef.current;
+        element.style.width = "";
+        element.style.height = "";
+        element.style.maxWidth = "";
+        element.style.maxHeight = "";
+        element.style.overflow = "";
+      }
+    },
   });
 
   // Table columns
@@ -559,7 +590,7 @@ const DataTableComponent = ({
       )}
       <div
         ref={tableRef}
-        className="rounded-md border overflow-auto shadow-sm table-print relative"
+        className="rounded-md border overflow-auto shadow-sm table-print relative print:fixed print:top-0 print:left-0 print:right-0 print:z-[9999] print:bg-white"
         style={{
           maxHeight: tableHeight,
         }}

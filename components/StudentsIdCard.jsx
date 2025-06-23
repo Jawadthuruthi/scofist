@@ -133,7 +133,10 @@ const StudentsIdCard = ({
       </div>
 
       {/* Print Layout - A4 Landscape with Front-Back-Front-Back pattern */}
-      <div ref={pageRef} className="hidden print:block print:p-0 print:m-0">
+      <div
+        ref={pageRef}
+        className="hidden print:block print:p-0 print:m-0 print:fixed print:top-0 print:left-0 print:right-0 print:z-[9999] print:bg-white"
+      >
         {Array.from({ length: Math.ceil(filteredStudents.length / 4) }).map(
           (_, pageIndex) => (
             <div
