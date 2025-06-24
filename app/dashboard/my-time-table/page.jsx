@@ -13,7 +13,7 @@ const MyTimeTablePage = async () => {
 
     const today = new Date();
     const startDate = new Date(today.getTime() + 5.5 * 60 * 60 * 1000);
-    startDate.setDate(startDate.getDate() - 7);
+    startDate.setDate(startDate.getDate() - 6);
     const endDate = new Date();
 
     const API_ENDPOINTS = [
