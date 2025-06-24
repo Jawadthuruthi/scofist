@@ -449,7 +449,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         </DialogDescription>
                       </DialogHeader>
                       <div
-                        className="space-y-4 max-h-full overflow-y-auto hide-scrollbar print:fixed print:top-0 print:left-0 print:right-0 print:z-[9999] print:bg-white"
+                        className="space-y-4 max-h-full overflow-y-auto hide-scrollbar  print:bg-white"
                         ref={printRef}
                       >
                         <div className="hidden print:block">

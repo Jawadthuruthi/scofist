@@ -394,37 +394,6 @@ const DataTableComponent = ({
   const handlePrint = useReactToPrint({
     contentRef: tableRef,
     documentTitle: `${capitalize(apiEndpoint)} List`,
-    onBeforeGetContent: () => {
-      // Mark that we're entering print mode
-      setIsPrinting(true);
-
-      // Lock the content dimensions before printing starts
-      if (tableRef.current) {
-        const element = tableRef.current;
-        const computedStyle = window.getComputedStyle(element);
-
-        // Store the current dimensions as fixed values
-        element.style.width = computedStyle.width;
-        element.style.height = computedStyle.height;
-        element.style.maxWidth = computedStyle.width;
-        element.style.maxHeight = computedStyle.height;
-        element.style.overflow = "hidden"; // Prevent expansion
-      }
-    },
-    onAfterPrint: () => {
-      // Clean up after printing
-      setIsPrinting(false);
-
-      // Restore original styling
-      if (tableRef.current) {
-        const element = tableRef.current;
-        element.style.width = "";
-        element.style.height = "";
-        element.style.maxWidth = "";
-        element.style.maxHeight = "";
-        element.style.overflow = "";
-      }
-    },
   });
 
   // Table columns
@@ -590,7 +559,7 @@ const DataTableComponent = ({
       )}
       <div
         ref={tableRef}
-        className="rounded-md border overflow-auto shadow-sm table-print relative print:fixed print:top-0 print:left-0 print:right-0 print:z-[9999] print:bg-white"
+        className="rounded-md border overflow-auto shadow-sm table-print relative print:bg-white"
         style={{
           maxHeight: tableHeight,
         }}
@@ -599,79 +568,77 @@ const DataTableComponent = ({
           apiKey={apiKey}
           title={printTitle ? printTitle : resource}
         />
-        <div className="print-table-wrapper">
-          <Table>
-            <TableHeader className="sticky top-0 bg-background z-10">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      style={getCellStyles(header.column.columnDef.meta)}
-                      className={header.id === "select" ? "print:hidden" : ""}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {isInitialLoading ? (
-                Array(3)
-                  .fill(0)
-                  .map((_, index) => (
-                    <TableRow key={`skeleton-${index}`}>
-                      <TableCell colSpan={columns.length} className="h-12">
-                        <Skeleton className="w-full h-full rounded" />
-                      </TableCell>
-                    </TableRow>
-                  ))
-              ) : table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() ? "selected" : undefined}
+        <Table>
+          <TableHeader className="sticky top-0 bg-background z-10">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    style={getCellStyles(header.column.columnDef.meta)}
+                    className={header.id === "select" ? "print:hidden" : ""}
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        style={getCellStyles(cell.column.columnDef.meta)}
-                        key={cell.id}
-                        className={
-                          cell.column.id === "select" ? "print:hidden" : ""
-                        }
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
                         )}
-                      </TableCell>
-                    ))}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {isInitialLoading ? (
+              Array(3)
+                .fill(0)
+                .map((_, index) => (
+                  <TableRow key={`skeleton-${index}`}>
+                    <TableCell colSpan={columns.length} className="h-12">
+                      <Skeleton className="w-full h-full rounded" />
+                    </TableCell>
                   </TableRow>
                 ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    <h2 className="text-lg font-bold">No Data.</h2>
-                    <p className="text-sm text-muted-foreground">
-                      {hasFilters || Object.keys(filters).length > 0
-                        ? "No matching records found."
-                        : "Sorry, there is no data available at the moment."}
-                    </p>
-                  </TableCell>
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() ? "selected" : undefined}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      style={getCellStyles(cell.column.columnDef.meta)}
+                      key={cell.id}
+                      className={
+                        cell.column.id === "select" ? "print:hidden" : ""
+                      }
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  <h2 className="text-lg font-bold">No Data.</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {hasFilters || Object.keys(filters).length > 0
+                      ? "No matching records found."
+                      : "Sorry, there is no data available at the moment."}
+                  </p>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
         {hasNextPage && table.getRowModel().rows?.length > 0 && (
           <div ref={loaderRef} className="w-full p-4 text-center print:hidden">
             {isLoadingMore ? (

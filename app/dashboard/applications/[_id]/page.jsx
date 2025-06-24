@@ -84,7 +84,7 @@ const ApplicationDisplayPage = () => {
     <div className="min-h-screen bg-white flex flex-col items-center justify-center py-4">
       {/* A4 Container */}
       <div
-        className="bg-white shadow-lg border border-gray-200 print:fixed print:top-0 print:left-0 print:right-0 print:z-[9999] print:bg-white"
+        className="bg-white shadow-lg border border-gray-200  print:bg-white"
         style={{
           width: "210mm",
           minHeight: "297mm",
