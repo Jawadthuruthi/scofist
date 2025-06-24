@@ -159,6 +159,8 @@ const MyPeriods = ({ apiKey, teacherId }) => {
     [attendanceStatus]
   );
 
+  console.log(filteredSlots);
+
   return (
     <div className="space-y-6">
       <div className="w-full">
@@ -229,7 +231,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
 
                       <TableCell align="right">
                         <Link
-                          href={`/dashboard/attendances?classId=${slot.classId?._id}&batchId=${slot.classId.batchId}&subjectId=${slot.subjectId?._id}&periodNumber=${slot.periodNumber}&day=${slot.day}`}
+                          href={`/dashboard/attendances?classId=${slot.classId?._id}&batchId=${slot.classId?.batchId}&subjectId=${slot.subjectId?._id}&periodNumber=${slot.periodNumber}&day=${slot.day}`}
                           prefetch={false}
                         >
                           <ExternalLink className="text-muted-foreground h-5 w-5 md:hidden" />

@@ -98,7 +98,6 @@ export default async function ClassesPage() {
         label: "Assign a teacher",
         type: "text",
         inputType: "select",
-        required: true,
         options: formatOptions(teachers),
       },
       {

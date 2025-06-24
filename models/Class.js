@@ -30,7 +30,6 @@ const classSchema = new Schema(
     },
     teacherId: {
       type: String,
-      required: [true, "Teacher is required"],
       ref: "User",
     },
     subjects: [
@@ -44,33 +43,6 @@ const classSchema = new Schema(
     timestamps: true,
   }
 );
-
-classSchema.pre("save", async function (next) {
-  try {
-    if (this.isNew || this.isModified("teacherId")) {
-      const existingTeacherClass = await this.constructor
-        .findOne({
-          teacherId: this.teacherId,
-          _id: { $ne: this?._id },
-        })
-        .lean();
-
-      if (existingTeacherClass) {
-        console.log("Validation failed: Duplicate teacher");
-        return next(
-          new Error(
-            `Teacher ${this.teacherId} is already assigned to class ${existingTeacherClass?._id}`
-          )
-        );
-      }
-    }
-
-    next();
-  } catch (error) {
-    console.error("Pre-save validation error:", error);
-    return next(error);
-  }
-});
 
 const Class = models?.Class || model("Class", classSchema);
 export default Class;
