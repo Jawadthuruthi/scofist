@@ -76,7 +76,6 @@ export async function POST(req, res) {
 
     const body = await req.json();
     const { houseName, place, postOffice, district, state, pin } = body;
-    console.log(body);
 
     const formattedBody = {
       ...body,
