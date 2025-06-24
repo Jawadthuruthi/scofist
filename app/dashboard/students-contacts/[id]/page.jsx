@@ -29,10 +29,7 @@ const columnsConfig = [
   },
 ];
 
-const apiKey =
-  process.env.NODE_ENV === "development"
-    ? "http://localhost:3000"
-    : process.env.API_KEY;
+const apiKey = process.env.API_KEY;
 
 const StudentsContactsListPage = async ({ params }) => {
   try {
