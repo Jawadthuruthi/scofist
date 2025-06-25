@@ -62,7 +62,7 @@ const TableComponent = ({
     <div className="space-y-4">
       <div
         ref={tableRef}
-        className="rounded-md border overflow-auto shadow-sm table-print relative  print:bg-white"
+        className="rounded-md border overflow-auto shadow-sm table-print relative  print:bg-white print:font-montserrat"
         style={{
           maxHeight: tableHeight,
         }}

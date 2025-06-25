@@ -222,7 +222,7 @@ const TimeTableComponent = ({
     <div>
       <div
         ref={timeTableRef}
-        className="overflow-x-auto border border-collapse rounded-md  print:bg-white"
+        className="overflow-x-auto border border-collapse rounded-md  print:bg-white print:font-montserrat"
       >
         <PrintHeader apiKey={apiKey} title="Time Table" />
         <Table className="w-full">

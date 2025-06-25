@@ -966,7 +966,7 @@ const TimeTablesManagements = ({
       ) : selectedClass || selectedTeacher || date ? (
         <div
           ref={timeTableRef}
-          className="overflow-x-auto border border-collapse rounded-md  print:bg-white"
+          className="overflow-x-auto border border-collapse rounded-md  print:bg-white print:font-montserrat"
         >
           <div className="hidden w-full print:block">
             <h3 className="text-center text-lg font-semibold my-4">

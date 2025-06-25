@@ -234,12 +234,32 @@ function ComboBox({ roles, role }) {
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
+          // Add touch-friendly styles for iOS
+          style={{
+            WebkitTouchCallout: "none",
+            WebkitUserSelect: "none",
+            touchAction: "manipulation",
+          }}
         >
           {value ? roles.find((role) => role === value) : "Select role..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="absolute w-60 max-w-[90vw] p-0 z-[9999] pointer-events-auto">
+      <PopoverContent
+        className="w-60 max-w-[90vw] p-0 pointer-events-auto"
+        // Remove absolute positioning and high z-index that can cause issues
+        // Let the Popover component handle positioning naturally
+        sideOffset={4}
+        style={{
+          // Ensure the popover is touchable on iOS
+          WebkitTouchCallout: "none",
+          WebkitUserSelect: "none",
+          touchAction: "manipulation",
+          // Force hardware acceleration to improve touch responsiveness
+          transform: "translateZ(0)",
+          WebkitTransform: "translateZ(0)",
+        }}
+      >
         <Command>
           <CommandList>
             <CommandEmpty>No role found.</CommandEmpty>
@@ -248,7 +268,33 @@ function ComboBox({ roles, role }) {
                 <CommandItem
                   key={role}
                   value={role}
+                  // Add explicit touch handling for iOS
+                  style={{
+                    WebkitTouchCallout: "none",
+                    WebkitUserSelect: "none",
+                    touchAction: "manipulation",
+                    cursor: "pointer",
+                  }}
                   onSelect={(currentValue) => {
+                    setValue(currentValue === value ? "" : currentValue);
+                    setOpen(false);
+                    try {
+                      Cookies.set("active-role", currentValue, {
+                        path: "/",
+                        expires: 1,
+                      });
+                      console.log("Cookie set successfully");
+                    } catch (error) {
+                      console.error("Error setting cookie:", error);
+                    }
+                    window.location.reload();
+                    window.location.href = "/dashboard";
+                  }}
+                  // Add touch event handlers as backup for iOS
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    // Trigger the same logic as onSelect
+                    const currentValue = role;
                     setValue(currentValue === value ? "" : currentValue);
                     setOpen(false);
                     try {

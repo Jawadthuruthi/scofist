@@ -70,7 +70,7 @@ module.exports = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        poppins: ["var(--font-poppins)", "sans-serif"],
+        montserrat: ["Montserrat", "sans-serif"],
       },
       fontSize: {
         xxs: ["0.625rem", { lineHeight: "1rem" }],

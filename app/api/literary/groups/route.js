@@ -61,14 +61,14 @@ export async function GET(req, res) {
     const formattedGroups = groups.map((group) => {
       return {
         ...group.toObject(),
-        leaderId: group.leaderId ? group.leaderId._id : null,
-        leaderName: group.leaderId ? group.leaderId.name : null,
+        leaderId: group.leaderId ? group.leaderId._id : "",
+        leaderName: group.leaderId ? group.leaderId.name : "",
         assistantLeaderId: group.assistantLeaderId
           ? group.assistantLeaderId._id
-          : null,
+          : "",
         assistantLeaderName: group.assistantLeaderId
           ? group.assistantLeaderId.name
-          : null,
+          : "",
         studentsId: group.studentsId.map((student) => student._id),
         studentsName: group.studentsId
           .sort((a, b) => a._id - b._id)
