@@ -110,21 +110,20 @@ export async function PUT(req, res) {
 
     const { houseName, place, postOffice, district, state, pin } = updateData;
 
-    const formattedBody = {
-      ...body,
-      address: {
+    if (houseName || place || postOffice || district || state || pin) {
+      updateData.address = {
         houseName,
         place,
         postOffice,
         district,
         state,
         pin,
-      },
-    };
+      };
+    }
 
     const updatedApplicationForm = await ApplicationForm.findByIdAndUpdate(
       _id,
-      formattedBody,
+      updateData,
       { new: true }
     );
 

@@ -30,10 +30,15 @@ const ApplicationDisplayPage = () => {
     [searchParams]
   );
 
-  const { useFetchItems } = useCrud("applications", queryParams.apiKey);
+  const { useFetchItems, useUpdateItem } = useCrud(
+    "applications",
+    queryParams.apiKey
+  );
   const fetchApplicationQuery = useFetchItems(null, null, {
     _id,
   });
+
+  const updateApplication = useUpdateItem();
 
   const applicationData = useMemo(
     () => fetchApplicationQuery.data?.applications[0],
@@ -66,6 +71,14 @@ const ApplicationDisplayPage = () => {
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const handleApprove = async () => {
+    await updateApplication.mutateAsync({ data: { _id, status: "Approved" } });
+  };
+
+  const handleReject = async () => {
+    await updateApplication.mutateAsync({ data: { _id, status: "Rejected" } });
   };
 
   return (
@@ -355,22 +368,54 @@ const ApplicationDisplayPage = () => {
       {applicationData && (
         <div className="flex flex-col sm:flex-row gap-3 mt-4 justify-center print:hidden w-full max-w-[210mm]">
           <Button
-            variant="outline"
+            variant="default"
             onClick={handlePrint}
             className="order-2 sm:order-1"
           >
             Print Application
           </Button>
-          <Button variant="outline" className="order-1 sm:order-2">
-            Edit Application
-          </Button>
-          {applicationData?.status === "Pending" && (
+
+          {applicationData?.status === "Pending" ? (
             <>
-              <Button variant="destructive">Reject Application</Button>
-              <Button className="bg-green-600 hover:bg-green-700">
+              <Button
+                disabled={updateApplication.isPending}
+                className="bg-green-600 hover:bg-green-700"
+                onClick={handleApprove}
+              >
                 Approve Application
               </Button>
+              <Button
+                variant="destructive"
+                disabled={updateApplication.isPending}
+                onClick={handleReject}
+              >
+                Reject Application
+              </Button>
             </>
+          ) : applicationData?.status === "Approved" ? (
+            <Button
+              variant="destructive"
+              disabled={updateApplication.isPending}
+              onClick={handleReject}
+            >
+              Reject Application
+            </Button>
+          ) : applicationData?.status === "Rejected" ? (
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              disabled={updateApplication.isPending}
+              onClick={handleApprove}
+            >
+              Approve Application
+            </Button>
+          ) : (
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              disabled={updateApplication.isPending}
+              onClick={handleApprove}
+            >
+              Approve Application
+            </Button>
           )}
         </div>
       )}
