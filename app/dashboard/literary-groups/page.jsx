@@ -34,6 +34,15 @@ const columnsConfig = [
   { accessorKey: "_id", header: "Group ID" },
   { accessorKey: "name", header: "Name" },
   {
+    accessorKey: "leaderName",
+    header: "Leader",
+  },
+  {
+    accessorKey: "assistantLeaderName",
+    header: "Assist. Leader",
+  },
+
+  {
     accessorKey: "studentsName",
     header: "Students",
     type: ["array", "vertical"],
@@ -91,9 +100,29 @@ export default async function GroupsPage() {
         options: formatOptions(classes),
       },
       {
+        name: "leaderId",
+        label: "Assign leader",
+        type: "text",
+        inputType: "select",
+        options: formatOptions(students),
+        filter: {
+          dependentField: "classId",
+        },
+      },
+      {
+        name: "assistantLeaderId",
+        label: "Assign assistant leader",
+        type: "text",
+        inputType: "select",
+        options: formatOptions(students),
+        filter: {
+          dependentField: "classId",
+        },
+      },
+      {
         name: "studentsId",
         label: "Assign students",
-        type: "text",
+        type: "array",
         inputType: "multiSelect",
         required: true,
         options: formatOptions(students),

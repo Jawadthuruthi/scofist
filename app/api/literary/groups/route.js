@@ -49,6 +49,8 @@ export async function GET(req, res) {
         path: "studentsId",
         select: ["_id", "name", "profilePic"],
       })
+      .populate("leaderId", ["_id", "name", "profilePic"])
+      .populate("assistantLeaderId", ["_id", "name", "profilePic"])
       .skip(page * limit)
       .limit(limit)
       .sort({ _id: 1 })
@@ -59,6 +61,14 @@ export async function GET(req, res) {
     const formattedGroups = groups.map((group) => {
       return {
         ...group.toObject(),
+        leaderId: group.leaderId ? group.leaderId._id : null,
+        leaderName: group.leaderId ? group.leaderId.name : null,
+        assistantLeaderId: group.assistantLeaderId
+          ? group.assistantLeaderId._id
+          : null,
+        assistantLeaderName: group.assistantLeaderId
+          ? group.assistantLeaderId.name
+          : null,
         studentsId: group.studentsId.map((student) => student._id),
         studentsName: group.studentsId
           .sort((a, b) => a._id - b._id)

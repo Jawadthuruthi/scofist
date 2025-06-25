@@ -20,6 +20,14 @@ const literaryGroupSchema = new Schema(
       trim: true,
       uppercase: true,
     },
+    leaderId: {
+      type: String,
+      ref: "User",
+    },
+    assistantLeaderId: {
+      type: String,
+      ref: "User",
+    },
     studentsId: {
       type: [String],
       required: true,
