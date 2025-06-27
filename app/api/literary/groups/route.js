@@ -47,7 +47,11 @@ export async function GET(req, res) {
     const groups = await LiteraryGroup.find(query, projections)
       .populate({
         path: "studentsId",
-        select: ["_id", "name", "profilePic"],
+        select: ["_id", "name", "profilePic", "studentSpecificField"],
+        populate: {
+          path: "studentSpecificField.classId",
+          select: ["_id", "name"],
+        },
       })
       .populate("leaderId", ["_id", "name", "profilePic"])
       .populate("assistantLeaderId", ["_id", "name", "profilePic"])
@@ -75,6 +79,8 @@ export async function GET(req, res) {
           .map((student) => `${student._id} ${student.name}`),
         studentsDetails: group.studentsId.map((student) => ({
           ...student.toObject(),
+          classId: student.studentSpecificField?.classId?._id,
+          className: student.studentSpecificField?.classId?.name || "",
         })),
       };
     });

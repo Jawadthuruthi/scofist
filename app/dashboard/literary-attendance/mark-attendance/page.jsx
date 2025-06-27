@@ -129,9 +129,33 @@ const LiteraryAttendance = () => {
     }
   );
 
+  const groupLeaderId = useMemo(() => {
+    return participantsQuery.data?.groups[0]?.leaderId;
+  }, [participantsQuery.data]);
+
+  const groupAssistantLeaderId = useMemo(() => {
+    return participantsQuery.data?.groups[0]?.assistantLeaderId;
+  }, [participantsQuery.data]);
+
   const students = useMemo(() => {
     if (queryParams.groupId) {
-      return participantsQuery.data?.groups[0]?.studentsDetails || [];
+      return (
+        participantsQuery.data?.groups[0]?.studentsDetails?.sort((a, b) => {
+          if (groupLeaderId === a._id) {
+            return -1;
+          }
+          if (groupLeaderId === b._id) {
+            return 1;
+          }
+          if (groupAssistantLeaderId === a._id) {
+            return -1;
+          }
+          if (groupAssistantLeaderId === b._id) {
+            return 1;
+          }
+          return b.classId.localeCompare(a.classId);
+        }) || []
+      );
     }
     return studentsQuery.data?.users || [];
   }, [studentsQuery.data, participantsQuery.data]);
@@ -375,15 +399,22 @@ const LiteraryAttendance = () => {
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={student.profilePic?.url} />
                               <AvatarFallback>
-                                {student.name.substring(0, 1)}
+                                {student.name.substring(0, 1)} {}
                               </AvatarFallback>
                             </Avatar>
                             <div>
                               <p className="font-medium text-xs whitespace-nowrap">
-                                {student.name}
+                                {student.name}{" "}
+                                {(!!queryParams.groupId &&
+                                  groupLeaderId === student._id &&
+                                  "(Leader)") ||
+                                  (!!queryParams.groupId &&
+                                    groupAssistantLeaderId === student._id &&
+                                    "(Assistant Leader)") ||
+                                  ""}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {student._id}
+                                {student._id} {student?.className}
                               </p>
                             </div>
                           </div>
