@@ -256,27 +256,5 @@ const userSchema = new Schema(
 // Indexes for common query patterns
 userSchema.index({ name: "text" });
 
-userSchema.pre("save", async function (next) {
-  try {
-    const isStudent = this.roles.includes("Student");
-    const newBatchId = this.studentSpecificField?.batchId;
-
-    // When student and batchId exists
-    if (isStudent && newBatchId) {
-      const relatedClass = await Class.findOne({ batchId: newBatchId }).sort({
-        createdAt: 1,
-      });
-
-      if (relatedClass?._id) {
-        this.studentSpecificField.classId = relatedClass._id;
-      }
-    }
-
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
 const User = models.User || model("User", userSchema);
 export default User;
