@@ -86,7 +86,7 @@ const ApplicationDisplayPage = () => {
       {/* A4 Container - Responsive */}
       {applicationData ? (
         <div
-          className="bg-white shadow-lg border border-gray-200 print:shadow-none print:border-none w-full max-w-[210mm] mx-auto text-xxs md:text-xs lg:text-sm print:text-sm"
+          className="bg-white shadow-lg print:font-montserrat border border-gray-200 print:shadow-none print:border-none w-full max-w-[210mm] mx-auto text-xxs md:text-xs lg:text-sm print:text-sm"
           style={{
             minHeight: "297mm",
             padding: "12mm 15mm",
@@ -100,9 +100,9 @@ const ApplicationDisplayPage = () => {
           </div>
 
           {/* Application Content */}
-          <div className="space-y-3">
+          <div className="space-y-6">
             {/* Personal Information Header with Photo */}
-            <div className="flex justify-between items-start mb-3">
+            <div className="flex relative justify-between items-start mb-3">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <h3 className="text-sm md:text-base lg:text-xl print:text-xl font-bold text-gray-800 border-b border-gray-400 pb-1">
@@ -116,7 +116,7 @@ const ApplicationDisplayPage = () => {
                   </Badge>
                 </div>
               </div>
-              <Avatar className="h-14 w-14 border-2 border-gray-300 flex-shrink-0">
+              <Avatar className="h-14 w-14 border-2 sm:absolute sm:right-0 border-gray-300 flex-shrink-0">
                 <AvatarImage
                   src={applicationData?.profilePic?.url}
                   alt={applicationData?.name}
@@ -180,8 +180,6 @@ const ApplicationDisplayPage = () => {
               </div>
             </div>
 
-            <Separator className="my-2" />
-
             {/* Address Information */}
             <div className="mb-3">
               <h3 className="text-sm md:text-base lg:text-xl print:text-xl font-bold text-gray-800 border-b border-gray-400 pb-1 mb-2">
@@ -238,8 +236,6 @@ const ApplicationDisplayPage = () => {
                 </div>
               </div>
             </div>
-
-            <Separator className="my-2" />
 
             {/* Academic Information */}
             <div className="mb-3">
@@ -314,8 +310,6 @@ const ApplicationDisplayPage = () => {
               </div>
             </div>
 
-            <Separator className="my-2" />
-
             {/* Footer Section */}
             <div className="mt-8 pt-4 border-t border-gray-300 space-y-2">
               <h3 className="text-center text-base font-bold text-gray-800">
@@ -350,7 +344,7 @@ const ApplicationDisplayPage = () => {
                 Institution
               </p>
               <div className="flex">
-                <div className="font-bold w-full">Class Admitted:</div>
+                <div className="font-bold w-full"></div>
                 <div className="font-bold w-1/3">Principal:</div>
               </div>
             </div>

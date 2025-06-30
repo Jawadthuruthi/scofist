@@ -203,7 +203,7 @@ const useTableColumns = (columnConfig) => {
         <Link
           href={`${row.original[col.accessorKey] || col.accessorKey}/${row.original[col.endpointKey] + searchParams}`}
         >
-          <ExternalLink className="text-muted-foreground h-5 w-5" />
+          <ExternalLink className="text-muted-foreground h-5 w-5 print:hidden" />
         </Link>
       );
     }

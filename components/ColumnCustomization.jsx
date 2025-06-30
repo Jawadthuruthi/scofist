@@ -37,7 +37,9 @@ const ColumnCustomization = ({ table, columnsConfig }) => {
                 column.toggleVisibility(!!value);
               }}
             >
-              {columnConfig.header || columnConfig.accessorKey}
+              {columnConfig.header ||
+                columnConfig.name ||
+                columnConfig.accessorKey}
             </DropdownMenuCheckboxItem>
           );
         })}

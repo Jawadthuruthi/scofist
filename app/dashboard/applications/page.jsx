@@ -26,6 +26,7 @@ const columnsConfig = [
     accessorKey: "/dashboard/applications",
     header: "",
     endpointKey: "_id",
+    name: "Link Button",
     type: ["externalLink"],
     width: 50,
     minWidth: 50,
