@@ -265,6 +265,7 @@ export async function POST(req, res) {
       droppedOutReason,
       graduatedYear,
       batchId,
+      classId,
     } = body;
 
     // Build user object efficiently
@@ -310,6 +311,7 @@ export async function POST(req, res) {
         academicQualification,
         status,
         batchId,
+        classId,
       };
 
       // Add status-dependent fields only when they're needed
@@ -428,6 +430,7 @@ export async function PUT(req) {
         "islamicQualification",
         "academicQualification",
         "batchId",
+        "classId",
         "status",
       ];
       studentFields.forEach((field) => {
