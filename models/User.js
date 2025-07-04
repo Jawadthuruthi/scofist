@@ -236,6 +236,12 @@ const userSchema = new Schema(
         type: String,
         trim: true,
         ref: "Class",
+        required: function () {
+          return (
+            this.roles.includes("Student") &&
+            this.studentSpecificField?.status === "Active"
+          );
+        },
       },
       batchId: {
         type: String,

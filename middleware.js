@@ -102,7 +102,7 @@ const pages = [
     title: "Students Contacts",
     path: "/dashboard/students-contacts",
     pattern: /^\/dashboard\/students-contacts(?:\/[^/]+)?$/,
-    allowedRoles: ["Teacher"],
+    allowedRoles: ["Teacher", "College Admin"],
   },
 
   {

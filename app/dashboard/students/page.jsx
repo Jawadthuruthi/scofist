@@ -346,7 +346,6 @@ export default async function BatchesPage() {
           minLength: 1,
           minLengthMessage: "Please select at least one class",
         },
-        required: true,
       },
 
       {

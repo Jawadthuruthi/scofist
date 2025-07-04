@@ -96,7 +96,7 @@ const items = [
     title: "Students Contacts",
     url: "/dashboard/students-contacts",
     icon: BookUser,
-    allowedRoles: ["Teacher"],
+    allowedRoles: ["Teacher", "College Admin"],
   },
   {
     title: "Students Fund",
