@@ -29,6 +29,7 @@ const StudentsIdCard = ({
 
   const handlePrint = useReactToPrint({
     contentRef: pageRef,
+    documentTitle: "Students ID Cards",
   });
 
   const currentYear = new Date().getFullYear();

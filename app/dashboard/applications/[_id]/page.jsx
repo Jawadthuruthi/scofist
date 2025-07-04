@@ -14,10 +14,6 @@ import { Loader2 } from "lucide-react";
 const ApplicationDisplayPage = () => {
   const printRef = useRef();
 
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-  });
-
   const params = useParams();
   const searchParams = useSearchParams();
 
@@ -44,6 +40,12 @@ const ApplicationDisplayPage = () => {
     () => fetchApplicationQuery.data?.applications[0],
     [fetchApplicationQuery.data]
   );
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Application_${applicationData?.name || "Unknown"}`,
+  });
+
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString("en-IN", {
       year: "numeric",

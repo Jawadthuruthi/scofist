@@ -215,7 +215,7 @@ const TimeTableComponent = ({
 
   const handlePrint = useReactToPrint({
     contentRef: timeTableRef,
-    documentTitle: `Time Table`,
+    documentTitle: "Time Table",
   });
 
   return (

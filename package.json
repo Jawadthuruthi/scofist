@@ -38,6 +38,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "^2.30.0",
     "date-fns-tz": "^2.0.1",
+    "html2pdf.js": "^0.10.3",
     "input-otp": "^1.4.2",
     "jose": "^6.0.8",
     "js-cookie": "^3.0.5",

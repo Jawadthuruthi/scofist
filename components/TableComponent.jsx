@@ -47,6 +47,7 @@ const TableComponent = ({
 
   const handlePrint = useReactToPrint({
     contentRef: tableRef,
+    documentTitle: printTitle ? printTitle : "Table Print",
   });
 
   const table = useReactTable({

@@ -393,7 +393,7 @@ const DataTableComponent = ({
 
   const handlePrint = useReactToPrint({
     contentRef: tableRef,
-    documentTitle: `${capitalize(apiEndpoint)} List`,
+    documentTitle: printTitle ? printTitle : resource,
   });
 
   // Table columns

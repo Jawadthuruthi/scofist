@@ -296,7 +296,7 @@ const TimeTablesManagements = ({
   // Set up print functionality
   const handlePrint = useReactToPrint({
     contentRef: timeTableRef,
-    documentTitle: `Time Table`,
+    documentTitle: `Time Table - ${getCurrentViewTitle}`,
   });
 
   // Queries for data fetching

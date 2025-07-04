@@ -64,6 +64,8 @@ import {
 import { MultiSelect } from "./ui/multi-select";
 import { formatOptions } from "@/lib/utils";
 import { useReactToPrint } from "react-to-print";
+import * as html2pdf from "html2pdf.js";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -82,12 +84,8 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const printRef = useRef();
   const allStudentsFundRef = useRef();
 
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-  });
-  const handleAllStudentsFundPrint = useReactToPrint({
-    contentRef: allStudentsFundRef,
-  });
+  const isMobile = useIsMobile();
+
   const { useFetchItems, useAddItem, useUpdateItem } = useCrud(
     "studentsFund",
     apiKey
@@ -145,7 +143,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   }, [selectedBatch]);
 
   const selectedBatchData = useMemo(() => {
-    return batches.find((batch) => batch._id === selectedBatch)?.name || "";
+    return batches.find((batch) => batch._id === selectedBatch) || {};
   }, [selectedBatch]);
 
   const handleTransaction = () => {
@@ -215,6 +213,38 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   };
 
   const selectedStudentData = students.find((s) => s._id === selectedStudent);
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Transaction History - ${selectedStudentData?.name}`,
+  });
+  const handleAllStudentsFundPrint = useReactToPrint({
+    contentRef: allStudentsFundRef,
+    documentTitle: `All Students Balance - ${selectedBatchData?.name}`,
+  });
+
+  const handleDownloadPDF = () => {
+    const element = printRef.current;
+    const opt = {
+      margin: 0.5,
+      filename: `Transaction_History_${new Date().toLocaleDateString()}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+    };
+    html2pdf.default().set(opt).from(element).save();
+  };
+  const handleAllStudentsFundDownloadPDF = () => {
+    const element = allStudentsFundRef.current;
+    const opt = {
+      margin: 0.5,
+      filename: `All_Students_Balance_${selectedBatchData?.name}_${new Date().toLocaleDateString()}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+    };
+    html2pdf.default().set(opt).from(element).save();
+  };
 
   return (
     <div className="min-h-screen">
@@ -442,24 +472,19 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-4xl h-[80vh]">
-                      <DialogHeader>
-                        <DialogTitle>Complete Transaction History</DialogTitle>
-                        <DialogDescription>
-                          All transactions for {selectedStudentData?.name}
-                        </DialogDescription>
-                      </DialogHeader>
                       <div
-                        className="space-y-4 max-h-full overflow-y-auto hide-scrollbar  print:bg-white print:font-montserrat"
+                        className="space-y-4 max-h-full overflow-y-auto hide-scrollbar  print:bg-white print:font-montserrat print:p-4"
                         ref={printRef}
                       >
-                        <div className="hidden print:block">
-                          <h2 className="text-xl font-bold">
+                        <DialogHeader>
+                          <DialogTitle>
                             Complete Transaction History
-                          </h2>
-                          <p className="mb-4">
+                          </DialogTitle>
+                          <DialogDescription>
                             All transactions for {selectedStudentData?.name}
-                          </p>
-                        </div>
+                          </DialogDescription>
+                        </DialogHeader>
+
                         {transactions?.map((transaction) => (
                           <div
                             key={transaction._id}
@@ -498,9 +523,19 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                       </div>
                       <DialogFooter>
                         <div className="flex items-center justify-between w-full gap-2">
-                          <Button variant="default" onClick={handlePrint}>
-                            Print
-                          </Button>
+                          {isMobile ? (
+                            <Button
+                              variant="default"
+                              onClick={handleDownloadPDF}
+                            >
+                              Download
+                            </Button>
+                          ) : (
+                            <Button variant="default" onClick={handlePrint}>
+                              Print
+                            </Button>
+                          )}
+
                           <Button variant="destructive">
                             <Dialog
                               open={showClearHistoryDialogue}
@@ -556,27 +591,18 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-4xl h-[80vh]">
-                      <DialogHeader>
-                        <DialogTitle>All Students Balance</DialogTitle>
-                        <DialogDescription>
-                          Review the current fund balance for each student of{" "}
-                          {selectedBatchData?.name}.
-                        </DialogDescription>
-                      </DialogHeader>
                       <div
-                        className="max-h-full overflow-y-auto hide-scrollbar"
+                        className="max-h-full overflow-y-auto hide-scrollbar print:bg-white print:font-montserrat print:p-4"
                         ref={allStudentsFundRef}
                       >
-                        <div className="hidden print:block">
-                          <h2 className="text-xl font-bold">
-                            All Students Balance
-                          </h2>
-                          <p className="mb-4">
+                        <DialogHeader>
+                          <DialogTitle>All Students Balance</DialogTitle>
+                          <DialogDescription>
                             Review the current fund balance for each student of{" "}
                             {selectedBatchData?.name}.
-                          </p>
-                        </div>
-                        <div className="flex justify-between border border-border items-center bg-accent/10 p-2 rounded-md mb-4">
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex justify-between border border-border items-center bg-accent/10 p-2 rounded-md my-4">
                           <span className="text-base font-medium text-muted-foreground">
                             Total Balance
                           </span>
@@ -604,12 +630,21 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         </Table>
                       </div>
                       <DialogFooter>
-                        <Button
-                          variant="default"
-                          onClick={handleAllStudentsFundPrint}
-                        >
-                          Print
-                        </Button>
+                        {isMobile ? (
+                          <Button
+                            variant="default"
+                            onClick={handleAllStudentsFundDownloadPDF}
+                          >
+                            Download
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="default"
+                            onClick={handleAllStudentsFundPrint}
+                          >
+                            Print
+                          </Button>
+                        )}
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -647,9 +682,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
               </div>
               <div>
                 <p className="text-accent-foreground">Amount</p>
-                <p className="font-medium">
-                  ₹{parseFloat(amount || 0).toLocaleString()}
-                </p>
+                <p className="font-medium">₹{parseFloat(amount || 0)}</p>
               </div>
               <div>
                 <p className="text-accent-foreground">New Balance</p>
