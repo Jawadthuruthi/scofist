@@ -465,6 +465,13 @@ export async function PUT(req) {
     );
   } catch (error) {
     console.error("Error updating user:", error);
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return NextResponse.json(
+        { message: `User with this ${field} already exists` },
+        { status: 409 }
+      );
+    }
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }
