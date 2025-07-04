@@ -151,6 +151,13 @@
 }
 
 @media print {
+  @page {
+    margin: 1rem;
+  }
+  body {
+    background: white !important;
+    font-family: "Montserrat", "Arial", sans-serif !important;
+  }
   [data-radix-portal] {
     all: unset !important;
     display: block !important;

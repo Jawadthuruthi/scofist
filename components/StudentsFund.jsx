@@ -473,7 +473,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                     </DialogTrigger>
                     <DialogContent className="max-w-4xl h-[80vh]">
                       <div
-                        className="space-y-4 max-h-full overflow-y-auto hide-scrollbar  print:bg-white print:font-montserrat print:p-4"
+                        className="space-y-4 max-h-full overflow-y-auto hide-scrollbar  "
                         ref={printRef}
                       >
                         <DialogHeader>
@@ -488,7 +488,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         {transactions?.map((transaction) => (
                           <div
                             key={transaction._id}
-                            className="border rounded-lg p-4"
+                            className="border rounded-lg p-4 break-inside-avoid"
                           >
                             <div className="flex items-center justify-between mb-3">
                               <Badge
@@ -592,7 +592,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                     </DialogTrigger>
                     <DialogContent className="max-w-4xl h-[80vh]">
                       <div
-                        className="max-h-full overflow-y-auto hide-scrollbar print:bg-white print:font-montserrat print:p-4"
+                        className="max-h-full overflow-y-auto hide-scrollbar "
                         ref={allStudentsFundRef}
                       >
                         <DialogHeader>

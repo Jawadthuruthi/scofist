@@ -63,7 +63,7 @@ const TableComponent = ({
     <div className="space-y-4">
       <div
         ref={tableRef}
-        className="rounded-md border overflow-auto shadow-sm table-print relative  print:bg-white print:font-montserrat"
+        className="rounded-md border overflow-auto shadow-sm table-print relative  "
         style={{
           maxHeight: tableHeight,
         }}
@@ -103,6 +103,7 @@ const TableComponent = ({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() ? "selected" : undefined}
+                    className="break-inside-avoid"
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
