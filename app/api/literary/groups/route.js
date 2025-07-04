@@ -110,18 +110,33 @@ export async function POST(req, res) {
 
     const body = await req.json();
 
-    const isStudentExistsInOtherGroups = await LiteraryGroup.findOne({
-      studentsId: { $in: body.studentsId },
+    const existingGroups = await LiteraryGroup.find(
+      { studentsId: { $in: body.studentsId } },
+      { studentsId: 1 }
+    ).populate({
+      path: "studentsId",
+      select: ["_id", "name"],
     });
 
-    if (isStudentExistsInOtherGroups) {
+    const existingStudents = existingGroups.flatMap(
+      (group) => group.studentsId
+    );
+
+    const duplicateStudents = existingStudents.filter((student) =>
+      body.studentsId.includes(student._id.toString())
+    );
+
+    const duplicateNames = duplicateStudents.map((s) => s.name).join(", ");
+
+    if (duplicateStudents.length > 0) {
       return NextResponse.json(
         {
-          message: "One or more students are already part of another group!",
+          message: `These students are already in another group: ${duplicateNames}`,
         },
         { status: 400 }
       );
     }
+
     const group = new LiteraryGroup(body);
     await group.save();
 
@@ -141,15 +156,29 @@ export async function PUT(req, res) {
     const body = await req.json();
     const { _id, ...updateData } = body;
 
-    const isStudentExistsInOtherGroups = await LiteraryGroup.findOne({
-      studentsId: { $in: body.studentsId },
-      _id: { $ne: _id },
+    const existingGroups = await LiteraryGroup.find(
+      { studentsId: { $in: body.studentsId }, _id: { $ne: _id } },
+
+      { studentsId: 1 }
+    ).populate({
+      path: "studentsId",
+      select: ["_id", "name"],
     });
 
-    if (isStudentExistsInOtherGroups) {
+    const existingStudents = existingGroups.flatMap(
+      (group) => group.studentsId
+    );
+
+    const duplicateStudents = existingStudents.filter((student) =>
+      body.studentsId.includes(student._id.toString())
+    );
+
+    const duplicateNames = duplicateStudents.map((s) => s.name).join(", ");
+
+    if (duplicateStudents.length > 0) {
       return NextResponse.json(
         {
-          message: "One or more students are already part of another group!",
+          message: `These students are already in another group: ${duplicateNames}`,
         },
         { status: 400 }
       );

@@ -12,6 +12,10 @@ const API_ENDPOINTS = [
     pathname: "users",
     searchParams: "roles=Student&projection=_id,name,classId&status=Active",
   },
+  {
+    pathname: "literary/groups",
+    key: "groups",
+  },
 ];
 
 const columnsConfig = [
@@ -59,9 +63,14 @@ export default async function GroupsPage() {
   try {
     const apiKey = process.env.API_KEY;
 
-    const [classes, students] = await Promise.all(
+    const [classes, students, groups] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
-        fetchData(endpoint.pathname, endpoint.searchParams)
+        fetchData(
+          endpoint.pathname,
+          endpoint.searchParams,
+          endpoint.revalidate,
+          endpoint.key
+        )
       )
     );
 
@@ -141,7 +150,6 @@ export default async function GroupsPage() {
         operator: OPERATORS.CONTAINS,
       },
     ];
-
     return (
       <>
         <Header
@@ -151,7 +159,7 @@ export default async function GroupsPage() {
         <DataTableComponent
           resource="groups"
           apiEndpoint="literary/groups"
-          initialData={[]}
+          initialData={groups}
           columnsConfig={columnsConfig}
           formFields={formFields}
           apiKey={apiKey}
