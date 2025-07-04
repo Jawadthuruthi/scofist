@@ -247,7 +247,7 @@ const LiteraryAttendance = ({
 
                     <TableCell align="right">
                       <Link
-                        href={`/dashboard/literary-attendance/mark-attendance?classId=${cls?._id}&category=ALL&apiKey=${apiKey}&date=${formattedDate}&day=${today}&batchId=${cls.batchId}`}
+                        href={`/dashboard/literary-attendance/mark-attendance?classId=${cls?._id}&className=${cls?.name}&category=ALL&apiKey=${apiKey}&date=${formattedDate}&day=${today}&batchId=${cls.batchId}`}
                         prefetch={false}
                       >
                         <ExternalLink className="text-muted-foreground h-5 w-5 md:hidden" />
@@ -313,7 +313,7 @@ const LiteraryAttendance = ({
 
                     <TableCell align="right">
                       <Link
-                        href={`/dashboard/literary-attendance/mark-attendance?groupId=${group?._id}&category=GROUP&apiKey=${apiKey}&date=${formattedDate}&day=${today}`}
+                        href={`/dashboard/literary-attendance/mark-attendance?groupId=${group?._id}&groupName=${group?.name}&category=GROUP&apiKey=${apiKey}&date=${formattedDate}&day=${today}`}
                         prefetch={false}
                       >
                         <ExternalLink className="text-muted-foreground h-5 w-5 md:hidden" />

@@ -34,6 +34,8 @@ const LiteraryAttendance = () => {
   const queryParams = useMemo(
     () => ({
       classId: searchParams.get("classId"),
+      className: searchParams.get("className"),
+      groupName: searchParams.get("groupName"),
       batchId: searchParams.get("batchId"),
       groupId: searchParams.get("groupId"),
       date: searchParams.get("date"),
@@ -340,12 +342,9 @@ const LiteraryAttendance = () => {
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">
-                  Time:{" "}
-                  {new Date().toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}
+                  {queryParams.category === "ALL"
+                    ? `Class: ${queryParams.className}`
+                    : `Group: ${queryParams.groupName}`}
                 </span>
               </div>
               <div className="flex items-center gap-4">
