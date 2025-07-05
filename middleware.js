@@ -196,6 +196,12 @@ async function handleApiRequest(req) {
   const url = new URL(req.url);
   const apiKey = req.headers.get("api-key");
   const cronSecret = url.searchParams.get("cronSecret");
+  const generatePDF = url.pathname.includes("/api/generate-pdf");
+
+  if (generatePDF) {
+    // Allow PDF generation without authentication
+    return NextResponse.next();
+  }
 
   if (cronSecret === process.env.CRON_SECRET) {
     return NextResponse.next();

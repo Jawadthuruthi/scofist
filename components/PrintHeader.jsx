@@ -35,10 +35,10 @@ export default function PrintHeader({
       className={`w-full border-0 print:block mb-4 ${displayOnScreen ? "" : "hidden"}`}
     >
       <CardContent className="p-0">
-        <div className="flex flex-col w-full">
+        <div className="flex flex-col max-w-full overflow-x-auto">
           {/* Header with logo and institution info */}
           {!hidePrintLogo && (
-            <div className="flex items-center justify-center bg-gradient-to-b from-white to-gray-50 border-b border-gray-200">
+            <div className="flex items-center min-w-[600px] justify-center bg-gradient-to-b from-white to-gray-50 border-b border-gray-200">
               {/* Left side - Logo */}
               <div className="flex-shrink-0 w-28 h-28 mr-4">
                 {institution.logo && institution.logo.url ? (
