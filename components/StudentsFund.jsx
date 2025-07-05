@@ -232,7 +232,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
       html2canvas: { scale: 2 },
       jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
     };
-    html2pdf.default().set(opt).from(element).save();
+    html2pdf().set(opt).from(element).save();
   };
   const handleAllStudentsFundDownloadPDF = () => {
     const element = allStudentsFundRef.current;
@@ -243,7 +243,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
       html2canvas: { scale: 2 },
       jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
     };
-    html2pdf.default().set(opt).from(element).save();
+    html2pdf().set(opt).from(element).save();
   };
 
   return (
@@ -619,7 +619,10 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                           </TableHeader>
                           <TableBody>
                             {allStudentsFund.map((student) => (
-                              <TableRow key={student._id}>
+                              <TableRow
+                                key={student._id}
+                                className="break-inside-avoid"
+                              >
                                 <TableCell>{student.studentId?.name}</TableCell>
                                 <TableCell>
                                   {student.balance?.toFixed(2)}

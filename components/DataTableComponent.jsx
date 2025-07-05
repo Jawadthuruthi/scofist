@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useMemo, useRef, useState, useEffect, useCallback } from "react";
+import { useMemo, useRef, useState, useEffect, useCallback, use } from "react";
 import useTableColumns from "@/hooks/use-table-columns";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
@@ -27,6 +27,9 @@ import { Loader2 } from "lucide-react";
 import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
 import { useReactToPrint } from "react-to-print";
+import { useIsMobile } from "@/hooks/use-mobile";
+import * as html2pdf from "html2pdf.js";
+import { applyPrintStyles, removePrintStyles } from "@/lib/utils";
 
 const PopupFilter = dynamic(() => import("./PopupFilter"), {
   ssr: false,
@@ -121,12 +124,14 @@ const DataTableComponent = ({
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
   const [activeApiFilters, setActiveApiFilters] = useState(apiFilters);
+  const [showLogo, setShowLogo] = useState(false);
 
   const tableRef = useRef(null);
   const isFetchingRef = useRef(false);
   const loaderRef = useRef(null);
   const router = useRouter();
 
+  const isMobile = useIsMobile();
   // Periodic refresh
   useEffect(() => {
     const interval = setInterval(() => {
@@ -396,6 +401,38 @@ const DataTableComponent = ({
     documentTitle: printTitle ? printTitle : resource,
   });
 
+  const handleDownloadPDF = async () => {
+    applyPrintStyles();
+    const element = tableRef.current;
+    const images = element.querySelectorAll("img");
+    const imagePromises = Array.from(images).map((img) => {
+      return new Promise((resolve) => {
+        if (img.complete) {
+          resolve();
+        } else {
+          img.onload = resolve;
+          img.onerror = resolve;
+        }
+      });
+    });
+
+    await Promise.all(imagePromises);
+    const options = {
+      filename: "my-document.pdf",
+      margin: 0.5,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: {
+        unit: "in",
+        format: "letter",
+        orientation: "portrait",
+      },
+    };
+
+    await html2pdf().set(options).from(element).save();
+    removePrintStyles();
+  };
+
   // Table columns
   const columns = useMemo(() => {
     return useTableColumns(columnsConfig);
@@ -567,6 +604,7 @@ const DataTableComponent = ({
         <PrintHeader
           apiKey={apiKey}
           title={printTitle ? printTitle : resource}
+          displayOnScreen={showLogo}
         />
         <Table>
           <TableHeader className="sticky top-0 bg-background z-10">
@@ -663,7 +701,15 @@ const DataTableComponent = ({
           )}
         </div>
         {table.getRowModel().rows?.length > 0 && (
-          <Button onClick={handlePrint}>Print</Button>
+          <>
+            {isMobile ? (
+              <Button onClick={handleDownloadPDF} className="print:hidden">
+                Download PDF
+              </Button>
+            ) : (
+              <Button onClick={handlePrint}>Print</Button>
+            )}
+          </>
         )}
       </div>
     </div>

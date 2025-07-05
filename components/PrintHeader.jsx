@@ -38,7 +38,7 @@ export default function PrintHeader({
         <div className="flex flex-col max-w-full overflow-x-auto">
           {/* Header with logo and institution info */}
           {!hidePrintLogo && (
-            <div className="flex items-center min-w-[600px] justify-center bg-gradient-to-b from-white to-gray-50 border-b border-gray-200">
+            <div className="flex items-center min-w-[560px] justify-center bg-gradient-to-b from-white to-gray-50 border-b border-gray-200 mb-1">
               {/* Left side - Logo */}
               <div className="flex-shrink-0 w-28 h-28 mr-4">
                 {institution.logo && institution.logo.url ? (
@@ -74,7 +74,7 @@ export default function PrintHeader({
               </div>
 
               {/* Center - Institution details - Properly centered */}
-              <div className="flex-grow text-center flex flex-col justify-center max-w-md">
+              <div className=" text-center flex flex-col justify-center space-y-0 leading-tight max-w-md">
                 <h1 className="text-lg font-bold mb-0 text-gray-800">
                   {institution.name || "INSTITUTION NAME"}
                 </h1>
