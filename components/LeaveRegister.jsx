@@ -1,0 +1,388 @@
+"use client";
+
+import useCrud from "@/hooks/use-crud";
+import Header from "./Header";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import {
+  Table,
+  TableRow,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+} from "./ui/table";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Calendar, Clock, User, FileText } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+const LeaveRegister = ({ apiKey, role, teacherId }) => {
+  const [selectedClass, setSelectedClass] = useState("");
+
+  const router = useRouter();
+
+  const { useFetchItems } = useCrud("classes", apiKey);
+  const { useFetchItems: useFetchStudents } = useCrud("users", apiKey);
+  const { useFetchItems: useFetchLeaveRecords } = useCrud(
+    "leave-records",
+    apiKey
+  );
+
+  const fetchClassQuery = useFetchItems(
+    0,
+    0,
+    {
+      teacherId: role === "Teacher" ? teacherId : null,
+      projection: "_id,name",
+    },
+    {
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const fetchStudentQuery = useFetchStudents(
+    0,
+    0,
+    {
+      classId: selectedClass,
+      projection: "_id,name,email,rollNumber",
+    },
+    {
+      enabled: !!selectedClass,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const fetchLeaveRecordsQuery = useFetchLeaveRecords(
+    0,
+    0,
+    {
+      classId: selectedClass,
+      projection:
+        "_id,studentId,dateOfLeave,leaveReason,dateOfArrival,arrivedDate,lateReason,remark,createdAt",
+    },
+    {
+      enabled: !!selectedClass,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const classes = useMemo(() => {
+    return fetchClassQuery.data?.classes || [];
+  }, [fetchClassQuery.data]);
+
+  const students = useMemo(() => {
+    return fetchStudentQuery.data?.users || [];
+  }, [fetchStudentQuery.data]);
+
+  const leaveRecords = useMemo(() => {
+    return fetchLeaveRecordsQuery.data?.leaveRecords || [];
+  }, [fetchLeaveRecordsQuery.data]);
+
+  const studentLeaveStats = useMemo(() => {
+    const stats = {};
+    students.forEach((student) => {
+      const studentLeaves = leaveRecords.filter(
+        (record) => record.studentId === student._id
+      );
+
+      const latestRecord = studentLeaves.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      )[0];
+
+      // Calculate status based on arrival information
+      const recordsWithStatus = studentLeaves.map((record) => {
+        let status = "pending";
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+        const arrivalDate = new Date(record.dateOfArrival);
+        arrivalDate.setHours(0, 0, 0, 0);
+        const arrivedDate = record.arrivedDate
+          ? new Date(record.arrivedDate)
+          : null;
+
+        if (arrivedDate) {
+          status = "completed";
+        } else if (currentDate > arrivalDate) {
+          status = "overdue";
+        }
+
+        return { ...record, status };
+      });
+
+      const pendingRecords = recordsWithStatus.filter(
+        (r) => r.status === "pending"
+      );
+      const overdueRecords = recordsWithStatus.filter(
+        (r) => r.status === "overdue"
+      );
+
+      stats[student._id] = {
+        totalLeaves: studentLeaves.length,
+        latestRecord: latestRecord
+          ? {
+              ...latestRecord,
+              status:
+                recordsWithStatus.find((r) => r._id === latestRecord._id)
+                  ?.status || "pending",
+            }
+          : null,
+        pendingLeaves: pendingRecords.length,
+        overdueLeaves: overdueRecords.length,
+      };
+    });
+    return stats;
+  }, [students, leaveRecords]);
+
+  useEffect(() => {
+    if (role === "Teacher" && classes.length > 0 && !selectedClass) {
+      setSelectedClass(classes[0]._id);
+    }
+  }, [classes, role, selectedClass]);
+
+  const getStatusBadge = (status) => {
+    const variants = {
+      "Very Good": "default",
+      Good: "default",
+      Acceptable: "secondary",
+      Bad: "destructive",
+      "Very Bad": "destructive",
+    };
+
+    const labels = {
+      "Very Good": "Very Good",
+      Good: "Good",
+      Acceptable: "Acceptable",
+      Bad: "Bad",
+      "Very Bad": "Very Bad",
+    };
+
+    return (
+      <Badge variant={variants[status] || "secondary"} className="text-xs">
+        {labels[status] || status}
+      </Badge>
+    );
+  };
+
+  const calculateDaysOnLeave = (dateOfLeave, arrivedDate, dateOfArrival) => {
+    const leaveDate = new Date(dateOfLeave);
+    const endDate = arrivedDate
+      ? new Date(arrivedDate)
+      : new Date(dateOfArrival);
+    const diffTime = Math.abs(endDate - leaveDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  return (
+    <div className="space-y-4">
+      <Header
+        title="LEAVE REGISTER"
+        subTitle="Manage Leave Records Of Students"
+      />
+
+      <div className="flex flex-col space-y-4">
+        {role === "College Admin" && (
+          <div className="w-full max-w-sm">
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Class" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes?.map((cls) => (
+                  <SelectItem key={cls._id} value={cls._id}>
+                    {cls.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {selectedClass && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchLeaveRecordsQuery.refetch()}
+            className="w-fit"
+          >
+            Refresh Data
+          </Button>
+        )}
+      </div>
+
+      {selectedClass && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <Card className="p-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
+              <CardTitle className="text-sm font-medium">Students</CardTitle>
+              <User className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-0 pt-2">
+              <div className="text-xl font-bold">{students.length}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="p-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
+              <CardTitle className="text-sm font-medium">Records</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-0 pt-2">
+              <div className="text-xl font-bold">{leaveRecords.length}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="p-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
+              <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-0 pt-2">
+              <div className="text-xl font-bold">
+                {Object.values(studentLeaveStats).reduce(
+                  (total, stats) => total + stats.pendingLeaves,
+                  0
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="p-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
+              <CardTitle className="text-sm font-medium">This Month</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-0 pt-2">
+              <div className="text-xl font-bold">
+                {
+                  leaveRecords.filter((r) => {
+                    const recordDate = new Date(r.createdAt);
+                    const currentDate = new Date();
+                    return (
+                      recordDate.getMonth() === currentDate.getMonth() &&
+                      recordDate.getFullYear() === currentDate.getFullYear()
+                    );
+                  }).length
+                }
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <div className="max-w-full overflow-auto border border-border rounded-md whitespace-nowrap ">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12 text-center">No.</TableHead>
+              <TableHead>Student</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {students?.length > 0 ? (
+              students.map((student, index) => {
+                const stats = studentLeaveStats[student._id] || {};
+                const latestRecord = stats.latestRecord;
+
+                return (
+                  <TableRow
+                    key={student._id}
+                    className="hover:bg-muted/50"
+                    onClick={() => {
+                      router.push(`/dashboard/leave-register/${student._id}`);
+                    }}
+                  >
+                    <TableCell className="text-center font-medium text-sm">
+                      {index + 1}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="font-medium text-xs">
+                          {student.name}
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-muted-foreground">
+                            {stats.totalLeaves || 0} leaves
+                          </span>
+                          {stats.pendingLeaves > 0 && (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs px-1 py-0"
+                            >
+                              {stats.pendingLeaves} pending
+                            </Badge>
+                          )}
+                          {stats.overdueLeaves > 0 && (
+                            <Badge
+                              variant="destructive"
+                              className="text-xs px-1 py-0"
+                            >
+                              {stats.overdueLeaves} overdue
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {latestRecord ? (
+                        <div className="space-y-1">
+                          {getStatusBadge(
+                            latestRecord.remark || latestRecord.status
+                          )}
+                          <div className="text-xs text-muted-foreground">
+                            Days:{" "}
+                            {calculateDaysOnLeave(
+                              latestRecord.dateOfLeave,
+                              latestRecord.arrivedDate,
+                              latestRecord.dateOfArrival
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">-</div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8">
+                  <div className="space-y-2">
+                    <div className="text-muted-foreground">
+                      {!!selectedClass
+                        ? "No students found for this class."
+                        : "Please select a class to view students."}
+                    </div>
+                    {!!selectedClass && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fetchStudentQuery.refetch()}
+                      >
+                        Refresh Data
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+};
+
+export default LeaveRegister;

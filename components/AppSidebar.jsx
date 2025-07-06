@@ -158,8 +158,8 @@ const items = [
         allowedRoles: ["College Admin", "Teacher"],
       },
       {
-        title: "Leave Records",
-        url: "/dashboard/leave-records",
+        title: "Leave Register",
+        url: "/dashboard/leave-register",
         icon: UserX,
         allowedRoles: ["College Admin", "Teacher"],
       },

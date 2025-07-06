@@ -81,8 +81,13 @@ const pages = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
-    title: "Leave Records",
-    path: "/dashboard/leave-records",
+    title: "Leave Register",
+    path: "/dashboard/leave-register",
+    allowedRoles: ["College Admin", "Teacher"],
+  },
+  {
+    path: "/dashboard/leave-register",
+    pattern: /^\/dashboard\/leave-register(?:\/[^/]+)?$/,
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
@@ -266,6 +271,7 @@ async function handleAuthRequest(req) {
 }
 
 function isUserAllowed(activeRole, path) {
+  console.log(path);
   const page = pages.find(
     (page) => page.path === path || (page.pattern && page.pattern.test(path))
   );

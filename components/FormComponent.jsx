@@ -85,6 +85,7 @@ const FormFields = ({ form, fields, apiKey }) =>
                 maxWidth={field.maxWidth}
                 maxHeight={field.maxHeight}
                 aspectRatio={field.aspectRatio}
+                readOnly={field.readOnly}
               />
             ) : field.inputType === "select" ||
               field.inputType === "multiSelect" ? (
@@ -94,6 +95,7 @@ const FormFields = ({ form, fields, apiKey }) =>
                 multiSelect={field.inputType === "multiSelect"}
                 value={formField.value}
                 onValueChange={(value) => formField.onChange(value)}
+                readOnly={field.readOnly}
               />
             ) : field.inputType === "toggle" ? (
               <div className="flex items-center space-x-2">
@@ -112,6 +114,7 @@ const FormFields = ({ form, fields, apiKey }) =>
                 type={field.type || "text"}
                 placeholder={field.placeholder}
                 {...formField}
+                readOnly={field.readOnly}
               />
             )}
           </FormControl>
@@ -273,7 +276,7 @@ export default function FormComponent({
 
       if (data) {
         await updateItem.mutateAsync({
-          data: values,
+          data: { ids: [data._id], ...values },
         });
         toast.success("Updated successfully!");
       } else {

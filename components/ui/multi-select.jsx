@@ -63,6 +63,7 @@ export const MultiSelect = React.forwardRef(
       minLength = 1,
       maxLength = 50,
       caseSensitive = false,
+      readOnly = false,
       ...props
     },
     ref
@@ -295,12 +296,21 @@ export const MultiSelect = React.forwardRef(
     };
 
     return (
-      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+      <Popover
+        open={isPopoverOpen}
+        onOpenChange={(open) => {
+          if (!readOnly) {
+            setIsPopoverOpen(open);
+          }
+        }}
+      >
         <PopoverTrigger asChild>
           <Button
             ref={ref}
             {...props}
-            onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+            onClick={() => {
+              if (!readOnly) setIsPopoverOpen(!isPopoverOpen);
+            }}
             className={cn(
               "flex w-full p-1 rounded-md border min-h-10 h-auto items-center justify-between bg-inherit hover:bg-inherit [&_svg]:pointer-events-auto",
               className
@@ -339,7 +349,7 @@ export const MultiSelect = React.forwardRef(
                             className="ml-2 h-4 w-4 cursor-pointer"
                             onClick={(event) => {
                               event.stopPropagation();
-                              toggleOption(value);
+                              if (!readOnly) toggleOption(value);
                             }}
                           />
                         </Badge>
@@ -358,7 +368,7 @@ export const MultiSelect = React.forwardRef(
                         className="ml-2 h-4 w-4 cursor-pointer"
                         onClick={(event) => {
                           event.stopPropagation();
-                          handleClear();
+                          if (!readOnly) handleClear();
                         }}
                       />
                     </Badge>
@@ -388,7 +398,7 @@ export const MultiSelect = React.forwardRef(
                             className="ml-2 h-4 w-4 cursor-pointer"
                             onClick={(event) => {
                               event.stopPropagation();
-                              handleClear();
+                              if (!readOnly) handleClear();
                             }}
                           />
                         </Badge>
@@ -410,7 +420,7 @@ export const MultiSelect = React.forwardRef(
                         className="ml-2 h-4 w-4 cursor-pointer"
                         onClick={(event) => {
                           event.stopPropagation();
-                          clearExtraOptions();
+                          if (!readOnly) clearExtraOptions();
                         }}
                       />
                     </Badge>
@@ -421,7 +431,7 @@ export const MultiSelect = React.forwardRef(
                     className="h-4 mx-2 cursor-pointer text-muted-foreground"
                     onClick={(event) => {
                       event.stopPropagation();
-                      handleClear();
+                      if (!readOnly) handleClear();
                     }}
                   />
                   <Separator
@@ -459,6 +469,8 @@ export const MultiSelect = React.forwardRef(
                     value={searchQuery}
                     onChange={handleSearchChange}
                     onKeyDown={handleSearchInputKeyDown}
+                    readOnly={readOnly}
+                    disabled={readOnly}
                   />
                 </div>
                 {/* Error message */}
@@ -540,7 +552,9 @@ export const MultiSelect = React.forwardRef(
                         option.isCustom &&
                           "bg-primary/5 border-l-2 border-primary/20"
                       )}
-                      onClick={() => toggleOption(option.value)}
+                      onClick={() => {
+                        if (!readOnly) toggleOption(option.value);
+                      }}
                       title={option.isCustom ? "Custom option" : ""}
                     >
                       <div

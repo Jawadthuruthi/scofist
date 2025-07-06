@@ -232,6 +232,7 @@ export default function PopupForm({
   description = "",
   loading = false,
   apiKey,
+  hideButton = false,
 }) {
   const [open, setOpen] = React.useState(false);
   const [customizedFormField, setCustomizedFormField] =
@@ -326,9 +327,11 @@ export default function PopupForm({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
-          {data ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-        </Button>
+        {!hideButton && (
+          <Button variant="outline">
+            {data ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent>
