@@ -575,7 +575,7 @@ const Attendance = ({ apiKey, teacherId }) => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {leaveInfo?.isOnLeave ? (
+                      {leaveInfo?.isOnLeave && (
                         <div className="space-y-1">
                           <Badge
                             variant={
@@ -595,13 +595,6 @@ const Attendance = ({ apiKey, teacherId }) => {
                             {leaveInfo.leaveReason}
                           </div>
                         </div>
-                      ) : (
-                        <Badge
-                          variant={isPresent ? "default" : "destructive"}
-                          className="text-xs"
-                        >
-                          {isPresent ? "Present" : "Absent"}
-                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>
