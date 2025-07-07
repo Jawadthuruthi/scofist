@@ -279,7 +279,7 @@ const TimeTablesManagements = ({
   const { useFetchItems: useFetchAttendance } = useCrud("attendances", apiKey);
 
   const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 7);
+  startDate.setDate(startDate.getDate() - 6);
   const endDate = new Date();
 
   const fetchAttendanceQuery = useFetchAttendance(0, 0, {
