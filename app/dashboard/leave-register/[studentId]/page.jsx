@@ -93,8 +93,14 @@ export default async function IndividualLeaveRegisterPage({ params }) {
         placeholder: "Date of Arrival",
         required: true,
         validators: {
-          minDate: new Date().toISOString().split("T")[0],
-          minDateMessage: "Arrival date cannot be earlier than the leave date",
+          compareWith: [
+            {
+              field: "dateOfLeave",
+              operator: ">=",
+              message: "Arrival date must be on or after the leave date",
+              errorPath: "dateOfArrival",
+            },
+          ],
         },
       },
       {

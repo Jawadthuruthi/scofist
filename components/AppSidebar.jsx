@@ -99,6 +99,18 @@ const items = [
     allowedRoles: ["Teacher", "College Admin"],
   },
   {
+    title: "Marks",
+    url: "/dashboard/marks",
+    icon: FileSpreadsheet,
+    allowedRoles: ["College Admin", "Teacher"],
+  },
+  {
+    title: "Leave Register",
+    url: "/dashboard/leave-register",
+    icon: UserX,
+    allowedRoles: ["College Admin", "Teacher"],
+  },
+  {
     title: "Students Fund",
     url: "/dashboard/students-fund",
     allowedRoles: ["College Admin", "Teacher"],
@@ -151,18 +163,7 @@ const items = [
         icon: Calendar,
         allowedRoles: ["College Admin"],
       },
-      {
-        title: "Marks",
-        url: "/dashboard/marks",
-        icon: FileSpreadsheet,
-        allowedRoles: ["College Admin", "Teacher"],
-      },
-      {
-        title: "Leave Register",
-        url: "/dashboard/leave-register",
-        icon: UserX,
-        allowedRoles: ["College Admin", "Teacher"],
-      },
+
       {
         title: "Applications",
         url: "/dashboard/applications",
