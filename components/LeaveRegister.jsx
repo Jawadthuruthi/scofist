@@ -259,28 +259,50 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                 return (
                   <TableRow
                     key={student._id}
-                    className="hover:bg-muted/50"
+                    className={
+                      stats.pendingLeaves > 0
+                        ? "bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-900 border-l-4 border-red-500"
+                        : "hover:bg-muted/50"
+                    }
                     onClick={() => {
                       router.push(`/dashboard/leave-register/${student._id}`);
                     }}
                   >
-                    <TableCell className="text-center font-medium text-sm">
+                    <TableCell
+                      className={`text-center font-medium text-sm ${
+                        stats.pendingLeaves > 0
+                          ? "text-red-900 dark:text-red-100"
+                          : ""
+                      }`}
+                    >
                       {index + 1}
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <div className="font-medium text-xs">
+                        <div
+                          className={`font-medium text-xs ${
+                            stats.pendingLeaves > 0
+                              ? "text-red-900 dark:text-red-100"
+                              : ""
+                          }`}
+                        >
                           {student.name}
                         </div>
 
                         <div className="flex items-center gap-2 text-xs">
-                          <span className="text-muted-foreground">
+                          <span
+                            className={`${
+                              stats.pendingLeaves > 0
+                                ? "text-red-700 dark:text-red-300"
+                                : "text-muted-foreground"
+                            }`}
+                          >
                             {stats.totalLeaves || 0} leaves
                           </span>
                           {stats.pendingLeaves > 0 && (
                             <Badge
-                              variant="secondary"
-                              className="text-xs px-1 py-0"
+                              variant="destructive"
+                              className="text-xs px-1 py-0 bg-red-600 text-white dark:bg-red-400 dark:text-red-950"
                             >
                               {stats.pendingLeaves} pending
                             </Badge>
@@ -288,7 +310,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                           {stats.overdueLeaves > 0 && (
                             <Badge
                               variant="destructive"
-                              className="text-xs px-1 py-0"
+                              className="text-xs px-1 py-0 bg-red-800 text-white dark:bg-red-600 dark:text-white"
                             >
                               {stats.overdueLeaves} overdue
                             </Badge>
@@ -300,7 +322,13 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                       {latestRecord ? (
                         <div className="space-y-1">
                           {getStatusBadge(latestRecord.remark)}
-                          <div className="text-xs text-muted-foreground px-2">
+                          <div
+                            className={`text-xs px-2 ${
+                              stats.pendingLeaves > 0
+                                ? "text-red-700 dark:text-red-300"
+                                : "text-muted-foreground"
+                            }`}
+                          >
                             Days:{" "}
                             {calculateDaysOnLeave(
                               latestRecord.dateOfLeave,
@@ -310,7 +338,15 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                           </div>
                         </div>
                       ) : (
-                        <div className="text-sm text-muted-foreground">-</div>
+                        <div
+                          className={`text-sm ${
+                            stats.pendingLeaves > 0
+                              ? "text-red-700 dark:text-red-300"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          -
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
