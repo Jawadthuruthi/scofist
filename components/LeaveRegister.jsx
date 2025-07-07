@@ -304,7 +304,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                               }`}
                             >
                               {stats.totalLeaves || 0}{" "}
-                              {stats.totalLeaves === 1 ? "leave" : "leaves"}
+                              {stats.totalLeaves <= 1 ? "leave" : "leaves"}
                             </span>
                             {stats.pendingLeaves > 0 && (
                               <Badge
