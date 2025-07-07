@@ -35,9 +35,9 @@ export default async function IndividualLeaveRegisterPage({ params }) {
     const formFields = [
       {
         name: "studentId",
-        label: "Student ID",
+        label: "Student",
         type: "text",
-        placeholder: "Student ID",
+        placeholder: "Student",
         required: true,
         defaultValue: student?.[0]?._id || "",
         inputType: "select",
@@ -51,9 +51,9 @@ export default async function IndividualLeaveRegisterPage({ params }) {
 
       {
         name: "classId",
-        label: "Class ID",
+        label: "Class",
         type: "text",
-        placeholder: "Class ID",
+        placeholder: "Class",
         required: true,
         defaultValue: student?.[0]?.classId || "",
         inputType: "select",
@@ -128,8 +128,8 @@ export default async function IndividualLeaveRegisterPage({ params }) {
     return (
       <>
         <Header
-          title="INDIVIDUAL LEAVE REGISTER MANAGEMENT"
-          subTitle="Organize and Oversee Individual Leave Register"
+          title="INDIVIDUAL LEAVE REGISTER"
+          subTitle="Organize Individual Leave Register"
         />
         <FormComponent
           formFields={formFields}
@@ -138,6 +138,7 @@ export default async function IndividualLeaveRegisterPage({ params }) {
           resource="leave-records"
           title=""
           description=""
+          returnBack={true}
         />
       </>
     );

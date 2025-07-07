@@ -49,7 +49,7 @@ import {
   Calendar,
   FileText,
   Trash2,
-  Loader2,
+  Loader,
 } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
@@ -297,7 +297,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
               {fetchStudentFundQuery.isLoading ? (
                 <CardContent className="space-y-6">
                   <div className="flex items-center justify-center">
-                    <Loader2 className="mr-2 animate-spin" />
+                    <Loader className="mr-2 animate-spin" />
                     <span>Loading...</span>
                   </div>
                 </CardContent>

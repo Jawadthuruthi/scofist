@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Mail } from "lucide-react";
+import { Loader, Mail } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 
@@ -60,7 +60,7 @@ export default function LoginPage() {
               </div>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="animate-spin mr-2" /> : "Proceed"}
+              {loading ? <Loader className="animate-spin mr-2" /> : "Proceed"}
             </Button>
           </form>
         </CardContent>

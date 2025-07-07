@@ -103,6 +103,22 @@ export async function POST(req, res) {
       lateReason,
       remark,
     } = await req.json();
+
+    const isPending = await LeaveRecord.findOne({
+      studentId,
+      classId,
+      $or: [
+        { arrivedDate: { $exists: false } },
+        { arrivedDate: null },
+        { arrivedDate: "" },
+      ],
+    });
+    if (isPending) {
+      return NextResponse.json(
+        { message: "Leave Record already pending!" },
+        { status: 400 }
+      );
+    }
     const newLeaveRecord = await LeaveRecord.create({
       studentId,
       classId,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Loader2, ExternalLink, CheckCircle2 } from "lucide-react";
+import { Loader, ExternalLink, CheckCircle2 } from "lucide-react";
 
 // UI Components
 import {
@@ -177,7 +177,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
           {/* Periods Table */}
           {loading ? (
             <div className="flex justify-center items-center h-40">
-              <Loader2 className="h-8 w-8 animate-spin" />
+              <Loader className="h-8 w-8 animate-spin" />
             </div>
           ) : filteredSlots.length > 0 && settings?.general?.isWorkingDay ? (
             <div className="overflow-x-auto border rounded-md">

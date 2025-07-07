@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Edit,
-  Loader2,
+  Loader,
   AlertCircle,
   CheckCircle2,
   UserX,
@@ -292,12 +292,6 @@ const TimeTablesManagements = ({
   });
 
   const attendanceData = fetchAttendanceQuery.data?.attendances || [];
-
-  // Set up print functionality
-  const handlePrint = useReactToPrint({
-    contentRef: timeTableRef,
-    documentTitle: `Time Table - ${getCurrentViewTitle}`,
-  });
 
   // Queries for data fetching
   const fetchQuery = useMemo(() => {
@@ -850,6 +844,12 @@ const TimeTablesManagements = ({
     }
   }, [category, selectedClass, selectedTeacher, date, classes, teachers]);
 
+  // Set up print functionality
+  const handlePrint = useReactToPrint({
+    contentRef: timeTableRef,
+    documentTitle: `Time Table - ${getCurrentViewTitle}`,
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -949,7 +949,7 @@ const TimeTablesManagements = ({
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
@@ -961,7 +961,7 @@ const TimeTablesManagements = ({
       {/* Timetable Display */}
       {fetchItemsQuery.isLoading ? (
         <div className="flex justify-center items-center h-40">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <Loader className="h-8 w-8 animate-spin" />
         </div>
       ) : selectedClass || selectedTeacher || date ? (
         <div

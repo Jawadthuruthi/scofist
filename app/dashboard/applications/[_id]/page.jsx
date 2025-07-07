@@ -9,7 +9,7 @@ import { useReactToPrint } from "react-to-print";
 import { useSearchParams } from "next/navigation";
 import { useParams } from "next/navigation";
 import useCrud from "@/hooks/use-crud";
-import { Loader2 } from "lucide-react";
+import { Loader } from "lucide-react";
 
 const ApplicationDisplayPage = () => {
   const printRef = useRef();
@@ -353,7 +353,7 @@ const ApplicationDisplayPage = () => {
           </div>
         </div>
       ) : fetchApplicationQuery.isLoading ? (
-        <Loader2 />
+        <Loader />
       ) : (
         <div className="flex justify-center items-center h-full">
           <h1 className="text-2xl font-bold">Application Not Found</h1>

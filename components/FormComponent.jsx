@@ -10,7 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Edit, Loader2, Plus } from "lucide-react";
+import { Edit, Loader, Plus } from "lucide-react";
 import { MultiSelect } from "./ui/multi-select";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,6 +31,7 @@ import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
+import { useRouter } from "next/navigation";
 
 const SectionNavigation = ({
   ref,
@@ -213,7 +214,7 @@ const FormContent = ({
           {activeSectionIndex === totalSections - 1 ? (
             <Button className="ml-auto" type="submit" disabled={loading}>
               {loading ? (
-                <Loader2 className="animate-spin mr-2" />
+                <Loader className="animate-spin mr-2" />
               ) : data ? (
                 "Save changes"
               ) : (
@@ -246,9 +247,12 @@ export default function FormComponent({
   loading = false,
   apiKey,
   resource,
+  returnBack = false,
 }) {
   const [customizedFormField, setCustomizedFormField] =
     React.useState(formFields);
+
+  const router = useRouter();
 
   const { schema } = useDynamicFormSchema(customizedFormField);
 
@@ -283,8 +287,15 @@ export default function FormComponent({
         await addItem.mutateAsync(values);
         toast.success("Saved successfully!");
       }
+      if (returnBack) {
+        router.back();
+      }
     } catch (error) {
       console.error("Form submission failed:", error.message);
+      toast.error(
+        error?.message ||
+          "Failed to save data. Please check the form and try again."
+      );
       if (error.details?.errors) {
         error.details.errors.forEach(({ field, message }) => {
           const fieldLabel =
@@ -297,6 +308,11 @@ export default function FormComponent({
 
         return;
       }
+    } finally {
+      if (!data) {
+        form.reset();
+      }
+      router.refresh();
     }
   }, []);
 
@@ -314,10 +330,14 @@ export default function FormComponent({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className={title || description ? "p-6" : "p-2"}>
         <div className="space-y-1.5">
-          <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
-          <p className="text-sm text-muted-foreground">{description}</p>
+          {title && (
+            <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
+          )}
+          {description && (
+            <p className="text-sm text-muted-foreground">{description}</p>
+          )}
         </div>
       </CardHeader>
       <CardContent>

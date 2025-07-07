@@ -14,7 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useCrud from "@/hooks/use-crud";
 import { useSearchParams } from "next/navigation";
-import { Calendar, Clock, Loader2 } from "lucide-react";
+import { Calendar, Clock, Loader } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -324,7 +324,7 @@ const LiteraryAttendance = () => {
       <Header title="ATTENDANCE" subTitle="Mark Literary Attendance" />
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+          <Loader className="h-8 w-8 text-muted-foreground animate-spin" />
         </div>
       ) : (
         <>
@@ -441,14 +441,14 @@ const LiteraryAttendance = () => {
               onClick={handleDeleteAttendance}
               disabled={!attendanceExists || saving || loading}
             >
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
               Reset
             </Button>
             <Button
               onClick={handleSaveAttendance}
               disabled={saving || loading || !students.length}
             >
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
               <Save className="mr-2 h-4 w-4" />
               {attendanceExists ? "Update" : "Save"}
             </Button>

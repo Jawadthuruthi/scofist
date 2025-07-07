@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { Loader2, Trash } from "lucide-react";
+import { Loader, Trash } from "lucide-react";
 import { capitalize } from "lodash";
 
 export default function ConfirmationPopup({
@@ -54,7 +54,7 @@ export default function ConfirmationPopup({
             onClick={handleClick}
           >
             {loading ? (
-              <Loader2 className="animate-spin mr-2" />
+              <Loader className="animate-spin mr-2" />
             ) : (
               capitalize(action)
             )}

@@ -18,10 +18,9 @@ import {
   TableHead,
   TableHeader,
 } from "./ui/table";
-import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Calendar, Clock, User, FileText } from "lucide-react";
+import { Clock, User, Loader } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const LeaveRegister = ({ apiKey, role, teacherId }) => {
@@ -48,7 +47,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
     }
   );
 
-  const fetchStudentQuery = useFetchStudents(
+  const fetchStudentsQuery = useFetchStudents(
     0,
     0,
     {
@@ -76,12 +75,19 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
   );
 
   const classes = useMemo(() => {
-    return fetchClassQuery.data?.classes || [];
+    return (
+      fetchClassQuery.data?.classes?.filter((cls) => {
+        if (role === "Teacher") {
+          return cls.teacherId === teacherId;
+        }
+        return true;
+      }) || []
+    );
   }, [fetchClassQuery.data]);
 
   const students = useMemo(() => {
-    return fetchStudentQuery.data?.users || [];
-  }, [fetchStudentQuery.data]);
+    return fetchStudentsQuery.data?.users || [];
+  }, [fetchStudentsQuery.data]);
 
   const leaveRecords = useMemo(() => {
     return fetchLeaveRecordsQuery.data?.leaveRecords || [];
@@ -167,7 +173,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
 
     return (
       <Badge variant={variants[status] || "secondary"} className="text-xs">
-        {labels[status] || status}
+        {labels[status] || status || "No Remark"}
       </Badge>
     );
   };
@@ -190,33 +196,20 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
       />
 
       <div className="flex flex-col space-y-4">
-        {role === "College Admin" && (
-          <div className="w-full max-w-sm">
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select Class" />
-              </SelectTrigger>
-              <SelectContent>
-                {classes?.map((cls) => (
-                  <SelectItem key={cls._id} value={cls._id}>
-                    {cls.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {selectedClass && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchLeaveRecordsQuery.refetch()}
-            className="w-fit"
-          >
-            Refresh Data
-          </Button>
-        )}
+        <div className="w-full max-w-sm">
+          <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select Class" />
+            </SelectTrigger>
+            <SelectContent>
+              {classes?.map((cls) => (
+                <SelectItem key={cls._id} value={cls._id}>
+                  {cls.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {selectedClass && (
@@ -233,16 +226,6 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
 
           <Card className="p-3">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
-              <CardTitle className="text-sm font-medium">Records</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="p-0 pt-2">
-              <div className="text-xl font-bold">{leaveRecords.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="p-3">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
               <CardTitle className="text-sm font-medium">Pending</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -252,27 +235,6 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                   (total, stats) => total + stats.pendingLeaves,
                   0
                 )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="p-3">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
-              <CardTitle className="text-sm font-medium">This Month</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="p-0 pt-2">
-              <div className="text-xl font-bold">
-                {
-                  leaveRecords.filter((r) => {
-                    const recordDate = new Date(r.createdAt);
-                    const currentDate = new Date();
-                    return (
-                      recordDate.getMonth() === currentDate.getMonth() &&
-                      recordDate.getFullYear() === currentDate.getFullYear()
-                    );
-                  }).length
-                }
               </div>
             </CardContent>
           </Card>
@@ -334,13 +296,11 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-0 py-2">
                       {latestRecord ? (
                         <div className="space-y-1">
-                          {getStatusBadge(
-                            latestRecord.remark || latestRecord.status
-                          )}
-                          <div className="text-xs text-muted-foreground">
+                          {getStatusBadge(latestRecord.remark)}
+                          <div className="text-xs text-muted-foreground px-2">
                             Days:{" "}
                             {calculateDaysOnLeave(
                               latestRecord.dateOfLeave,
@@ -365,14 +325,8 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                         ? "No students found for this class."
                         : "Please select a class to view students."}
                     </div>
-                    {!!selectedClass && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fetchStudentQuery.refetch()}
-                      >
-                        Refresh Data
-                      </Button>
+                    {!!selectedClass && fetchStudentsQuery.isLoading && (
+                      <Loader className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
                     )}
                   </div>
                 </TableCell>

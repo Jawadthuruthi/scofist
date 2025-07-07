@@ -17,7 +17,7 @@ import {
   Calendar,
   AlertCircle,
   BarChart,
-  Loader2,
+  Loader,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -109,7 +109,7 @@ const ChartSkeleton = ({ height = "300px" }) => (
   <div
     className={`h-[${height}] bg-muted/10 rounded-lg flex items-center justify-center`}
   >
-    <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+    <Loader className="h-8 w-8 text-muted-foreground animate-spin" />
   </div>
 );
 

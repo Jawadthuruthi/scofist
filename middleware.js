@@ -271,7 +271,6 @@ async function handleAuthRequest(req) {
 }
 
 function isUserAllowed(activeRole, path) {
-  console.log(path);
   const page = pages.find(
     (page) => page.path === path || (page.pattern && page.pattern.test(path))
   );

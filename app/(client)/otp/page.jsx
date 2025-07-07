@@ -10,7 +10,7 @@ import {
   InputOTPSlot,
   InputOTPSeparator,
 } from "@/components/ui/input-otp";
-import { Loader2 } from "lucide-react";
+import { Loader } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 
@@ -116,7 +116,7 @@ export default function OTPVerification() {
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
-                <Loader2 className="animate-spin mr-2" />
+                <Loader className="animate-spin mr-2" />
               ) : (
                 "Verify OTP"
               )}
@@ -138,7 +138,7 @@ export default function OTPVerification() {
             >
               {resendLoading ? (
                 <>
-                  <Loader2 className="animate-spin mr-2 h-4 w-4" /> Resending...
+                  <Loader className="animate-spin mr-2 h-4 w-4" /> Resending...
                 </>
               ) : (
                 "Resend OTP"

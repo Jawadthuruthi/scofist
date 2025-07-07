@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, UserX } from "lucide-react";
+import { Loader, UserX } from "lucide-react";
 import {
   Dialog,
   DialogContent,

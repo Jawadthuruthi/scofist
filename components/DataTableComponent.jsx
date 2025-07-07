@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import useDataFilter from "@/hooks/use-data-filter";
 import dynamic from "next/dynamic";
-import { Loader2 } from "lucide-react";
+import { Loader } from "lucide-react";
 import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
 import { useReactToPrint } from "react-to-print";
@@ -35,7 +35,7 @@ const PopupFilter = dynamic(() => import("./PopupFilter"), {
   ssr: false,
   loading: () => (
     <Button variant="outline" disabled>
-      <Loader2 />
+      <Loader />
     </Button>
   ),
 });
@@ -43,7 +43,7 @@ const ColumnCustomization = dynamic(() => import("./ColumnCustomization"), {
   ssr: false,
   loading: () => (
     <Button variant="outline" disabled>
-      <Loader2 />
+      <Loader />
     </Button>
   ),
 });
@@ -51,7 +51,7 @@ const ConfirmationPopup = dynamic(() => import("./ConfirmationPopup"), {
   ssr: false,
   loading: () => (
     <Button variant="outline" disabled>
-      <Loader2 />
+      <Loader />
     </Button>
   ),
 });
@@ -59,7 +59,7 @@ const PopupForm = dynamic(() => import("./PopupForm"), {
   ssr: false,
   loading: () => (
     <Button variant="outline" disabled>
-      <Loader2 />
+      <Loader />
     </Button>
   ),
 });
@@ -418,7 +418,7 @@ const DataTableComponent = ({
 
     await Promise.all(imagePromises);
     const options = {
-      filename: "my-document.pdf",
+      filename: `${printTitle ? printTitle : resource}.pdf`,
       margin: 0.5,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
@@ -682,7 +682,7 @@ const DataTableComponent = ({
           <div ref={loaderRef} className="w-full p-4 text-center print:hidden">
             {isLoadingMore ? (
               <div className="flex justify-center">
-                <Loader2 className="animate-spin" size={24} />
+                <Loader className="animate-spin" size={24} />
               </div>
             ) : (
               <div className="h-8" />

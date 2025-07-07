@@ -10,7 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Edit, Loader2, Plus } from "lucide-react";
+import { Edit, Loader, Plus } from "lucide-react";
 import { MultiSelect } from "./ui/multi-select";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -199,7 +199,7 @@ const FormContent = ({
           {activeSectionIndex === totalSections - 1 ? (
             <Button className="w-full" type="submit" disabled={loading}>
               {loading ? (
-                <Loader2 className="animate-spin mr-2" />
+                <Loader className="animate-spin mr-2" />
               ) : data ? (
                 "Save changes"
               ) : (

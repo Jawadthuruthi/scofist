@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Save, Calendar, Clock } from "lucide-react";
+import { Loader, Save, Calendar, Clock } from "lucide-react";
 
 // UI Components
 import {
@@ -371,7 +371,7 @@ const Attendance = ({ apiKey, teacherId }) => {
       <div className="p-4 border border-border space-y-4 rounded-md">
         {loading ? (
           <div className="flex justify-center items-center h-40">
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <Loader className="h-8 w-8 animate-spin" />
           </div>
         ) : (
           <>
@@ -480,14 +480,14 @@ const Attendance = ({ apiKey, teacherId }) => {
           onClick={handleDeleteAttendance}
           disabled={!attendanceExists || saving || loading}
         >
-          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
           Reset
         </Button>
         <Button
           onClick={handleSaveAttendance}
           disabled={saving || loading || !students.length}
         >
-          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
           <Save className="mr-2 h-4 w-4" />
           {attendanceExists ? "Update" : "Save"}
         </Button>

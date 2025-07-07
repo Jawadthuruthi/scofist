@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { Image, Loader2, Upload, X, Trash2 } from "lucide-react";
+import { Image, Loader, Upload, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -403,7 +403,7 @@ const ImageUploader = ({
       >
         {loading && (
           <div className="absolute inset-0 backdrop-blur-md bg-white/50 border border-white/30 shadow-lg flex flex-col items-center justify-center z-10">
-            <Loader2 className="animate-spin text-primary mb-4" size={32} />
+            <Loader className="animate-spin text-primary mb-4" size={32} />
 
             {uploadProgress > 0 && (
               <div className="w-2/3 flex flex-col items-center">
