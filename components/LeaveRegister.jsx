@@ -226,7 +226,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
 
           <Card className="p-3">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              <CardTitle className="text-sm font-medium">On Leave</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-0 pt-2">
@@ -252,106 +252,113 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
           </TableHeader>
           <TableBody>
             {students?.length > 0 ? (
-              students.map((student, index) => {
-                const stats = studentLeaveStats[student._id] || {};
-                const latestRecord = stats.latestRecord;
+              students
+                .sort((a, b) => {
+                  if (studentLeaveStats[a._id]?.pendingLeaves > 0) {
+                    return -1;
+                  }
+                })
+                .map((student, index) => {
+                  const stats = studentLeaveStats[student._id] || {};
+                  const latestRecord = stats.latestRecord;
 
-                return (
-                  <TableRow
-                    key={student._id}
-                    className={
-                      stats.pendingLeaves > 0
-                        ? "bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-900 border-l-4 border-red-500"
-                        : "hover:bg-muted/50"
-                    }
-                    onClick={() => {
-                      router.push(`/dashboard/leave-register/${student._id}`);
-                    }}
-                  >
-                    <TableCell
-                      className={`text-center font-medium text-sm ${
+                  return (
+                    <TableRow
+                      key={student._id}
+                      className={
                         stats.pendingLeaves > 0
-                          ? "text-red-900 dark:text-red-100"
-                          : ""
-                      }`}
+                          ? "bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-900 border-l-4 border-red-500"
+                          : "hover:bg-muted/50"
+                      }
+                      onClick={() => {
+                        router.push(`/dashboard/leave-register/${student._id}`);
+                      }}
                     >
-                      {index + 1}
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div
-                          className={`font-medium text-xs ${
-                            stats.pendingLeaves > 0
-                              ? "text-red-900 dark:text-red-100"
-                              : ""
-                          }`}
-                        >
-                          {student.name}
-                        </div>
-
-                        <div className="flex items-center gap-2 text-xs">
-                          <span
-                            className={`${
-                              stats.pendingLeaves > 0
-                                ? "text-red-700 dark:text-red-300"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {stats.totalLeaves || 0} leaves
-                          </span>
-                          {stats.pendingLeaves > 0 && (
-                            <Badge
-                              variant="destructive"
-                              className="text-xs px-1 py-0 bg-red-600 text-white dark:bg-red-400 dark:text-red-950"
-                            >
-                              {stats.pendingLeaves} pending
-                            </Badge>
-                          )}
-                          {stats.overdueLeaves > 0 && (
-                            <Badge
-                              variant="destructive"
-                              className="text-xs px-1 py-0 bg-red-800 text-white dark:bg-red-600 dark:text-white"
-                            >
-                              {stats.overdueLeaves} overdue
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="p-0 py-2">
-                      {latestRecord ? (
+                      <TableCell
+                        className={`text-center font-medium text-sm ${
+                          stats.pendingLeaves > 0
+                            ? "text-red-900 dark:text-red-100"
+                            : ""
+                        }`}
+                      >
+                        {index + 1}
+                      </TableCell>
+                      <TableCell>
                         <div className="space-y-1">
-                          {getStatusBadge(latestRecord.remark)}
                           <div
-                            className={`text-xs px-2 ${
+                            className={`font-medium text-xs ${
                               stats.pendingLeaves > 0
-                                ? "text-red-700 dark:text-red-300"
-                                : "text-muted-foreground"
+                                ? "text-red-900 dark:text-red-100"
+                                : ""
                             }`}
                           >
-                            Days:{" "}
-                            {calculateDaysOnLeave(
-                              latestRecord.dateOfLeave,
-                              latestRecord.arrivedDate,
-                              latestRecord.dateOfArrival
+                            {student.name}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-xs">
+                            <span
+                              className={`${
+                                stats.pendingLeaves > 0
+                                  ? "text-red-700 dark:text-red-300"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {stats.totalLeaves || 0}{" "}
+                              {stats.totalLeaves === 1 ? "leave" : "leaves"}
+                            </span>
+                            {stats.pendingLeaves > 0 && (
+                              <Badge
+                                variant="destructive"
+                                className="text-xs px-1 py-0 bg-red-600 text-white dark:bg-red-400 dark:text-red-950"
+                              >
+                                {stats.pendingLeaves} pending
+                              </Badge>
+                            )}
+                            {stats.overdueLeaves > 0 && (
+                              <Badge
+                                variant="destructive"
+                                className="text-xs px-1 py-0 bg-red-800 text-white dark:bg-red-600 dark:text-white"
+                              >
+                                {stats.overdueLeaves} overdue
+                              </Badge>
                             )}
                           </div>
                         </div>
-                      ) : (
-                        <div
-                          className={`text-sm ${
-                            stats.pendingLeaves > 0
-                              ? "text-red-700 dark:text-red-300"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          -
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
+                      </TableCell>
+                      <TableCell className="p-0 py-2">
+                        {latestRecord ? (
+                          <div className="space-y-1">
+                            {getStatusBadge(latestRecord.remark)}
+                            <div
+                              className={`text-xs px-2 ${
+                                stats.pendingLeaves > 0
+                                  ? "text-red-700 dark:text-red-300"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              Days:{" "}
+                              {calculateDaysOnLeave(
+                                latestRecord.dateOfLeave,
+                                latestRecord.arrivedDate,
+                                latestRecord.dateOfArrival
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className={`text-sm ${
+                              stats.pendingLeaves > 0
+                                ? "text-red-700 dark:text-red-300"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            -
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
             ) : (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-8">
