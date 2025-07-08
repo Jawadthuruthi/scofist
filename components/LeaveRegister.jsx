@@ -22,6 +22,8 @@ import { Badge } from "./ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Clock, User, Loader } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Button } from "./ui/button";
+import Link from "next/link";
 
 const LeaveRegister = ({ apiKey, role, teacherId }) => {
   const [selectedClass, setSelectedClass] = useState("");
@@ -232,7 +234,8 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
             <CardContent className="p-0 pt-2">
               <div className="text-xl font-bold">
                 {Object.values(studentLeaveStats).reduce(
-                  (total, stats) => total + stats.pendingLeaves,
+                  (total, stats) =>
+                    total + stats.pendingLeaves + stats.overdueLeaves,
                   0
                 )}
               </div>
@@ -254,7 +257,10 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
             {students?.length > 0 ? (
               students
                 .sort((a, b) => {
-                  if (studentLeaveStats[a._id]?.pendingLeaves > 0) {
+                  if (
+                    studentLeaveStats[a._id]?.pendingLeaves > 0 ||
+                    studentLeaveStats[a._id]?.overdueLeaves > 0
+                  ) {
                     return -1;
                   }
                 })
@@ -266,7 +272,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                     <TableRow
                       key={student._id}
                       className={
-                        stats.pendingLeaves > 0
+                        stats.pendingLeaves > 0 || stats.overdueLeaves > 0
                           ? "bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-900 border-l-4 border-red-500"
                           : "hover:bg-muted/50"
                       }
@@ -276,7 +282,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                     >
                       <TableCell
                         className={`text-center font-medium text-sm ${
-                          stats.pendingLeaves > 0
+                          stats.pendingLeaves > 0 || stats.overdueLeaves > 0
                             ? "text-red-900 dark:text-red-100"
                             : ""
                         }`}
@@ -287,7 +293,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                         <div className="space-y-1">
                           <div
                             className={`font-medium text-xs ${
-                              stats.pendingLeaves > 0
+                              stats.pendingLeaves > 0 || stats.overdueLeaves > 0
                                 ? "text-red-900 dark:text-red-100"
                                 : ""
                             }`}
@@ -298,7 +304,8 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                           <div className="flex items-center gap-2 text-xs">
                             <span
                               className={`${
-                                stats.pendingLeaves > 0
+                                stats.pendingLeaves > 0 ||
+                                stats.overdueLeaves > 0
                                   ? "text-red-700 dark:text-red-300"
                                   : "text-muted-foreground"
                               }`}
@@ -311,7 +318,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                                 variant="destructive"
                                 className="text-xs px-1 py-0 bg-red-600 text-white dark:bg-red-400 dark:text-red-950"
                               >
-                                {stats.pendingLeaves} pending
+                                pending
                               </Badge>
                             )}
                             {stats.overdueLeaves > 0 && (
@@ -377,6 +384,14 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
             )}
           </TableBody>
         </Table>
+      </div>
+      <div className="flex justify-end space-x-2 pb-4">
+        <Link href="/dashboard/leave-history">
+          <Button>
+            <Clock className="mr-2 h-4 w-4" />
+            Leave Records
+          </Button>
+        </Link>
       </div>
     </div>
   );

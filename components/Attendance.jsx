@@ -39,7 +39,6 @@ const Attendance = ({ apiKey, teacherId }) => {
     [searchParams]
   );
 
-  // Destructure for convenience
   const { classId, batchId, subjectId, periodNumber, day } = queryParams;
 
   // State management
@@ -77,7 +76,7 @@ const Attendance = ({ apiKey, teacherId }) => {
     null,
     { _id: classId },
     {
-      staleTime: 1000 * 60 * 60, // Classes don't change frequently
+      staleTime: 1000 * 60 * 60, // 1 hour - classes don't change frequently
       enabled: !!classId,
     }
   );
@@ -87,7 +86,7 @@ const Attendance = ({ apiKey, teacherId }) => {
     null,
     { periodNumber },
     {
-      staleTime: 1000 * 60 * 60, // Periods are static
+      staleTime: 1000 * 60 * 60, // 1 hour - periods are static
       enabled: !!periodNumber,
     }
   );
@@ -101,7 +100,7 @@ const Attendance = ({ apiKey, teacherId }) => {
       status: "Active",
     },
     {
-      staleTime: 1000 * 60 * 10, // Students in a class don't change frequently
+      staleTime: 1000 * 60 * 10, // 10 minutes - students don't change frequently
       enabled: !!classId,
     }
   );
@@ -116,26 +115,26 @@ const Attendance = ({ apiKey, teacherId }) => {
       date: attendanceDate,
     },
     {
-      staleTime: 1000 * 30, // Attendance might change frequently
+      staleTime: 1000 * 30, // 30 seconds - attendance changes frequently
       enabled: !!classId && !!subjectId && !!periodNumber,
     }
   );
 
-  // Fetch leave records for current date
+  // Fetch leave records for students who haven't arrived yet
   const leaveRecordsQuery = useFetchLeaveRecords(
     null,
     null,
     {
       classId,
-      date: attendanceDate,
+      isArrived: "false", // Only fetch students who haven't arrived yet
     },
     {
-      staleTime: 1000 * 60 * 5, // Leave records change moderately
+      staleTime: 1000 * 60 * 2, // 2 minutes - leave status changes moderately
       enabled: !!classId,
     }
   );
 
-  // Fetch absentee data with more targeted query
+  // Fetch historical attendance for absentee tracking
   const historicalAttendanceQuery = useFetchAttendance(
     0,
     10,
@@ -147,7 +146,7 @@ const Attendance = ({ apiKey, teacherId }) => {
       trackAbsentees: true,
     },
     {
-      staleTime: 1000 * 60 * 5, // Historical data changes less frequently
+      staleTime: 1000 * 60 * 5, // 5 minutes - historical data is relatively stable
       enabled: !!classId && !!batchId && !!subjectId && !!teacherId,
     }
   );
@@ -157,97 +156,120 @@ const Attendance = ({ apiKey, teacherId }) => {
   const updateAttendance = useUpdateAttendance();
   const deleteAttendance = useDeleteAttendance();
 
-  // Memoize class subject name for better performance
+  // Memoize subject name for performance
   const subjectName = useMemo(() => {
     return classDetails?.subjects?.find((subject) => subject._id === subjectId)
       ?.name;
   }, [classDetails, subjectId]);
 
-  // Process leave records and determine student status
+  // Process leave records to determine student status
+  const processLeaveStatus = useCallback((leaveRecords, studentList) => {
+    const leaveStatusMap = {};
+
+    // Initialize all students as present/arrived
+    studentList.forEach((student) => {
+      leaveStatusMap[student._id] = {
+        isOnLeave: false,
+        hasArrived: true,
+        leaveReason: null,
+        expectedArrival: null,
+        actualArrival: null,
+      };
+    });
+
+    // Update status for students who are on leave and haven't arrived
+    leaveRecords.forEach((record) => {
+      if (
+        record.studentId &&
+        (!record.arrivedDate || record.arrivedDate === "")
+      ) {
+        leaveStatusMap[record.studentId] = {
+          isOnLeave: true,
+          hasArrived: false,
+          leaveReason: record.leaveReason,
+          expectedArrival: record.dateOfArrival,
+          actualArrival: record.arrivedDate,
+        };
+      }
+    });
+
+    return leaveStatusMap;
+  }, []);
+
+  // Process leave records effect
   useEffect(() => {
-    if (leaveRecordsQuery.data?.leaveRecords?.length > 0) {
-      const leaveStatus = {};
-      const currentDate = new Date();
-      currentDate.setHours(0, 0, 0, 0);
-
-      leaveRecordsQuery.data.leaveRecords.forEach((record) => {
-        const leaveDate = new Date(record.dateOfLeave);
-        const arrivalDate = new Date(record.dateOfArrival);
-        leaveDate.setHours(0, 0, 0, 0);
-        arrivalDate.setHours(0, 0, 0, 0);
-
-        // Check if student is currently on leave
-        if (currentDate >= leaveDate && currentDate <= arrivalDate) {
-          // Check if student has arrived back
-          const hasArrived =
-            record.arrivedDate && new Date(record.arrivedDate) <= currentDate;
-
-          leaveStatus[record.studentId] = {
-            isOnLeave: true,
-            hasArrived: hasArrived,
-            leaveReason: record.leaveReason,
-            expectedArrival: record.dateOfArrival,
-            actualArrival: record.arrivedDate,
-          };
-        }
-      });
-
+    if (leaveRecordsQuery.data?.leaveRecords && students.length > 0) {
+      const leaveStatus = processLeaveStatus(
+        leaveRecordsQuery.data.leaveRecords,
+        students
+      );
       setStudentLeaveStatus(leaveStatus);
     }
-  }, [leaveRecordsQuery.data]);
+  }, [leaveRecordsQuery.data, students, processLeaveStatus]);
 
-  // Process class and period data - once on initial load
+  // Process class and period data
   useEffect(() => {
     if (classQuery.data?.classes?.[0]) {
       setClassDetails(classQuery.data.classes[0]);
     }
-
     if (periodQuery.data?.periods?.[0]) {
       setPeriodDetails(periodQuery.data.periods[0]);
     }
   }, [classQuery.data, periodQuery.data]);
 
-  // Process student data with optimized update
+  // Initialize attendance based on student list and leave status
+  const initializeAttendance = useCallback((studentList, leaveStatusMap) => {
+    const initialAttendance = {};
+
+    studentList.forEach((student) => {
+      const leaveInfo = leaveStatusMap[student._id];
+      // Mark as absent if student is on leave and hasn't arrived
+      initialAttendance[student._id] = !(
+        leaveInfo?.isOnLeave && !leaveInfo?.hasArrived
+      );
+    });
+
+    return initialAttendance;
+  }, []);
+
+  // Process student data and initialize attendance
   useEffect(() => {
     if (studentsQuery.data?.users?.length > 0) {
       const studentsList = studentsQuery.data.users;
       setStudents(studentsList);
 
-      // Initialize attendance map efficiently
-      const initialAttendance = {};
-      studentsList.forEach((student) => {
-        const leaveInfo = studentLeaveStatus[student._id];
-        // If student is on leave and hasn't arrived, mark as absent
-        if (leaveInfo?.isOnLeave && !leaveInfo?.hasArrived) {
-          initialAttendance[student._id] = false;
-        } else {
-          initialAttendance[student._id] = true; // Default to present
-        }
-      });
-
-      // Only set attendance if we don't have existing attendance data
-      if (Object.keys(attendance).length === 0) {
+      // Only initialize attendance if it's empty and we have leave status
+      if (
+        Object.keys(attendance).length === 0 &&
+        Object.keys(studentLeaveStatus).length > 0
+      ) {
+        const initialAttendance = initializeAttendance(
+          studentsList,
+          studentLeaveStatus
+        );
         setAttendance(initialAttendance);
       }
     }
-  }, [studentsQuery.data, studentLeaveStatus, attendance]);
+  }, [
+    studentsQuery.data,
+    studentLeaveStatus,
+    attendance,
+    initializeAttendance,
+  ]);
 
-  // Process attendance data with optimized update
+  // Process existing attendance data
   useEffect(() => {
     if (attendanceQuery.data?.attendances?.length > 0) {
       const attendanceRecord = attendanceQuery.data.attendances[0];
       setAttendanceExists(true);
       setExistingAttendanceId(attendanceRecord._id);
 
-      // Only update attendance if we have attendance data
+      // Update attendance state with existing data
       if (attendanceRecord.attendanceData?.length > 0) {
         const existingAttendance = {};
-
-        // Build attendance map more efficiently
         attendanceRecord.attendanceData.forEach((item) => {
           existingAttendance[item.studentId] = item.present;
         });
-
         setAttendance(existingAttendance);
       }
     } else {
@@ -256,19 +278,16 @@ const Attendance = ({ apiKey, teacherId }) => {
     }
   }, [attendanceQuery.data]);
 
-  // Set loading state based on all query states
+  // Manage loading state
   useEffect(() => {
-    if (
+    const isLoading =
       classQuery.isLoading ||
       periodQuery.isLoading ||
       studentsQuery.isLoading ||
       attendanceQuery.isLoading ||
-      leaveRecordsQuery.isLoading
-    ) {
-      setLoading(true);
-    } else {
-      setLoading(false);
-    }
+      leaveRecordsQuery.isLoading;
+
+    setLoading(isLoading);
   }, [
     classQuery.isLoading,
     periodQuery.isLoading,
@@ -277,7 +296,7 @@ const Attendance = ({ apiKey, teacherId }) => {
     leaveRecordsQuery.isLoading,
   ]);
 
-  // Memoize absentee data processing for better performance
+  // Memoize absentee data processing
   const absenteeData = useMemo(() => {
     if (
       !historicalAttendanceQuery.data?.attendances?.absenteeTracking ||
@@ -285,17 +304,8 @@ const Attendance = ({ apiKey, teacherId }) => {
     ) {
       return [];
     }
-
-    const rawAbsenteeData =
-      historicalAttendanceQuery.data.attendances.absenteeTracking;
-
-    // Calculate yesterday's date
-    const yesterday = new Date(attendanceDate);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    // Filter for yesterday's absences
-    return rawAbsenteeData;
-  }, [historicalAttendanceQuery.data, students, attendanceDate]);
+    return historicalAttendanceQuery.data.attendances.absenteeTracking;
+  }, [historicalAttendanceQuery.data, students]);
 
   // Memoize attendance toggle handler
   const toggleAttendance = useCallback((studentId) => {
@@ -305,10 +315,10 @@ const Attendance = ({ apiKey, teacherId }) => {
     }));
   }, []);
 
-  // Memoize stats calculation for better performance
-  const stats = useMemo(() => {
+  // Memoize attendance statistics
+  const attendanceStats = useMemo(() => {
     const total = students.length;
-    const present = Object.values(attendance).filter((status) => status).length;
+    const present = Object.values(attendance).filter(Boolean).length;
     const absent = total - present;
     const presentPercentage =
       total > 0 ? Math.round((present / total) * 100) : 0;
@@ -317,63 +327,48 @@ const Attendance = ({ apiKey, teacherId }) => {
     return { total, present, absent, presentPercentage, absentPercentage };
   }, [students.length, attendance]);
 
-  // Memoize absentee info lookup function
+  // Memoize absentee info lookup
   const getStudentAbsenteeInfo = useCallback(
-    (studentId) => {
-      return absenteeData.find((student) => student.studentId === studentId);
-    },
+    (studentId) =>
+      absenteeData.find((student) => student.studentId === studentId),
     [absenteeData]
   );
 
-  // Function to determine row styling based on student status
+  // Determine row styling based on student status
   const getRowStyling = useCallback(
     (studentId, isPresent) => {
       const leaveInfo = studentLeaveStatus[studentId];
 
       if (isPresent) {
+        return { className: "hover:bg-muted/50", textColor: "" };
+      }
+
+      // Student is absent - check leave status
+      if (leaveInfo?.isOnLeave && !leaveInfo?.hasArrived) {
         return {
-          className: "hover:bg-muted/50",
-          textColor: "",
+          className:
+            "bg-red-100 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-950",
+          textColor: "text-red-900 dark:text-red-100",
         };
       }
 
-      // Student is absent
-      if (leaveInfo?.isOnLeave) {
-        if (!leaveInfo.hasArrived) {
-          // Student on leave and hasn't arrived back yet
-          return {
-            className:
-              "bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-800",
-            textColor: "text-red-900 dark:text-red-100",
-          };
-        } else {
-          // Student on leave but has arrived back
-          return {
-            className:
-              "bg-orange-50 dark:bg-orange-950 hover:bg-orange-100 dark:hover:bg-orange-900",
-            textColor: "text-orange-900 dark:text-orange-100",
-          };
-        }
-      } else {
-        // Regular absent student
-        return {
-          className:
-            "bg-rose-50 dark:bg-rose-950 hover:bg-rose-100 dark:hover:bg-rose-900",
-          textColor: "text-rose-900 dark:text-rose-100",
-        };
-      }
+      // Regular absent student
+      return {
+        className:
+          "bg-rose-50 dark:bg-rose-950 hover:bg-rose-50 dark:hover:bg-rose-950",
+        textColor: "text-rose-900 dark:text-rose-100",
+      };
     },
     [studentLeaveStatus]
   );
 
-  // Optimize save attendance function
+  // Handle save attendance
   const handleSaveAttendance = useCallback(async () => {
     if (saving) return;
 
     try {
       setSaving(true);
 
-      // Format attendance data more efficiently
       const attendanceData = students.map((student) => ({
         studentId: student._id,
         present: attendance[student._id] ?? false,
@@ -392,10 +387,7 @@ const Attendance = ({ apiKey, teacherId }) => {
 
       if (attendanceExists && existingAttendanceId) {
         await updateAttendance.mutateAsync({
-          data: {
-            _id: existingAttendanceId,
-            ...payload,
-          },
+          data: { _id: existingAttendanceId, ...payload },
         });
         toast.success("Attendance updated successfully!");
       } else {
@@ -404,7 +396,6 @@ const Attendance = ({ apiKey, teacherId }) => {
         setAttendanceExists(true);
       }
 
-      // Use a single function to handle redirect
       window.location.href = "/dashboard/my-periods";
     } catch (error) {
       console.error("Error saving attendance:", error);
@@ -429,7 +420,7 @@ const Attendance = ({ apiKey, teacherId }) => {
     createAttendance,
   ]);
 
-  // Optimize delete attendance function
+  // Handle delete attendance
   const handleDeleteAttendance = useCallback(async () => {
     if (saving || !attendanceExists || !existingAttendanceId) return;
 
@@ -437,19 +428,15 @@ const Attendance = ({ apiKey, teacherId }) => {
       setSaving(true);
       await deleteAttendance.mutateAsync([existingAttendanceId]);
       toast.success("Attendance reset successfully!");
+
       setAttendanceExists(false);
       setExistingAttendanceId(null);
 
       // Reset attendance based on leave status
-      const resetAttendance = {};
-      students.forEach((student) => {
-        const leaveInfo = studentLeaveStatus[student._id];
-        if (leaveInfo?.isOnLeave && !leaveInfo?.hasArrived) {
-          resetAttendance[student._id] = false;
-        } else {
-          resetAttendance[student._id] = true;
-        }
-      });
+      const resetAttendance = initializeAttendance(
+        students,
+        studentLeaveStatus
+      );
       setAttendance(resetAttendance);
     } catch (error) {
       console.error("Error resetting attendance:", error);
@@ -464,60 +451,70 @@ const Attendance = ({ apiKey, teacherId }) => {
     deleteAttendance,
     students,
     studentLeaveStatus,
+    initializeAttendance,
   ]);
+
+  // Render loading state
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Header
+          title="ATTENDANCE MANAGEMENT"
+          subTitle="Loading attendance data..."
+        />
+        <div className="flex justify-center items-center h-40">
+          <Loader className="h-8 w-8 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <Header
-          title="ATTENDANCE MANAGEMENT"
-          subTitle={`Mark Attendance For ${classDetails?.name} - 
-                ${subjectName}`}
-        />
-      </div>
+      {/* Header */}
+      <Header
+        title="ATTENDANCE MANAGEMENT"
+        subTitle={`Mark Attendance For ${classDetails?.name} - ${subjectName}`}
+      />
+
+      {/* Info Panel */}
       <div className="p-4 border border-border space-y-4 rounded-md">
-        {loading ? (
-          <div className="flex justify-center items-center h-40">
-            <Loader className="h-8 w-8 animate-spin" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">{today}</span>
           </div>
-        ) : (
-          <>
-            {/* Info Bar */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">{today}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    Period {periodNumber}: {periodDetails?.formattedTime}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <Badge
-                    variant={
-                      stats.presentPercentage > 80 ? "success" : "destructive"
-                    }
-                  >
-                    {stats.present}/{stats.total} Present (
-                    {stats.presentPercentage}%)
-                  </Badge>
-                  <Badge
-                    variant={
-                      stats.absentPercentage < 20 ? "success" : "destructive"
-                    }
-                  >
-                    {stats.absent}/{stats.total} Absent (
-                    {stats.absentPercentage}%)
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">
+              Period {periodNumber}: {periodDetails?.formattedTime}
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Badge
+              variant={
+                attendanceStats.presentPercentage > 80
+                  ? "success"
+                  : "destructive"
+              }
+            >
+              {attendanceStats.present}/{attendanceStats.total} Present (
+              {attendanceStats.presentPercentage}%)
+            </Badge>
+            <Badge
+              variant={
+                attendanceStats.absentPercentage < 20
+                  ? "success"
+                  : "destructive"
+              }
+            >
+              {attendanceStats.absent}/{attendanceStats.total} Absent (
+              {attendanceStats.absentPercentage}%)
+            </Badge>
+          </div>
+        </div>
       </div>
+
       {/* Students Table */}
       <div className="overflow-x-auto max-h-[calc(100vh-415px)] md:max-h-[calc(100vh-339px)] border rounded-md">
         <Table>
@@ -526,15 +523,14 @@ const Attendance = ({ apiKey, teacherId }) => {
               <TableHead className="w-16">R.no</TableHead>
               <TableHead>Students</TableHead>
               <TableHead className="w-[100px]">Status</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
+              <TableHead className="w-[70px]">History</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {students.length > 0 ? (
               students.map((student, index) => {
                 const absenteeInfo = getStudentAbsenteeInfo(student._id);
-                const hasAbsenceHistory =
-                  absenteeInfo && absenteeInfo.continuousAbsences > 0;
+                const hasAbsenceHistory = absenteeInfo?.continuousAbsences > 0;
                 const isPresent = attendance[student._id];
                 const rowStyling = getRowStyling(student._id, isPresent);
                 const leaveInfo = studentLeaveStatus[student._id];
@@ -542,7 +538,7 @@ const Attendance = ({ apiKey, teacherId }) => {
                 return (
                   <TableRow
                     key={student._id}
-                    className={rowStyling.className}
+                    className={`cursor-pointer ${rowStyling.className}`}
                     onClick={() => toggleAttendance(student._id)}
                   >
                     <TableCell className={rowStyling.textColor}>
@@ -558,16 +554,12 @@ const Attendance = ({ apiKey, teacherId }) => {
                         </Avatar>
                         <div>
                           <p
-                            className={`font-medium text-xs whitespace-nowrap ${rowStyling.textColor}`}
+                            className={`font-medium text-sm ${rowStyling.textColor}`}
                           >
                             {student.name}
                           </p>
                           <p
-                            className={`text-xs ${
-                              rowStyling.textColor
-                                ? `${rowStyling.textColor.includes("dark:") ? rowStyling.textColor.replace("dark:text-red-100", "dark:text-red-200").replace("dark:text-rose-100", "dark:text-rose-200").replace("dark:text-orange-100", "dark:text-orange-200") : rowStyling.textColor.replace("text-red-900", "text-red-700").replace("text-rose-900", "text-rose-700").replace("text-orange-900", "text-orange-700")}`
-                                : "text-muted-foreground"
-                            }`}
+                            className={`text-xs ${rowStyling.textColor || "text-muted-foreground"}`}
                           >
                             {student._id}
                           </p>
@@ -575,25 +567,16 @@ const Attendance = ({ apiKey, teacherId }) => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {leaveInfo?.isOnLeave && (
-                        <div className="space-y-1">
-                          <Badge
-                            variant={
-                              leaveInfo.hasArrived ? "secondary" : "destructive"
-                            }
-                            className="text-xs"
-                          >
-                            {leaveInfo.hasArrived ? "Arrived" : "Leave"}
+                      <div className="flex items-center gap-2">
+                        {leaveInfo?.isOnLeave && !leaveInfo?.hasArrived && (
+                          <Badge variant="destructive" className="text-xs">
+                            Leave
                           </Badge>
-                          <div
-                            className={`text-xs ${
-                              rowStyling.textColor
-                                ? `${rowStyling.textColor.includes("dark:") ? rowStyling.textColor.replace("dark:text-red-100", "dark:text-red-200").replace("dark:text-rose-100", "dark:text-rose-200").replace("dark:text-orange-100", "dark:text-orange-200") : rowStyling.textColor.replace("text-red-900", "text-red-700").replace("text-rose-900", "text-rose-700").replace("text-orange-900", "text-orange-700")}`
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {leaveInfo.leaveReason}
-                          </div>
+                        )}
+                      </div>
+                      {leaveInfo?.isOnLeave && !leaveInfo?.hasArrived && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {leaveInfo.leaveReason}
                         </div>
                       )}
                     </TableCell>
@@ -615,17 +598,20 @@ const Attendance = ({ apiKey, teacherId }) => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Action Buttons */}
       <div className="flex justify-between">
         <Button
+          variant="outline"
           onClick={handleDeleteAttendance}
-          disabled={!attendanceExists || saving || loading}
+          disabled={!attendanceExists || saving}
         >
           {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
           Reset
         </Button>
         <Button
           onClick={handleSaveAttendance}
-          disabled={saving || loading || !students.length}
+          disabled={saving || !students.length}
         >
           {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
           <Save className="mr-2 h-4 w-4" />

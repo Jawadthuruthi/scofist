@@ -93,10 +93,22 @@ const items = [
     allowedRoles: ["Teacher", "Student"],
   },
   {
+    title: "Leave Register",
+    url: "/dashboard/leave-register",
+    icon: UserX,
+    allowedRoles: ["College Admin", "Teacher"],
+  },
+  {
     title: "Students Contacts",
     url: "/dashboard/students-contacts",
     icon: BookUser,
     allowedRoles: ["Teacher", "College Admin"],
+  },
+  {
+    title: "Students Fund",
+    url: "/dashboard/students-fund",
+    allowedRoles: ["College Admin", "Teacher"],
+    icon: CreditCard,
   },
   {
     title: "Marks",
@@ -105,16 +117,10 @@ const items = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
-    title: "Leave Register",
-    url: "/dashboard/leave-register",
-    icon: UserX,
-    allowedRoles: ["College Admin", "Teacher"],
-  },
-  {
-    title: "Students Fund",
-    url: "/dashboard/students-fund",
-    allowedRoles: ["College Admin", "Teacher"],
-    icon: CreditCard,
+    title: "Applications",
+    url: "/dashboard/applications",
+    icon: FolderCheck,
+    allowedRoles: ["College Admin"],
   },
   {
     title: "Managements",
@@ -161,13 +167,6 @@ const items = [
         title: "Time Tables",
         url: "/dashboard/time-tables",
         icon: Calendar,
-        allowedRoles: ["College Admin"],
-      },
-
-      {
-        title: "Applications",
-        url: "/dashboard/applications",
-        icon: FolderCheck,
         allowedRoles: ["College Admin"],
       },
     ],

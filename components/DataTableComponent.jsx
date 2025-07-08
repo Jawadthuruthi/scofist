@@ -28,7 +28,6 @@ import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
 import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
-import * as html2pdf from "html2pdf.js";
 import { applyPrintStyles, removePrintStyles } from "@/lib/utils";
 
 const PopupFilter = dynamic(() => import("./PopupFilter"), {
@@ -403,6 +402,8 @@ const DataTableComponent = ({
 
   const handleDownloadPDF = async () => {
     applyPrintStyles();
+    const html2pdf = (await import("html2pdf.js")).default;
+
     const element = tableRef.current;
     const images = element.querySelectorAll("img");
     const imagePromises = Array.from(images).map((img) => {

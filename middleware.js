@@ -61,6 +61,11 @@ const pages = [
     allowedRoles: ["College Admin", "Teacher", "Student"],
   },
   {
+    title: "Leave History",
+    path: "/dashboard/leave-history",
+    allowedRoles: ["College Admin", "Teacher"],
+  },
+  {
     title: "Subjects",
     path: "/dashboard/subjects",
     allowedRoles: ["College Admin"],
