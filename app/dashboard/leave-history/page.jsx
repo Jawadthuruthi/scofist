@@ -1,6 +1,8 @@
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
+import { fetchData, parseUser } from "@/lib/utils";
+import { cookies, headers } from "next/headers";
 
 const columnsConfig = [
   {
@@ -54,6 +56,16 @@ const filterConfig = [
 export default async function LeaveHistoryPage() {
   try {
     const apiKey = process.env.API_KEY;
+    const headerStore = await headers();
+    const cookiesStore = await cookies();
+    const user = parseUser(headerStore);
+    const activeRole = cookiesStore.get("active-role")?.value;
+
+    const classDetails = await fetchData("classes", `teacherId=${user.userId}`);
+
+    const apiFilters = {
+      classId: activeRole === "Teacher" ? classDetails?.[0]?._id : undefined,
+    };
 
     return (
       <>
@@ -72,6 +84,7 @@ export default async function LeaveHistoryPage() {
           readOnly={true}
           printTitle={"Leave History"}
           enableDelete={true}
+          apiFilters={apiFilters}
         />
       </>
     );
