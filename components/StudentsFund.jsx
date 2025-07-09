@@ -135,6 +135,9 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
       setStudentBalance(balance || 0);
     }
   }, [studentFund, selectedStudent]);
+  useEffect(() => {
+    setSelectedStudent("");
+  }, [selectedBatch]);
 
   // Filter students based on selected batch
   const availableStudents = useMemo(() => {
@@ -235,7 +238,9 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
     };
     html2pdf().set(opt).from(element).save();
   };
-  const handleAllStudentsFundDownloadPDF = () => {
+  const handleAllStudentsFundDownloadPDF = async () => {
+    const html2pdf = (await import("html2pdf.js")).default;
+
     const element = allStudentsFundRef.current;
     const opt = {
       margin: 0.5,
@@ -578,77 +583,6 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                             </Dialog>
                           </Button>
                         </div>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  <Dialog
-                    open={showBalanceDialog}
-                    onOpenChange={setShowBalanceDialog}
-                  >
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full">
-                        <FileText className="h-4 w-4 mr-2" />
-                        View All Students Balance
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl h-[80vh]">
-                      <div
-                        className="max-h-full overflow-y-auto hide-scrollbar "
-                        ref={allStudentsFundRef}
-                      >
-                        <DialogHeader>
-                          <DialogTitle>All Students Balance</DialogTitle>
-                          <DialogDescription>
-                            Review the current fund balance for each student of{" "}
-                            {selectedBatchData?.name}.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="flex justify-between border border-border items-center bg-accent/10 p-2 rounded-md my-4">
-                          <span className="text-base font-medium text-muted-foreground">
-                            Total Balance
-                          </span>
-                          <span className="text-lg font-extrabold text-primary">
-                            {allStudentBalance?.toFixed(2)}
-                          </span>
-                        </div>
-                        <Table className="border border-border w-full">
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Student Name</TableHead>
-                              <TableHead>Balance</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {allStudentsFund.map((student) => (
-                              <TableRow
-                                key={student._id}
-                                className="break-inside-avoid"
-                              >
-                                <TableCell>{student.studentId?.name}</TableCell>
-                                <TableCell>
-                                  {student.balance?.toFixed(2)}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                      <DialogFooter>
-                        {isMobile ? (
-                          <Button
-                            variant="default"
-                            onClick={handleAllStudentsFundDownloadPDF}
-                          >
-                            Download
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="default"
-                            onClick={handleAllStudentsFundPrint}
-                          >
-                            Print
-                          </Button>
-                        )}
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>

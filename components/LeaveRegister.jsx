@@ -55,6 +55,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
     {
       classId: selectedClass,
       projection: "_id,name,email,rollNumber",
+      status: "Active",
     },
     {
       enabled: !!selectedClass,

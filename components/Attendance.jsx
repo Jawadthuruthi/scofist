@@ -554,7 +554,7 @@ const Attendance = ({ apiKey, teacherId }) => {
                         </Avatar>
                         <div>
                           <p
-                            className={`font-medium text-sm ${rowStyling.textColor}`}
+                            className={`font-medium text-xs ${rowStyling.textColor}`}
                           >
                             {student.name}
                           </p>

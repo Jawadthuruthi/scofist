@@ -183,6 +183,12 @@ const items = [
         allowedRoles: ["College Admin", "Teacher"],
       },
       {
+        title: "Leave History",
+        url: "/dashboard/leave-history",
+        icon: ClipboardList,
+        allowedRoles: ["College Admin", "Teacher"],
+      },
+      {
         title: "Students Reports",
         url: "/dashboard/students-reports",
         icon: FileSearch,

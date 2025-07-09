@@ -109,6 +109,7 @@ const DataTableComponent = ({
   filterType = "client",
   infiniteScrollThreshold = 0.3,
   printTitle,
+  enableDelete = false,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -559,7 +560,7 @@ const DataTableComponent = ({
           />
         </div>
         <div className="space-x-2">
-          {!!selectedData?.length && !readOnly && (
+          {!!selectedData?.length && (!readOnly || enableDelete) && (
             <ConfirmationPopup
               onClick={handleDelete}
               action="delete"

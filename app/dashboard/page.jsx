@@ -31,6 +31,11 @@ const API_ENDPOINTS = [
   {
     pathname: "settings",
   },
+  {
+    pathname: "leave-records",
+    searchParams: "isArrival=false",
+    key: "leaveRecords",
+  },
 ];
 
 export default async function DashboardPage() {
@@ -39,12 +44,24 @@ export default async function DashboardPage() {
     const activeRole = cookieStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
 
-    const [classes, batches, teachers, periods, attendances, settings] =
-      await Promise.all(
-        API_ENDPOINTS.map((endpoint) =>
-          fetchData(endpoint.pathname, endpoint.searchParams)
+    const [
+      classes,
+      batches,
+      teachers,
+      periods,
+      attendances,
+      settings,
+      leaveRecords,
+    ] = await Promise.all(
+      API_ENDPOINTS.map((endpoint) =>
+        fetchData(
+          endpoint.pathname,
+          endpoint.searchParams,
+          endpoint.revalidate,
+          endpoint.key
         )
-      );
+      )
+    );
 
     return (
       <Dashboard
@@ -56,6 +73,7 @@ export default async function DashboardPage() {
         attendances={attendances}
         settings={settings}
         activeRole={activeRole}
+        leaveRecords={leaveRecords}
       />
     );
   } catch (error) {

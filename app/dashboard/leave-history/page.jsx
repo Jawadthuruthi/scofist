@@ -4,6 +4,14 @@ import Header from "@/components/Header";
 
 const columnsConfig = [
   {
+    id: "select",
+    header: "Select",
+    type: ["checkbox"],
+    width: 50,
+    maxWidth: 50,
+    minWidth: 50,
+  },
+  {
     accessorKey: "serialNo",
     header: "Sl.No",
     type: ["serialNo"],
@@ -63,6 +71,7 @@ export default async function LeaveHistoryPage() {
           limit={20}
           readOnly={true}
           printTitle={"Leave History"}
+          enableDelete={true}
         />
       </>
     );

@@ -179,74 +179,85 @@ const ErrorAlert = memo(({ message }) => (
 ErrorAlert.displayName = "ErrorAlert";
 
 // Class Card Component
-const ClassCard = memo(({ classData, students, batches, attendances }) => {
-  // Using useMemo to optimize expensive calculations
-  const { classStudents, classBatch, attendanceStats } = useMemo(() => {
-    // Find associated data
-    const filteredStudents = students
-      ? students.filter(
-          (student) =>
-            student.className === classData.name && student.status === "Active"
-        ).length
-      : 0;
+const ClassCard = memo(
+  ({ classData, students, batches, attendances, leaveStudents }) => {
+    // Using useMemo to optimize expensive calculations
+    const { classStudents, classBatch, attendanceStats } = useMemo(() => {
+      // Find associated data
+      const filteredStudents = students
+        ? students.filter(
+            (student) =>
+              student.className === classData.name &&
+              student.status === "Active"
+          ).length
+        : 0;
 
-    const foundBatch = batches
-      ? batches.find((batch) => batch._id === classData.batchId)
-      : null;
+      const foundBatch = batches
+        ? batches.find((batch) => batch._id === classData.batchId)
+        : null;
 
-    const filteredAttendance = attendances
-      ? attendances.filter(
-          (attendance) => attendance.classId?._id === classData._id
-        )
-      : [];
+      const filteredAttendance = attendances
+        ? attendances.filter(
+            (attendance) => attendance.classId?._id === classData._id
+          )
+        : [];
 
-    const stats = calculateAttendancePercentage(filteredAttendance);
+      const stats = calculateAttendancePercentage(filteredAttendance);
 
-    return {
-      classStudents: filteredStudents,
-      classBatch: foundBatch,
-      attendanceStats: stats,
-    };
-  }, [classData, students, batches, attendances]);
+      return {
+        classStudents: filteredStudents,
+        classBatch: foundBatch,
+        attendanceStats: stats,
+      };
+    }, [classData, students, batches, attendances]);
 
-  return (
-    <Card className="overflow-hidden hover:border-primary/50 transition-all">
-      <CardHeader className="pb-2 bg-muted/30">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-lg">{classData.name}</CardTitle>
-            <CardDescription>
-              {classBatch
-                ? `${classBatch.name} (${classBatch.academicYear})`
-                : "N/A"}
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-4">
-        <div className="text-sm space-y-3">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Students:</span>
-            <span className="font-medium">{classStudents || "N/A"}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Subjects:</span>
-            <span className="font-medium">
-              {classData.subjects?.length || "N/A"}
-            </span>
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Today's Attendance:</span>
-              <span className="font-medium">{attendanceStats.percentage}%</span>
+    return (
+      <Card className="overflow-hidden hover:border-primary/50 transition-all">
+        <CardHeader className="pb-2 bg-muted/30">
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-lg">{classData.name}</CardTitle>
+              <CardDescription>
+                {classBatch
+                  ? `${classBatch.name} (${classBatch.academicYear})`
+                  : "N/A"}
+              </CardDescription>
             </div>
-            <Progress value={attendanceStats.percentage} className="h-1" />
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-});
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="text-sm space-y-3">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Students:</span>
+              <span className="font-medium">{classStudents || "N/A"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Subjects:</span>
+              <span className="font-medium">
+                {classData.subjects?.length || "N/A"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">On Leave:</span>
+              <span className="font-medium">{leaveStudents}</span>
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">
+                  Today's Attendance:
+                </span>
+                <span className="font-medium">
+                  {attendanceStats.percentage}%
+                </span>
+              </div>
+              <Progress value={attendanceStats.percentage} className="h-1" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+);
 
 ClassCard.displayName = "ClassCard";
 
@@ -535,6 +546,7 @@ export default function Dashboard({
   timeTable = [],
   periods = [],
   attendances = [],
+  leaveRecords = [],
   settings = {},
   activeRole,
 }) {
@@ -786,15 +798,22 @@ export default function Dashboard({
                 <ClassesSkeleton />
               ) : hasClasses ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {dashboardData.classes.map((classData) => (
-                    <ClassCard
-                      key={classData._id}
-                      classData={classData}
-                      students={dashboardData.students}
-                      batches={dashboardData.batches}
-                      attendances={dashboardData.attendances}
-                    />
-                  ))}
+                  {dashboardData.classes.map((classData) => {
+                    const leaveStudents =
+                      leaveRecords.filter(
+                        (record) => record.classId === classData._id
+                      )?.length || 0;
+                    return (
+                      <ClassCard
+                        key={classData._id}
+                        classData={classData}
+                        students={dashboardData.students}
+                        batches={dashboardData.batches}
+                        attendances={dashboardData.attendances}
+                        leaveStudents={leaveStudents}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-32 bg-muted/20 rounded-md">
