@@ -1,5 +1,13 @@
 "use client";
-import { useState, useEffect, useMemo, memo, Suspense } from "react";
+
+import {
+  useState,
+  useEffect,
+  useMemo,
+  memo,
+  Suspense,
+  useCallback,
+} from "react";
 import {
   Card,
   CardContent,
@@ -22,11 +30,6 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-import useCrud from "@/hooks/use-crud";
-import Header from "@/components/Header";
-import TimeTableComponent from "@/components/TimeTableComponent";
-import { formatDateForDisplay } from "@/lib/utils";
 import {
   BarChart as RechartsBarChart,
   Bar,
@@ -43,6 +46,12 @@ import {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+import useCrud from "@/hooks/use-crud";
+import Header from "@/components/Header";
+import TimeTableComponent from "@/components/TimeTableComponent";
+import { formatDateForDisplay } from "@/lib/utils";
+
+// ===== CUSTOM HOOKS =====
 const useIsClient = () => {
   const [isClient, setIsClient] = useState(false);
 
@@ -52,38 +61,43 @@ const useIsClient = () => {
 
   return isClient;
 };
+
+// ===== UTILITY FUNCTIONS =====
 /**
  * Calculates attendance percentage from attendance records
  * @param {Array} attendanceRecords - List of attendance records
  * @returns {Object} Object containing attendance statistics
  */
 const calculateAttendancePercentage = (attendanceRecords) => {
-  if (!attendanceRecords || attendanceRecords.length === 0) {
+  if (!attendanceRecords?.length) {
     return { totalMarked: 0, totalPresent: 0, percentage: 0 };
   }
 
-  let totalMarked = 0;
-  let totalPresent = 0;
-
-  for (const record of attendanceRecords) {
-    const students = record.attendanceData || [];
-    totalMarked += students.length;
-    totalPresent += students.filter((s) => s.present).length;
-  }
+  const { totalMarked, totalPresent } = attendanceRecords.reduce(
+    (acc, record) => {
+      const students = record.attendanceData || [];
+      acc.totalMarked += students.length;
+      acc.totalPresent += students.filter((s) => s.present).length;
+      return acc;
+    },
+    { totalMarked: 0, totalPresent: 0 }
+  );
 
   const percentage =
-    totalMarked > 0 ? ((totalPresent / totalMarked) * 100).toFixed(2) : 0;
+    totalMarked > 0
+      ? parseFloat(((totalPresent / totalMarked) * 100).toFixed(2))
+      : 0;
 
-  return {
-    totalMarked,
-    totalPresent,
-    percentage: parseFloat(percentage),
-  };
+  return { totalMarked, totalPresent, percentage };
 };
 
-// Dashboard Loading Skeleton Components
-const StatCardSkeleton = () => (
-  <Card className="overflow-hidden">
+// ===== LOADING COMPONENTS =====
+const StatCardSkeleton = memo(() => (
+  <Card
+    className="overflow-hidden"
+    role="status"
+    aria-label="Loading statistics"
+  >
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-muted/30">
       <Skeleton className="h-4 w-16" />
       <Skeleton className="h-4 w-4 rounded-full" />
@@ -93,28 +107,35 @@ const StatCardSkeleton = () => (
       <Skeleton className="h-3 w-24" />
     </CardContent>
   </Card>
-);
+));
+StatCardSkeleton.displayName = "StatCardSkeleton";
 
-const StatsOverviewSkeleton = () => (
+const StatsOverviewSkeleton = memo(() => (
   <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-4">
-    {Array(4)
-      .fill(0)
-      .map((_, i) => (
-        <StatCardSkeleton key={i} />
-      ))}
+    {Array.from({ length: 4 }, (_, i) => (
+      <StatCardSkeleton key={i} />
+    ))}
   </div>
-);
+));
+StatsOverviewSkeleton.displayName = "StatsOverviewSkeleton";
 
-const ChartSkeleton = ({ height = "300px" }) => (
+const ChartSkeleton = memo(({ height = "300px" }) => (
   <div
     className={`h-[${height}] bg-muted/10 rounded-lg flex items-center justify-center`}
+    role="status"
+    aria-label="Loading chart"
   >
     <Loader className="h-8 w-8 text-muted-foreground animate-spin" />
   </div>
-);
+));
+ChartSkeleton.displayName = "ChartSkeleton";
 
-const ClassCardSkeleton = () => (
-  <Card className="overflow-hidden">
+const ClassCardSkeleton = memo(() => (
+  <Card
+    className="overflow-hidden"
+    role="status"
+    aria-label="Loading class information"
+  >
     <CardHeader className="pb-2 bg-muted/30">
       <Skeleton className="h-5 w-24 mb-1" />
       <Skeleton className="h-3 w-32" />
@@ -139,68 +160,77 @@ const ClassCardSkeleton = () => (
       </div>
     </CardContent>
   </Card>
-);
+));
+ClassCardSkeleton.displayName = "ClassCardSkeleton";
 
-const ClassesSkeleton = () => (
+const ClassesSkeleton = memo(() => (
   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-    {Array(6)
-      .fill(0)
-      .map((_, i) => (
-        <ClassCardSkeleton key={i} />
-      ))}
+    {Array.from({ length: 6 }, (_, i) => (
+      <ClassCardSkeleton key={i} />
+    ))}
   </div>
-);
+));
+ClassesSkeleton.displayName = "ClassesSkeleton";
 
-// Memoized Components
+// ===== MAIN COMPONENTS =====
 const StatCard = memo(({ title, value, icon: Icon, description }) => (
-  <Card className="overflow-hidden">
+  <Card
+    className="overflow-hidden"
+    role="region"
+    aria-labelledby={`stat-${title}`}
+  >
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-muted/30">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      <Icon className="h-4 w-4 text-primary" />
+      <CardTitle id={`stat-${title}`} className="text-sm font-medium">
+        {title}
+      </CardTitle>
+      <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
     </CardHeader>
     <CardContent className="pt-4">
-      <div className="text-2xl font-bold">{value}</div>
+      <div
+        className="text-2xl font-bold"
+        aria-describedby={`stat-${title}-desc`}
+      >
+        {value}
+      </div>
       {description && (
-        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+        <p
+          id={`stat-${title}-desc`}
+          className="text-xs text-muted-foreground mt-1"
+        >
+          {description}
+        </p>
       )}
     </CardContent>
   </Card>
 ));
-
 StatCard.displayName = "StatCard";
 
 const ErrorAlert = memo(({ message }) => (
-  <Alert variant="destructive" className="mb-6">
+  <Alert variant="destructive" className="mb-6" role="alert">
     <AlertCircle className="h-4 w-4" />
     <AlertDescription>{message}</AlertDescription>
   </Alert>
 ));
-
 ErrorAlert.displayName = "ErrorAlert";
 
-// Class Card Component
+// ===== CLASS CARD COMPONENT =====
 const ClassCard = memo(
   ({ classData, students, batches, attendances, leaveStudents }) => {
-    // Using useMemo to optimize expensive calculations
     const { classStudents, classBatch, attendanceStats } = useMemo(() => {
-      // Find associated data
-      const filteredStudents = students
-        ? students.filter(
-            (student) =>
-              student.className === classData.name &&
-              student.status === "Active"
-          ).length
-        : 0;
+      const filteredStudents =
+        students?.filter(
+          (student) =>
+            student.className === classData.name && student.status === "Active"
+        ).length || 0;
 
-      const foundBatch = batches
-        ? batches.find((batch) => batch._id === classData.batchId)
-        : null;
+      const foundBatch = batches?.find(
+        (batch) => batch._id === classData.batchId
+      );
 
-      const filteredAttendance = attendances
-        ? attendances.filter(
-            (attendance) => attendance.classId?._id === classData._id
-          )
-        : [];
+      const filteredAttendance =
+        attendances?.filter(
+          (attendance) => attendance.classId?._id === classData._id
+        ) || [];
 
       const stats = calculateAttendancePercentage(filteredAttendance);
 
@@ -211,12 +241,20 @@ const ClassCard = memo(
       };
     }, [classData, students, batches, attendances]);
 
+    const presentStudents = classStudents - leaveStudents;
+
     return (
-      <Card className="overflow-hidden hover:border-primary/50 transition-all">
+      <Card
+        className="overflow-hidden hover:border-primary/50 transition-all focus-within:outline-none focus-within:ring-2 focus-within:ring-primary"
+        role="region"
+        aria-labelledby={`class-${classData._id}`}
+      >
         <CardHeader className="pb-2 bg-muted/30">
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-lg">{classData.name}</CardTitle>
+              <CardTitle id={`class-${classData._id}`} className="text-lg">
+                {classData.name}
+              </CardTitle>
               <CardDescription>
                 {classBatch
                   ? `${classBatch.name} (${classBatch.academicYear})`
@@ -232,10 +270,8 @@ const ClassCard = memo(
               <span className="font-medium">{classStudents || "N/A"}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Subjects:</span>
-              <span className="font-medium">
-                {classData.subjects?.length || "N/A"}
-              </span>
+              <span className="text-muted-foreground">Present:</span>
+              <span className="font-medium">{presentStudents || "N/A"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">On Leave:</span>
@@ -250,7 +286,11 @@ const ClassCard = memo(
                   {attendanceStats.percentage}%
                 </span>
               </div>
-              <Progress value={attendanceStats.percentage} className="h-1" />
+              <Progress
+                value={attendanceStats.percentage}
+                className="h-1"
+                aria-label={`Attendance: ${attendanceStats.percentage}%`}
+              />
             </div>
           </div>
         </CardContent>
@@ -258,87 +298,86 @@ const ClassCard = memo(
     );
   }
 );
-
 ClassCard.displayName = "ClassCard";
 
-// Stats Overview component
+// ===== STATS OVERVIEW COMPONENT =====
 const StatsOverview = memo(({ totalStats, isLoading }) => {
   if (isLoading) return <StatsOverviewSkeleton />;
 
+  const statCards = [
+    {
+      title: "Total Faculty",
+      value: totalStats.teachersCount,
+      icon: UserCheck,
+      description: "Active teaching staff",
+    },
+    {
+      title: "Active Batches",
+      value: totalStats.activeBatches,
+      icon: BarChart3,
+      description: "Ongoing academic batches",
+    },
+    {
+      title: "Active Students",
+      value: totalStats.activeStudents,
+      icon: BookOpen,
+      description: "Currently attending classes",
+    },
+    {
+      title: "Graduated Students",
+      value: totalStats.graduatedStudents,
+      icon: GraduationCap,
+      description: "Successfully completed program",
+    },
+    {
+      title: "On Leave",
+      value: totalStats.leaveStudents,
+      icon: Users,
+      description: "Students currently on leave",
+    },
+  ];
+
   return (
     <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-4">
-      <StatCard
-        title="Total Faculty"
-        value={totalStats.teachersCount}
-        icon={UserCheck}
-        description="Active teaching staff"
-      />
-      <StatCard
-        title="Active Batches"
-        value={totalStats.activeBatches}
-        icon={BarChart3}
-        description="Ongoing academic batches"
-      />
-      <StatCard
-        title="Active Students"
-        value={totalStats.activeStudents}
-        icon={BookOpen}
-        description="Currently attending classes"
-      />
-      <StatCard
-        title="Graduated Students"
-        value={totalStats.graduatedStudents}
-        icon={GraduationCap}
-        description="Successfully completed program"
-      />
+      {statCards.map((stat) => (
+        <StatCard key={stat.title} {...stat} />
+      ))}
     </div>
   );
 });
-
 StatsOverview.displayName = "StatsOverview";
 
-/**
- * Batch Chart component with lazy loading
- */
-
+// ===== BATCH CHART COMPONENT =====
 const BatchChart = memo(({ batches = [], students = [], isLoading }) => {
   const [barWidth, setBarWidth] = useState(30);
 
-  useEffect(() => {
-    const handleResize = () => {
-      const vw = window.innerWidth;
-      const calculatedWidth = Math.max(30, Math.floor(vw * 0.05));
-      setBarWidth(calculatedWidth);
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
+  const handleResize = useCallback(() => {
+    const vw = window.innerWidth;
+    const calculatedWidth = Math.max(30, Math.floor(vw * 0.05));
+    setBarWidth(calculatedWidth);
   }, []);
 
-  // Move useMemo before any conditional returns
+  useEffect(() => {
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [handleResize]);
+
   const chartData = useMemo(() => {
-    if (!batches || !students) return [];
+    if (!batches?.length || !students?.length) return [];
 
     return batches
-      .map((batch) => {
-        // Count students in this batch
-        const batchStudents = students.filter(
-          (student) => student.batchId === batch._id
-        ).length;
-        return {
-          name: batch.name,
-          students: batchStudents,
-        };
-      })
+      .map((batch) => ({
+        name: batch.name,
+        students: students.filter((student) => student.batchId === batch._id)
+          .length,
+      }))
       .filter((item) => item.students > 0);
   }, [batches, students]);
 
   if (isLoading) return <ChartSkeleton />;
 
-  if (chartData.length === 0) {
+  if (!chartData.length) {
     return (
       <div className="h-64 flex items-center justify-center bg-muted/20 rounded-md">
         <p className="text-gray-500">No batch data available</p>
@@ -346,28 +385,21 @@ const BatchChart = memo(({ batches = [], students = [], isLoading }) => {
     );
   }
 
-  // Fixed dimensions
-  const BAR_WIDTH = barWidth;
   const BAR_GAP = 20;
   const CHART_PADDING = 70;
-
-  // Calculate total width needed for the chart
   const totalWidth = Math.max(
     300,
-    (BAR_WIDTH + BAR_GAP) * chartData.length + CHART_PADDING
+    (barWidth + BAR_GAP) * chartData.length + CHART_PADDING
   );
 
   return (
     <div className="h-64 max-w-full overflow-x-auto overflow-y-hidden rounded-md">
-      <div
-        className="mx-auto"
-        style={{ width: `${totalWidth}px`, height: "290px" }}
-      >
+      <div style={{ width: `${totalWidth}px`, height: "290px" }}>
         <ResponsiveContainer width="100%" height={290}>
           <RechartsBarChart
             data={chartData}
             margin={{ top: 10, right: 30, left: 20, bottom: 60 }}
-            barSize={BAR_WIDTH}
+            barSize={barWidth}
             barGap={0}
             barCategoryGap={BAR_GAP}
           >
@@ -399,18 +431,12 @@ const BatchChart = memo(({ batches = [], students = [], isLoading }) => {
     </div>
   );
 });
-
 BatchChart.displayName = "BatchChart";
 
-/**
- * Student Status Chart component
- */
+// ===== STUDENT STATUS CHART COMPONENT =====
 const StudentStatusChart = memo(({ students, isLoading }) => {
-  if (isLoading) return <ChartSkeleton />;
-
-  // Prepare pie chart data for student status
   const statusData = useMemo(() => {
-    if (!students || students.length === 0) return [];
+    if (!students?.length) return [];
 
     const statusCount = students.reduce((acc, student) => {
       const status = student.status || "Unknown";
@@ -424,9 +450,9 @@ const StudentStatusChart = memo(({ students, isLoading }) => {
     }));
   }, [students]);
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+  if (isLoading) return <ChartSkeleton />;
 
-  if (statusData.length === 0) {
+  if (!statusData.length) {
     return (
       <div className="h-[300px] flex items-center justify-center bg-muted/20 rounded-md">
         <p className="text-muted-foreground">
@@ -435,6 +461,8 @@ const StudentStatusChart = memo(({ students, isLoading }) => {
       </div>
     );
   }
+
+  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
   return (
     <div className="h-[300px]">
@@ -466,10 +494,59 @@ const StudentStatusChart = memo(({ students, isLoading }) => {
     </div>
   );
 });
-
 StudentStatusChart.displayName = "StudentStatusChart";
 
-// Lazy-loaded TimeTable Component
+// ===== FACULTY PROFILE COMPONENT =====
+const FacultyProfileCard = memo(({ faculty, assignedClass }) => (
+  <Card
+    className="overflow-hidden hover:border-primary/50 transition-all col-span-6 md:col-span-3 lg:col-span-2 focus-within:outline-none focus-within:ring-2 focus-within:ring-primary"
+    role="region"
+    aria-labelledby={`faculty-${faculty._id}`}
+  >
+    <div className="flex">
+      <div className="w-20 xs:w-32 h-20 xs:h-32 relative bg-muted/30">
+        {faculty.profilePic?.url ? (
+          <Image
+            src={faculty.profilePic.url}
+            alt={`${faculty.name} profile picture`}
+            fill
+            className="object-cover"
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full bg-muted">
+            <UserCheck
+              className="h-12 w-12 text-muted-foreground"
+              aria-hidden="true"
+            />
+          </div>
+        )}
+      </div>
+      <div className="p-2 md:p-4">
+        <div className="flex justify-between mb-1 md:mb-2">
+          <div>
+            <h3 id={`faculty-${faculty._id}`} className="font-semibold text-sm">
+              {faculty.name}
+            </h3>
+            <p className="text-muted-foreground text-xs">{faculty.place}</p>
+          </div>
+        </div>
+        <div className="text-xs space-y-1">
+          <div className="whitespace-nowrap">
+            <span className="text-muted-foreground">Contact: </span>
+            <span>{faculty.contactNumber || "N/A"}</span>
+          </div>
+          <div className="whitespace-nowrap">
+            <span className="text-muted-foreground">Class: </span>
+            <span>{assignedClass || "N/A"}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Card>
+));
+FacultyProfileCard.displayName = "FacultyProfileCard";
+
+// ===== LAZY TIMETABLE COMPONENT =====
 const LazyTimeTable = memo(
   ({ apiKey, activeRole, timeTable, periods, attendances, classes }) => (
     <Suspense fallback={<ChartSkeleton height="400px" />}>
@@ -485,59 +562,9 @@ const LazyTimeTable = memo(
     </Suspense>
   )
 );
-
 LazyTimeTable.displayName = "LazyTimeTable";
 
-// Faculty Profile Component
-
-const FacultyProfileCard = memo(({ faculty, assignedClass }) => {
-  return (
-    <Card className="overflow-hidden hover:border-primary/50 transition-all col-span-6 md:col-span-3 lg:col-span-2">
-      <div className="flex">
-        <div className="w-20 xs:w-32 h-20 xs:h-32 relative bg-muted/30">
-          {faculty.profilePic?.url ? (
-            <Image
-              src={faculty.profilePic.url}
-              alt={faculty.name}
-              fill
-              className="object-cover"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full bg-muted">
-              <UserCheck className="h-12 w-12 text-muted-foreground" />
-            </div>
-          )}
-        </div>
-        <div className="p-2 md:p-4">
-          <div className="flex justify-between mb-1 md:mb-2">
-            <div>
-              <h3 className="font-semibold text-sm">{faculty.name}</h3>
-              <p className="text-muted-foreground text-xs">{faculty.place}</p>
-            </div>
-          </div>
-          <div className="text-xs">
-            <div className="whitespace-nowrap">
-              <span className="text-muted-foreground">Contact: </span>
-              <span>{faculty.contactNumber || "N/A"}</span>
-            </div>
-            <div className="whitespace-nowrap">
-              <span className="text-muted-foreground">Class: </span>
-              <span>{assignedClass || "N/A"}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-});
-
-FacultyProfileCard.displayName = "FacultyProfileCard";
-
-/**
- * Dashboard component displays school statistics and class information
- * @param {string} apiKey - Authentication api-key for API calls
- * @returns {React.ReactElement} Dashboard component
- */
+// ===== MAIN DASHBOARD COMPONENT =====
 export default function Dashboard({
   apiKey,
   classes = [],
@@ -550,129 +577,95 @@ export default function Dashboard({
   settings = {},
   activeRole,
 }) {
-  // States for loading and error handling
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
-
   const router = useRouter();
-
   const isClient = useIsClient();
+
+  // Data fetching hook
+  const { useFetchItems: useFetchStudents } = useCrud("users", apiKey);
+  const fetchStudentsQuery = useFetchStudents(
+    0,
+    0,
+    { roles: ["Student"] },
+    {
+      staleTime: 60000,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  // Optimized students data using useMemo
+  const students = useMemo(() => {
+    return fetchStudentsQuery?.data?.users || [];
+  }, [fetchStudentsQuery?.data?.users]);
+
+  // Derive loading states
+  const isLoadingStudents =
+    fetchStudentsQuery.isLoading || fetchStudentsQuery.isFetching;
+  const isLoadingStats = isLoadingStudents;
+  const isLoadingCharts = isLoadingStudents;
+
+  // Memoized dashboard data
+  const dashboardData = useMemo(() => {
+    const activeStudents = students.filter(
+      (student) => student.status === "Active"
+    );
+    const graduatedStudents = students.filter(
+      (student) => student.status === "Graduated"
+    );
+    const activeBatches =
+      batches?.filter((batch) => batch.status === "Active") || [];
+
+    return {
+      students,
+      batches,
+      classes,
+      teachers,
+      activeStudents,
+      graduatedStudents,
+      attendances,
+      totalStats: {
+        studentCount:
+          fetchStudentsQuery.data?.pagination?.total || students.length,
+        teachersCount: teachers.length,
+        activeStudents: activeStudents.length,
+        graduatedStudents: graduatedStudents.length,
+        activeBatches: activeBatches.length,
+        leaveStudents: leaveRecords.length,
+      },
+    };
+  }, [
+    students,
+    batches,
+    classes,
+    teachers,
+    attendances,
+    leaveRecords,
+    fetchStudentsQuery.data,
+  ]);
 
   // Periodic refresh
   useEffect(() => {
     const interval = setInterval(() => {
       router.refresh();
     }, 60000);
-
     return () => clearInterval(interval);
   }, [router]);
 
-  const [dashboardData, setDashboardData] = useState({
-    students: [],
-    batches,
-    classes,
-    teachers,
-    activeStudents: [],
-    graduatedStudents: [],
-    attendances,
-    totalStats: {
-      studentCount: 0,
-      activeStudents: 0,
-      graduatedStudents: 0,
-      teachersCount: 0,
-      activeBatches: 0,
-    },
-  });
+  // Error handling
+  useEffect(() => {
+    if (fetchStudentsQuery.error) {
+      console.error("API Error:", fetchStudentsQuery.error);
+      setError("An error occurred while fetching data. Please try again.");
+    } else {
+      setError(null);
+    }
+  }, [fetchStudentsQuery.error]);
 
   const currentDate = formatDateForDisplay(new Date());
+  const hasClasses = classes.length > 0;
 
-  // Setup crud hooks with stale time and caching options
-  const { useFetchItems: useFetchStudents } = useCrud("users", apiKey);
-
-  // Setup queries with error handling and optimized fetch strategy
-  const fetchStudentsQuery = useFetchStudents(
-    0,
-    0,
-    { roles: ["Student"] },
-    {
-      staleTime: 60000, // 1 minute
-      refetchOnWindowFocus: false,
-    }
-  );
-
-  // Track loading states individually
-  const isLoadingStudents =
-    fetchStudentsQuery.isLoading || fetchStudentsQuery.isFetching;
-
-  // Derived loading states for specific sections
-  const isLoadingStats = isLoadingStudents;
-  const isLoadingCharts = isLoadingStudents;
-
-  // Create derived state using useMemo
-  const hasClasses = useMemo(
-    () => dashboardData.classes.length > 0,
-    [dashboardData.classes]
-  );
-
-  useEffect(() => {
-    // Function to fetch all required data
-    const processDashboardData = () => {
-      setError(null);
-      try {
-        // Consolidated state update to reduce re-renders
-        const newData = { ...dashboardData };
-
-        if (fetchStudentsQuery.data) {
-          newData.students = fetchStudentsQuery.data.users || [];
-          newData.activeStudents =
-            newData.students.filter((student) => student.status === "Active") ||
-            [];
-          newData.graduatedStudents =
-            newData.students.filter(
-              (student) => student.status === "Graduated"
-            ) || [];
-        }
-
-        // Calculate total statistics
-
-        if (fetchStudentsQuery.data) {
-          const students = fetchStudentsQuery.data.users || [];
-
-          newData.totalStats = {
-            studentCount:
-              fetchStudentsQuery.data.pagination?.total || students.length || 0,
-            teachersCount: teachers.length || 0,
-            activeStudents:
-              students.filter((student) => student.status === "Active")
-                .length || 0,
-            graduatedStudents:
-              students.filter((student) => student.status === "Graduated")
-                .length || 0,
-            activeBatches:
-              batches?.filter((batch) => batch.status === "Active")?.length ||
-              0,
-          };
-        }
-
-        setDashboardData(newData);
-      } catch (err) {
-        console.error("Error processing dashboard data:", err);
-        setError("Failed to process dashboard data. Please try again later.");
-      }
-    };
-
-    // Check for errors in queries
-    if (fetchStudentsQuery.error) {
-      const errorMessage =
-        "An error occurred while fetching data. Please try again.";
-      console.error("API Error:", fetchStudentsQuery.error);
-      setError(errorMessage);
-      return;
-    }
-
-    processDashboardData();
-  }, [fetchStudentsQuery.data, fetchStudentsQuery.error]);
-
+  // Early return for Literary Leader role
   if (activeRole === "Literary Leader") {
     return (
       <div className="flex flex-col space-y-6">
@@ -684,6 +677,18 @@ export default function Dashboard({
       </div>
     );
   }
+
+  const showTimeTable =
+    isClient &&
+    activeRole &&
+    ["Teacher", "College Admin", "Org Admin"].includes(activeRole) &&
+    settings?.general?.isWorkingDay;
+
+  const sortedTeachers = useMemo(() => {
+    return teachers?.sort(
+      (a, b) => new Date(a.dateOfBirth) - new Date(b.dateOfBirth)
+    );
+  }, [teachers]);
 
   return (
     <div className="flex flex-col space-y-6">
@@ -714,35 +719,32 @@ export default function Dashboard({
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          {/* Time Table Component with lazy loading */}
-          {isClient &&
-            !!activeRole &&
-            ["Teacher", "College Admin", "Org Admin"].includes(activeRole) &&
-            settings?.general?.isWorkingDay && (
-              <Card className="border-t-4 border-t-primary">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Calendar className="h-5 w-5" />
-                    <span>Today's Schedule</span>
-                  </CardTitle>
-                  <CardDescription>
-                    View your scheduled classes and attendance for today
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <LazyTimeTable
-                    apiKey={apiKey}
-                    role={activeRole}
-                    timeTable={timeTable}
-                    periods={periods}
-                    attendances={attendances}
-                    classes={classes}
-                  />
-                </CardContent>
-              </Card>
-            )}
+          {/* TimeTable Section */}
+          {showTimeTable && (
+            <Card className="border-t-4 border-t-primary">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Calendar className="h-5 w-5" />
+                  <span>Today's Schedule</span>
+                </CardTitle>
+                <CardDescription>
+                  View your scheduled classes and attendance for today
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <LazyTimeTable
+                  apiKey={apiKey}
+                  activeRole={activeRole}
+                  timeTable={timeTable}
+                  periods={periods}
+                  attendances={attendances}
+                  classes={classes}
+                />
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Stats Overview with loading state */}
+          {/* Stats Overview */}
           <StatsOverview
             totalStats={dashboardData.totalStats}
             isLoading={isLoadingStats}
@@ -752,7 +754,7 @@ export default function Dashboard({
           <Card className="border-t-4 border-t-primary">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5" />
+                <UserCheck className="h-5 w-5" />
                 <span>Faculty Profiles</span>
               </CardTitle>
               <CardDescription>
@@ -760,23 +762,18 @@ export default function Dashboard({
               </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-6 gap-4">
-              {dashboardData.teachers?.length > 0 &&
-                dashboardData.teachers
-                  ?.sort(
-                    (a, b) => new Date(a.dateOfBirth) - new Date(b.dateOfBirth)
-                  )
-                  ?.map((teacher) => {
-                    const assignedClass =
-                      classes.find((c) => c.teacherId === teacher._id)?.name ||
-                      "No Class Assigned";
-                    return (
-                      <FacultyProfileCard
-                        key={teacher._id}
-                        faculty={teacher}
-                        assignedClass={assignedClass}
-                      />
-                    );
-                  })}
+              {sortedTeachers?.map((teacher) => {
+                const assignedClass =
+                  classes.find((c) => c.teacherId === teacher._id)?.name ||
+                  "No Class Assigned";
+                return (
+                  <FacultyProfileCard
+                    key={teacher._id}
+                    faculty={teacher}
+                    assignedClass={assignedClass}
+                  />
+                );
+              })}
             </CardContent>
           </Card>
         </TabsContent>
@@ -798,11 +795,11 @@ export default function Dashboard({
                 <ClassesSkeleton />
               ) : hasClasses ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {dashboardData.classes.map((classData) => {
-                    const leaveStudents =
-                      leaveRecords.filter(
-                        (record) => record.classId === classData._id
-                      )?.length || 0;
+                  {classes.map((classData) => {
+                    const leaveStudents = leaveRecords.filter(
+                      (record) => record.classId === classData._id
+                    ).length;
+
                     return (
                       <ClassCard
                         key={classData._id}
@@ -828,7 +825,7 @@ export default function Dashboard({
 
         <TabsContent value="charts" className="space-y-6">
           <div className="grid gap-6 grid-cols-1">
-            {/* Batch Active Students Chart */}
+            {/* Active Students Chart */}
             <Card className="border-t-4 border-t-primary">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -848,7 +845,7 @@ export default function Dashboard({
               </CardContent>
             </Card>
 
-            {/* Batch Graduated Students Chart */}
+            {/* Graduated Students Chart */}
             <Card className="border-t-4 border-t-primary">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -856,7 +853,7 @@ export default function Dashboard({
                   <span>Graduated Students By Batch</span>
                 </CardTitle>
                 <CardDescription>
-                  Distribution of students across different batches
+                  Distribution of graduated students across different batches
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -873,7 +870,7 @@ export default function Dashboard({
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Users className="h-5 w-5" />
-                  <span>Student Status</span>
+                  <span>Student Status Distribution</span>
                 </CardTitle>
                 <CardDescription>
                   Distribution of students by enrollment status

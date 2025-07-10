@@ -33,7 +33,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "leave-records",
-    searchParams: "isArrival=false",
+    searchParams: "isArrived=false",
     key: "leaveRecords",
   },
 ];
