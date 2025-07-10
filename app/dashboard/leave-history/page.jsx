@@ -1,7 +1,7 @@
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { fetchData, parseUser } from "@/lib/utils";
+import { fetchData, formatOptions, parseUser } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
 
 const columnsConfig = [
@@ -32,27 +32,6 @@ const columnsConfig = [
   { accessorKey: "remark", header: "Remark" },
 ];
 
-const filterConfig = [
-  { id: "studentName", label: "StudentName" },
-  { id: "className", label: "Class" },
-  { id: "dateOfLeave", label: "Date of Leave", type: "date" },
-  { id: "dateOfArrival", label: "Date of Arrival", type: "date" },
-  { id: "arrivedDate", label: "Arrived Date", type: "date" },
-  {
-    id: "remark",
-    label: "Remark",
-    type: "text",
-    inputType: "select",
-    options: [
-      { value: "Very Good", label: "Very Good" },
-      { value: "Good", label: "Good" },
-      { value: "Acceptable", label: "Acceptable" },
-      { value: "Bad", label: "Bad" },
-      { value: "Very Bad", label: "Very Bad" },
-    ],
-  },
-];
-
 export default async function LeaveHistoryPage() {
   try {
     const apiKey = process.env.API_KEY;
@@ -61,11 +40,28 @@ export default async function LeaveHistoryPage() {
     const user = parseUser(headerStore);
     const activeRole = cookiesStore.get("active-role")?.value;
 
-    const classDetails = await fetchData("classes", `teacherId=${user.userId}`);
+    const classes = await fetchData("classes");
 
     const apiFilters = {
-      classId: activeRole === "Teacher" ? classDetails?.[0]?._id : undefined,
+      classIds:
+        activeRole === "Teacher"
+          ? classes
+              ?.filter((cls) => cls?.teacherId === user?._id)
+              .map((cls) => cls._id)
+              .join(",")
+          : undefined,
     };
+
+    const filterConfig = [
+      { id: "studentName", label: "StudentName" },
+      {
+        id: "className",
+        label: "Class",
+        inputType: "select",
+        type: "text",
+        options: formatOptions(classes),
+      },
+    ];
 
     return (
       <>
@@ -85,6 +81,7 @@ export default async function LeaveHistoryPage() {
           printTitle={"Leave History"}
           enableDelete={true}
           apiFilters={apiFilters}
+          filterTitle="Leave Records"
         />
       </>
     );

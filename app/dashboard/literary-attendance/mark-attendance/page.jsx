@@ -402,7 +402,7 @@ const LiteraryAttendance = () => {
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium text-xs whitespace-nowrap">
+                              <p className="font-medium text-xs">
                                 {student.name}{" "}
                                 {(!!queryParams.groupId &&
                                   groupLeaderId === student._id &&

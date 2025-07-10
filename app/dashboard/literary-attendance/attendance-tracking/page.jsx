@@ -36,6 +36,7 @@ const AttendanceTrackingPage = async () => {
         resource: "attendanceRecords",
         apiEndpoint: "literary/attendance-records",
         filterTitle: "Literary Attendance - Group",
+        printTitle: "Literary Attendance - Group",
         columnsConfig: [
           {
             header: "Sl.No.",
@@ -102,6 +103,7 @@ const AttendanceTrackingPage = async () => {
         resource: "attendanceRecords",
         apiEndpoint: "literary/attendance-records",
         filterTitle: "Literary Attendance - Group",
+        printTitle: "Literary Attendance - Group",
         columnsConfig: [
           {
             header: "Sl.No.",

@@ -42,6 +42,9 @@ export async function GET(req, res) {
     if (filterParams.classId) {
       query.classId = filterParams.classId;
     }
+    if (filterParams.classIds) {
+      query.classId = { $in: filterParams.classIds.split(",") };
+    }
     if (filterParams.isArrived) {
       const isArrived = filterParams.isArrived === "true";
       if (isArrived) {
