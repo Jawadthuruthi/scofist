@@ -63,6 +63,10 @@ export default async function DashboardPage() {
       )
     );
 
+    const filteredLeaveRecords = leaveRecords.filter(
+      (record) => record.studentStatus === "Active"
+    );
+
     return (
       <Dashboard
         apiKey={apiKey}
@@ -73,7 +77,7 @@ export default async function DashboardPage() {
         attendances={attendances}
         settings={settings}
         activeRole={activeRole}
-        leaveRecords={leaveRecords}
+        leaveRecords={filteredLeaveRecords}
       />
     );
   } catch (error) {

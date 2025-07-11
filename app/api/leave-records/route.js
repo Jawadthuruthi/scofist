@@ -60,7 +60,7 @@ export async function GET(req, res) {
 
     // Execute query with pagination
     const leaveRecords = await LeaveRecord.find(query, projections)
-      .populate("studentId", ["_id", "name"])
+      .populate("studentId", ["_id", "name", "studentSpecificField"])
       .populate("classId", ["_id", "name"])
       .skip(page * limit)
       .limit(limit)
@@ -75,6 +75,7 @@ export async function GET(req, res) {
         studentName: record.studentId?.name,
         classId: record.classId?._id,
         className: record.classId?.name,
+        studentStatus: record.studentId?.studentSpecificField?.status,
       };
     });
 
