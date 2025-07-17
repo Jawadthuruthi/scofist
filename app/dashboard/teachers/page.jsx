@@ -138,6 +138,7 @@ const formFields = [
       { label: "Org Admin", value: "Org Admin" },
       { label: "Teacher", value: "Teacher" },
       { label: "Literary Leader", value: "Literary Leader" },
+      { label: "Program Committee", value: "Program Committee" },
     ],
     validators: {
       minLength: 1,

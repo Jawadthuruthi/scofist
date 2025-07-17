@@ -17,6 +17,10 @@ const API_ENDPOINTS = [
     pathname: "subjects",
     searchParams: "projection=_id,name",
   },
+  {
+    pathname: "users",
+    searchParams: "projection=_id,name&roles=Student&status=Active",
+  },
 ];
 
 const AttendanceTrackingPage = async () => {
@@ -26,7 +30,7 @@ const AttendanceTrackingPage = async () => {
 
     const activeRole = cookieStore.get("active-role")?.value;
 
-    const [batches, classes, subjects] = await Promise.all(
+    const [batches, classes, subjects, students] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
         fetchData(endpoint.pathname, endpoint.searchParams)
       )
@@ -74,6 +78,15 @@ const AttendanceTrackingPage = async () => {
           },
         ],
         filterConfig: [
+          {
+            id: "studentId",
+            label: "Student",
+            type: "text",
+            inputType: "select",
+            nestedArrayField: "attendanceRecords",
+
+            options: formatOptions(students),
+          },
           {
             id: "batchId",
             label: "Batch",
@@ -298,6 +311,15 @@ const AttendanceTrackingPage = async () => {
           },
         ],
         filterConfig: [
+          {
+            id: "studentId",
+            label: "Student",
+            type: "text",
+            inputType: "select",
+            nestedArrayField: "attendanceRecords",
+
+            options: formatOptions(students),
+          },
           {
             id: "batchId",
             label: "Batch",

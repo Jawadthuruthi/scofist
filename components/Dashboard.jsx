@@ -665,8 +665,18 @@ export default function Dashboard({
   const currentDate = formatDateForDisplay(new Date());
   const hasClasses = classes.length > 0;
 
-  // Early return for Literary Leader role
   if (activeRole === "Literary Leader") {
+    return (
+      <div className="flex flex-col space-y-6">
+        <Header
+          title="DASHBOARD"
+          subTitle={currentDate}
+          icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
+        />
+      </div>
+    );
+  }
+  if (activeRole === "Program Committee" || activeRole === "Program Leader") {
     return (
       <div className="flex flex-col space-y-6">
         <Header
