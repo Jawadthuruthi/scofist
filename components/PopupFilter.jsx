@@ -135,6 +135,19 @@ export default function PopupFilter({
                     filterItem,
                     currentFilter
                   );
+
+                  let filteredOptions = filterItem.options || [];
+
+                  if (filterItem.filter) {
+                    const dependentField = filterItem.filter.dependentField;
+                    const dependentValue = filters[dependentField]?.value;
+
+                    if (dependentValue) {
+                      filteredOptions = filteredOptions.filter(
+                        (option) => option[dependentField] === dependentValue
+                      );
+                    }
+                  }
                   const displayName = filterItem.label || filterId;
                   const inputType = filterItem.inputType || "text";
                   const operator =
@@ -142,7 +155,7 @@ export default function PopupFilter({
                     filterItem.operator ||
                     DEFAULT_OPERATORS[inputType] ||
                     OPERATORS.CONTAINS;
-                  const options = filterItem.options || [];
+                  const options = filteredOptions || [];
                   const type = filterItem.type || "text";
                   const nestedArrayField = filterItem.nestedArrayField || null;
                   const className = filterItem.className || "";
