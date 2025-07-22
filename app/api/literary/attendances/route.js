@@ -161,13 +161,18 @@ export async function GET(req, res) {
       });
     }
 
-    const attendanceHistory = [];
+    const absentees = Object.values(studentAbsences)
+      .filter((student) => student.continuousAbsences > 0)
+      .sort((a, b) => b.continuousAbsences - a.continuousAbsences);
+
+    let attendanceHistory = [];
 
     if (trackHistory) {
       formattedAttendances?.forEach((attendance) => {
         const dateExists = attendanceHistory.some(
           (item) => item.date === attendance.date
         );
+
         if (!dateExists) {
           attendanceHistory.push({
             date: attendance.date,
@@ -179,14 +184,22 @@ export async function GET(req, res) {
       });
     }
 
+    for (const attendance of attendanceHistory) {
+      const absenteesData = absentees.filter(
+        (student) =>
+          student.lastAbsenceDate === attendance.date &&
+          student.category === attendance.category
+      );
+
+      attendance.absentees = absenteesData;
+    }
+
     const total = await LiteraryAttendance.countDocuments(query);
 
     return NextResponse.json(
       {
         attendances: formattedAttendances,
-        absentees: Object.values(studentAbsences)
-          .filter((student) => student.continuousAbsences > 0)
-          .sort((a, b) => b.continuousAbsences - a.continuousAbsences),
+        absentees,
         history: attendanceHistory,
         pagination: {
           page,

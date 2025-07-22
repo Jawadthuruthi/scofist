@@ -2,6 +2,7 @@ import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import AdvancedDataTableComponent from "@/components/AdvancedDataTableComponent";
 import { fetchData, formatOptions } from "@/lib/utils";
+import { trackAllowedDynamicAccess } from "next/dist/server/app-render/dynamic-rendering";
 
 const API_ENDPOINTS = [
   {
@@ -179,6 +180,12 @@ const AttendanceTrackingPage = async () => {
             minWidth: 60,
           },
           { header: "Date", accessorKey: "dateForDisplay" },
+          {
+            header: "Absentees",
+            accessorKey: "absentees",
+            valueKey: "absentees",
+            type: ["length"],
+          },
         ],
         filterConfig: [
           {
@@ -203,7 +210,8 @@ const AttendanceTrackingPage = async () => {
         filterType: "api",
         apiFilters: {
           trackHistory: true,
-          projection: "_id,date",
+          trackAbsentees: true,
+          projection: "_id,date,attendanceData,category",
         },
       },
     ];
