@@ -28,7 +28,7 @@ export async function GET(req, res) {
     const allStudentsFund = await StudentsFund.find({
       teacherId: searchParams.teacherId,
       batchId: searchParams.batchId,
-      amount: { $gt: 0 },
+      balance: { $ne: 0 },
     })
       .populate("studentId")
       .sort({ updatedAt: -1 });
