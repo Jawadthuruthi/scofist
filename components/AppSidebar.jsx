@@ -23,6 +23,7 @@ import {
   Timer,
   BookUser,
   IdCard,
+  LayoutGrid,
 } from "lucide-react";
 
 import {
@@ -219,6 +220,18 @@ const items = [
     url: "/dashboard/literary-attendance/attendance-tracking",
     allowedRoles: ["Literary Leader"],
     icon: UserCheck,
+  },
+  {
+    title: "Participants",
+    url: "/dashboard/participants",
+    allowedRoles: ["Program Leader", "Program Committee"],
+    icon: Users,
+  },
+  {
+    title: "Divisions",
+    url: "/dashboard/divisions",
+    allowedRoles: ["Program Leader", "Program Committee"],
+    icon: LayoutGrid,
   },
   {
     title: "Settings",

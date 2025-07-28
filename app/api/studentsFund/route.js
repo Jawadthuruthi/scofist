@@ -28,7 +28,10 @@ export async function GET(req, res) {
     const allStudentsFund = await StudentsFund.find({
       teacherId: searchParams.teacherId,
       batchId: searchParams.batchId,
-    }).populate("studentId");
+      amount: { $gt: 0 },
+    })
+      .populate("studentId")
+      .sort({ updatedAt: -1 });
 
     return NextResponse.json({ studentFund, allStudentsFund }, { status: 200 });
   } catch (error) {
