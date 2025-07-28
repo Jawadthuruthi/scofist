@@ -99,7 +99,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
       batchId: selectedBatch,
     },
     {
-      enabled: !!selectedStudent && !!teacherId && !!selectedBatch,
+      enabled: !!teacherId && !!selectedBatch,
     }
   );
 
