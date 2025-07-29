@@ -9,8 +9,7 @@ import Header from "@/components/Header";
 import { formatDateForDisplay } from "@/lib/utils";
 
 // ===== MAIN DASHBOARD COMPONENT =====
-export default function Dashboard({ apiKey, activeRole }) {
-  const [error, setError] = useState(null);
+export default function FestDashboard({ apiKey, activeRole }) {
   const currentDate = formatDateForDisplay(new Date());
 
   return (
@@ -20,8 +19,6 @@ export default function Dashboard({ apiKey, activeRole }) {
         subTitle={currentDate}
         icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
       />
-
-      {error && <ErrorAlert message={error} />}
     </div>
   );
 }

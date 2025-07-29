@@ -222,16 +222,16 @@ const items = [
     icon: UserCheck,
   },
   {
-    title: "Participants",
-    url: "/dashboard/participants",
-    allowedRoles: ["Program Leader", "Program Committee"],
-    icon: Users,
-  },
-  {
     title: "Divisions",
     url: "/dashboard/divisions",
     allowedRoles: ["Program Leader", "Program Committee"],
     icon: LayoutGrid,
+  },
+  {
+    title: "Participants",
+    url: "/dashboard/participants",
+    allowedRoles: ["Program Leader", "Program Committee"],
+    icon: Users,
   },
   {
     title: "Settings",

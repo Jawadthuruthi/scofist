@@ -2,6 +2,7 @@ import ErrorPage from "@/components/ErrorPage";
 import Dashboard from "@/components/Dashboard";
 import { fetchData, WEEKDAYS } from "@/lib/utils";
 import { cookies } from "next/headers";
+import FestDashboard from "@/components/FestDashboard";
 
 const today = new Date();
 const istTime = new Date(today.getTime() + 5.5 * 60 * 60 * 1000);
@@ -43,6 +44,10 @@ export default async function DashboardPage() {
     const cookieStore = await cookies();
     const activeRole = cookieStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
+
+    if (["Program Committee", "Program Leader"].includes(activeRole)) {
+      return <FestDashboard />;
+    }
 
     const [
       classes,
