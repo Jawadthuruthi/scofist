@@ -609,6 +609,7 @@ export const MultiSelect = React.forwardRef(
                 <button
                   className="flex-1 py-2 text-sm justify-center cursor-pointer hover:bg-accent hover:text-accent-foreground flex items-center"
                   onClick={() => setIsPopoverOpen(false)}
+                  type="button"
                 >
                   Close
                 </button>

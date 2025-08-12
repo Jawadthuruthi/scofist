@@ -83,7 +83,7 @@ const useTableColumns = (columnConfig) => {
           : value || "-";
         if (col.type?.includes("vertical")) {
           return (
-            <div className="font-medium scrollable">
+            <div className="scrollable">
               {Array.isArray(value) ? (
                 value.map((item, index) => <div key={index}>{item}</div>)
               ) : (
@@ -92,7 +92,7 @@ const useTableColumns = (columnConfig) => {
             </div>
           );
         }
-        return <div className="font-medium">{displayValue}</div>;
+        return <div>{displayValue}</div>;
       };
     }
 

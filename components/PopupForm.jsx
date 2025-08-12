@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Edit, Loader, Plus } from "lucide-react";
 import { MultiSelect } from "./ui/multi-select";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
@@ -26,7 +26,9 @@ import { useDynamicFormSchema } from "@/hooks/use-dynamic-form-schema";
 import { getDefaultValues } from "@/lib/utils";
 import ImageUploader from "./ImageUploader";
 import { Progress } from "@/components/ui/progress";
+import RangeInput from "./RangeInput";
 
+/* ---------- SectionNavigation (unchanged) ---------- */
 const SectionNavigation = ({
   ref,
   sectionOrder,
@@ -52,53 +54,152 @@ const SectionNavigation = ({
   </div>
 );
 
-const FormFields = ({ form, fields, apiKey }) =>
-  fields.map((field, idx) => (
+/* ---------- FieldRenderer: isolated watcher + stable options ---------- */
+function FieldRenderer({ field, form, apiKey, data }) {
+  // 1) Hooks always run in the same order (important)
+  const depName =
+    field.conditionalRender?.dependentField || field.filter?.dependentField;
+  const depValue = useWatch({ control: form.control, name: depName }); // hook 1
+  const thisValue = useWatch({ control: form.control, name: field.name }); // hook 2
+
+  // compute mergedOptions in a useMemo (hook 3)
+  const mergedOptions = React.useMemo(() => {
+    if (!field.filter) return field.options ?? [];
+
+    const dependentFieldName = field.filter.dependentField;
+    const key = field.filter.key;
+    const valueToMatch = depValue;
+
+    const filteredOptions = (field.options || []).filter((option) => {
+      if (!valueToMatch) return true;
+      if (key) {
+        return option?.[dependentFieldName]?.[key] === valueToMatch;
+      }
+      return option?.[dependentFieldName] === valueToMatch;
+    });
+
+    const selectedOptions = (field.options || []).filter((option) =>
+      Array.isArray(thisValue)
+        ? thisValue.includes(option.value)
+        : thisValue === option.value
+    );
+
+    return [
+      ...filteredOptions,
+      ...selectedOptions.filter(
+        (opt) => !filteredOptions.some((f) => f.value === opt.value)
+      ),
+    ];
+  }, [
+    field.options,
+    field.filter,
+    depValue,
+    thisValue,
+    field.filter?.key,
+    field.filter?.dependentField,
+  ]);
+
+  // keep stable reference for options (hook 4)
+  const stableRef = React.useRef(mergedOptions);
+
+  // update stableRef in an effect (hook 5)
+  React.useEffect(() => {
+    const prev = stableRef.current;
+    if (!Array.isArray(prev) || prev.length !== mergedOptions.length) {
+      stableRef.current = mergedOptions;
+      return;
+    }
+    const same = prev.every((p, i) => p?.value === mergedOptions[i]?.value);
+    if (!same) stableRef.current = mergedOptions;
+    // if same, keep previous reference (stability)
+  }, [mergedOptions]);
+
+  const stableOptions = stableRef.current;
+
+  // 2) Now that all hooks ran, we can early-return for hidden fields
+  if (data && field.hideOnEdit) return null;
+
+  if (field.conditionalRender) {
+    const expected = field.conditionalRender.expectedValue;
+    if (depValue !== expected) return null;
+  }
+
+  // 3) Determine field object to render (preserve identity where possible)
+  const sameOptions =
+    Array.isArray(field.options) &&
+    Array.isArray(stableOptions) &&
+    field.options.length === stableOptions.length &&
+    field.options.every((o, i) => o?.value === stableOptions[i]?.value);
+
+  const fieldToRender = sameOptions
+    ? field
+    : { ...field, options: stableOptions };
+
+  // 4) Render (unchanged)
+  return (
     <FormField
-      key={idx}
       control={form.control}
-      name={field.name}
+      name={fieldToRender.name}
       render={({ field: formField }) => (
-        <FormItem className={field.className}>
-          {field.label && !field.hideLabel && (
-            <FormLabel htmlFor={field.name}>
-              {field.label}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
+        <FormItem className={fieldToRender.className}>
+          {fieldToRender.label && !fieldToRender.hideLabel && (
+            <FormLabel htmlFor={fieldToRender.name}>
+              {fieldToRender.label}
+              {fieldToRender.required && (
+                <span className="text-red-500 ml-1">*</span>
+              )}
             </FormLabel>
           )}
           <FormControl>
-            {field.inputType === "image" ? (
+            {fieldToRender.inputType === "image" ? (
               <ImageUploader
                 value={formField.value}
-                onChange={(value) => formField.onChange(value)}
-                disabled={field.disabled}
+                onChange={(val) => formField.onChange(val)}
+                disabled={fieldToRender.disabled}
                 apiKey={apiKey}
-                maxFileSize={field.maxFileSize}
-                allowedTypes={field.allowedTypes}
-                minWidth={field.minWidth}
-                minHeight={field.minHeight}
-                maxWidth={field.maxWidth}
-                maxHeight={field.maxHeight}
-                aspectRatio={field.aspectRatio}
+                maxFileSize={fieldToRender.maxFileSize}
+                allowedTypes={fieldToRender.allowedTypes}
+                minWidth={fieldToRender.minWidth}
+                minHeight={fieldToRender.minHeight}
+                maxWidth={fieldToRender.maxWidth}
+                maxHeight={fieldToRender.maxHeight}
+                aspectRatio={fieldToRender.aspectRatio}
               />
-            ) : field.inputType === "select" ||
-              field.inputType === "multiSelect" ? (
+            ) : fieldToRender.inputType === "select" ||
+              fieldToRender.inputType === "multiSelect" ? (
               <MultiSelect
-                options={field.options || []}
-                placeholder={field.placeholder || "Select options"}
-                multiSelect={field.inputType === "multiSelect"}
+                options={fieldToRender.options || []}
+                placeholder={fieldToRender.placeholder || "Select options"}
+                multiSelect={fieldToRender.inputType === "multiSelect"}
                 value={formField.value}
                 onValueChange={(value) => formField.onChange(value)}
-                variant={field.variant || "default"}
-                maxCount={field.maxCount}
-                disableSearch={field.disableSearch}
-                freeSolo={field.freeSolo}
-                showSelectedCount={field.showSelectedCount}
+                variant={fieldToRender.variant || "default"}
+                maxCount={fieldToRender.maxCount}
+                disableSearch={fieldToRender.disableSearch}
+                freeSolo={fieldToRender.freeSolo}
+                showSelectedCount={fieldToRender.showSelectedCount}
+              />
+            ) : fieldToRender.inputType === "range" ? (
+              <RangeInput
+                min={fieldToRender.min}
+                max={fieldToRender.max}
+                step={fieldToRender.step}
+                unit={fieldToRender.unit}
+                value={formField.value}
+                onChange={(value) => formField.onChange(value)}
+                disabled={fieldToRender.disabled}
+                variant={fieldToRender.variant || "default"}
+                type={fieldToRender.type || "number"}
+                placeholder={fieldToRender.placeholder}
+                fromLabel={fieldToRender.fromLabel || "From"}
+                toLabel={fieldToRender.toLabel || "To"}
+                className={fieldToRender.className}
+                {...fieldToRender.props}
               />
             ) : (
               <Input
-                type={field.type || "text"}
-                placeholder={field.placeholder}
+                type={fieldToRender.type || "text"}
+                placeholder={fieldToRender.placeholder}
                 {...formField}
               />
             )}
@@ -107,8 +208,22 @@ const FormFields = ({ form, fields, apiKey }) =>
         </FormItem>
       )}
     />
+  );
+}
+
+/* ---------- FormFields now renders FieldRenderer for each field ---------- */
+const FormFields = ({ form, fields, apiKey, data }) =>
+  fields.map((field, idx) => (
+    <FieldRenderer
+      key={field.name ?? idx}
+      field={field}
+      form={form}
+      apiKey={apiKey}
+      data={data}
+    />
   ));
 
+/* ---------- FormContent (unchanged) ---------- */
 const FormContent = ({
   form,
   formFields,
@@ -170,9 +285,7 @@ const FormContent = ({
           {sectionOrder.map((section, index) => (
             <div
               key={section}
-              className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${
-                activeSectionIndex === index ? "block" : "hidden"
-              }`}
+              className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${activeSectionIndex === index ? "block" : "hidden"}`}
             >
               {section !== "undefined" && (
                 <h2 className="text-lg font-bold md:col-span-2">{section}</h2>
@@ -181,6 +294,7 @@ const FormContent = ({
                 form={form}
                 fields={sections[section]}
                 apiKey={apiKey}
+                data={data}
               />
             </div>
           ))}
@@ -200,10 +314,8 @@ const FormContent = ({
             <Button className="w-full" type="submit" disabled={loading}>
               {loading ? (
                 <Loader className="animate-spin mr-2" />
-              ) : data ? (
-                "Save changes"
               ) : (
-                "Create"
+                "Save changes"
               )}
             </Button>
           ) : (
@@ -224,6 +336,7 @@ const FormContent = ({
   );
 };
 
+/* ---------- PopupForm (main) ---------- */
 export default function PopupForm({
   data = null,
   formFields = [],
@@ -235,10 +348,9 @@ export default function PopupForm({
   hideButton = false,
 }) {
   const [open, setOpen] = React.useState(false);
-  const [customizedFormField, setCustomizedFormField] =
-    React.useState(formFields);
 
-  const { schema } = useDynamicFormSchema(customizedFormField);
+  // keep your existing dynamic schema hook if you want
+  const { schema } = useDynamicFormSchema(formFields);
 
   const defaultValues = React.useMemo(() => {
     return getDefaultValues(data, formFields);
@@ -248,10 +360,7 @@ export default function PopupForm({
     resolver: zodResolver(schema),
     defaultValues,
     mode: "all",
-    key: data ? `edit-${data?._id}` : `create ${title}`,
   });
-
-  const formValues = useWatch({ control: form.control });
 
   const handleSubmit = React.useCallback(async () => {
     try {
@@ -275,54 +384,7 @@ export default function PopupForm({
         return;
       }
     }
-  }, [onSubmit]);
-
-  React.useEffect(() => {
-    setCustomizedFormField(
-      formFields
-        .filter(
-          (field) =>
-            (data ? !field?.hideOnEdit : true) &&
-            (!field.conditionalRender ||
-              field.conditionalRender.expectedValue ===
-                formValues[field.conditionalRender.dependentField])
-        )
-        .map((field) => {
-          if (field.filter) {
-            const dependentValue = formValues[field.filter.dependentField];
-            const selectedValues = form.getValues(field.name) || [];
-
-            const filteredOptions = field.options.filter((option) => {
-              return (
-                !dependentValue ||
-                (field.filter.key
-                  ? option[field.filter.dependentField]?.[field.filter.key] ===
-                    dependentValue
-                  : option[field.filter.dependentField] === dependentValue)
-              );
-            });
-
-            const selectedOptions = field.options.filter((option) =>
-              selectedValues.includes(option.value)
-            );
-
-            const mergedOptions = [
-              ...filteredOptions,
-              ...selectedOptions.filter(
-                (opt) => !filteredOptions.some((fo) => fo.value === opt.value)
-              ),
-            ];
-
-            return {
-              ...field,
-              options: mergedOptions,
-            };
-          }
-
-          return field;
-        })
-    );
-  }, [data, formFields, formValues]);
+  }, [onSubmit, form]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -343,7 +405,7 @@ export default function PopupForm({
         <FormContent
           key={data ? `edit-${data?._id}` : `create ${title}`}
           form={form}
-          formFields={customizedFormField}
+          formFields={formFields}
           handleSubmit={handleSubmit}
           data={data}
           loading={loading}
