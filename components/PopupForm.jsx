@@ -27,6 +27,7 @@ import { getDefaultValues } from "@/lib/utils";
 import ImageUploader from "./ImageUploader";
 import { Progress } from "@/components/ui/progress";
 import RangeInput from "./RangeInput";
+import { toast } from "sonner";
 
 /* ---------- SectionNavigation (unchanged) ---------- */
 const SectionNavigation = ({
@@ -349,18 +350,39 @@ export default function PopupForm({
 }) {
   const [open, setOpen] = React.useState(false);
 
+  const customFormFields = React.useMemo(() => {
+    if (data) {
+      return formFields.filter((field) => !field.hideOnEdit);
+    } else {
+      return formFields;
+    }
+  });
+
   // keep your existing dynamic schema hook if you want
-  const { schema } = useDynamicFormSchema(formFields);
+  const { schema } = useDynamicFormSchema(customFormFields);
 
   const defaultValues = React.useMemo(() => {
-    return getDefaultValues(data, formFields);
-  }, [data, formFields, schema]);
+    return getDefaultValues(data, customFormFields);
+  }, [data, customFormFields, schema]);
 
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues,
     mode: "all",
   });
+
+  const {
+    formState: { errors },
+  } = form;
+
+  React.useEffect(() => {
+    console.log(errors);
+    formFields.forEach((field) => {
+      if (errors[field.name]) {
+        toast.error(errors[field.name].message);
+      }
+    });
+  }, [errors]);
 
   const handleSubmit = React.useCallback(async () => {
     try {
@@ -374,7 +396,8 @@ export default function PopupForm({
       if (error.details?.errors) {
         error.details.errors.forEach(({ field, message }) => {
           const fieldLabel =
-            formFields?.find((f) => f.name === field)?.label || "This value";
+            customFormFields?.find((f) => f.name === field)?.label ||
+            "This value";
           form.setError(field, {
             type: "manual",
             message: `${fieldLabel} ${message}`,
@@ -384,7 +407,7 @@ export default function PopupForm({
         return;
       }
     }
-  }, [onSubmit, form]);
+  }, [form, customFormFields, onSubmit]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -405,7 +428,7 @@ export default function PopupForm({
         <FormContent
           key={data ? `edit-${data?._id}` : `create ${title}`}
           form={form}
-          formFields={formFields}
+          formFields={customFormFields}
           handleSubmit={handleSubmit}
           data={data}
           loading={loading}

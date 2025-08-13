@@ -1,10 +1,18 @@
 import { useMemo, useCallback } from "react";
 import { z } from "zod";
 
+function getByPath(obj, path) {
+  if (!path) return undefined;
+  return path
+    .split(".")
+    .reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
+}
+
 export function useDynamicFormSchema(formFields = null) {
   const createFormSchema = useCallback((fields) => {
     const schemaObj = {};
     const fieldRelationships = [];
+    const conditionalChecks = [];
 
     fields.forEach((field) => {
       const {
@@ -263,8 +271,20 @@ export function useDynamicFormSchema(formFields = null) {
         }
       }
 
-      schemaObj[name] = fieldSchema;
-
+      if (field.conditionalRender && field.conditionalRender.dependentField) {
+        // store the real schema for later conditional validation
+        conditionalChecks.push({
+          name,
+          schema: fieldSchema,
+          dependentField: field.conditionalRender.dependentField,
+          expectedValue: field.conditionalRender.expectedValue,
+          displayName,
+        });
+        // put permissive placeholder in the base object
+        schemaObj[name] = z.any().optional();
+      } else {
+        schemaObj[name] = fieldSchema;
+      }
       // Rest of the function remains the same...
       if (validators.compareWith) {
         validators.compareWith.forEach((comparison) => {
@@ -327,6 +347,53 @@ export function useDynamicFormSchema(formFields = null) {
         }
       );
     });
+
+    // Conditional validation: run stored per-field schemas only when dependent matches expected
+    if (conditionalChecks.length > 0) {
+      schema = schema.superRefine((data, ctx) => {
+        conditionalChecks.forEach((c) => {
+          const depValue = getByPath(data, c.dependentField);
+          const expected = c.expectedValue;
+
+          // decide whether to validate:
+          let shouldValidate = false;
+          if (expected === undefined) {
+            // treat undefined expectedValue as "validate when dependent is truthy"
+            shouldValidate = Boolean(depValue);
+          } else if (typeof expected === "object") {
+            // simple deep-compare by JSON.stringify (works for most cases)
+            try {
+              shouldValidate =
+                JSON.stringify(depValue) === JSON.stringify(expected);
+            } catch (e) {
+              shouldValidate = depValue === expected;
+            }
+          } else {
+            shouldValidate = depValue === expected;
+          }
+
+          if (shouldValidate) {
+            const targetValue = getByPath(data, c.name);
+            const result = c.schema.safeParse(targetValue);
+            if (!result.success) {
+              result.error.errors.forEach((err) => {
+                // Attach the issue to the correct field path
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: err.message,
+                  path:
+                    Array.isArray(err.path) && err.path.length
+                      ? [c.name, ...err.path]
+                      : [c.name],
+                });
+              });
+            }
+          } else {
+            // if not validating, ensure no leftover error for that path is reported here
+          }
+        });
+      });
+    }
 
     return schema;
   }, []);
