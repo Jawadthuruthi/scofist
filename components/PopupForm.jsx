@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Edit, Loader, Plus } from "lucide-react";
 import { MultiSelect } from "./ui/multi-select";
-import { useForm, useWatch, Controller } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
@@ -27,7 +27,6 @@ import { getDefaultValues } from "@/lib/utils";
 import ImageUploader from "./ImageUploader";
 import { Progress } from "@/components/ui/progress";
 import RangeInput from "./RangeInput";
-import { toast } from "sonner";
 
 /* ---------- SectionNavigation (unchanged) ---------- */
 const SectionNavigation = ({
@@ -115,7 +114,7 @@ function FieldRenderer({ field, form, apiKey, data }) {
     // if same, keep previous reference (stability)
   }, [mergedOptions]);
 
-  const stableOptions = stableRef.current;
+  const stableOptions = field.filter ? mergedOptions : stableRef.current;
 
   // 2) Now that all hooks ran, we can early-return for hidden fields
   if (data && field.hideOnEdit) return null;
@@ -165,6 +164,9 @@ function FieldRenderer({ field, form, apiKey, data }) {
                 maxWidth={fieldToRender.maxWidth}
                 maxHeight={fieldToRender.maxHeight}
                 aspectRatio={fieldToRender.aspectRatio}
+                readOnly={
+                  data ? fieldToRender.readOnlyOnEdit : fieldToRender.readOnly
+                }
               />
             ) : fieldToRender.inputType === "select" ||
               fieldToRender.inputType === "multiSelect" ? (
@@ -179,6 +181,9 @@ function FieldRenderer({ field, form, apiKey, data }) {
                 disableSearch={fieldToRender.disableSearch}
                 freeSolo={fieldToRender.freeSolo}
                 showSelectedCount={fieldToRender.showSelectedCount}
+                readOnly={
+                  data ? fieldToRender.readOnlyOnEdit : fieldToRender.readOnly
+                }
               />
             ) : fieldToRender.inputType === "range" ? (
               <RangeInput
@@ -195,13 +200,18 @@ function FieldRenderer({ field, form, apiKey, data }) {
                 fromLabel={fieldToRender.fromLabel || "From"}
                 toLabel={fieldToRender.toLabel || "To"}
                 className={fieldToRender.className}
+                readOnly={
+                  data ? fieldToRender.readOnlyOnEdit : fieldToRender.readOnly
+                }
                 {...fieldToRender.props}
               />
             ) : (
               <Input
                 type={fieldToRender.type || "text"}
                 placeholder={fieldToRender.placeholder}
-                readOnly={fieldToRender.readOnly}
+                readOnly={
+                  data ? fieldToRender.readOnlyOnEdit : fieldToRender.readOnly
+                }
                 {...formField}
               />
             )}

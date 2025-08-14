@@ -111,6 +111,7 @@ const DataTableComponent = ({
   printTitle,
   enableDelete = false,
   editFormFields = [],
+  additionalProps = {},
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -482,7 +483,7 @@ const DataTableComponent = ({
         Object.entries(values).filter(([_, value]) => Boolean(value))
       );
 
-      await addData.mutateAsync(filteredValues);
+      await addData.mutateAsync({ ...filteredValues, ...additionalProps });
       table.resetRowSelection();
       await fetchItemsQuery.refetch();
       toast.success(createSuccessMessage);
@@ -504,6 +505,7 @@ const DataTableComponent = ({
         data: {
           ids: selectedData?.map((item) => item?._id),
           ...values,
+          ...additionalProps,
         },
       });
       table.resetRowSelection();
@@ -523,7 +525,12 @@ const DataTableComponent = ({
   const handleDelete = async () => {
     try {
       setLoading(true);
-      await deleteData.mutateAsync(selectedData?.map((item) => item?._id));
+      await deleteData.mutateAsync({
+        data: {
+          ids: selectedData?.map((item) => item?._id),
+          ...additionalProps,
+        },
+      });
       table.resetRowSelection();
       await fetchItemsQuery.refetch();
       toast.success(deleteSuccessMessage);

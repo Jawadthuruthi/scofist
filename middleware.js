@@ -178,6 +178,11 @@ const pages = [
     allowedRoles: ["Program Committee", "Program Leader"],
   },
   {
+    title: "Program Registration",
+    path: "/dashboard/program-registration",
+    allowedRoles: ["Program Committee", "Program Leader"],
+  },
+  {
     title: "Settings",
     path: "/dashboard/settings",
     allowedRoles: ["College Admin"],

@@ -248,6 +248,12 @@ const items = [
     icon: ListChecks,
   },
   {
+    title: "Program Registration",
+    url: "/dashboard/program-registration",
+    allowedRoles: ["Program Leader", "Program Committee"],
+    icon: ClipboardList,
+  },
+  {
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,

@@ -5,6 +5,8 @@ import Participant from "@/models/Participant";
 import Division from "@/models/Division";
 import User from "@/models/User";
 import Team from "@/models/Team";
+import ProgramRegistration from "@/models/ProgramRegistration";
+import Result from "@/models/Result";
 
 export async function GET(req, res) {
   try {
@@ -299,6 +301,14 @@ export async function PUT(req, res) {
           { _id: updateData.divisionId },
           { $addToSet: { participantsId: participantId } }
         ),
+        ProgramRegistration.updateMany(
+          { "participants.id": participantId },
+          { $pull: { participants: { id: participantId } } }
+        ),
+        Result.updateMany(
+          { "participants.id": participantId },
+          { $pull: { participants: { id: participantId } } }
+        ),
       ]);
 
       // Also reassign chest numbers in both divisions
@@ -364,6 +374,14 @@ export async function DELETE(req, res) {
       Team.updateMany(
         { membersId: { $in: ids } },
         { $pull: { membersId: { $in: ids } } }
+      ),
+      ProgramRegistration.updateMany(
+        { "participants.id": { $in: ids } },
+        { $pull: { participants: { id: { $in: ids } } } }
+      ),
+      Result.updateMany(
+        { "participants.id": { $in: ids } },
+        { $pull: { participants: { id: { $in: ids } } } }
       ),
     ]);
 

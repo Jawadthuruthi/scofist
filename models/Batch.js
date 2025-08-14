@@ -34,7 +34,6 @@ const batchSchema = new Schema(
     endYear: {
       type: Number,
       required: true,
-      unique: true,
       validate: {
         validator: function (value) {
           return value > this.startYear;
