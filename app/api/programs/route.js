@@ -292,6 +292,10 @@ export async function DELETE(req, res) {
     if (!ids || ids.length === 0) {
       return NextResponse.json({ message: "Invalid request" }, { status: 400 });
     }
+    const programsToDelete = await Program.find({ _id: { $in: ids } }).select(
+      "_id"
+    );
+    const programIds = programsToDelete.map((p) => p._id);
 
     const deletedPrograms = await Program.deleteMany({ _id: { $in: ids } });
 
@@ -305,8 +309,8 @@ export async function DELETE(req, res) {
 
     await Promise.all([
       Division.updateMany(
-        { programs: { $in: ids } },
-        { $pull: { programsId: { $in: ids } } }
+        { programsId: { $in: programIds } },
+        { $pull: { programsId: { $in: programIds } } }
       ),
     ]);
 
