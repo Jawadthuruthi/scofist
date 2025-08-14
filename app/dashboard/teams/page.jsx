@@ -1,0 +1,139 @@
+import DataTableComponent from "@/components/DataTableComponent";
+import ErrorPage from "@/components/ErrorPage";
+import Header from "@/components/Header";
+import { fetchData, formatOptions } from "@/lib/utils";
+import { cookies } from "next/headers";
+
+const columnsConfig = [
+  {
+    id: "select",
+    header: "Select",
+    type: ["checkbox"],
+    width: 50,
+    maxWidth: 50,
+    minWidth: 50,
+  },
+  {
+    accessorKey: "serialNo",
+    header: "Sl.No",
+    type: ["serialNo"],
+    width: 60,
+    maxWidth: 60,
+    minWidth: 60,
+  },
+  { accessorKey: "name", header: "Team Name" },
+  { accessorKey: "leaderName", header: "Team Leader" },
+  {
+    accessorKey: "membersCount",
+    header: "Members Count",
+    type: ["number"],
+  },
+  {
+    accessorKey: "stagePoints",
+    header: "Stage Points",
+    type: ["number"],
+  },
+  {
+    accessorKey: "offStagePoints",
+    header: "Off-Stage Points",
+    type: ["number"],
+  },
+  {
+    accessorKey: "totalPoints",
+    header: "Total Points",
+    type: ["number"],
+  },
+];
+
+const filterConfig = [
+  { id: "name", label: "Team Name" },
+  { id: "leaderId", label: "Team Leader" },
+];
+
+const statusMessages = {
+  create: "Team added successfully!",
+  edit: "Team updated successfully!",
+  delete: "Team deleted successfully!",
+};
+
+export default async function TeamsPage() {
+  try {
+    const cookiesStore = await cookies();
+    const activeRole = cookiesStore.get("active-role")?.value;
+    const apiKey = process.env.API_KEY;
+
+    // Fetch users for team leader selection
+    const users = await fetchData(
+      "users",
+      "projection=_id,name&roles=Program Leader",
+      0
+    );
+
+    const formFields = [
+      {
+        name: "name",
+        label: "Team Name",
+        type: "text",
+        placeholder: "Enter team name",
+        required: true,
+        validators: {
+          minLength: 3,
+          minLengthMessage: "Team name must be at least 3 characters long",
+        },
+      },
+      {
+        name: "leaderId",
+        label: "Team Leader",
+        type: "text",
+        inputType: "select",
+        options: formatOptions(users),
+        required: true,
+        placeholder: "Select team leader",
+      },
+    ];
+
+    const filteredColumnsConfig = columnsConfig.filter((column) => {
+      if (activeRole === "Program Committee") {
+        return true;
+      } else {
+        return column.id !== "select";
+      }
+    });
+
+    return (
+      <>
+        <Header
+          title="TEAMS MANAGEMENT"
+          subTitle="Organize and Oversee Teams"
+        />
+        <DataTableComponent
+          resource="teams"
+          initialData={[]}
+          columnsConfig={filteredColumnsConfig}
+          formFields={formFields}
+          apiKey={apiKey}
+          createFormTitle="Add New Team"
+          editFormTitle="Edit Team"
+          deleteFormTitle="Delete Team"
+          createSuccessMessage={statusMessages.create}
+          editSuccessMessage={statusMessages.edit}
+          deleteSuccessMessage={statusMessages.delete}
+          filterConfig={filterConfig}
+          limit={20}
+          readOnly={activeRole !== "Program Committee"}
+        />
+      </>
+    );
+  } catch (error) {
+    console.error("Error loading teams page:", error.message);
+    return (
+      <ErrorPage
+        statusCode={500}
+        title="Internal Server Error"
+        description="An unexpected error occurred while processing your request."
+      />
+    );
+  }
+}
+
+export const revalidate = 60;

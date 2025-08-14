@@ -2,6 +2,8 @@ import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
+import { cookies } from "next/headers";
+import { act } from "react";
 
 const columnsConfig = [
   {
@@ -48,6 +50,8 @@ const statusMessages = {
 
 export default async function DivisionsPage() {
   try {
+    const cookiesStore = await cookies();
+    const activeRole = cookiesStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
 
     const divisions = await fetchData(
@@ -133,6 +137,14 @@ export default async function DivisionsPage() {
       },
     ];
 
+    const filteredColumnsConfig = columnsConfig.filter((column) => {
+      if (activeRole === "Program Committee") {
+        return true;
+      } else {
+        return column.id !== "select";
+      }
+    });
+
     return (
       <>
         <Header
@@ -142,7 +154,7 @@ export default async function DivisionsPage() {
         <DataTableComponent
           resource="divisions"
           initialData={[]}
-          columnsConfig={columnsConfig}
+          columnsConfig={filteredColumnsConfig}
           formFields={formFields}
           apiKey={apiKey}
           createFormTitle="Add New Division"
@@ -153,6 +165,7 @@ export default async function DivisionsPage() {
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
           limit={20}
+          readOnly={activeRole !== "Program Committee"}
         />
       </>
     );

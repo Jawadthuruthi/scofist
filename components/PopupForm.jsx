@@ -377,11 +377,6 @@ export default function PopupForm({
 
   React.useEffect(() => {
     console.log(errors);
-    formFields.forEach((field) => {
-      if (errors[field.name]) {
-        toast.error(errors[field.name].message);
-      }
-    });
   }, [errors]);
 
   const handleSubmit = React.useCallback(async () => {

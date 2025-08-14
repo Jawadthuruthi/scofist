@@ -8,6 +8,8 @@ const teamSchema = new Schema(
       type: String,
       required: true,
       trim: true,
+      unique: true,
+      uppercase: true,
     },
     leaderId: {
       type: String,

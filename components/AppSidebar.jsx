@@ -24,6 +24,7 @@ import {
   BookUser,
   IdCard,
   LayoutGrid,
+  UserSquare2,
 } from "lucide-react";
 
 import {
@@ -226,6 +227,12 @@ const items = [
     url: "/dashboard/divisions",
     allowedRoles: ["Program Leader", "Program Committee"],
     icon: LayoutGrid,
+  },
+  {
+    title: "Teams",
+    url: "/dashboard/teams",
+    allowedRoles: ["Program Leader", "Program Committee"],
+    icon: UserSquare2,
   },
   {
     title: "Participants",
