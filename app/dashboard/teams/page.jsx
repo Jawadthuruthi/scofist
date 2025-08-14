@@ -71,6 +71,21 @@ export default async function TeamsPage() {
 
     const formFields = [
       {
+        name: "_id",
+        label: "Team ID",
+        type: "text",
+        placeholder: "Team ID",
+        required: true,
+        validators: {
+          minLength: 3,
+          minLengthMessage: "Team ID must be at least 3 characters long",
+          pattern: "^[A-Z0-9-]+$",
+          patternMessage:
+            "Team ID must only contain uppercase letters, numbers, and hyphens (-).",
+        },
+        hideOnEdit: true,
+      },
+      {
         name: "name",
         label: "Team Name",
         type: "text",

@@ -110,6 +110,7 @@ const DataTableComponent = ({
   infiniteScrollThreshold = 0.3,
   printTitle,
   enableDelete = false,
+  editFormFields = [],
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -573,7 +574,9 @@ const DataTableComponent = ({
             !readOnly && (
               <PopupForm
                 data={selectedData[0]}
-                formFields={formFields}
+                formFields={
+                  editFormFields?.length > 0 ? editFormFields : formFields
+                }
                 onSubmit={handleEdit}
                 loading={loading}
                 title={editFormTitle}

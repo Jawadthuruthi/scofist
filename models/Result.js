@@ -5,7 +5,7 @@ import Participant from "./Participant";
 const resultSchema = new Schema(
   {
     programId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: "Program",
       required: true,
     },

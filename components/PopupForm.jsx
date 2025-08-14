@@ -201,7 +201,8 @@ function FieldRenderer({ field, form, apiKey, data }) {
               <Input
                 type={fieldToRender.type || "text"}
                 placeholder={fieldToRender.placeholder}
-                {...formField}
+                readOnly={fieldToRender.readOnly}
+                {...fieldToRender.props}
               />
             )}
           </FormControl>

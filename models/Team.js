@@ -4,6 +4,16 @@ import User from "./User";
 
 const teamSchema = new Schema(
   {
+    _id: {
+      type: String,
+      required: true,
+      uppercase: true,
+      trim: true,
+      match: [
+        /^[A-Z0-9-]+$/,
+        "Team ID must only contain uppercase letters, numbers, and hyphens (-).",
+      ],
+    },
     name: {
       type: String,
       required: true,

@@ -4,6 +4,7 @@ import Team from "./Team";
 import Division from "./Division";
 import Program from "./Program";
 import User from "./User";
+import Batch from "./Batch";
 
 const participantSchema = new Schema(
   {
@@ -18,6 +19,11 @@ const participantSchema = new Schema(
       ],
       ref: "User",
     },
+    batchId: {
+      type: String,
+      required: true,
+      ref: "Batch",
+    },
     name: {
       type: String,
       required: true,
@@ -29,19 +35,19 @@ const participantSchema = new Schema(
     },
 
     teamId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       required: true,
       ref: "Team",
     },
     divisionId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       required: true,
       ref: "Division",
     },
     programs: [
       {
         id: {
-          type: Schema.Types.ObjectId,
+          type: String,
           ref: "Program",
         },
         rank: {
