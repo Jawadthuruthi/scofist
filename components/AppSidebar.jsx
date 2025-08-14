@@ -25,6 +25,7 @@ import {
   IdCard,
   LayoutGrid,
   UserSquare2,
+  ListChecks,
 } from "lucide-react";
 
 import {
@@ -239,6 +240,12 @@ const items = [
     url: "/dashboard/participants",
     allowedRoles: ["Program Leader", "Program Committee"],
     icon: Users,
+  },
+  {
+    title: "Programs",
+    url: "/dashboard/programs",
+    allowedRoles: ["Program Leader", "Program Committee"],
+    icon: ListChecks,
   },
   {
     title: "Settings",

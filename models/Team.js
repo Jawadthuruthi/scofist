@@ -24,6 +24,7 @@ const teamSchema = new Schema(
     leaderId: {
       type: String,
       required: true,
+      unique: true,
       ref: "User",
     },
     membersId: {

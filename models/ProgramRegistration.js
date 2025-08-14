@@ -7,7 +7,7 @@ import Team from "./Team";
 const programRegistrationSchema = new Schema(
   {
     programId: {
-      type: String,
+      type: Schema.Types.ObjectId,
       ref: "Program",
       required: true,
     },

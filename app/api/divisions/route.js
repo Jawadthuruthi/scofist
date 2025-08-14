@@ -69,6 +69,8 @@ export async function GET(req, res) {
       subDivisions: division.subDivisions.map((sub) => sub._id),
       subDivisionsName: division.subDivisions.map((sub) => sub.name),
       chestNumberStartsAt: division.chestNumberRange?.from || 0,
+      participantsCount: division.participantsId?.length || 0,
+      programsCount: division.programsId?.length || 0,
     }));
 
     return NextResponse.json(

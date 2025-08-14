@@ -62,6 +62,7 @@ export async function GET(req, res) {
 
     const formattedTeams = teams.map((team) => ({
       ...team.toObject(),
+      leaderId: team.leaderId?._id,
       leaderName: team.leaderId?.name || "Unknown",
       membersCount: team.membersId?.length || 0,
       totalPoints: (team.stagePoints || 0) + (team.offStagePoints || 0),

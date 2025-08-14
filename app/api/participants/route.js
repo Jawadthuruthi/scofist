@@ -4,6 +4,7 @@ import connectToDB from "@/lib/db";
 import Participant from "@/models/Participant";
 import Division from "@/models/Division";
 import User from "@/models/User";
+import Team from "@/models/Team";
 
 export async function GET(req, res) {
   try {
@@ -225,6 +226,19 @@ export async function POST(req, res) {
     // Create all participants first
     const participants = await Participant.insertMany(participantsToCreate);
 
+    const participantIdsCreated = participants.map((p) => String(p._id));
+
+    await Promise.all([
+      Division.updateOne(
+        { _id: divisionId },
+        { $addToSet: { participantsId: { $each: participantIdsCreated } } }
+      ),
+      Team.updateOne(
+        { _id: teamId },
+        { $addToSet: { membersId: { $each: participantIdsCreated } } }
+      ),
+    ]);
+
     // Now reassign ALL chest numbers in this division to maintain proper order
     const chestNumberAssignments = await reassignAllChestNumbers(divisionId);
 
@@ -245,7 +259,6 @@ export async function PUT(req, res) {
   try {
     await connectToDB();
     const data = await req.json();
-
     const { ids } = data;
 
     if (!ids || ids.length === 0) {
@@ -256,51 +269,8 @@ export async function PUT(req, res) {
     const updateData = { ...data };
     delete updateData.ids;
 
-    // If division is being changed, reassign all chest numbers in both divisions
-    if (updateData.divisionId) {
-      const participant = await Participant.findById(participantId);
-      if (!participant) {
-        return NextResponse.json(
-          { message: "Participant not found" },
-          { status: 404 }
-        );
-      }
-
-      const oldDivisionId = participant.divisionId.toString();
-      const newDivisionId = updateData.divisionId;
-
-      // Update the participant first
-      const updatedParticipant = await Participant.findOneAndUpdate(
-        { _id: participantId },
-        { $set: updateData },
-        { new: true }
-      );
-
-      // If division changed, reassign chest numbers in both divisions
-      if (oldDivisionId !== newDivisionId) {
-        // Reassign chest numbers in the old division
-        await reassignAllChestNumbers(oldDivisionId);
-
-        // Reassign chest numbers in the new division
-        await reassignAllChestNumbers(newDivisionId);
-
-        return NextResponse.json(
-          {
-            message:
-              "Participant updated successfully! Chest numbers have been updated in both divisions.",
-            participant: updatedParticipant,
-          },
-          { status: 200 }
-        );
-      }
-    }
-
-    const participant = await Participant.findOneAndUpdate(
-      { _id: participantId },
-      { $set: updateData },
-      { new: true }
-    );
-
+    // Get the existing participant
+    const participant = await Participant.findById(participantId);
     if (!participant) {
       return NextResponse.json(
         { message: "Participant not found" },
@@ -308,8 +278,53 @@ export async function PUT(req, res) {
       );
     }
 
+    const oldDivisionId = participant.divisionId.toString();
+    const oldTeamId = participant.teamId.toString();
+
+    // Update the participant
+    const updatedParticipant = await Participant.findOneAndUpdate(
+      { _id: participantId },
+      { $set: updateData },
+      { new: true }
+    );
+
+    // If division changed
+    if (updateData.divisionId && updateData.divisionId !== oldDivisionId) {
+      await Promise.all([
+        Division.updateOne(
+          { _id: oldDivisionId },
+          { $pull: { participantsId: participantId } }
+        ),
+        Division.updateOne(
+          { _id: updateData.divisionId },
+          { $addToSet: { participantsId: participantId } }
+        ),
+      ]);
+
+      // Also reassign chest numbers in both divisions
+      await reassignAllChestNumbers(oldDivisionId);
+      await reassignAllChestNumbers(updateData.divisionId);
+    }
+
+    // If team changed
+    if (updateData.teamId && updateData.teamId !== oldTeamId) {
+      await Promise.all([
+        Team.updateOne(
+          { _id: oldTeamId },
+          { $pull: { membersId: participantId } }
+        ),
+        Team.updateOne(
+          { _id: updateData.teamId },
+          { $addToSet: { membersId: participantId } }
+        ),
+      ]);
+    }
+
     return NextResponse.json(
-      { message: "Participant updated successfully!", participant },
+      {
+        message: "Participant updated successfully!",
+        participant: updatedParticipant,
+      },
       { status: 200 }
     );
   } catch (error) {
@@ -340,6 +355,17 @@ export async function DELETE(req, res) {
     const deletedParticipants = await Participant.deleteMany({
       _id: { $in: ids },
     });
+
+    await Promise.all([
+      Division.updateMany(
+        { participantsId: { $in: ids } },
+        { $pull: { participantsId: { $in: ids } } }
+      ),
+      Team.updateMany(
+        { membersId: { $in: ids } },
+        { $pull: { membersId: { $in: ids } } }
+      ),
+    ]);
 
     if (deletedParticipants.deletedCount === 0) {
       return NextResponse.json(

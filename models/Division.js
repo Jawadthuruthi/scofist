@@ -87,6 +87,11 @@ const divisionSchema = new Schema(
       ref: "Participant",
       default: [],
     },
+    programsId: {
+      type: [String],
+      ref: "Program",
+      default: [],
+    },
   },
 
   { timestamps: true }

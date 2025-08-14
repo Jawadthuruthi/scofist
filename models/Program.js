@@ -8,6 +8,7 @@ const programSchema = new Schema(
       type: String,
       required: true,
       trim: true,
+      uppercase: true,
     },
     rules: {
       type: String,
@@ -23,7 +24,7 @@ const programSchema = new Schema(
       enum: ["Group", "Individual"],
     },
     divisionId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: "Division",
       required: true,
     },
@@ -45,6 +46,8 @@ const programSchema = new Schema(
   },
   { timestamps: true }
 );
+
+programSchema.index({ name: 1, divisionId: 1 }, { unique: true });
 
 const Program = models?.Program || model("Program", programSchema);
 

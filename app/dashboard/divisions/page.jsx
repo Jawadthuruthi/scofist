@@ -34,9 +34,12 @@ const columnsConfig = [
   { accessorKey: "offStageEvents", header: "Off-Stage Events Count" },
   { accessorKey: "chestNumberStartsAt", header: "Chest Number Starts At" },
   {
-    accessorKey: "participantsId",
+    accessorKey: "participantsCount",
     header: "Participants",
-    type: ["length"],
+  },
+  {
+    accessorKey: "programsCount",
+    header: "Programs",
   },
 ];
 
@@ -111,14 +114,14 @@ export default async function DivisionsPage() {
       },
       {
         name: "stageEvents",
-        label: "Stage Events Count",
+        label: "Stage Events",
         type: "number",
         placeholder: "Number of stage events",
         required: true,
       },
       {
         name: "offStageEvents",
-        label: "Off-Stage Events Count",
+        label: "Off-Stage Events",
         type: "number",
         placeholder: "Number of off-stage events",
         required: true,
