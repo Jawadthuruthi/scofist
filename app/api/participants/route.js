@@ -8,6 +8,83 @@ import Team from "@/models/Team";
 import ProgramRegistration from "@/models/ProgramRegistration";
 import Result from "@/models/Result";
 
+async function assignChestNumbers(divisionId, participantCount) {
+  try {
+    // Get division with chest number range
+    const division = await Division.findById(divisionId);
+    if (!division || !division.chestNumberRange) {
+      throw new Error("Division or chest number range not found");
+    }
+
+    const { from, to } = division.chestNumberRange;
+    const rangeSize = to - from + 1;
+
+    // Check if we have enough space in the range
+    if (participantCount > rangeSize) {
+      throw new Error(
+        `Not enough chest numbers available. Range: ${from}-${to} (${rangeSize} numbers), Requested: ${participantCount}`
+      );
+    }
+
+    // Get all existing chest numbers in this division
+    const existingParticipants = await Participant.find(
+      { divisionId, chestNumber: { $ne: null } },
+      { chestNumber: 1 }
+    ).sort({ chestNumber: 1 });
+
+    const usedChestNumbers = new Set(
+      existingParticipants.map((p) => p.chestNumber)
+    );
+
+    // Find the highest assigned chest number
+    let highestChestNumber = 0;
+    for (const participant of existingParticipants) {
+      if (participant.chestNumber > highestChestNumber) {
+        highestChestNumber = participant.chestNumber;
+      }
+    }
+
+    const assignedNumbers = [];
+    let currentNumber = highestChestNumber;
+
+    // First, try to assign consecutive numbers after the highest
+    for (let i = 0; i < participantCount; i++) {
+      // If we haven't reached the end of range, try next number
+      if (currentNumber < to) {
+        currentNumber++;
+        if (!usedChestNumbers.has(currentNumber)) {
+          assignedNumbers.push(currentNumber);
+          usedChestNumbers.add(currentNumber);
+          continue;
+        }
+      }
+
+      // If we can't assign consecutively or reached the end, find gaps
+      let foundGap = false;
+
+      // First check from the beginning of range for gaps
+      for (let num = from; num <= to; num++) {
+        if (!usedChestNumbers.has(num)) {
+          assignedNumbers.push(num);
+          usedChestNumbers.add(num);
+          foundGap = true;
+          break;
+        }
+      }
+
+      if (!foundGap) {
+        throw new Error(
+          `No available chest numbers in range ${from}-${to}. Range is full.`
+        );
+      }
+    }
+
+    return assignedNumbers.sort((a, b) => a - b);
+  } catch (error) {
+    throw error;
+  }
+}
+
 export async function GET(req, res) {
   try {
     await connectToDB();
@@ -68,7 +145,7 @@ export async function GET(req, res) {
       .populate("programs.id", ["_id", "name"])
       .skip(page * limit)
       .limit(limit)
-      .sort({ batchId: 1, _id: 1 })
+      .sort({ chestNumber: 1 })
       .collation({ locale: "en_US", numericOrdering: true });
 
     // Get total count for pagination info
@@ -105,57 +182,6 @@ export async function GET(req, res) {
     console.error("Error fetching participants:", error);
     return apiResponse.error(error);
   }
-}
-
-// Helper function to reassign all chest numbers in a division
-async function reassignAllChestNumbers(divisionId) {
-  // Get division to find chest number range
-  const division = await Division.findById(divisionId);
-  if (!division || !division.chestNumberRange) {
-    throw new Error("Division not found or chest number range not defined");
-  }
-
-  const { from, to } = division.chestNumberRange;
-
-  // Get ALL participants in this division sorted by batch and ID
-  const allParticipants = await Participant.find({
-    divisionId: divisionId,
-  })
-    .populate("batchId", "name")
-    .sort({ batchId: 1, _id: 1 });
-
-  // Check if we have enough chest numbers
-  if (allParticipants.length > to - from + 1) {
-    throw new Error(
-      `Not enough chest numbers available. Need ${allParticipants.length} but range only allows ${to - from + 1} (${from}-${to})`
-    );
-  }
-
-  // Prepare bulk update operations
-  const bulkOps = [];
-
-  allParticipants.forEach((participant, index) => {
-    const newChestNumber = from + index;
-    bulkOps.push({
-      updateOne: {
-        filter: { _id: participant._id },
-        update: { $set: { chestNumber: newChestNumber } },
-      },
-    });
-  });
-
-  // Perform bulk update for better performance
-  if (bulkOps.length > 0) {
-    await Participant.bulkWrite(bulkOps);
-  }
-
-  // Return the chest number assignments for reference
-  const chestNumberAssignments = {};
-  allParticipants.forEach((participant, index) => {
-    chestNumberAssignments[participant._id] = from + index;
-  });
-
-  return chestNumberAssignments;
 }
 
 export async function POST(req, res) {
@@ -206,20 +232,32 @@ export async function POST(req, res) {
     });
     if (existingParticipants.length > 0) {
       const existingIds = existingParticipants.map((p) => p._id);
+
       return NextResponse.json(
         { message: `Participants already exist: ${existingIds.join(", ")}` },
         { status: 400 }
       );
     }
 
-    // Create participant documents (without chest numbers initially)
-    const participantsToCreate = users.map((user) => ({
+    // Assign chest numbers for the new participants
+    let assignedChestNumbers;
+    try {
+      assignedChestNumbers = await assignChestNumbers(
+        divisionId,
+        participantIds.length
+      );
+    } catch (error) {
+      return NextResponse.json({ message: error.message }, { status: 400 });
+    }
+
+    // Create participant documents with assigned chest numbers
+    const participantsToCreate = users.map((user, index) => ({
       _id: user._id,
       name: user.name,
       batchId,
       teamId,
       divisionId,
-      chestNumber: null,
+      chestNumber: assignedChestNumbers[index],
       stagePoints,
       offStagePoints,
       programs: [],
@@ -241,14 +279,10 @@ export async function POST(req, res) {
       ),
     ]);
 
-    // Now reassign ALL chest numbers in this division to maintain proper order
-    const chestNumberAssignments = await reassignAllChestNumbers(divisionId);
-
     return NextResponse.json(
       {
         message: `${participants.length} participant(s) created successfully! All chest numbers have been updated.`,
         participants,
-        chestNumberAssignments,
       },
       { status: 201 }
     );
@@ -310,10 +344,6 @@ export async function PUT(req, res) {
           { $pull: { participants: { id: participantId } } }
         ),
       ]);
-
-      // Also reassign chest numbers in both divisions
-      await reassignAllChestNumbers(oldDivisionId);
-      await reassignAllChestNumbers(updateData.divisionId);
     }
 
     // If team changed
@@ -390,11 +420,6 @@ export async function DELETE(req, res) {
         { message: "No participants found to delete" },
         { status: 404 }
       );
-    }
-
-    // Reassign chest numbers in all affected divisions
-    for (const divisionId of affectedDivisionIds) {
-      await reassignAllChestNumbers(divisionId);
     }
 
     return NextResponse.json(

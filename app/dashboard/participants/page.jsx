@@ -53,13 +53,6 @@ const columnsConfig = [
   },
 ];
 
-const filterConfig = [
-  { id: "name", label: "Name" },
-  { id: "batchId", label: "Batch" },
-  { id: "teamId", label: "Team" },
-  { id: "divisionId", label: "Division" },
-];
-
 const statusMessages = {
   create: "Participant(s) added successfully!",
   edit: "Participant updated successfully!",
@@ -144,6 +137,17 @@ export default async function ParticipantsPage() {
         },
         readOnly: true,
       },
+      {
+        name: "chestNumber",
+        label: "Chest Number",
+        type: "Number",
+        placeholder: "Chest number",
+        required: true,
+        validators: {
+          minLength: 3,
+          minLengthMessage: "Name must be at least 3 characters long",
+        },
+      },
 
       {
         name: "teamId",
@@ -163,6 +167,28 @@ export default async function ParticipantsPage() {
         required: true,
         placeholder: "Select division",
         helpText: "Changing division may reassign chest number",
+      },
+    ];
+
+    const filterConfig = [
+      { id: "name", label: "Name" },
+      {
+        id: "batchId",
+        label: "Batch",
+        inputType: "select",
+        options: formatOptions(batches),
+      },
+      {
+        id: "teamId",
+        label: "Team",
+        inputType: "select",
+        options: formatOptions(teams),
+      },
+      {
+        id: "divisionId",
+        label: "Division",
+        inputType: "select",
+        options: formatOptions(divisions),
       },
     ];
 

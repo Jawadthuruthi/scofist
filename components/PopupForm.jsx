@@ -165,7 +165,8 @@ function FieldRenderer({ field, form, apiKey, data }) {
                 maxHeight={fieldToRender.maxHeight}
                 aspectRatio={fieldToRender.aspectRatio}
                 readOnly={
-                  data ? fieldToRender.readOnlyOnEdit : fieldToRender.readOnly
+                  (data && fieldToRender.readOnlyOnEdit) ||
+                  fieldToRender.readOnly
                 }
               />
             ) : fieldToRender.inputType === "select" ||
@@ -182,7 +183,8 @@ function FieldRenderer({ field, form, apiKey, data }) {
                 freeSolo={fieldToRender.freeSolo}
                 showSelectedCount={fieldToRender.showSelectedCount}
                 readOnly={
-                  data ? fieldToRender.readOnlyOnEdit : fieldToRender.readOnly
+                  (data && fieldToRender.readOnlyOnEdit) ||
+                  fieldToRender.readOnly
                 }
               />
             ) : fieldToRender.inputType === "range" ? (
@@ -201,7 +203,8 @@ function FieldRenderer({ field, form, apiKey, data }) {
                 toLabel={fieldToRender.toLabel || "To"}
                 className={fieldToRender.className}
                 readOnly={
-                  data ? fieldToRender.readOnlyOnEdit : fieldToRender.readOnly
+                  (data && fieldToRender.readOnlyOnEdit) ||
+                  fieldToRender.readOnly
                 }
                 {...fieldToRender.props}
               />
@@ -210,7 +213,8 @@ function FieldRenderer({ field, form, apiKey, data }) {
                 type={fieldToRender.type || "text"}
                 placeholder={fieldToRender.placeholder}
                 readOnly={
-                  data ? fieldToRender.readOnlyOnEdit : fieldToRender.readOnly
+                  (data && fieldToRender.readOnlyOnEdit) ||
+                  fieldToRender.readOnly
                 }
                 {...formField}
               />
