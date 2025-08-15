@@ -144,6 +144,7 @@ export default async function ProgramRegistrationPage() {
           dependentField: "teamId",
         },
         helpText: "Select participants from the chosen team",
+        showSelectedCount: true,
       },
     ];
 
@@ -183,6 +184,7 @@ export default async function ProgramRegistrationPage() {
           minLength: 1,
           minLengthMessage: "At least one participant must be selected",
         },
+        showSelectedCount: true,
       },
     ];
 

@@ -106,6 +106,7 @@ export default async function ParticipantsPage() {
         filter: {
           dependentField: "batchId",
         },
+        showSelectedCount: true,
       },
       {
         name: "teamId",
