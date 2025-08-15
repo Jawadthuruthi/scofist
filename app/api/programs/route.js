@@ -4,6 +4,9 @@ import connectToDB from "@/lib/db";
 import Program from "@/models/Program";
 import Division from "@/models/Division";
 import Participant from "@/models/Participant";
+import ProgramRegistration from "@/models/ProgramRegistration";
+import Schedule from "@/models/Schedule";
+import Result from "@/models/Result";
 
 export async function GET(req, res) {
   try {
@@ -312,6 +315,19 @@ export async function DELETE(req, res) {
         { programsId: { $in: programIds } },
         { $pull: { programsId: { $in: programIds } } }
       ),
+      ProgramRegistration.deleteMany({
+        programId: { $in: programIds },
+      }),
+      Schedule.deleteMany({
+        programId: { $in: programIds },
+      }),
+      Participant.updateMany(
+        { "programs.id": { $in: programIds } },
+        { $pull: { programs: { programId: { $in: programIds } } } }
+      ),
+      Result.deleteMany({
+        programId: { $in: programIds },
+      }),
     ]);
 
     return NextResponse.json(
