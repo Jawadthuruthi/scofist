@@ -1,699 +1,585 @@
+// app/api/program-registration/route.js
 import { NextResponse } from "next/server";
-import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import ProgramRegistration from "@/models/ProgramRegistration";
 import Program from "@/models/Program";
-import Team from "@/models/Team";
-import Participant from "@/models/Participant";
 import Division from "@/models/Division";
+import Participant from "@/models/Participant";
+import Team from "@/models/Team";
 
-export async function GET(req, res) {
+// Helpers
+const toId = (v) =>
+  typeof v === "string" ? v : (v?.toString?.() ?? String(v));
+const sameId = (a, b) => toId(a) === toId(b);
+
+// ----------------------------- GET -----------------------------
+export async function GET(request) {
   try {
     await connectToDB();
 
-    // Parse URL to get search params
-    const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
-    const userId = url.searchParams.get("userId");
-    const activeRole = url.searchParams.get("activeRole");
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page")) || 1;
+    const limit = parseInt(searchParams.get("limit")) || 20;
+    const skip = (page - 1) * limit;
 
-    // Build filter object from query parameters
-    const filterParams = {};
-    for (const [key, value] of url.searchParams.entries()) {
-      // Skip pagination and auth parameters
-      if (
-        !["page", "limit", "projection", "userId", "activeRole"].includes(key)
-      ) {
-        filterParams[key] = value;
-      }
-    }
+    const programId = searchParams.get("programId");
+    const teamId = searchParams.get("teamId");
+    const status = searchParams.get("status"); // "Registered" | "Evaluated"
+    const divisionId = searchParams.get("divisionId");
 
-    // Get projection param
-    const projectionParam = url.searchParams.get("projection");
-    let projections = {};
-
-    // Convert projection param to MongoDB projection object
-    if (projectionParam) {
-      const fields = projectionParam.split(",");
-      fields.forEach((field) => {
-        projections[field] = 1; // Include each field
-      });
-    }
-
-    // Build MongoDB query from filter params
     const query = {};
+    if (programId) query.programId = programId;
+    if (teamId) query.teamId = teamId;
 
-    if (filterParams?._id) {
-      query._id = filterParams._id;
-    }
-    if (filterParams.programId) {
-      query.programId = filterParams.programId;
-    }
-    if (filterParams.teamId) {
-      query.teamId = filterParams.teamId;
-    }
-
-    // Role-based filtering for GET
-    if (activeRole === "Program Leader" && userId) {
-      // Program Leader can only see their team's registrations
-      const userTeam = await Team.findOne({ leaderId: userId });
-      if (userTeam) {
-        query.teamId = userTeam._id;
-      } else {
-        // No team found, return empty results
-        return NextResponse.json(
-          {
-            registrations: [],
-            pagination: {
-              page,
-              limit,
-              total: 0,
-              totalPages: 0,
-            },
-            message: "No registrations found for this Program Leader",
-          },
-          { status: 200 }
-        );
-      }
-    }
-    // Program Committee can see all registrations (no additional filtering needed)
-
-    if (filterParams.status) {
-      // Custom status filter based on registration state
-      if (filterParams.status === "registered") {
-        query["participants.0"] = { $exists: true };
-      } else if (filterParams.status === "evaluated") {
-        query["participants.totalMarks"] = { $gt: 0 };
-      } else if (filterParams.status === "in-progress") {
-        query["participants.marksByJudges"] = { $not: { $size: 0 } };
-      }
-    }
-
-    // Execute query with pagination
-    const registrations = await ProgramRegistration.find(query, projections)
-      .populate("programId", [
-        "_id",
-        "name",
-        "maxParticipants",
-        "type",
-        "pointScheme",
-        "category",
-        "divisionId",
-      ])
-      .populate("teamId", ["_id", "name"])
-      .populate("participants.id", ["_id", "name", "chestNumber"])
-      .skip(page * limit)
-      .limit(limit)
+    // Fetch all results that match basic query, then filter by division/status in memory
+    // (accurate pagination after filtering)
+    const allRegs = await ProgramRegistration.find(query)
+      .populate({
+        path: "programId",
+        select: "name type category maxParticipants divisionId",
+        populate: { path: "divisionId", select: "name type" },
+      })
+      .populate({ path: "teamId", select: "name" })
+      .populate({ path: "participants.id", select: "name chestNumber" })
       .sort({ createdAt: -1 });
 
-    // Get total count for pagination info
-    const total = await ProgramRegistration.countDocuments(query);
+    let filtered = allRegs;
 
-    const formattedRegistrations = registrations.map((registration) => {
-      const participantNames = registration.participants.map((p) =>
-        p.id?.chestNumber
-          ? `${p.id.chestNumber} - ${p.id?.name || "Unknown"}`
-          : p.id?.name || "Unknown"
+    if (divisionId) {
+      filtered = filtered.filter(
+        (reg) => toId(reg.programId?.divisionId?._id) === toId(divisionId)
       );
+    }
 
-      let status = "Registered";
-      if (registration.participants.some((p) => p.totalMarks > 0)) {
-        status = "Evaluated";
-      } else if (
-        registration.participants.some(
-          (p) => p.marksByJudges && p.marksByJudges.length > 0
-        )
-      ) {
-        status = "In Progress";
-      }
+    if (status === "Evaluated") {
+      filtered = filtered.filter((reg) =>
+        reg.participants?.some((p) => (p.totalMarks || 0) > 0)
+      );
+    } else if (status === "Registered") {
+      filtered = filtered.filter((reg) =>
+        reg.participants?.every((p) => (p.totalMarks || 0) === 0)
+      );
+    }
 
-      return {
-        ...registration.toObject(),
-        programId: registration.programId?._id || "Unknown",
-        teamId: registration.teamId?._id || "Unknown",
-        programName: registration.programId?.name || "Unknown",
-        teamName: registration.teamId?.name || "Unknown",
-        participantsCount: registration.participants.length,
-        participantNames: participantNames,
-        participants: registration.participants.map(
-          (p) => p.id?._id || "Unknown"
-        ),
-        status: status,
-      };
-    });
+    const totalCount = filtered.length;
+    const pageItems = filtered.slice(skip, skip + limit);
 
-    return NextResponse.json(
-      {
-        registrations: formattedRegistrations,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages:
-            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
-        },
-        message: "Program registrations fetched successfully!",
+    const transformedData = pageItems.map((reg, index) => ({
+      _id: reg._id,
+      serialNo: skip + index + 1,
+      programId: reg.programId._id,
+      programName: reg.programId.name,
+      programType: reg.programId.type,
+      programCategory: reg.programId.category,
+      maxParticipants: reg.programId.maxParticipants,
+      divisionId: reg.programId.divisionId?._id,
+      divisionName: reg.programId.divisionId?.name,
+      teamId: reg.teamId._id,
+      teamName: reg.teamId?.name || "N/A",
+      participants: (reg.participants || []).map((p) =>
+        p?.id?._id ? toId(p.id._id) : toId(p.id)
+      ),
+      participantsCount: reg.participants?.length || 0,
+      participantNames: (reg.participants || []).map((p) =>
+        p?.id?.chestNumber
+          ? `${p.id.chestNumber} - ${p.id?.name || "Unknown"}`
+          : p?.id?.name || "Unknown"
+      ),
+      status: (reg.participants || []).some((p) => (p.totalMarks || 0) > 0)
+        ? "Evaluated"
+        : "Registered",
+      createdAt: reg.createdAt,
+      updatedAt: reg.updatedAt,
+    }));
+
+    return NextResponse.json({
+      success: true,
+      registrations: transformedData,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit) || 1,
+        totalCount,
+        hasNextPage: skip + limit < totalCount,
+        hasPrevPage: page > 1,
       },
-      { status: 200 }
-    );
+    });
   } catch (error) {
     console.error("Error fetching program registrations:", error);
-    return apiResponse.error(error);
+    return NextResponse.json(
+      { success: false, message: "Failed to fetch program registrations" },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(req, res) {
+// ----------------------------- POST -----------------------------
+export async function POST(request) {
   try {
     await connectToDB();
-    const data = await req.json();
+    const body = await request.json();
+    const { programId, participants, userId, activeRole } = body;
 
-    const {
-      programId,
-      teamId,
-      participants: participantIds,
-      userId,
-      activeRole,
-    } = data;
-
-    // Validate required fields
     if (
       !programId ||
-      !participantIds ||
-      !Array.isArray(participantIds) ||
-      participantIds.length === 0
+      !Array.isArray(participants) ||
+      participants.length === 0
     ) {
       return NextResponse.json(
-        { message: "Program and participants are required" },
+        { success: false, message: "Program ID and participants are required" },
         { status: 400 }
       );
     }
 
-    // Get program details to validate
+    // Fetch program
     const program = await Program.findById(programId).populate("divisionId");
     if (!program) {
       return NextResponse.json(
-        { message: "Program not found" },
+        { success: false, message: "Program not found" },
         { status: 404 }
       );
     }
-
-    // Get division to validate stage/off-stage event limits
-    const division = await Division.findById(program.divisionId);
+    const division = program.divisionId;
     if (!division) {
       return NextResponse.json(
-        { message: "Division not found for this program" },
+        { success: false, message: "Division not found" },
         { status: 404 }
       );
     }
 
-    // Validate participant count against program max participants
-    if (participantIds.length > program.maxParticipants) {
+    // Fetch participants with their teamId
+    const participantDocs = await Participant.find({
+      _id: { $in: participants },
+    }).populate("divisionId");
+    if (participantDocs.length !== participants.length) {
+      return NextResponse.json(
+        { success: false, message: "Some participants not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify division match
+    const wrongDivision = participantDocs.filter(
+      (p) => p.divisionId._id.toString() !== division._id.toString()
+    );
+    if (wrongDivision.length > 0) {
       return NextResponse.json(
         {
-          message: `Too many participants. Maximum allowed: ${program.maxParticipants}`,
+          success: false,
+          message: `Participants must belong to the ${division.name} division`,
         },
         { status: 400 }
       );
     }
 
-    let finalTeamId = teamId;
-
-    // Handle role-based logic
+    // If Program Leader — check team ownership
+    let allowedTeamIds = [];
     if (activeRole === "Program Leader") {
-      // For Program Leader, get their team ID
-      if (!userId) {
-        return NextResponse.json(
-          { message: "User ID is required for Program Leader" },
-          { status: 400 }
-        );
-      }
-
-      const userTeam = await Team.findOne({ leaderId: userId });
-      if (!userTeam) {
-        return NextResponse.json(
-          { message: "No team found for this Program Leader" },
-          { status: 403 }
-        );
-      }
-
-      finalTeamId = userTeam._id;
-
-      // Validate that all selected participants belong to this team
-      const teamParticipants = await Participant.find({
-        _id: { $in: participantIds },
-        teamId: finalTeamId,
-      });
-
-      if (teamParticipants.length !== participantIds.length) {
-        return NextResponse.json(
-          { message: "You can only register participants from your own team" },
-          { status: 403 }
-        );
-      }
-    } else if (activeRole === "Program Committee") {
-      // For Program Committee, teamId must be provided
-      if (!teamId) {
-        return NextResponse.json(
-          { message: "Team ID is required" },
-          { status: 400 }
-        );
-      }
-
-      // Program Committee can register any participants from any team
-      // No need to validate team ownership for committee
-      finalTeamId = teamId;
-    } else {
-      return NextResponse.json(
-        { message: "Unauthorized access" },
-        { status: 403 }
+      const leaderTeams = await Team.find({ leaderId: userId }).select("_id");
+      allowedTeamIds = leaderTeams.map((t) => t._id.toString());
+      const invalid = participantDocs.filter(
+        (p) => !allowedTeamIds.includes(p.teamId.toString())
       );
+      if (invalid.length > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "You can only register participants from your own teams",
+          },
+          { status: 403 }
+        );
+      }
     }
 
-    // Check for existing registration
-    const existingRegistration = await ProgramRegistration.findOne({
-      programId: programId,
-      teamId: finalTeamId,
+    // Group participants by teamId from DB
+    const grouped = {};
+    participantDocs.forEach((p) => {
+      const tid = p.teamId.toString();
+      if (!grouped[tid]) grouped[tid] = [];
+      grouped[tid].push(p._id.toString());
     });
 
-    if (existingRegistration) {
-      return NextResponse.json(
-        { message: "Team is already registered for this program" },
-        { status: 409 }
-      );
-    }
-
-    // Validate division event limits
-    // Count existing registrations for each participant in this division
-    for (const participantId of participantIds) {
-      const participant = await Participant.findById(participantId).populate({
-        path: "programs.id",
-        select: "type divisionId",
-      });
-
-      if (!participant) {
+    const createdRegs = [];
+    for (const [teamId, teamParticipants] of Object.entries(grouped)) {
+      // Capacity checks
+      if (teamParticipants.length > program.maxParticipants) {
         return NextResponse.json(
-          { message: `Participant ${participantId} not found` },
-          { status: 404 }
+          {
+            success: false,
+            message: `Maximum ${program.maxParticipants} participants allowed for this program`,
+          },
+          { status: 400 }
         );
       }
 
-      // Count stage and off-stage events in the same division
-      let stageEventCount = 0;
-      let offStageEventCount = 0;
+      // Prevent duplicate registration for team
+      const exists = await ProgramRegistration.findOne({ programId, teamId });
+      if (exists) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Team ${teamId} already registered for this program`,
+          },
+          { status: 400 }
+        );
+      }
 
-      for (const prog of participant.programs) {
-        if (prog.id && prog.id.divisionId?.toString() === division._id) {
-          if (prog.id.type === "Stage") {
-            stageEventCount++;
-          } else if (prog.id.type === "Off Stage") {
-            offStageEventCount++;
+      // For Primary divisions, check individual stage/off-stage event limits
+      if (division.type === "Primary" && program.type === "Individual") {
+        for (const participantId of participants) {
+          const participant = participantDocs.find(
+            (p) => p._id === participantId
+          );
+
+          // Count current registrations for this participant in the same category
+          const currentRegistrations = await ProgramRegistration.find({
+            "participants.id": participantId,
+          }).populate({
+            path: "programId",
+            select: "category type",
+          });
+
+          const currentCategoryCount = currentRegistrations.filter(
+            (reg) =>
+              reg.programId.category === program.category &&
+              reg.programId.type === "Individual"
+          ).length;
+
+          let maxAllowed;
+          if (program.category === "Stage") {
+            maxAllowed = division.stageEvents || 0;
+          } else if (program.category === "Off-Stage") {
+            maxAllowed = division.offStageEvents || 0;
+          }
+
+          if (maxAllowed > 0 && currentCategoryCount >= maxAllowed) {
+            return NextResponse.json(
+              {
+                success: false,
+                message: `Participant ${participant.name} has reached maximum limit of ${maxAllowed} individual ${program.category.toLowerCase()} events`,
+              },
+              { status: 400 }
+            );
           }
         }
       }
 
-      // Check if adding this program would exceed limits
-      if (program.type === "Stage") {
-        if (division.stageEvents && stageEventCount >= division.stageEvents) {
-          return NextResponse.json(
-            {
-              message: `Participant ${participant.name} has already reached the maximum of ${division.stageEvents} stage events in this division`,
-            },
-            { status: 400 }
-          );
-        }
-      } else if (program.type === "Off Stage") {
-        if (
-          division.offStageEvents &&
-          offStageEventCount >= division.offStageEvents
-        ) {
-          return NextResponse.json(
-            {
-              message: `Participant ${participant.name} has already reached the maximum of ${division.offStageEvents} off-stage events in this division`,
-            },
-            { status: 400 }
-          );
-        }
-      }
+      // Create registration for this team
+      const participantData = teamParticipants.map((id) => ({
+        id,
+        codeLetter: "",
+        marksByJudges: [],
+        totalMarks: 0,
+      }));
+      const reg = await ProgramRegistration.create({
+        programId,
+        teamId,
+        participants: participantData,
+      });
+      createdRegs.push(reg);
+
+      // Add program to participants
+      await Participant.updateMany(
+        { _id: { $in: teamParticipants } },
+        { $addToSet: { programs: { id: programId, rank: 0, points: 0 } } }
+      );
     }
-
-    const participants = participantIds.map((participantId) => ({
-      id: participantId,
-      codeLetter: "", // A, B, C, etc.
-      marksByJudges: [],
-      totalMarks: 0,
-    }));
-
-    // Create new program registration
-    const registration = await ProgramRegistration.create({
-      programId,
-      teamId: finalTeamId,
-      participants,
-    });
-
-    // Update participants' programs array
-    await Promise.all(
-      participantIds.map(async (participantId) => {
-        await Participant.findByIdAndUpdate(participantId, {
-          $push: {
-            programs: {
-              id: programId,
-              rank: 0,
-              points: 0,
-            },
-          },
-        });
-      })
-    );
 
     return NextResponse.json(
       {
-        message: "Program registration created successfully!",
-        registration,
-        _id: registration._id,
+        success: true,
+        message: "Program registrations created successfully",
+        data: createdRegs,
       },
       { status: 201 }
     );
   } catch (error) {
     console.error("Error creating program registration:", error);
-    return apiResponse.error(error);
+    return NextResponse.json(
+      { success: false, message: "Failed to create program registration" },
+      { status: 500 }
+    );
   }
 }
 
-export async function PUT(req, res) {
+// ----------------------------- PUT -----------------------------
+export async function PUT(request) {
   try {
     await connectToDB();
-    const data = await req.json();
+    const body = await request.json();
+    const { ids, participants, userId, activeRole } = body;
 
-    const {
-      ids,
-      participants: updatedParticipants,
-      userId,
-      activeRole,
-      programId,
-      teamId,
-      participants: newParticipantIds,
-    } = data;
+    const id = Array.isArray(ids) ? ids[0] : ids;
 
-    if (!ids || ids.length === 0) {
-      return NextResponse.json({ message: "Invalid request" }, { status: 400 });
+    if (!id || !Array.isArray(participants) || participants.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Registration ID and participants are required",
+        },
+        { status: 400 }
+      );
     }
 
-    const registrationId = ids[0];
-
-    // Get existing registration
-    const registration =
-      await ProgramRegistration.findById(registrationId).populate("programId");
-    if (!registration) {
+    const existingReg =
+      await ProgramRegistration.findById(id).populate("programId");
+    if (!existingReg) {
       return NextResponse.json(
-        { message: "Registration not found" },
+        { success: false, message: "Registration not found" },
         { status: 404 }
       );
     }
 
-    // Role-based authorization
-    if (activeRole === "Program Leader") {
-      const userTeam = await Team.findOne({ leaderId: userId });
-      if (
-        !userTeam ||
-        userTeam._id.toString() !== registration.teamId.toString()
-      ) {
-        return NextResponse.json(
-          { message: "You can only update your own team's registrations" },
-          { status: 403 }
-        );
-      }
-    } else if (activeRole !== "Program Committee") {
+    const program = await Program.findById(existingReg.programId).populate(
+      "divisionId"
+    );
+    const division = program.divisionId;
+
+    // Fetch participants with team info
+    const participantDocs = await Participant.find({
+      _id: { $in: participants },
+    }).populate("divisionId");
+    if (participantDocs.length !== participants.length) {
       return NextResponse.json(
-        { message: "Unauthorized access" },
-        { status: 403 }
+        { success: false, message: "Some participants not found" },
+        { status: 404 }
       );
     }
 
-    // Store old participants for cleanup
-    const oldParticipantIds = registration.participants.map((p) => p.id);
+    // Division match
+    const wrongDivision = participantDocs.filter(
+      (p) => p.divisionId._id.toString() !== division._id.toString()
+    );
+    if (wrongDivision.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Participants must belong to the ${division.name} division`,
+        },
+        { status: 400 }
+      );
+    }
 
-    // Update participants if provided (for form-based updates)
-    if (newParticipantIds && Array.isArray(newParticipantIds)) {
-      // Get program and division for validation
-      const program =
-        registration.programId || (await Program.findById(programId));
-      if (!program) {
-        return NextResponse.json(
-          { message: "Program not found" },
-          { status: 404 }
-        );
-      }
-
-      const division = await Division.findById(program.divisionId);
-      if (!division) {
-        return NextResponse.json(
-          { message: "Division not found for this program" },
-          { status: 404 }
-        );
-      }
-
-      // Validate participant count
-      if (newParticipantIds.length > program.maxParticipants) {
+    // If leader, verify teams
+    let allowedTeamIds = [];
+    if (activeRole === "Program Leader") {
+      const leaderTeams = await Team.find({ leaderId: userId }).select("_id");
+      allowedTeamIds = leaderTeams.map((t) => t._id.toString());
+      const invalid = participantDocs.filter(
+        (p) => !allowedTeamIds.includes(p.teamId.toString())
+      );
+      if (invalid.length > 0) {
         return NextResponse.json(
           {
-            message: `Too many participants. Maximum allowed: ${program.maxParticipants}`,
+            success: false,
+            message: "You can only update your own team's registrations",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Group participants by teamId
+    const grouped = {};
+    participantDocs.forEach((p) => {
+      const tid = p.teamId.toString();
+      if (!grouped[tid]) grouped[tid] = [];
+      grouped[tid].push(p._id.toString());
+    });
+
+    const updatedRegs = [];
+
+    for (const [teamId, teamParticipants] of Object.entries(grouped)) {
+      if (teamParticipants.length > program.maxParticipants) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Maximum ${program.maxParticipants} participants allowed for this program`,
           },
           { status: 400 }
         );
       }
 
-      // Validate based on role
-      if (activeRole === "Program Leader") {
-        const userTeam = await Team.findOne({ leaderId: userId });
-        if (!userTeam) {
-          return NextResponse.json(
-            { message: "No team found for this Program Leader" },
-            { status: 403 }
+      if (division.type === "Primary" && program.type === "Individual") {
+        for (const participantId of participants) {
+          const participant = participantDocs.find(
+            (p) => p._id === participantId
           );
-        }
 
-        // Validate that all participants belong to the leader's team
-        const teamParticipants = await Participant.find({
-          _id: { $in: newParticipantIds },
-          teamId: userTeam._id,
-        });
-
-        if (teamParticipants.length !== newParticipantIds.length) {
-          return NextResponse.json(
-            {
-              message:
-                "You can only update with participants from your own team",
-            },
-            { status: 403 }
-          );
-        }
-      }
-      // Program Committee can update with any participants (no validation needed)
-
-      // Validate division event limits for new participants
-      const newParticipantsToCheck = newParticipantIds.filter(
-        (id) => !oldParticipantIds.includes(id)
-      );
-
-      for (const participantId of newParticipantsToCheck) {
-        const participant = await Participant.findById(participantId).populate({
-          path: "programs.id",
-          select: "type divisionId",
-        });
-
-        if (!participant) {
-          return NextResponse.json(
-            { message: `Participant ${participantId} not found` },
-            { status: 404 }
-          );
-        }
-
-        // Count stage and off-stage events in the same division
-        let stageEventCount = 0;
-        let offStageEventCount = 0;
-
-        for (const prog of participant.programs) {
-          if (prog.id && prog.id.divisionId?.toString() === division._id) {
-            if (prog.id.type === "Stage") {
-              stageEventCount++;
-            } else if (prog.id.type === "Off Stage") {
-              offStageEventCount++;
-            }
-          }
-        }
-
-        // Check if adding this program would exceed limits
-        if (program.type === "Stage") {
-          if (division.stageEvents && stageEventCount >= division.stageEvents) {
-            return NextResponse.json(
-              {
-                message: `Participant ${participant.name} has already reached the maximum of ${division.stageEvents} stage events in this division`,
-              },
-              { status: 400 }
-            );
-          }
-        } else if (program.type === "Off Stage") {
-          if (
-            division.offStageEvents &&
-            offStageEventCount >= division.offStageEvents
-          ) {
-            return NextResponse.json(
-              {
-                message: `Participant ${participant.name} has already reached the maximum of ${division.offStageEvents} off-stage events in this division`,
-              },
-              { status: 400 }
-            );
-          }
-        }
-      }
-
-      // Update participants with new structure
-      registration.participants = newParticipantIds.map((participantId) => ({
-        id: participantId,
-        codeLetter: "",
-        marksByJudges: [],
-        totalMarks: 0,
-      }));
-
-      // Clean up old participant programs
-      await Promise.all(
-        oldParticipantIds.map(async (participantId) => {
-          await Participant.findByIdAndUpdate(participantId, {
-            $pull: {
-              programs: { id: registration.programId._id },
-            },
+          // Count current registrations excluding this one
+          const currentRegistrations = await ProgramRegistration.find({
+            _id: { $ne: id },
+            "participants.id": participantId,
+          }).populate({
+            path: "programId",
+            select: "category type",
           });
-        })
-      );
 
-      // Update new participants' programs array
-      await Promise.all(
-        newParticipantIds.map(async (participantId) => {
-          // Check if participant already has this program
-          const participant = await Participant.findById(participantId);
-          const hasProgram = participant.programs.some(
-            (p) => p.id.toString() === registration.programId._id.toString()
-          );
+          const currentCategoryCount = currentRegistrations.filter(
+            (reg) =>
+              reg.programId.category === program.category &&
+              reg.programId.type === "Individual"
+          ).length;
 
-          if (!hasProgram) {
-            await Participant.findByIdAndUpdate(participantId, {
-              $push: {
-                programs: {
-                  id: registration.programId._id,
-                  rank: 0,
-                  points: 0,
-                },
-              },
-            });
+          let maxAllowed;
+          if (program.category === "Stage") {
+            maxAllowed = division.stageEvents || 0;
+          } else if (program.category === "Off-Stage") {
+            maxAllowed = division.offStageEvents || 0;
           }
-        })
+
+          if (maxAllowed > 0 && currentCategoryCount >= maxAllowed) {
+            return NextResponse.json(
+              {
+                success: false,
+                message: `Participant ${participant.name} has reached maximum limit of ${maxAllowed} individual ${program.category.toLowerCase()} events`,
+              },
+              { status: 400 }
+            );
+          }
+        }
+      }
+
+      const reg = await ProgramRegistration.findOne({
+        programId: program._id,
+        teamId,
+      });
+
+      if (reg) {
+        // Update existing reg
+        reg.participants = teamParticipants.map((id) => ({
+          id,
+          codeLetter: "",
+          marksByJudges: [],
+          totalMarks: 0,
+        }));
+        await reg.save();
+        updatedRegs.push(reg);
+      } else {
+        // Create new reg for this team
+        const newReg = await ProgramRegistration.create({
+          programId: program._id,
+          teamId,
+          participants: teamParticipants.map((id) => ({
+            id,
+            codeLetter: "",
+            marksByJudges: [],
+            totalMarks: 0,
+          })),
+        });
+        updatedRegs.push(newReg);
+      }
+
+      // Update participant program lists
+      await Participant.updateMany(
+        { _id: { $in: teamParticipants } },
+        { $addToSet: { programs: { id: program._id, rank: 0, points: 0 } } }
       );
     }
-
-    // Update participants for scoring/evaluation (when updatedParticipants is provided)
-    if (updatedParticipants && Array.isArray(updatedParticipants)) {
-      registration.participants = updatedParticipants.map((p) => ({
-        id: p,
-        codeLetter: "",
-        totalMarks: 0,
-        marksByJudges: [],
-      }));
-    }
-
-    const updatedRegistration = await registration.save();
 
     return NextResponse.json(
       {
-        message: "Program registration updated successfully!",
-        registration: updatedRegistration,
+        success: true,
+        message: "Program registrations updated successfully",
+        data: updatedRegs,
       },
       { status: 200 }
     );
   } catch (error) {
     console.error("Error updating program registration:", error);
-    return apiResponse.error(error);
+    return NextResponse.json(
+      { success: false, message: "Failed to update program registration" },
+      { status: 500 }
+    );
   }
 }
 
-export async function DELETE(req, res) {
+// ----------------------------- DELETE -----------------------------
+export async function DELETE(request) {
   try {
     await connectToDB();
-    const data = await req.json();
 
-    console.log(data);
-    const { ids, userId, activeRole } = data;
+    const body = await request.json();
+    const { ids, userId, activeRole } = body;
 
     if (!ids || ids.length === 0) {
-      return NextResponse.json({ message: "Invalid request" }, { status: 400 });
-    }
-
-    // Get registrations to be deleted for cleanup
-    const registrationsToDelete = await ProgramRegistration.find({
-      _id: { $in: ids },
-    });
-
-    if (registrationsToDelete.length === 0) {
       return NextResponse.json(
-        { message: "No registrations found to delete" },
-        { status: 404 }
+        { success: false, message: "Registration ID(s) are required" },
+        { status: 400 }
       );
     }
 
-    // Role-based authorization for deletion
     if (activeRole === "Program Leader") {
-      const userTeam = await Team.findOne({ leaderId: userId });
-      if (!userTeam) {
+      const leaderTeam = await Team.findOne({ leaderId: userId });
+      if (!leaderTeam) {
         return NextResponse.json(
-          { message: "No team found for this Program Leader" },
-          { status: 403 }
+          { success: false, message: "Team not found for this program leader" },
+          { status: 404 }
         );
       }
 
-      // Check if all registrations belong to the user's team
-      const unauthorizedRegistrations = registrationsToDelete.filter(
-        (reg) => reg.teamId.toString() !== userTeam._id.toString()
+      const regs = await ProgramRegistration.find({ _id: { $in: ids } });
+      const unauthorized = regs.filter(
+        (reg) => !sameId(reg.teamId, leaderTeam._id)
       );
-
-      if (unauthorizedRegistrations.length > 0) {
+      if (unauthorized.length > 0) {
         return NextResponse.json(
-          { message: "You can only delete your own team's registrations" },
+          {
+            success: false,
+            message: "You can only delete your team's registrations",
+          },
           { status: 403 }
         );
       }
     }
-    // Program Committee can delete any registrations (no additional check needed)
 
-    // Clean up participants' programs array
-    for (const registration of registrationsToDelete) {
-      const participantIds = registration.participants.map((p) => p.id);
-
-      // Remove program from participants
-      await Promise.all(
-        participantIds.map(async (participantId) => {
-          await Participant.findByIdAndUpdate(participantId, {
-            $pull: {
-              programs: { id: registration.programId },
-            },
-          });
-        })
-      );
-    }
-
-    // Delete the registrations
-    const deletedRegistrations = await ProgramRegistration.deleteMany({
+    const regsWithMarks = await ProgramRegistration.find({
       _id: { $in: ids },
+      "participants.totalMarks": { $gt: 0 },
+    });
+    if (regsWithMarks.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Cannot delete registrations that have marks assigned",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Capture participant-program pairs so we can clean up participants.programs later
+    const regsToDelete = await ProgramRegistration.find({
+      _id: { $in: ids },
+    }).select("participants programId");
+    const pairs = [];
+    regsToDelete.forEach((reg) => {
+      reg.participants.forEach((p) => {
+        pairs.push({
+          participantId: toId(p.id),
+          programId: toId(reg.programId),
+        });
+      });
     });
 
-    return NextResponse.json(
-      {
-        message: `${deletedRegistrations.deletedCount} registration(s) deleted successfully!`,
-        deletedRegistrations,
-      },
-      { status: 200 }
-    );
+    const result = await ProgramRegistration.deleteMany({ _id: { $in: ids } });
+
+    // Remove program references from participants
+    for (const pair of pairs) {
+      await Participant.updateOne(
+        { _id: pair.participantId },
+        { $pull: { programs: { id: pair.programId } } }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `${result.deletedCount} registration(s) deleted successfully`,
+      deletedCount: result.deletedCount,
+    });
   } catch (error) {
-    console.error("Error deleting program registration:", error);
-    return apiResponse.error(error);
+    console.error("Error deleting program registrations:", error);
+    return NextResponse.json(
+      { success: false, message: "Failed to delete program registrations" },
+      { status: 500 }
+    );
   }
 }

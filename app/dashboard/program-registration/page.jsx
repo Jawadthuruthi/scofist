@@ -1,8 +1,8 @@
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { fetchData, formatOptions } from "@/lib/utils";
-import { cookies } from "next/headers";
+import { fetchData, formatOptions, parseUser } from "@/lib/utils";
+import { cookies, headers } from "next/headers";
 
 const columnsConfig = [
   {
@@ -22,6 +22,7 @@ const columnsConfig = [
     minWidth: 60,
   },
   { accessorKey: "programName", header: "Program" },
+  { accessorKey: "divisionName", header: "Division" },
   { accessorKey: "teamName", header: "Team" },
   {
     accessorKey: "participantsCount",
@@ -36,12 +37,6 @@ const columnsConfig = [
   { accessorKey: "status", header: "Status" },
 ];
 
-const filterConfig = [
-  { id: "programId", label: "Program" },
-  { id: "teamId", label: "Team" },
-  { id: "status", label: "Status" },
-];
-
 const statusMessages = {
   create: "Program registration added successfully!",
   edit: "Program registration updated successfully!",
@@ -50,27 +45,31 @@ const statusMessages = {
 
 export default async function ProgramRegistrationPage() {
   try {
+    const headerStore = await headers();
     const cookiesStore = await cookies();
+    const user = parseUser(headerStore);
     const activeRole = cookiesStore.get("active-role")?.value;
-    const userId = cookiesStore.get("user-id")?.value;
     const apiKey = process.env.API_KEY;
 
-    // Fetch data based on role
     let programs, teams, participants, divisions;
 
     if (activeRole === "Program Committee") {
-      // Program Committee can see all data
       [programs, teams, participants, divisions] = await Promise.all([
-        fetchData("programs", "projection=_id,name,maxParticipants,type", 0),
+        // include divisionId so program select can filter by division
+        fetchData(
+          "programs",
+          "projection=_id,name,maxParticipants,type,divisionId",
+          0
+        ),
         fetchData("teams", "projection=_id,name", 0),
-        fetchData("participants", "projection=_id,name,teamId", 0),
+        // include divisionId for participant option-level filtering
+        fetchData("participants", "projection=_id,name,teamId,divisionId", 0),
         fetchData("divisions", "projection=_id,name", 0),
       ]);
     } else if (activeRole === "Program Leader") {
-      // Program Leader can only see their own team's data
       const userTeams = await fetchData(
         "teams",
-        `leaderId=${userId}&projection=_id,name`,
+        `leaderId=${user?.userId}&projection=_id,name`,
         0
       );
 
@@ -78,13 +77,18 @@ export default async function ProgramRegistrationPage() {
         throw new Error("No team found for this program leader");
       }
 
-      const teamIds = userTeams.map((team) => team._id);
+      const teamIds = userTeams.map((t) => t._id);
 
       [programs, participants, divisions] = await Promise.all([
-        fetchData("programs", "projection=_id,name,maxParticipants,type", 0),
+        fetchData(
+          "programs",
+          "projection=_id,name,maxParticipants,type,divisionId",
+          0
+        ),
+        // Only participants from leader's first team
         fetchData(
           "participants",
-          `teamId=${teamIds[0]}&projection=_id,name,teamId`,
+          `teamId=${teamIds[0]}&projection=_id,name,teamId,divisionId`,
           0
         ),
         fetchData("divisions", "projection=_id,name", 0),
@@ -95,7 +99,7 @@ export default async function ProgramRegistrationPage() {
       throw new Error("Unauthorized access");
     }
 
-    // Form fields for Program Committee (can select any team)
+    // Forms
     const programCommitteeFormFields = [
       {
         name: "divisionId",
@@ -114,9 +118,7 @@ export default async function ProgramRegistrationPage() {
         options: formatOptions(programs),
         required: true,
         placeholder: "Select program",
-        filter: {
-          dependentField: "divisionId",
-        },
+        filter: { dependentField: "divisionId" },
         readOnlyOnEdit: true,
       },
       {
@@ -140,15 +142,15 @@ export default async function ProgramRegistrationPage() {
           minLength: 1,
           minLengthMessage: "At least one participant must be selected",
         },
-        filter: {
-          dependentField: "teamId",
-        },
-        helpText: "Select participants from the chosen team",
+        filters: [
+          { dependentField: "teamId" },
+          { dependentField: "divisionId" },
+        ],
+        helpText: "Select participants",
         showSelectedCount: true,
       },
     ];
 
-    // Form fields for Program Leader (team is pre-selected)
     const programLeaderFormFields = [
       {
         name: "divisionId",
@@ -167,9 +169,7 @@ export default async function ProgramRegistrationPage() {
         options: formatOptions(programs),
         required: true,
         placeholder: "Select program",
-        filter: {
-          dependentField: "divisionId",
-        },
+        filter: { dependentField: "divisionId" },
         readOnlyOnEdit: true,
       },
       {
@@ -179,32 +179,56 @@ export default async function ProgramRegistrationPage() {
         inputType: "multiSelect",
         options: formatOptions(participants),
         required: true,
-        placeholder: "Select participants from your team",
+        placeholder: "Select participants",
         validators: {
           minLength: 1,
           minLengthMessage: "At least one participant must be selected",
         },
         showSelectedCount: true,
+        filters: [{ dependentField: "divisionId" }],
       },
     ];
+
+    const filterConfig = [
+      {
+        id: "programId",
+        label: "Program",
+        inputType: "select",
+        options: formatOptions(programs),
+      },
+      {
+        id: "teamId",
+        label: "Team",
+        inputType: "select",
+        options: formatOptions(teams),
+      },
+      {
+        id: "divisionId",
+        label: "Division",
+        inputType: "select",
+        options: formatOptions(divisions),
+      },
+    ];
+
+    const filteredFilterConfig = filterConfig.filter((filter) => {
+      if (activeRole === "Program Committee") {
+        return true;
+      } else if (activeRole === "Program Leader") {
+        // Only show programId and teamId for Program Leader
+        return filter.id !== "teamId";
+      }
+    });
 
     const formFields =
       activeRole === "Program Committee"
         ? programCommitteeFormFields
         : programLeaderFormFields;
 
-    const filteredColumnsConfig = columnsConfig.filter((column) => {
-      if (activeRole === "Program Committee") {
-        return true;
-      } else {
-        return column.id !== "select";
-      }
-    });
-
-    // Build query parameters for fetching registrations
-    let registrationQuery = "";
-    if (activeRole === "Program Leader" && teams.length > 0) {
-      registrationQuery = `teamId=${teams[0]._id}`;
+    let apiFilters = {};
+    if (activeRole === "Program Leader" && (teams?.length || 0) > 0) {
+      apiFilters = {
+        teamId: teams[0]._id,
+      };
     }
 
     return (
@@ -221,7 +245,7 @@ export default async function ProgramRegistrationPage() {
           apiEndpoint="program-registration"
           resource="registrations"
           initialData={[]}
-          columnsConfig={filteredColumnsConfig}
+          columnsConfig={columnsConfig}
           formFields={formFields}
           apiKey={apiKey}
           createFormTitle="Register for Program"
@@ -230,32 +254,34 @@ export default async function ProgramRegistrationPage() {
           createSuccessMessage={statusMessages.create}
           editSuccessMessage={statusMessages.edit}
           deleteSuccessMessage={statusMessages.delete}
-          filterConfig={filterConfig}
+          filterConfig={filteredFilterConfig}
           limit={20}
           readOnly={
-            activeRole !== "Program Committee" &&
-            activeRole !== "Program Leader"
+            !(
+              activeRole === "Program Committee" ||
+              activeRole === "Program Leader"
+            )
           }
           additionalProps={{
-            userId: userId,
-            activeRole: activeRole,
+            userId: user?.userId,
+            activeRole,
             defaultTeamId:
               activeRole === "Program Leader" && teams.length > 0
                 ? teams[0]._id
                 : null,
           }}
-          queryParams={registrationQuery}
+          apiFilters={apiFilters}
         />
       </>
     );
   } catch (error) {
-    console.error("Error loading program registration page:", error.message);
+    console.error("Error loading program registration page:", error?.message);
     return (
       <ErrorPage
         statusCode={500}
         title="Access Error"
         description={
-          error.message ||
+          error?.message ||
           "An unexpected error occurred while processing your request."
         }
       />

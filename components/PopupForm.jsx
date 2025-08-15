@@ -62,47 +62,103 @@ function FieldRenderer({ field, form, apiKey, data }) {
   const depValue = useWatch({ control: form.control, name: depName }); // hook 1
   const thisValue = useWatch({ control: form.control, name: field.name }); // hook 2
 
-  // compute mergedOptions in a useMemo (hook 3)
+  // Watch multiple dependent fields for filters array
+  const multipleFilters = field.filters || (field.filter ? [field.filter] : []);
+  const watchedValues = {};
+
+  // Watch all dependent fields (hook 3 - but called consistently)
+  multipleFilters.forEach((filter) => {
+    if (filter.dependentField) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      watchedValues[filter.dependentField] = useWatch({
+        control: form.control,
+        name: filter.dependentField,
+      });
+    }
+  });
+
+  // compute mergedOptions in a useMemo (hook 4)
   const mergedOptions = React.useMemo(() => {
-    if (!field.filter) return field.options ?? [];
+    // Handle legacy single filter
+    if (field.filter && !field.filters) {
+      const dependentFieldName = field.filter.dependentField;
+      const key = field.filter.key;
+      const valueToMatch = depValue;
 
-    const dependentFieldName = field.filter.dependentField;
-    const key = field.filter.key;
-    const valueToMatch = depValue;
+      const filteredOptions = (field.options || []).filter((option) => {
+        if (!valueToMatch) return true;
+        if (key) {
+          return option?.[dependentFieldName]?.[key] === valueToMatch;
+        }
+        return option?.[dependentFieldName] === valueToMatch;
+      });
 
-    const filteredOptions = (field.options || []).filter((option) => {
-      if (!valueToMatch) return true;
-      if (key) {
-        return option?.[dependentFieldName]?.[key] === valueToMatch;
-      }
-      return option?.[dependentFieldName] === valueToMatch;
-    });
+      const selectedOptions = (field.options || []).filter((option) =>
+        Array.isArray(thisValue)
+          ? thisValue.includes(option.value)
+          : thisValue === option.value
+      );
 
-    const selectedOptions = (field.options || []).filter((option) =>
-      Array.isArray(thisValue)
-        ? thisValue.includes(option.value)
-        : thisValue === option.value
-    );
+      return [
+        ...filteredOptions,
+        ...selectedOptions.filter(
+          (opt) => !filteredOptions.some((f) => f.value === opt.value)
+        ),
+      ];
+    }
 
-    return [
-      ...filteredOptions,
-      ...selectedOptions.filter(
-        (opt) => !filteredOptions.some((f) => f.value === opt.value)
-      ),
-    ];
+    // Handle multiple filters
+    if (field.filters && field.filters.length > 0) {
+      let filteredOptions = field.options || [];
+
+      // Apply each filter sequentially
+      field.filters.forEach((filter) => {
+        const dependentFieldName = filter.dependentField;
+        const key = filter.key;
+        const valueToMatch = watchedValues[dependentFieldName];
+
+        if (valueToMatch) {
+          filteredOptions = filteredOptions.filter((option) => {
+            if (key) {
+              return option?.[dependentFieldName]?.[key] === valueToMatch;
+            }
+            return option?.[dependentFieldName] === valueToMatch;
+          });
+        }
+      });
+
+      // Always include currently selected options to prevent them from disappearing
+      const selectedOptions = (field.options || []).filter((option) =>
+        Array.isArray(thisValue)
+          ? thisValue.includes(option.value)
+          : thisValue === option.value
+      );
+
+      return [
+        ...filteredOptions,
+        ...selectedOptions.filter(
+          (opt) => !filteredOptions.some((f) => f.value === opt.value)
+        ),
+      ];
+    }
+
+    // No filters - return all options
+    return field.options ?? [];
   }, [
     field.options,
     field.filter,
+    field.filters,
     depValue,
     thisValue,
+    watchedValues,
     field.filter?.key,
     field.filter?.dependentField,
   ]);
 
-  // keep stable reference for options (hook 4)
+  // keep stable reference for options (hook 5)
   const stableRef = React.useRef(mergedOptions);
 
-  // update stableRef in an effect (hook 5)
+  // update stableRef in an effect (hook 6)
   React.useEffect(() => {
     const prev = stableRef.current;
     if (!Array.isArray(prev) || prev.length !== mergedOptions.length) {
@@ -114,7 +170,8 @@ function FieldRenderer({ field, form, apiKey, data }) {
     // if same, keep previous reference (stability)
   }, [mergedOptions]);
 
-  const stableOptions = field.filter ? mergedOptions : stableRef.current;
+  const stableOptions =
+    field.filter || field.filters ? mergedOptions : stableRef.current;
 
   // 2) Now that all hooks ran, we can early-return for hidden fields
   if (data && field.hideOnEdit) return null;
