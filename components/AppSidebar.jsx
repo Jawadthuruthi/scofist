@@ -26,6 +26,7 @@ import {
   LayoutGrid,
   UserSquare2,
   ListChecks,
+  FileType,
 } from "lucide-react";
 
 import {
@@ -252,6 +253,12 @@ const items = [
     url: "/dashboard/program-registration",
     allowedRoles: ["Program Leader", "Program Committee"],
     icon: ClipboardList,
+  },
+  {
+    title: "Code Letters",
+    url: "/dashboard/code-letters",
+    allowedRoles: ["Program Committee"],
+    icon: FileType,
   },
   {
     title: "Settings",

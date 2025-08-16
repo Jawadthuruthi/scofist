@@ -79,6 +79,14 @@ export async function GET(request) {
       participants: (reg.participants || []).map((p) =>
         p?.id?._id ? toId(p.id._id) : toId(p.id)
       ),
+      participantsDetails: (reg.participants || []).map((p) => ({
+        id: p.id?._id || p.id,
+        name: p.id?.name || "Unknown",
+        chestNumber: p.id?.chestNumber,
+        totalMarks: p.totalMarks,
+        codeLetter: p.codeLetter || "",
+        marksByJudges: p.marksByJudges || [],
+      })),
       participantsCount: reg.participants?.length || 0,
       participantNames: (reg.participants || []).map((p) =>
         p?.id?.chestNumber
