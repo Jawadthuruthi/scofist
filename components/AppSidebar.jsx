@@ -267,6 +267,12 @@ const items = [
     icon: FileSpreadsheet,
   },
   {
+    title: "Evaluation",
+    url: "/dashboard/evaluation",
+    allowedRoles: ["Program Committee"],
+    icon: ListChecks,
+  },
+  {
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,

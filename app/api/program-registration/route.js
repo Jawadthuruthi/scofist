@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import ProgramRegistration from "@/models/ProgramRegistration";
 import Program from "@/models/Program";
-import Division from "@/models/Division";
 import Participant from "@/models/Participant";
 import Team from "@/models/Team";
 
@@ -26,10 +25,13 @@ export async function GET(request) {
     const teamId = searchParams.get("teamId");
     const status = searchParams.get("status"); // "Registered" | "Evaluated"
     const divisionId = searchParams.get("divisionId");
+    const isCodeLetter = searchParams.get("isCodeLetter") === "true";
 
     const query = {};
     if (programId) query.programId = programId;
     if (teamId) query.teamId = teamId;
+    if (isCodeLetter)
+      query["participants.codeLetter"] = { $exists: true, $ne: "" };
 
     // Fetch all results that match basic query, then filter by division/status in memory
     // (accurate pagination after filtering)

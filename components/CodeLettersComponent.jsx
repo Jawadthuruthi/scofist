@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -32,6 +32,7 @@ const CodeLettersComponent = ({
 }) => {
   const [programs, setPrograms] = useState([]);
   const [filteredPrograms, setFilteredPrograms] = useState([]);
+  const [selectedProgram, setSelectedProgram] = useState("");
   const [selectedDivision, setSelectedDivision] = useState("");
   const [saving, setSaving] = useState(false);
   const [changes, setChanges] = useState({});
@@ -143,16 +144,38 @@ const CodeLettersComponent = ({
     }
   }, [fetchRegistrationsQuery.data, processRegistrationsToPrograms]);
 
+  const programsData = useMemo(() => {
+    if (!fetchRegistrationsQuery?.data?.registrations) return [];
+
+    const seen = new Set();
+    return fetchRegistrationsQuery.data.registrations
+      .map((program) => ({
+        _id: program.programId,
+        name: program.programName,
+        divisionId: program.divisionId,
+      }))
+      .filter(
+        (program) =>
+          (!selectedDivision || program.divisionId === selectedDivision) &&
+          !seen.has(program._id) &&
+          seen.add(program._id)
+      );
+  }, [fetchRegistrationsQuery.data, selectedDivision]);
+
   // Filter programs by division
   useEffect(() => {
-    if (selectedDivision) {
+    if (selectedDivision || selectedProgram) {
       setFilteredPrograms(
-        programs.filter((program) => program.divisionId === selectedDivision)
+        programs.filter(
+          (program) =>
+            (!selectedDivision || program.divisionId === selectedDivision) &&
+            (!selectedProgram || program._id === selectedProgram)
+        )
       );
     } else {
       setFilteredPrograms(programs);
     }
-  }, [selectedDivision, programs]);
+  }, [selectedDivision, selectedProgram, programs]);
 
   // Handle code letter change for individual participant
   const handleCodeLetterChange = (participantUniqueId, value) => {
@@ -240,8 +263,10 @@ const CodeLettersComponent = ({
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Participant Code Letters - ${
-      selectedDivision
-        ? divisions.find((d) => d._id === selectedDivision)?.name
+      selectedDivision && selectedProgram
+        ? divisions.find((d) => d._id === selectedDivision)?.name +
+          " - " +
+          programs.find((p) => p._id === selectedProgram)?.programName
         : "All Divisions"
     }`,
     pageStyle: `
@@ -262,6 +287,7 @@ const CodeLettersComponent = ({
 
   const clearFilter = () => {
     setSelectedDivision("");
+    setSelectedProgram("");
   };
 
   const hasUnsavedChanges = Object.keys(changes).length > 0;
@@ -272,59 +298,86 @@ const CodeLettersComponent = ({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-2 sm:p-4 md:p-6">
       {/* Controls */}
-      <div className="flex items-center justify-between no-print">
-        <div className="flex items-center gap-4">
+      <div className="no-print">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 flex-shrink-0" />
+              <Select
+                value={selectedDivision}
+                onValueChange={setSelectedDivision}
+              >
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="All Divisions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>All Programs</SelectItem>
+                  {divisions.map((division) => (
+                    <SelectItem key={division._id} value={division._id}>
+                      {division.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={selectedProgram}
+                onValueChange={setSelectedProgram}
+              >
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="All Programs" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>All Programs</SelectItem>
+                  {programsData.map((program) => (
+                    <SelectItem key={program._id} value={program._id}>
+                      {program.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(selectedDivision || selectedProgram) && (
+                <Button variant="outline" size="sm" onClick={clearFilter}>
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+            <div className="text-sm text-muted-foreground flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              {filteredPrograms.length} programs • {totalParticipants}{" "}
+              participants
+            </div>
+          </div>
+
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            <Select
-              value={selectedDivision}
-              onValueChange={setSelectedDivision}
+            <Button
+              variant="outline"
+              onClick={handlePrint}
+              disabled={filteredPrograms.length === 0}
+              className="flex-1 sm:flex-none"
             >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="All Divisions" />
-              </SelectTrigger>
-              <SelectContent>
-                {divisions.map((division) => (
-                  <SelectItem key={division._id} value={division._id}>
-                    {division.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedDivision && (
-              <Button variant="outline" size="sm" onClick={clearFilter}>
-                <X className="h-3 w-3" />
+              <Printer className="mr-2 h-4 w-4" />
+              Print
+            </Button>
+            {hasUnsavedChanges && (
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {saving
+                    ? "Saving..."
+                    : `Save (${Object.keys(changes).length})`}
+                </span>
+                <span className="sm:hidden">
+                  {saving ? "Saving..." : "Save"}
+                </span>
               </Button>
             )}
           </div>
-          <div className="text-sm text-muted-foreground">
-            <Users className="inline h-4 w-4 mr-1" />
-            {filteredPrograms.length} programs • {totalParticipants}{" "}
-            participants
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handlePrint}
-            disabled={filteredPrograms.length === 0}
-          >
-            <Printer className="mr-2 h-4 w-4" />
-            Print
-          </Button>
-          {hasUnsavedChanges && (
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {saving ? "Saving..." : `Save (${Object.keys(changes).length})`}
-            </Button>
-          )}
         </div>
       </div>
 
@@ -343,20 +396,20 @@ const CodeLettersComponent = ({
             {filteredPrograms.map((program, programIndex) => (
               <div key={program._id} className="program-section">
                 {/* Program Header */}
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
-                  <div className="flex items-center justify-between">
+                <div className="mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg border">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-0">
                         {program.programName}
                       </h3>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
-                        <span className="capitalize">
+                      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                        <span className="capitalize whitespace-nowrap">
                           <strong>Type:</strong> {program.programType}
                         </span>
-                        <span className="capitalize">
+                        <span className="capitalize whitespace-nowrap">
                           <strong>Category:</strong> {program.programCategory}
                         </span>
-                        <span>
+                        <span className="whitespace-nowrap">
                           <strong>Division:</strong> {program.divisionName}
                         </span>
                       </div>
@@ -367,84 +420,92 @@ const CodeLettersComponent = ({
                   </div>
                 </div>
 
-                {/* Participants Table */}
-                <div className="rounded-md border overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12 text-center">Sl.</TableHead>
-                        <TableHead>Participant Name</TableHead>
-                        <TableHead className="w-32">Team</TableHead>
-                        <TableHead className="w-24 text-center">
-                          Chest No.
-                        </TableHead>
-                        <TableHead className="w-32 text-center">
-                          Code Letter
-                        </TableHead>
-                        <TableHead className="w-20 text-center hidden print:table-cell">
-                          Sign
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {program.participants.length > 0 ? (
-                        program.participants
-                          ?.sort((a, b) => a.chestNumber - b.chestNumber)
-                          .map((participant, index) => (
-                            <TableRow key={participant.uniqueId}>
-                              <TableCell className="text-center font-medium">
-                                {index + 1}
-                              </TableCell>
-                              <TableCell className="font-medium">
-                                {participant.name || "N/A"}
-                              </TableCell>
-                              <TableCell>
-                                {participant.teamName || "N/A"}
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {participant.chestNumber || "-"}
-                              </TableCell>
-
-                              <TableCell className="text-center">
-                                <div className="hidden print:block text-center  font-bold text-lg">
-                                  {participant.codeLetter || ""}
-                                </div>
-                                {participant.isEvaluated ? (
-                                  <span className="no-print  font-medium text-red-600">
-                                    {participant.codeLetter || "-"}
-                                  </span>
-                                ) : (
-                                  <Input
-                                    value={participant.codeLetter || ""}
-                                    onChange={(e) =>
-                                      handleCodeLetterChange(
-                                        participant.uniqueId,
-                                        e.target.value.toUpperCase()
-                                      )
-                                    }
-                                    className="no-print w-24 text-center  text-sm"
-                                    maxLength={5}
-                                    placeholder="Code"
-                                  />
-                                )}
-                              </TableCell>
-                              <TableCell className="text-center hidden print:table-cell">
-                                <div className=" h-6 w-16 mx-auto"></div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                      ) : (
+                {/* Participants Table with Horizontal Scroll */}
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-full">
+                      <TableHeader>
                         <TableRow>
-                          <TableCell
-                            colSpan={7}
-                            className="text-center py-6 text-muted-foreground"
-                          >
-                            No participants found for this program
-                          </TableCell>
+                          <TableHead className="w-12 text-center whitespace-nowrap border-t border-r border-border">
+                            Sl.
+                          </TableHead>
+                          <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border">
+                            Participant Name
+                          </TableHead>
+                          <TableHead className="min-w-[120px] whitespace-nowrap border-t border-r border-border">
+                            Team
+                          </TableHead>
+                          <TableHead className="w-24 text-center whitespace-nowrap border-t border-r border-border">
+                            Chest No.
+                          </TableHead>
+                          <TableHead className="w-32 text-center whitespace-nowrap border-t border-r border-border">
+                            Code Letter
+                          </TableHead>
+                          <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border hidden print:table-cell">
+                            Sign
+                          </TableHead>
                         </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {program.participants.length > 0 ? (
+                          program.participants
+                            ?.sort((a, b) => a.chestNumber - b.chestNumber)
+                            .map((participant, index) => (
+                              <TableRow key={participant.uniqueId}>
+                                <TableCell className="text-center font-medium  border-t border-r border-border">
+                                  {index + 1}
+                                </TableCell>
+                                <TableCell className="font-medium  border-t border-r border-border">
+                                  {participant.name || "N/A"}
+                                </TableCell>
+                                <TableCell className=" border-t border-r border-border">
+                                  {participant.teamName || "N/A"}
+                                </TableCell>
+                                <TableCell className="text-center  border-t border-r border-border">
+                                  {participant.chestNumber || "-"}
+                                </TableCell>
+
+                                <TableCell className="text-center border-t border-r border-border">
+                                  <div className="hidden print:block text-center font-bold text-lg whitespace-nowrap">
+                                    {participant.codeLetter || ""}
+                                  </div>
+                                  {participant.isEvaluated ? (
+                                    <span className="no-print font-medium text-red-600 whitespace-nowrap">
+                                      {participant.codeLetter || "-"}
+                                    </span>
+                                  ) : (
+                                    <Input
+                                      value={participant.codeLetter || ""}
+                                      onChange={(e) =>
+                                        handleCodeLetterChange(
+                                          participant.uniqueId,
+                                          e.target.value.toUpperCase()
+                                        )
+                                      }
+                                      className="no-print w-20 sm:w-24 text-center text-sm mx-auto"
+                                      maxLength={5}
+                                      placeholder="Code"
+                                    />
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-center hidden print:table-cell whitespace-nowrap border-t border-r border-border">
+                                  <div className="h-6 w-16 mx-auto"></div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                        ) : (
+                          <TableRow>
+                            <TableCell
+                              colSpan={7}
+                              className="text-center py-6 text-muted-foreground"
+                            >
+                              No participants found for this program
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               </div>
             ))}
@@ -461,21 +522,37 @@ const CodeLettersComponent = ({
         )}
       </div>
 
-      {/* Unsaved Changes Indicator */}
+      {/* Mobile Floating Save Button */}
       {hasUnsavedChanges && (
-        <div className="no-print fixed bottom-4 right-4 bg-yellow-100 border border-yellow-300 rounded-lg p-4 shadow-lg max-w-sm">
-          <p className="text-sm text-yellow-800 mb-2">
-            You have {Object.keys(changes).length} unsaved changes
-          </p>
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            size="sm"
-            className="bg-green-600 hover:bg-green-700 w-full"
-          >
-            <Save className="mr-1 h-3 w-3" />
-            {saving ? "Saving..." : "Save All"}
-          </Button>
+        <div className="no-print fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-auto z-50">
+          <div className="sm:hidden">
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              size="lg"
+              className="bg-green-600 hover:bg-green-700 w-full shadow-lg"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {saving
+                ? "Saving..."
+                : `Save Changes (${Object.keys(changes).length})`}
+            </Button>
+          </div>
+
+          <div className="hidden sm:block bg-yellow-100 border border-yellow-300 rounded-lg p-4 shadow-lg max-w-sm">
+            <p className="text-sm text-yellow-800 mb-2">
+              You have {Object.keys(changes).length} unsaved changes
+            </p>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 w-full"
+            >
+              <Save className="mr-1 h-3 w-3" />
+              {saving ? "Saving..." : "Save All"}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -488,6 +565,13 @@ const CodeLettersComponent = ({
           .program-section {
             page-break-inside: avoid;
             margin-bottom: 30px;
+          }
+        }
+
+        /* Mobile table scrolling styles */
+        @media (max-width: 768px) {
+          .overflow-x-auto {
+            -webkit-overflow-scrolling: touch;
           }
         }
       `}</style>
