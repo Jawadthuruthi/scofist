@@ -261,6 +261,12 @@ const items = [
     icon: FileType,
   },
   {
+    title: "Grade Scheme",
+    url: "/dashboard/grade-scheme",
+    allowedRoles: ["Program Committee"],
+    icon: FileSpreadsheet,
+  },
+  {
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,

@@ -1,6 +1,6 @@
 import { Schema, model, models } from "mongoose";
 
-const pointSchemeSchema = new Schema(
+const GradeSchemeSchema = new Schema(
   {
     markRange: {
       type: String,
@@ -30,6 +30,6 @@ const pointSchemeSchema = new Schema(
   }
 );
 
-const PointScheme =
-  models.PointScheme || model("PointScheme", pointSchemeSchema);
-export default PointScheme;
+const GradeScheme =
+  models.GradeScheme || model("GradeScheme", GradeSchemeSchema);
+export default GradeScheme;
