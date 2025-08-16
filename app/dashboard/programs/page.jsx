@@ -33,13 +33,6 @@ const columnsConfig = [
   { accessorKey: "pointScheme", header: "Point Scheme" },
 ];
 
-const filterConfig = [
-  { id: "name", label: "Program Name" },
-  { id: "type", label: "Type" },
-  { id: "category", label: "Category" },
-  { id: "divisionId", label: "Division" },
-];
-
 const statusMessages = {
   create: "Program added successfully!",
   edit: "Program updated successfully!",
@@ -125,6 +118,34 @@ export default async function ProgramsPage() {
         ],
         required: true,
         placeholder: "Select point scheme",
+      },
+    ];
+
+    const filterConfig = [
+      { id: "name", label: "Program Name" },
+      {
+        id: "type",
+        label: "Type",
+        inputType: "select",
+        options: [
+          { value: "Group", label: "Group" },
+          { value: "Individual", label: "Individual" },
+        ],
+      },
+      {
+        id: "category",
+        label: "Category",
+        inputType: "select",
+        options: [
+          { value: "Stage", label: "Stage" },
+          { value: "Off-Stage", label: "Off-Stage" },
+        ],
+      },
+      {
+        id: "divisionId",
+        label: "Division",
+        inputType: "select",
+        options: formatOptions(divisions),
       },
     ];
 

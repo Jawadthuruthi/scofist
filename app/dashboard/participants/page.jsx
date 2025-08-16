@@ -36,21 +36,6 @@ const columnsConfig = [
     header: "Programs Count",
     type: ["number"],
   },
-  {
-    accessorKey: "stagePoints",
-    header: "Stage Points",
-    type: ["number"],
-  },
-  {
-    accessorKey: "offStagePoints",
-    header: "Off-Stage Points",
-    type: ["number"],
-  },
-  {
-    accessorKey: "totalPoints",
-    header: "Total Points",
-    type: ["number"],
-  },
 ];
 
 const statusMessages = {

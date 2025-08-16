@@ -117,14 +117,20 @@ export default async function DivisionsPage() {
         label: "Stage Events",
         type: "number",
         placeholder: "Number of stage events",
-        required: true,
+        conditionalRender: {
+          dependentField: "type",
+          expectedValue: "Primary",
+        },
       },
       {
         name: "offStageEvents",
         label: "Off-Stage Events",
         type: "number",
         placeholder: "Number of off-stage events",
-        required: true,
+        conditionalRender: {
+          dependentField: "type",
+          expectedValue: "Primary",
+        },
       },
       {
         name: "chestNumberRange",

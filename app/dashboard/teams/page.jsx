@@ -45,10 +45,7 @@ const columnsConfig = [
   },
 ];
 
-const filterConfig = [
-  { id: "name", label: "Team Name" },
-  { id: "leaderId", label: "Team Leader" },
-];
+const filterConfig = [{ id: "name", label: "Team Name" }];
 
 const statusMessages = {
   create: "Team added successfully!",
