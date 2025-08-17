@@ -2,6 +2,7 @@ import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import FormComponent from "@/components/FormComponent";
 import { fetchData } from "@/lib/utils";
+import { cookies } from "next/headers";
 
 const generalFormField = [
   {
@@ -91,8 +92,31 @@ const idCardFormField = [
   },
 ];
 
+const festivalFormField = [
+  {
+    name: "printHeader",
+    label: "Print Header",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/png"],
+    defaultValue: {},
+    minWidth: 2480,
+    minHeight: 200,
+  },
+  {
+    name: "registrationDeadline",
+    label: "Registration Deadline",
+    type: "date",
+    required: true,
+  },
+];
+
 export default async function SettingsPage() {
   try {
+    const cookiesStore = await cookies();
+    const activeRole = cookiesStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
 
     const data = await fetchData("settings", "", 0);
@@ -106,6 +130,10 @@ export default async function SettingsPage() {
       ...data.institution.contact,
     };
 
+    const festival = {
+      ...data.festival,
+    };
+
     const idCard = {
       ...data.idCard,
     };
@@ -114,30 +142,44 @@ export default async function SettingsPage() {
       <>
         <Header title="SETTINGS" subTitle="Customize System Behavior" />
         <div className="space-y-8">
-          <FormComponent
-            formFields={generalFormField}
-            apiKey={apiKey}
-            data={general}
-            resource="settings"
-            title="General"
-            description="Customize Your System Settings"
-          />
-          <FormComponent
-            formFields={institutionFormField}
-            apiKey={apiKey}
-            data={institution}
-            resource="settings"
-            title="Institution Profile"
-            description="Configure Your Institution Details"
-          />
-          <FormComponent
-            formFields={idCardFormField}
-            apiKey={apiKey}
-            data={idCard}
-            resource="settings"
-            title="ID Card"
-            description="Set Your ID Card Background"
-          />
+          {activeRole === "College Admin" && (
+            <>
+              <FormComponent
+                formFields={generalFormField}
+                apiKey={apiKey}
+                data={general}
+                resource="settings"
+                title="General"
+                description="Customize Your System Settings"
+              />
+              <FormComponent
+                formFields={institutionFormField}
+                apiKey={apiKey}
+                data={institution}
+                resource="settings"
+                title="Institution Profile"
+                description="Configure Your Institution Details"
+              />
+              <FormComponent
+                formFields={idCardFormField}
+                apiKey={apiKey}
+                data={idCard}
+                resource="settings"
+                title="ID Card"
+                description="Set Your ID Card Background"
+              />
+            </>
+          )}
+          {activeRole === "Program Committee" && (
+            <FormComponent
+              formFields={festivalFormField}
+              apiKey={apiKey}
+              data={festival}
+              resource="settings"
+              title="Festival Settings"
+              description="Configure Festival Details"
+            />
+          )}
         </div>
       </>
     );

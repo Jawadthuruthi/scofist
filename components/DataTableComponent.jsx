@@ -112,6 +112,7 @@ const DataTableComponent = ({
   enableDelete = false,
   editFormFields = [],
   additionalProps = {},
+  isFestival = false,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -617,6 +618,7 @@ const DataTableComponent = ({
           apiKey={apiKey}
           title={printTitle ? printTitle : resource}
           displayOnScreen={showLogo}
+          isFestival={isFestival}
         />
         <Table>
           <TableHeader className="sticky top-0 bg-background z-10">

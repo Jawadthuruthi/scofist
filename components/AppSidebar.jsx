@@ -276,7 +276,7 @@ const items = [
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,
-    allowedRoles: ["College Admin"],
+    allowedRoles: ["College Admin", "Program Committee"],
   },
 ];
 

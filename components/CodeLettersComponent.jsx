@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { Save, Printer, Filter, X, Loader, Users } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
+import PrintHeader from "./PrintHeader";
 
 const CodeLettersComponent = ({
   data = [],
@@ -383,6 +384,18 @@ const CodeLettersComponent = ({
 
       {/* Printable Content */}
       <div ref={printRef}>
+        {/* Header */}
+        <PrintHeader
+          title={`Participant Code Letters - ${
+            selectedDivision && selectedProgram
+              ? `${selectedDivision} - ${selectedProgram}`
+              : selectedDivision || selectedProgram
+                ? selectedDivision || selectedProgram
+                : "All Divisions"
+          }`}
+          apiKey={apiKey}
+          isFestival={true}
+        />
         {/* Program Tables */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">

@@ -200,7 +200,7 @@ const pages = [
   {
     title: "Settings",
     path: "/dashboard/settings",
-    allowedRoles: ["College Admin"],
+    allowedRoles: ["College Admin", "Program Committee"],
   },
 ];
 

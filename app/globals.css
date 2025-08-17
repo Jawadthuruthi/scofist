@@ -154,6 +154,7 @@
   @page {
     margin: 1rem;
   }
+
   body {
     background: white !important;
     font-family: "Montserrat", "Arial", sans-serif !important;
@@ -176,6 +177,11 @@
   .scrollable {
     max-height: 100% !important;
     overflow: visible !important;
+  }
+  img {
+    image-rendering: auto !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
 

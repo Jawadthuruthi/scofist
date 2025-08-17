@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
+import PrintHeader from "./PrintHeader";
 
 const EvaluationComponent = ({
   programs = [],
@@ -492,7 +493,7 @@ const EvaluationComponent = ({
       {/* Printable Content */}
       <div ref={printRef}>
         {/* Print Header */}
-
+        <PrintHeader title="Marks Sheet" apiKey={apiKey} isFestival={true} />
         {/* Program Tables */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">

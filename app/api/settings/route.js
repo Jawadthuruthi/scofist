@@ -54,6 +54,10 @@ export async function POST(req, res) {
         isWorkingDay: data.isWorkingDay,
         occasion: data.occasion,
       },
+      festival: {
+        printHeader: data.printHeader,
+        registrationDeadLine: data.registrationDeadline,
+      },
     };
 
     // Check if settings already exist
@@ -111,6 +115,10 @@ export async function PUT(req, res) {
       general: {
         isWorkingDay: data.isWorkingDay,
         occasion: data.occasion,
+      },
+      festival: {
+        printHeader: data.printHeader,
+        registrationDeadLine: data.registrationDeadline,
       },
     };
 

@@ -57,6 +57,24 @@ const SettingsSchema = new Schema(
         },
       },
     },
+    festival: {
+      printHeader: {
+        url: {
+          type: String,
+          trim: true,
+          validate: {
+            validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+            message: "Invalid URL format",
+          },
+        },
+        publicId: {
+          type: String,
+        },
+      },
+      registrationDeadline: {
+        type: Date,
+      },
+    },
   },
   { timestamps: true }
 );
