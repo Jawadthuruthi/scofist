@@ -30,8 +30,6 @@ export async function GET(request) {
     const query = {};
     if (programId) query.programId = programId;
     if (teamId) query.teamId = teamId;
-    if (isCodeLetter)
-      query["participants.codeLetter"] = { $exists: true, $ne: "" };
 
     // Fetch all results that match basic query, then filter by division/status in memory
     // (accurate pagination after filtering)
@@ -66,41 +64,55 @@ export async function GET(request) {
     const totalCount = filtered.length;
     const pageItems = filtered.slice(skip, skip + limit);
 
-    const transformedData = pageItems.map((reg, index) => ({
-      _id: reg._id,
-      serialNo: skip + index + 1,
-      programId: reg.programId._id,
-      programName: reg.programId.name,
-      programType: reg.programId.type,
-      programCategory: reg.programId.category,
-      maxParticipants: reg.programId.maxParticipants,
-      divisionId: reg.programId.divisionId?._id,
-      divisionName: reg.programId.divisionId?.name,
-      teamId: reg.teamId._id,
-      teamName: reg.teamId?.name || "N/A",
-      participants: (reg.participants || []).map((p) =>
-        p?.id?._id ? toId(p.id._id) : toId(p.id)
-      ),
-      participantsDetails: (reg.participants || []).map((p) => ({
-        id: p.id?._id || p.id,
-        name: p.id?.name || "Unknown",
-        chestNumber: p.id?.chestNumber,
-        totalMarks: p.totalMarks,
-        codeLetter: p.codeLetter || "",
-        marksByJudges: p.marksByJudges || [],
-      })),
-      participantsCount: reg.participants?.length || 0,
-      participantNames: (reg.participants || []).map((p) =>
-        p?.id?.chestNumber
-          ? `${p.id.chestNumber} - ${p.id?.name || "Unknown"}`
-          : p?.id?.name || "Unknown"
-      ),
-      status: (reg.participants || []).some((p) => (p.totalMarks || 0) > 0)
-        ? "Evaluated"
-        : "Registered",
-      createdAt: reg.createdAt,
-      updatedAt: reg.updatedAt,
-    }));
+    let transformedData = pageItems.map((reg, index) => {
+      const participants = isCodeLetter
+        ? (reg.participants || []).filter(
+            (p) => p.codeLetter && p.codeLetter.trim() !== ""
+          )
+        : reg.participants || [];
+
+      return {
+        _id: reg._id,
+        serialNo: skip + index + 1,
+        programId: reg.programId._id,
+        programName: reg.programId.name,
+        programType: reg.programId.type,
+        programCategory: reg.programId.category,
+        maxParticipants: reg.programId.maxParticipants,
+        divisionId: reg.programId.divisionId?._id,
+        divisionName: reg.programId.divisionId?.name,
+        teamId: reg.teamId._id,
+        teamName: reg.teamId?.name || "N/A",
+        participants: participants.map((p) =>
+          p?.id?._id ? toId(p.id._id) : toId(p.id)
+        ),
+        participantsDetails: participants.map((p) => ({
+          id: p.id?._id || p.id,
+          name: p.id?.name || "Unknown",
+          chestNumber: p.id?.chestNumber,
+          totalMarks: p.totalMarks,
+          codeLetter: p.codeLetter || "",
+          marksByJudges: p.marksByJudges || [],
+        })),
+        participantsCount: participants.length,
+        participantNames: participants.map((p) =>
+          p?.id?.chestNumber
+            ? `${p.id.chestNumber} - ${p.id?.name || "Unknown"}`
+            : p?.id?.name || "Unknown"
+        ),
+        status: participants.some((p) => (p.totalMarks || 0) > 0)
+          ? "Evaluated"
+          : "Registered",
+        createdAt: reg.createdAt,
+        updatedAt: reg.updatedAt,
+      };
+    });
+
+    if (isCodeLetter) {
+      transformedData = transformedData.filter(
+        (reg) => reg.participantsCount > 0
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -290,7 +302,11 @@ export async function POST(request) {
       // Add program to participants
       await Participant.updateMany(
         { _id: { $in: teamParticipants } },
-        { $addToSet: { programs: { id: programId, rank: 0, points: 0 } } }
+        {
+          $addToSet: {
+            programs: { id: programId, rank: 0, grade: "", points: 0 },
+          },
+        }
       );
     }
 
@@ -482,7 +498,11 @@ export async function PUT(request) {
       // Update participant program lists
       await Participant.updateMany(
         { _id: { $in: teamParticipants } },
-        { $addToSet: { programs: { id: program._id, rank: 0, points: 0 } } }
+        {
+          $addToSet: {
+            programs: { id: program._id, rank: 0, grade: "", points: 0 },
+          },
+        }
       );
     }
 

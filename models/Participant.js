@@ -55,6 +55,10 @@ const participantSchema = new Schema(
           default: 0,
           min: [0, "Rank must be a positive value"],
         },
+        grade: {
+          type: String,
+          trim: true,
+        },
         points: {
           type: Number,
           default: 0,

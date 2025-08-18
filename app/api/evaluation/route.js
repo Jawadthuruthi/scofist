@@ -131,7 +131,7 @@ export async function GET(request) {
   }
 }
 
-// ----------------------------- PUT - Update Marks -----------------------------
+// ----------------------------- PUT - Update Marks + Auto Generate Results -----------------------------
 export async function PUT(request) {
   try {
     await connectToDB();
@@ -161,6 +161,9 @@ export async function PUT(request) {
     // Get grade schemes for calculation
     const gradeSchemes = await GradeScheme.find().sort({ points: -1 });
 
+    // Keep track of programIds affected by updates
+    const affectedProgramIds = new Set();
+
     // Process updates - Update marks for specific participants
     const updatePromises = updates.map(async (update) => {
       const { registrationId, participantUpdates } = update;
@@ -171,6 +174,8 @@ export async function PUT(request) {
         throw new Error(`Registration not found: ${registrationId}`);
       }
 
+      affectedProgramIds.add(registration.programId.toString());
+
       // Update specific participants
       const updateOperations = {};
       Object.entries(participantUpdates).forEach(
@@ -179,19 +184,16 @@ export async function PUT(request) {
           if (index >= 0 && index < registration.participants.length) {
             const { marks, judgeIndex } = markData;
 
-            // Initialize marksByJudges array if it doesn't exist
             if (!registration.participants[index].marksByJudges) {
               registration.participants[index].marksByJudges = [];
             }
 
-            // Update marks by judge
             if (judgeIndex !== undefined && marks !== undefined) {
               updateOperations[
                 `participants.${index}.marksByJudges.${judgeIndex}`
               ] = marks;
             }
 
-            // Calculate total marks (average of all judges' marks)
             const currentMarks =
               registration.participants[index].marksByJudges || [];
             if (judgeIndex !== undefined) {
@@ -219,134 +221,84 @@ export async function PUT(request) {
     const results = await Promise.all(updatePromises);
     const successCount = results.filter((r) => r.modifiedCount > 0).length;
 
-    return NextResponse.json({
-      success: true,
-      message: `${successCount} registration(s) updated successfully`,
-      updatedCount: successCount,
-    });
-  } catch (error) {
-    console.error("Error updating marks:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: error.message || "Failed to update marks",
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// ----------------------------- POST - Generate Results -----------------------------
-export async function POST(request) {
-  try {
-    await connectToDB();
-    const body = await request.json();
-    const { programIds, userId, activeRole } = body;
-
-    // Only Program Committee can generate results
-    if (activeRole !== "Program Committee") {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Only Program Committee can generate results",
-        },
-        { status: 403 }
-      );
-    }
-
-    if (!Array.isArray(programIds) || programIds.length === 0) {
-      return NextResponse.json(
-        { success: false, message: "Program IDs are required" },
-        { status: 400 }
-      );
-    }
-
-    // Get grade schemes for calculation
-    const gradeSchemes = await GradeScheme.find().sort({ points: -1 });
-
-    const resultPromises = programIds.map(async (programId) => {
-      // Get all registrations for this program
-      const registrations = await ProgramRegistration.find({
-        programId,
-      }).populate("participants.id", "name age chestNumber");
-
-      if (registrations.length === 0) {
-        return { programId, message: "No registrations found" };
-      }
-
-      // Collect all participants with their marks
-      const allParticipants = [];
-      registrations.forEach((reg) => {
-        reg.participants.forEach((p) => {
-          if (p.totalMarks > 0) {
-            // Only include evaluated participants
-            allParticipants.push({
-              id: p.id._id,
-              codeLetter: p.codeLetter,
-              totalMarks: p.totalMarks,
-              participantDetails: p.id,
-            });
-          }
-        });
-      });
-
-      if (allParticipants.length === 0) {
-        return { programId, message: "No evaluated participants found" };
-      }
-
-      // Sort participants by total marks (descending)
-      allParticipants.sort((a, b) => b.totalMarks - a.totalMarks);
-
-      // Assign ranks and calculate grades/points
-      const participants = allParticipants.map((p, index) => {
-        const { grade, points } = calculateGrade(p.totalMarks, gradeSchemes);
-        return {
-          id: p.id,
-          codeLetter: p.codeLetter,
-          grade,
-          points,
-          rank: index + 1,
-        };
-      });
-
-      // Check if result already exists
-      let result = await Result.findOne({ programId });
-
-      if (result) {
-        // Update existing result
-        result.participants = participants;
-        result.isResultDeclared = false;
-        await result.save();
-      } else {
-        // Create new result
-        result = await Result.create({
+    // ----------------------------- Auto Generate Results -----------------------------
+    const resultPromises = Array.from(affectedProgramIds).map(
+      async (programId) => {
+        const registrations = await ProgramRegistration.find({
           programId,
-          participants,
-          isResultDeclared: false,
+        })
+          .populate("participants.id", "name age chestNumber")
+          .populate("programId", "pointScheme");
+
+        if (registrations.length === 0) return null;
+
+        const pointsScheme =
+          registrations[0].programId.pointScheme
+            ?.split(",")
+            .map((p) => parseInt(p)) || [];
+
+        const allParticipants = [];
+        registrations.forEach((reg) => {
+          reg.participants.forEach((p) => {
+            if (p.totalMarks > 0) {
+              allParticipants.push({
+                id: p.id._id,
+                codeLetter: p.codeLetter,
+                totalMarks: p.totalMarks,
+                participantDetails: p.id,
+              });
+            }
+          });
         });
+
+        if (allParticipants.length === 0) return null;
+
+        allParticipants.sort((a, b) => b.totalMarks - a.totalMarks);
+
+        const participants = allParticipants.map((p, index) => {
+          const { grade, points } = calculateGrade(p.totalMarks, gradeSchemes);
+          return {
+            id: p.id,
+            codeLetter: p.codeLetter,
+            grade,
+            points: points + (pointsScheme[index] ? pointsScheme[index] : 0),
+            rank: index + 1,
+          };
+        });
+
+        let result = await Result.findOne({ programId });
+        if (result) {
+          result.participants = participants;
+          result.isResultDeclared = false;
+          await result.save();
+        } else {
+          result = await Result.create({
+            programId,
+            participants,
+            isResultDeclared: false,
+          });
+        }
+
+        return result;
       }
+    );
 
-      return {
-        programId,
-        message: "Result generated successfully",
-        participantCount: participants.length,
-      };
-    });
-
-    const results = await Promise.all(resultPromises);
-    const successCount = results.filter((r) => r.participantCount > 0).length;
+    const generatedResults = (await Promise.all(resultPromises)).filter(
+      Boolean
+    );
 
     return NextResponse.json({
       success: true,
-      message: `Results generated for ${successCount} program(s)`,
-      results,
+      message: `${successCount} registration(s) updated and results regenerated`,
+      updatedCount: successCount,
+      generatedResultsCount: generatedResults.length,
     });
   } catch (error) {
-    console.error("Error generating results:", error);
+    console.error("Error updating marks & generating results:", error);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to generate results",
+        message: error.message || "Failed to update marks & generate results",
       },
       { status: 500 }
     );

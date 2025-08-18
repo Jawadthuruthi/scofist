@@ -273,6 +273,12 @@ const items = [
     icon: ListChecks,
   },
   {
+    title: "Results",
+    url: "/dashboard/results",
+    allowedRoles: ["Program Committee"],
+    icon: ListChecks,
+  },
+  {
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,
