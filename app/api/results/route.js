@@ -241,7 +241,7 @@ export async function PUT(request) {
   try {
     await connectToDB();
     const body = await request.json();
-    const { resultId, isResultDeclared, userId, activeRole, userName } = body;
+    const { resultId, isResultDeclared } = body;
 
     if (!resultId) {
       return NextResponse.json(
@@ -254,6 +254,10 @@ export async function PUT(request) {
     const result = await Result.findById(resultId).populate({
       path: "programId",
       select: "name type category divisionId",
+    });
+
+    const registrations = await ProgramRegistration.find({
+      programId: result.programId._id,
     });
 
     if (!result) {
@@ -394,6 +398,16 @@ export async function PUT(request) {
     // Update result declaration status
     result.isResultDeclared = newDeclarationStatus;
     await result.save();
+
+    await Promise.all(
+      registrations.map((registration) =>
+        ProgramRegistration.findByIdAndUpdate(
+          registration._id,
+          { isResultDeclared: newDeclarationStatus },
+          { new: true }
+        )
+      )
+    );
 
     return NextResponse.json({
       success: true,

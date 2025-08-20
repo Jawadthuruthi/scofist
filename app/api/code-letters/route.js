@@ -231,3 +231,51 @@ export async function PUT(request) {
     );
   }
 }
+
+export async function DELETE(req) {
+  try {
+    const data = await req.json();
+    const { programId } = data;
+
+    if (!programId) {
+      return NextResponse.json(
+        { success: false, message: "Program ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const registrations = await ProgramRegistration.find({
+      programId,
+    });
+
+    if (registrations.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "No registrations found for this program" },
+        { status: 404 }
+      );
+    }
+
+    await ProgramRegistration.updateMany(
+      { programId },
+      {
+        $set: {
+          "participants.$[].codeLetter": "",
+        },
+      }
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: "Code letters deleted successfully!",
+    });
+  } catch (error) {
+    console.error("Error deleting code letters:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message || "Failed to delete code letters",
+      },
+      { status: 500 }
+    );
+  }
+}

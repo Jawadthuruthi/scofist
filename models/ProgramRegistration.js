@@ -38,6 +38,10 @@ const programRegistrationSchema = new Schema(
         },
       },
     ],
+    isResultDeclared: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

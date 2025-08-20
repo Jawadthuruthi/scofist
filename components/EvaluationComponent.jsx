@@ -27,10 +27,22 @@ import {
   Loader,
   Users,
   FileText,
+  Trash2,
 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "./PrintHeader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
 
 const EvaluationComponent = ({
   programs = [],
@@ -53,9 +65,13 @@ const EvaluationComponent = ({
 
   // Use CRUD operations
   const { useFetchItems } = useCrud("program-registration", apiKey);
-  const { useUpdateItem: useMarksUpdate } = useCrud("evaluation", apiKey);
+  const { useUpdateItem: useMarksUpdate, useDeleteItem } = useCrud(
+    "evaluation",
+    apiKey
+  );
 
   const updateMarks = useMarksUpdate();
+  const deleteEvaluation = useDeleteItem();
 
   // Fetch registrations with program details
   const fetchRegistrationsQuery = useFetchItems(
@@ -65,7 +81,6 @@ const EvaluationComponent = ({
       ...(selectedDivision && { divisionId: selectedDivision }),
       ...(selectedProgram && { programId: selectedProgram }),
       isCodeLetter: true,
-      isResultDeclared: "false",
     },
     {
       retry: 2,
@@ -94,6 +109,7 @@ const EvaluationComponent = ({
         teamId,
         participantsDetails = [],
         status,
+        isResultDeclared,
       } = registration;
 
       if (!programMap.has(programId)) {
@@ -107,7 +123,7 @@ const EvaluationComponent = ({
           divisionId,
           divisionName,
           participants: [],
-          hasEvaluatedParticipants: false,
+          isResultDeclared,
         });
       }
 
@@ -134,10 +150,6 @@ const EvaluationComponent = ({
         };
 
         program.participants.push(participantData);
-
-        if ((participant.totalMarks || 0) > 0) {
-          program.hasEvaluatedParticipants = true;
-        }
       });
     });
 
@@ -327,6 +339,22 @@ const EvaluationComponent = ({
       toast.error(error.message || "Failed to save marks");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async (programId) => {
+    try {
+      await deleteEvaluation.mutateAsync({
+        data: {
+          programId,
+        },
+      });
+
+      await fetchRegistrationsQuery.refetch();
+      toast.success("Marks deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting marks:", error);
+      toast.error(error.message || "Failed to delete marks");
     }
   };
 
@@ -526,9 +554,44 @@ const EvaluationComponent = ({
                         </span>
                       </div>
                     </div>
-                    <div className="hidden print:block text-right text-sm text-foreground">
-                      Program{programIndex + 1}
-                    </div>
+
+                    {!program?.isResultDeclared && (
+                      <div className="flex items-center gap-2 no-print">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              disabled={deleteEvaluation.isPending}
+                            >
+                              {deleteEvaluation.isPending ? (
+                                <Loader className="animate-spin h-4 w-4" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Are you sure you want to delete this?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(program.programId)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -616,23 +679,31 @@ const EvaluationComponent = ({
                                     {participant.codeLetter || "-"}
                                   </TableCell>
                                   <TableCell className="text-center border-t border-r border-border no-print">
-                                    <div className="hidden print:block font-bold whitespace-nowrap  ">
-                                      {currentJudgeMarks || "___"}
-                                    </div>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      max="100"
-                                      value={currentJudgeMarks}
-                                      onChange={(e) =>
-                                        handleMarksChange(
-                                          participant.uniqueId,
-                                          e.target.value
-                                        )
-                                      }
-                                      className="no-print w-16 sm:w-20 text-center text-sm mx-auto"
-                                      placeholder="0-100"
-                                    />
+                                    {program.isResultDeclared ? (
+                                      <div className="font-bold whitespace-nowrap  ">
+                                        {currentJudgeMarks || "___"}
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <div className="hidden print:block font-bold whitespace-nowrap  ">
+                                          {currentJudgeMarks || "___"}
+                                        </div>
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          max="100"
+                                          value={currentJudgeMarks}
+                                          onChange={(e) =>
+                                            handleMarksChange(
+                                              participant.uniqueId,
+                                              e.target.value
+                                            )
+                                          }
+                                          className="no-print w-16 sm:w-20 text-center text-sm mx-auto"
+                                          placeholder="0-100"
+                                        />
+                                      </>
+                                    )}
                                   </TableCell>
                                   <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border no-print">
                                     {participant.averageMarks > 0 ? (

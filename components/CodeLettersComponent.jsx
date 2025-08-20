@@ -19,10 +19,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Save, Printer, Filter, X, Loader, Users } from "lucide-react";
+import { Save, Printer, Filter, X, Loader, Users, Trash2 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "./PrintHeader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
 
 const CodeLettersComponent = ({
   data = [],
@@ -43,12 +54,13 @@ const CodeLettersComponent = ({
 
   // Use CRUD operations
   const { useFetchItems } = useCrud("program-registration", apiKey);
-  const { useUpdateItem: useCodeLetterUpdate } = useCrud(
+  const { useUpdateItem: useCodeLetterUpdate, useDeleteItem } = useCrud(
     "code-letters",
     apiKey
   );
 
   const updateCodeLetters = useCodeLetterUpdate();
+  const deleteCodeLetter = useDeleteItem();
 
   // Fetch registrations with program details
   const fetchRegistrationsQuery = useFetchItems(
@@ -260,6 +272,22 @@ const CodeLettersComponent = ({
     }
   };
 
+  const handleDelete = async (programId) => {
+    try {
+      await deleteCodeLetter.mutateAsync({
+        data: {
+          programId,
+        },
+      });
+
+      await fetchRegistrationsQuery.refetch();
+      toast.success("Code letters deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting code letters:", error);
+      toast.error(error.message || "Failed to delete code letters");
+    }
+  };
+
   // Handle print
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -427,9 +455,43 @@ const CodeLettersComponent = ({
                         </span>
                       </div>
                     </div>
-                    <div className="hidden print:block text-right text-sm text-foreground">
-                      Program #{programIndex + 1}
-                    </div>
+                    {!program?.hasEvaluatedParticipants && (
+                      <div className="flex items-center gap-2 no-print">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              disabled={deleteCodeLetter.isPending}
+                            >
+                              {deleteCodeLetter.isPending ? (
+                                <Loader className="animate-spin h-4 w-4" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Are you sure you want to delete this?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(program.programId)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
                   </div>
                 </div>
 

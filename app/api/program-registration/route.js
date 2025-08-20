@@ -32,6 +32,7 @@ export async function GET(request) {
     const query = {};
     if (programId) query.programId = programId;
     if (teamId) query.teamId = teamId;
+    if (isResultDeclared) query.isResultDeclared = isResultDeclared === "true";
 
     // Fetch all results that match basic query, then filter by division/status in memory
     // (accurate pagination after filtering)
@@ -60,28 +61,6 @@ export async function GET(request) {
     } else if (status === "Registered") {
       filtered = filtered.filter((reg) =>
         reg.participants?.every((p) => (p.totalMarks || 0) === 0)
-      );
-    }
-
-    if (isResultDeclared === "true") {
-      const results = await Result.find({
-        programId: { $in: filtered.map((r) => r.programId._id) },
-        isResultDeclared: true,
-      });
-      filtered = filtered.filter(
-        (reg) =>
-          results?.length === 0 ||
-          results.some((r) => sameId(r.programId, reg.programId?._id))
-      );
-    } else if (isResultDeclared === "false") {
-      const results = await Result.find({
-        programId: { $in: filtered.map((r) => r.programId._id) },
-        isResultDeclared: false,
-      });
-      filtered = filtered.filter(
-        (reg) =>
-          results?.length === 0 ||
-          results.some((r) => sameId(r.programId, reg.programId?._id))
       );
     }
 
@@ -127,6 +106,7 @@ export async function GET(request) {
         status: participants.some((p) => (p.totalMarks || 0) > 0)
           ? "Evaluated"
           : "Registered",
+        isResultDeclared: reg.isResultDeclared,
         createdAt: reg.createdAt,
         updatedAt: reg.updatedAt,
       };
