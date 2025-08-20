@@ -65,6 +65,7 @@ const EvaluationComponent = ({
       ...(selectedDivision && { divisionId: selectedDivision }),
       ...(selectedProgram && { programId: selectedProgram }),
       isCodeLetter: true,
+      status: "Registered",
     },
     {
       retry: 2,
@@ -415,7 +416,7 @@ const EvaluationComponent = ({
 
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium whitespace-nowrap ">
-                Judge #:
+                Judge:
               </span>
               <Select
                 value={judgeNumber.toString()}
@@ -459,7 +460,7 @@ const EvaluationComponent = ({
 
             <div className="flex items-center gap-2">
               <Button
-                variant="outline"
+                variant="default"
                 onClick={handlePrint}
                 disabled={filteredRegistrations.length === 0}
                 className="flex-1 sm:flex-none"
@@ -507,13 +508,13 @@ const EvaluationComponent = ({
             {filteredRegistrations.map((program, programIndex) => (
               <div key={program._id} className="program-section">
                 {/* Program Header */}
-                <div className="mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg border">
+                <div className="mb-4 p-3 sm:p-4 bg-muted rounded-lg border">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div className="mb-2 sm:mb-0">
-                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+                      <h3 className="text-lg sm:text-xl font-semibold text-foreground">
                         {program.programName}
                       </h3>
-                      <div className="flex flex-wrap gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-gray-600">
+                      <div className="flex flex-wrap gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-foreground">
                         <span className="capitalize whitespace-nowrap">
                           <strong>Type:</strong> {program.programType}
                         </span>
@@ -525,8 +526,8 @@ const EvaluationComponent = ({
                         </span>
                       </div>
                     </div>
-                    <div className="hidden print:block text-right text-sm text-gray-600">
-                      Program #{programIndex + 1}
+                    <div className="hidden print:block text-right text-sm text-foreground">
+                      Program{programIndex + 1}
                     </div>
                   </div>
                 </div>
@@ -553,7 +554,7 @@ const EvaluationComponent = ({
                             Code Letter
                           </TableHead>
                           <TableHead className="w-28 text-center whitespace-nowrap border-t border-r border-border no-print">
-                            Judge #{judgeNumber} Marks
+                            Judge{judgeNumber} Marks
                           </TableHead>
                           <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border no-print">
                             Average
@@ -681,48 +682,6 @@ const EvaluationComponent = ({
                     </Table>
                   </div>
                 </div>
-
-                {/* Program Summary */}
-                {program.participants.length > 0 && (
-                  <div className="mt-4 p-3 bg-blue-50 rounded border no-print">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
-                      <div className="flex flex-wrap gap-4 sm:gap-6">
-                        <span>
-                          <strong>Total Participants:</strong>{" "}
-                          {program.participants.length}
-                        </span>
-                        <span>
-                          <strong>Evaluated:</strong>{" "}
-                          {
-                            program.participants.filter((p) => p.isEvaluated)
-                              .length
-                          }
-                        </span>
-                        <span>
-                          <strong>Pending:</strong>{" "}
-                          {
-                            program.participants.filter((p) => !p.isEvaluated)
-                              .length
-                          }
-                        </span>
-                      </div>
-                      <div>
-                        <strong>Average Score:</strong>{" "}
-                        {program.participants.filter((p) => p.isEvaluated)
-                          .length > 0
-                          ? Math.round(
-                              program.participants
-                                .filter((p) => p.isEvaluated)
-                                .reduce((sum, p) => sum + p.averageMarks, 0) /
-                                program.participants.filter(
-                                  (p) => p.isEvaluated
-                                ).length
-                            )
-                          : 0}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -737,26 +696,6 @@ const EvaluationComponent = ({
             </p>
           </div>
         )}
-      </div>
-
-      {/* Grade Schemes Reference - Mobile Optimized */}
-      <div className="no-print mt-8">
-        <h3 className="text-lg font-semibold mb-4">Grade Scheme Reference</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {gradeSchemes.map((scheme) => (
-            <div key={scheme._id} className="p-3 border rounded-lg bg-gray-50">
-              <div className="text-center">
-                <div className="text-lg font-bold text-blue-600">
-                  {scheme.grade}
-                </div>
-                <div className="text-sm text-gray-600">{scheme.markRange}</div>
-                <div className="text-xs text-gray-500">
-                  {scheme.points} points
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Mobile Floating Save Button */}

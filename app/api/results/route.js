@@ -74,7 +74,7 @@ export async function GET(request) {
       if (divisionId && (!division || division._id.toString() !== divisionId)) {
         return false;
       }
-      if (type && program.type !== type) {
+      if (type && program.category !== type) {
         return false;
       }
       if (category && program.category !== category) {
@@ -89,7 +89,7 @@ export async function GET(request) {
       _id: result._id,
       programId: result.programId._id,
       programName: result.programId.name,
-      programType: result.programId.type,
+      programCategory: result.programId.category,
       programCategory: result.programId.category,
       pointScheme: result.programId.pointScheme,
       divisionId: result.programId.divisionId?._id,
@@ -278,7 +278,8 @@ export async function PUT(request) {
         async (participantResult) => {
           const participantId = participantResult.id;
           const programId = result.programId._id;
-          const programType = result.programId.type; // 'stage' or 'off-stage'
+          const programCategory = result.programId.category;
+          const programType = result.programId.type;
 
           // Update participant's program entry
           const participant = await Participant.findById(participantId);
@@ -302,10 +303,13 @@ export async function PUT(request) {
             }
 
             // Update stage/off-stage points
-            if (programType === "stage") {
+            if (programCategory === "Stage" && programType === "Individual") {
               participant.stagePoints =
                 (participant.stagePoints || 0) + participantResult.points;
-            } else {
+            } else if (
+              programCategory === "Off-Stage" &&
+              programType === "Individual"
+            ) {
               participant.offStagePoints =
                 (participant.offStagePoints || 0) + participantResult.points;
             }
@@ -315,7 +319,7 @@ export async function PUT(request) {
             // Update team points
             const team = await Team.findById(participant.teamId);
             if (team) {
-              if (programType === "stage") {
+              if (programCategory === "Stage") {
                 team.stagePoints =
                   (team.stagePoints || 0) + participantResult.points;
               } else {
@@ -335,7 +339,8 @@ export async function PUT(request) {
         async (participantResult) => {
           const participantId = participantResult.id;
           const programId = result.programId._id;
-          const programType = result.programId.type; // 'stage' or 'off-stage'
+          const programCategory = result.programId.category;
+          const programType = result.programId.type;
 
           // Update participant's program entry
           const participant = await Participant.findById(participantId);
@@ -346,12 +351,15 @@ export async function PUT(request) {
             );
 
             // Subtract stage/off-stage points
-            if (programType === "stage") {
+            if (programCategory === "Stage" && programType === "Individual") {
               participant.stagePoints = Math.max(
                 0,
                 (participant.stagePoints || 0) - participantResult.points
               );
-            } else {
+            } else if (
+              programCategory === "Off-Stage" &&
+              programType === "Individual"
+            ) {
               participant.offStagePoints = Math.max(
                 0,
                 (participant.offStagePoints || 0) - participantResult.points
@@ -363,7 +371,7 @@ export async function PUT(request) {
             // Update team points
             const team = await Team.findById(participant.teamId);
             if (team) {
-              if (programType === "stage") {
+              if (programCategory === "Stage") {
                 team.stagePoints = Math.max(
                   0,
                   (team.stagePoints || 0) - participantResult.points

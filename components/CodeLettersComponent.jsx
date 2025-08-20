@@ -353,7 +353,7 @@ const CodeLettersComponent = ({
 
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
+              variant="default"
               onClick={handlePrint}
               disabled={filteredPrograms.length === 0}
               className="flex-1 sm:flex-none"
@@ -409,13 +409,13 @@ const CodeLettersComponent = ({
             {filteredPrograms.map((program, programIndex) => (
               <div key={program._id} className="program-section">
                 {/* Program Header */}
-                <div className="mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg border">
+                <div className="mb-4 p-3 sm:p-4 bg-muted rounded-lg border">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-0">
+                      <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-0">
                         {program.programName}
                       </h3>
-                      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-foreground">
                         <span className="capitalize whitespace-nowrap">
                           <strong>Type:</strong> {program.programType}
                         </span>
@@ -427,7 +427,7 @@ const CodeLettersComponent = ({
                         </span>
                       </div>
                     </div>
-                    <div className="hidden print:block text-right text-sm text-gray-600">
+                    <div className="hidden print:block text-right text-sm text-foreground">
                       Program #{programIndex + 1}
                     </div>
                   </div>

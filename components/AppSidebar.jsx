@@ -27,6 +27,7 @@ import {
   UserSquare2,
   ListChecks,
   FileType,
+  Trophy,
 } from "lucide-react";
 
 import {
@@ -276,7 +277,20 @@ const items = [
     title: "Results",
     url: "/dashboard/results",
     allowedRoles: ["Program Committee"],
-    icon: ListChecks,
+    icon: Trophy,
+  },
+  {
+    title: "Reports",
+    icon: FileText,
+    allowedRoles: ["Program Leader", "Program Committee"],
+    subItems: [
+      {
+        title: "Participants Card",
+        url: "/dashboard/participants-card",
+        icon: UserCheck,
+        allowedRoles: ["Program Leader", "Program Committee"],
+      },
+    ],
   },
   {
     title: "Settings",

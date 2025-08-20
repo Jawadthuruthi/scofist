@@ -51,8 +51,6 @@ import PrintHeader from "./PrintHeader";
 const ResultComponent = ({
   programs = [],
   divisions = [],
-  gradeSchemes = [],
-  url,
   apiKey,
   additionalProps = {},
 }) => {
@@ -186,8 +184,8 @@ const ResultComponent = ({
       const newStatus = !currentStatus;
 
       await updateResult.mutateAsync({
-        id: resultId,
         data: {
+          resultId,
           isResultDeclared: newStatus,
           ...additionalProps,
         },
@@ -368,29 +366,15 @@ const ResultComponent = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={handlePrint}
-                disabled={filteredResults.length === 0}
-                className="flex-1 sm:flex-none"
-              >
-                <Printer className="mr-2 h-4 w-4" />
-                Print
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={() => fetchResultsQuery.refetch()}
-                disabled={isLoading}
-                className="flex-1 sm:flex-none"
-              >
-                <RefreshCw
-                  className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
-                />
-                Refresh
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              onClick={handlePrint}
+              disabled={filteredResults.length === 0}
+              className="flex-1 sm:flex-none"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Print
+            </Button>
           </div>
         </div>
       </div>
@@ -417,11 +401,11 @@ const ResultComponent = ({
             {filteredResults.map((result, resultIndex) => (
               <div key={result._id} className="result-section">
                 {/* Result Header */}
-                <div className="mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg border">
+                <div className="mb-4 p-3 sm:p-4 bg-muted rounded-lg border">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="mb-2 sm:mb-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+                        <h3 className="text-lg sm:text-xl font-semibold text-foreground">
                           {result.programName}
                         </h3>
                         <Badge
@@ -443,7 +427,7 @@ const ResultComponent = ({
                           )}
                         </Badge>
                       </div>
-                      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-foreground">
                         <span className="capitalize whitespace-nowrap">
                           <strong>Type:</strong> {result.programType}
                         </span>
@@ -461,7 +445,6 @@ const ResultComponent = ({
                     </div>
 
                     <div className="flex items-center gap-2 no-print">
-                      {/* Generate Results Button for Programs without Results */}
                       {!result._id && (
                         <Button
                           onClick={() => handleGenerateResult(result.programId)}
@@ -627,93 +610,6 @@ const ResultComponent = ({
                     </Table>
                   </div>
                 </div>
-
-                {/* Result Summary */}
-                {result.participants.length > 0 && (
-                  <div className="mt-4 p-3 bg-blue-50 rounded border no-print">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
-                      <div className="flex flex-wrap gap-4 sm:gap-6">
-                        <span>
-                          <strong>Total Participants:</strong>{" "}
-                          {result.participants.length}
-                        </span>
-                        <span>
-                          <strong>Winners (Top 3):</strong>{" "}
-                          {
-                            result.participants.filter((p) => p.rank <= 3)
-                              .length
-                          }
-                        </span>
-                        <span>
-                          <strong>Average Points:</strong>{" "}
-                          {result.participants.length > 0
-                            ? Math.round(
-                                result.participants.reduce(
-                                  (sum, p) => sum + p.points,
-                                  0
-                                ) / result.participants.length
-                              )
-                            : 0}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>
-                          <strong>Last Updated:</strong>{" "}
-                          {new Date(result.updatedAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Winners Podium (Print Only) */}
-                {result.participants.length > 0 && (
-                  <div className="hidden print:block mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
-                    <h4 className="text-lg font-semibold text-center mb-4 flex items-center justify-center gap-2">
-                      <Award className="h-5 w-5" />
-                      Winners Podium
-                    </h4>
-                    <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
-                      {result.participants
-                        .filter((p) => p.rank <= 3)
-                        .sort((a, b) => a.rank - b.rank)
-                        .map((participant) => (
-                          <div
-                            key={participant.id}
-                            className={`text-center p-3 rounded border-2 ${
-                              participant.rank === 1
-                                ? "border-yellow-400 bg-yellow-100"
-                                : participant.rank === 2
-                                  ? "border-gray-400 bg-gray-100"
-                                  : "border-orange-400 bg-orange-100"
-                            }`}
-                          >
-                            <div className="flex items-center justify-center mb-2">
-                              <Trophy
-                                className={`h-8 w-8 ${
-                                  participant.rank === 1
-                                    ? "text-yellow-600"
-                                    : participant.rank === 2
-                                      ? "text-gray-600"
-                                      : "text-orange-600"
-                                }`}
-                              />
-                            </div>
-                            <div className="font-bold text-lg">
-                              #{participant.rank}
-                            </div>
-                            <div className="font-medium text-sm">
-                              {participant.codeLetter}
-                            </div>
-                            <div className="text-xs text-gray-600 mt-1">
-                              {participant.points} points • {participant.grade}
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -734,91 +630,6 @@ const ResultComponent = ({
           </div>
         )}
       </div>
-
-      {/* Grade Schemes Reference */}
-      <div className="no-print mt-8">
-        <h3 className="text-lg font-semibold mb-4">Grade Scheme Reference</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {gradeSchemes.map((scheme) => (
-            <div key={scheme._id} className="p-3 border rounded-lg bg-gray-50">
-              <div className="text-center">
-                <div className="text-lg font-bold text-blue-600">
-                  {scheme.grade}
-                </div>
-                <div className="text-sm text-gray-600">{scheme.markRange}</div>
-                <div className="text-xs text-gray-500">
-                  {scheme.points} points
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Programs without Results */}
-      {!selectedProgram && (
-        <div className="no-print mt-8">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Programs Pending Results Generation
-          </h3>
-          {(() => {
-            const programsWithResults = new Set(
-              results.map((r) => r.programId)
-            );
-            const programsWithoutResults = programs.filter(
-              (p) =>
-                !programsWithResults.has(p._id) &&
-                (!selectedDivision || p.divisionId === selectedDivision)
-            );
-
-            return programsWithoutResults.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {programsWithoutResults.map((program) => (
-                  <div
-                    key={program._id}
-                    className="p-4 border rounded-lg bg-orange-50"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">
-                          {program.name}
-                        </div>
-                        <div className="text-xs text-gray-600 capitalize">
-                          {program.type} • {program.category}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {
-                            divisions.find((d) => d._id === program.divisionId)
-                              ?.name
-                          }
-                        </div>
-                      </div>
-                      <Button
-                        onClick={() => handleGenerateResult(program._id)}
-                        disabled={generating[program._id]}
-                        size="sm"
-                        variant="outline"
-                      >
-                        {generating[program._id] ? (
-                          <Loader className="animate-spin h-3 w-3" />
-                        ) : (
-                          <TrendingUp className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 text-muted-foreground">
-                <Award className="mx-auto h-8 w-8 mb-2" />
-                <p>All programs have results generated!</p>
-              </div>
-            );
-          })()}
-        </div>
-      )}
 
       <style jsx>{`
         @media print {

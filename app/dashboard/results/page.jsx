@@ -22,19 +22,13 @@ export default async function ResultPage() {
     let programs, divisions, gradeSchemes;
 
     // Fetch required data
-    [programs, divisions, gradeSchemes] = await Promise.all([
+    [programs, divisions] = await Promise.all([
       fetchData(
         "programs",
         "projection=_id,name,type,category,divisionId,pointScheme",
         0
       ),
       fetchData("divisions", "projection=_id,name,type", 0),
-      fetchData(
-        "grade-scheme",
-        "projection=_id,markRange,grade,points",
-        0,
-        "gradeSchemes"
-      ),
     ]);
 
     // Sort data alphabetically
@@ -46,12 +40,6 @@ export default async function ResultPage() {
       a.name?.localeCompare(b.name)
     );
 
-    const sortedGradeSchemes = gradeSchemes?.sort(
-      (a, b) => b.points - a.points
-    );
-
-    const url = `/api/results`;
-
     return (
       <>
         <Header
@@ -62,8 +50,6 @@ export default async function ResultPage() {
           <ResultComponent
             programs={sortedPrograms}
             divisions={sortedDivisions}
-            gradeSchemes={sortedGradeSchemes}
-            url={url}
             apiKey={apiKey}
             additionalProps={{
               userId: user?.userId,
