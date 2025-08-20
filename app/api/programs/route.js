@@ -68,7 +68,7 @@ export async function GET(req, res) {
       .populate("divisionId", ["_id", "name"])
       .skip(page * limit)
       .limit(limit)
-      .sort({ category: 1, type: 1, name: 1 })
+      .sort({ createdAt: -1 })
       .collation({ locale: "en_US", numericOrdering: true });
 
     // Get total count for pagination info
@@ -299,6 +299,22 @@ export async function DELETE(req, res) {
       "_id"
     );
     const programIds = programsToDelete.map((p) => p._id);
+
+    const ProgramRegistrations = await ProgramRegistration.find({
+      programId: { $in: programIds },
+      "participants.totalMarks": { $gt: 0 },
+    });
+
+    if (ProgramRegistrations.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Cannot delete programs with registrations with marks assigned",
+        },
+        { status: 400 }
+      );
+    }
 
     const deletedPrograms = await Program.deleteMany({ _id: { $in: ids } });
 

@@ -65,7 +65,7 @@ const EvaluationComponent = ({
       ...(selectedDivision && { divisionId: selectedDivision }),
       ...(selectedProgram && { programId: selectedProgram }),
       isCodeLetter: true,
-      status: "Registered",
+      isResultDeclared: "false",
     },
     {
       retry: 2,

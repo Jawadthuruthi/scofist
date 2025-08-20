@@ -5,6 +5,7 @@ import ProgramRegistration from "@/models/ProgramRegistration";
 import Program from "@/models/Program";
 import Participant from "@/models/Participant";
 import Team from "@/models/Team";
+import Result from "@/models/Result";
 
 // Helpers
 const toId = (v) =>
@@ -23,9 +24,10 @@ export async function GET(request) {
 
     const programId = searchParams.get("programId");
     const teamId = searchParams.get("teamId");
-    const status = searchParams.get("status"); // "Registered" | "Evaluated"
+    const status = searchParams.get("status");
     const divisionId = searchParams.get("divisionId");
     const isCodeLetter = searchParams.get("isCodeLetter") === "true";
+    const isResultDeclared = searchParams.get("isResultDeclared");
 
     const query = {};
     if (programId) query.programId = programId;
@@ -58,6 +60,28 @@ export async function GET(request) {
     } else if (status === "Registered") {
       filtered = filtered.filter((reg) =>
         reg.participants?.every((p) => (p.totalMarks || 0) === 0)
+      );
+    }
+
+    if (isResultDeclared === "true") {
+      const results = await Result.find({
+        programId: { $in: filtered.map((r) => r.programId._id) },
+        isResultDeclared: true,
+      });
+      filtered = filtered.filter(
+        (reg) =>
+          results?.length === 0 ||
+          results.some((r) => sameId(r.programId, reg.programId?._id))
+      );
+    } else if (isResultDeclared === "false") {
+      const results = await Result.find({
+        programId: { $in: filtered.map((r) => r.programId._id) },
+        isResultDeclared: false,
+      });
+      filtered = filtered.filter(
+        (reg) =>
+          results?.length === 0 ||
+          results.some((r) => sameId(r.programId, reg.programId?._id))
       );
     }
 
