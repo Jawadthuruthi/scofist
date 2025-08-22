@@ -139,6 +139,7 @@ export async function GET(req, res) {
 
     // Execute query with pagination
     const participants = await Participant.find(query, projections)
+      .populate("_id", ["_id", "name", "profilePic"])
       .populate("batchId", ["_id", "name"])
       .populate("teamId", ["_id", "name"])
       .populate("divisionId", ["_id", "name"])
@@ -153,6 +154,8 @@ export async function GET(req, res) {
 
     const formattedParticipants = participants.map((participant) => ({
       ...participant.toObject(),
+      _id: participant._id?._id,
+      profilePic: participant._id?.profilePic,
       batchId: participant.batchId?._id,
       batchName: participant.batchId?.name || "Unknown",
       teamId: participant.teamId?._id,
@@ -162,6 +165,11 @@ export async function GET(req, res) {
       programsCount: participant.programs?.length || 0,
       totalPoints:
         (participant.stagePoints || 0) + (participant.offStagePoints || 0),
+      programs: participant.programs.map((program) => ({
+        ...program.toObject(),
+        id: program?.id?._id,
+        name: program?.id?.name,
+      })),
     }));
 
     return NextResponse.json(

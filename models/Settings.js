@@ -74,6 +74,19 @@ const SettingsSchema = new Schema(
       registrationDeadline: {
         type: Date,
       },
+      idCard: {
+        url: {
+          type: String,
+          trim: true,
+          validate: {
+            validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+            message: "Invalid URL format",
+          },
+        },
+        publicId: {
+          type: String,
+        },
+      },
     },
   },
   { timestamps: true }
