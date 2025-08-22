@@ -119,6 +119,12 @@ const festivalFormField = [
     minHeight: 840,
   },
   {
+    name: "textColor",
+    label: "Text Color",
+    type: "color",
+    className: "col-span-1",
+  },
+  {
     name: "registrationDeadline",
     label: "Registration Deadline",
     type: "date",
@@ -145,8 +151,11 @@ export default async function SettingsPage() {
 
     const festival = {
       ...data.festival,
-      textColor: data.festival.participantsCard.textColor,
+      participantsCard: data.festival.participantsCard.backgroundImage || {},
+      textColor: data.festival.participantsCard.textColor || "#000000",
     };
+
+    console.log(festival);
 
     const idCard = {
       ...data.idCard,

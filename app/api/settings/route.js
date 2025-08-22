@@ -56,7 +56,7 @@ export async function POST(req, res) {
       },
       festival: {
         printHeader: data.printHeader,
-        registrationDeadLine: data.registrationDeadline,
+        registrationDeadline: data.registrationDeadline,
         participantsCard: {
           backgroundImage: data.participantsCard,
           textColor: data.textColor || "#000000",
@@ -122,7 +122,7 @@ export async function PUT(req, res) {
       },
       festival: {
         printHeader: data.printHeader,
-        registrationDeadLine: data.registrationDeadline,
+        registrationDeadline: data.registrationDeadline,
         participantsCard: {
           backgroundImage: data.participantsCard,
           textColor: data.textColor || "#000000",

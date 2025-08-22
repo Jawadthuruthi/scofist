@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 import { useRouter } from "next/navigation";
+import { ColorInput } from "./ColorInput"; // Import the new ColorInput component
 
 const SectionNavigation = ({
   ref,
@@ -110,6 +111,18 @@ const FormFields = ({ form, fields, apiKey }) =>
                   disabled={field.disabled}
                 />
               </div>
+            ) : field.inputType === "color" ? (
+              <ColorInput
+                name={field.name}
+                value={formField.value}
+                onChange={(value) => formField.onChange(value)}
+                onBlur={formField.onBlur}
+                disabled={field.disabled}
+                readOnly={field.readOnly}
+                placeholder={field.placeholder || "Select a color"}
+                showPalette={field.showPalette !== false}
+                customColors={field.customColors}
+              />
             ) : (
               <Input
                 type={field.type || "text"}
