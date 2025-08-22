@@ -8,6 +8,7 @@ const resultSchema = new Schema(
       type: String,
       ref: "Program",
       required: true,
+      unique: true,
     },
     participants: [
       {

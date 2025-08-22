@@ -16,7 +16,9 @@ const participantsCardPage = async () => {
     return (
       <ParticipantsCard
         participants={participants}
-        festivalSettings={settings.festival}
+        festivalSettings={{
+          ...settings.festival,
+        }}
         divisions={divisions}
         teams={teams}
       />

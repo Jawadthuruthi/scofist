@@ -8,9 +8,9 @@ import Team from "@/models/Team";
 import ProgramRegistration from "@/models/ProgramRegistration";
 import Result from "@/models/Result";
 
-async function assignChestNumbers(divisionId, participantCount) {
+export async function assignChestNumbers(divisionId, participantCount) {
   try {
-    // Get division with chest number range
+    // Get division details including range
     const division = await Division.findById(divisionId);
     if (!division || !division.chestNumberRange) {
       throw new Error("Division or chest number range not found");
@@ -19,68 +19,61 @@ async function assignChestNumbers(divisionId, participantCount) {
     const { from, to } = division.chestNumberRange;
     const rangeSize = to - from + 1;
 
-    // Check if we have enough space in the range
+    // Validate available numbers
     if (participantCount > rangeSize) {
       throw new Error(
         `Not enough chest numbers available. Range: ${from}-${to} (${rangeSize} numbers), Requested: ${participantCount}`
       );
     }
 
-    // Get all existing chest numbers in this division
+    // Fetch all existing participants in this division
     const existingParticipants = await Participant.find(
-      { divisionId, chestNumber: { $ne: null } },
-      { chestNumber: 1 }
-    ).sort({ chestNumber: 1 });
+      { divisionId },
+      { chestNumber: 1, createdAt: 1 }
+    ).sort({ createdAt: 1 });
 
+    // Track all taken numbers
     const usedChestNumbers = new Set(
-      existingParticipants.map((p) => p.chestNumber)
+      existingParticipants
+        .filter((p) => p.chestNumber !== null && p.chestNumber !== undefined)
+        .map((p) => p.chestNumber)
     );
 
-    // Find the highest assigned chest number
-    let highestChestNumber = 0;
-    for (const participant of existingParticipants) {
-      if (participant.chestNumber > highestChestNumber) {
-        highestChestNumber = participant.chestNumber;
-      }
-    }
+    // Find participants without chest numbers (sorted by createdAt)
+    const unassignedParticipants = existingParticipants.filter(
+      (p) => !p.chestNumber
+    );
 
+    // Assign chest numbers in createdAt order
     const assignedNumbers = [];
-    let currentNumber = highestChestNumber;
+    let current = from;
 
-    // First, try to assign consecutive numbers after the highest
-    for (let i = 0; i < participantCount; i++) {
-      // If we haven't reached the end of range, try next number
-      if (currentNumber < to) {
-        currentNumber++;
-        if (!usedChestNumbers.has(currentNumber)) {
-          assignedNumbers.push(currentNumber);
-          usedChestNumbers.add(currentNumber);
-          continue;
+    for (const participant of unassignedParticipants) {
+      // Find the next available number
+      while (usedChestNumbers.has(current)) {
+        current++;
+        if (current > to) {
+          throw new Error(
+            `Ran out of chest numbers in range ${from}-${to} while assigning`
+          );
         }
       }
 
-      // If we can't assign consecutively or reached the end, find gaps
-      let foundGap = false;
+      // Assign chest number
+      participant.chestNumber = current;
+      usedChestNumbers.add(current);
+      assignedNumbers.push(current);
 
-      // First check from the beginning of range for gaps
-      for (let num = from; num <= to; num++) {
-        if (!usedChestNumbers.has(num)) {
-          assignedNumbers.push(num);
-          usedChestNumbers.add(num);
-          foundGap = true;
-          break;
-        }
-      }
+      // Save participant
+      await participant.save();
 
-      if (!foundGap) {
-        throw new Error(
-          `No available chest numbers in range ${from}-${to}. Range is full.`
-        );
-      }
+      // Move to next number
+      current++;
     }
 
-    return assignedNumbers.sort((a, b) => a - b);
+    return assignedNumbers;
   } catch (error) {
+    console.error("Error assigning chest numbers:", error);
     throw error;
   }
 }

@@ -57,6 +57,10 @@ export async function POST(req, res) {
       festival: {
         printHeader: data.printHeader,
         registrationDeadLine: data.registrationDeadline,
+        participantsCard: {
+          backgroundImage: data.participantsCard,
+          textColor: data.textColor || "#000000",
+        },
       },
     };
 
@@ -80,7 +84,7 @@ export async function POST(req, res) {
       );
     } else {
       // Create new settings
-      const newSettings = await Settings.create(data);
+      const newSettings = await Settings.create(formattedData);
 
       return NextResponse.json(
         { settings: newSettings, message: "Settings created successfully!" },
@@ -119,6 +123,10 @@ export async function PUT(req, res) {
       festival: {
         printHeader: data.printHeader,
         registrationDeadLine: data.registrationDeadline,
+        participantsCard: {
+          backgroundImage: data.participantsCard,
+          textColor: data.textColor || "#000000",
+        },
       },
     };
 

@@ -5,7 +5,6 @@ import ProgramRegistration from "@/models/ProgramRegistration";
 import Program from "@/models/Program";
 import Participant from "@/models/Participant";
 import Team from "@/models/Team";
-import Result from "@/models/Result";
 
 // Helpers
 const toId = (v) =>

@@ -338,6 +338,8 @@ export async function DELETE(req) {
       }
     );
 
+    await Result.deleteOne({ programId });
+
     return NextResponse.json({
       success: true,
       message: "Marks deleted successfully!",

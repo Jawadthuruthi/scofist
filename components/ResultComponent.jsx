@@ -581,7 +581,7 @@ const ResultComponent = ({
                                   {participant.participantDetails?.name ||
                                     "N/A"}
                                 </TableCell>
-                                <TableCell className="text-center font-mono whitespace-nowrap border-t border-r border-border">
+                                <TableCell className="text-center  whitespace-nowrap border-t border-r border-border">
                                   {participant.codeLetter || "-"}
                                 </TableCell>
                                 <TableCell className="text-center whitespace-nowrap border-t border-r border-border">

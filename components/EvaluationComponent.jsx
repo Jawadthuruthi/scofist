@@ -675,7 +675,7 @@ const EvaluationComponent = ({
                                       participant.chestNumber ||
                                       "-"}
                                   </TableCell>
-                                  <TableCell className="text-center font-mono whitespace-nowrap border-t border-r border-border">
+                                  <TableCell className="text-center  whitespace-nowrap border-t border-r border-border">
                                     {participant.codeLetter || "-"}
                                   </TableCell>
                                   <TableCell className="text-center border-t border-r border-border no-print">

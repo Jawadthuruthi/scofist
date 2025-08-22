@@ -436,16 +436,10 @@ export async function PUT(request) {
 export async function DELETE(request) {
   try {
     await connectToDB();
-    const { searchParams } = new URL(request.url);
-    const resultId = searchParams.get("resultId");
-    const programId = searchParams.get("programId");
 
-    if (!resultId && !programId) {
-      return NextResponse.json(
-        { success: false, message: "Result ID or Program ID is required" },
-        { status: 400 }
-      );
-    }
+    const data = await request.json();
+    const resultId = data.resultId;
+    const programId = data.programId;
 
     let deletedCount = 0;
 

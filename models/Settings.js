@@ -74,17 +74,32 @@ const SettingsSchema = new Schema(
       registrationDeadline: {
         type: Date,
       },
-      idCard: {
-        url: {
-          type: String,
-          trim: true,
-          validate: {
-            validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
-            message: "Invalid URL format",
+
+      participantsCard: {
+        // Background image for participants card
+        backgroundImage: {
+          url: {
+            type: String,
+            trim: true,
+            validate: {
+              validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+              message: "Invalid URL format",
+            },
+          },
+          publicId: {
+            type: String,
           },
         },
-        publicId: {
+        // Text color settings for participants card elements
+        textColor: {
           type: String,
+          default: "#000000",
+          trim: true,
+          validate: {
+            validator: (v) =>
+              !v || /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v),
+            message: "Invalid hex color format",
+          },
         },
       },
     },

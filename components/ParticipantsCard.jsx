@@ -2,8 +2,7 @@
 import { useRef, useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
-import { Printer, User } from "lucide-react";
+import { Printer } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import Header from "./Header";
 import {
@@ -232,6 +231,20 @@ const ParticipantsCard = ({
         .preview-container:hover {
           transform: translateY(-4px);
         }
+
+        .text-shadow-strong {
+          text-shadow:
+            -2px -2px 0 rgba(0, 0, 0, 0.8),
+            2px -2px 0 rgba(0, 0, 0, 0.8),
+            -2px 2px 0 rgba(0, 0, 0, 0.8),
+            2px 2px 0 rgba(0, 0, 0, 0.8),
+            0 0 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .backdrop-enhanced {
+          backdrop-filter: blur(4px) saturate(180%);
+          -webkit-backdrop-filter: blur(4px) saturate(180%);
+        }
       `}</style>
     </div>
   );
@@ -239,71 +252,68 @@ const ParticipantsCard = ({
 
 // Extracted component for participant card preview
 const ParticipantCard = ({ participant, festivalSettings }) => {
-  const idCardBackgroundUrl = festivalSettings?.idCard?.url || "";
-  const textColor = festivalSettings?.textColor || "#ffffff";
+  const participantsCardSettings = festivalSettings?.participantsCard || {};
+  const participantsCardBackgroundUrl =
+    participantsCardSettings?.backgroundImage?.url || "";
+
+  // Single text color for all elements
+  const textColor = participantsCardSettings?.textColor || "#000000";
 
   return (
-    <div className="preview-container col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 gap-4">
+    <div className="preview-container  col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 gap-4">
       {/* Front Side Preview */}
-      <Card className="shadow-md  border-border border overflow-hidden border-none mb-4">
+      <Card className=" border-border border overflow-hidden  border-none mb-4">
         <CardContent className="p-0">
           <div
             style={{
-              backgroundImage: idCardBackgroundUrl
-                ? `url(${idCardBackgroundUrl})`
+              backgroundImage: participantsCardBackgroundUrl
+                ? `url(${participantsCardBackgroundUrl})`
                 : undefined,
-              backgroundColor: idCardBackgroundUrl ? undefined : undefined,
+              backgroundColor: participantsCardBackgroundUrl
+                ? undefined
+                : "#f8f9fa",
             }}
-            className={`bg-cover bg-center w-full h-full p-4 rounded shadow ${
-              !idCardBackgroundUrl ? "bg-card" : ""
+            className={`relative bg-cover bg-center w-full h-full aspect-[1/1.4] p-4 rounded shadow ${
+              !participantsCardBackgroundUrl ? "bg-card" : ""
             }`}
           >
-            {/* Gap for heading area - where background image heading would be */}
-            <div className="h-16 mb-4"></div>
-
-            {/* Participant Photo */}
-            <div className="flex justify-center mb-4">
-              <div className="w-24 h-28 bg-white border-2 border-white rounded-md relative overflow-hidden shadow-md">
-                {participant.profilePic?.url ? (
-                  <div className="relative h-full w-full">
-                    <Image
-                      src={participant.profilePic.url || ""}
-                      alt={`${participant.name}'s photo`}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-gray-100">
-                    <User size={32} className="text-gray-400" />
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Participant Details */}
-            <div className="text-center space-y-2">
-              <div className="bg-muted p-2 rounded-md">
-                <h2 className="text-lg font-bold text-muted-foreground">
+            <div className="absolute bottom-5 left-0 right-0 text-center">
+              {/* Chest Number with enhanced visibility */}
+              <div className="backdrop-enhanced ">
+                <h2
+                  className="text-lg font-bold text-shadow-strong"
+                  style={{ color: textColor }}
+                >
                   {participant.chestNumber || "N/A"}
                 </h2>
-                <p className="text-xs text-gray-600">CHEST NUMBER</p>
               </div>
 
-              <div className="bg-black/20 p-1 rounded backdrop-blur-sm">
-                <h3 className="font-bold text-sm text-white">
+              {/* Participant Name with enhanced visibility */}
+              <div className=" backdrop-enhanced  ">
+                <h3
+                  className="font-bold text-base text-shadow-strong"
+                  style={{ color: textColor }}
+                >
                   {participant.name}
                 </h3>
               </div>
 
-              <div className="text-xs text-center space-y-1">
-                <div className="bg-black/20 p-1 rounded backdrop-blur-sm">
-                  <p className="font-semibold text-white">
+              {/* Team and Division with enhanced visibility */}
+              <div className="text-xs text-center">
+                <div className=" backdrop-enhanced  ">
+                  <p
+                    className="font-semibold text-shadow-strong"
+                    style={{ color: textColor }}
+                  >
                     TEAM: {participant.teamName}
                   </p>
                 </div>
-                <div className="bg-black/20 p-1 rounded backdrop-blur-sm">
-                  <p className="font-semibold text-white">
+                <div className=" backdrop-enhanced  ">
+                  <p
+                    className="font-semibold text-shadow-strong"
+                    style={{ color: textColor }}
+                  >
                     DIVISION: {participant.divisionName}
                   </p>
                 </div>
@@ -314,7 +324,7 @@ const ParticipantCard = ({ participant, festivalSettings }) => {
       </Card>
 
       {/* Back Side Preview */}
-      <Card className="shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
+      <Card className=" overflow-hidden border border-gray-200 dark:border-gray-700">
         <CardContent className="p-4 flex flex-col h-full bg-white dark:bg-gray-800">
           <div className="border-b border-gray-200 dark:border-gray-600 pb-2 mb-3">
             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">
@@ -358,8 +368,12 @@ const ParticipantPrograms = ({ participant }) => {
 
 // Extracted component for printable participant card
 const PrintableParticipantCard = ({ participant, festivalSettings }) => {
-  const idCardBackgroundUrl = festivalSettings?.idCard?.url || "";
-  const textColor = festivalSettings?.textColor || "#ffffff";
+  const participantsCardSettings = festivalSettings?.participantsCard || {};
+  const participantsCardBackgroundUrl =
+    participantsCardSettings?.backgroundImage?.url || "";
+
+  // Single text color for all elements
+  const textColor = participantsCardSettings?.textColor || "#000000";
 
   return (
     <div
@@ -370,60 +384,60 @@ const PrintableParticipantCard = ({ participant, festivalSettings }) => {
       <div className="border rounded shadow w-full overflow-hidden">
         <div
           style={{
-            backgroundImage: idCardBackgroundUrl
-              ? `url(${idCardBackgroundUrl})`
+            backgroundImage: participantsCardBackgroundUrl
+              ? `url(${participantsCardBackgroundUrl})`
               : undefined,
-            backgroundColor: idCardBackgroundUrl ? undefined : "#ffffff",
-            color: textColor,
+            backgroundColor: participantsCardBackgroundUrl
+              ? undefined
+              : "#ffffff",
           }}
-          className="bg-cover bg-center w-full h-full p-3 rounded shadow flex flex-col"
+          className="relative bg-cover bg-center w-full h-full p-3 rounded shadow flex flex-col"
         >
-          {/* Gap for heading area */}
-          <div className="h-8 mb-2"></div>
-
-          {/* Participant Photo */}
-          <div className="flex justify-center mb-2">
-            <div className="w-20 h-24 bg-white border border-white rounded relative overflow-hidden">
-              {participant.profilePic?.url ? (
-                <div className="relative h-full w-full">
-                  <Image
-                    src={participant.profilePic.url || ""}
-                    alt={`${participant.name}'s photo`}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="h-full w-full flex items-center justify-center bg-gray-100">
-                  <User size={16} className="text-gray-400" />
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Participant Details */}
-          <div className="text-center space-y-1 flex-grow">
-            <div className="bg-white/90 p-1 rounded">
-              <h2 className="text-sm font-bold text-gray-800">
+          <div className="absolute bottom-5 left-0 right-0 text-center flex-grow">
+            {/* Chest Number - Print Version */}
+            <div className="">
+              <h2
+                className="font-bold text-lg"
+                style={{
+                  color: textColor,
+                }}
+              >
                 {participant.chestNumber || "N/A"}
               </h2>
-              <p className="text-xs text-gray-600">CHEST NUMBER</p>
             </div>
 
-            <div className="bg-black/20 p-1 rounded backdrop-blur-sm">
-              <h3 className="font-bold text-xs" style={{ color: textColor }}>
+            {/* Name - Print Version */}
+            <div className="">
+              <h3
+                className="font-bold text-base"
+                style={{
+                  color: textColor,
+                }}
+              >
                 {participant.name}
               </h3>
             </div>
 
-            <div className="text-xs space-y-0.5">
-              <div className="bg-black/20 p-0.5 rounded backdrop-blur-sm">
-                <p className="font-semibold" style={{ color: textColor }}>
+            {/* Team and Division - Print Version */}
+            <div className="text-xs">
+              <div className="">
+                <p
+                  className="font-semibold"
+                  style={{
+                    color: textColor,
+                  }}
+                >
                   TEAM: {participant.teamName}
                 </p>
               </div>
-              <div className="bg-black/20 p-0.5 rounded backdrop-blur-sm">
-                <p className="font-semibold" style={{ color: textColor }}>
+              <div className="">
+                <p
+                  className="font-semibold"
+                  style={{
+                    color: textColor,
+                  }}
+                >
                   DIV: {participant.divisionName}
                 </p>
               </div>
@@ -437,7 +451,7 @@ const PrintableParticipantCard = ({ participant, festivalSettings }) => {
         <div className="p-2 bg-white h-full flex flex-col">
           <div className="border-b border-gray-200 pb-1 mb-2">
             <h3 className="text-xs font-semibold text-gray-800 text-center">
-              Program Participation
+              Programs
             </h3>
           </div>
 

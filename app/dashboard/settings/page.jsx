@@ -106,6 +106,19 @@ const festivalFormField = [
     minHeight: 200,
   },
   {
+    name: "participantsCard",
+    label: "Participants Card",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/svg+xml", "image/png", "image/jpeg", "image/jpg"],
+    defaultValue: {},
+    aspectRatio: "1:1.4",
+    minWidth: 600,
+    minHeight: 840,
+  },
+  {
     name: "registrationDeadline",
     label: "Registration Deadline",
     type: "date",
@@ -132,6 +145,7 @@ export default async function SettingsPage() {
 
     const festival = {
       ...data.festival,
+      textColor: data.festival.participantsCard.textColor,
     };
 
     const idCard = {

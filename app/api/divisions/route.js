@@ -2,6 +2,38 @@ import { NextResponse } from "next/server";
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import Division from "@/models/Division";
+import Program from "@/models/Program";
+import Result from "@/models/Result";
+import Participant from "@/models/Participant";
+
+async function assignChestNumbers(
+  divisionId,
+  participantCount,
+  chestNumberRange
+) {
+  try {
+    const { from, to } = chestNumberRange;
+    const rangeSize = to - from + 1;
+
+    if (participantCount > rangeSize) {
+      throw new Error(
+        `Not enough chest numbers available. Range: ${from}-${to} (${rangeSize} numbers), Requested: ${participantCount}`
+      );
+    }
+
+    // Get all participants in this division sorted by creation
+    const existingParticipants = await Participant.find({ divisionId }).sort({
+      createdAt: 1,
+    });
+
+    for (const [index, participant] of existingParticipants.entries()) {
+      participant.chestNumber = parseInt(from) + index;
+      await participant.save();
+    }
+  } catch (error) {
+    throw error;
+  }
+}
 
 export async function GET(req, res) {
   try {
@@ -120,6 +152,20 @@ export async function PUT(req, res) {
     if (!ids || ids.length === 0) {
       return NextResponse.json({ message: "Invalid request" }, { status: 400 });
     }
+    const prevDivision = await Division.findOne({ _id: ids[0] });
+
+    if (!prevDivision) {
+      return NextResponse.json(
+        { message: "Division not found" },
+        { status: 404 }
+      );
+    }
+
+    await assignChestNumbers(
+      ids[0],
+      prevDivision.participantsId?.length || 0,
+      data.chestNumberRange
+    );
 
     const division = await Division.findOneAndUpdate(
       { _id: ids[0] },
@@ -145,6 +191,19 @@ export async function DELETE(req, res) {
 
     if (!ids || ids.length === 0) {
       return NextResponse.json({ message: "Invalid request" }, { status: 400 });
+    }
+
+    const programs = await Program.find({ divisionId: { $in: ids } });
+
+    const results = await Result.find({
+      programId: { $in: programs.map((p) => p._id) },
+    });
+
+    if (results.length > 0) {
+      return NextResponse.json(
+        { message: "Cannot delete division if any program's results exist" },
+        { status: 400 }
+      );
     }
 
     const deletedDivisions = await Division.deleteMany({ _id: { $in: ids } });
