@@ -215,7 +215,7 @@ const ResultComponent = ({
     }`,
     pageStyle: `
       @page {
-        size: A4 landscape;
+        size: A4 portrait;
         margin: 0.5in;
       }
       @media print {
@@ -367,7 +367,7 @@ const ResultComponent = ({
             </div>
 
             <Button
-              variant="outline"
+              variant="default"
               onClick={handlePrint}
               disabled={filteredResults.length === 0}
               className="flex-1 sm:flex-none"

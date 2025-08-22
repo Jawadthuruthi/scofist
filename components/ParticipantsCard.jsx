@@ -33,12 +33,19 @@ const ParticipantsCard = ({
 
   // Memoize filtered participants to prevent recalculation on every render
   const filteredParticipants = useMemo(() => {
-    return participants.filter(
-      (participant) =>
-        (!selectedDivision || participant.divisionId === selectedDivision) &&
-        (!selectedTeam || participant.teamId === selectedTeam) &&
-        (!selectedParticipant || participant._id === selectedParticipant)
-    );
+    return participants
+      .filter(
+        (participant) =>
+          (!selectedDivision || participant.divisionId === selectedDivision) &&
+          (!selectedTeam || participant.teamId === selectedTeam) &&
+          (!selectedParticipant || participant._id === selectedParticipant)
+      )
+      .map((participant) => ({
+        ...participant,
+        programs: participant?.programs?.filter(
+          (program) => program?.type === "Individual"
+        ),
+      }));
   }, [participants, selectedDivision, selectedTeam, selectedParticipant]);
 
   // Memoize filtered teams based on selected division
@@ -328,7 +335,7 @@ const ParticipantCard = ({ participant, festivalSettings }) => {
         <CardContent className="p-4 flex flex-col h-full bg-white dark:bg-gray-800">
           <div className="border-b border-gray-200 dark:border-gray-600 pb-2 mb-3">
             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">
-              Programs
+              Individual Programs
             </h3>
           </div>
 
@@ -451,7 +458,7 @@ const PrintableParticipantCard = ({ participant, festivalSettings }) => {
         <div className="p-2 bg-white h-full flex flex-col">
           <div className="border-b border-gray-200 pb-1 mb-2">
             <h3 className="text-xs font-semibold text-gray-800 text-center">
-              Programs
+              Individual Programs
             </h3>
           </div>
 

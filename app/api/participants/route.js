@@ -136,7 +136,7 @@ export async function GET(req, res) {
       .populate("batchId", ["_id", "name"])
       .populate("teamId", ["_id", "name"])
       .populate("divisionId", ["_id", "name"])
-      .populate("programs.id", ["_id", "name"])
+      .populate("programs.id", ["_id", "name", "type"])
       .skip(page * limit)
       .limit(limit)
       .sort({ chestNumber: 1 })
@@ -162,6 +162,7 @@ export async function GET(req, res) {
         ...program.toObject(),
         id: program?.id?._id,
         name: program?.id?.name,
+        type: program?.id?.type,
       })),
     }));
 
