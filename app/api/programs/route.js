@@ -68,7 +68,7 @@ export async function GET(req, res) {
       .populate("divisionId", ["_id", "name"])
       .skip(page * limit)
       .limit(limit)
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 })
       .collation({ locale: "en_US", numericOrdering: true });
 
     // Get total count for pagination info
