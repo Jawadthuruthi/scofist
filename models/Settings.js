@@ -102,6 +102,10 @@ const SettingsSchema = new Schema(
           },
         },
       },
+      instructions: {
+        type: String,
+        trim: true,
+      },
     },
   },
   { timestamps: true }

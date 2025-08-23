@@ -226,6 +226,12 @@ const items = [
     icon: UserCheck,
   },
   {
+    title: "Instructions",
+    url: "/dashboard/instructions",
+    allowedRoles: ["Program Committee", "Program Leader"],
+    icon: FileText,
+  },
+  {
     title: "Divisions",
     url: "/dashboard/divisions",
     allowedRoles: ["Program Leader", "Program Committee"],
@@ -258,7 +264,7 @@ const items = [
   {
     title: "Rules & Topics",
     url: "/dashboard/rules-topics",
-    allowedRoles: ["Program Committee"],
+    allowedRoles: ["Program Committee", "Program Leader"],
     icon: BookOpen,
   },
   {

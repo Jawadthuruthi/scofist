@@ -29,10 +29,7 @@ import {
 } from "@/components/ui/tooltip";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-
-const PrintHeader = dynamic(() => import("./PrintHeader"), {
-  ssr: false,
-});
+import PrintHeader from "@/components/PrintHeader";
 
 const daysOfWeek = [
   "Sunday",

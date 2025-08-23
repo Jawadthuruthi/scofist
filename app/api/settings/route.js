@@ -61,6 +61,7 @@ export async function POST(req, res) {
           backgroundImage: data.participantsCard,
           textColor: data.textColor || "#000000",
         },
+        instructions: data.instructions,
       },
     };
 
@@ -101,41 +102,9 @@ export async function PUT(req, res) {
     await connectToDB();
 
     const data = await req.json();
-    console.log(data);
-    const formattedData = {
-      institution: {
-        name: data.name,
-        tagline: data.tagline,
-        logo: data.logo,
-        address: data.address,
-        contact: {
-          primaryPhone: data.primaryPhone,
-          secondaryPhone: data.secondaryPhone,
-          email: data.email,
-          website: data.website,
-        },
-      },
-      idCard: { backgroundImage: data.backgroundImage },
-      general: {
-        isWorkingDay: data.isWorkingDay,
-        occasion: data.occasion,
-      },
-      festival: {
-        printHeader: data.printHeader,
-        registrationDeadline: data.registrationDeadline,
-        participantsCard: {
-          backgroundImage: data.participantsCard,
-          textColor: data.textColor || "#000000",
-        },
-      },
-    };
 
-    const cleanedData = removeEmptyValuesDeep(formattedData);
-    console.log("Cleaned data:", cleanedData);
-
-    // Check if settings exist
+    // Fetch existing settings first
     const existingSettings = await Settings.findOne({});
-
     if (!existingSettings) {
       return NextResponse.json(
         { message: "No settings found to update." },
@@ -143,7 +112,53 @@ export async function PUT(req, res) {
       );
     }
 
-    // Update settings
+    // Merge festival data safely
+    const formattedData = {
+      institution: {
+        name: data.name ?? existingSettings.institution.name,
+        tagline: data.tagline ?? existingSettings.institution.tagline,
+        logo: data.logo ?? existingSettings.institution.logo,
+        address: data.address ?? existingSettings.institution.address,
+        contact: {
+          primaryPhone:
+            data.primaryPhone ??
+            existingSettings.institution.contact.primaryPhone,
+          secondaryPhone:
+            data.secondaryPhone ??
+            existingSettings.institution.contact.secondaryPhone,
+          email: data.email ?? existingSettings.institution.contact.email,
+          website: data.website ?? existingSettings.institution.contact.website,
+        },
+      },
+      idCard: {
+        backgroundImage:
+          data.backgroundImage ?? existingSettings.idCard.backgroundImage,
+      },
+      general: {
+        isWorkingDay:
+          data.isWorkingDay ?? existingSettings.general.isWorkingDay,
+        occasion: data.occasion ?? existingSettings.general.occasion,
+      },
+      festival: {
+        printHeader: data.printHeader ?? existingSettings.festival.printHeader,
+        registrationDeadline:
+          data.registrationDeadline ??
+          existingSettings.festival.registrationDeadline,
+        participantsCard: {
+          backgroundImage:
+            data.participantsCard ??
+            existingSettings.festival.participantsCard.backgroundImage,
+          textColor:
+            data.textColor ??
+            existingSettings.festival.participantsCard.textColor,
+        },
+        instructions:
+          data.instructions ?? existingSettings.festival.instructions,
+      },
+    };
+
+    const cleanedData = removeEmptyValuesDeep(formattedData);
+
     const updatedSettings = await Settings.findByIdAndUpdate(
       existingSettings._id,
       { $set: cleanedData },

@@ -29,6 +29,7 @@ import { Skeleton } from "./ui/skeleton";
 import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { applyPrintStyles, removePrintStyles } from "@/lib/utils";
+import PrintHeader from "@/components/PrintHeader";
 
 const PopupFilter = dynamic(() => import("./PopupFilter"), {
   ssr: false,
@@ -61,9 +62,6 @@ const PopupForm = dynamic(() => import("./PopupForm"), {
       <Loader />
     </Button>
   ),
-});
-const PrintHeader = dynamic(() => import("./PrintHeader"), {
-  ssr: false,
 });
 
 const getCellStyles = (meta) => ({
@@ -488,6 +486,7 @@ const DataTableComponent = ({
       await addData.mutateAsync({ ...filteredValues, ...additionalProps });
       table.resetRowSelection();
       await fetchItemsQuery.refetch();
+      router.refresh();
       toast.success(createSuccessMessage);
       return true;
     } catch (error) {
@@ -512,6 +511,8 @@ const DataTableComponent = ({
       });
       table.resetRowSelection();
       await fetchItemsQuery.refetch();
+      router.refresh();
+
       toast.success(editSuccessMessage);
       return true;
     } catch (error) {
@@ -535,6 +536,8 @@ const DataTableComponent = ({
       });
       table.resetRowSelection();
       await fetchItemsQuery.refetch();
+      router.refresh();
+
       toast.success(deleteSuccessMessage);
       return true;
     } catch (error) {

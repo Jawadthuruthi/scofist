@@ -42,10 +42,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { set } from "lodash";
-
-const PrintHeader = dynamic(() => import("./PrintHeader"), {
-  ssr: false,
-});
+import PrintHeader from "@/components/PrintHeader";
 
 // Memoized icon components to prevent re-renders
 const TypeIcon = ({ type }) => {

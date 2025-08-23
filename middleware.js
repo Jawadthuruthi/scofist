@@ -215,7 +215,12 @@ const pages = [
   {
     title: "Rules & Topics",
     path: "/dashboard/rules-topics",
-    allowedRoles: ["Program Committee"],
+    allowedRoles: ["Program Committee", "Program Leader"],
+  },
+  {
+    title: "Instructions",
+    path: "/dashboard/instructions",
+    allowedRoles: ["Program Committee", "Program Leader"],
   },
   {
     title: "Settings",
