@@ -113,6 +113,7 @@ const DataTableComponent = ({
   editFormFields = [],
   additionalProps = {},
   isFestival = false,
+  multiEditFormFields = [],
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -583,7 +584,11 @@ const DataTableComponent = ({
               <PopupForm
                 data={selectedData[0]}
                 formFields={
-                  editFormFields?.length > 0 ? editFormFields : formFields
+                  multiEditFormFields?.length > 0
+                    ? multiEditFormFields
+                    : editFormFields?.length > 0
+                      ? editFormFields
+                      : formFields
                 }
                 onSubmit={handleEdit}
                 loading={loading}

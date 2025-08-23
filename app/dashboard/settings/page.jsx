@@ -155,8 +155,6 @@ export default async function SettingsPage() {
       textColor: data.festival.participantsCard.textColor || "#000000",
     };
 
-    console.log(festival);
-
     const idCard = {
       ...data.idCard,
     };
