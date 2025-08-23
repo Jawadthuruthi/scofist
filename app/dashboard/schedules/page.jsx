@@ -64,6 +64,13 @@ const columnsConfig = [
     minWidth: 80,
   },
   {
+    accessorKey: "status",
+    header: "Status",
+    type: ["status"],
+    width: 100,
+    minWidth: 100,
+  },
+  {
     accessorKey: "isPublished",
     header: "Published",
     type: ["boolean"],
@@ -76,25 +83,6 @@ const statusMessages = {
   create: "Schedule added successfully!",
   edit: "Schedule updated successfully!",
   delete: "Schedule(s) deleted successfully!",
-};
-
-// Generate time options for form
-const generateTimeOptions = () => {
-  const options = [];
-  for (let hour = 6; hour <= 22; hour++) {
-    for (let minute = 0; minute < 60; minute += 30) {
-      const timeString = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
-      const displayTime = new Date(
-        `2000-01-01T${timeString}:00`
-      ).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-      options.push({ value: timeString, label: displayTime });
-    }
-  }
-  return options;
 };
 
 // Generate stage options
@@ -123,7 +111,6 @@ export default async function SchedulePage() {
 
     const divisions = await fetchData("divisions", "projection=_id,name");
 
-    const timeOptions = generateTimeOptions();
     const stageOptions = generateStageOptions();
 
     const formFields = [
@@ -184,6 +171,7 @@ export default async function SchedulePage() {
           minMessage: "Stage number must be at least 1",
         },
       },
+
       {
         name: "isPublished",
         label: "Publish Schedule",
@@ -264,15 +252,20 @@ export default async function SchedulePage() {
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
           limit={50}
-          readOnly={
-            activeRole !== "Program Committee" && activeRole !== "Admin"
-          }
+          readOnly={activeRole !== "Program Committee"}
           filterType="api"
           printTitle="Event Schedule"
           tableHeight="calc(100vh - 280px)"
           multiEdit={true}
           multiEditFormFields={multiEditFormFields}
           isFestival={true}
+          apiFilters={
+            activeRole === "Program Committee"
+              ? {}
+              : {
+                  isPublished: "true",
+                }
+          }
         />
       </>
     );

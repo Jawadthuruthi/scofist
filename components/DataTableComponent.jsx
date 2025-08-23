@@ -584,7 +584,7 @@ const DataTableComponent = ({
               <PopupForm
                 data={selectedData[0]}
                 formFields={
-                  multiEditFormFields?.length > 0
+                  selectedData.length > 1 && multiEditFormFields?.length > 0
                     ? multiEditFormFields
                     : editFormFields?.length > 0
                       ? editFormFields

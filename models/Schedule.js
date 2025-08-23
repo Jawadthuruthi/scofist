@@ -25,6 +25,7 @@ const scheduleSchema = new Schema(
       type: Number,
       required: true,
     },
+
     isPublished: {
       type: Boolean,
       default: false,

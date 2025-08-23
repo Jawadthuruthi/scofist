@@ -256,6 +256,12 @@ const items = [
     icon: Calendar,
   },
   {
+    title: "Rules & Topics",
+    url: "/dashboard/rules-topics",
+    allowedRoles: ["Program Committee"],
+    icon: BookOpen,
+  },
+  {
     title: "Program Registration",
     url: "/dashboard/program-registration",
     allowedRoles: ["Program Leader", "Program Committee"],

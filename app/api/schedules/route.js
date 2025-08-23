@@ -12,6 +12,30 @@ const formatTimeForDisplay = (time24) => {
   return `${hour12}:${minutes} ${ampm}`;
 };
 
+// Helper function to calculate schedule status based on date and time
+const calculateScheduleStatus = (date, startTime, endTime) => {
+  const now = new Date();
+  const scheduleDate = new Date(date);
+
+  // Create datetime objects for comparison
+  const [startHours, startMinutes] = startTime.split(":").map(Number);
+  const [endHours, endMinutes] = endTime.split(":").map(Number);
+
+  const startDateTime = new Date(scheduleDate);
+  startDateTime.setHours(startHours, startMinutes, 0, 0);
+
+  const endDateTime = new Date(scheduleDate);
+  endDateTime.setHours(endHours, endMinutes, 0, 0);
+
+  if (now < startDateTime) {
+    return "Upcoming";
+  } else if (now >= startDateTime && now <= endDateTime) {
+    return "Ongoing";
+  } else {
+    return "Completed";
+  }
+};
+
 // Helper function to validate business hours (optional - uncomment if needed)
 const validateBusinessHours = (startTime, endTime) => {
   const start = parseInt(startTime.split(":")[0]);
@@ -64,8 +88,13 @@ export async function GET(req, res) {
     // Build filter object from query parameters
     const filterParams = {};
     for (const [key, value] of url.searchParams.entries()) {
-      // Skip pagination parameters
-      if (key !== "page" && key !== "limit" && key !== "projection") {
+      // Skip pagination parameters and status (since it's calculated)
+      if (
+        key !== "page" &&
+        key !== "limit" &&
+        key !== "projection" &&
+        key !== "status"
+      ) {
         filterParams[key] = value;
       }
     }
@@ -133,27 +162,55 @@ export async function GET(req, res) {
     // Get total count for pagination info
     const total = await Schedule.countDocuments(query);
 
-    const formattedSchedules = schedules.map((schedule) => ({
-      ...schedule.toObject(),
-      programId: schedule.programId?._id || "Unknown",
-      programName: schedule.programId?.name || "Unknown Program",
-      programType: schedule.programId?.type || "Unknown",
-      programCategory: schedule.programId?.category || "Unknown",
-      divisionName: schedule.programId?.divisionId?.name || "Unknown",
-      divisionId: schedule.programId?.divisionId?._id || "Unknown",
-      dateFormatted: schedule.date.toLocaleDateString(),
-      timeRange: `${formatTimeForDisplay(schedule.startTime)} - ${formatTimeForDisplay(schedule.endTime)}`,
-    }));
+    // Format schedules and calculate status for each
+    const formattedSchedules = schedules.map((schedule) => {
+      const calculatedStatus = calculateScheduleStatus(
+        schedule.date,
+        schedule.startTime,
+        schedule.endTime
+      );
+
+      return {
+        ...schedule.toObject(),
+        programId: schedule.programId?._id || "Unknown",
+        programName: schedule.programId?.name || "Unknown Program",
+        programType: schedule.programId?.type || "Unknown",
+        programCategory: schedule.programId?.category || "Unknown",
+        divisionName: schedule.programId?.divisionId?.name || "Unknown",
+        divisionId: schedule.programId?.divisionId?._id || "Unknown",
+        dateFormatted: schedule.date.toLocaleDateString(),
+        timeRange: `${formatTimeForDisplay(schedule.startTime)} - ${formatTimeForDisplay(schedule.endTime)}`,
+        status: calculatedStatus, // Dynamically calculated status
+      };
+    });
+
+    // Apply status filter after calculation if provided
+    const statusFilter = url.searchParams.get("status");
+    let filteredSchedules = formattedSchedules;
+    if (statusFilter) {
+      filteredSchedules = formattedSchedules.filter(
+        (schedule) => schedule.status === statusFilter
+      );
+    }
 
     return NextResponse.json(
       {
-        schedules: formattedSchedules,
+        schedules: filteredSchedules,
         pagination: {
           page,
           limit,
-          total,
-          totalPages:
-            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
+          total: statusFilter ? filteredSchedules.length : total,
+          totalPages: statusFilter
+            ? Math.max(
+                0,
+                Math.ceil(
+                  filteredSchedules.length /
+                    (limit === Infinity ? filteredSchedules.length : limit)
+                )
+              )
+            : limit === Infinity
+              ? 1
+              : Math.max(0, Math.ceil(total / limit)),
         },
         message: "Schedules fetched successfully!",
       },
@@ -170,6 +227,9 @@ export async function POST(req, res) {
     await connectToDB();
     const data = await req.json();
 
+    // Remove status from data since it's not stored in database
+    const { status, ...scheduleData } = data;
+
     // Validate required fields
     const requiredFields = [
       "programId",
@@ -179,7 +239,7 @@ export async function POST(req, res) {
       "stageNumber",
     ];
     for (const field of requiredFields) {
-      if (!data[field]) {
+      if (!scheduleData[field]) {
         return NextResponse.json(
           { message: `${field} is required` },
           { status: 400 }
@@ -188,7 +248,7 @@ export async function POST(req, res) {
     }
 
     // Validate program exists
-    const program = await Program.findById(data.programId);
+    const program = await Program.findById(scheduleData.programId);
     if (!program) {
       return NextResponse.json(
         { message: "Program not found" },
@@ -197,7 +257,7 @@ export async function POST(req, res) {
     }
 
     // Validate date is not in the past
-    const scheduleDate = new Date(data.date);
+    const scheduleDate = new Date(scheduleData.date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -210,7 +270,10 @@ export async function POST(req, res) {
 
     // Enhanced time format validation for 24-hour format
     const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(data.startTime) || !timeRegex.test(data.endTime)) {
+    if (
+      !timeRegex.test(scheduleData.startTime) ||
+      !timeRegex.test(scheduleData.endTime)
+    ) {
       return NextResponse.json(
         { message: "Invalid time format. Use 24-hour format (HH:MM)" },
         { status: 400 }
@@ -218,7 +281,7 @@ export async function POST(req, res) {
     }
 
     // Optional: Validate business hours (uncomment if needed)
-    // const businessHoursCheck = validateBusinessHours(data.startTime, data.endTime);
+    // const businessHoursCheck = validateBusinessHours(scheduleData.startTime, scheduleData.endTime);
     // if (!businessHoursCheck.valid) {
     //   return NextResponse.json(
     //     { message: businessHoursCheck.message },
@@ -227,8 +290,8 @@ export async function POST(req, res) {
     // }
 
     // Validate start time is before end time
-    const startTime = new Date(`2000-01-01T${data.startTime}:00`);
-    const endTime = new Date(`2000-01-01T${data.endTime}:00`);
+    const startTime = new Date(`2000-01-01T${scheduleData.startTime}:00`);
+    const endTime = new Date(`2000-01-01T${scheduleData.endTime}:00`);
 
     if (startTime >= endTime) {
       return NextResponse.json(
@@ -238,7 +301,7 @@ export async function POST(req, res) {
     }
 
     // Validate stage number
-    if (data.stageNumber < 1) {
+    if (scheduleData.stageNumber < 1) {
       return NextResponse.json(
         { message: "Stage number must be at least 1" },
         { status: 400 }
@@ -248,25 +311,25 @@ export async function POST(req, res) {
     // Check for time conflicts on the same stage and date
     const conflictingSchedule = await Schedule.findOne({
       date: scheduleDate,
-      stageNumber: data.stageNumber,
-      _id: { $ne: data._id }, // Exclude current schedule if updating
+      stageNumber: scheduleData.stageNumber,
+      _id: { $ne: scheduleData._id }, // Exclude current schedule if updating
       $or: [
         {
           $and: [
-            { startTime: { $lte: data.startTime } },
-            { endTime: { $gt: data.startTime } },
+            { startTime: { $lte: scheduleData.startTime } },
+            { endTime: { $gt: scheduleData.startTime } },
           ],
         },
         {
           $and: [
-            { startTime: { $lt: data.endTime } },
-            { endTime: { $gte: data.endTime } },
+            { startTime: { $lt: scheduleData.endTime } },
+            { endTime: { $gte: scheduleData.endTime } },
           ],
         },
         {
           $and: [
-            { startTime: { $gte: data.startTime } },
-            { endTime: { $lte: data.endTime } },
+            { startTime: { $gte: scheduleData.startTime } },
+            { endTime: { $lte: scheduleData.endTime } },
           ],
         },
       ],
@@ -275,17 +338,17 @@ export async function POST(req, res) {
     if (conflictingSchedule) {
       return NextResponse.json(
         {
-          message: `Time conflict with "${conflictingSchedule.programId.name}" on Stage ${data.stageNumber} from ${formatTimeForDisplay(conflictingSchedule.startTime)} to ${formatTimeForDisplay(conflictingSchedule.endTime)}`,
+          message: `Time conflict with "${conflictingSchedule.programId.name}" on Stage ${scheduleData.stageNumber} from ${formatTimeForDisplay(conflictingSchedule.startTime)} to ${formatTimeForDisplay(conflictingSchedule.endTime)}`,
         },
         { status: 409 }
       );
     }
 
-    // Create new schedule
+    // Create new schedule (without status field)
     const schedule = await Schedule.create({
-      ...data,
+      ...scheduleData,
       date: scheduleDate,
-      isPublished: data.isPublished === "true",
+      isPublished: scheduleData.isPublished === "true",
     });
 
     // Populate the created schedule for response
@@ -299,10 +362,20 @@ export async function POST(req, res) {
         },
       });
 
+    // Add calculated status to response
+    const responseSchedule = {
+      ...populatedSchedule.toObject(),
+      status: calculateScheduleStatus(
+        populatedSchedule.date,
+        populatedSchedule.startTime,
+        populatedSchedule.endTime
+      ),
+    };
+
     return NextResponse.json(
       {
         message: "Schedule created successfully!",
-        schedule: populatedSchedule,
+        schedule: responseSchedule,
       },
       { status: 201 }
     );
@@ -323,7 +396,9 @@ export async function PUT(req, res) {
     }
 
     const scheduleId = ids[0];
-    const updateData = { ...data, isPublished: data.isPublished === "true" };
+    // Remove status from update data since it's not stored in database
+    const { status, ...updateData } = data;
+    updateData.isPublished = updateData.isPublished === "true";
     delete updateData.ids;
 
     // Validate program exists if programId is being updated
@@ -447,8 +522,16 @@ export async function PUT(req, res) {
       );
     }
 
+    // Handle bulk update for multiple schedules (only for isPublished since status is calculated)
     if (ids.length > 1) {
-      await Schedule.updateMany({ _id: { $in: ids } }, { $set: updateData });
+      const bulkUpdateData = {};
+      if (updateData.isPublished !== undefined)
+        bulkUpdateData.isPublished = updateData.isPublished;
+
+      await Schedule.updateMany(
+        { _id: { $in: ids } },
+        { $set: bulkUpdateData }
+      );
     }
 
     const schedule = await Schedule.findOneAndUpdate(
@@ -472,8 +555,18 @@ export async function PUT(req, res) {
       );
     }
 
+    // Add calculated status to response
+    const responseSchedule = {
+      ...schedule.toObject(),
+      status: calculateScheduleStatus(
+        schedule.date,
+        schedule.startTime,
+        schedule.endTime
+      ),
+    };
+
     return NextResponse.json(
-      { message: "Schedule updated successfully!", schedule },
+      { message: "Schedule updated successfully!", schedule: responseSchedule },
       { status: 200 }
     );
   } catch (error) {
@@ -492,17 +585,50 @@ export async function DELETE(req, res) {
       return NextResponse.json({ message: "Invalid request" }, { status: 400 });
     }
 
-    // Check if any schedules are published
-    const publishedSchedules = await Schedule.find({
+    // Get schedules to check their calculated status and published state
+    const schedulesToDelete = await Schedule.find({
       _id: { $in: ids },
-      isPublished: true,
     }).populate("programId", "name");
 
-    if (publishedSchedules.length > 0) {
+    // Check if any schedules are published or ongoing (calculated)
+    const protectedSchedules = schedulesToDelete.filter((schedule) => {
+      const calculatedStatus = calculateScheduleStatus(
+        schedule.date,
+        schedule.startTime,
+        schedule.endTime
+      );
+      return schedule.isPublished || calculatedStatus === "Ongoing";
+    });
+
+    if (protectedSchedules.length > 0) {
+      const publishedNames = protectedSchedules
+        .filter((s) => s.isPublished)
+        .map((s) => s.programId.name);
+
+      const ongoingNames = protectedSchedules
+        .filter((s) => {
+          const calculatedStatus = calculateScheduleStatus(
+            s.date,
+            s.startTime,
+            s.endTime
+          );
+          return calculatedStatus === "Ongoing";
+        })
+        .map((s) => s.programId.name);
+
+      let errorMessage = "Cannot delete: ";
+      if (publishedNames.length > 0) {
+        errorMessage += `Published schedules: ${publishedNames.join(", ")}`;
+      }
+      if (ongoingNames.length > 0) {
+        if (publishedNames.length > 0) errorMessage += ", ";
+        errorMessage += `Ongoing schedules: ${ongoingNames.join(", ")}`;
+      }
+
       return NextResponse.json(
         {
           success: false,
-          message: `Cannot delete published schedules: ${publishedSchedules.map((s) => s.programId.name).join(", ")}`,
+          message: errorMessage,
         },
         { status: 400 }
       );
