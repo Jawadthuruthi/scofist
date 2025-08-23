@@ -138,7 +138,7 @@ const InstructionsComponent = ({ data = "", apiKey, readOnly = false }) => {
         )}
 
         {/* Action Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-3">
           <div className="flex items-center gap-2">
             {!readOnly && !isEditing && (
               <Button variant="outline" onClick={handleEdit} size="sm">
@@ -241,7 +241,6 @@ Examples:
                     onClick={handleSave}
                     disabled={loading || !instructions.trim()}
                     size="sm"
-                    className="flex-1 sm:flex-none"
                   >
                     <Save className="w-4 h-4 mr-1" />
                     {loading ? "Saving..." : "Save Instructions"}
@@ -251,7 +250,6 @@ Examples:
                     onClick={handleCancel}
                     size="sm"
                     disabled={loading}
-                    className="flex-1 sm:flex-none"
                   >
                     <X className="w-4 h-4 mr-1" />
                     Cancel
