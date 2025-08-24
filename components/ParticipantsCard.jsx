@@ -408,7 +408,14 @@ const PrintableParticipantCard = ({ participant, festivalSettings }) => {
           className="relative bg-cover bg-center w-full h-full p-3 rounded shadow flex flex-col"
         >
           {/* Participant Details */}
-          <div className="absolute bottom-5 left-0 right-0 text-center flex-grow">
+          <div
+            className="absolute  text-center flex-grow"
+            style={{
+              left: `${participantsCardSettings?.textPositions?.left || 0}%`,
+              right: `${participantsCardSettings?.textPositions?.right || 0}%`,
+              bottom: `${participantsCardSettings?.textPositions?.bottom || 0}%`,
+            }}
+          >
             {/* Chest Number - Print Version */}
             <div className="">
               <h2
