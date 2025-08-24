@@ -1,8 +1,8 @@
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { fetchData, formatOptions } from "@/lib/utils";
-import { cookies } from "next/headers";
+import { fetchData, formatOptions, parseUser } from "@/lib/utils";
+import { cookies, headers } from "next/headers";
 
 const columnsConfig = [
   {
@@ -46,17 +46,33 @@ const statusMessages = {
 
 export default async function ParticipantsPage() {
   try {
+    const headerStore = await headers();
     const cookiesStore = await cookies();
+    const user = parseUser(headerStore);
     const activeRole = cookiesStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
 
-    // Fetch related data for form options
-    const [users, batches, teams, divisions] = await Promise.all([
-      fetchData("users", "projection=_id,name&status=Active&roles=Student", 0),
-      fetchData("batches", "projection=_id,name&status=Active", 0),
-      fetchData("teams", "projection=_id,name", 0),
-      fetchData("divisions", "projection=_id,name&type=Primary", 0),
-    ]);
+    let users, batches, teams, divisions;
+
+    if (activeRole === "Program Committee") {
+      [users, batches, teams, divisions] = await Promise.all([
+        fetchData(
+          "users",
+          "projection=_id,name&status=Active&roles=Student",
+          0
+        ),
+        fetchData("batches", "projection=_id,name&status=Active", 0),
+        fetchData("teams", "projection=_id,name", 0),
+        fetchData("divisions", "projection=_id,name&type=Primary", 0),
+      ]);
+    } else {
+      teams = await fetchData("teams", `leaderId=${user?.userId}`, 0);
+      (users = []),
+        ([batches, divisions] = await Promise.all([
+          fetchData("batches", "projection=_id,name&status=Active", 0),
+          fetchData("divisions", "projection=_id,name&type=Primary", 0),
+        ]));
+    }
 
     const formFields = [
       {
@@ -207,7 +223,13 @@ export default async function ParticipantsPage() {
           filterConfig={filterConfig}
           limit={20}
           readOnly={activeRole !== "Program Committee"}
-          bulkCreate={true}
+          apiFilters={
+            activeRole === "Program Leader"
+              ? {
+                  teamId: teams[0]?._id,
+                }
+              : {}
+          }
         />
       </>
     );

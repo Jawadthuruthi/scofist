@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import FormComponent from "@/components/FormComponent";
 import { fetchData } from "@/lib/utils";
 import { cookies } from "next/headers";
+import { validators } from "tailwind-merge";
 
 const generalFormField = [
   {
@@ -125,6 +126,47 @@ const festivalFormField = [
     className: "col-span-1",
   },
   {
+    name: "top",
+    label: "Top Position",
+    type: "number",
+    validators: {
+      min: 0,
+      max: 100,
+    },
+    className: "col-span-1",
+  },
+  {
+    name: "right",
+    label: "Right Position",
+    type: "number",
+    validators: {
+      min: 0,
+      max: 100,
+    },
+    className: "col-span-1",
+  },
+  {
+    name: "bottom",
+    label: "Bottom Position",
+    type: "number",
+    validators: {
+      min: 0,
+      max: 100,
+    },
+    className: "col-span-1",
+  },
+  {
+    name: "left",
+    label: "Left Position",
+    type: "number",
+    validators: {
+      min: 0,
+      max: 100,
+    },
+    className: "col-span-1",
+  },
+
+  {
     name: "registrationDeadline",
     label: "Registration Deadline",
     type: "date",
@@ -153,6 +195,10 @@ export default async function SettingsPage() {
       ...data.festival,
       participantsCard: data.festival.participantsCard.backgroundImage || {},
       textColor: data.festival.participantsCard.textColor || "#000000",
+      top: data.festival.participantsCard.textPositions.top || 0,
+      right: data.festival.participantsCard.textPositions.right || 0,
+      bottom: data.festival.participantsCard.textPositions.bottom || 0,
+      left: data.festival.participantsCard.textPositions.left || 0,
     };
 
     const idCard = {

@@ -101,6 +101,32 @@ const SettingsSchema = new Schema(
             message: "Invalid hex color format",
           },
         },
+        textPositions: {
+          top: {
+            type: Number,
+            min: 0,
+            max: 100,
+            default: 0,
+          },
+          right: {
+            type: Number,
+            min: 0,
+            max: 100,
+            default: 0,
+          },
+          bottom: {
+            type: Number,
+            min: 0,
+            max: 100,
+            default: 0,
+          },
+          left: {
+            type: Number,
+            min: 0,
+            max: 100,
+            default: 0,
+          },
+        },
       },
       instructions: {
         type: String,

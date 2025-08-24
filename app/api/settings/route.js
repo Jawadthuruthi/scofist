@@ -36,37 +36,71 @@ export async function POST(req, res) {
     await connectToDB();
 
     const data = await req.json();
+    // Fetch existing settings first
+    const existingSettings = await Settings.findOne({});
+
+    // Merge festival data safely
     const formattedData = {
       institution: {
-        name: data.name,
-        tagline: data.tagline,
-        logo: data.logo,
-        address: data.address,
+        name: data.name ?? existingSettings?.institution?.name,
+        tagline: data.tagline ?? existingSettings?.institution?.tagline,
+        logo: data.logo ?? existingSettings?.institution?.logo,
+        address: data.address ?? existingSettings?.institution?.address,
         contact: {
-          primaryPhone: data.primaryPhone,
-          secondaryPhone: data.secondaryPhone,
-          email: data.email,
-          website: data.website,
+          primaryPhone:
+            data.primaryPhone ??
+            existingSettings?.institution?.contact.primaryPhone,
+          secondaryPhone:
+            data.secondaryPhone ??
+            existingSettings?.institution?.contact.secondaryPhone,
+          email: data.email ?? existingSettings?.institution?.contact.email,
+          website:
+            data.website ?? existingSettings?.institution?.contact.website,
         },
       },
-      idCard: data.backgroundImage,
+      idCard: {
+        backgroundImage:
+          data.backgroundImage ?? existingSettings?.idCard?.backgroundImage,
+      },
       general: {
-        isWorkingDay: data.isWorkingDay,
-        occasion: data.occasion,
+        isWorkingDay:
+          data.isWorkingDay ?? existingSettings?.general?.isWorkingDay,
+        occasion: data.occasion ?? existingSettings?.general?.occasion,
       },
       festival: {
-        printHeader: data.printHeader,
-        registrationDeadline: data.registrationDeadline,
+        printHeader:
+          data.printHeader ?? existingSettings?.festival?.printHeader,
+        registrationDeadline:
+          data.registrationDeadline ??
+          existingSettings?.festival?.registrationDeadline,
         participantsCard: {
-          backgroundImage: data.participantsCard,
-          textColor: data.textColor || "#000000",
+          backgroundImage:
+            data.participantsCard ??
+            existingSettings?.festival?.participantsCard?.backgroundImage,
+          textColor:
+            data.textColor ??
+            existingSettings?.festival?.participantsCard?.textColor,
+          textPositions: {
+            top:
+              data.top ??
+              existingSettings?.festival?.participantsCard?.textPositions?.top,
+            right:
+              data.right ??
+              existingSettings?.festival?.participantsCard?.textPositions
+                ?.right,
+            bottom:
+              data.bottom ??
+              existingSettings?.festival?.participantsCard?.textPositions
+                ?.bottom,
+            left:
+              data.left ??
+              existingSettings?.festival?.participantsCard?.textPositions?.left,
+          },
         },
-        instructions: data.instructions,
+        instructions:
+          data.instructions ?? existingSettings?.festival?.instructions,
       },
     };
-
-    // Check if settings already exist
-    const existingSettings = await Settings.findOne({});
 
     if (existingSettings) {
       // Update existing settings
@@ -115,45 +149,63 @@ export async function PUT(req, res) {
     // Merge festival data safely
     const formattedData = {
       institution: {
-        name: data.name ?? existingSettings.institution.name,
-        tagline: data.tagline ?? existingSettings.institution.tagline,
-        logo: data.logo ?? existingSettings.institution.logo,
-        address: data.address ?? existingSettings.institution.address,
+        name: data.name ?? existingSettings?.institution?.name,
+        tagline: data.tagline ?? existingSettings?.institution?.tagline,
+        logo: data.logo ?? existingSettings?.institution?.logo,
+        address: data.address ?? existingSettings?.institution?.address,
         contact: {
           primaryPhone:
             data.primaryPhone ??
-            existingSettings.institution.contact.primaryPhone,
+            existingSettings?.institution?.contact.primaryPhone,
           secondaryPhone:
             data.secondaryPhone ??
-            existingSettings.institution.contact.secondaryPhone,
-          email: data.email ?? existingSettings.institution.contact.email,
-          website: data.website ?? existingSettings.institution.contact.website,
+            existingSettings?.institution?.contact.secondaryPhone,
+          email: data.email ?? existingSettings?.institution?.contact.email,
+          website:
+            data.website ?? existingSettings?.institution?.contact.website,
         },
       },
       idCard: {
         backgroundImage:
-          data.backgroundImage ?? existingSettings.idCard.backgroundImage,
+          data.backgroundImage ?? existingSettings?.idCard?.backgroundImage,
       },
       general: {
         isWorkingDay:
-          data.isWorkingDay ?? existingSettings.general.isWorkingDay,
-        occasion: data.occasion ?? existingSettings.general.occasion,
+          data.isWorkingDay ?? existingSettings?.general?.isWorkingDay,
+        occasion: data.occasion ?? existingSettings?.general?.occasion,
       },
       festival: {
-        printHeader: data.printHeader ?? existingSettings.festival.printHeader,
+        printHeader:
+          data.printHeader ?? existingSettings?.festival?.printHeader,
         registrationDeadline:
           data.registrationDeadline ??
-          existingSettings.festival.registrationDeadline,
+          existingSettings?.festival?.registrationDeadline,
         participantsCard: {
           backgroundImage:
             data.participantsCard ??
-            existingSettings.festival.participantsCard.backgroundImage,
+            existingSettings?.festival?.participantsCard?.backgroundImage,
           textColor:
             data.textColor ??
-            existingSettings.festival.participantsCard.textColor,
+            existingSettings?.festival?.participantsCard?.textColor,
+          textPositions: {
+            top:
+              data.top ??
+              existingSettings?.festival?.participantsCard?.textPositions?.top,
+            right:
+              data.right ??
+              existingSettings?.festival?.participantsCard?.textPositions
+                ?.right,
+            bottom:
+              data.bottom ??
+              existingSettings?.festival?.participantsCard?.textPositions
+                ?.bottom,
+            left:
+              data.left ??
+              existingSettings?.festival?.participantsCard?.textPositions?.left,
+          },
         },
         instructions:
-          data.instructions ?? existingSettings.festival.instructions,
+          data.instructions ?? existingSettings?.festival?.instructions,
       },
     };
 

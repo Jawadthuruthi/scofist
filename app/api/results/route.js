@@ -62,7 +62,7 @@ export async function GET(request) {
         path: "participants.id",
         select: "name age chestNumber",
       })
-      .sort({ createdAt: -1 });
+      .sort({ updatedAt: -1 });
 
     // Filter results based on additional criteria
     let filteredResults = results.filter((result) => {
@@ -89,7 +89,7 @@ export async function GET(request) {
       _id: result._id,
       programId: result.programId._id,
       programName: result.programId.name,
-      programCategory: result.programId.category,
+      programType: result.programId.type,
       programCategory: result.programId.category,
       pointScheme: result.programId.pointScheme,
       divisionId: result.programId.divisionId?._id,

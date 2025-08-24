@@ -31,6 +31,7 @@ import {
   Trophy,
   Award,
   Users2,
+  CheckCircle,
 } from "lucide-react";
 
 import {
@@ -322,13 +323,19 @@ const items = [
   {
     title: "Reports",
     icon: FileText,
-    allowedRoles: ["Program Leader", "Program Committee"],
+    allowedRoles: ["Program Committee"],
     subItems: [
       {
         title: "Participants Card",
         url: "/dashboard/participants-card",
         icon: UserCheck,
-        allowedRoles: ["Program Leader", "Program Committee"],
+        allowedRoles: ["Program Committee"],
+      },
+      {
+        title: "Declared Results",
+        url: "/dashboard/declared-results",
+        icon: CheckCircle,
+        allowedRoles: ["Program Committee"],
       },
     ],
   },
