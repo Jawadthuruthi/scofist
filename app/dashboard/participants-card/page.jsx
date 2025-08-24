@@ -7,7 +7,7 @@ export const revalidate = 60;
 const participantsCardPage = async () => {
   try {
     const [participants, settings, divisions, teams] = await Promise.all([
-      fetchData("participants"),
+      fetchData("participants", "", 0),
       fetchData("settings"),
       fetchData("divisions"),
       fetchData("teams"),

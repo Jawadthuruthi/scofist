@@ -285,7 +285,14 @@ const ParticipantCard = ({ participant, festivalSettings }) => {
             }`}
           >
             {/* Participant Details */}
-            <div className="absolute bottom-5 left-0 right-0 text-center">
+            <div
+              className="absolute text-center"
+              style={{
+                left: `${participantsCardSettings?.textPositions?.left || 0}%`,
+                right: `${participantsCardSettings?.textPositions?.right || 0}%`,
+                bottom: `${participantsCardSettings?.textPositions?.bottom || 0}%`,
+              }}
+            >
               {/* Chest Number with enhanced visibility */}
               <div className="backdrop-enhanced ">
                 <h2

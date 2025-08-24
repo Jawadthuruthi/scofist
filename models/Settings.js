@@ -102,12 +102,6 @@ const SettingsSchema = new Schema(
           },
         },
         textPositions: {
-          top: {
-            type: Number,
-            min: 0,
-            max: 100,
-            default: 0,
-          },
           right: {
             type: Number,
             min: 0,

@@ -81,9 +81,6 @@ export async function POST(req, res) {
             data.textColor ??
             existingSettings?.festival?.participantsCard?.textColor,
           textPositions: {
-            top:
-              data.top ??
-              existingSettings?.festival?.participantsCard?.textPositions?.top,
             right:
               data.right ??
               existingSettings?.festival?.participantsCard?.textPositions
@@ -188,9 +185,6 @@ export async function PUT(req, res) {
             data.textColor ??
             existingSettings?.festival?.participantsCard?.textColor,
           textPositions: {
-            top:
-              data.top ??
-              existingSettings?.festival?.participantsCard?.textPositions?.top,
             right:
               data.right ??
               existingSettings?.festival?.participantsCard?.textPositions

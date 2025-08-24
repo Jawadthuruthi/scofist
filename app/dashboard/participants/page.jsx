@@ -226,7 +226,7 @@ export default async function ParticipantsPage() {
           apiFilters={
             activeRole === "Program Leader"
               ? {
-                  teamId: teams[0]?._id,
+                  teamId: teams[0]?._id || "Unknown",
                 }
               : {}
           }

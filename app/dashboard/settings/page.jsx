@@ -125,16 +125,7 @@ const festivalFormField = [
     type: "color",
     className: "col-span-1",
   },
-  {
-    name: "top",
-    label: "Top Position",
-    type: "number",
-    validators: {
-      min: 0,
-      max: 100,
-    },
-    className: "col-span-1",
-  },
+
   {
     name: "right",
     label: "Right Position",
@@ -195,7 +186,6 @@ export default async function SettingsPage() {
       ...data.festival,
       participantsCard: data.festival.participantsCard.backgroundImage || {},
       textColor: data.festival.participantsCard.textColor || "#000000",
-      top: data.festival.participantsCard.textPositions.top || 0,
       right: data.festival.participantsCard.textPositions.right || 0,
       bottom: data.festival.participantsCard.textPositions.bottom || 0,
       left: data.festival.participantsCard.textPositions.left || 0,
