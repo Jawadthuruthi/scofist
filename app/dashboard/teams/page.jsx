@@ -28,21 +28,6 @@ const columnsConfig = [
     header: "Members Count",
     type: ["number"],
   },
-  {
-    accessorKey: "stagePoints",
-    header: "Stage Points",
-    type: ["number"],
-  },
-  {
-    accessorKey: "offStagePoints",
-    header: "Off-Stage Points",
-    type: ["number"],
-  },
-  {
-    accessorKey: "totalPoints",
-    header: "Total Points",
-    type: ["number"],
-  },
 ];
 
 const filterConfig = [{ id: "name", label: "Team Name" }];

@@ -223,6 +223,16 @@ const pages = [
     allowedRoles: ["Program Committee", "Program Leader"],
   },
   {
+    title: "Team Points",
+    path: "/dashboard/team-points",
+    allowedRoles: ["Program Committee"],
+  },
+  {
+    title: "Individual Points",
+    path: "/dashboard/individual-points",
+    allowedRoles: ["Program Committee"],
+  },
+  {
     title: "Settings",
     path: "/dashboard/settings",
     allowedRoles: ["College Admin", "Program Committee"],

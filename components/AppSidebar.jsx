@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import {
+  User,
   Users,
   Book,
   ClipboardList,
@@ -28,6 +29,8 @@ import {
   ListChecks,
   FileType,
   Trophy,
+  Award,
+  Users2,
 } from "lucide-react";
 
 import {
@@ -296,6 +299,25 @@ const items = [
     url: "/dashboard/results",
     allowedRoles: ["Program Committee"],
     icon: Trophy,
+  },
+  {
+    title: "Points",
+    icon: Award,
+    allowedRoles: ["Program Committee"],
+    subItems: [
+      {
+        title: "Team Points",
+        url: "/dashboard/team-points",
+        icon: Users2,
+        allowedRoles: ["Program Committee"],
+      },
+      {
+        title: "Individual Points",
+        url: "/dashboard/individual-points",
+        icon: User,
+        allowedRoles: ["Program Committee"],
+      },
+    ],
   },
   {
     title: "Reports",
