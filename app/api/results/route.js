@@ -254,6 +254,10 @@ export async function PUT(request) {
     const result = await Result.findById(resultId).populate({
       path: "programId",
       select: "name type category divisionId",
+      populate: {
+        path: "divisionId",
+        select: "name type",
+      },
     });
 
     const registrations = await ProgramRegistration.find({
@@ -278,12 +282,18 @@ export async function PUT(request) {
 
     if (newDeclarationStatus) {
       // DECLARING RESULT - Update participant and team records
-      const updatePromises = result.participants.map(
+
+      // Step 1: Track team points accumulation
+      const teamPointsAccumulator = new Map(); // teamId -> { stagePoints, offStagePoints }
+
+      // Step 2: Update participants and accumulate team points
+      const participantUpdatePromises = result.participants.map(
         async (participantResult) => {
           const participantId = participantResult.id;
           const programId = result.programId._id;
           const programCategory = result.programId.category;
           const programType = result.programId.type;
+          const divisionType = result.programId.divisionId.type;
 
           // Update participant's program entry
           const participant = await Participant.findById(participantId);
@@ -306,13 +316,18 @@ export async function PUT(request) {
               participant.programs.push(programEntry);
             }
 
-            // Update stage/off-stage points
-            if (programCategory === "Stage" && programType === "Individual") {
+            // Update stage/off-stage points for participant
+            if (
+              programCategory === "Stage" &&
+              programType === "Individual" &&
+              divisionType === "Primary"
+            ) {
               participant.stagePoints =
                 (participant.stagePoints || 0) + participantResult.points;
             } else if (
               programCategory === "Off-Stage" &&
-              programType === "Individual"
+              programType === "Individual" &&
+              divisionType === "Primary"
             ) {
               participant.offStagePoints =
                 (participant.offStagePoints || 0) + participantResult.points;
@@ -320,26 +335,51 @@ export async function PUT(request) {
 
             await participant.save();
 
-            // Update team points
-            const team = await Team.findById(participant.teamId);
-            if (team) {
-              if (programCategory === "Stage") {
-                team.stagePoints =
-                  (team.stagePoints || 0) + participantResult.points;
-              } else {
-                team.offStagePoints =
-                  (team.offStagePoints || 0) + participantResult.points;
-              }
-              await team.save();
+            // Accumulate team points
+            const teamId = participant.teamId.toString();
+            if (!teamPointsAccumulator.has(teamId)) {
+              teamPointsAccumulator.set(teamId, {
+                stagePoints: 0,
+                offStagePoints: 0,
+              });
+            }
+
+            const teamAccumulator = teamPointsAccumulator.get(teamId);
+            if (programCategory === "Stage") {
+              teamAccumulator.stagePoints += participantResult.points;
+            } else {
+              teamAccumulator.offStagePoints += participantResult.points;
             }
           }
         }
       );
 
-      await Promise.all(updatePromises);
+      // Wait for all participant updates to complete
+      await Promise.all(participantUpdatePromises);
+
+      // Step 3: Update each team only once with accumulated points
+      const teamUpdatePromises = Array.from(
+        teamPointsAccumulator.entries()
+      ).map(async ([teamId, accumulatedPoints]) => {
+        const team = await Team.findById(teamId);
+        if (team) {
+          team.stagePoints =
+            (team.stagePoints || 0) + accumulatedPoints.stagePoints;
+          team.offStagePoints =
+            (team.offStagePoints || 0) + accumulatedPoints.offStagePoints;
+          await team.save();
+        }
+      });
+
+      await Promise.all(teamUpdatePromises);
     } else {
       // UNDECLARING RESULT - Remove participant and team records
-      const updatePromises = result.participants.map(
+
+      // Step 1: Track team points to subtract
+      const teamPointsSubtractor = new Map(); // teamId -> { stagePoints, offStagePoints }
+
+      // Step 2: Update participants and accumulate team points to subtract
+      const participantUpdatePromises = result.participants.map(
         async (participantResult) => {
           const participantId = participantResult.id;
           const programId = result.programId._id;
@@ -354,7 +394,7 @@ export async function PUT(request) {
               (p) => p.id.toString() !== programId.toString()
             );
 
-            // Subtract stage/off-stage points
+            // Subtract stage/off-stage points from participant
             if (programCategory === "Stage" && programType === "Individual") {
               participant.stagePoints = Math.max(
                 0,
@@ -372,27 +412,47 @@ export async function PUT(request) {
 
             await participant.save();
 
-            // Update team points
-            const team = await Team.findById(participant.teamId);
-            if (team) {
-              if (programCategory === "Stage") {
-                team.stagePoints = Math.max(
-                  0,
-                  (team.stagePoints || 0) - participantResult.points
-                );
-              } else {
-                team.offStagePoints = Math.max(
-                  0,
-                  (team.offStagePoints || 0) - participantResult.points
-                );
-              }
-              await team.save();
+            // Accumulate team points to subtract
+            const teamId = participant.teamId.toString();
+            if (!teamPointsSubtractor.has(teamId)) {
+              teamPointsSubtractor.set(teamId, {
+                stagePoints: 0,
+                offStagePoints: 0,
+              });
+            }
+
+            const teamSubtractor = teamPointsSubtractor.get(teamId);
+            if (programCategory === "Stage") {
+              teamSubtractor.stagePoints += participantResult.points;
+            } else {
+              teamSubtractor.offStagePoints += participantResult.points;
             }
           }
         }
       );
 
-      await Promise.all(updatePromises);
+      // Wait for all participant updates to complete
+      await Promise.all(participantUpdatePromises);
+
+      // Step 3: Update each team only once with subtracted points
+      const teamUpdatePromises = Array.from(teamPointsSubtractor.entries()).map(
+        async ([teamId, pointsToSubtract]) => {
+          const team = await Team.findById(teamId);
+          if (team) {
+            team.stagePoints = Math.max(
+              0,
+              (team.stagePoints || 0) - pointsToSubtract.stagePoints
+            );
+            team.offStagePoints = Math.max(
+              0,
+              (team.offStagePoints || 0) - pointsToSubtract.offStagePoints
+            );
+            await team.save();
+          }
+        }
+      );
+
+      await Promise.all(teamUpdatePromises);
     }
 
     // Update result declaration status

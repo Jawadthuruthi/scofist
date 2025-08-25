@@ -164,23 +164,114 @@ const EvaluationSheetsComponent = ({
     pageStyle: `
       @page {
         size: A4 portrait;
-        margin: 0.5in;
+        margin: 0.4in;
       }
       @media print {
-        body { -webkit-print-color-adjust: exact; }
-        .no-print { display: none !important; }
-        table { page-break-inside: auto; margin-bottom: 20px; }
-        tr { page-break-inside: avoid; page-break-after: auto; }
-        thead { display: table-header-group; }
-        .program-section { page-break-inside: avoid; margin-bottom: 30px; }
-        .evaluation-table { 
-          border-collapse: collapse !important;
+        body { 
+          -webkit-print-color-adjust: exact; 
+          font-size: 12px;
+          line-height: 1.2;
         }
+        .no-print { display: none !important; }
+        
+        /* Main print container */
+        .print-container {
+          width: 100%;
+          height: 100vh;
+        }
+        
+        /* Program section - exactly half page height */
+        .program-section {
+          height: 50vh !important;
+          max-height: 50vh !important;
+          overflow: hidden;
+          page-break-inside: avoid;
+          margin-bottom: 0 !important;
+          padding-bottom: 5px;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        /* Every two program sections should be on a new page */
+        .program-section:nth-child(odd) {
+          page-break-before: avoid;
+        }
+        
+        .program-section:nth-child(2n+1):not(:first-child) {
+          page-break-before: always;
+        }
+        
+        /* Program info header */
+        .program-info {
+          height: auto !important;
+          min-height: 40px !important;
+          max-height: 60px !important;
+          margin-bottom: 8px !important;
+          flex-shrink: 0;
+          overflow: hidden;
+        }
+        
+        /* Table container - flexible height */
+        .table-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          overflow: hidden;
+        }
+        
+        /* Evaluation table */
+        .evaluation-table {
+          border-collapse: collapse !important;
+          border: 1px solid #000 !important;
+          width: 100% !important;
+          height: 100%;
+          font-size: 11px !important;
+        }
+        
         .evaluation-table th,
-        .evaluation-table td { 
-          border: 1px solid #333 !important;
-          padding: 4px 8px !important;
-          height: 32px !important;
+        .evaluation-table td {
+          border: 1px solid #000 !important;
+          padding: 2px 4px !important;
+          text-align: center !important;
+          vertical-align: middle !important;
+          line-height: 1.1 !important;
+          overflow: hidden;
+        }
+        
+        .evaluation-table th {
+          background-color: #f5f5f5 !important;
+          font-weight: bold !important;
+          color: #000 !important;
+          height: 20px !important;
+          font-size: 10px !important;
+        }
+        
+        /* Dynamic row height based on participant count */
+        .evaluation-table tbody tr {
+          height: calc((100% - 20px) / 24) !important;
+          max-height: 18px !important;
+          min-height: 10px !important;
+        }
+        
+        .evaluation-table tbody td {
+          height: inherit !important;
+          font-size: 10px !important;
+        }
+        
+        /* Signature section */
+        .signature-section {
+          height: 40px !important;
+          max-height: 40px !important;
+          margin-top: 5px !important;
+          flex-shrink: 0;
+          font-size: 9px !important;
+        }
+        
+        .signature-section .signature-line {
+          border-top: 1px solid #333 !important;
+          margin-top: 15px !important;
+          padding-top: 3px !important;
         }
       }
     `,
@@ -271,10 +362,7 @@ const EvaluationSheetsComponent = ({
       </div>
 
       {/* Printable Content */}
-      <div ref={printRef}>
-        {/* Print Header */}
-        <PrintHeader apiKey={apiKey} isFestival={true} />
-
+      <div ref={printRef} className="print-container">
         {/* Program Tables */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -284,17 +372,20 @@ const EvaluationSheetsComponent = ({
             </div>
           </div>
         ) : filteredRegistrations.length > 0 ? (
-          <div className="space-y-8">
-            {filteredRegistrations.map((program) => (
+          <div className="space-y-8 print:space-y-0">
+            {filteredRegistrations.map((program, programIndex) => (
               <div key={program._id} className="program-section">
+                {/* Print Header for each sheet */}
+                <PrintHeader apiKey={apiKey} isFestival={true} />
+
                 {/* Program Header */}
-                <div className="mb-4 p-3 sm:p-4 bg-muted rounded-lg border print:bg-transparent print:border-none">
+                <div className="program-info mb-4 p-3 sm:p-4 bg-muted rounded-lg border print:bg-transparent print:border-none print:p-2 print:mb-2">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div className="mb-2 sm:mb-0">
-                      <h3 className="text-lg sm:text-xl font-semibold text-foreground print:text-black">
+                      <h3 className="sm:text-xl font-semibold text-foreground print:text-black print:text-sm print:font-bold">
                         {program.programName}
                       </h3>
-                      <div className="flex flex-wrap gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-foreground print:text-black">
+                      <div className="flex flex-wrap gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-foreground print:text-black print:text-xs">
                         <span className="capitalize whitespace-nowrap">
                           <strong>Type:</strong> {program.programType}
                         </span>
@@ -310,50 +401,44 @@ const EvaluationSheetsComponent = ({
                 </div>
 
                 {/* Evaluation Sheet Table */}
-                <div className="border rounded-lg overflow-hidden print:rounded-none">
-                  <div className="overflow-x-auto">
-                    <Table className="min-w-full evaluation-table border-collapse">
+                <div className="table-container border rounded-lg overflow-hidden print:rounded-none print:border print:border-black">
+                  <div className="overflow-x-auto print:overflow-visible h-full">
+                    <Table className="min-w-full evaluation-table border-collapse h-full">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-16 text-center whitespace-nowrap border border-border p-2 h-10 print:border-black print:font-bold print:bg-gray-100">
+                          <TableHead className="w-16 text-center whitespace-nowrap border border-border p-2 h-5 print:border-black print:font-bold print:bg-gray-100">
                             Sl.
                           </TableHead>
-                          <TableHead className="w-32 text-center whitespace-nowrap border border-border p-2 h-10 print:border-black print:font-bold print:bg-gray-100">
+                          <TableHead className="w-32 text-center whitespace-nowrap border border-border p-2 h-5 print:border-black print:font-bold print:bg-gray-100">
                             Code Letter
                           </TableHead>
-                          <TableHead className="w-auto text-center whitespace-nowrap border border-border p-2 h-10 print:border-black print:font-bold print:bg-gray-100">
+                          <TableHead className="w-auto text-center whitespace-nowrap border border-border p-2 h-5 print:border-black print:font-bold print:bg-gray-100">
                             Marks
                           </TableHead>
-                          <TableHead className="w-32 text-center whitespace-nowrap border border-border p-2 h-10 print:border-black print:font-bold print:bg-gray-100">
+                          <TableHead className="w-32 text-center whitespace-nowrap border border-border p-2 h-5 print:border-black print:font-bold print:bg-gray-100">
                             Total
                           </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {program.participants.length > 0 ? (
-                          program.participants
-                            .sort((a, b) => {
-                              const aCodeLetter = a.codeLetter || "";
-                              const bCodeLetter = b.codeLetter || "";
-                              return aCodeLetter.localeCompare(bCodeLetter);
-                            })
-                            .map((participant, index) => (
-                              <TableRow key={participant.uniqueId}>
-                                <TableCell className="text-center font-medium whitespace-nowrap border border-border p-2 h-10 print:border-black print:h-8">
-                                  {index + 1}
-                                </TableCell>
-                                <TableCell className="text-center font-bold text-lg whitespace-nowrap border border-border p-2 h-10 print:border-black print:h-8">
-                                  {participant.codeLetter || alphabet[index]}
-                                </TableCell>
-                                <TableCell className="text-center whitespace-nowrap border border-border p-2 h-10 print:border-black print:h-8"></TableCell>
-                                <TableCell className="text-center whitespace-nowrap border border-border p-2 h-10 print:border-black print:h-8"></TableCell>
-                              </TableRow>
-                            ))
+                          program.participants.map((participant, index) => (
+                            <TableRow key={participant.uniqueId}>
+                              <TableCell className="text-center font-medium whitespace-nowrap border border-border p-2 h-5 print:border-black">
+                                {index + 1}
+                              </TableCell>
+                              <TableCell className="text-center font-bold whitespace-nowrap border border-border p-2 h-5 print:border-black">
+                                {alphabet[index]}
+                              </TableCell>
+                              <TableCell className="text-center whitespace-nowrap border border-border p-2 h-5 print:border-black"></TableCell>
+                              <TableCell className="text-center whitespace-nowrap border border-border p-2 h-5 print:border-black"></TableCell>
+                            </TableRow>
+                          ))
                         ) : (
                           <TableRow>
                             <TableCell
                               colSpan={4}
-                              className="text-center py-6 text-muted-foreground border border-border print:border-black"
+                              className="text-center py-6 text-muted-foreground border border-border print:border-black print:py-2"
                             >
                               No participants found for this program
                             </TableCell>
@@ -365,15 +450,17 @@ const EvaluationSheetsComponent = ({
                 </div>
 
                 {/* Judge Signature Section */}
-                <div className="mt-8 grid grid-cols-2 gap-8 ">
+                <div className="signature-section mt-8 grid grid-cols-2 gap-8 print:mt-2 print:gap-4">
                   <div className="text-center">
-                    <div className="border-t border-gray-400 pt-2 mt-12">
-                      <p className="text-sm font-medium">Judge Signature</p>
+                    <div className="signature-line border-t border-gray-400 pt-2 mt-12 print:mt-4">
+                      <p className="text-sm font-medium print:text-xs">
+                        Judge Signature
+                      </p>
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="border-t border-gray-400 pt-2 mt-12">
-                      <p className="text-sm font-medium">Date</p>
+                    <div className="signature-line border-t border-gray-400 pt-2 mt-12 print:mt-4">
+                      <p className="text-sm font-medium print:text-xs">Date</p>
                     </div>
                   </div>
                 </div>
@@ -383,7 +470,7 @@ const EvaluationSheetsComponent = ({
         ) : (
           <div className="text-center py-12">
             <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold">No Programs Found</h3>
+            <h3 className="font-semibold">No Programs Found</h3>
             <p className="text-muted-foreground">
               {selectedDivision || selectedProgram
                 ? "No programs with participants found for the selected filters."
@@ -398,27 +485,55 @@ const EvaluationSheetsComponent = ({
           .no-print {
             display: none !important;
           }
+
+          /* Ensure exactly two sheets per page */
           .program-section {
+            height: 50vh !important;
+            max-height: 50vh !important;
+            overflow: hidden;
             page-break-inside: avoid;
-            margin-bottom: 40px;
+            margin-bottom: 0 !important;
+            padding-bottom: 10px;
+            display: flex;
+            flex-direction: column;
           }
+
+          /* Page breaks for every two sheets */
+          .program-section:nth-child(2n + 1):not(:first-child) {
+            page-break-before: always;
+          }
+
           .evaluation-table {
             border-collapse: collapse !important;
-            border: 2px solid #000 !important;
+            border: 1px solid #000 !important;
             width: 100% !important;
           }
+
           .evaluation-table th,
           .evaluation-table td {
             border: 1px solid #000 !important;
-            padding: 4px 8px !important;
-            height: 32px !important;
+            padding: 2px 4px !important;
+            text-align: center !important;
+            vertical-align: middle !important;
             line-height: 1.2 !important;
           }
+
           .evaluation-table th {
             background-color: #f5f5f5 !important;
             font-weight: bold !important;
             color: #000 !important;
-            height: 36px !important;
+            height: 20px !important;
+            font-size: 10px !important;
+          }
+
+          .evaluation-table tbody tr {
+            height: calc((100% - 20px) / 24) !important;
+            max-height: 18px !important;
+            min-height: 10px !important;
+          }
+
+          .evaluation-table tbody td {
+            font-size: 10px !important;
           }
         }
 

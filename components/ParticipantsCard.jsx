@@ -578,7 +578,7 @@ const PrintableParticipantCard = ({
           <div className="p-2 bg-white aspect-[1/1.4] flex flex-col">
             <div className="border-b border-gray-200 pb-1 mb-2">
               <h3 className="text-xs font-semibold text-gray-800 text-center">
-                Individual Programs
+               {participant.chestNumber} -  Individual Programs
               </h3>
             </div>
 
