@@ -13,6 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { MultiSelect } from "./ui/multi-select";
+import { formatOptions } from "@/lib/utils";
 
 const ParticipantsCard = ({
   participants = [],
@@ -59,7 +61,7 @@ const ParticipantsCard = ({
   }, [teams, participants, selectedDivision]);
 
   // Memoize filtered participants based on selected team
-  const participantsInSelectedTeam = useMemo(() => {
+  const filteredOptions = useMemo(() => {
     return participants.filter(
       (participant) =>
         (!selectedDivision || participant.divisionId === selectedDivision) &&
@@ -126,27 +128,12 @@ const ParticipantsCard = ({
         </div>
         {selectedTeam && (
           <div className="w-full md:w-1/4">
-            <label htmlFor="participant-select" className="sr-only">
-              Select a Participant
-            </label>
-            <Select
+            <MultiSelect
+              options={formatOptions(filteredOptions)}
               value={selectedParticipant}
               onValueChange={setSelectedParticipant}
-            >
-              <SelectTrigger className="w-full" id="participant-select">
-                <SelectValue placeholder="Select a Participant" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value={null}>All Participants</SelectItem>
-                  {participantsInSelectedTeam.map((participant) => (
-                    <SelectItem key={participant._id} value={participant._id}>
-                      {participant.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+              multiSelect={false}
+            />
           </div>
         )}
       </div>
@@ -257,6 +244,8 @@ const ParticipantsCard = ({
   );
 };
 
+export default ParticipantsCard;
+
 // Extracted component for participant card preview
 const ParticipantCard = ({ participant, festivalSettings }) => {
   const participantsCardSettings = festivalSettings?.participantsCard || {};
@@ -280,7 +269,7 @@ const ParticipantCard = ({ participant, festivalSettings }) => {
                 ? undefined
                 : "#f8f9fa",
             }}
-            className={`relative bg-cover bg-center w-full h-full aspect-[1/1.4] p-4 rounded shadow ${
+            className={`relative bg-cover bg-center w-full aspect-[1/1.4] p-3 rounded shadow ${
               !participantsCardBackgroundUrl ? "bg-card" : ""
             }`}
           >
@@ -356,19 +345,46 @@ const ParticipantCard = ({ participant, festivalSettings }) => {
 // Extracted component for participant programs
 const ParticipantPrograms = ({ participant }) => {
   const programs = participant.programs || [];
+  const stagePrograms = programs.filter(
+    (program) => program.category === "Stage"
+  );
+  const offStagePrograms = programs.filter(
+    (program) => program.category !== "Stage"
+  );
 
   return (
     <div className="relative flex-grow">
       <div className="relative z-10">
         {programs.length > 0 ? (
           <div>
-            {programs.map((program, index) => (
-              <div key={index}>
-                <div className="font-semibold text-gray-800 text-xs dark:text-gray-200">
-                  {program.name || "Unknown Program"}
-                </div>
-              </div>
-            ))}
+            {stagePrograms?.length > 0 && (
+              <>
+                <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                  Stage Programs
+                </h2>
+                {stagePrograms.map((program, index) => (
+                  <div key={index}>
+                    <div className="font-semibold text-gray-800 text-xs dark:text-gray-200">
+                      {index + 1}. {program.name || "Unknown Program"}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+            {offStagePrograms?.length > 0 && (
+              <>
+                <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mt-3">
+                  Off Stage Programs
+                </h2>
+                {offStagePrograms.map((program, index) => (
+                  <div key={index}>
+                    <div className="font-semibold text-gray-800 text-xs dark:text-gray-200">
+                      {index + 1}. {program.name || "Unknown Program"}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         ) : (
           <div className="text-center text-gray-500 dark:text-gray-400 text-sm">
@@ -405,11 +421,11 @@ const PrintableParticipantCard = ({ participant, festivalSettings }) => {
               ? undefined
               : "#ffffff",
           }}
-          className="relative bg-cover bg-center w-full h-full p-3 rounded shadow flex flex-col"
+          className="relative bg-cover bg-center w-full aspect-[1/1.4] p-3 rounded shadow flex flex-col"
         >
           {/* Participant Details */}
           <div
-            className="absolute  text-center flex-grow"
+            className="absolute  text-center"
             style={{
               left: `${participantsCardSettings?.textPositions?.left || 0}%`,
               right: `${participantsCardSettings?.textPositions?.right || 0}%`,
@@ -469,7 +485,7 @@ const PrintableParticipantCard = ({ participant, festivalSettings }) => {
 
       {/* Back Side Card */}
       <div className="border rounded shadow w-full overflow-hidden">
-        <div className="p-2 bg-white h-full flex flex-col">
+        <div className="p-2 bg-white aspect-[1/1.4] flex flex-col">
           <div className="border-b border-gray-200 pb-1 mb-2">
             <h3 className="text-xs font-semibold text-gray-800 text-center">
               Individual Programs
@@ -482,5 +498,3 @@ const PrintableParticipantCard = ({ participant, festivalSettings }) => {
     </div>
   );
 };
-
-export default ParticipantsCard;

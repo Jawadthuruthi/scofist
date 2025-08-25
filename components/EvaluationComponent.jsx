@@ -43,6 +43,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
+import { MultiSelect } from "./ui/multi-select";
+import { formatOptions } from "@/lib/utils";
 
 const EvaluationComponent = ({
   programs = [],
@@ -428,19 +430,13 @@ const EvaluationComponent = ({
               </Select>
             </div>
 
-            <Select value={selectedProgram} onValueChange={setSelectedProgram}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="All Programs" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={null}>All Programs</SelectItem>
-                {availablePrograms.map((program) => (
-                  <SelectItem key={program._id} value={program._id}>
-                    {program.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={formatOptions(programs)}
+              value={selectedProgram}
+              onValueChange={setSelectedProgram}
+              placeholder="All Programs"
+              multiSelect={false}
+            />
 
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium whitespace-nowrap ">
@@ -522,7 +518,7 @@ const EvaluationComponent = ({
       {/* Printable Content */}
       <div ref={printRef}>
         {/* Print Header */}
-        <PrintHeader title="Marks Sheet" apiKey={apiKey} isFestival={true} />
+        <PrintHeader apiKey={apiKey} isFestival={true} />
         {/* Program Tables */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">

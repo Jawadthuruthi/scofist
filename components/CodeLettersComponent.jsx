@@ -34,6 +34,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
+import { MultiSelect } from "./ui/multi-select";
+import { formatOptions } from "@/lib/utils";
 
 const CodeLettersComponent = ({
   data = [],
@@ -342,7 +344,7 @@ const CodeLettersComponent = ({
                   <SelectValue placeholder="All Divisions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={null}>All Programs</SelectItem>
+                  <SelectItem value={null}>All Divisions</SelectItem>
                   {divisions.map((division) => (
                     <SelectItem key={division._id} value={division._id}>
                       {division.name}
@@ -350,22 +352,13 @@ const CodeLettersComponent = ({
                   ))}
                 </SelectContent>
               </Select>
-              <Select
+              <MultiSelect
+                options={formatOptions(programsData)}
                 value={selectedProgram}
                 onValueChange={setSelectedProgram}
-              >
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="All Programs" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={null}>All Programs</SelectItem>
-                  {programsData.map((program) => (
-                    <SelectItem key={program._id} value={program._id}>
-                      {program.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="All Programs"
+                multiSelect={false}
+              />
               {(selectedDivision || selectedProgram) && (
                 <Button variant="outline" size="sm" onClick={clearFilter}>
                   <X className="h-3 w-3" />
@@ -413,17 +406,7 @@ const CodeLettersComponent = ({
       {/* Printable Content */}
       <div ref={printRef}>
         {/* Header */}
-        <PrintHeader
-          title={`Participant Code Letters - ${
-            selectedDivision && selectedProgram
-              ? `${selectedDivision} - ${selectedProgram}`
-              : selectedDivision || selectedProgram
-                ? selectedDivision || selectedProgram
-                : "All Divisions"
-          }`}
-          apiKey={apiKey}
-          isFestival={true}
-        />
+        <PrintHeader apiKey={apiKey} isFestival={true} />
         {/* Program Tables */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
