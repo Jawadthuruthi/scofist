@@ -213,7 +213,6 @@ const EvaluationSheetsComponent = ({
         
         /* Table container - flexible height */
         .table-container {
-          flex: 1;
           display: flex;
           flex-direction: column;
           min-height: 0;
@@ -247,15 +246,10 @@ const EvaluationSheetsComponent = ({
           font-size: 10px !important;
         }
         
-        /* Dynamic row height based on participant count */
-        .evaluation-table tbody tr {
-          height: calc((100% - 20px) / 24) !important;
-          max-height: 18px !important;
-          min-height: 10px !important;
-        }
+
         
         .evaluation-table tbody td {
-          height: inherit !important;
+          height: 20px !important;
           font-size: 10px !important;
         }
         
@@ -524,12 +518,6 @@ const EvaluationSheetsComponent = ({
             color: #000 !important;
             height: 20px !important;
             font-size: 10px !important;
-          }
-
-          .evaluation-table tbody tr {
-            height: calc((100% - 20px) / 24) !important;
-            max-height: 18px !important;
-            min-height: 10px !important;
           }
 
           .evaluation-table tbody td {

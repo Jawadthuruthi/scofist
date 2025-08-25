@@ -394,10 +394,10 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode }) => {
       {/* Back Side Preview */}
       {(viewMode === "both" || viewMode === "back") && (
         <Card className="overflow-hidden border border-gray-200 dark:border-gray-700">
-          <CardContent className="p-4 flex flex-col h-full bg-white dark:bg-gray-800">
+          <CardContent className="p-4 flex flex-col h-full md:aspect-[1/1.4] bg-white dark:bg-gray-800">
             <div className="border-b border-gray-200 dark:border-gray-600 pb-2 mb-3">
               <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">
-                Individual Programs
+                {participant.chestNumber} - Individual Programs
               </h3>
             </div>
 
@@ -411,7 +411,9 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode }) => {
 
 // Extracted component for participant programs
 const ParticipantPrograms = ({ participant }) => {
-  const programs = participant.programs || [];
+  const programs =
+    participant.programs?.filter((program) => program?.type === "Individual") ||
+    [];
   const stagePrograms = programs.filter(
     (program) => program.category === "Stage"
   );
@@ -578,7 +580,7 @@ const PrintableParticipantCard = ({
           <div className="p-2 bg-white aspect-[1/1.4] flex flex-col">
             <div className="border-b border-gray-200 pb-1 mb-2">
               <h3 className="text-xs font-semibold text-gray-800 text-center">
-               {participant.chestNumber} -  Individual Programs
+                {participant.chestNumber} - Individual Programs
               </h3>
             </div>
 
