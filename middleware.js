@@ -238,6 +238,11 @@ const pages = [
     allowedRoles: ["Program Committee"],
   },
   {
+    title: "Evaluation Sheets",
+    path: "/dashboard/evaluation-sheets",
+    allowedRoles: ["Program Committee"],
+  },
+  {
     title: "Settings",
     path: "/dashboard/settings",
     allowedRoles: ["College Admin", "Program Committee"],

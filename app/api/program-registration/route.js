@@ -182,20 +182,6 @@ export async function POST(request) {
       );
     }
 
-    // Verify division match
-    const wrongDivision = participantDocs.filter(
-      (p) => p.divisionId._id.toString() !== division._id.toString()
-    );
-    if (wrongDivision.length > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: `Participants must belong to the ${division.name} division`,
-        },
-        { status: 400 }
-      );
-    }
-
     // If Program Leader — check team ownership
     let allowedTeamIds = [];
     if (activeRole === "Program Leader") {
@@ -371,20 +357,6 @@ export async function PUT(request) {
       return NextResponse.json(
         { success: false, message: "Some participants not found" },
         { status: 404 }
-      );
-    }
-
-    // Division match
-    const wrongDivision = participantDocs.filter(
-      (p) => p.divisionId._id.toString() !== division._id.toString()
-    );
-    if (wrongDivision.length > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: `Participants must belong to the ${division.name} division`,
-        },
-        { status: 400 }
       );
     }
 

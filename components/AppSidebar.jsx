@@ -326,6 +326,12 @@ const items = [
     allowedRoles: ["Program Committee"],
     subItems: [
       {
+        title: "Evaluation Sheets",
+        url: "/dashboard/evaluation-sheets",
+        allowedRoles: ["Program Committee"],
+        icon: FileSpreadsheet,
+      },
+      {
         title: "Participants Card",
         url: "/dashboard/participants-card",
         icon: UserCheck,

@@ -2,7 +2,7 @@
 import { useRef, useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+import { Printer, CreditCard, ListTodo } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import Header from "./Header";
 import {
@@ -25,6 +25,7 @@ const ParticipantsCard = ({
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("");
   const [selectedParticipant, setSelectedParticipant] = useState("");
+  const [viewMode, setViewMode] = useState("both"); // New state for view mode
 
   const pageRef = useRef(null);
 
@@ -32,6 +33,11 @@ const ParticipantsCard = ({
     contentRef: pageRef,
     documentTitle: "Participants Cards",
   });
+
+  // Handle view mode change
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+  };
 
   // Memoize filtered participants to prevent recalculation on every render
   const filteredParticipants = useMemo(() => {
@@ -85,6 +91,8 @@ const ParticipantsCard = ({
         title="PARTICIPANTS CARD"
         subTitle="Official Identity for Festival Participants"
       />
+
+      {/* Filters Row */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="w-full md:w-1/4">
           <label htmlFor="division-select" className="sr-only">
@@ -137,7 +145,46 @@ const ParticipantsCard = ({
           </div>
         )}
       </div>
-      <div className="flex justify-end mb-8">
+
+      {/* View Mode Filter and Print Button Row */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        {/* View Mode Filter */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          <span className="text-xs sm:text-sm font-medium hidden sm:inline">
+            View:
+          </span>
+          <div className="flex rounded-md border">
+            <Button
+              variant={viewMode === "both" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => handleViewModeChange("both")}
+              className="rounded-r-none text-xs sm:text-sm px-2 sm:px-3"
+            >
+              <span className="hidden sm:inline">Both</span>
+              <span className="sm:hidden">All</span>
+            </Button>
+            <Button
+              variant={viewMode === "front" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => handleViewModeChange("front")}
+              className="rounded-none border-x-0 text-xs sm:text-sm px-2 sm:px-3"
+            >
+              <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Front</span>
+            </Button>
+            <Button
+              variant={viewMode === "back" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => handleViewModeChange("back")}
+              className="rounded-l-none text-xs sm:text-sm px-2 sm:px-3"
+            >
+              <ListTodo className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Back</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Print Button */}
         <Button
           onClick={handlePrint}
           aria-label="Print Participant Cards"
@@ -155,42 +202,49 @@ const ParticipantsCard = ({
             key={participant._id}
             participant={participant}
             festivalSettings={festivalSettings}
+            viewMode={viewMode}
           />
         ))}
       </div>
 
       {/* Print Layout - A4 Landscape with Front-Back-Front-Back pattern */}
       <div ref={pageRef} className="hidden print:block">
-        {Array.from({ length: Math.ceil(filteredParticipants.length / 4) }).map(
-          (_, pageIndex) => (
-            <div
-              key={`page-${pageIndex}`}
-              className="print-page w-full p-4 flex flex-wrap"
-              style={{
-                width: "297mm",
-                height: "210mm",
-                pageBreakAfter: "always",
-                pageBreakInside: "avoid",
-                breakAfter: "page",
-              }}
-              aria-hidden="true"
-            >
-              <div className="print:hidden text-xs text-gray-400 dark:text-gray-500">
-                Page {pageIndex + 1}
-              </div>
-
-              {filteredParticipants
-                .slice(pageIndex * 4, (pageIndex + 1) * 4)
-                .map((participant) => (
-                  <PrintableParticipantCard
-                    key={`print-${participant._id}`}
-                    participant={participant}
-                    festivalSettings={festivalSettings}
-                  />
-                ))}
+        {Array.from({
+          length: Math.ceil(
+            filteredParticipants.length / (viewMode === "both" ? 4 : 8)
+          ),
+        }).map((_, pageIndex) => (
+          <div
+            key={`page-${pageIndex}`}
+            className="print-page w-full p-4 flex flex-wrap"
+            style={{
+              width: "297mm",
+              height: "210mm",
+              pageBreakAfter: "always",
+              pageBreakInside: "avoid",
+              breakAfter: "page",
+            }}
+            aria-hidden="true"
+          >
+            <div className="print:hidden text-xs text-gray-400 dark:text-gray-500">
+              Page {pageIndex + 1}
             </div>
-          )
-        )}
+
+            {filteredParticipants
+              .slice(
+                pageIndex * (viewMode === "both" ? 4 : 8),
+                (pageIndex + 1) * (viewMode === "both" ? 4 : 8)
+              )
+              .map((participant) => (
+                <PrintableParticipantCard
+                  key={`print-${participant._id}`}
+                  participant={participant}
+                  festivalSettings={festivalSettings}
+                  viewMode={viewMode}
+                />
+              ))}
+          </div>
+        ))}
       </div>
 
       {/* Enhanced CSS for print and display */}
@@ -247,7 +301,7 @@ const ParticipantsCard = ({
 export default ParticipantsCard;
 
 // Extracted component for participant card preview
-const ParticipantCard = ({ participant, festivalSettings }) => {
+const ParticipantCard = ({ participant, festivalSettings, viewMode }) => {
   const participantsCardSettings = festivalSettings?.participantsCard || {};
   const participantsCardBackgroundUrl =
     participantsCardSettings?.backgroundImage?.url || "";
@@ -255,89 +309,102 @@ const ParticipantCard = ({ participant, festivalSettings }) => {
   // Single text color for all elements
   const textColor = participantsCardSettings?.textColor || "#000000";
 
+  // Determine grid columns based on view mode
+  const getGridColSpan = () => {
+    if (viewMode === "both") {
+      return "col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3";
+    } else {
+      return "col-span-12 xs:col-span-6 md:col-span-3 xl:col-span-2";
+    }
+  };
+
   return (
-    <div className="preview-container  col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 gap-4">
+    <div className={`preview-container ${getGridColSpan()} gap-4`}>
       {/* Front Side Preview */}
-      <Card className=" border-border border overflow-hidden  border-none mb-4">
-        <CardContent className="p-0">
-          <div
-            style={{
-              backgroundImage: participantsCardBackgroundUrl
-                ? `url(${participantsCardBackgroundUrl})`
-                : undefined,
-              backgroundColor: participantsCardBackgroundUrl
-                ? undefined
-                : "#f8f9fa",
-            }}
-            className={`relative bg-cover bg-center w-full aspect-[1/1.4] p-3 rounded shadow ${
-              !participantsCardBackgroundUrl ? "bg-card" : ""
-            }`}
-          >
-            {/* Participant Details */}
+      {(viewMode === "both" || viewMode === "front") && (
+        <Card className="border-border border overflow-hidden border-none mb-4">
+          <CardContent className="p-0">
             <div
-              className="absolute text-center"
               style={{
-                left: `${participantsCardSettings?.textPositions?.left || 0}%`,
-                right: `${participantsCardSettings?.textPositions?.right || 0}%`,
-                bottom: `${participantsCardSettings?.textPositions?.bottom || 0}%`,
+                backgroundImage: participantsCardBackgroundUrl
+                  ? `url(${participantsCardBackgroundUrl})`
+                  : undefined,
+                backgroundColor: participantsCardBackgroundUrl
+                  ? undefined
+                  : "#f8f9fa",
               }}
+              className={`relative bg-cover bg-center w-full aspect-[1/1.4] p-3 rounded shadow ${
+                !participantsCardBackgroundUrl ? "bg-card" : ""
+              }`}
             >
-              {/* Chest Number with enhanced visibility */}
-              <div className="backdrop-enhanced ">
-                <h2
-                  className="text-lg font-bold text-shadow-strong"
-                  style={{ color: textColor }}
-                >
-                  {participant.chestNumber || "N/A"}
-                </h2>
-              </div>
-
-              {/* Participant Name with enhanced visibility */}
-              <div className=" backdrop-enhanced  ">
-                <h3
-                  className="font-bold text-base text-shadow-strong"
-                  style={{ color: textColor }}
-                >
-                  {participant.name}
-                </h3>
-              </div>
-
-              {/* Team and Division with enhanced visibility */}
-              <div className="text-xs text-center">
-                <div className=" backdrop-enhanced  ">
-                  <p
-                    className="font-semibold text-shadow-strong"
+              {/* Participant Details */}
+              <div
+                className="absolute text-center"
+                style={{
+                  left: `${participantsCardSettings?.textPositions?.left || 0}%`,
+                  right: `${participantsCardSettings?.textPositions?.right || 0}%`,
+                  bottom: `${participantsCardSettings?.textPositions?.bottom || 0}%`,
+                }}
+              >
+                {/* Chest Number with enhanced visibility */}
+                <div className="backdrop-enhanced">
+                  <h2
+                    className="text-lg font-bold text-shadow-strong"
                     style={{ color: textColor }}
                   >
-                    TEAM: {participant.teamName}
-                  </p>
+                    {participant.chestNumber || "N/A"}
+                  </h2>
                 </div>
-                <div className=" backdrop-enhanced  ">
-                  <p
-                    className="font-semibold text-shadow-strong"
+
+                {/* Participant Name with enhanced visibility */}
+                <div className="backdrop-enhanced">
+                  <h3
+                    className="font-bold text-base text-shadow-strong"
                     style={{ color: textColor }}
                   >
-                    DIVISION: {participant.divisionName}
-                  </p>
+                    {participant.name}
+                  </h3>
+                </div>
+
+                {/* Team and Division with enhanced visibility */}
+                <div className="text-xs text-center">
+                  <div className="backdrop-enhanced">
+                    <p
+                      className="font-semibold text-shadow-strong"
+                      style={{ color: textColor }}
+                    >
+                      TEAM: {participant.teamName}
+                    </p>
+                  </div>
+                  <div className="backdrop-enhanced">
+                    <p
+                      className="font-semibold text-shadow-strong"
+                      style={{ color: textColor }}
+                    >
+                      DIVISION: {participant.divisionName}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Back Side Preview */}
-      <Card className=" overflow-hidden border border-gray-200 dark:border-gray-700">
-        <CardContent className="p-4 flex flex-col h-full bg-white dark:bg-gray-800">
-          <div className="border-b border-gray-200 dark:border-gray-600 pb-2 mb-3">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">
-              Individual Programs
-            </h3>
-          </div>
+      {(viewMode === "both" || viewMode === "back") && (
+        <Card className="overflow-hidden border border-gray-200 dark:border-gray-700">
+          <CardContent className="p-4 flex flex-col h-full bg-white dark:bg-gray-800">
+            <div className="border-b border-gray-200 dark:border-gray-600 pb-2 mb-3">
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">
+                Individual Programs
+              </h3>
+            </div>
 
-          <ParticipantPrograms participant={participant} />
-        </CardContent>
-      </Card>
+            <ParticipantPrograms participant={participant} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
@@ -397,7 +464,11 @@ const ParticipantPrograms = ({ participant }) => {
 };
 
 // Extracted component for printable participant card
-const PrintableParticipantCard = ({ participant, festivalSettings }) => {
+const PrintableParticipantCard = ({
+  participant,
+  festivalSettings,
+  viewMode,
+}) => {
   const participantsCardSettings = festivalSettings?.participantsCard || {};
   const participantsCardBackgroundUrl =
     participantsCardSettings?.backgroundImage?.url || "";
@@ -405,96 +476,116 @@ const PrintableParticipantCard = ({ participant, festivalSettings }) => {
   // Single text color for all elements
   const textColor = participantsCardSettings?.textColor || "#000000";
 
-  return (
-    <div
-      className="w-1/2 h-1/2 p-2 flex space-x-2"
-      style={{ pageBreakInside: "avoid" }}
-    >
-      {/* Front Side Card */}
-      <div className="border rounded shadow w-full overflow-hidden">
-        <div
-          style={{
-            backgroundImage: participantsCardBackgroundUrl
-              ? `url(${participantsCardBackgroundUrl})`
-              : undefined,
-            backgroundColor: participantsCardBackgroundUrl
-              ? undefined
-              : "#ffffff",
-          }}
-          className="relative bg-cover bg-center w-full aspect-[1/1.4] p-3 rounded shadow flex flex-col"
-        >
-          {/* Participant Details */}
-          <div
-            className="absolute  text-center"
-            style={{
-              left: `${participantsCardSettings?.textPositions?.left || 0}%`,
-              right: `${participantsCardSettings?.textPositions?.right || 0}%`,
-              bottom: `${participantsCardSettings?.textPositions?.bottom || 0}%`,
-            }}
-          >
-            {/* Chest Number - Print Version */}
-            <div className="">
-              <h2
-                className="font-bold text-lg"
-                style={{
-                  color: textColor,
-                }}
-              >
-                {participant.chestNumber || "N/A"}
-              </h2>
-            </div>
+  // Calculate card width and layout based on view mode
+  const getCardLayout = () => {
+    if (viewMode === "both") {
+      return {
+        containerClass: "w-1/2 h-1/2 p-2 flex space-x-2",
+        cardClass: "w-full",
+      };
+    } else {
+      return {
+        containerClass: "w-1/4 h-1/2 p-2 flex",
+        cardClass: "w-full",
+      };
+    }
+  };
 
-            {/* Name - Print Version */}
-            <div className="">
-              <h3
-                className="font-bold text-base"
-                style={{
-                  color: textColor,
-                }}
-              >
-                {participant.name}
+  const { containerClass, cardClass } = getCardLayout();
+
+  return (
+    <div className={containerClass} style={{ pageBreakInside: "avoid" }}>
+      {/* Front Side Card */}
+      {(viewMode === "both" || viewMode === "front") && (
+        <div
+          className={`border rounded shadow ${cardClass} overflow-hidden ${viewMode === "both" ? "mr-2" : ""}`}
+        >
+          <div
+            style={{
+              backgroundImage: participantsCardBackgroundUrl
+                ? `url(${participantsCardBackgroundUrl})`
+                : undefined,
+              backgroundColor: participantsCardBackgroundUrl
+                ? undefined
+                : "#ffffff",
+            }}
+            className="relative bg-cover bg-center w-full aspect-[1/1.4] p-3 rounded shadow flex flex-col"
+          >
+            {/* Participant Details */}
+            <div
+              className="absolute text-center"
+              style={{
+                left: `${participantsCardSettings?.textPositions?.left || 0}%`,
+                right: `${participantsCardSettings?.textPositions?.right || 0}%`,
+                bottom: `${participantsCardSettings?.textPositions?.bottom || 0}%`,
+              }}
+            >
+              {/* Chest Number - Print Version */}
+              <div className="">
+                <h2
+                  className="font-bold text-lg"
+                  style={{
+                    color: textColor,
+                  }}
+                >
+                  {participant.chestNumber || "N/A"}
+                </h2>
+              </div>
+
+              {/* Name - Print Version */}
+              <div className="">
+                <h3
+                  className="font-bold text-base"
+                  style={{
+                    color: textColor,
+                  }}
+                >
+                  {participant.name}
+                </h3>
+              </div>
+
+              {/* Team and Division - Print Version */}
+              <div className="text-xs">
+                <div className="">
+                  <p
+                    className="font-semibold"
+                    style={{
+                      color: textColor,
+                    }}
+                  >
+                    TEAM: {participant.teamName}
+                  </p>
+                </div>
+                <div className="">
+                  <p
+                    className="font-semibold"
+                    style={{
+                      color: textColor,
+                    }}
+                  >
+                    DIV: {participant.divisionName}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Back Side Card */}
+      {(viewMode === "both" || viewMode === "back") && (
+        <div className={`border rounded shadow ${cardClass} overflow-hidden`}>
+          <div className="p-2 bg-white aspect-[1/1.4] flex flex-col">
+            <div className="border-b border-gray-200 pb-1 mb-2">
+              <h3 className="text-xs font-semibold text-gray-800 text-center">
+                Individual Programs
               </h3>
             </div>
 
-            {/* Team and Division - Print Version */}
-            <div className="text-xs">
-              <div className="">
-                <p
-                  className="font-semibold"
-                  style={{
-                    color: textColor,
-                  }}
-                >
-                  TEAM: {participant.teamName}
-                </p>
-              </div>
-              <div className="">
-                <p
-                  className="font-semibold"
-                  style={{
-                    color: textColor,
-                  }}
-                >
-                  DIV: {participant.divisionName}
-                </p>
-              </div>
-            </div>
+            <ParticipantPrograms participant={participant} />
           </div>
         </div>
-      </div>
-
-      {/* Back Side Card */}
-      <div className="border rounded shadow w-full overflow-hidden">
-        <div className="p-2 bg-white aspect-[1/1.4] flex flex-col">
-          <div className="border-b border-gray-200 pb-1 mb-2">
-            <h3 className="text-xs font-semibold text-gray-800 text-center">
-              Individual Programs
-            </h3>
-          </div>
-
-          <ParticipantPrograms participant={participant} />
-        </div>
-      </div>
+      )}
     </div>
   );
 };
