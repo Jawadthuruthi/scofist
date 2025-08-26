@@ -310,16 +310,11 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode }) => {
   const textColor = participantsCardSettings?.textColor || "#000000";
 
   // Determine grid columns based on view mode
-  const getGridColSpan = () => {
-    if (viewMode === "both") {
-      return "col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3";
-    } else {
-      return "col-span-12 xs:col-span-6 md:col-span-3 xl:col-span-2";
-    }
-  };
 
   return (
-    <div className={`preview-container ${getGridColSpan()} gap-4`}>
+    <div
+      className={`preview-container col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 gap-4`}
+    >
       {/* Front Side Preview */}
       {(viewMode === "both" || viewMode === "front") && (
         <Card className="border-border border overflow-hidden border-none mb-4">
