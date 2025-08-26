@@ -104,7 +104,7 @@ const festivalFormField = [
     allowedTypes: ["image/png"],
     defaultValue: {},
     minWidth: 2480,
-    minHeight: 200,
+    minHeight: 310,
   },
   {
     name: "participantsCard",
