@@ -20,15 +20,13 @@ import {
   Award,
   Filter,
   ChevronDown,
-  Eye,
-  EyeOff,
+  Loader,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { applyPrintStyles, removePrintStyles } from "@/lib/utils";
-import dynamic from "next/dynamic";
 import {
   Select,
   SelectContent,
@@ -36,13 +34,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { set } from "lodash";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import PrintHeader from "@/components/PrintHeader";
+
+// Full page loading component
+const FullPageLoading = () => (
+  <Card>
+    <CardContent className="flex flex-col items-center justify-center py-16 sm:py-20">
+      <div className="relative mb-6">
+        <Loader className="w-12 h-12 sm:w-16 sm:h-16 animate-spin text-primary" />
+      </div>
+      <h3 className="text-lg sm:text-xl font-semibold mb-2 text-center">
+        Loading Programs
+      </h3>
+      <p className="text-sm sm:text-base text-muted-foreground text-center max-w-sm">
+        Fetching rules and topics data. This should only take a moment.
+      </p>
+      <div className="mt-6 flex space-x-1">
+        <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+        <div
+          className="w-2 h-2 bg-primary rounded-full animate-bounce"
+          style={{ animationDelay: "0.1s" }}
+        ></div>
+        <div
+          className="w-2 h-2 bg-primary rounded-full animate-bounce"
+          style={{ animationDelay: "0.2s" }}
+        ></div>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 // Memoized icon components to prevent re-renders
 const TypeIcon = ({ type }) => {
@@ -74,7 +95,6 @@ const ProgramCard = ({
   onCancel,
   onEditDataChange,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
   const isEditing = editingProgram === program._id;
 
   const handleRulesChange = useCallback(
@@ -93,14 +113,7 @@ const ProgramCard = ({
 
   const handleEditClick = useCallback(() => {
     onEdit(program);
-    setIsExpanded(true);
   }, [onEdit, program]);
-
-  const toggleExpanded = useCallback(() => {
-    setIsExpanded(!isExpanded);
-  }, [isExpanded]);
-
-  const hasContent = program.rules || program.topics;
 
   return (
     <Card className="break-inside-avoid">
@@ -136,20 +149,6 @@ const ProgramCard = ({
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
-            {hasContent && !isEditing && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleExpanded}
-                className="print:hidden h-8 w-8 p-0"
-              >
-                {isExpanded ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
-              </Button>
-            )}
             {!readOnly && !isEditing && (
               <Button
                 variant="ghost"
@@ -178,6 +177,7 @@ const ProgramCard = ({
                   onChange={handleRulesChange}
                   placeholder="Enter program rules..."
                   className="min-h-[100px] sm:min-h-[120px] resize-y text-sm"
+                  disabled={loading}
                 />
               </div>
             )}
@@ -193,16 +193,31 @@ const ProgramCard = ({
                   onChange={handleTopicsChange}
                   placeholder="Enter program topics..."
                   className="min-h-[100px] sm:min-h-[120px] resize-y text-sm"
+                  disabled={loading}
                 />
               </div>
             )}
 
             <div className="flex flex-col sm:flex-row gap-2 pt-4">
               <Button onClick={onSave} disabled={loading} size="sm">
-                <Save className="w-4 h-4 mr-1" />
-                {loading ? "Saving..." : "Save"}
+                {loading ? (
+                  <>
+                    <Loader className="w-4 h-4 mr-1 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-1" />
+                    Save
+                  </>
+                )}
               </Button>
-              <Button variant="outline" onClick={onCancel} size="sm">
+              <Button
+                variant="outline"
+                onClick={onCancel}
+                size="sm"
+                disabled={loading}
+              >
                 <X className="w-4 h-4 mr-1" />
                 Cancel
               </Button>
@@ -210,48 +225,41 @@ const ProgramCard = ({
           </div>
         ) : (
           <div className="space-y-4 sm:space-y-6">
-            <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-              <CollapsibleContent className="space-y-4 sm:space-y-6">
-                {(viewMode === "both" || viewMode === "rules") &&
-                  program.rules && (
-                    <div className="space-y-2 sm:space-y-3">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                        <h3 className="text-base sm:text-lg font-semibold">
-                          Rules
-                        </h3>
-                      </div>
-                      <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-primary">
-                        <div className="whitespace-pre-wrap text-sm leading-relaxed break-words">
-                          {program.rules}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+            {(viewMode === "both" || viewMode === "rules") && program.rules && (
+              <div className="space-y-2 sm:space-y-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                  <h3 className="text-base sm:text-lg font-semibold">Rules</h3>
+                </div>
+                <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-primary">
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed break-words">
+                    {program.rules}
+                  </div>
+                </div>
+              </div>
+            )}
 
-                {(viewMode === "both" || viewMode === "rules") &&
-                  (viewMode === "both" || viewMode === "topics") &&
-                  program.rules &&
-                  program.topics && <Separator />}
+            {(viewMode === "both" || viewMode === "rules") &&
+              (viewMode === "both" || viewMode === "topics") &&
+              program.rules &&
+              program.topics && <Separator />}
 
-                {(viewMode === "both" || viewMode === "topics") &&
-                  program.topics && (
-                    <div className="space-y-2 sm:space-y-3">
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                        <h3 className="text-base sm:text-lg font-semibold">
-                          Topics
-                        </h3>
-                      </div>
-                      <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-green-500">
-                        <div className="whitespace-pre-wrap text-sm leading-relaxed break-words">
-                          {program.topics}
-                        </div>
-                      </div>
+            {(viewMode === "both" || viewMode === "topics") &&
+              program.topics && (
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                    <h3 className="text-base sm:text-lg font-semibold">
+                      Topics
+                    </h3>
+                  </div>
+                  <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-green-500">
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed break-words">
+                      {program.topics}
                     </div>
-                  )}
-              </CollapsibleContent>
-            </Collapsible>
+                  </div>
+                </div>
+              )}
 
             {!program.rules && !program.topics && (
               <div className="text-center py-6 sm:py-8 text-muted-foreground">
@@ -280,7 +288,7 @@ const ProgramCard = ({
 // Memoize the ProgramCard to prevent unnecessary re-renders
 const MemoizedProgramCard = memo(ProgramCard);
 
-const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
+const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
   const [editingProgram, setEditingProgram] = useState(null);
   const [editData, setEditData] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
@@ -294,8 +302,24 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
   const printRef = useRef();
   const isMobile = useIsMobile();
 
-  const { useUpdateItem } = useCrud("programs", apiKey);
+  const { useUpdateItem, useFetchItems } = useCrud("programs", apiKey);
+  const fetchItemsQuery = useFetchItems(
+    0,
+    0,
+    {},
+    {
+      cacheTime: 0,
+      staleTime: 0,
+    }
+  );
   const updateProgram = useUpdateItem();
+
+  const programs = useMemo(() => {
+    return fetchItemsQuery.data?.programs || [];
+  }, [fetchItemsQuery.data]);
+
+  const isLoading = fetchItemsQuery.isLoading;
+  const isError = fetchItemsQuery.isError;
 
   // Memoize filter values to prevent recalculation on every render
   const filterValues = useMemo(() => {
@@ -357,6 +381,7 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
         },
       });
       toast.success("Program updated successfully!");
+      await fetchItemsQuery.refetch();
       setEditingProgram(null);
       setEditData({});
     } catch (error) {
@@ -422,6 +447,27 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
     }
   }, []);
 
+  // Handle error state
+  if (isError) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16">
+          <FileText className="w-12 h-12 text-destructive mb-4" />
+          <h3 className="text-lg font-semibold mb-2">
+            Failed to Load Programs
+          </h3>
+          <p className="text-sm text-muted-foreground text-center mb-4">
+            There was an error loading the program data. Please try refreshing
+            the page.
+          </p>
+          <Button onClick={() => fetchItemsQuery.refetch()} variant="outline">
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Controls - Hidden in Print */}
@@ -434,6 +480,7 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
             value={searchTerm}
             onChange={handleSearchChange}
             className="pl-10 text-base"
+            disabled={isLoading}
           />
         </div>
 
@@ -443,6 +490,7 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
             className="sm:hidden flex items-center justify-center gap-2"
+            disabled={isLoading}
           >
             <Filter className="w-4 h-4" />
             Filters
@@ -459,6 +507,7 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
             <Select
               value={selectedCategory}
               onValueChange={setSelectedCategory}
+              disabled={isLoading}
             >
               <SelectTrigger className="w-[140px] lg:w-[180px]">
                 <SelectValue placeholder="Category" />
@@ -473,7 +522,11 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
               </SelectContent>
             </Select>
 
-            <Select value={selectedType} onValueChange={setSelectedType}>
+            <Select
+              value={selectedType}
+              onValueChange={setSelectedType}
+              disabled={isLoading}
+            >
               <SelectTrigger className="w-[120px] lg:w-[180px]">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
@@ -491,6 +544,7 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
               <Select
                 value={selectedDivision}
                 onValueChange={setSelectedDivision}
+                disabled={isLoading}
               >
                 <SelectTrigger className="w-[140px] lg:w-[180px]">
                   <SelectValue placeholder="Division" />
@@ -512,6 +566,7 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
                 size="sm"
                 onClick={clearAllFilters}
                 className="text-xs"
+                disabled={isLoading}
               >
                 Clear
               </Button>
@@ -531,6 +586,7 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
                   size="sm"
                   onClick={() => handleViewModeChange("both")}
                   className="rounded-r-none text-xs sm:text-sm px-2 sm:px-3"
+                  disabled={isLoading}
                 >
                   <span className="hidden sm:inline">Both</span>
                   <span className="sm:hidden">All</span>
@@ -540,6 +596,7 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
                   size="sm"
                   onClick={() => handleViewModeChange("rules")}
                   className="rounded-none border-x-0 text-xs sm:text-sm px-2 sm:px-3"
+                  disabled={isLoading}
                 >
                   <FileText className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
                   <span className="hidden sm:inline">Rules</span>
@@ -549,6 +606,7 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
                   size="sm"
                   onClick={() => handleViewModeChange("topics")}
                   className="rounded-l-none text-xs sm:text-sm px-2 sm:px-3"
+                  disabled={isLoading}
                 >
                   <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
                   <span className="hidden sm:inline">Topics</span>
@@ -559,6 +617,7 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
             <Button
               onClick={isMobile ? handleDownloadPDF : handlePrint}
               size="sm"
+              disabled={isLoading || filteredPrograms.length === 0}
             >
               {isMobile ? (
                 <>
@@ -586,6 +645,7 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
               <Select
                 value={selectedCategory}
                 onValueChange={setSelectedCategory}
+                disabled={isLoading}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All Categories" />
@@ -600,7 +660,11 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
                 </SelectContent>
               </Select>
 
-              <Select value={selectedType} onValueChange={setSelectedType}>
+              <Select
+                value={selectedType}
+                onValueChange={setSelectedType}
+                disabled={isLoading}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
@@ -618,6 +682,7 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
                 <Select
                   value={selectedDivision}
                   onValueChange={setSelectedDivision}
+                  disabled={isLoading}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All Divisions" />
@@ -638,6 +703,7 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
                   variant="outline"
                   onClick={clearAllFilters}
                   className="w-full"
+                  disabled={isLoading}
                 >
                   Clear All Filters
                 </Button>
@@ -656,7 +722,9 @@ const RulesTopicsComponent = ({ programs, apiKey, readOnly = false }) => {
           isFestival={true}
         />
 
-        {filteredPrograms.length === 0 ? (
+        {isLoading ? (
+          <FullPageLoading />
+        ) : filteredPrograms.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
               <FileText className="w-8 h-8 sm:w-12 sm:h-12 text-muted-foreground mb-4" />

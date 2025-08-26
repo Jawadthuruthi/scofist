@@ -357,7 +357,7 @@ const EvaluationSheetsComponent = ({
       <div ref={printRef} className="print-container">
         {/* Program Tables */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-12 print:py-0">
             <div className="flex items-center space-x-2">
               <Loader className="animate-spin h-6 w-6" />
               <span>Loading evaluation sheets...</span>
@@ -489,7 +489,6 @@ const EvaluationSheetsComponent = ({
             overflow: hidden;
             page-break-inside: avoid;
             margin-bottom: 0 !important;
-            padding-bottom: 10px;
             display: flex;
             flex-direction: column;
           }

@@ -11,13 +11,6 @@ export default async function RulesAndTopicsPage() {
     const activeRole = cookiesStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
 
-    // Fetch programs with rules and topics
-    const programs = await fetchData(
-      "programs",
-      "projection=_id,name,rules,topics,divisionName,type,category",
-      0
-    );
-
     return (
       <>
         <Header
@@ -26,7 +19,6 @@ export default async function RulesAndTopicsPage() {
         />
         <Suspense fallback={<div className="p-4">Loading...</div>}>
           <RulesTopicsComponent
-            programs={programs}
             apiKey={apiKey}
             readOnly={activeRole !== "Program Committee"}
           />

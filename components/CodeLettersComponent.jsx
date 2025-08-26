@@ -367,8 +367,7 @@ const CodeLettersComponent = ({
             </div>
             <div className="text-sm text-muted-foreground flex items-center gap-1">
               <Users className="h-4 w-4" />
-              {filteredPrograms.length} programs • {totalParticipants}{" "}
-              participants
+              {filteredPrograms.length} programs
             </div>
           </div>
 
