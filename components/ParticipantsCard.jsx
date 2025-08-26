@@ -141,13 +141,14 @@ const ParticipantsCard = ({
               value={selectedParticipant}
               onValueChange={setSelectedParticipant}
               multiSelect={false}
+              placeholder="Select a Participant"
             />
           </div>
         )}
       </div>
 
       {/* View Mode Filter and Print Button Row */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-end sm:items-center gap-4 mb-8">
         {/* View Mode Filter */}
         <div className="flex items-center gap-1 sm:gap-2">
           <span className="text-xs sm:text-sm font-medium hidden sm:inline">
@@ -391,7 +392,7 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode }) => {
         <Card className="overflow-hidden border border-gray-200 dark:border-gray-700">
           <CardContent className="p-4 flex flex-col h-full md:aspect-[1/1.4] bg-white dark:bg-gray-800">
             <div className="border-b border-gray-200 dark:border-gray-600 pb-2 mb-3">
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 text-center">
                 {participant.chestNumber} - Individual Programs
               </h3>
             </div>
@@ -574,7 +575,7 @@ const PrintableParticipantCard = ({
         <div className={`border rounded shadow ${cardClass} overflow-hidden`}>
           <div className="p-2 bg-white aspect-[1/1.4] flex flex-col">
             <div className="border-b border-gray-200 pb-1 mb-2">
-              <h3 className="text-xs font-semibold text-gray-800 text-center">
+              <h3 className="text-xs font-bold text-gray-800 text-center">
                 {participant.chestNumber} - Individual Programs
               </h3>
             </div>

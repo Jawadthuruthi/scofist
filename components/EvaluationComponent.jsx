@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -199,10 +199,11 @@ const EvaluationComponent = ({
     setFilteredRegistrations(filtered);
   }, [selectedDivision, selectedProgram, programRegistrations]);
 
-  // Get available programs for selected division
-  const availablePrograms = selectedDivision
-    ? programs.filter((p) => p.divisionId === selectedDivision)
-    : programs;
+  const filteredPrograms = useMemo(() => {
+    return programs?.filter(
+      (program) => !selectedDivision || program.divisionId === selectedDivision
+    );
+  }, [selectedDivision, programs]);
 
   // Handle marks change for individual participant
   const handleMarksChange = (participantUniqueId, marks) => {
@@ -431,7 +432,7 @@ const EvaluationComponent = ({
             </div>
 
             <MultiSelect
-              options={formatOptions(programs)}
+              options={formatOptions(filteredPrograms)}
               value={selectedProgram}
               onValueChange={setSelectedProgram}
               placeholder="All Programs"

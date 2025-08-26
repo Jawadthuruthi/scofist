@@ -151,7 +151,7 @@ export default async function RegistrationStatusPage() {
 
     const tabsConfig = [
       {
-        label: "Registered Programs",
+        label: "Registered",
         value: "registered",
         resource: "registrations",
         apiEndpoint: "program-registration",
@@ -164,7 +164,7 @@ export default async function RegistrationStatusPage() {
         apiFilters: apiFilters,
       },
       {
-        label: "Unregistered Programs",
+        label: "Unregistered",
         value: "unregistered",
         resource: "unregisteredPrograms",
         apiEndpoint: "program-registration/unregistered",

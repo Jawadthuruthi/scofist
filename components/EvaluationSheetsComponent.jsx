@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -60,7 +60,7 @@ const EvaluationSheetsComponent = ({
     return programs.filter(
       (program) => !selectedDivision || program.divisionId === selectedDivision
     );
-  }, [programs]);
+  }, [selectedDivision, programs]);
 
   // Process registrations data into programs with participants
   const processRegistrationsToPrograms = useCallback((registrations) => {
@@ -170,7 +170,6 @@ const EvaluationSheetsComponent = ({
     pageStyle: `
       @page {
         size: A4 portrait;
-        margin: 0.4in;
       }
       @media print {
         body { 
@@ -210,9 +209,6 @@ const EvaluationSheetsComponent = ({
         /* Program info header */
         .program-info {
           height: auto !important;
-          min-height: 40px !important;
-          max-height: 60px !important;
-          margin-bottom: 8px !important;
           flex-shrink: 0;
           overflow: hidden;
         }
@@ -255,14 +251,13 @@ const EvaluationSheetsComponent = ({
 
         
         .evaluation-table tbody td {
-          height: 20px !important;
+          height: 25px !important;
           font-size: 10px !important;
         }
         
         /* Signature section */
         .signature-section {
-          height: 40px !important;
-          max-height: 40px !important;
+         
           margin-top: 5px !important;
           flex-shrink: 0;
           font-size: 9px !important;
@@ -270,7 +265,7 @@ const EvaluationSheetsComponent = ({
         
         .signature-section .signature-line {
           border-top: 1px solid #333 !important;
-          margin-top: 15px !important;
+          margin-top: 20px !important;
           padding-top: 3px !important;
         }
       }
@@ -340,10 +335,7 @@ const EvaluationSheetsComponent = ({
           <div className="flex flex-col sm:flex-row justify-between gap-4">
             <div className="text-sm text-muted-foreground flex items-center gap-1">
               <Users className="h-4 w-4" />
-              <span>
-                {filteredRegistrations.length} programs • {totalParticipants}{" "}
-                participants
-              </span>
+              <span>{filteredRegistrations.length} programs</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -376,16 +368,20 @@ const EvaluationSheetsComponent = ({
             {filteredRegistrations.map((program, programIndex) => (
               <div key={program._id} className="program-section">
                 {/* Print Header for each sheet */}
-                <PrintHeader apiKey={apiKey} isFestival={true} />
+                <PrintHeader
+                  title="Evaluation Sheet"
+                  apiKey={apiKey}
+                  isFestival={true}
+                />
 
                 {/* Program Header */}
-                <div className="program-info mb-4 p-3 sm:p-4 bg-muted rounded-lg border print:bg-transparent print:border-none print:p-2 print:mb-2">
+                <div className="program-info mb-4 p-3 sm:p-4 bg-muted rounded-lg border print:bg-transparent print:border-none print:p-1 print:mb-1">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                    <div className="mb-2 sm:mb-0">
-                      <h3 className="sm:text-xl font-semibold text-foreground print:text-black print:text-sm print:font-bold">
-                        {program.programName}
-                      </h3>
-                      <div className="flex flex-wrap gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-foreground print:text-black print:text-xs">
+                    <div className="mb-2 sm:mb-0 text-center w-full">
+                      <div className="flex flex-wrap w-full justify-center gap-2 sm:gap-4 mt-1 print:mt-0 text-xs sm:text-sm text-foreground print:text-black print:text-xs">
+                        <span className="capitalize whitespace-nowrap">
+                          <strong>Program:</strong> {program.programName}
+                        </span>
                         <span className="capitalize whitespace-nowrap">
                           <strong>Type:</strong> {program.programType}
                         </span>
