@@ -56,6 +56,12 @@ const EvaluationSheetsComponent = ({
     }
   );
 
+  const filteredPrograms = useMemo(() => {
+    return programs.filter(
+      (program) => !selectedDivision || program.divisionId === selectedDivision
+    );
+  }, [programs]);
+
   // Process registrations data into programs with participants
   const processRegistrationsToPrograms = useCallback((registrations) => {
     if (!registrations || !registrations.length) return [];
@@ -310,7 +316,7 @@ const EvaluationSheetsComponent = ({
             </div>
 
             <MultiSelect
-              options={formatOptions(programs)}
+              options={formatOptions(filteredPrograms)}
               value={selectedProgram}
               onValueChange={setSelectedProgram}
               placeholder="All Programs"

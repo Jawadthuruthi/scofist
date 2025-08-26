@@ -33,9 +33,15 @@ export async function GET(request) {
     if (teamId) query.teamId = teamId;
     if (isResultDeclared) query.isResultDeclared = isResultDeclared === "true";
 
-    // Fetch all results that match basic query, then filter by division/status in memory
-    // (accurate pagination after filtering)
-    const allRegs = await ProgramRegistration.find(query)
+    // Apply status filter in query if possible
+    if (status === "Evaluated") {
+      query["participants.totalMarks"] = { $gt: 0 };
+    } else if (status === "Registered") {
+      query["participants.totalMarks"] = { $eq: 0 };
+    }
+
+    // Base query with skip and limit
+    let registrationsQuery = ProgramRegistration.find(query)
       .populate({
         path: "programId",
         select: "name type category maxParticipants divisionId",
@@ -43,30 +49,32 @@ export async function GET(request) {
       })
       .populate({ path: "teamId", select: "name" })
       .populate({ path: "participants.id", select: "name chestNumber" })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    let filtered = allRegs;
+    let registrations = await registrationsQuery.exec();
 
-    if (divisionId) {
-      filtered = filtered.filter(
-        (reg) => toId(reg.programId?.divisionId?._id) === toId(divisionId)
-      );
+    // If divisionId or isCodeLetter needs filtering
+    if (divisionId || isCodeLetter) {
+      registrations = registrations.filter((reg) => {
+        if (
+          divisionId &&
+          toId(reg.programId?.divisionId?._id) !== toId(divisionId)
+        )
+          return false;
+        if (isCodeLetter) {
+          return (reg.participants || []).some(
+            (p) => p.codeLetter && p.codeLetter.trim() !== ""
+          );
+        }
+        return true;
+      });
     }
 
-    if (status === "Evaluated") {
-      filtered = filtered.filter((reg) =>
-        reg.participants?.some((p) => (p.totalMarks || 0) > 0)
-      );
-    } else if (status === "Registered") {
-      filtered = filtered.filter((reg) =>
-        reg.participants?.every((p) => (p.totalMarks || 0) === 0)
-      );
-    }
+    const total = await ProgramRegistration.countDocuments(query);
 
-    const totalCount = filtered.length;
-    const pageItems = filtered.slice(skip, skip + limit);
-
-    let transformedData = pageItems.map((reg, index) => {
+    const transformedData = registrations.map((reg, index) => {
       const participants = isCodeLetter
         ? (reg.participants || []).filter(
             (p) => p.codeLetter && p.codeLetter.trim() !== ""
@@ -111,20 +119,14 @@ export async function GET(request) {
       };
     });
 
-    if (isCodeLetter) {
-      transformedData = transformedData.filter(
-        (reg) => reg.participantsCount > 0
-      );
-    }
-
     return NextResponse.json({
       success: true,
       registrations: transformedData,
       pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(totalCount / limit) || 1,
-        totalCount,
-        hasNextPage: skip + limit < totalCount,
+        page,
+        totalPages: Math.ceil(total / limit) || 1,
+        total,
+        hasNextPage: skip + limit < total,
         hasPrevPage: page > 1,
       },
     });

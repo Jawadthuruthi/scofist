@@ -323,8 +323,14 @@ const items = [
   {
     title: "Reports",
     icon: FileText,
-    allowedRoles: ["Program Committee"],
+    allowedRoles: ["Program Committee", "Program Leader"],
     subItems: [
+      {
+        title: "Registration Status",
+        url: "/dashboard/registration-status",
+        allowedRoles: ["Program Committee", "Program Leader"],
+        icon: FileSearch,
+      },
       {
         title: "Evaluation Sheets",
         url: "/dashboard/evaluation-sheets",

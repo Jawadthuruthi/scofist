@@ -245,7 +245,7 @@ const pages = [
   {
     title: "Registration Status",
     path: "/dashboard/registration-status",
-    allowedRoles: ["Program Committee"],
+    allowedRoles: ["Program Committee", "Program Leader"],
   },
   {
     title: "Settings",
