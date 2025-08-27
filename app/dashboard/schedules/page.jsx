@@ -253,7 +253,6 @@ export default async function SchedulePage() {
           filterConfig={filterConfig}
           limit={50}
           readOnly={activeRole !== "Program Committee"}
-          filterType="api"
           printTitle="Event Schedule"
           tableHeight="calc(100vh - 280px)"
           multiEdit={true}

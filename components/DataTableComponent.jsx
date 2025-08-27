@@ -122,11 +122,13 @@ const DataTableComponent = ({
   const [data, setData] = useState(initialData);
   const [dataCount, setDataCount] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(true);
-  const [isManualFiltering, setIsManualFiltering] = useState(false);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
   const [activeApiFilters, setActiveApiFilters] = useState(apiFilters);
   const [showLogo, setShowLogo] = useState(false);
+  // Add state to track filter changes more precisely
+  const [lastFilterHash, setLastFilterHash] = useState("");
+  const [isFilterChanged, setIsFilterChanged] = useState(false);
 
   const tableRef = useRef(null);
   const isFetchingRef = useRef(false);
@@ -134,6 +136,7 @@ const DataTableComponent = ({
   const router = useRouter();
 
   const isMobile = useIsMobile();
+
   // Periodic refresh
   useEffect(() => {
     const interval = setInterval(() => {
@@ -190,6 +193,23 @@ const DataTableComponent = ({
     };
   }, [isApiFiltering, activeApiFilters, filters, globalFilter, hasFilters]);
 
+  // Create a hash of current filters to detect changes
+  const currentFilterHash = useMemo(() => {
+    return JSON.stringify({
+      filters: combinedApiFilters,
+      globalFilter,
+      isApiFiltering,
+    });
+  }, [combinedApiFilters, globalFilter, isApiFiltering]);
+
+  // Detect filter changes
+  useEffect(() => {
+    if (currentFilterHash !== lastFilterHash) {
+      setIsFilterChanged(true);
+      setLastFilterHash(currentFilterHash);
+    }
+  }, [currentFilterHash, lastFilterHash]);
+
   // API fetch with combined filters
   const fetchItemsQuery = useFetchItems(page, limit, combinedApiFilters, {
     retry: 2,
@@ -206,7 +226,7 @@ const DataTableComponent = ({
     }
   }, [fetchItemsQuery.error]);
 
-  // Process fetched data
+  // FIXED: Process fetched data with better logic
   useEffect(() => {
     if (fetchItemsQuery.data) {
       const newItems = fetchItemsQuery.data[resource] || [];
@@ -215,54 +235,72 @@ const DataTableComponent = ({
       setTotalPages(pagination?.totalPages || 0);
       setDataCount(pagination?.total || 0);
 
-      // Reset data if filters changed or on initial load
-      if (isManualFiltering || (page === 0 && !initialData.length)) {
+      // FIXED: Better logic for when to reset vs append data
+      const shouldResetData =
+        isFilterChanged || // Filter changed
+        page === 0 || // First page
+        data.length === 0; // No existing data
+
+      if (shouldResetData) {
+        console.log("Resetting data:", {
+          isFilterChanged,
+          page,
+          dataLength: data.length,
+          newItemsLength: newItems.length,
+        });
         setData(newItems);
-        setIsManualFiltering(false);
+        setIsFilterChanged(false);
       } else {
-        // Append data for pagination
+        // FIXED: More conservative duplicate handling for pagination
         setData((prev) => {
-          // Filter out duplicates based on _id
           const existingIds = new Set(prev.map((item) => item._id));
-          const uniqueNewItems = newItems.filter(
+          const genuinelyNewItems = newItems.filter(
             (item) => !existingIds.has(item._id)
           );
-          return [...prev, ...uniqueNewItems];
+
+          console.log("Appending data:", {
+            prevLength: prev.length,
+            newItemsLength: newItems.length,
+            genuinelyNewLength: genuinelyNewItems.length,
+            page,
+          });
+
+          // Only append if we actually have new items
+          return genuinelyNewItems.length > 0
+            ? [...prev, ...genuinelyNewItems]
+            : prev;
         });
       }
+
       setHasNextPage(page < (pagination?.totalPages || 1) - 1);
       setIsFetchingNextPage(false);
       isFetchingRef.current = false;
     }
-  }, [
-    fetchItemsQuery.data,
-    page,
-    resource,
-    limit,
-    isManualFiltering,
-    initialData.length,
-  ]);
+  }, [fetchItemsQuery.data, page, resource, isFilterChanged, data.length]);
 
   useEffect(() => {
-    console.log("Page changed:", page);
-  }, [page]);
+    console.log("Page changed:", page, "Has next page:", hasNextPage);
+  }, [page, hasNextPage]);
 
   // Loading states
   const isInitialLoading =
-    fetchItemsQuery.isLoading && page === 0 && !data.length;
+    fetchItemsQuery.isLoading && page === 0 && data.length === 0;
 
   const isLoadingMore =
     isFetchingNextPage || (fetchItemsQuery.isLoading && page > 0);
 
   const fetchNextPage = useCallback(() => {
     if (!hasNextPage || isLoadingMore || isFetchingRef.current) {
-      console.log("Skipping fetch: already fetching or no more pages");
+      console.log("Skipping fetch:", {
+        hasNextPage,
+        isLoadingMore,
+        isFetching: isFetchingRef.current,
+      });
       return;
     }
 
     console.log(`Fetching next page: ${page + 1}`);
-    isFetchingRef.current = true; // lock
-
+    isFetchingRef.current = true;
     setIsFetchingNextPage(true);
     setPage((prevPage) => prevPage + 1);
   }, [hasNextPage, isLoadingMore, page]);
@@ -287,7 +325,6 @@ const DataTableComponent = ({
       const scrollPosition = container.scrollTop + container.clientHeight;
       const scrollThreshold = container.scrollHeight * infiniteScrollThreshold;
 
-      // Load more data before reaching the bottom
       if (scrollPosition >= scrollThreshold) {
         fetchNextPage();
       }
@@ -319,14 +356,18 @@ const DataTableComponent = ({
     }
   }, [handleScroll]);
 
-  // Check if we need to load more data for client-side filtering
+  // FIXED: More conservative client-side filter loading
   useEffect(() => {
-    if (!isApiFiltering && hasNextPage && !isLoadingMore) {
+    if (!isApiFiltering && hasNextPage && !isLoadingMore && hasFilters) {
       const displayedRows = filteredData.length;
-      const targetRowCount = limit * (page + 1);
+      const minRequiredRows = Math.min(limit, 10); // Don't be too aggressive
 
-      // If we're filtering and don't have enough displayed data, fetch more
-      if (hasFilters && displayedRows < targetRowCount) {
+      // Only fetch more if we have very few displayed rows
+      if (displayedRows < minRequiredRows) {
+        console.log("Fetching more for client filter:", {
+          displayedRows,
+          minRequiredRows,
+        });
         fetchNextPage();
       }
     }
@@ -337,17 +378,18 @@ const DataTableComponent = ({
     hasNextPage,
     isLoadingMore,
     limit,
-    page,
     isApiFiltering,
   ]);
 
-  // Handle API filtering
+  // FIXED: Handle API filtering with proper state reset
   const handleApiFilter = useCallback(() => {
     if (isApiFiltering) {
-      setIsManualFiltering(true);
+      console.log("Triggering API filter");
+      setIsFilterChanged(true);
       setPage(0);
       setHasNextPage(true);
       setData([]);
+      isFetchingRef.current = false;
       fetchItemsQuery.refetch();
     }
   }, [isApiFiltering, fetchItemsQuery]);
@@ -475,7 +517,7 @@ const DataTableComponent = ({
     [table, rowSelection]
   );
 
-  // Form submission handler
+  // FIXED: Form submission handler with proper state management
   const handleSubmit = async (values) => {
     try {
       setLoading(true);
@@ -485,6 +527,11 @@ const DataTableComponent = ({
 
       await addData.mutateAsync({ ...filteredValues, ...additionalProps });
       table.resetRowSelection();
+
+      // FIXED: Proper data refresh
+      setIsFilterChanged(true);
+      setPage(0);
+      setData([]);
       await fetchItemsQuery.refetch();
       router.refresh();
       toast.success(createSuccessMessage);
@@ -494,11 +541,10 @@ const DataTableComponent = ({
       throw error;
     } finally {
       setLoading(false);
-      setIsManualFiltering(false);
     }
   };
 
-  // Edit handler
+  // FIXED: Edit handler with proper state management
   const handleEdit = async (values) => {
     try {
       setLoading(true);
@@ -510,6 +556,11 @@ const DataTableComponent = ({
         },
       });
       table.resetRowSelection();
+
+      // FIXED: Proper data refresh
+      setIsFilterChanged(true);
+      setPage(0);
+      setData([]);
       await fetchItemsQuery.refetch();
       router.refresh();
 
@@ -520,11 +571,10 @@ const DataTableComponent = ({
       throw error;
     } finally {
       setLoading(false);
-      setIsManualFiltering(false);
     }
   };
 
-  // Delete handler
+  // FIXED: Delete handler with proper state management
   const handleDelete = async () => {
     try {
       setLoading(true);
@@ -535,6 +585,11 @@ const DataTableComponent = ({
         },
       });
       table.resetRowSelection();
+
+      // FIXED: Proper data refresh
+      setIsFilterChanged(true);
+      setPage(0);
+      setData([]);
       await fetchItemsQuery.refetch();
       router.refresh();
 
@@ -545,7 +600,6 @@ const DataTableComponent = ({
       throw error;
     } finally {
       setLoading(false);
-      setIsManualFiltering(false);
     }
   };
 
@@ -553,6 +607,13 @@ const DataTableComponent = ({
   const filterModeDisplay = useMemo(() => {
     return isApiFiltering ? "API Filtering" : "Client Filtering";
   }, [isApiFiltering]);
+
+  // FIXED: Better data count display
+  const displayedItemsCount = isApiFiltering
+    ? data.length
+    : filteredData.length;
+  const totalItemsText =
+    isApiFiltering && totalPages > 0 ? ` of ${dataCount} total` : "";
 
   return (
     <div className="space-y-4">
@@ -714,11 +775,11 @@ const DataTableComponent = ({
       </div>
       <div className="w-full flex justify-between items-center">
         <div className="text-sm text-muted-foreground">
-          Showing {table.getRowModel().rows.length} items
-          {isApiFiltering && totalPages > 0 && ` of ${dataCount}+ total`}
+          Showing {displayedItemsCount} items{totalItemsText}
           {process.env.NODE_ENV === "development" && (
             <span className="ml-2 px-2 py-1 bg-muted rounded-full text-xs">
-              {filterModeDisplay}
+              {filterModeDisplay} | Page: {page} | HasNext:{" "}
+              {hasNextPage.toString()}
             </span>
           )}
         </div>

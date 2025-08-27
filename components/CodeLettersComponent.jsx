@@ -301,17 +301,106 @@ const CodeLettersComponent = ({
         : "All Divisions"
     }`,
     pageStyle: `
-      @page {
-        size: A4;
+      @page { 
+        size: A4 portrait; 
         margin: 0.5in;
       }
       @media print {
-        body { -webkit-print-color-adjust: exact; }
-        .no-print { display: none !important; }
-        table { page-break-inside: auto; margin-bottom: 20px; }
-        tr { page-break-inside: avoid; page-break-after: auto; }
-        thead { display: table-header-group; }
-        .program-section { page-break-inside: avoid; margin-bottom: 30px; }
+        body {
+          -webkit-print-color-adjust: exact;
+          font-size: 12px;
+          line-height: 1.2;
+        }
+        .no-print {
+          display: none !important;
+        }
+        
+        .print-container {
+          width: 100%;
+          height: 100vh;
+        }
+        
+        /* Program section - exactly half page height */
+        .program-section {
+          height: 50vh !important;
+          max-height: 50vh !important;
+          overflow: hidden;
+          page-break-inside: avoid;
+          margin-bottom: 0 !important;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        /* Every two program sections should be on a new page */
+        .program-section:nth-child(odd) {
+          page-break-before: avoid;
+        }
+        
+        .program-section:nth-child(2n+1):not(:first-child) {
+          page-break-before: always;
+        }
+        
+        /* Program info header */
+        .program-info {
+          height: auto !important;
+          flex-shrink: 0;
+          overflow: hidden;
+          font-size: 10px !important;
+        }
+        
+        /* Table container - flexible height */
+        .table-container {
+          flex: 1;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+        }
+        
+        /* Compact table for participants */
+        table {
+          border-collapse: collapse !important;
+          border: 1px solid #000 !important;
+          width: 100% !important;
+        }
+        
+        table th, table td {
+          border: 1px solid #000 !important;
+          padding: 2px 4px !important;
+          text-align: left;
+          vertical-align: middle;
+          line-height: 1.1 !important;
+          height: 25px !important;
+          overflow: hidden;
+          font-size: 10px !important;
+        }
+        
+        
+        table th {
+          background-color: #f5f5f5 !important;
+          height: 16px !important;
+          font-weight: bold !important;
+          color: #000 !important;
+        }
+        table td {
+          
+          font-weight: semibold !important;
+        }
+        
+        
+        /* Code letter cell - center alignment for print */
+        .code-letter-cell {
+          text-align: center !important;
+          font-weight: bold !important;
+          font-size: 10px !important;
+        }
+        
+        /* Sign column width */
+        .sign-column {
+          width: 60px !important;
+        }
+        
+       
       }
     `,
   });
@@ -323,10 +412,6 @@ const CodeLettersComponent = ({
 
   const hasUnsavedChanges = Object.keys(changes).length > 0;
   const isLoading = fetchRegistrationsQuery.isLoading;
-  const totalParticipants = filteredPrograms.reduce(
-    (sum, program) => sum + program.participants.length,
-    0
-  );
 
   return (
     <div className="space-y-6 p-2 sm:p-4 md:p-6">
@@ -403,40 +488,43 @@ const CodeLettersComponent = ({
       </div>
 
       {/* Printable Content */}
-      <div ref={printRef}>
-        {/* Header */}
-        <PrintHeader apiKey={apiKey} isFestival={true} />
+      <div ref={printRef} className="print-container">
         {/* Program Tables */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-12 print:py-0">
             <div className="flex items-center space-x-2">
               <Loader className="animate-spin h-6 w-6" />
               <span>Loading programs and participants...</span>
             </div>
           </div>
         ) : filteredPrograms.length > 0 ? (
-          <div className="space-y-8">
+          <div className="space-y-8 print:space-y-0">
             {filteredPrograms.map((program, programIndex) => (
               <div key={program._id} className="program-section">
+                {/* Header */}
+                <PrintHeader
+                  apiKey={apiKey}
+                  isFestival={true}
+                  title="CodeLetter"
+                />
                 {/* Program Header */}
-                <div className="mb-4 p-3 sm:p-4 bg-muted rounded-lg border">
+                <div className="program-info mb-4 p-3 sm:p-4 bg-muted rounded-lg border print:bg-transparent print:border-none print:p-1 print:mb-1">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-0">
-                        {program.programName}
-                      </h3>
-                      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-foreground">
-                        <span className="capitalize whitespace-nowrap">
-                          <strong>Type:</strong> {program.programType}
-                        </span>
-                        <span className="capitalize whitespace-nowrap">
-                          <strong>Category:</strong> {program.programCategory}
-                        </span>
-                        <span className="whitespace-nowrap">
-                          <strong>Division:</strong> {program.divisionName}
-                        </span>
-                      </div>
+                    <div className="flex flex-wrap justify-center w-full gap-2 sm:gap-4 text-xs sm:text-sm text-foreground print:text-black print:text-xs">
+                      <span className="capitalize whitespace-nowrap">
+                        <strong>Program:</strong> {program.programName}
+                      </span>
+                      <span className="capitalize whitespace-nowrap">
+                        <strong>Type:</strong> {program.programType}
+                      </span>
+                      <span className="capitalize whitespace-nowrap">
+                        <strong>Category:</strong> {program.programCategory}
+                      </span>
+                      <span className="whitespace-nowrap">
+                        <strong>Division:</strong> {program.divisionName}
+                      </span>
                     </div>
+
                     {!program?.hasEvaluatedParticipants && (
                       <div className="flex items-center gap-2 no-print">
                         <AlertDialog>
@@ -478,27 +566,27 @@ const CodeLettersComponent = ({
                 </div>
 
                 {/* Participants Table with Horizontal Scroll */}
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="overflow-x-auto">
+                <div className="table-container border rounded-lg overflow-hidden print:rounded-none print:border-none">
+                  <div className="overflow-x-auto print:overflow-visible h-full">
                     <Table className="min-w-full">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-12 text-center whitespace-nowrap border-t border-r border-border">
+                          <TableHead className="w-12 text-center whitespace-nowrap border-t border-r border-border print:border-black">
                             Sl.
                           </TableHead>
-                          <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border">
-                            Participant Name
-                          </TableHead>
-                          <TableHead className="min-w-[120px] whitespace-nowrap border-t border-r border-border">
-                            Team
-                          </TableHead>
-                          <TableHead className="w-24 text-center whitespace-nowrap border-t border-r border-border">
+                          <TableHead className="w-24 text-center whitespace-nowrap border-t border-r border-border print:border-black">
                             Chest No.
                           </TableHead>
-                          <TableHead className="w-32 text-center whitespace-nowrap border-t border-r border-border">
+                          <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border print:border-black">
+                            Participant Name
+                          </TableHead>
+                          <TableHead className="min-w-[120px] whitespace-nowrap border-t border-r border-border print:border-black">
+                            Team
+                          </TableHead>
+                          <TableHead className="w-32 text-center whitespace-nowrap border-t border-r border-border print:border-black">
                             Code Letter
                           </TableHead>
-                          <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border hidden print:table-cell">
+                          <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border hidden print:table-cell print:border-black sign-column">
                             Sign
                           </TableHead>
                         </TableRow>
@@ -509,20 +597,20 @@ const CodeLettersComponent = ({
                             ?.sort((a, b) => a.chestNumber - b.chestNumber)
                             .map((participant, index) => (
                               <TableRow key={participant.uniqueId}>
-                                <TableCell className="text-center font-medium  border-t border-r border-border">
+                                <TableCell className="text-center font-medium border-t border-r border-border print:border-black">
                                   {index + 1}
                                 </TableCell>
-                                <TableCell className="font-medium  border-t border-r border-border">
-                                  {participant.name || "N/A"}
-                                </TableCell>
-                                <TableCell className=" border-t border-r border-border">
-                                  {participant.teamName || "N/A"}
-                                </TableCell>
-                                <TableCell className="text-center  border-t border-r border-border">
+                                <TableCell className="text-center border-t border-r border-border print:border-black">
                                   {participant.chestNumber || "-"}
                                 </TableCell>
+                                <TableCell className="font-medium border-t border-r border-border print:border-black">
+                                  {participant.name || "N/A"}
+                                </TableCell>
+                                <TableCell className="border-t border-r border-border print:border-black">
+                                  {participant.teamName || "N/A"}
+                                </TableCell>
 
-                                <TableCell className="text-center border-t border-r border-border">
+                                <TableCell className="text-center border-t border-r border-border print:border-black code-letter-cell">
                                   <div className="hidden print:block text-center font-bold text-lg whitespace-nowrap">
                                     {participant.codeLetter || ""}
                                   </div>
@@ -545,7 +633,7 @@ const CodeLettersComponent = ({
                                     />
                                   )}
                                 </TableCell>
-                                <TableCell className="text-center hidden print:table-cell whitespace-nowrap border-t border-r border-border">
+                                <TableCell className="text-center hidden print:table-cell whitespace-nowrap border-t border-r border-border print:border-black">
                                   <div className="h-6 w-16 mx-auto"></div>
                                 </TableCell>
                               </TableRow>
@@ -554,7 +642,7 @@ const CodeLettersComponent = ({
                           <TableRow>
                             <TableCell
                               colSpan={7}
-                              className="text-center py-6 text-muted-foreground"
+                              className="text-center py-6 text-muted-foreground print:border-black"
                             >
                               No participants found for this program
                             </TableCell>
@@ -612,26 +700,6 @@ const CodeLettersComponent = ({
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        @media print {
-          .no-print {
-            display: none !important;
-          }
-
-          .program-section {
-            page-break-inside: avoid;
-            margin-bottom: 30px;
-          }
-        }
-
-        /* Mobile table scrolling styles */
-        @media (max-width: 768px) {
-          .overflow-x-auto {
-            -webkit-overflow-scrolling: touch;
-          }
-        }
-      `}</style>
     </div>
   );
 };

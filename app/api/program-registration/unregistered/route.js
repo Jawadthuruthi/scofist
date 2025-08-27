@@ -1,97 +1,138 @@
-// app/api/registration-status/unregistered/route.js
-import { NextResponse } from "next/server";
-import connectToDB from "@/lib/db";
-import Program from "@/models/Program";
-import ProgramRegistration from "@/models/ProgramRegistration";
-import Team from "@/models/Team";
+import mongoose from "mongoose";
 
 export async function GET(request) {
   try {
     await connectToDB();
-
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page")) || 1;
     const limit = parseInt(searchParams.get("limit")) || 20;
     const skip = (page - 1) * limit;
 
-    // Filter parameters
     const programId = searchParams.get("programId");
     const divisionId = searchParams.get("divisionId");
     const programType = searchParams.get("programType");
     const programCategory = searchParams.get("programCategory");
     const teamId = searchParams.get("teamId");
 
-    // Build program query
-    const programQuery = {};
-    if (programId) programQuery._id = programId;
-    if (divisionId) programQuery.divisionId = divisionId;
-    if (programType) programQuery.type = programType;
-    if (programCategory) programQuery.category = programCategory;
+    // Build aggregation pipeline for efficient filtering
+    let pipeline = [
+      // Match program criteria first
+      {
+        $match: {
+          ...(programId && { _id: new mongoose.Types.ObjectId(programId) }),
+          ...(divisionId && {
+            divisionId: divisionId,
+          }),
+          ...(programType && { type: programType }),
+          ...(programCategory && { category: programCategory }),
+        },
+      },
 
-    // Fetch all programs that match the filter criteria
-    const allPrograms = await Program.find(programQuery)
-      .populate({
-        path: "divisionId",
-        select: "name type",
-      })
-      .sort({ createdAt: -1 });
+      // Lookup division details
+      {
+        $lookup: {
+          from: "divisions",
+          localField: "divisionId",
+          foreignField: "_id",
+          as: "divisionDetails",
+        },
+      },
+      {
+        $unwind: { path: "$divisionDetails", preserveNullAndEmptyArrays: true },
+      },
 
-    // Get all registrations (optionally filter by team)
-    const registrationQuery = teamId ? { teamId } : {};
-    const registrations =
-      await ProgramRegistration.find(registrationQuery).select(
-        "programId teamId"
-      );
-
-    let unregisteredProgramsFull = [];
+      // Lookup registrations for this program
+      {
+        $lookup: {
+          from: "programregistrations",
+          let: { programId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$programId", "$$programId"] },
+                ...(teamId && { teamId }),
+              },
+            },
+          ],
+          as: "registrations",
+        },
+      },
+    ];
 
     if (teamId) {
-      // Specific team view: programs not registered by this team
-      const registeredProgramIds = new Set(
-        registrations.map((reg) => reg.programId.toString())
-      );
-
-      unregisteredProgramsFull = allPrograms.filter(
-        (program) => !registeredProgramIds.has(program._id.toString())
-      );
-    } else {
-      // Program Committee view: programs with missing registrations from any team
-      const allTeams = await Team.find({}).select("_id name");
-
-      // Group registrations by program
-      const registrationsByProgram = {};
-      registrations.forEach((reg) => {
-        const programId = reg.programId.toString();
-        if (!registrationsByProgram[programId])
-          registrationsByProgram[programId] = [];
-        registrationsByProgram[programId].push(reg.teamId.toString());
+      // For specific team: programs not registered by this team
+      pipeline.push({
+        $match: {
+          registrations: { $size: 0 },
+        },
       });
-
-      // Create detailed unregistered data showing missing teams per program
-      unregisteredProgramsFull = allPrograms
-        .map((program) => {
-          const programId = program._id.toString();
-          const registeredTeamIds = registrationsByProgram[programId] || [];
-          const missingTeamIds = allTeams.filter(
-            (team) => !registeredTeamIds.includes(team._id.toString())
-          );
-
-          return {
-            ...program.toObject(),
-            missingTeams: missingTeamIds,
-            registeredTeamsCount: registeredTeamIds.length,
-            totalTeamsCount: allTeams.length,
-            hasMissingRegistrations: missingTeamIds.length > 0,
-          };
-        })
-        .filter((program) => program.hasMissingRegistrations);
+    } else {
+      // For Program Committee: add team analysis
+      pipeline.push(
+        // Lookup all teams
+        {
+          $lookup: {
+            from: "teams",
+            pipeline: [{ $project: { _id: 1, name: 1 } }],
+            as: "allTeams",
+          },
+        },
+        // Calculate missing teams
+        {
+          $addFields: {
+            registeredTeamIds: "$registrations.teamId",
+            totalTeamsCount: { $size: "$allTeams" },
+            registeredTeamsCount: { $size: "$registrations" },
+          },
+        },
+        {
+          $addFields: {
+            missingTeams: {
+              $filter: {
+                input: "$allTeams",
+                cond: {
+                  $not: {
+                    $in: ["$$this._id", "$registeredTeamIds"],
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          $addFields: {
+            missingTeamsCount: { $size: "$missingTeams" },
+            hasMissingRegistrations: {
+              $gt: [{ $size: "$missingTeams" }, 0],
+            },
+          },
+        },
+        // Only programs with missing registrations
+        {
+          $match: {
+            hasMissingRegistrations: true,
+          },
+        }
+      );
     }
 
-    // Apply pagination
-    const total = unregisteredProgramsFull.length;
-    const pageItems = unregisteredProgramsFull.slice(skip, skip + limit);
+    // Get total count
+    const totalResult = await Program.aggregate([
+      ...pipeline,
+      { $count: "total" },
+    ]);
+    const total = totalResult.length > 0 ? totalResult[0].total : 0;
 
-    const transformedData = pageItems.map((program, index) => {
+    // Add pagination and execute
+    const results = await Program.aggregate([
+      ...pipeline,
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ]);
+
+    // Transform results
+    const transformedData = results.map((program, index) => {
       const baseData = {
         _id: program._id,
         serialNo: skip + index + 1,
@@ -100,19 +141,18 @@ export async function GET(request) {
         programType: program.type,
         programCategory: program.category,
         maxParticipants: program.maxParticipants,
-        divisionId: program.divisionId?._id,
-        divisionName: program.divisionId?.name || "Unknown",
+        divisionId: program.divisionDetails?._id,
+        divisionName: program.divisionDetails?.name || "Unknown",
         registrationStatus: "Not Registered",
         createdAt: program.createdAt,
         updatedAt: program.updatedAt,
       };
 
       if (!teamId && program.missingTeams) {
-        // For Program Committee view, add missing teams info
         const missingTeamNames = program.missingTeams.map((team) => team.name);
         return {
           ...baseData,
-          missingTeamsCount: program.missingTeams.length,
+          missingTeamsCount: program.missingTeamsCount,
           registeredTeamsCount: program.registeredTeamsCount,
           totalTeamsCount: program.totalTeamsCount,
           registrationStatus: `${missingTeamNames.join(", ")} Missing`,

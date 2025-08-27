@@ -5,6 +5,7 @@ import ProgramRegistration from "@/models/ProgramRegistration";
 import Program from "@/models/Program";
 import Participant from "@/models/Participant";
 import Team from "@/models/Team";
+import mongoose from "mongoose";
 
 // Helpers
 const toId = (v) =>
@@ -12,10 +13,10 @@ const toId = (v) =>
 const sameId = (a, b) => toId(a) === toId(b);
 
 // ----------------------------- GET -----------------------------
+
 export async function GET(request) {
   try {
     await connectToDB();
-
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page")) || 1;
     const limit = parseInt(searchParams.get("limit")) || 20;
@@ -28,53 +29,116 @@ export async function GET(request) {
     const isCodeLetter = searchParams.get("isCodeLetter") === "true";
     const isResultDeclared = searchParams.get("isResultDeclared");
 
-    const query = {};
-    if (programId) query.programId = programId;
-    if (teamId) query.teamId = teamId;
-    if (isResultDeclared) query.isResultDeclared = isResultDeclared === "true";
+    // ALL filtering moved to aggregation pipeline BEFORE pagination
+    let pipeline = [
+      // Initial match conditions
+      {
+        $match: {
+          ...(programId && {
+            programId: new mongoose.Types.ObjectId(programId),
+          }),
+          ...(teamId && { teamId }),
+          ...(isResultDeclared !== null && {
+            isResultDeclared: isResultDeclared === "true",
+          }),
 
-    // Apply status filter in query if possible
-    if (status === "Evaluated") {
-      query["participants.totalMarks"] = { $gt: 0 };
-    } else if (status === "Registered") {
-      query["participants.totalMarks"] = { $eq: 0 };
-    }
+          // Status filtering
+          ...(status === "Evaluated" && {
+            "participants.totalMarks": { $gt: 0 },
+          }),
+          ...(status === "Registered" && {
+            "participants.totalMarks": { $eq: 0 },
+          }),
 
-    // Base query with skip and limit
-    let registrationsQuery = ProgramRegistration.find(query)
-      .populate({
-        path: "programId",
-        select: "name type category maxParticipants divisionId",
-        populate: { path: "divisionId", select: "name type" },
-      })
-      .populate({ path: "teamId", select: "name" })
-      .populate({ path: "participants.id", select: "name chestNumber" })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+          // isCodeLetter filtering
+          ...(isCodeLetter && {
+            participants: {
+              $elemMatch: {
+                codeLetter: { $exists: true, $ne: "", $ne: null },
+              },
+            },
+          }),
+        },
+      },
 
-    let registrations = await registrationsQuery.exec();
+      // Lookup program with division
+      {
+        $lookup: {
+          from: "programs",
+          localField: "programId",
+          foreignField: "_id",
+          as: "programDetails",
+        },
+      },
+      { $unwind: "$programDetails" },
 
-    // If divisionId or isCodeLetter needs filtering
-    if (divisionId || isCodeLetter) {
-      registrations = registrations.filter((reg) => {
-        if (
-          divisionId &&
-          toId(reg.programId?.divisionId?._id) !== toId(divisionId)
-        )
-          return false;
-        if (isCodeLetter) {
-          return (reg.participants || []).some(
-            (p) => p.codeLetter && p.codeLetter.trim() !== ""
-          );
-        }
-        return true;
+      // Lookup division
+      {
+        $lookup: {
+          from: "divisions",
+          localField: "programDetails.divisionId",
+          foreignField: "_id",
+          as: "divisionDetails",
+        },
+      },
+      {
+        $unwind: { path: "$divisionDetails", preserveNullAndEmptyArrays: true },
+      },
+
+      // CRITICAL: divisionId filtering BEFORE pagination
+      ...(divisionId
+        ? [
+            {
+              $match: {
+                "divisionDetails._id": divisionId,
+              },
+            },
+          ]
+        : []),
+
+      // Lookup team and participants
+      {
+        $lookup: {
+          from: "teams",
+          localField: "teamId",
+          foreignField: "_id",
+          as: "teamDetails",
+        },
+      },
+      { $unwind: { path: "$teamDetails", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "participants",
+          localField: "participants.id",
+          foreignField: "_id",
+          as: "participantDetails",
+        },
+      },
+    ];
+
+    // Get accurate total count
+    const totalResult = await ProgramRegistration.aggregate([
+      ...pipeline,
+      { $count: "total" },
+    ]);
+    const total = totalResult.length > 0 ? totalResult[0].total : 0;
+
+    // Add pagination AFTER all filtering
+    const results = await ProgramRegistration.aggregate([
+      ...pipeline,
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ]);
+
+    // Transform data
+    const transformedData = results.map((reg, index) => {
+      const participantMap = {};
+      (reg.participantDetails || []).forEach((p) => {
+        participantMap[p._id.toString()] = p;
       });
-    }
 
-    const total = await ProgramRegistration.countDocuments(query);
-
-    const transformedData = registrations.map((reg, index) => {
       const participants = isCodeLetter
         ? (reg.participants || []).filter(
             (p) => p.codeLetter && p.codeLetter.trim() !== ""
@@ -84,32 +148,34 @@ export async function GET(request) {
       return {
         _id: reg._id,
         serialNo: skip + index + 1,
-        programId: reg.programId._id,
-        programName: reg.programId.name,
-        programType: reg.programId.type,
-        programCategory: reg.programId.category,
-        maxParticipants: reg.programId.maxParticipants,
-        divisionId: reg.programId.divisionId?._id,
-        divisionName: reg.programId.divisionId?.name,
-        teamId: reg.teamId._id,
-        teamName: reg.teamId?.name || "N/A",
-        participants: participants.map((p) =>
-          p?.id?._id ? toId(p.id._id) : toId(p.id)
-        ),
-        participantsDetails: participants.map((p) => ({
-          id: p.id?._id || p.id,
-          name: p.id?.name || "Unknown",
-          chestNumber: p.id?.chestNumber,
-          totalMarks: p.totalMarks,
-          codeLetter: p.codeLetter || "",
-          marksByJudges: p.marksByJudges || [],
-        })),
+        programId: reg.programDetails._id,
+        programName: reg.programDetails.name,
+        programType: reg.programDetails.type,
+        programCategory: reg.programDetails.category,
+        maxParticipants: reg.programDetails.maxParticipants,
+        divisionId: reg.divisionDetails?._id,
+        divisionName: reg.divisionDetails?.name,
+        teamId: reg.teamDetails?._id,
+        teamName: reg.teamDetails?.name || "N/A",
+        participants: participants.map((p) => p.id?.toString() || p.id),
+        participantsDetails: participants.map((p) => {
+          const participant = participantMap[p.id?.toString() || p.id] || {};
+          return {
+            id: participant._id,
+            name: participant.name || "Unknown",
+            chestNumber: participant.chestNumber,
+            totalMarks: p.totalMarks,
+            codeLetter: p.codeLetter || "",
+            marksByJudges: p.marksByJudges || [],
+          };
+        }),
         participantsCount: participants.length,
-        participantNames: participants.map((p) =>
-          p?.id?.chestNumber
-            ? `${p.id.chestNumber} - ${p.id?.name || "Unknown"}`
-            : p?.id?.name || "Unknown"
-        ),
+        participantNames: participants.map((p) => {
+          const participant = participantMap[p.id?.toString() || p.id] || {};
+          return participant.chestNumber
+            ? `${participant.chestNumber} - ${participant.name || "Unknown"}`
+            : participant.name || "Unknown";
+        }),
         status: participants.some((p) => (p.totalMarks || 0) > 0)
           ? "Evaluated"
           : "Registered",
@@ -184,7 +250,7 @@ export async function POST(request) {
       );
     }
 
-    // If Program Leader — check team ownership
+    // If Program Leader – check team ownership
     let allowedTeamIds = [];
     if (activeRole === "Program Leader") {
       const leaderTeams = await Team.find({ leaderId: userId }).select("_id");

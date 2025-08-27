@@ -160,7 +160,7 @@ export default async function RegistrationStatusPage() {
         columnsConfig: registeredColumnsConfig,
         filterConfig: filterConfig,
         readOnly: true,
-        filterType: "api",
+
         apiFilters: apiFilters,
       },
       {
@@ -173,7 +173,7 @@ export default async function RegistrationStatusPage() {
         columnsConfig: unregisteredColumnsConfig,
         filterConfig: commonFilterConfig, // No team filter for unregistered
         readOnly: true,
-        filterType: "api",
+
         apiFilters: apiFilters,
       },
     ];
