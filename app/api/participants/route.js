@@ -168,6 +168,15 @@ export async function GET(req, res) {
       divisionId: participant.divisionId?._id,
       divisionName: participant.divisionId?.name || "Unknown",
       programsCount: participant.programs?.length || 0,
+      stageProgramsCount:
+        participant.programs?.filter(
+          (program) => program.id.category === "Stage"
+        )?.length || 0,
+      offStageProgramsCount:
+        participant.programs?.filter(
+          (program) => program.id.category === "Off-Stage"
+        )?.length || 0,
+
       totalPoints:
         (participant.stagePoints || 0) + (participant.offStagePoints || 0),
       programs: participant.programs.map((program) => ({

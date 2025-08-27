@@ -57,7 +57,7 @@ export default function PrintHeader({
 
             {/* Optional Title Below Header */}
             {title && title.length > 0 && (
-              <div className="bg-black text-white py-1 text-center">
+              <div className="bg-accent text-accent-foreground py-1 text-center">
                 <h2 className="text-sm font-medium">
                   {title.charAt(0).toUpperCase() + title.slice(1)}
                 </h2>

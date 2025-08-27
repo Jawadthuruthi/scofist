@@ -13,11 +13,7 @@ const columnsConfig = [
   },
   { accessorKey: "name", header: "Team Name" },
   { accessorKey: "leaderName", header: "Team Leader" },
-  {
-    accessorKey: "membersCount",
-    header: "Members Count",
-    type: ["number"],
-  },
+
   {
     accessorKey: "stagePoints",
     header: "Stage Points",

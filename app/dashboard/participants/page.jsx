@@ -33,7 +33,17 @@ const columnsConfig = [
   { accessorKey: "divisionName", header: "Division" },
   {
     accessorKey: "programsCount",
-    header: "Programs Count",
+    header: "Programs",
+    type: ["number"],
+  },
+  {
+    accessorKey: "stageProgramsCount",
+    header: "Stage Programs",
+    type: ["number"],
+  },
+  {
+    accessorKey: "offStageProgramsCount",
+    header: "off Stage Programs",
     type: ["number"],
   },
 ];
