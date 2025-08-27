@@ -7,6 +7,7 @@ import User from "@/models/User";
 import Team from "@/models/Team";
 import ProgramRegistration from "@/models/ProgramRegistration";
 import Result from "@/models/Result";
+import { PopoverContent } from "@radix-ui/react-popover";
 
 export async function assignChestNumbers(divisionId, participantCount) {
   try {
@@ -136,7 +137,18 @@ export async function GET(req, res) {
       .populate("batchId", ["_id", "name"])
       .populate("teamId", ["_id", "name"])
       .populate("divisionId", ["_id", "name"])
-      .populate("programs.id", ["_id", "name", "type", "category"])
+      .populate({
+        path: "programs",
+        populate: {
+          path: "id",
+          select: ["_id", "name", "category", "type", "divisionId"],
+          populate: {
+            path: "divisionId",
+            select: ["_id", "name", "type"],
+          },
+        },
+      })
+
       .skip(page * limit)
       .limit(limit)
       .sort({ chestNumber: 1 })
@@ -164,6 +176,8 @@ export async function GET(req, res) {
         name: program?.id?.name,
         type: program?.id?.type,
         category: program?.id?.category,
+        divisionId: program?.id?.divisionId?._id,
+        divisionType: program?.id?.divisionId?.type,
       })),
     }));
 
