@@ -51,10 +51,10 @@ export default async function ProgramRegistrationPage() {
     const activeRole = cookiesStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
 
-    let programs, teams, participants, divisions;
+    let programs, teams, participants, divisions, settings;
 
     if (activeRole === "Program Committee") {
-      [programs, teams, participants, divisions] = await Promise.all([
+      [programs, teams, participants, divisions, settings] = await Promise.all([
         // include divisionId so program select can filter by division
         fetchData(
           "programs",
@@ -65,6 +65,7 @@ export default async function ProgramRegistrationPage() {
         // include divisionId for participant option-level filtering
         fetchData("participants", "projection=_id,name,teamId,divisionId", 0),
         fetchData("divisions", "projection=_id,name", 0),
+        fetchData("settings", "projection=festival", 0),
       ]);
     } else if (activeRole === "Program Leader") {
       const userTeams = await fetchData(
@@ -79,7 +80,7 @@ export default async function ProgramRegistrationPage() {
 
       const teamIds = userTeams.map((t) => t._id);
 
-      [programs, participants, divisions] = await Promise.all([
+      [programs, participants, divisions, settings] = await Promise.all([
         fetchData(
           "programs",
           "projection=_id,name,maxParticipants,type,divisionId",
@@ -92,6 +93,7 @@ export default async function ProgramRegistrationPage() {
           0
         ),
         fetchData("divisions", "projection=_id,name", 0),
+        fetchData("settings", "projection=festival", 0),
       ]);
 
       teams = userTeams;
@@ -232,6 +234,8 @@ export default async function ProgramRegistrationPage() {
       };
     }
 
+    const deadline = new Date(settings?.festival?.registrationDeadline);
+
     return (
       <>
         <Header
@@ -260,7 +264,7 @@ export default async function ProgramRegistrationPage() {
           readOnly={
             !(
               activeRole === "Program Committee" ||
-              activeRole === "Program Leader"
+              (activeRole === "Program Leader" && deadline > new Date())
             )
           }
           additionalProps={{
