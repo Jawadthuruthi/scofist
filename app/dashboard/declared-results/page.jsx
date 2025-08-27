@@ -1,6 +1,8 @@
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
+import { fetchData, formatOptions } from "@/lib/utils";
+import { filter } from "lodash";
 
 const columnsConfig = [
   {
@@ -25,6 +27,17 @@ export default async function DeclaredResultsPage() {
   try {
     const apiKey = process.env.API_KEY;
 
+    const divisions = await fetchData("divisions", "projection=_id,name", 0);
+
+    const filterConfig = [
+      {
+        id: "divisionId",
+        label: "Division",
+        inputType: "select",
+        options: formatOptions(divisions),
+      },
+    ];
+
     return (
       <>
         <Header
@@ -41,6 +54,7 @@ export default async function DeclaredResultsPage() {
           apiFilters={{
             isResultDeclared: true,
           }}
+          filterConfig={filterConfig}
         />
       </>
     );

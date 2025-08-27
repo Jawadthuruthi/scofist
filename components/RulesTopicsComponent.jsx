@@ -21,6 +21,7 @@ import {
   Filter,
   ChevronDown,
   Loader,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useReactToPrint } from "react-to-print";
@@ -36,6 +37,17 @@ import {
 } from "./ui/select";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import PrintHeader from "@/components/PrintHeader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Full page loading component
 const FullPageLoading = () => (
@@ -94,6 +106,9 @@ const ProgramCard = ({
   onSave,
   onCancel,
   onEditDataChange,
+  onClearRules,
+  onClearTopics,
+  onClearBoth,
 }) => {
   const isEditing = editingProgram === program._id;
 
@@ -114,6 +129,18 @@ const ProgramCard = ({
   const handleEditClick = useCallback(() => {
     onEdit(program);
   }, [onEdit, program]);
+
+  const handleClearRules = useCallback(() => {
+    onClearRules(program);
+  }, [onClearRules, program]);
+
+  const handleClearTopics = useCallback(() => {
+    onClearTopics(program);
+  }, [onClearTopics, program]);
+
+  const handleClearBoth = useCallback(() => {
+    onClearBoth(program);
+  }, [onClearBoth, program]);
 
   return (
     <Card className="break-inside-avoid">
@@ -150,14 +177,126 @@ const ProgramCard = ({
 
           <div className="flex items-center gap-1 shrink-0">
             {!readOnly && !isEditing && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleEditClick}
-                className="print:hidden h-8 w-8 p-0"
-              >
-                <Edit3 className="w-4 h-4" />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleEditClick}
+                  className="print:hidden h-8 w-8 p-0"
+                >
+                  <Edit3 className="w-4 h-4" />
+                </Button>
+
+                {/* Clear buttons based on what content exists */}
+                {program.rules && program.topics && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="print:hidden h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Clear Rules & Topics
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          What would you like to clear for "{program.name}"?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="gap-2">
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleClearRules}
+                          className="bg-orange-600 hover:bg-orange-700"
+                        >
+                          Clear Rules
+                        </AlertDialogAction>
+                        <AlertDialogAction
+                          onClick={handleClearTopics}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Clear Topics
+                        </AlertDialogAction>
+                        <AlertDialogAction
+                          onClick={handleClearBoth}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          Clear Both
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+
+                {program.rules && !program.topics && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="print:hidden h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Clear Rules</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to clear the rules for "
+                          {program.name}"? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleClearRules}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          Clear Rules
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+
+                {!program.rules && program.topics && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="print:hidden h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Clear Topics</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to clear the topics for "
+                          {program.name}"? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleClearTopics}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          Clear Topics
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -262,7 +401,7 @@ const ProgramCard = ({
               )}
 
             {!program.rules && !program.topics && (
-              <div className="text-center py-6 sm:py-8 text-muted-foreground">
+              <div className="text-center py-6 sm:py-8 text-muted-foreground print:hidden">
                 <FileText className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm sm:text-base">
                   No rules or topics added yet.
@@ -315,7 +454,11 @@ const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
   const updateProgram = useUpdateItem();
 
   const programs = useMemo(() => {
-    return fetchItemsQuery.data?.programs || [];
+    return (
+      fetchItemsQuery.data?.programs?.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      ) || []
+    );
   }, [fetchItemsQuery.data]);
 
   const isLoading = fetchItemsQuery.isLoading;
@@ -396,6 +539,73 @@ const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
     setEditingProgram(null);
     setEditData({});
   }, []);
+
+  const handleClearRules = useCallback(
+    async (program) => {
+      try {
+        setLoading(true);
+        await updateProgram.mutateAsync({
+          data: {
+            ids: [program._id],
+            rules: "",
+          },
+        });
+        toast.success("Rules cleared successfully!");
+        await fetchItemsQuery.refetch();
+      } catch (error) {
+        toast.error("Failed to clear rules");
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [updateProgram, fetchItemsQuery]
+  );
+
+  const handleClearTopics = useCallback(
+    async (program) => {
+      try {
+        setLoading(true);
+        await updateProgram.mutateAsync({
+          data: {
+            ids: [program._id],
+            topics: "",
+          },
+        });
+        toast.success("Topics cleared successfully!");
+        await fetchItemsQuery.refetch();
+      } catch (error) {
+        toast.error("Failed to clear topics");
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [updateProgram, fetchItemsQuery]
+  );
+
+  const handleClearBoth = useCallback(
+    async (program) => {
+      try {
+        setLoading(true);
+        await updateProgram.mutateAsync({
+          data: {
+            ids: [program._id],
+            rules: "",
+            topics: "",
+          },
+        });
+        toast.success("Rules and topics cleared successfully!");
+        await fetchItemsQuery.refetch();
+      } catch (error) {
+        toast.error("Failed to clear rules and topics");
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [updateProgram, fetchItemsQuery]
+  );
 
   const handleSearchChange = useCallback((e) => {
     setSearchTerm(e.target.value);
@@ -765,6 +975,9 @@ const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
                 onSave={handleSave}
                 onCancel={handleCancel}
                 onEditDataChange={setEditData}
+                onClearRules={handleClearRules}
+                onClearTopics={handleClearTopics}
+                onClearBoth={handleClearBoth}
               />
             ))}
           </div>

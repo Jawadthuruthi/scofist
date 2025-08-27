@@ -19,7 +19,7 @@ export default async function ResultPage() {
       );
     }
 
-    let programs, divisions, gradeSchemes;
+    let programs, divisions;
 
     // Fetch required data
     [programs, divisions] = await Promise.all([
@@ -36,10 +36,6 @@ export default async function ResultPage() {
       a.name?.localeCompare(b.name)
     );
 
-    const sortedDivisions = divisions?.sort((a, b) =>
-      a.name?.localeCompare(b.name)
-    );
-
     return (
       <>
         <Header
@@ -49,7 +45,7 @@ export default async function ResultPage() {
         <div className="p-4">
           <ResultComponent
             programs={sortedPrograms}
-            divisions={sortedDivisions}
+            divisions={divisions}
             apiKey={apiKey}
             additionalProps={{
               userId: user?.userId,

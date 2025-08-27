@@ -127,7 +127,7 @@ export async function GET(request) {
     // Add pagination AFTER all filtering
     const results = await ProgramRegistration.aggregate([
       ...pipeline,
-      { $sort: { createdAt: -1 } },
+      { $sort: { updatedAt: -1 } },
       { $skip: skip },
       { $limit: limit },
     ]);

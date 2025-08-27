@@ -382,14 +382,14 @@ const EvaluationSheetsComponent = ({
                         <span className="capitalize whitespace-nowrap">
                           <strong>Program:</strong> {program.programName}
                         </span>
+                        <span className="whitespace-nowrap">
+                          <strong>Division:</strong> {program.divisionName}
+                        </span>
                         <span className="capitalize whitespace-nowrap">
                           <strong>Type:</strong> {program.programType}
                         </span>
                         <span className="capitalize whitespace-nowrap">
                           <strong>Category:</strong> {program.programCategory}
-                        </span>
-                        <span className="whitespace-nowrap">
-                          <strong>Division:</strong> {program.divisionName}
                         </span>
                       </div>
                     </div>

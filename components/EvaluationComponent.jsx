@@ -394,15 +394,6 @@ const EvaluationComponent = ({
 
   const hasUnsavedChanges = Object.keys(changes).length > 0;
   const isLoading = fetchRegistrationsQuery.isLoading;
-  const totalParticipants = filteredRegistrations.reduce(
-    (sum, program) => sum + program.participants.length,
-    0
-  );
-  const evaluatedParticipants = filteredRegistrations.reduce(
-    (sum, program) =>
-      sum + program.participants.filter((p) => p.isEvaluated).length,
-    0
-  );
 
   return (
     <div className="space-y-6 p-2 sm:p-4 md:p-6">
@@ -477,10 +468,7 @@ const EvaluationComponent = ({
           <div className="flex flex-col sm:flex-row justify-between gap-4">
             <div className="text-sm text-muted-foreground flex items-center gap-1">
               <Users className="h-4 w-4" />
-              <span>
-                {filteredRegistrations.length} programs • {totalParticipants}{" "}
-                participants • {evaluatedParticipants} evaluated
-              </span>
+              <span>{filteredRegistrations.length} programs</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -536,18 +524,18 @@ const EvaluationComponent = ({
                 <div className="mb-4 p-3 sm:p-4 bg-muted rounded-lg border">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div className="mb-2 sm:mb-0">
-                      <h3 className="text-lg sm:text-xl font-semibold text-foreground">
-                        {program.programName}
-                      </h3>
                       <div className="flex flex-wrap gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-foreground">
+                        <span className="whitespace-nowrap">
+                          <strong>Program:</strong> {program.programName}
+                        </span>
+                        <span className="whitespace-nowrap">
+                          <strong>Division:</strong> {program.divisionName}
+                        </span>
                         <span className="capitalize whitespace-nowrap">
                           <strong>Type:</strong> {program.programType}
                         </span>
                         <span className="capitalize whitespace-nowrap">
                           <strong>Category:</strong> {program.programCategory}
-                        </span>
-                        <span className="whitespace-nowrap">
-                          <strong>Division:</strong> {program.divisionName}
                         </span>
                       </div>
                     </div>

@@ -181,11 +181,13 @@ const CodeLettersComponent = ({
   useEffect(() => {
     if (selectedDivision || selectedProgram) {
       setFilteredPrograms(
-        programs.filter(
-          (program) =>
-            (!selectedDivision || program.divisionId === selectedDivision) &&
-            (!selectedProgram || program._id === selectedProgram)
-        )
+        programs
+          ?.sort((a, b) => a.name.localeCompare(b.name))
+          .filter(
+            (program) =>
+              (!selectedDivision || program.divisionId === selectedDivision) &&
+              (!selectedProgram || program._id === selectedProgram)
+          )
       );
     } else {
       setFilteredPrograms(programs);
@@ -511,11 +513,11 @@ const CodeLettersComponent = ({
                 <div className="program-info mb-4 p-3 sm:p-4 bg-muted rounded-lg border print:bg-transparent print:border-none print:p-1 print:mb-1">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-wrap justify-center w-full gap-2 sm:gap-4 text-xs sm:text-sm text-foreground print:text-black print:text-xs">
-                      <span className="whitespace-nowrap">
-                        <strong>Division:</strong> {program.divisionName}
-                      </span>
                       <span className="capitalize whitespace-nowrap">
                         <strong>Program:</strong> {program.programName}
+                      </span>
+                      <span className="whitespace-nowrap">
+                        <strong>Division:</strong> {program.divisionName}
                       </span>
                       <span className="capitalize whitespace-nowrap">
                         <strong>Type:</strong> {program.programType}
