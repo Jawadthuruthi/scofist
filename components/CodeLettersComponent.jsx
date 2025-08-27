@@ -511,6 +511,9 @@ const CodeLettersComponent = ({
                 <div className="program-info mb-4 p-3 sm:p-4 bg-muted rounded-lg border print:bg-transparent print:border-none print:p-1 print:mb-1">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-wrap justify-center w-full gap-2 sm:gap-4 text-xs sm:text-sm text-foreground print:text-black print:text-xs">
+                      <span className="whitespace-nowrap">
+                        <strong>Division:</strong> {program.divisionName}
+                      </span>
                       <span className="capitalize whitespace-nowrap">
                         <strong>Program:</strong> {program.programName}
                       </span>
@@ -519,9 +522,6 @@ const CodeLettersComponent = ({
                       </span>
                       <span className="capitalize whitespace-nowrap">
                         <strong>Category:</strong> {program.programCategory}
-                      </span>
-                      <span className="whitespace-nowrap">
-                        <strong>Division:</strong> {program.divisionName}
                       </span>
                     </div>
 
@@ -603,19 +603,19 @@ const CodeLettersComponent = ({
                                 <TableCell className="text-center border-t border-r border-border print:border-black">
                                   {participant.chestNumber || "-"}
                                 </TableCell>
-                                <TableCell className="font-medium border-t border-r border-border print:border-black">
+                                <TableCell className="font-medium border-t border-r whitespace-nowrap border-border print:border-black">
                                   {participant.name || "N/A"}
                                 </TableCell>
                                 <TableCell className="border-t border-r border-border print:border-black">
                                   {participant.teamName || "N/A"}
                                 </TableCell>
 
-                                <TableCell className="text-center border-t border-r border-border print:border-black code-letter-cell">
-                                  <div className="hidden print:block text-center font-bold text-lg whitespace-nowrap">
+                                <TableCell className="text-center border-t border-r border-border p-0 print:border-black code-letter-cell">
+                                  <div className="hidden print:block text-center font-bold text-lg p-2 whitespace-nowrap">
                                     {participant.codeLetter || ""}
                                   </div>
                                   {participant.isEvaluated ? (
-                                    <span className="no-print font-medium text-red-600 whitespace-nowrap">
+                                    <span className="no-print font-medium p-2 text-red-600 whitespace-nowrap">
                                       {participant.codeLetter || "-"}
                                     </span>
                                   ) : (
@@ -627,7 +627,7 @@ const CodeLettersComponent = ({
                                           e.target.value.toUpperCase()
                                         )
                                       }
-                                      className="no-print w-20 sm:w-24 text-center text-sm mx-auto"
+                                      className="no-print min-w-full min-h-full rounded-none border-none m-0 p-0 text-center text-sm mx-auto"
                                       maxLength={5}
                                       placeholder="Code"
                                     />
