@@ -80,7 +80,7 @@ export default async function ProgramRegistrationPage() {
 
       const teamIds = userTeams.map((t) => t._id);
 
-      [programs, participants, divisions, settings] = await Promise.all([
+      [programs, participants, divisions] = await Promise.all([
         fetchData(
           "programs",
           "projection=_id,name,maxParticipants,type,divisionId",
@@ -93,7 +93,6 @@ export default async function ProgramRegistrationPage() {
           0
         ),
         fetchData("divisions", "projection=_id,name", 0),
-        fetchData("settings", "projection=festival", 0),
       ]);
 
       teams = userTeams;
