@@ -185,10 +185,21 @@ export default async function SchedulePage() {
 
     const filterConfig = [
       {
+        id: "divisionId",
+        label: "Division",
+        inputType: "select",
+        options: formatOptions(divisions),
+      },
+      {
         id: "programId",
         label: "Program",
         inputType: "select",
         options: formatOptions(programs),
+        filters: [
+          {
+            dependentField: "divisionId",
+          },
+        ],
       },
       {
         id: "date",

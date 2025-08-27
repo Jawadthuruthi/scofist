@@ -97,16 +97,21 @@ export default async function RegistrationStatusPage() {
     // Common filter configuration
     const commonFilterConfig = [
       {
-        id: "programId",
-        label: "Program",
-        inputType: "select",
-        options: formatOptions(programs),
-      },
-      {
         id: "divisionId",
         label: "Division",
         inputType: "select",
         options: formatOptions(divisions),
+      },
+      {
+        id: "programId",
+        label: "Program",
+        inputType: "select",
+        options: formatOptions(programs),
+        filters: [
+          {
+            dependentField: "divisionId",
+          },
+        ],
       },
       {
         id: "programType",
@@ -156,7 +161,7 @@ export default async function RegistrationStatusPage() {
         resource: "registrations",
         apiEndpoint: "program-registration",
         printTitle: "Registered Programs",
-        filterTitle: "Filter Registered Programs",
+        filterTitle: "Registered Programs",
         columnsConfig: registeredColumnsConfig,
         filterConfig: filterConfig,
         readOnly: true,
@@ -169,7 +174,7 @@ export default async function RegistrationStatusPage() {
         resource: "unregisteredPrograms",
         apiEndpoint: "program-registration/unregistered",
         printTitle: "Unregistered Programs",
-        filterTitle: "Filter Unregistered Programs",
+        filterTitle: "Unregistered Programs",
         columnsConfig: unregisteredColumnsConfig,
         filterConfig: commonFilterConfig, // No team filter for unregistered
         readOnly: true,
