@@ -183,7 +183,7 @@ const CodeLettersComponent = ({
     if (selectedDivision || selectedProgram) {
       setFilteredPrograms(
         programs
-          ?.sort((a, b) => a.name.localeCompare(b.name))
+          ?.sort((a, b) => a.programName.localeCompare(b.programName))
           .filter(
             (program) =>
               (!selectedDivision || program.divisionId === selectedDivision) &&
