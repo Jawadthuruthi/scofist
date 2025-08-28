@@ -133,57 +133,59 @@ export async function GET(request) {
     ]);
 
     // Transform data
-    const transformedData = results.map((reg, index) => {
-      const participantMap = {};
-      (reg.participantDetails || []).forEach((p) => {
-        participantMap[p._id.toString()] = p;
-      });
+    const transformedData = results
+      .map((reg, index) => {
+        const participantMap = {};
+        (reg.participantDetails || []).forEach((p) => {
+          participantMap[p._id.toString()] = p;
+        });
 
-      const participants = isCodeLetter
-        ? (reg.participants || []).filter(
-            (p) => p.codeLetter && p.codeLetter.trim() !== ""
-          )
-        : reg.participants || [];
+        const participants = isCodeLetter
+          ? (reg.participants || []).filter(
+              (p) => p.codeLetter && p.codeLetter.trim() !== ""
+            )
+          : reg.participants || [];
 
-      return {
-        _id: reg._id,
-        serialNo: skip + index + 1,
-        programId: reg.programDetails._id,
-        programName: reg.programDetails.name,
-        programType: reg.programDetails.type,
-        programCategory: reg.programDetails.category,
-        maxParticipants: reg.programDetails.maxParticipants,
-        divisionId: reg.divisionDetails?._id,
-        divisionName: reg.divisionDetails?.name,
-        teamId: reg.teamDetails?._id,
-        teamName: reg.teamDetails?.name || "N/A",
-        participants: participants.map((p) => p.id?.toString() || p.id),
-        participantsDetails: participants.map((p) => {
-          const participant = participantMap[p.id?.toString() || p.id] || {};
-          return {
-            id: participant._id,
-            name: participant.name || "Unknown",
-            chestNumber: participant.chestNumber,
-            totalMarks: p.totalMarks,
-            codeLetter: p.codeLetter || "",
-            marksByJudges: p.marksByJudges || [],
-          };
-        }),
-        participantsCount: participants.length,
-        participantNames: participants.map((p) => {
-          const participant = participantMap[p.id?.toString() || p.id] || {};
-          return participant.chestNumber
-            ? `${participant.chestNumber} - ${participant.name || "Unknown"}`
-            : participant.name || "Unknown";
-        }),
-        status: participants.some((p) => (p.totalMarks || 0) > 0)
-          ? "Evaluated"
-          : "Registered",
-        isResultDeclared: reg.isResultDeclared,
-        createdAt: reg.createdAt,
-        updatedAt: reg.updatedAt,
-      };
-    });
+        return {
+          _id: reg._id,
+          serialNo: skip + index + 1,
+          programId: reg.programDetails._id,
+          programName: reg.programDetails.name,
+          programType: reg.programDetails.type,
+          programCategory: reg.programDetails.category,
+          maxParticipants: reg.programDetails.maxParticipants,
+          divisionId: reg.divisionDetails?._id,
+          divisionName: reg.divisionDetails?.name,
+          teamId: reg.teamDetails?._id,
+          teamName: reg.teamDetails?.name || "N/A",
+          participants: participants.map((p) => p.id?.toString() || p.id),
+          participantsDetails: participants.map((p) => {
+            const participant = participantMap[p.id?.toString() || p.id] || {};
+            return {
+              id: participant._id,
+              name: participant.name || "Unknown",
+              chestNumber: participant.chestNumber,
+              totalMarks: p.totalMarks,
+              codeLetter: p.codeLetter || "",
+              marksByJudges: p.marksByJudges || [],
+            };
+          }),
+          participantsCount: participants.length,
+          participantNames: participants.map((p) => {
+            const participant = participantMap[p.id?.toString() || p.id] || {};
+            return participant.chestNumber
+              ? `${participant.chestNumber} - ${participant.name || "Unknown"}`
+              : participant.name || "Unknown";
+          }),
+          status: participants.some((p) => (p.totalMarks || 0) > 0)
+            ? "Evaluated"
+            : "Registered",
+          isResultDeclared: reg.isResultDeclared,
+          createdAt: reg.createdAt,
+          updatedAt: reg.updatedAt,
+        };
+      })
+      ?.sort((a, b) => a.programName.localeCompare(b.programName));
 
     return NextResponse.json({
       success: true,

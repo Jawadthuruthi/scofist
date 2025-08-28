@@ -34,32 +34,28 @@ const Header = ({ title, subTitle, alertTitle, alertDescription }) => {
           aria-label="Show information"
         >
           {" "}
-          {alertTitle ||
-            (alertDescription && (
-              <AlertCircle className="h-5 w-5 text-muted-foreground hover:text-foreground" />
-            ))}
+          {(alertTitle || alertDescription) && (
+            <AlertCircle className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+          )}
         </button>
       </div>
-      {alertTitle ||
-        (alertDescription && (
-          <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  {alertTitle || "Information"}
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  {alertDescription || "This is an informational message."}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogAction onClick={() => setIsAlertOpen(false)}>
-                  Got it
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        ))}
+      {(alertTitle || alertDescription) && (
+        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{alertTitle || "Information"}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {alertDescription || "This is an informational message."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => setIsAlertOpen(false)}>
+                Got it
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </>
   );
 };

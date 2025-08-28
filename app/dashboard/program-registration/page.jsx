@@ -80,7 +80,7 @@ export default async function ProgramRegistrationPage() {
 
       const teamIds = userTeams.map((t) => t._id);
 
-      [programs, participants, divisions] = await Promise.all([
+      [programs, participants, divisions, settings] = await Promise.all([
         fetchData(
           "programs",
           "projection=_id,name,maxParticipants,type,divisionId",
@@ -93,6 +93,7 @@ export default async function ProgramRegistrationPage() {
           0
         ),
         fetchData("divisions", "projection=_id,name", 0),
+        fetchData("settings", "projection=festival", 0),
       ]);
 
       teams = userTeams;
@@ -243,6 +244,16 @@ export default async function ProgramRegistrationPage() {
             activeRole === "Program Committee"
               ? "Manage All Program Registrations"
               : "Manage Your Team's Program Registrations"
+          }
+          alertTitle={
+            activeRole === "Program Leader" && deadline > new Date()
+              ? "Registration Deadline:"
+              : ""
+          }
+          alertDescription={
+            activeRole === "Program Leader" && deadline > new Date()
+              ? `Please register before ${deadline.toLocaleDateString()}.`
+              : ""
           }
         />
         <DataTableComponent
