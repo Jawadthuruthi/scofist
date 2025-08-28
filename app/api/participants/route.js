@@ -7,7 +7,6 @@ import User from "@/models/User";
 import Team from "@/models/Team";
 import ProgramRegistration from "@/models/ProgramRegistration";
 import Result from "@/models/Result";
-import { PopoverContent } from "@radix-ui/react-popover";
 
 export async function assignChestNumbers(divisionId, participantCount) {
   try {

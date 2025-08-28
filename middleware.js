@@ -243,8 +243,8 @@ const pages = [
     allowedRoles: ["Program Committee"],
   },
   {
-    title: "Registration Status",
-    path: "/dashboard/registration-status",
+    title: "Unregistered programs",
+    path: "/dashboard/unregistered-programs",
     allowedRoles: ["Program Committee", "Program Leader"],
   },
   {

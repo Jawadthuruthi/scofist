@@ -326,8 +326,8 @@ const items = [
     allowedRoles: ["Program Committee", "Program Leader"],
     subItems: [
       {
-        title: "Registration Status",
-        url: "/dashboard/registration-status",
+        title: "Unregistered Programs",
+        url: "/dashboard/unregistered-programs",
         allowedRoles: ["Program Committee", "Program Leader"],
         icon: FileSearch,
       },

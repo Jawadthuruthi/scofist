@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import AdvancedDataTableComponent from "@/components/AdvancedDataTableComponent";
 import { fetchData, formatOptions, parseUser } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
+import DataTableComponent from "@/components/DataTableComponent";
 
 export default async function RegistrationStatusPage() {
   try {
@@ -57,8 +58,8 @@ export default async function RegistrationStatusPage() {
       throw new Error("Unauthorized access");
     }
 
-    // Common column configuration for both registered and unregistered tabs
-    const baseColumnsConfig = [
+    // Unregistered programs columns (no team/participant info)
+    const columnsConfig = [
       {
         header: "Sl.No.",
         accessorKey: "serialNo",
@@ -69,28 +70,6 @@ export default async function RegistrationStatusPage() {
       },
       { header: "Program", accessorKey: "programName" },
       { header: "Division", accessorKey: "divisionName" },
-    ];
-
-    // Registered programs columns
-    const registeredColumnsConfig = [
-      ...baseColumnsConfig,
-      { header: "Team", accessorKey: "teamName" },
-      {
-        header: "Participants Count",
-        accessorKey: "participantsCount",
-        type: ["number"],
-      },
-      {
-        header: "Participants",
-        accessorKey: "participantNames",
-        type: ["array", "vertical"],
-      },
-      { header: "Status", accessorKey: "status" },
-    ];
-
-    // Unregistered programs columns (no team/participant info)
-    const unregisteredColumnsConfig = [
-      ...baseColumnsConfig,
       { header: "Registration Status", accessorKey: "registrationStatus" },
     ];
 
@@ -154,46 +133,29 @@ export default async function RegistrationStatusPage() {
       };
     }
 
-    const tabsConfig = [
-      {
-        label: "Registered",
-        value: "registered",
-        resource: "registrations",
-        apiEndpoint: "program-registration",
-        printTitle: "Registered Programs",
-        filterTitle: "Registered Programs",
-        columnsConfig: registeredColumnsConfig,
-        filterConfig: filterConfig,
-        readOnly: true,
-
-        apiFilters: apiFilters,
-      },
-      {
-        label: "Unregistered",
-        value: "unregistered",
-        resource: "unregisteredPrograms",
-        apiEndpoint: "program-registration/unregistered",
-        printTitle: "Unregistered Programs",
-        filterTitle: "Unregistered Programs",
-        columnsConfig: unregisteredColumnsConfig,
-        filterConfig: commonFilterConfig, // No team filter for unregistered
-        readOnly: true,
-
-        apiFilters: apiFilters,
-      },
-    ];
-
     return (
       <>
         <Header
-          title="REGISTRATION STATUS"
+          title="UNREGISTERED PROGRAMS"
           subTitle={
             activeRole === "Program Committee"
-              ? "View All Program Registration Status"
+              ? "View All Unregistered Programs"
               : "View Your Team's Registration Status"
           }
         />
-        <AdvancedDataTableComponent tabsConfig={tabsConfig} apiKey={apiKey} />
+        <DataTableComponent
+          resource="unregisteredPrograms"
+          apiEndpoint="program-registration/unregistered"
+          printTitle="Unregistered Programs"
+          filterTitle="Unregistered Programs"
+          initialData={[]}
+          columnsConfig={columnsConfig}
+          apiKey={apiKey}
+          filterConfig={filterConfig}
+          apiFilters={apiFilters}
+          limit={20}
+          readOnly={true}
+        />
       </>
     );
   } catch (error) {
