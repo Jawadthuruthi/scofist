@@ -56,6 +56,7 @@ const EvaluationComponent = ({
 }) => {
   const [programRegistrations, setProgramRegistrations] = useState([]);
   const [filteredRegistrations, setFilteredRegistrations] = useState([]);
+  const [status, setStatus] = useState("both");
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedProgram, setSelectedProgram] = useState("");
   const [saving, setSaving] = useState(false);
@@ -196,8 +197,16 @@ const EvaluationComponent = ({
       );
     }
 
+    filtered = filtered.filter((program) => {
+      const hasMarks = program.participants?.some((p) => p.totalMarks > 0);
+
+      if (status === "assigned") return hasMarks;
+      if (status === "not-assigned") return !hasMarks;
+      return true; // for "both"
+    });
+
     setFilteredRegistrations(filtered);
-  }, [selectedDivision, selectedProgram, programRegistrations]);
+  }, [selectedDivision, selectedProgram, programRegistrations, status]);
 
   const filteredPrograms = useMemo(() => {
     return programs?.filter(
@@ -401,9 +410,20 @@ const EvaluationComponent = ({
       <div className="no-print">
         <div className="flex flex-col gap-4">
           {/* Filters Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 flex-shrink-0" />
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 xs:col-span-6 lg:col-span-2">
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={"both"}>Both</SelectItem>
+                  <SelectItem value={"assigned"}>Assigned</SelectItem>
+                  <SelectItem value={"not-assigned"}>Not Assigned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-12 xs:col-span-6 lg:col-span-3">
               <Select
                 value={selectedDivision}
                 onValueChange={setSelectedDivision}
@@ -428,9 +448,10 @@ const EvaluationComponent = ({
               onValueChange={setSelectedProgram}
               placeholder="All Programs"
               multiSelect={false}
+              className="col-span-12 xs:col-span-8 lg:col-span-4"
             />
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 col-span-10 xs:col-span-3 lg:col-span-2">
               <span className="text-sm font-medium whitespace-nowrap ">
                 Judge:
               </span>
@@ -456,10 +477,9 @@ const EvaluationComponent = ({
                 variant="outline"
                 size="sm"
                 onClick={clearFilters}
-                className="w-full"
+                className="w-full h-full col-span-2 xs:col-span-1 lg:col-span-1"
               >
-                <X className="h-3 w-3 mr-1" />
-                Clear
+                <X className="h-3 w-3" />
               </Button>
             )}
           </div>
