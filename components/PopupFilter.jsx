@@ -76,46 +76,11 @@ export default function PopupFilter({
     setLocalFilters(filters);
   }, [filters]);
 
-  // Helper function to get filtered options with support for multiple filters
+  // Helper function to get filtered options based on dependent fields
   const getFilteredOptions = useCallback(
     (filterItem) => {
-      const currentValue = getCurrentValue(
-        filterItem,
-        localFilters[filterItem.id] || {}
-      );
-
-      // Handle legacy single filter
-      if (filterItem.filter && !filterItem.filters) {
-        const dependentFieldName = filterItem.filter.dependentField;
-        const key = filterItem.filter.key;
-        const dependentValue =
-          localFilters[dependentFieldName]?.value ||
-          localFilters[dependentFieldName];
-
-        if (!dependentValue) {
-          return filterItem.options || [];
-        }
-
-        const filteredOptions = (filterItem.options || []).filter((option) => {
-          if (key) {
-            return option?.[dependentFieldName]?.[key] === dependentValue;
-          }
-          return option?.[dependentFieldName] === dependentValue;
-        });
-
-        // Always include currently selected options to prevent them from disappearing
-        const selectedOptions = (filterItem.options || []).filter((option) =>
-          Array.isArray(currentValue)
-            ? currentValue.includes(option.value)
-            : currentValue === option.value
-        );
-
-        return [
-          ...filteredOptions,
-          ...selectedOptions.filter(
-            (opt) => !filteredOptions.some((f) => f.value === opt.value)
-          ),
-        ];
+      if (!filterItem.filters || filterItem.filters.length === 0) {
+        return filterItem.options || [];
       }
 
       // Handle multiple filters
@@ -141,6 +106,10 @@ export default function PopupFilter({
         });
 
         // Always include currently selected options to prevent them from disappearing
+        const currentValue = getCurrentValue(
+          filterItem,
+          localFilters[filterItem.id] || {}
+        );
         const selectedOptions = (filterItem.options || []).filter((option) =>
           Array.isArray(currentValue)
             ? currentValue.includes(option.value)
@@ -155,7 +124,6 @@ export default function PopupFilter({
         ];
       }
 
-      // No filters - return all options
       return filterItem.options || [];
     },
     [localFilters]
@@ -308,145 +276,147 @@ export default function PopupFilter({
 
   return (
     <div className="space-y-2">
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button variant={hasFilters ? "default" : "outline"} size="sm">
-            <Filter className="h-4 w-4" />
-            {hasFilters && (
-              <span className="ml-1 bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-xs">
-                {Object.keys(filters).length}
-              </span>
-            )}
-          </Button>
-        </DialogTrigger>
-
-        <DialogContent className="max-w-xl max-h-[400px] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Filter {title}</DialogTitle>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Global Filter */}
-            {setGlobalFilter && (
-              <div>
-                <label className="text-sm font-medium">Search</label>
-                <Input
-                  placeholder="Search all columns..."
-                  value={globalFilter ?? ""}
-                  onChange={(e) => setGlobalFilter(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            )}
-
-            {/* Individual Filters */}
-            {filterConfig.map((filterItem) => {
-              const currentFilter = localFilters[filterItem.id] || {};
-              const currentValue = getCurrentValue(filterItem, currentFilter);
-              const operator =
-                currentFilter?.operator ||
-                DEFAULT_OPERATORS[filterItem.inputType];
-
-              // Get filtered options for this filter item
-              const availableOptions = getFilteredOptions(filterItem);
-
-              return (
-                <div key={filterItem.id}>
-                  <label className="text-sm font-medium">
-                    {filterItem.label}
-                  </label>
-
-                  {filterItem.inputType === "select" && (
-                    <MultiSelect
-                      options={availableOptions}
-                      value={currentValue}
-                      onValueChange={(value) =>
-                        handleFilterChange(filterItem.id, value, operator)
-                      }
-                      placeholder={`Select ${filterItem.label}...`}
-                      className="mt-1"
-                      multiSelect={false}
-                    />
-                  )}
-
-                  {filterItem.inputType === "multiSelect" && (
-                    <MultiSelect
-                      options={availableOptions}
-                      value={currentValue}
-                      onValueChange={(value) =>
-                        handleFilterChange(filterItem.id, value, operator)
-                      }
-                      placeholder={`Select ${filterItem.label}...`}
-                      className="mt-1"
-                      multiSelect={true}
-                    />
-                  )}
-
-                  {filterItem.inputType === "text" && (
-                    <Input
-                      placeholder={`Filter by ${filterItem.label}...`}
-                      value={currentValue}
-                      onChange={(e) =>
-                        handleFilterChange(
-                          filterItem.id,
-                          e.target.value,
-                          operator
-                        )
-                      }
-                      className="mt-1"
-                    />
-                  )}
-
-                  {filterItem.inputType === "dateRange" && (
-                    <div className="flex flex-col space-y-2 mt-1">
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="date"
-                          value={currentValue.startDate || ""}
-                          placeholder="Start date"
-                          onChange={(e) =>
-                            handleDateRangeChange(
-                              filterItem.id,
-                              "startDate",
-                              e.target.value,
-                              currentValue,
-                              OPERATORS.DATE_RANGE
-                            )
-                          }
-                          className="flex-1"
-                        />
-                        <span className="text-sm">to</span>
-                        <Input
-                          type="date"
-                          value={currentValue.endDate || ""}
-                          placeholder="End date"
-                          onChange={(e) =>
-                            handleDateRangeChange(
-                              filterItem.id,
-                              "endDate",
-                              e.target.value,
-                              currentValue,
-                              OPERATORS.DATE_RANGE
-                            )
-                          }
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <DialogFooter className="flex justify-between">
-            <Button variant="outline" onClick={handleClearFilters}>
-              Clear All
+      <div className="flex items-center space-x-2">
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button variant={hasFilters ? "default" : "outline"} size="sm">
+              <Filter className="h-4 w-4" />
+              {hasFilters && (
+                <span className="ml-1 bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-xs">
+                  {Object.keys(filters).length}
+                </span>
+              )}
             </Button>
-            <Button onClick={() => setOpen(false)}>Apply Filters</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DialogTrigger>
+
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Filter {title}</DialogTitle>
+            </DialogHeader>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Global Filter */}
+              {setGlobalFilter && (
+                <div>
+                  <label className="text-sm font-medium">Search</label>
+                  <Input
+                    placeholder="Search all columns..."
+                    value={globalFilter ?? ""}
+                    onChange={(e) => setGlobalFilter(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              )}
+
+              {/* Individual Filters */}
+              {filterConfig.map((filterItem) => {
+                const filterId = filterItem.id;
+                const currentFilter = filters[filterId] || {};
+                const currentValue = getCurrentValue(filterItem, currentFilter);
+
+                const displayName = filterItem.label || filterId;
+                const inputType = filterItem.inputType || "text";
+                const operator =
+                  currentFilter.operator ||
+                  filterItem.operator ||
+                  DEFAULT_OPERATORS[inputType] ||
+                  OPERATORS.CONTAINS;
+                const availableOptions = getFilteredOptions(filterItem);
+                const type = filterItem.type || "text";
+                const nestedArrayField = filterItem.nestedArrayField || null;
+                const className = filterItem.className || "";
+
+                return (
+                  <div key={filterId} className={`space-y-2 ${className}`}>
+                    <label className="text-sm font-medium block">
+                      {displayName}
+                    </label>
+
+                    {inputType === "dateRange" ? (
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            type="date"
+                            value={currentValue.startDate || ""}
+                            placeholder="Start date"
+                            onChange={(e) =>
+                              handleDateRangeChange(
+                                filterId,
+                                "startDate",
+                                e.target.value,
+                                currentValue,
+                                OPERATORS.DATE_RANGE,
+                                nestedArrayField
+                              )
+                            }
+                            className="flex-1"
+                          />
+                          <span className="text-sm">to</span>
+                          <Input
+                            type="date"
+                            value={currentValue.endDate || ""}
+                            placeholder="End date"
+                            onChange={(e) =>
+                              handleDateRangeChange(
+                                filterId,
+                                "endDate",
+                                e.target.value,
+                                currentValue,
+                                OPERATORS.DATE_RANGE,
+                                nestedArrayField
+                              )
+                            }
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                    ) : inputType === "multiSelect" ||
+                      inputType === "select" ? (
+                      <MultiSelect
+                        options={availableOptions}
+                        value={currentValue}
+                        onValueChange={(value) =>
+                          handleFilterChange(
+                            filterId,
+                            value,
+                            operator,
+                            nestedArrayField
+                          )
+                        }
+                        placeholder={`Select ${displayName}...`}
+                        multiSelect={inputType === "multiSelect"}
+                      />
+                    ) : (
+                      <Input
+                        placeholder={`Filter by ${displayName}...`}
+                        value={currentValue}
+                        type={type}
+                        onChange={(e) =>
+                          handleFilterChange(
+                            filterId,
+                            e.target.value,
+                            operator,
+                            nestedArrayField
+                          )
+                        }
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <DialogFooter className="flex justify-between">
+              <Button variant="outline" onClick={handleClearFilters}>
+                Clear All
+              </Button>
+              <Button onClick={() => setOpen(false)}>Apply Filters</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        
+      </div>
     </div>
   );
 }

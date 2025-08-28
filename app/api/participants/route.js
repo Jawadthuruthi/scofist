@@ -130,6 +130,9 @@ export async function GET(req, res) {
     if (filterParams.chestNumber) {
       query.chestNumber = parseInt(filterParams.chestNumber);
     }
+    if (filterParams.batchId) {
+      query.batchId = filterParams.batchId;
+    }
 
     // Execute query with pagination
     const participants = await Participant.find(query, projections)

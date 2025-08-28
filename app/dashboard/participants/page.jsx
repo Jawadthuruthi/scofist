@@ -43,7 +43,7 @@ const columnsConfig = [
   },
   {
     accessorKey: "offStageProgramsCount",
-    header: "off Stage Programs",
+    header: "Off Stage Programs",
     type: ["number"],
   },
 ];

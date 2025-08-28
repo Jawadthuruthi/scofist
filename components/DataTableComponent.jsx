@@ -211,7 +211,7 @@ const DataTableComponent = ({
   }, [currentFilterHash, lastFilterHash]);
 
   // API fetch with combined filters
-  const fetchItemsQuery = useFetchItems(page, limit, combinedApiFilters, {
+  const fetchItemsQuery = useFetchItems(page + 1, limit, combinedApiFilters, {
     retry: 2,
     retryDelay: 1000,
   });

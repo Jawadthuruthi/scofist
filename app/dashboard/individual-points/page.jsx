@@ -12,12 +12,12 @@ const columnsConfig = [
     maxWidth: 60,
     minWidth: 60,
   },
-  { accessorKey: "name", header: "Name" },
   {
     accessorKey: "chestNumber",
     header: "Chest Number",
     type: ["number"],
   },
+  { accessorKey: "name", header: "Name" },
   { accessorKey: "teamName", header: "Team" },
   { accessorKey: "divisionName", header: "Division" },
   {

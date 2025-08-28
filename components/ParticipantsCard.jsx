@@ -150,16 +150,7 @@ const ParticipantsCard = ({
       </div>
 
       {/* View Mode Filter and Print Button Row */}
-      <div className="flex flex-col sm:flex-row justify-between items-end sm:items-center gap-4 mb-8">
-        {/* Print Button */}
-        <Button
-          onClick={handlePrint}
-          aria-label="Print Participant Cards"
-          variant="default"
-        >
-          <Printer size={16} />
-          Print
-        </Button>
+      <div className="flex flex-row justify-between items-center gap-4 mb-8">
         {/* View Mode Filter */}
         <div className="flex items-center gap-1 sm:gap-2">
           <span className="text-xs sm:text-sm font-medium hidden sm:inline">
@@ -195,6 +186,15 @@ const ParticipantsCard = ({
             </Button>
           </div>
         </div>
+        {/* Print Button */}
+        <Button
+          onClick={handlePrint}
+          aria-label="Print Participant Cards"
+          variant="default"
+        >
+          <Printer size={16} />
+          Print
+        </Button>
       </div>
 
       {/* Screen Preview */}

@@ -169,6 +169,7 @@ const CodeLettersComponent = ({
         name: program.programName,
         divisionId: program.divisionId,
       }))
+      .sort((a, b) => a.name?.localeCompare(b.name))
       .filter(
         (program) =>
           (!selectedDivision || program.divisionId === selectedDivision) &&
