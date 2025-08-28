@@ -38,9 +38,7 @@ import { MultiSelect } from "./ui/multi-select";
 import { formatOptions } from "@/lib/utils";
 
 const CodeLettersComponent = ({
-  data = [],
   divisions = [],
-  url,
   apiKey,
   additionalProps = {},
 }) => {
@@ -48,6 +46,7 @@ const CodeLettersComponent = ({
   const [filteredPrograms, setFilteredPrograms] = useState([]);
   const [selectedProgram, setSelectedProgram] = useState("");
   const [selectedDivision, setSelectedDivision] = useState("");
+  const [status, setStatus] = useState("both");
   const [saving, setSaving] = useState(false);
   const [changes, setChanges] = useState({});
   const [page, setPage] = useState(0);
@@ -180,20 +179,29 @@ const CodeLettersComponent = ({
 
   // Filter programs by division
   useEffect(() => {
-    if (selectedDivision || selectedProgram) {
+    if (selectedDivision || selectedProgram || status) {
       setFilteredPrograms(
         programs
           ?.sort((a, b) => a.programName.localeCompare(b.programName))
           .filter(
             (program) =>
               (!selectedDivision || program.divisionId === selectedDivision) &&
-              (!selectedProgram || program._id === selectedProgram)
+              (!selectedProgram || program._id === selectedProgram) &&
+              (status === "both" ||
+                (status === "assigned" &&
+                  program.participants?.some(
+                    (p) => p.codeLetter?.trim() !== ""
+                  )) ||
+                (status === "not-assigned" &&
+                  !program.participants?.some(
+                    (p) => p.codeLetter?.trim() !== ""
+                  )))
           )
       );
     } else {
       setFilteredPrograms(programs);
     }
-  }, [selectedDivision, selectedProgram, programs]);
+  }, [selectedDivision, selectedProgram, programs, status]);
 
   // Handle code letter change for individual participant
   const handleCodeLetterChange = (participantUniqueId, value) => {
@@ -420,32 +428,46 @@ const CodeLettersComponent = ({
     <div className="space-y-6 p-2 sm:p-4 md:p-6">
       {/* Controls */}
       <div className="no-print">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 flex-shrink-0" />
-              <Select
-                value={selectedDivision}
-                onValueChange={setSelectedDivision}
-              >
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="All Divisions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={null}>All Divisions</SelectItem>
-                  {divisions.map((division) => (
-                    <SelectItem key={division._id} value={division._id}>
-                      {division.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4 w-full">
+            <div className="grid grid-cols-12 w-full gap-2">
+              <div className="col-span-12 xs:col-span-6 lg:col-span-3 xl:col-span-4">
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={"both"}>Both</SelectItem>
+                    <SelectItem value={"assigned"}>Assigned</SelectItem>
+                    <SelectItem value={"not-assigned"}>Not Assigned</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-12 xs:col-span-6 lg:col-span-3 xl:col-span-4">
+                <Select
+                  value={selectedDivision}
+                  onValueChange={setSelectedDivision}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Divisions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>All Divisions</SelectItem>
+                    {divisions.map((division) => (
+                      <SelectItem key={division._id} value={division._id}>
+                        {division.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <MultiSelect
                 options={formatOptions(programsData)}
                 value={selectedProgram}
                 onValueChange={setSelectedProgram}
                 placeholder="All Programs"
                 multiSelect={false}
+                className="col-span-12 xs:col-span-6 lg:col-span-6 xl:col-span-4"
               />
               {(selectedDivision || selectedProgram) && (
                 <Button variant="outline" size="sm" onClick={clearFilter}>
@@ -453,7 +475,7 @@ const CodeLettersComponent = ({
                 </Button>
               )}
             </div>
-            <div className="text-sm text-muted-foreground flex items-center gap-1">
+            <div className="text-sm text-muted-foreground flex items-center min-w-fit py-2 gap-1">
               <Users className="h-4 w-4" />
               {filteredPrograms.length} programs
             </div>
