@@ -32,6 +32,7 @@ import {
   Award,
   Users2,
   CheckCircle,
+  TicketPercent,
 } from "lucide-react";
 
 import {
@@ -276,6 +277,12 @@ const items = [
     url: "/dashboard/program-registration",
     allowedRoles: ["Program Leader", "Program Committee"],
     icon: ClipboardList,
+  },
+  {
+    title: "Scratch Cards",
+    url: "/dashboard/scratch-cards",
+    allowedRoles: ["Program Committee"],
+    icon: TicketPercent,
   },
   {
     title: "Code Letters",

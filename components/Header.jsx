@@ -25,19 +25,18 @@ const Header = ({ title, subTitle, alertTitle, alertDescription }) => {
         <div>
           <h1 className="font-bold text-xl md:text-2xl text-foreground">
             {title}
+            <button
+              onClick={handleIconClick}
+              className="p-2 hover:bg-muted rounded-full transition-colors"
+              aria-label="Show information"
+            >
+              {(alertTitle || alertDescription) && (
+                <AlertCircle className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+              )}
+            </button>
           </h1>
           <h3 className="text-muted-foreground">{subTitle}</h3>
         </div>
-        <button
-          onClick={handleIconClick}
-          className="p-1 mt-0.5 hover:bg-muted rounded-full transition-colors"
-          aria-label="Show information"
-        >
-          {" "}
-          {(alertTitle || alertDescription) && (
-            <AlertCircle className="h-5 w-5 text-muted-foreground hover:text-foreground" />
-          )}
-        </button>
       </div>
       {(alertTitle || alertDescription) && (
         <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
