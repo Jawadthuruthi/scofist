@@ -240,6 +240,7 @@ export default async function ParticipantsPage() {
                 }
               : {}
           }
+          isFestival={true}
         />
       </>
     );

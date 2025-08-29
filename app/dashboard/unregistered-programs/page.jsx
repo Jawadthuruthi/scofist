@@ -155,6 +155,7 @@ export default async function RegistrationStatusPage() {
           apiFilters={apiFilters}
           limit={20}
           readOnly={true}
+          isFestival={true}
         />
       </>
     );

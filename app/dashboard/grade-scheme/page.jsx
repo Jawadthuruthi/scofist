@@ -133,6 +133,7 @@ export default async function GradeSchemePage() {
           filterConfig={filterConfig}
           limit={20}
           readOnly={activeRole !== "Program Committee"}
+          isFestival={true}
         />
       </>
     );

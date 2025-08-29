@@ -55,6 +55,7 @@ export default async function DeclaredResultsPage() {
             isResultDeclared: true,
           }}
           filterConfig={filterConfig}
+          isFestival={true}
         />
       </>
     );

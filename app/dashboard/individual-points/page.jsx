@@ -89,6 +89,7 @@ export default async function IndividualPointsPage() {
           filterConfig={filterConfig}
           limit={20}
           readOnly={true}
+          isFestival={true}
         />
       </>
     );

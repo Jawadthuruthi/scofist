@@ -20,7 +20,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page")) || "0";
     const limit = parseInt(searchParams.get("limit")) || Infinity;
-    const skip = (page - 1) * limit;
+    const skip = page * limit;
 
     const programId = searchParams.get("programId");
     const teamId = searchParams.get("teamId");

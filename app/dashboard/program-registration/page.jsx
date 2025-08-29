@@ -286,6 +286,7 @@ export default async function ProgramRegistrationPage() {
                 : null,
           }}
           apiFilters={apiFilters}
+          isFestival={true}
         />
       </>
     );

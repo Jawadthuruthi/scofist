@@ -25,8 +25,8 @@ export default async function Layout({ children }) {
             <Topbar user={user} />
             <main className="flex-1 px-4 lg:p-6 mt-14 overflow-auto container">
               {children}
+              <div className="h-16"></div>
             </main>
-            <div className="h-16"></div>
           </div>
         </div>
       </SidebarProvider>

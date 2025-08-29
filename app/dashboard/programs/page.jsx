@@ -178,6 +178,7 @@ export default async function ProgramsPage() {
           filterConfig={filterConfig}
           limit={20}
           readOnly={activeRole !== "Program Committee"}
+          isFestival={true}
         />
       </>
     );
