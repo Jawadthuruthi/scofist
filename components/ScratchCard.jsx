@@ -54,10 +54,8 @@ export function ScratchCard({
    */
   const initializeCanvases = useCallback(() => {
     if (typeof window === "undefined") return;
-
     const canvas = canvasRef.current;
     const maskCanvas = maskCanvasRef.current;
-
     if (!canvas || !maskCanvas) return;
 
     const dpr = window.devicePixelRatio || 1;
@@ -68,7 +66,6 @@ export function ScratchCard({
       c.height = size * dpr;
       c.style.width = `${size}px`;
       c.style.height = `${size}px`;
-
       const ctx = c.getContext("2d");
       if (ctx) {
         ctx.scale(dpr, dpr);
@@ -89,6 +86,11 @@ export function ScratchCard({
       maskCtx.fillStyle = "#000000";
       maskCtx.fillRect(0, 0, size, size);
     }
+
+    // Add touch event listeners for mobile support
+    canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+    canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+    canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
   }, [size]);
 
   /**
@@ -301,6 +303,37 @@ export function ScratchCard({
     }
   };
 
+  // Add touch-specific event handlers
+  const handleTouchStart = (e) => {
+    if (fullyRevealed) return;
+    e.preventDefault(); // Prevent scrolling
+    setIsScratching(true);
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect && e.touches[0]) {
+      const x = e.touches[0].clientX - rect.left;
+      const y = e.touches[0].clientY - rect.top;
+      scratch(x, y);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isScratching || fullyRevealed) return;
+    e.preventDefault(); // Prevent scrolling
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect && e.touches[0]) {
+      const x = e.touches[0].clientX - rect.left;
+      const y = e.touches[0].clientY - rect.top;
+      scratch(x, y);
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    e.preventDefault();
+    setIsScratching(false);
+  };
+
   // Initialize canvases on mount and when letter changes
   useEffect(() => {
     initializeCanvases();
@@ -317,7 +350,8 @@ export function ScratchCard({
 
   return (
     <div className="relative group">
-      <Card className="relative overflow-hidden border-2 transition-all duration-300 hover:shadow-lg">
+      <Card className="relative bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 hover:border-blue-300 transition-all duration-200 select-none touch-none">
+        {" "}
         {/* Letter Display */}
         <div
           ref={containerRef}
@@ -338,16 +372,18 @@ export function ScratchCard({
           {/* Scratch Overlay Canvas */}
           <canvas
             ref={canvasRef}
-            className="absolute inset-0 cursor-crosshair transition-opacity duration-500"
-            style={{
-              touchAction: "none",
-              userSelect: "none",
-              opacity: fullyRevealed ? 0 : 1,
-            }}
+            className="absolute inset-0 cursor-crosshair touch-none"
+            style={{ touchAction: "none" }} // Prevent default touch behaviors
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
+            // Add touch event handlers for better mobile support
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            tabIndex={0}
+            onKeyDown={handleKeyDown}
+            aria-label={`Scratch card for letter ${letter.toUpperCase()}`}
           />
 
           {/* Hidden mask canvas for calculations */}
@@ -357,7 +393,6 @@ export function ScratchCard({
             style={{ zIndex: -1 }}
           />
         </div>
-
         {/* Status Indicators */}
         <div className="absolute top-2 right-2 flex flex-col gap-1">
           {fullyRevealed && (
@@ -374,25 +409,6 @@ export function ScratchCard({
               KB Mode
             </Badge>
           )}
-        </div>
-
-        {/* Progress Indicator */}
-        <div className="absolute bottom-2 left-2 right-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{revealPercent}% revealed</span>
-            {revealPercent >= 60 && !fullyRevealed && (
-              <span className="text-green-600 font-medium">
-                Press R to reveal
-              </span>
-            )}
-          </div>
-
-          <div className="mt-1 h-1 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all duration-300 ease-out"
-              style={{ width: `${revealPercent}%` }}
-            />
-          </div>
         </div>
       </Card>
 

@@ -38,9 +38,24 @@ export default function ScratchCards() {
    * Handle input change with validation
    */
   const handleCountChange = (e) => {
-    const value = parseInt(e.target.value);
-    if (!isNaN(value)) {
-      setCardCount(Math.max(1, Math.min(26, value)));
+    const value = e.target.value;
+
+    // Allow empty string (user is clearing the input)
+    if (value === "") {
+      setCardCount(""); // Temporarily allow empty state
+      return;
+    }
+
+    const numValue = parseInt(value);
+    if (!isNaN(numValue)) {
+      setCardCount(Math.max(1, Math.min(26, numValue)));
+    }
+  };
+
+  // Also add onBlur handler to ensure valid value when user leaves the field
+  const handleInputBlur = () => {
+    if (cardCount === "" || cardCount < 1) {
+      setCardCount(1); // Default to 1 if invalid
     }
   };
 
@@ -62,19 +77,19 @@ export default function ScratchCards() {
               Number of Participants
             </label>
             <Input
-              id="card-count"
               type="number"
               min="1"
               max="26"
               value={cardCount}
               onChange={handleCountChange}
+              onBlur={handleInputBlur}
               className="w-full"
-              placeholder="Enter number of cards (1-26)"
+              placeholder="1-26"
             />
           </div>
 
           <Button onClick={handleGenerate} size="default" className="px-8">
-            Generate Participant Cards
+            Generate Cards
           </Button>
         </div>
 
