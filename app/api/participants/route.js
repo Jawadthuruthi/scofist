@@ -192,6 +192,36 @@ export async function GET(req, res) {
       })),
     }));
 
+    const nonWinners = [];
+
+    if (filterParams.nonWinners === "true") {
+      for (const participant of formattedParticipants) {
+        const programWithRank = participant.programs.find(
+          (program) => program.rank < 4 && program.rank > 0
+        );
+
+        if (!programWithRank) {
+          nonWinners.push(participant);
+        }
+      }
+      return NextResponse.json(
+        {
+          participants: nonWinners,
+          pagination: {
+            page,
+            limit,
+            total: nonWinners.length,
+            totalPages:
+              limit === Infinity
+                ? 1
+                : Math.max(0, Math.ceil(nonWinners.length / limit)),
+          },
+          message: "Participants fetched successfully!",
+        },
+        { status: 200 }
+      );
+    }
+
     return NextResponse.json(
       {
         participants: formattedParticipants,

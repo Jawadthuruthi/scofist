@@ -47,6 +47,7 @@ const CodeLettersComponent = ({
   const [selectedProgram, setSelectedProgram] = useState("");
   const [selectedDivision, setSelectedDivision] = useState("");
   const [status, setStatus] = useState("both");
+  const [category, setCategory] = useState("both");
   const [saving, setSaving] = useState(false);
   const [changes, setChanges] = useState({});
   const [page, setPage] = useState(0);
@@ -167,19 +168,21 @@ const CodeLettersComponent = ({
         _id: program.programId,
         name: program.programName,
         divisionId: program.divisionId,
+        programCategory: program.programCategory,
       }))
       .sort((a, b) => a.name?.localeCompare(b.name))
       .filter(
         (program) =>
           (!selectedDivision || program.divisionId === selectedDivision) &&
           !seen.has(program._id) &&
-          seen.add(program._id)
+          seen.add(program._id) &&
+          (category === "both" || program.programCategory === category)
       );
-  }, [fetchRegistrationsQuery.data, selectedDivision]);
+  }, [fetchRegistrationsQuery.data, selectedDivision, category]);
 
   // Filter programs by division
   useEffect(() => {
-    if (selectedDivision || selectedProgram || status) {
+    if (selectedDivision || selectedProgram || status || category) {
       setFilteredPrograms(
         programs
           ?.sort((a, b) => a.programName.localeCompare(b.programName))
@@ -195,13 +198,14 @@ const CodeLettersComponent = ({
                 (status === "not-assigned" &&
                   !program.participants?.some(
                     (p) => p.codeLetter?.trim() !== ""
-                  )))
+                  ))) &&
+              (category === "both" || program.programCategory === category)
           )
       );
     } else {
       setFilteredPrograms(programs);
     }
-  }, [selectedDivision, selectedProgram, programs, status]);
+  }, [selectedDivision, selectedProgram, programs, status, category]);
 
   // Handle code letter change for individual participant
   const handleCodeLetterChange = (participantUniqueId, value) => {
@@ -440,6 +444,18 @@ const CodeLettersComponent = ({
                     <SelectItem value={"both"}>Both</SelectItem>
                     <SelectItem value={"assigned"}>Assigned</SelectItem>
                     <SelectItem value={"not-assigned"}>Not Assigned</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-12 xs:col-span-6 lg:col-span-3 xl:col-span-4">
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={"both"}>Both</SelectItem>
+                    <SelectItem value={"Stage"}>Stage</SelectItem>
+                    <SelectItem value={"Off-Stage"}>Off-Stage</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
