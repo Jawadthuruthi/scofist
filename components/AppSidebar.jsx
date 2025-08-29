@@ -356,6 +356,12 @@ const items = [
         icon: CheckCircle,
         allowedRoles: ["Program Committee"],
       },
+      {
+        title: "Winners List",
+        url: "/dashboard/winners-list",
+        icon: Trophy,
+        allowedRoles: ["Program Committee"],
+      },
     ],
   },
   {

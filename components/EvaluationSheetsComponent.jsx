@@ -35,6 +35,7 @@ const EvaluationSheetsComponent = ({
   const [filteredRegistrations, setFilteredRegistrations] = useState([]);
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedProgram, setSelectedProgram] = useState("");
+  const [category, setCategory] = useState("both");
   const [page, setPage] = useState(0);
 
   const printRef = useRef();
@@ -58,9 +59,12 @@ const EvaluationSheetsComponent = ({
 
   const filteredPrograms = useMemo(() => {
     return programs.filter(
-      (program) => !selectedDivision || program.divisionId === selectedDivision
+      (program) =>
+        ((!selectedDivision || program.divisionId === selectedDivision) &&
+          category === "both") ||
+        program.category === category
     );
-  }, [selectedDivision, programs]);
+  }, [selectedDivision, programs, category]);
 
   // Process registrations data into programs with participants
   const processRegistrationsToPrograms = useCallback((registrations) => {
@@ -154,8 +158,14 @@ const EvaluationSheetsComponent = ({
       );
     }
 
+    if (category !== "both") {
+      filtered = filtered.filter(
+        (program) => program.programCategory === category
+      );
+    }
+
     setFilteredRegistrations(filtered);
-  }, [selectedDivision, selectedProgram, programRegistrations]);
+  }, [selectedDivision, selectedProgram, programRegistrations, category]);
 
   // Handle print
   const handlePrint = useReactToPrint({
@@ -278,10 +288,6 @@ const EvaluationSheetsComponent = ({
   };
 
   const isLoading = fetchRegistrationsQuery.isLoading;
-  const totalParticipants = filteredRegistrations.reduce(
-    (sum, program) => sum + program.participants.length,
-    0
-  );
 
   return (
     <div className="space-y-6 p-2 sm:p-4 md:p-6">
@@ -291,7 +297,18 @@ const EvaluationSheetsComponent = ({
           {/* Filters Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 flex-shrink-0" />
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={"both"}>Both</SelectItem>
+                  <SelectItem value="Stage">Stage</SelectItem>
+                  <SelectItem value="off-Stage">Off Stage</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
               <Select
                 value={selectedDivision}
                 onValueChange={setSelectedDivision}

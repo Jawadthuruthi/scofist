@@ -433,15 +433,6 @@ export function ScratchCard({
           </Badge>
         </div>
       )}
-
-      {/* Instructions */}
-      <div
-        id="scratch-instructions"
-        className="absolute bottom-2 right-2 text-xs text-slate-600 max-w-40 text-right hidden sm:block"
-      >
-        Space/Enter: Toggle scratch mode • Arrow keys: Scratch • R: Reveal
-        (60%+)
-      </div>
     </Card>
   );
 }

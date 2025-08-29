@@ -98,6 +98,9 @@ export async function GET(request) {
         ...p.toObject(),
         participantDetails: p.id,
       })),
+      winners: result.participants
+        ?.filter((p) => p.rank > 4)
+        .map((p) => `${p.rank}. ${p.id.name}`),
       isResultDeclared: result.isResultDeclared,
       createdAt: result.createdAt,
       updatedAt: result.updatedAt,
