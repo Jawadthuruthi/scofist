@@ -12,6 +12,32 @@ const toId = (v) =>
   typeof v === "string" ? v : (v?.toString?.() ?? String(v));
 const sameId = (a, b) => toId(a) === toId(b);
 
+// Helper function to add program to participant without duplicates
+const addProgramToParticipants = async (participantIds, programId) => {
+  for (const participantId of participantIds) {
+    // First, remove any existing entry for this program
+    await Participant.updateOne(
+      { _id: participantId },
+      { $pull: { programs: { id: programId } } }
+    );
+
+    // Then add the new entry
+    await Participant.updateOne(
+      { _id: participantId },
+      {
+        $push: {
+          programs: {
+            id: programId,
+            rank: 0,
+            grade: "",
+            points: 0,
+          },
+        },
+      }
+    );
+  }
+};
+
 // ----------------------------- GET -----------------------------
 
 export async function GET(request) {
@@ -252,7 +278,7 @@ export async function POST(request) {
       );
     }
 
-    // If Program Leader – check team ownership
+    // If Program Leader â€" check team ownership
     let allowedTeamIds = [];
     if (activeRole === "Program Leader") {
       const leaderTeams = await Team.find({ leaderId: userId }).select("_id");
@@ -358,15 +384,8 @@ export async function POST(request) {
       });
       createdRegs.push(reg);
 
-      // Add program to participants
-      await Participant.updateMany(
-        { _id: { $in: teamParticipants } },
-        {
-          $addToSet: {
-            programs: { id: programId, rank: 0, grade: "", points: 0 },
-          },
-        }
-      );
+      // Add program to participants (preventing duplicates)
+      await addProgramToParticipants(teamParticipants, programId);
     }
 
     return NextResponse.json(
@@ -540,15 +559,8 @@ export async function PUT(request) {
         updatedRegs.push(newReg);
       }
 
-      // Update participant program lists
-      await Participant.updateMany(
-        { _id: { $in: teamParticipants } },
-        {
-          $addToSet: {
-            programs: { id: program._id, rank: 0, grade: "", points: 0 },
-          },
-        }
-      );
+      // Update participant program lists (preventing duplicates)
+      await addProgramToParticipants(teamParticipants, program._id);
     }
 
     return NextResponse.json(

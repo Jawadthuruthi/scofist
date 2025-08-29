@@ -82,6 +82,8 @@ const participantSchema = new Schema(
   }
 );
 
+participantSchema.index({ "programs.id": 1 }, { unique: true, sparse: true });
+
 const Participant =
   models.Participant || model("Participant", participantSchema);
 
