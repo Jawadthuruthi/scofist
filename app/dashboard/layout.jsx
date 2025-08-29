@@ -23,9 +23,10 @@ export default async function Layout({ children }) {
           <AppSidebar roles={user?.roles} activeRole={activeRole} />
           <div className="flex flex-col flex-1 min-w-0">
             <Topbar user={user} />
-            <main className="flex-1 px-4 lg:p-6 mt-14 mb-4 overflow-auto container">
+            <main className="flex-1 px-4 lg:p-6 mt-14 overflow-auto container">
               {children}
             </main>
+            <div className="h-16"></div>
           </div>
         </div>
       </SidebarProvider>

@@ -302,6 +302,10 @@ async function handleApiRequest(req) {
   const apiKey = req.headers.get("api-key");
   const cronSecret = url.searchParams.get("cronSecret");
 
+  const publicGet = ["/api/divisions", "/api/programs", "/api/results"];
+  if (req.method === "GET" && publicGet.includes(url.pathname))
+    return NextResponse.next();
+
   if (cronSecret === process.env.CRON_SECRET) {
     return NextResponse.next();
   }
