@@ -61,7 +61,7 @@ export default function ScratchCards() {
 
   const totalCards = letters.length;
   const revealedCards = Object.values(revealedCounts).filter(
-    (percent) => percent >= 60
+    (percent) => percent >= 40
   ).length;
 
   return (

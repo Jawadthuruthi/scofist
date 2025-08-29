@@ -13,11 +13,13 @@ export function ScratchCard({
   const canvasRef = useRef(null);
   const maskCanvasRef = useRef(null);
   const containerRef = useRef(null);
-
   const [isScratching, setIsScratching] = useState(false);
   const [revealPercent, setRevealPercent] = useState(0);
   const [fullyRevealed, setFullyRevealed] = useState(false);
   const [keyboardMode, setKeyboardMode] = useState(false);
+
+  // Track last position for smooth interpolation
+  const lastPositionRef = useRef(null);
 
   // Refs for performance
   const revealCheckTimeoutRef = useRef();
@@ -29,11 +31,12 @@ export function ScratchCard({
     setFullyRevealed(false);
     setKeyboardMode(false);
     setIsScratching(false);
+    lastPositionRef.current = null;
 
     // Force canvas reset by clearing and reinitializing
     const canvas = canvasRef.current;
     if (canvas) {
-      canvas.style.opacity = "1"; // Ensure overlay is visible
+      canvas.style.opacity = "1";
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -54,6 +57,7 @@ export function ScratchCard({
    */
   const initializeCanvases = useCallback(() => {
     if (typeof window === "undefined") return;
+
     const canvas = canvasRef.current;
     const maskCanvas = maskCanvasRef.current;
     if (!canvas || !maskCanvas) return;
@@ -66,6 +70,7 @@ export function ScratchCard({
       c.height = size * dpr;
       c.style.width = `${size}px`;
       c.style.height = `${size}px`;
+
       const ctx = c.getContext("2d");
       if (ctx) {
         ctx.scale(dpr, dpr);
@@ -87,10 +92,8 @@ export function ScratchCard({
       maskCtx.fillRect(0, 0, size, size);
     }
 
-    // Add touch event listeners for mobile support
-    canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
-    canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
-    canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
+    // Apply CSS touch-action to prevent scrolling/zooming
+    canvas.style.touchAction = "none";
   }, [size]);
 
   /**
@@ -100,7 +103,6 @@ export function ScratchCard({
   const calculateRevealPercent = useCallback(() => {
     const now = Date.now();
     if (now - lastRevealCheck.current < 50) return; // Throttle to max 20fps
-
     lastRevealCheck.current = now;
 
     if (revealCheckTimeoutRef.current) {
@@ -124,7 +126,6 @@ export function ScratchCard({
           maskCanvas.height
         );
         const data = imageData.data;
-
         let totalSamples = 0;
         let revealedSamples = 0;
 
@@ -133,7 +134,6 @@ export function ScratchCard({
           for (let x = 0; x < maskCanvas.width; x += sampleSize) {
             const index = (y * maskCanvas.width + x) * 4;
             totalSamples++;
-
             // Check alpha channel - if it's low, pixel is "scratched"
             if (data[index + 3] < 128) {
               revealedSamples++;
@@ -149,7 +149,6 @@ export function ScratchCard({
         // Auto-reveal at 40% threshold
         if (percent >= 40 && !fullyRevealed) {
           setFullyRevealed(true);
-
           // Hide overlay canvas
           const canvas = canvasRef.current;
           if (canvas) {
@@ -159,7 +158,7 @@ export function ScratchCard({
       } catch (error) {
         console.error("Error calculating reveal percent:", error);
       }
-    }, 200); // Debounce by 200ms
+    }, 100); // Reduced debounce for better responsiveness
   }, [fullyRevealed, onRevealChange]);
 
   /**
@@ -169,27 +168,26 @@ export function ScratchCard({
     (x, y) => {
       const canvas = canvasRef.current;
       const maskCanvas = maskCanvasRef.current;
-
       if (!canvas || !maskCanvas || fullyRevealed) return;
 
-      const dpr = window.devicePixelRatio || 1;
+      // Use CSS pixels directly since canvas is already scaled
+      const drawScratch = (ctx, x, y) => {
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.beginPath();
+        ctx.arc(x, y, brushRadius, 0, Math.PI * 2);
+        ctx.fill();
+      };
 
       // Draw on overlay canvas (visual feedback)
       const overlayCtx = canvas.getContext("2d");
       if (overlayCtx) {
-        overlayCtx.globalCompositeOperation = "destination-out";
-        overlayCtx.beginPath();
-        overlayCtx.arc(x * dpr, y * dpr, brushRadius * dpr, 0, Math.PI * 2);
-        overlayCtx.fill();
+        drawScratch(overlayCtx, x, y);
       }
 
       // Draw on mask canvas (tracking)
       const maskCtx = maskCanvas.getContext("2d");
       if (maskCtx) {
-        maskCtx.globalCompositeOperation = "destination-out";
-        maskCtx.beginPath();
-        maskCtx.arc(x * dpr, y * dpr, brushRadius * dpr, 0, Math.PI * 2);
-        maskCtx.fill();
+        drawScratch(maskCtx, x, y);
       }
 
       calculateRevealPercent();
@@ -198,141 +196,172 @@ export function ScratchCard({
   );
 
   /**
-   * Handle pointer events (mouse and touch)
+   * Smooth interpolation between two points to avoid gaps
    */
-  const handlePointerDown = (e) => {
-    if (fullyRevealed) return;
+  const scratchLine = useCallback(
+    (x1, y1, x2, y2) => {
+      const canvas = canvasRef.current;
+      const maskCanvas = maskCanvasRef.current;
+      if (!canvas || !maskCanvas || fullyRevealed) return;
 
-    setIsScratching(true);
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (rect) {
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      scratch(x, y);
-    }
+      const distance = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+      const steps = Math.max(1, Math.ceil(distance / (brushRadius / 2)));
 
-    // Capture pointer for smooth dragging
-    e.target.setPointerCapture(e.pointerId);
-    e.preventDefault();
-  };
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const x = x1 + (x2 - x1) * t;
+        const y = y1 + (y2 - y1) * t;
+        scratch(x, y);
+      }
+    },
+    [scratch, brushRadius, fullyRevealed]
+  );
 
-  const handlePointerMove = (e) => {
-    if (!isScratching || fullyRevealed) return;
+  /**
+   * Get normalized coordinates from pointer event
+   */
+  const getPointerCoordinates = useCallback((e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
 
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (rect) {
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      scratch(x, y);
-    }
-    e.preventDefault();
-  };
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  }, []);
 
-  const handlePointerUp = (e) => {
+  /**
+   * Unified pointer event handlers (works for mouse, touch, and pen)
+   */
+  const handlePointerDown = useCallback(
+    (e) => {
+      if (fullyRevealed) return;
+
+      const coords = getPointerCoordinates(e);
+      if (!coords) return;
+
+      setIsScratching(true);
+      lastPositionRef.current = coords;
+
+      // Capture pointer for smooth dragging across the entire screen
+      e.currentTarget.setPointerCapture(e.pointerId);
+
+      // Initial scratch at touch point
+      scratch(coords.x, coords.y);
+    },
+    [fullyRevealed, getPointerCoordinates, scratch]
+  );
+
+  const handlePointerMove = useCallback(
+    (e) => {
+      if (!isScratching || fullyRevealed) return;
+
+      const coords = getPointerCoordinates(e);
+      if (!coords) return;
+
+      // Smooth interpolation from last position to current position
+      if (lastPositionRef.current) {
+        scratchLine(
+          lastPositionRef.current.x,
+          lastPositionRef.current.y,
+          coords.x,
+          coords.y
+        );
+      } else {
+        scratch(coords.x, coords.y);
+      }
+
+      lastPositionRef.current = coords;
+    },
+    [isScratching, fullyRevealed, getPointerCoordinates, scratchLine, scratch]
+  );
+
+  const handlePointerUp = useCallback((e) => {
     setIsScratching(false);
-    e.target.releasePointerCapture(e.pointerId);
-  };
+    lastPositionRef.current = null;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  }, []);
+
+  const handlePointerCancel = useCallback((e) => {
+    setIsScratching(false);
+    lastPositionRef.current = null;
+    // Release capture on cancel (important for resilience)
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch (err) {
+      // Ignore errors if pointer was already released
+    }
+  }, []);
 
   /**
    * Keyboard accessibility support
    */
-  const handleKeyDown = (e) => {
-    if (fullyRevealed) return;
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (fullyRevealed) return;
 
-    switch (e.key) {
-      case " ":
-      case "Enter":
-        e.preventDefault();
-        setKeyboardMode(!keyboardMode);
-        break;
-
-      case "r":
-      case "R":
-        if (revealPercent >= 60) {
+      switch (e.key) {
+        case " ":
+        case "Enter":
           e.preventDefault();
-          setFullyRevealed(true);
-          if (canvasRef.current) {
-            canvasRef.current.style.opacity = "0";
+          setKeyboardMode(!keyboardMode);
+          break;
+        case "r":
+        case "R":
+          if (revealPercent >= 60) {
+            e.preventDefault();
+            setFullyRevealed(true);
+            if (canvasRef.current) {
+              canvasRef.current.style.opacity = "0";
+            }
           }
-        }
-        break;
+          break;
+        case "ArrowUp":
+        case "ArrowDown":
+        case "ArrowLeft":
+        case "ArrowRight":
+          if (keyboardMode) {
+            e.preventDefault();
+            // Simulate scratching in the direction of arrow key
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const stepSize = brushRadius;
+            let scratchX = centerX;
+            let scratchY = centerY;
 
-      case "ArrowUp":
-      case "ArrowDown":
-      case "ArrowLeft":
-      case "ArrowRight":
-        if (keyboardMode) {
-          e.preventDefault();
+            switch (e.key) {
+              case "ArrowUp":
+                scratchY -= stepSize;
+                break;
+              case "ArrowDown":
+                scratchY += stepSize;
+                break;
+              case "ArrowLeft":
+                scratchX -= stepSize;
+                break;
+              case "ArrowRight":
+                scratchX += stepSize;
+                break;
+            }
 
-          // Simulate scratching in the direction of arrow key
-          const centerX = size / 2;
-          const centerY = size / 2;
-          const stepSize = brushRadius;
+            // Keep within bounds
+            scratchX = Math.max(
+              brushRadius,
+              Math.min(size - brushRadius, scratchX)
+            );
+            scratchY = Math.max(
+              brushRadius,
+              Math.min(size - brushRadius, scratchY)
+            );
 
-          let scratchX = centerX;
-          let scratchY = centerY;
-
-          switch (e.key) {
-            case "ArrowUp":
-              scratchY -= stepSize;
-              break;
-            case "ArrowDown":
-              scratchY += stepSize;
-              break;
-            case "ArrowLeft":
-              scratchX -= stepSize;
-              break;
-            case "ArrowRight":
-              scratchX += stepSize;
-              break;
+            scratch(scratchX, scratchY);
           }
-
-          // Keep within bounds
-          scratchX = Math.max(
-            brushRadius,
-            Math.min(size - brushRadius, scratchX)
-          );
-          scratchY = Math.max(
-            brushRadius,
-            Math.min(size - brushRadius, scratchY)
-          );
-
-          scratch(scratchX, scratchY);
-        }
-        break;
-    }
-  };
-
-  // Add touch-specific event handlers
-  const handleTouchStart = (e) => {
-    if (fullyRevealed) return;
-    e.preventDefault(); // Prevent scrolling
-    setIsScratching(true);
-
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (rect && e.touches[0]) {
-      const x = e.touches[0].clientX - rect.left;
-      const y = e.touches[0].clientY - rect.top;
-      scratch(x, y);
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (!isScratching || fullyRevealed) return;
-    e.preventDefault(); // Prevent scrolling
-
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (rect && e.touches[0]) {
-      const x = e.touches[0].clientX - rect.left;
-      const y = e.touches[0].clientY - rect.top;
-      scratch(x, y);
-    }
-  };
-
-  const handleTouchEnd = (e) => {
-    e.preventDefault();
-    setIsScratching(false);
-  };
+          break;
+      }
+    },
+    [fullyRevealed, keyboardMode, revealPercent, size, brushRadius, scratch]
+  );
 
   // Initialize canvases on mount and when letter changes
   useEffect(() => {
@@ -349,78 +378,70 @@ export function ScratchCard({
   }, []);
 
   return (
-    <div className="relative group">
-      <Card className="relative bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 hover:border-blue-300 transition-all duration-200 select-none touch-none">
-        {" "}
-        {/* Letter Display */}
-        <div
-          ref={containerRef}
-          className="relative flex items-center justify-center bg-background"
-          style={{ width: size, height: size }}
-          role="button"
-          tabIndex={0}
-          onKeyDown={handleKeyDown}
-          aria-label={`Scratch card with letter ${letter.toUpperCase()}. ${
-            fullyRevealed ? "Revealed" : `${revealPercent}% revealed`
-          }. ${keyboardMode ? "Keyboard scratch mode active" : "Press space to enable keyboard scratch mode"}`}
-          aria-live="polite"
-        >
-          <span className="text-6xl font-bold text-foreground select-none">
-            {letter.toUpperCase()}
-          </span>
-
-          {/* Scratch Overlay Canvas */}
-          <canvas
-            ref={canvasRef}
-            className="absolute inset-0 cursor-crosshair touch-none"
-            style={{ touchAction: "none" }} // Prevent default touch behaviors
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            // Add touch event handlers for better mobile support
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            tabIndex={0}
-            onKeyDown={handleKeyDown}
-            aria-label={`Scratch card for letter ${letter.toUpperCase()}`}
-          />
-
-          {/* Hidden mask canvas for calculations */}
-          <canvas
-            ref={maskCanvasRef}
-            className="absolute inset-0 opacity-0 pointer-events-none"
-            style={{ zIndex: -1 }}
-          />
-        </div>
-        {/* Status Indicators */}
-        <div className="absolute top-2 right-2 flex flex-col gap-1">
-          {fullyRevealed && (
-            <Badge
-              variant="secondary"
-              className="bg-green-100 text-green-800 border-green-300"
-            >
-              Revealed
-            </Badge>
-          )}
-
-          {keyboardMode && (
-            <Badge variant="outline" className="text-xs">
-              KB Mode
-            </Badge>
-          )}
-        </div>
-      </Card>
-
-      {/* Keyboard Instructions (shown on focus) */}
-      <div className="absolute -bottom-16 left-0 right-0 opacity-0 group-focus-within:opacity-100 transition-opacity duration-200 z-10">
-        <div className="text-xs text-center bg-background border rounded p-2 shadow-lg">
-          <p>
-            Space/Enter: Toggle scratch mode • Arrow keys: Scratch • R: Reveal
-            (40%+)
-          </p>
-        </div>
+    <Card
+      ref={containerRef}
+      className="relative overflow-hidden select-none"
+      style={{ width: size, height: size }}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      role="button"
+      aria-label={`Scratch card for letter ${letter}`}
+      aria-describedby="scratch-instructions"
+    >
+      {/* Letter content (revealed underneath) */}
+      <div
+        className="absolute inset-0 flex items-center justify-center text-6xl font-bold text-slate-800 bg-white"
+        aria-hidden={!fullyRevealed}
+      >
+        {letter?.toUpperCase()}
       </div>
-    </div>
+
+      {/* Hidden canvas for tracking scratch areas */}
+      <canvas
+        ref={maskCanvasRef}
+        className="absolute inset-0 pointer-events-none"
+        style={{ display: "none" }}
+        aria-hidden="true"
+      />
+
+      {/* Visible scratch overlay canvas */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 cursor-crosshair transition-opacity duration-500"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        style={{
+          touchAction: "none", // Prevent scrolling/zooming during interaction
+          opacity: fullyRevealed ? 0 : 1,
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Status indicators */}
+      <div className="absolute top-2 left-2">
+        <Badge variant="secondary" className="text-xs">
+          {revealPercent}%
+        </Badge>
+      </div>
+
+      {keyboardMode && (
+        <div className="absolute bottom-2 left-2">
+          <Badge variant="outline" className="text-xs">
+            KB
+          </Badge>
+        </div>
+      )}
+
+      {/* Instructions */}
+      <div
+        id="scratch-instructions"
+        className="absolute bottom-2 right-2 text-xs text-slate-600 max-w-40 text-right hidden sm:block"
+      >
+        Space/Enter: Toggle scratch mode • Arrow keys: Scratch • R: Reveal
+        (60%+)
+      </div>
+    </Card>
   );
 }
