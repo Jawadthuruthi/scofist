@@ -375,6 +375,12 @@ const items = [
         icon: UserX,
         allowedRoles: ["Program Committee"],
       },
+      {
+        title: "Individual Results",
+        url: "/dashboard/individual-results",
+        icon: User,
+        allowedRoles: ["Program Committee"],
+      },
     ],
   },
   {
