@@ -13,6 +13,10 @@ const columnsConfig = [
     minWidth: 60,
   },
   {
+    accessorKey: "divisionName",
+    header: "Division",
+  },
+  {
     accessorKey: "programName",
     header: "Program",
   },
@@ -35,6 +39,16 @@ export default async function WinnersListPage() {
         label: "Division",
         inputType: "select",
         options: formatOptions(divisions),
+      },
+      {
+        id: "rank",
+        label: "Rank",
+        inputType: "select",
+        options: [
+          { value: "1", label: "1" },
+          { value: "2", label: "2" },
+          { value: "3", label: "3" },
+        ],
       },
     ];
 

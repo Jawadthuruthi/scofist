@@ -40,6 +40,7 @@ export async function GET(request) {
     const isResultDeclared = searchParams.get("isResultDeclared");
     const type = searchParams.get("type");
     const category = searchParams.get("category");
+    const rank = searchParams.get("rank");
 
     // Build query
     const query = {};
@@ -103,7 +104,7 @@ export async function GET(request) {
         participantDetails: p.id,
       })),
       winners: result.participants
-        ?.filter((p) => p.rank < 4)
+        ?.filter((p) => p.rank < 4 && (!rank || p.rank == rank))
         .map((p) => `${p.rank}. ${p.id.name}`),
       isResultDeclared: result.isResultDeclared,
       resultNumber: result.resultNumber,

@@ -105,6 +105,8 @@ export async function GET(req, res) {
       });
     }
 
+    const sortByPoints = filterParams.sortByPoints === "true";
+
     // Build MongoDB query from filter params
     const query = {};
 
@@ -402,7 +404,115 @@ export async function GET(req, res) {
       );
     }
 
-    // Regular participant fetching (non-filtered)
+    // Determine sort criteria
+    let sortCriteria = { chestNumber: 1 }; // default sort
+
+    if (sortByPoints) {
+      // Sort by total points (descending), then by chest number (ascending)
+      sortCriteria = [
+        {
+          $addFields: {
+            totalPoints: {
+              $add: [
+                { $ifNull: ["$stagePoints", 0] },
+                { $ifNull: ["$offStagePoints", 0] },
+              ],
+            },
+          },
+        },
+        { $sort: { totalPoints: -1, chestNumber: 1 } },
+      ];
+    }
+
+    // If sortByPoints is true, use aggregation pipeline
+    if (sortByPoints) {
+      const pipeline = [
+        { $match: query },
+        ...sortCriteria,
+        { $skip: page * limit },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "userDetails",
+          },
+        },
+        {
+          $lookup: {
+            from: "batches",
+            localField: "batchId",
+            foreignField: "_id",
+            as: "batchDetails",
+          },
+        },
+        {
+          $lookup: {
+            from: "teams",
+            localField: "teamId",
+            foreignField: "_id",
+            as: "teamDetails",
+          },
+        },
+        {
+          $lookup: {
+            from: "divisions",
+            localField: "divisionId",
+            foreignField: "_id",
+            as: "divisionDetails",
+          },
+        },
+      ];
+
+      // Get total count
+      const totalPipeline = [{ $match: query }, { $count: "total" }];
+
+      const [participants, totalResult] = await Promise.all([
+        Participant.aggregate(pipeline),
+        Participant.aggregate(totalPipeline),
+      ]);
+
+      const total = totalResult[0]?.total || 0;
+
+      // Format participants data
+      const formattedParticipants = participants.map((participant) => ({
+        ...participant,
+        _id: participant._id,
+        profilePic: participant.userDetails[0]?.profilePic,
+        batchId: participant.batchDetails[0]?._id,
+        batchName: participant.batchDetails[0]?.name || "Unknown",
+        teamId: participant.teamDetails[0]?._id,
+        teamName: participant.teamDetails[0]?.name || "Unknown",
+        divisionId: participant.divisionDetails[0]?._id,
+        divisionName: participant.divisionDetails[0]?.name || "Unknown",
+        programsCount: participant.programs?.length || 0,
+        stageProgramsCount:
+          participant.programs?.filter((p) => p.category === "Stage")?.length ||
+          0,
+        offStageProgramsCount:
+          participant.programs?.filter((p) => p.category === "Off-Stage")
+            ?.length || 0,
+        totalPoints: participant.totalPoints || 0,
+      }));
+
+      return NextResponse.json(
+        {
+          participants: formattedParticipants,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages:
+              limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
+          },
+          message: "Participants fetched successfully (sorted by points)!",
+        },
+        { status: 200 }
+      );
+    }
+
+    // Regular participant fetching (non-filtered, non-sorted by points)
     const participants = await Participant.find(query, projections)
       .populate("_id", ["_id", "name", "profilePic"])
       .populate("batchId", ["_id", "name"])
@@ -421,10 +531,12 @@ export async function GET(req, res) {
       })
       .skip(page * limit)
       .limit(limit)
-      .sort({ chestNumber: 1 })
+      .sort(sortCriteria)
       .collation({ locale: "en_US", numericOrdering: true });
 
     const total = await Participant.countDocuments(query);
+
+    console.log(filterParams);
 
     const formattedParticipants = participants.map((participant) => ({
       ...participant.toObject(),
