@@ -510,6 +510,12 @@ const ResultComponent = ({
                         </Badge>
                       </div>
                       <div className="flex flex-wrap print:justify-center w-full gap-2 sm:gap-4 text-xs sm:text-sm text-foreground print:text-black print:text-xs">
+                        {result.isResultDeclared && (
+                          <span className="whitespace-nowrap print:hidden">
+                            <strong>Result No.:</strong>{" "}
+                            {result.resultNumber || "N/A"}
+                          </span>
+                        )}
                         <span className="capitalize whitespace-nowrap">
                           <strong>Program:</strong> {result.programName}
                         </span>
@@ -523,7 +529,7 @@ const ResultComponent = ({
                           <strong>Category:</strong> {result.programCategory}
                         </span>
                         {result.isResultDeclared && (
-                          <span className="whitespace-nowrap print:ml-auto">
+                          <span className="whitespace-nowrap hidden print:block print:ml-auto">
                             <strong>Result No.:</strong>{" "}
                             {result.resultNumber || "N/A"}
                           </span>

@@ -285,16 +285,16 @@ const items = [
     icon: TicketPercent,
   },
   {
-    title: "Code Letters",
-    url: "/dashboard/code-letters",
-    allowedRoles: ["Program Committee"],
-    icon: FileType,
-  },
-  {
     title: "Grade Scheme",
     url: "/dashboard/grade-scheme",
     allowedRoles: ["Program Committee"],
     icon: FileSpreadsheet,
+  },
+  {
+    title: "Code Letters",
+    url: "/dashboard/code-letters",
+    allowedRoles: ["Program Committee"],
+    icon: FileType,
   },
   {
     title: "Evaluation",
