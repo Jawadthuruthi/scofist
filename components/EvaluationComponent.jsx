@@ -620,17 +620,17 @@ const EvaluationComponent = ({
                           <TableHead className="w-12 print:w-1/12 text-center whitespace-nowrap border-t border-r border-border">
                             Sl.
                           </TableHead>
-                          <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border no-print">
-                            Participant Name
-                          </TableHead>
-                          <TableHead className="min-w-[120px] whitespace-nowrap border-t border-r border-border no-print">
-                            Team
-                          </TableHead>
                           <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border no-print">
                             Chest No.
                           </TableHead>
                           <TableHead className="w-20 print:w-1/12 text-center whitespace-nowrap border-t border-r border-border">
                             Code Letter
+                          </TableHead>
+                          <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border no-print">
+                            Participant Name
+                          </TableHead>
+                          <TableHead className="min-w-[120px] whitespace-nowrap border-t border-r border-border no-print">
+                            Team
                           </TableHead>
                           <TableHead className="w-28 text-center whitespace-nowrap border-t border-r border-border no-print">
                             Judge{judgeNumber} Marks
@@ -671,14 +671,6 @@ const EvaluationComponent = ({
                                   <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border">
                                     {displayIndex + 1}
                                   </TableCell>
-                                  <TableCell className="font-medium whitespace-nowrap border-t border-r border-border no-print">
-                                    {participant.participantDetails?.name ||
-                                      participant.name ||
-                                      "N/A"}
-                                  </TableCell>
-                                  <TableCell className="whitespace-nowrap border-t border-r border-border no-print">
-                                    {participant.teamName || "N/A"}
-                                  </TableCell>
                                   <TableCell className="text-center whitespace-nowrap border-t border-r border-border no-print">
                                     {participant.participantDetails
                                       ?.chestNumber ||
@@ -687,6 +679,14 @@ const EvaluationComponent = ({
                                   </TableCell>
                                   <TableCell className="text-center  whitespace-nowrap border-t border-r border-border">
                                     {participant.codeLetter || "-"}
+                                  </TableCell>
+                                  <TableCell className="font-medium whitespace-nowrap border-t border-r border-border no-print">
+                                    {participant.participantDetails?.name ||
+                                      participant.name ||
+                                      "N/A"}
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap border-t border-r border-border no-print">
+                                    {participant.teamName || "N/A"}
                                   </TableCell>
                                   <TableCell className="text-center border-t border-r border-border no-print">
                                     {program.isResultDeclared ? (

@@ -547,6 +547,9 @@ const ResultComponent = ({
                           <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border ">
                             Name
                           </TableHead>
+                          <TableHead className="whitespace-nowrap border-t border-r border-border ">
+                            Team
+                          </TableHead>
                           <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border">
                             Grade
                           </TableHead>
@@ -584,6 +587,10 @@ const ResultComponent = ({
                                 <TableCell className="font-medium whitespace-nowrap border-t border-r border-border ">
                                   {participant.participantDetails?.name ||
                                     "N/A"}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap border-t border-r border-border ">
+                                  {participant.participantDetails?.teamId
+                                    ?.name || "N/A"}
                                 </TableCell>
                                 <TableCell className="text-center whitespace-nowrap border-t border-r border-border">
                                   <Badge variant="outline">
