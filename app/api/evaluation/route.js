@@ -131,7 +131,7 @@ export async function GET(request) {
   }
 }
 
-// ----------------------------- PUT - Update Marks + Auto Generate Results -----------------------------
+// ----------------------------- PUT - Update Marks by Participant ID -----------------------------
 export async function PUT(request) {
   try {
     await connectToDB();
@@ -164,7 +164,7 @@ export async function PUT(request) {
     // Keep track of programIds affected by updates
     const affectedProgramIds = new Set();
 
-    // Process updates - Update marks for specific participants
+    // CRITICAL FIX: Process updates using participant IDs instead of indices
     const updatePromises = updates.map(async (update) => {
       const { registrationId, participantUpdates } = update;
 
@@ -176,41 +176,81 @@ export async function PUT(request) {
 
       affectedProgramIds.add(registration.programId.toString());
 
-      // Update specific participants
+      console.log(`Processing registration ${registrationId}:`, {
+        totalParticipants: registration.participants.length,
+        participantUpdates,
+      });
+
+      // Process each participant update using participant ID matching
       const updateOperations = {};
-      Object.entries(participantUpdates).forEach(
-        ([participantIndex, markData]) => {
-          const index = parseInt(participantIndex);
-          if (index >= 0 && index < registration.participants.length) {
-            const { marks, judgeIndex } = markData;
 
-            if (!registration.participants[index].marksByJudges) {
-              registration.participants[index].marksByJudges = [];
-            }
+      for (const participantUpdate of participantUpdates) {
+        const { participantId, marks, judgeIndex } = participantUpdate;
 
-            if (judgeIndex !== undefined && marks !== undefined) {
-              updateOperations[
-                `participants.${index}.marksByJudges.${judgeIndex}`
-              ] = marks;
-            }
+        // Find the participant by ID in the registration
+        const participantIndex = registration.participants.findIndex(
+          (p) => p.id.toString() === participantId.toString()
+        );
 
-            const currentMarks =
-              registration.participants[index].marksByJudges || [];
-            if (judgeIndex !== undefined) {
-              currentMarks[judgeIndex] = marks;
-            }
-
-            const averageMarks = calculateAverageMarks(
-              currentMarks.filter((m) => m !== undefined)
-            );
-            updateOperations[`participants.${index}.totalMarks`] = averageMarks;
-          }
+        if (participantIndex === -1) {
+          console.warn(
+            `Participant ${participantId} not found in registration ${registrationId}`
+          );
+          continue;
         }
-      );
+
+        console.log(
+          `Found participant ${participantId} at index ${participantIndex}:`,
+          {
+            currentMarks:
+              registration.participants[participantIndex].marksByJudges,
+            newMarks: marks,
+            judgeIndex,
+          }
+        );
+
+        // Initialize marksByJudges array if it doesn't exist
+        if (!registration.participants[participantIndex].marksByJudges) {
+          registration.participants[participantIndex].marksByJudges = [];
+        }
+
+        // Update the specific judge's marks
+        if (judgeIndex !== undefined && marks !== undefined) {
+          updateOperations[
+            `participants.${participantIndex}.marksByJudges.${judgeIndex}`
+          ] = marks;
+        }
+
+        // Calculate new average marks
+        const currentMarks =
+          registration.participants[participantIndex].marksByJudges || [];
+        if (judgeIndex !== undefined) {
+          currentMarks[judgeIndex] = marks;
+        }
+
+        const averageMarks = calculateAverageMarks(
+          currentMarks.filter((m) => m !== undefined)
+        );
+        updateOperations[`participants.${participantIndex}.totalMarks`] =
+          averageMarks;
+
+        console.log(`Update operations for participant ${participantId}:`, {
+          participantIndex,
+          marksOperation: `participants.${participantIndex}.marksByJudges.${judgeIndex}`,
+          totalMarksOperation: `participants.${participantIndex}.totalMarks`,
+          newAverageMarks: averageMarks,
+        });
+      }
 
       if (Object.keys(updateOperations).length === 0) {
+        console.log(`No update operations for registration ${registrationId}`);
         return { modifiedCount: 0 };
       }
+
+      console.log(
+        `Executing update operations for ${registrationId}:`,
+        updateOperations
+      );
 
       return await ProgramRegistration.updateOne(
         { _id: registrationId },
@@ -220,6 +260,8 @@ export async function PUT(request) {
 
     const results = await Promise.all(updatePromises);
     const successCount = results.filter((r) => r.modifiedCount > 0).length;
+
+    console.log(`Updated ${successCount} registrations successfully`);
 
     // ----------------------------- Auto Generate Results -----------------------------
     const resultPromises = Array.from(affectedProgramIds).map(

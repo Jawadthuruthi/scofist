@@ -132,15 +132,16 @@ const EvaluationComponent = ({
 
       const program = programMap.get(programId);
 
-      // Add participants with additional info
-      participantsDetails.forEach((participant, index) => {
+      // CRITICAL FIX: Use participant ID as unique identifier instead of index
+      participantsDetails.forEach((participant, originalIndex) => {
         const participantData = {
           ...participant,
           registrationId,
           teamId,
           teamName,
-          participantIndex: index,
-          uniqueId: `${registrationId}-${index}`,
+          participantIndex: originalIndex, // Store original index for reference
+          participantId: participant.id, // Use participant ID as the key
+          uniqueId: `${registrationId}-${participant.id}`, // Use participant ID for uniqueId
           participantDetails: participant.participantDetails || {
             name: participant.name || "Unknown",
             chestNumber: participant.chestNumber || "N/A",
@@ -284,9 +285,13 @@ const EvaluationComponent = ({
 
     setFilteredRegistrations(updatedFilteredPrograms);
 
+    // CRITICAL FIX: Store participant ID and registration info for backend matching
+    const [registrationId, participantId] = participantUniqueId.split("-");
     setChanges((prev) => ({
       ...prev,
       [participantUniqueId]: {
+        registrationId,
+        participantId,
         marks: marksValue,
         judgeIndex: judgeNumber - 1,
       },
@@ -304,7 +309,7 @@ const EvaluationComponent = ({
     return { grade: "F", points: 0 };
   };
 
-  // Save changes
+  // COMPLETELY REWRITTEN Save function to use participant IDs
   const handleSave = async () => {
     if (Object.keys(changes).length === 0) {
       toast.info("No changes to save");
@@ -314,26 +319,32 @@ const EvaluationComponent = ({
     try {
       setSaving(true);
 
-      // Group changes by registration and participant
+      // Group changes by registration ID
       const updatesByRegistration = {};
 
-      Object.entries(changes).forEach(([participantUniqueId, markData]) => {
-        const [registrationId, participantIndex] =
-          participantUniqueId.split("-");
+      Object.entries(changes).forEach(([uniqueId, markData]) => {
+        const { registrationId, participantId, marks, judgeIndex } = markData;
 
         if (!updatesByRegistration[registrationId]) {
-          updatesByRegistration[registrationId] = {};
+          updatesByRegistration[registrationId] = [];
         }
 
-        updatesByRegistration[registrationId][participantIndex] = markData;
+        updatesByRegistration[registrationId].push({
+          participantId,
+          marks,
+          judgeIndex,
+        });
       });
 
+      // Convert to the format expected by backend
       const updates = Object.entries(updatesByRegistration).map(
         ([registrationId, participantUpdates]) => ({
           registrationId,
           participantUpdates,
         })
       );
+
+      console.log("Sending updates:", JSON.stringify(updates, null, 2));
 
       await updateMarks.mutateAsync({
         data: {
@@ -644,16 +655,10 @@ const EvaluationComponent = ({
                       <TableBody>
                         {program.participants.length > 0 ? (
                           program.participants
-                            .sort(
-                              (a, b) =>
-                                (a.participantDetails?.chestNumber ||
-                                  a.chestNumber ||
-                                  0) -
-                                (b.participantDetails?.chestNumber ||
-                                  b.chestNumber ||
-                                  0)
+                            .sort((a, b) =>
+                              a.codeLetter.localeCompare(b.codeLetter)
                             )
-                            .map((participant, index) => {
+                            .map((participant, displayIndex) => {
                               const currentJudgeMarks =
                                 participant.marksByJudges?.[judgeNumber - 1] ||
                                 "";
@@ -664,7 +669,7 @@ const EvaluationComponent = ({
                               return (
                                 <TableRow key={participant.uniqueId}>
                                   <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border">
-                                    {index + 1}
+                                    {displayIndex + 1}
                                   </TableCell>
                                   <TableCell className="font-medium whitespace-nowrap border-t border-r border-border no-print">
                                     {participant.participantDetails?.name ||
@@ -773,40 +778,6 @@ const EvaluationComponent = ({
           </div>
         )}
       </div>
-
-      {/* Mobile Floating Save Button */}
-      {hasUnsavedChanges && (
-        <div className="no-print fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-auto z-50">
-          <div className="sm:hidden">
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              size="lg"
-              className="bg-green-600 hover:bg-green-700 w-full shadow-lg"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {saving
-                ? "Saving..."
-                : `Save Changes (${Object.keys(changes).length})`}
-            </Button>
-          </div>
-
-          <div className="hidden sm:block bg-yellow-100 border border-yellow-300 rounded-lg p-4 shadow-lg max-w-sm">
-            <p className="text-sm text-yellow-800 mb-2">
-              You have {Object.keys(changes).length} unsaved changes
-            </p>
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              size="sm"
-              className="bg-green-600 hover:bg-green-700 w-full"
-            >
-              <Save className="mr-1 h-3 w-3" />
-              {saving ? "Saving..." : "Save All"}
-            </Button>
-          </div>
-        </div>
-      )}
 
       <style jsx>{`
         @media print {

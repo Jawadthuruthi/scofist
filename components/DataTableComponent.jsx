@@ -104,7 +104,7 @@ const DataTableComponent = ({
   apiFilters = {},
   readOnly = false,
   filterTitle = "",
-  filterType = "client",
+  filterType = "api",
   infiniteScrollThreshold = 0.3,
   printTitle,
   enableDelete = false,

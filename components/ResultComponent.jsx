@@ -541,11 +541,11 @@ const ResultComponent = ({
                           <TableHead className="w-20 whitespace-nowrap border-t border-r border-border ">
                             Chest Number
                           </TableHead>
-                          <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border ">
-                            Name
-                          </TableHead>
                           <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border">
                             Code Letter
+                          </TableHead>
+                          <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border ">
+                            Name
                           </TableHead>
                           <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border">
                             Grade
@@ -559,6 +559,7 @@ const ResultComponent = ({
                         {result.participants.length > 0 ? (
                           result.participants
                             .sort((a, b) => a.rank - b.rank)
+                            .filter((participant) => participant.points > 0)
                             .map((participant, index) => (
                               <TableRow key={participant.id || index}>
                                 <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border">
@@ -577,12 +578,12 @@ const ResultComponent = ({
                                   {participant.participantDetails
                                     ?.chestNumber || "N/A"}
                                 </TableCell>
+                                <TableCell className="text-center  whitespace-nowrap border-t border-r border-border">
+                                  {participant.codeLetter || "-"}
+                                </TableCell>
                                 <TableCell className="font-medium whitespace-nowrap border-t border-r border-border ">
                                   {participant.participantDetails?.name ||
                                     "N/A"}
-                                </TableCell>
-                                <TableCell className="text-center  whitespace-nowrap border-t border-r border-border">
-                                  {participant.codeLetter || "-"}
                                 </TableCell>
                                 <TableCell className="text-center whitespace-nowrap border-t border-r border-border">
                                   <Badge variant="outline">

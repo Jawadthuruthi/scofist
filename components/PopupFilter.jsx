@@ -295,19 +295,6 @@ export default function PopupFilter({
             </DialogHeader>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Global Filter */}
-              {setGlobalFilter && (
-                <div>
-                  <label className="text-sm font-medium">Search</label>
-                  <Input
-                    placeholder="Search all columns..."
-                    value={globalFilter ?? ""}
-                    onChange={(e) => setGlobalFilter(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-              )}
-
               {/* Individual Filters */}
               {filterConfig.map((filterItem) => {
                 const filterId = filterItem.id;
@@ -414,8 +401,6 @@ export default function PopupFilter({
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        
       </div>
     </div>
   );
