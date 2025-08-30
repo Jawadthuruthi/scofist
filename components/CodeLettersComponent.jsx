@@ -707,40 +707,6 @@ const CodeLettersComponent = ({
           </div>
         )}
       </div>
-
-      {/* Mobile Floating Save Button */}
-      {hasUnsavedChanges && (
-        <div className="no-print fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-auto z-50">
-          <div className="sm:hidden">
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              size="lg"
-              className="bg-green-600 hover:bg-green-700 w-full shadow-lg"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {saving
-                ? "Saving..."
-                : `Save Changes (${Object.keys(changes).length})`}
-            </Button>
-          </div>
-
-          <div className="hidden sm:block bg-yellow-100 border border-yellow-300 rounded-lg p-4 shadow-lg max-w-sm">
-            <p className="text-sm text-yellow-800 mb-2">
-              You have {Object.keys(changes).length} unsaved changes
-            </p>
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              size="sm"
-              className="bg-green-600 hover:bg-green-700 w-full"
-            >
-              <Save className="mr-1 h-3 w-3" />
-              {saving ? "Saving..." : "Save All"}
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

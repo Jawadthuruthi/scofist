@@ -210,10 +210,15 @@ const EvaluationComponent = ({
   }, [selectedDivision, selectedProgram, programRegistrations, status]);
 
   const filteredPrograms = useMemo(() => {
-    return programs?.filter(
-      (program) => !selectedDivision || program.divisionId === selectedDivision
+    const programIds = new Set(
+      filteredRegistrations.flatMap((registration) => registration.programId)
     );
-  }, [selectedDivision, programs]);
+    return programs?.filter(
+      (program) =>
+        (!selectedDivision || program.divisionId === selectedDivision) &&
+        programIds.has(program._id)
+    );
+  }, [selectedDivision, programs, filteredRegistrations]);
 
   // Handle marks change for individual participant
   const handleMarksChange = (participantUniqueId, marks) => {
