@@ -60,7 +60,7 @@ export async function GET(request) {
       })
       .populate({
         path: "participants.id",
-        select: "name age chestNumber, teamId",
+        select: "name age chestNumber teamId",
         populate: {
           path: "teamId",
           select: "name",

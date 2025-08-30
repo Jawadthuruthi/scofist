@@ -298,7 +298,7 @@ const EvaluationComponent = ({
     }));
   };
 
-  // Get grade for marks
+  // Get grade for marks (kept for potential future use but not displayed)
   const getGradeForMarks = (marks) => {
     for (const scheme of gradeSchemes) {
       const [min, max] = scheme.markRange.split("-").map(Number);
@@ -638,12 +638,6 @@ const EvaluationComponent = ({
                           <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border no-print">
                             Average
                           </TableHead>
-                          <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border no-print">
-                            Grade
-                          </TableHead>
-                          <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border no-print">
-                            Points
-                          </TableHead>
                           <TableHead className="w-9/12 text-center whitespace-nowrap border-t border-r border-border hidden print:table-cell">
                             Marks
                           </TableHead>
@@ -732,18 +726,6 @@ const EvaluationComponent = ({
                                       "-"
                                     )}
                                   </TableCell>
-                                  <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border no-print">
-                                    {participant.averageMarks > 0 ? (
-                                      <Badge variant="outline">{grade}</Badge>
-                                    ) : (
-                                      "-"
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border no-print">
-                                    {participant.averageMarks > 0
-                                      ? points
-                                      : "-"}
-                                  </TableCell>
                                   <TableCell className="text-center hidden print:table-cell whitespace-nowrap border-t border-r border-border"></TableCell>
                                   <TableCell className="text-center hidden print:table-cell whitespace-nowrap border-t border-r border-border"></TableCell>
                                 </TableRow>
@@ -752,7 +734,7 @@ const EvaluationComponent = ({
                         ) : (
                           <TableRow>
                             <TableCell
-                              colSpan={10}
+                              colSpan={8}
                               className="text-center py-6 text-muted-foreground"
                             >
                               No participants found for this program
