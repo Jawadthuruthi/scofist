@@ -96,6 +96,12 @@ export async function POST(req, res) {
         },
         instructions:
           data.instructions ?? existingSettings?.festival?.instructions,
+        resultPoster1:
+          data.resultPoster1 ?? existingSettings?.festival?.resultPoster1,
+        resultPoster2:
+          data.resultPoster2 ?? existingSettings?.festival?.resultPoster2,
+        resultPoster3:
+          data.resultPoster3 ?? existingSettings?.festival?.resultPoster3,
       },
     };
 
@@ -200,6 +206,10 @@ export async function PUT(req, res) {
         },
         instructions:
           data.instructions ?? existingSettings?.festival?.instructions,
+        resultPoster1:
+          data.resultPoster1 ?? existingSettings?.festival?.resultPoster1,
+        resultPoster2:
+          data.resultPoster2 ?? existingSettings?.festival?.resultPoster2,
       },
     };
 

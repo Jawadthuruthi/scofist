@@ -163,6 +163,45 @@ const festivalFormField = [
     type: "date",
     required: true,
   },
+  {
+    name: "resultPoster1",
+    label: "Result Poster 1",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/svg+xml", "image/png", "image/jpeg", "image/jpg"],
+    defaultValue: {},
+    aspectRatio: "1:1",
+    minWidth: 1024,
+    minHeight: 1024,
+  },
+  {
+    name: "resultPoster2",
+    label: "Result Poster 2",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/svg+xml", "image/png", "image/jpeg", "image/jpg"],
+    defaultValue: {},
+    aspectRatio: "1:1",
+    minWidth: 1024,
+    minHeight: 1024,
+  },
+  {
+    name: "resultPoster3",
+    label: "Result Poster 3",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/svg+xml", "image/png", "image/jpeg", "image/jpg"],
+    defaultValue: {},
+    aspectRatio: "1:1",
+    minWidth: 1024,
+    minHeight: 1024,
+  },
 ];
 
 export default async function SettingsPage() {
@@ -189,6 +228,10 @@ export default async function SettingsPage() {
       right: data.festival.participantsCard.textPositions.right || 0,
       bottom: data.festival.participantsCard.textPositions.bottom || 0,
       left: data.festival.participantsCard.textPositions.left || 0,
+      registrationDeadline: data.festival.registrationDeadline,
+      resultPoster1: data.festival.resultPoster1 || {},
+      resultPoster2: data.festival.resultPoster2 || {},
+      resultPoster3: data.festival.resultPoster3 || {},
     };
 
     const idCard = {

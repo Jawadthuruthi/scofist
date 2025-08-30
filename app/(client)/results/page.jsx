@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Medal, Trophy, X } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { formatOptions } from "@/lib/utils";
+import ResultPostersSection from "@/components/ResultPostersSection";
 
 /* ---------------------- helper constants ---------------------- */
 
@@ -61,6 +62,8 @@ export default function PublicResultsPage() {
   /* --------------- state --------------- */
   const [divisions, setDivisions] = useState([]);
   const [programs, setPrograms] = useState([]);
+  const [settings, setSettings] = useState({});
+  const [resultData, setResultData] = useState([]);
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedProgram, setSelectedProgram] = useState("");
   const [results, setResults] = useState(null);
@@ -73,6 +76,13 @@ export default function PublicResultsPage() {
     fetchJSON("/api/divisions?projection=_id,name")
       .then((d) => setDivisions(d.divisions ?? []))
       .catch(() => setError("Unable to load divisions"));
+  }, []);
+
+  /* --------------- fetch settings on mount --------------- */
+  useEffect(() => {
+    fetchJSON("/api/settings?projection=_id,name")
+      .then((data) => setSettings(data.settings ?? {}))
+      .catch(() => setError("Unable to load settings"));
   }, []);
 
   /* --------------- fetch programs when division changes --------------- */
@@ -104,6 +114,7 @@ export default function PublicResultsPage() {
 
     fetchJSON(`/api/results?programId=${selectedProgram}&isResultDeclared=true`)
       .then((r) => {
+        setResultData(r.results?.[0] || []);
         const top = (r.results?.[0]?.participants ?? [])
           .filter((p) => p.rank <= 3)
           .sort((a, b) => a.rank - b.rank);
@@ -437,6 +448,12 @@ export default function PublicResultsPage() {
                 renderPodiumCard(participant, index)
               )}
             </div>
+            {resultData && settings && (
+              <ResultPostersSection
+                resultData={resultData}
+                settings={settings}
+              />
+            )}
           </div>
         )}
       </div>

@@ -126,6 +126,45 @@ const SettingsSchema = new Schema(
         type: String,
         trim: true,
       },
+      resultPoster1: {
+        url: {
+          type: String,
+          trim: true,
+          validate: {
+            validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+            message: "Invalid URL format",
+          },
+        },
+        publicId: {
+          type: String,
+        },
+      },
+      resultPoster2: {
+        url: {
+          type: String,
+          trim: true,
+          validate: {
+            validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+            message: "Invalid URL format",
+          },
+        },
+        publicId: {
+          type: String,
+        },
+      },
+      resultPoster3: {
+        url: {
+          type: String,
+          trim: true,
+          validate: {
+            validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+            message: "Invalid URL format",
+          },
+        },
+        publicId: {
+          type: String,
+        },
+      },
     },
   },
   { timestamps: true }
