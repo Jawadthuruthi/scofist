@@ -33,6 +33,7 @@ import {
   Users2,
   CheckCircle,
   TicketPercent,
+  UserMinus,
 } from "lucide-react";
 
 import {
@@ -360,6 +361,12 @@ const items = [
         title: "Winners List",
         url: "/dashboard/winners-list",
         icon: Trophy,
+        allowedRoles: ["Program Committee"],
+      },
+      {
+        title: "Non Winners List",
+        url: "/dashboard/non-winners",
+        icon: UserMinus,
         allowedRoles: ["Program Committee"],
       },
     ],

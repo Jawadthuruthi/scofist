@@ -103,7 +103,7 @@ export async function GET(request) {
         participantDetails: p.id,
       })),
       winners: result.participants
-        ?.filter((p) => p.rank > 4)
+        ?.filter((p) => p.rank < 4)
         .map((p) => `${p.rank}. ${p.id.name}`),
       isResultDeclared: result.isResultDeclared,
       resultNumber: result.resultNumber,
@@ -290,18 +290,45 @@ export async function PUT(request) {
 
     // Handle result number assignment
     if (newDeclarationStatus && !result.isResultDeclared) {
-      // DECLARING RESULT - Assign new result number
-      const lastDeclaredResult = await Result.findOne({
-        resultNumber: { $ne: null },
-      }).sort({ resultNumber: -1 });
+      // DECLARING RESULT - Find gaps first, then assign new number
 
-      const nextResultNumber = lastDeclaredResult
-        ? lastDeclaredResult.resultNumber + 1
-        : 1;
+      // Get all declared results sorted by result number
+      const allDeclaredResults = await Result.find({
+        resultNumber: { $ne: null },
+      })
+        .sort({ resultNumber: 1 })
+        .select("resultNumber");
+
+      let nextResultNumber;
+
+      if (allDeclaredResults.length === 0) {
+        // No declared results yet, start with 1
+        nextResultNumber = 1;
+      } else {
+        // Check for gaps in the sequence
+        const resultNumbers = allDeclaredResults.map((r) => r.resultNumber);
+        let foundGap = false;
+
+        // Look for the first gap in the sequence
+        for (let i = 1; i <= resultNumbers.length + 1; i++) {
+          if (!resultNumbers.includes(i)) {
+            nextResultNumber = i;
+            foundGap = true;
+            break;
+          }
+        }
+
+        // If no gap found, assign the next sequential number
+        if (!foundGap) {
+          const maxResultNumber = Math.max(...resultNumbers);
+          nextResultNumber = maxResultNumber + 1;
+        }
+      }
+
       result.resultNumber = nextResultNumber;
       result.declaredAt = new Date();
     } else if (!newDeclarationStatus && result.isResultDeclared) {
-      // UNDECLARING RESULT - Remove result number
+      // UNDECLARING RESULT - Remove result number (this creates a gap)
       result.resultNumber = null;
       result.declaredAt = null;
     }

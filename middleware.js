@@ -258,6 +258,11 @@ const pages = [
     allowedRoles: ["Program Committee"],
   },
   {
+    title: "Non Winners list",
+    path: "/dashboard/non-winners",
+    allowedRoles: ["Program Committee"],
+  },
+  {
     title: "Settings",
     path: "/dashboard/settings",
     allowedRoles: ["College Admin", "Program Committee"],

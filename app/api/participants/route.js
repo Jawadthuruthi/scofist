@@ -82,7 +82,6 @@ export async function GET(req, res) {
   try {
     await connectToDB();
 
-    // Parse URL to get search params
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "0");
     const limit = parseInt(url.searchParams.get("limit")) || Infinity;
@@ -90,7 +89,6 @@ export async function GET(req, res) {
     // Build filter object from query parameters
     const filterParams = {};
     for (const [key, value] of url.searchParams.entries()) {
-      // Skip pagination parameters
       if (key !== "page" && key !== "limit" && key !== "projection") {
         filterParams[key] = value;
       }
@@ -100,11 +98,10 @@ export async function GET(req, res) {
     const projectionParam = url.searchParams.get("projection");
     let projections = {};
 
-    // Convert projection param to MongoDB projection object
     if (projectionParam) {
       const fields = projectionParam.split(",");
       fields.forEach((field) => {
-        projections[field] = 1; // Include each field
+        projections[field] = 1;
       });
     }
 
@@ -129,11 +126,131 @@ export async function GET(req, res) {
     if (filterParams.chestNumber) {
       query.chestNumber = parseInt(filterParams.chestNumber);
     }
-    if (filterParams.batchId) {
-      query.batchId = filterParams.batchId;
+
+    // Handle non-winners filter at database level
+    if (filterParams.nonWinners === "true") {
+      // Use aggregation pipeline to filter non-winners
+      const pipeline = [
+        { $match: query },
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "userDetails",
+          },
+        },
+        {
+          $lookup: {
+            from: "batches",
+            localField: "batchId",
+            foreignField: "_id",
+            as: "batchDetails",
+          },
+        },
+        {
+          $lookup: {
+            from: "teams",
+            localField: "teamId",
+            foreignField: "_id",
+            as: "teamDetails",
+          },
+        },
+        {
+          $lookup: {
+            from: "divisions",
+            localField: "divisionId",
+            foreignField: "_id",
+            as: "divisionDetails",
+          },
+        },
+        {
+          $lookup: {
+            from: "programregistrations",
+            localField: "_id",
+            foreignField: "participants.id",
+            as: "programRegistrations",
+          },
+        },
+        // Add a field to check if participant has any winning rank (1-3)
+        {
+          $addFields: {
+            hasWinningRank: {
+              $anyElementTrue: {
+                $map: {
+                  input: "$programs",
+                  as: "program",
+                  in: {
+                    $and: [
+                      { $gt: ["$$program.rank", 0] },
+                      { $lt: ["$$program.rank", 4] },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+        // Filter only non-winners
+        { $match: { hasWinningRank: { $ne: true } } },
+        // Get total count for pagination
+        {
+          $facet: {
+            data: [
+              { $skip: page * limit },
+              { $limit: limit },
+              { $sort: { chestNumber: 1 } },
+            ],
+            totalCount: [{ $count: "count" }],
+          },
+        },
+      ];
+
+      const [result] = await Participant.aggregate(pipeline);
+      const participants = result.data || [];
+      const totalCount = result.totalCount[0]?.count || 0;
+
+      // Format the participants data
+      const formattedParticipants = participants.map((participant) => ({
+        ...participant,
+        _id: participant._id,
+        profilePic: participant.userDetails[0]?.profilePic,
+        batchId: participant.batchDetails[0]?._id,
+        batchName: participant.batchDetails[0]?.name || "Unknown",
+        teamId: participant.teamDetails[0]?._id,
+        teamName: participant.teamDetails[0]?.name || "Unknown",
+        divisionId: participant.divisionDetails[0]?._id,
+        divisionName: participant.divisionDetails[0]?.name || "Unknown",
+        programsCount: participant.programs?.length || 0,
+        stageProgramsCount:
+          participant.programs?.filter((p) => p.category === "Stage")?.length ||
+          0,
+        offStageProgramsCount:
+          participant.programs?.filter((p) => p.category === "Off-Stage")
+            ?.length || 0,
+        totalPoints:
+          (participant.stagePoints || 0) + (participant.offStagePoints || 0),
+      }));
+
+      return NextResponse.json(
+        {
+          participants: formattedParticipants,
+          pagination: {
+            page,
+            limit,
+            total: totalCount,
+            totalPages:
+              limit === Infinity
+                ? 1
+                : Math.max(0, Math.ceil(totalCount / limit)),
+          },
+          message: "Non-winner participants fetched successfully!",
+        },
+        { status: 200 }
+      );
     }
 
-    // Execute query with pagination
+    // Regular participant fetching (non-filtered)
     const participants = await Participant.find(query, projections)
       .populate("_id", ["_id", "name", "profilePic"])
       .populate("batchId", ["_id", "name"])
@@ -150,83 +267,42 @@ export async function GET(req, res) {
           },
         },
       })
-
       .skip(page * limit)
       .limit(limit)
       .sort({ chestNumber: 1 })
       .collation({ locale: "en_US", numericOrdering: true });
 
-    // Get total count for pagination info
     const total = await Participant.countDocuments(query);
 
-    const formattedParticipants = participants
-      .map((participant) => ({
-        ...participant.toObject(),
-        _id: participant._id?._id,
-        profilePic: participant._id?.profilePic,
-        batchId: participant.batchId?._id,
-        batchName: participant.batchId?.name || "Unknown",
-        teamId: participant.teamId?._id,
-        teamName: participant.teamId?.name || "Unknown",
-        divisionId: participant.divisionId?._id,
-        divisionName: participant.divisionId?.name || "Unknown",
-        programsCount: participant.programs?.length || 0,
-        stageProgramsCount:
-          participant.programs?.filter(
-            (program) => program.id.category === "Stage"
-          )?.length || 0,
-        offStageProgramsCount:
-          participant.programs?.filter(
-            (program) => program.id.category === "Off-Stage"
-          )?.length || 0,
-
-        totalPoints:
-          (participant.stagePoints || 0) + (participant.offStagePoints || 0),
-        programs: participant.programs.map((program) => ({
-          ...program.toObject(),
-          id: program?.id?._id,
-          name: program?.id?.name,
-          type: program?.id?.type,
-          category: program?.id?.category,
-          divisionId: program?.id?.divisionId?._id,
-          divisionType: program?.id?.divisionId?.type,
-        })),
-      }))
-      ?.sort((a, b) =>
-        filterParams.sortByPoints === "true"
-          ? b.totalPoints - a.totalPoints
-          : a.chestNumber - b.chestNumber
-      ); // Sort by totalPoints descending
-
-    const nonWinners = [];
-
-    if (filterParams.nonWinners === "true") {
-      for (const participant of formattedParticipants) {
-        const programWithRank = participant.programs.find(
-          (program) => program.rank < 4 && program.rank > 0
-        );
-
-        if (!programWithRank) {
-          nonWinners.push(participant);
-        }
-      }
-      return NextResponse.json(
-        {
-          participants: nonWinners,
-          pagination: {
-            page,
-            limit,
-            total: nonWinners.length,
-            totalPages:
-              limit === Infinity
-                ? 1
-                : Math.max(0, Math.ceil(nonWinners.length / limit)),
-          },
-          message: "Participants fetched successfully!",
-        },
-        { status: 200 }
-      );
-    }
+    const formattedParticipants = participants.map((participant) => ({
+      ...participant.toObject(),
+      _id: participant._id?._id,
+      profilePic: participant._id?.profilePic,
+      batchId: participant.batchId?._id,
+      batchName: participant.batchId?.name || "Unknown",
+      teamId: participant.teamId?._id,
+      teamName: participant.teamId?.name || "Unknown",
+      divisionId: participant.divisionId?._id,
+      divisionName: participant.divisionId?.name || "Unknown",
+      programsCount: participant.programs?.length || 0,
+      stageProgramsCount:
+        participant.programs?.filter((p) => p.id.category === "Stage")
+          ?.length || 0,
+      offStageProgramsCount:
+        participant.programs?.filter((p) => p.id.category === "Off-Stage")
+          ?.length || 0,
+      totalPoints:
+        (participant.stagePoints || 0) + (participant.offStagePoints || 0),
+      programs: participant.programs.map((program) => ({
+        ...program.toObject(),
+        id: program?.id?._id,
+        name: program?.id?.name,
+        type: program?.id?.type,
+        category: program?.id?.category,
+        divisionId: program?.id?.divisionId?._id,
+        divisionType: program?.id?.divisionId?.type,
+      })),
+    }));
 
     return NextResponse.json(
       {

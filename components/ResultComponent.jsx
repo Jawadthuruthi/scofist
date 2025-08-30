@@ -516,7 +516,7 @@ const ResultComponent = ({
                             {result.resultNumber || "N/A"}
                           </span>
                         )}
-                        <span className="capitalize whitespace-nowrap">
+                        <span className="capitalize whitespace-nowrap hidden print:block">
                           <strong>Program:</strong> {result.programName}
                         </span>
                         <span className="whitespace-nowrap">
