@@ -127,6 +127,158 @@ export async function GET(req, res) {
       query.chestNumber = parseInt(filterParams.chestNumber);
     }
 
+    // Handle non-responders filter at database level
+    if (filterParams.nonResponders === "true") {
+      // Use aggregation pipeline to filter non-responders
+      const pipeline = [
+        { $match: query },
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "userDetails",
+          },
+        },
+        {
+          $lookup: {
+            from: "batches",
+            localField: "batchId",
+            foreignField: "_id",
+            as: "batchDetails",
+          },
+        },
+        {
+          $lookup: {
+            from: "teams",
+            localField: "teamId",
+            foreignField: "_id",
+            as: "teamDetails",
+          },
+        },
+        {
+          $lookup: {
+            from: "divisions",
+            localField: "divisionId",
+            foreignField: "_id",
+            as: "divisionDetails",
+          },
+        },
+        {
+          $lookup: {
+            from: "programregistrations",
+            let: { participantId: { $toString: "$_id" } },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $in: ["$$participantId", "$participants.id"],
+                  },
+                },
+              },
+              { $unwind: "$participants" },
+              {
+                $match: {
+                  $expr: { $eq: ["$participants.id", "$$participantId"] },
+                },
+              },
+              {
+                $match: {
+                  $or: [
+                    { "participants.codeLetter": { $exists: false } },
+                    { "participants.codeLetter": null },
+                    { "participants.codeLetter": "" },
+                  ],
+                },
+              },
+              {
+                $lookup: {
+                  from: "programs",
+                  localField: "programId",
+                  foreignField: "_id",
+                  as: "programDetails",
+                },
+              },
+              {
+                $project: {
+                  programId: 1,
+                  programName: { $arrayElemAt: ["$programDetails.name", 0] },
+                  programCategory: {
+                    $arrayElemAt: ["$programDetails.category", 0],
+                  },
+                  programType: { $arrayElemAt: ["$programDetails.type", 0] },
+                },
+              },
+            ],
+            as: "nonResponsePrograms",
+          },
+        },
+        // Filter only participants who have non-response programs
+        {
+          $match: {
+            "nonResponsePrograms.0": { $exists: true },
+          },
+        },
+        // Get total count for pagination
+        {
+          $facet: {
+            data: [
+              { $skip: page * limit },
+              { $limit: limit },
+              { $sort: { chestNumber: 1 } },
+            ],
+            totalCount: [{ $count: "count" }],
+          },
+        },
+      ];
+
+      const [result] = await Participant.aggregate(pipeline);
+      const participants = result.data || [];
+      const totalCount = result.totalCount[0]?.count || 0;
+
+      // Format the participants data
+      const formattedParticipants = participants.map((participant) => ({
+        ...participant,
+        _id: participant._id,
+        profilePic: participant.userDetails[0]?.profilePic,
+        batchId: participant.batchDetails[0]?._id,
+        batchName: participant.batchDetails[0]?.name || "Unknown",
+        teamId: participant.teamDetails[0]?._id,
+        teamName: participant.teamDetails[0]?.name || "Unknown",
+        divisionId: participant.divisionDetails[0]?._id,
+        divisionName: participant.divisionDetails[0]?.name || "Unknown",
+        programsCount: participant.programs?.length || 0,
+        stageProgramsCount:
+          participant.programs?.filter((p) => p.category === "Stage")?.length ||
+          0,
+        offStageProgramsCount:
+          participant.programs?.filter((p) => p.category === "Off-Stage")
+            ?.length || 0,
+        totalPoints:
+          (participant.stagePoints || 0) + (participant.offStagePoints || 0),
+        nonResponseProgramsNames:
+          participant.nonResponsePrograms?.map((p) => p.programName) || [],
+        totalNonResponsePrograms: participant.nonResponsePrograms?.length || 0,
+      }));
+
+      return NextResponse.json(
+        {
+          participants: formattedParticipants,
+          pagination: {
+            page,
+            limit,
+            total: totalCount,
+            totalPages:
+              limit === Infinity
+                ? 1
+                : Math.max(0, Math.ceil(totalCount / limit)),
+          },
+          message: "Non-responder participants fetched successfully!",
+        },
+        { status: 200 }
+      );
+    }
+
     // Handle non-winners filter at database level
     if (filterParams.nonWinners === "true") {
       // Use aggregation pipeline to filter non-winners

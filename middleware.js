@@ -263,6 +263,11 @@ const pages = [
     allowedRoles: ["Program Committee"],
   },
   {
+    title: "Non Responders list",
+    path: "/dashboard/non-responders",
+    allowedRoles: ["Program Committee"],
+  },
+  {
     title: "Settings",
     path: "/dashboard/settings",
     allowedRoles: ["College Admin", "Program Committee"],

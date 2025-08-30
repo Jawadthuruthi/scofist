@@ -369,6 +369,12 @@ const items = [
         icon: UserMinus,
         allowedRoles: ["Program Committee"],
       },
+      {
+        title: "Non Responders List",
+        url: "/dashboard/non-responders",
+        icon: UserX,
+        allowedRoles: ["Program Committee"],
+      },
     ],
   },
   {
