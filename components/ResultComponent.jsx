@@ -203,6 +203,11 @@ const ResultComponent = ({
     }
   };
 
+  // Get declared results for printing
+  const declaredResults = filteredResults.filter(
+    (result) => result.isResultDeclared
+  );
+
   // Handle print
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -219,12 +224,90 @@ const ResultComponent = ({
         margin: 0.5in;
       }
       @media print {
-        body { -webkit-print-color-adjust: exact; }
+        body { 
+          -webkit-print-color-adjust: exact; 
+          font-size: 12px;
+          line-height: 1.2;
+        }
         .no-print { display: none !important; }
-        table { page-break-inside: auto; margin-bottom: 20px; }
-        tr { page-break-inside: avoid; page-break-after: auto; }
-        thead { display: table-header-group; }
-        .result-section { page-break-inside: avoid; margin-bottom: 30px; }
+        
+        .print-container {
+          width: 100%;
+          height: 100vh;
+        }
+        
+        /* Result section - exactly half page height */
+        .result-section {
+          height: 50vh !important;
+          max-height: 50vh !important;
+          overflow: hidden;
+          page-break-inside: avoid;
+          margin-bottom: 0 !important;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        /* Every two result sections should be on a new page */
+        .result-section:nth-child(odd) {
+          page-break-before: avoid;
+        }
+        
+        .result-section:nth-child(2n+1):not(:first-child) {
+          page-break-before: always;
+        }
+        
+        /* Result info header */
+        .result-info {
+          height: auto !important;
+          flex-shrink: 0;
+          overflow: hidden;
+          font-size: 12px !important;
+        }
+        
+        /* Table container - flexible height */
+        .table-container {
+          flex: 1;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+        }
+        
+        table {
+          border-collapse: collapse !important;
+          border: 1px solid #000 !important;
+          width: 100% !important;
+        }
+        
+        table th, table td {
+          border: 1px solid #000 !important;
+          padding: 4px !important;
+          text-align: left;
+          vertical-align: middle;
+          line-height: 1.1 !important;
+          height: fit-content !important;
+          overflow: hidden;
+          font-size: 12px !important;
+        }
+        
+        table th {
+          background-color: #f5f5f5 !important;
+          height: 16px !important;
+          font-weight: bold !important;
+          color: #000 !important;
+        }
+        
+        table td {
+          font-weight: semibold !important;
+        }
+        
+       
+        
+        .trophy-icon {
+          display: inline-block !important;
+          width: 8px !important;
+          height: 8px !important;
+        }
       }
     `,
   });
@@ -238,10 +321,10 @@ const ResultComponent = ({
 
   const isLoading = fetchResultsQuery.isLoading;
   const totalResults = filteredResults.length;
-  const declaredResults = filteredResults.filter(
+  const declaredResultsCount = filteredResults.filter(
     (r) => r.isResultDeclared
   ).length;
-  const pendingResults = totalResults - declaredResults;
+  const pendingResults = totalResults - declaredResultsCount;
   const totalParticipants = filteredResults.reduce(
     (sum, result) => sum + result.participants.length,
     0
@@ -262,7 +345,7 @@ const ResultComponent = ({
   };
 
   const getPositionIcon = (rank) => {
-    if (rank <= 3) return <Trophy className="h-3 w-3" />;
+    if (rank <= 3) return <Trophy className="h-3 w-3 trophy-icon" />;
     return null;
   };
 
@@ -358,36 +441,30 @@ const ResultComponent = ({
               </div>
               <div className="flex items-center gap-1">
                 <Eye className="h-4 w-4 text-green-500" />
-                <span>{declaredResults} declared</span>
+                <span>{declaredResultsCount} declared</span>
               </div>
               <div className="flex items-center gap-1">
                 <EyeOff className="h-4 w-4 text-orange-500" />
                 <span>{pendingResults} pending</span>
               </div>
             </div>
-
-            <Button
-              variant="default"
-              onClick={handlePrint}
-              disabled={filteredResults.length === 0}
-              className="flex-1 sm:flex-none"
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              Print
-            </Button>
+            {selectedStatus === "declared" && (
+              <Button
+                variant="default"
+                onClick={handlePrint}
+                disabled={declaredResults.length === 0}
+                className="flex-1 sm:flex-none"
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                Print
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Printable Content */}
-      <div ref={printRef}>
-        {/* Print Header */}
-        <PrintHeader
-          title="Competition Results"
-          apiKey={apiKey}
-          isFestival={true}
-        />
-
+      <div ref={printRef} className="print-container">
         {/* Results Tables */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -397,14 +474,19 @@ const ResultComponent = ({
             </div>
           </div>
         ) : filteredResults.length > 0 ? (
-          <div className="space-y-8">
+          <div className="space-y-8 print:space-y-0">
             {filteredResults.map((result, resultIndex) => (
               <div key={result._id} className="result-section">
+                {/* Header - only for declared results in print */}
+                {result.isResultDeclared && (
+                  <PrintHeader apiKey={apiKey} isFestival={true} />
+                )}
+
                 {/* Result Header */}
-                <div className="mb-4 p-3 sm:p-4 bg-muted rounded-lg border">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <div className="mb-2 sm:mb-0">
-                      <div className="flex items-center gap-2 mb-1">
+                <div className="result-info mb-4 p-3 sm:p-4 bg-muted rounded-lg border w-full print:bg-transparent print:border-none print:p-1 print:mb-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full">
+                    <div className="mb-2 sm:mb-0 w-full">
+                      <div className="flex items-center gap-2 mb-1 print:hidden">
                         <h3 className="text-lg sm:text-xl font-semibold text-foreground">
                           {result.programName}
                         </h3>
@@ -427,17 +509,26 @@ const ResultComponent = ({
                           )}
                         </Badge>
                       </div>
-                      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-foreground">
+                      <div className="flex flex-wrap print:justify-center w-full gap-2 sm:gap-4 text-xs sm:text-sm text-foreground print:text-black print:text-xs">
                         <span className="capitalize whitespace-nowrap">
-                          <strong>Type:</strong> {result.programType}
-                        </span>
-                        <span className="capitalize whitespace-nowrap">
-                          <strong>Category:</strong> {result.programCategory}
+                          <strong>Program:</strong> {result.programName}
                         </span>
                         <span className="whitespace-nowrap">
                           <strong>Division:</strong> {result.divisionName}
                         </span>
-                        <span className="whitespace-nowrap">
+                        <span className="capitalize whitespace-nowrap print:hidden">
+                          <strong>Type:</strong> {result.programType}
+                        </span>
+                        <span className="capitalize whitespace-nowrap print:hidden">
+                          <strong>Category:</strong> {result.programCategory}
+                        </span>
+                        {result.isResultDeclared && (
+                          <span className="whitespace-nowrap print:ml-auto">
+                            <strong>Result No.:</strong>{" "}
+                            {result.resultNumber || "N/A"}
+                          </span>
+                        )}
+                        <span className="print:hidden whitespace-nowrap">
                           <strong>Participants:</strong>{" "}
                           {result.participants.length}
                         </span>
@@ -530,30 +621,30 @@ const ResultComponent = ({
                 </div>
 
                 {/* Results Table */}
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="overflow-x-auto">
+                <div className="table-container border rounded-lg overflow-hidden print:rounded-none print:border-none">
+                  <div className="overflow-x-auto print:overflow-visible h-full">
                     <Table className="min-w-full">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border">
+                          <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border print:border-black">
                             Rank
                           </TableHead>
-                          <TableHead className="w-20 whitespace-nowrap border-t border-r border-border ">
+                          <TableHead className="w-20 whitespace-nowrap border-t border-r border-border print:border-black">
                             Chest Number
                           </TableHead>
-                          <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border">
+                          <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black">
                             Code Letter
                           </TableHead>
-                          <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border ">
+                          <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border print:border-black">
                             Name
                           </TableHead>
-                          <TableHead className="whitespace-nowrap border-t border-r border-border ">
+                          <TableHead className="whitespace-nowrap border-t border-r border-border print:border-black">
                             Team
                           </TableHead>
-                          <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border">
+                          <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border print:border-black">
                             Grade
                           </TableHead>
-                          <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border">
+                          <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black">
                             Points
                           </TableHead>
                         </TableRow>
@@ -565,50 +656,66 @@ const ResultComponent = ({
                             .filter((participant) => participant.points > 0)
                             .map((participant, index) => (
                               <TableRow key={participant.id || index}>
-                                <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border">
+                                <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border print:border-black">
                                   <div className="flex items-center justify-center gap-1">
                                     {getPositionIcon(participant.rank)}
                                     <Badge
                                       variant={getPositionVariant(
                                         participant.rank
                                       )}
+                                      className="print:hidden"
                                     >
                                       {participant.rank}
                                     </Badge>
+                                    <span className="hidden print:inline">
+                                      {participant.rank}
+                                    </span>
                                   </div>
                                 </TableCell>
-                                <TableCell className="font-medium whitespace-nowrap border-t border-r border-border ">
+                                <TableCell className="font-medium whitespace-nowrap border-t border-r border-border print:border-black">
                                   {participant.participantDetails
                                     ?.chestNumber || "N/A"}
                                 </TableCell>
-                                <TableCell className="text-center  whitespace-nowrap border-t border-r border-border">
+                                <TableCell className="text-center whitespace-nowrap border-t border-r border-border print:border-black">
                                   {participant.codeLetter || "-"}
                                 </TableCell>
-                                <TableCell className="font-medium whitespace-nowrap border-t border-r border-border ">
+                                <TableCell className="font-medium whitespace-nowrap border-t border-r border-border print:border-black">
                                   {participant.participantDetails?.name ||
                                     "N/A"}
                                 </TableCell>
-                                <TableCell className="whitespace-nowrap border-t border-r border-border ">
+                                <TableCell className="whitespace-nowrap border-t border-r border-border print:border-black">
                                   {participant.participantDetails?.teamId
                                     ?.name || "N/A"}
                                 </TableCell>
-                                <TableCell className="text-center whitespace-nowrap border-t border-r border-border">
-                                  <Badge variant="outline">
+                                <TableCell className="text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                                  <Badge
+                                    variant="outline"
+                                    className="print:hidden"
+                                  >
                                     {participant.grade}
                                   </Badge>
+                                  <span className="hidden print:inline">
+                                    {participant.grade}
+                                  </span>
                                 </TableCell>
-                                <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border">
-                                  <Badge variant="secondary">
+                                <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border print:border-black">
+                                  <Badge
+                                    variant="secondary"
+                                    className="print:hidden"
+                                  >
                                     {participant.points}
                                   </Badge>
+                                  <span className="hidden print:inline">
+                                    {participant.points}
+                                  </span>
                                 </TableCell>
                               </TableRow>
                             ))
                         ) : (
                           <TableRow>
                             <TableCell
-                              colSpan={6}
-                              className="text-center py-6 text-muted-foreground"
+                              colSpan={7}
+                              className="text-center py-6 text-muted-foreground print:border-black"
                             >
                               No participants found for this result
                             </TableCell>
@@ -638,25 +745,6 @@ const ResultComponent = ({
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        @media print {
-          .no-print {
-            display: none !important;
-          }
-          .result-section {
-            page-break-inside: avoid;
-            margin-bottom: 30px;
-          }
-        }
-
-        /* Mobile table scrolling styles */
-        @media (max-width: 768px) {
-          .overflow-x-auto {
-            -webkit-overflow-scrolling: touch;
-          }
-        }
-      `}</style>
     </div>
   );
 };

@@ -41,9 +41,21 @@ const resultSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    resultNumber: {
+      type: Number,
+      default: null,
+      sparse: true,
+    },
+    declaredAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
+
+// Index for efficient querying by result number
+resultSchema.index({ resultNumber: 1 });
 
 const Result = models.Result || model("Result", resultSchema);
 

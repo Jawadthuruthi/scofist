@@ -66,7 +66,7 @@ export async function GET(request) {
           select: "name",
         },
       })
-      .sort({ updatedAt: -1 });
+      .sort({ resultNumber: 1 });
 
     // Filter results based on additional criteria
     let filteredResults = results.filter((result) => {
@@ -89,7 +89,7 @@ export async function GET(request) {
     });
 
     // Format results with detailed information
-    const formattedResults = filteredResults.map((result) => ({
+    const formattedResults = filteredResults.map((result, index) => ({
       _id: result._id,
       programId: result.programId._id,
       programName: result.programId.name,
@@ -106,6 +106,7 @@ export async function GET(request) {
         ?.filter((p) => p.rank > 4)
         .map((p) => `${p.rank}. ${p.id.name}`),
       isResultDeclared: result.isResultDeclared,
+      resultNumber: result.resultNumber,
       createdAt: result.createdAt,
       updatedAt: result.updatedAt,
     }));
@@ -267,16 +268,16 @@ export async function PUT(request) {
       },
     });
 
-    const registrations = await ProgramRegistration.find({
-      programId: result.programId._id,
-    });
-
     if (!result) {
       return NextResponse.json(
         { success: false, message: "Result not found" },
         { status: 404 }
       );
     }
+
+    const registrations = await ProgramRegistration.find({
+      programId: result.programId._id,
+    });
 
     const newDeclarationStatus =
       isResultDeclared !== undefined
@@ -286,6 +287,24 @@ export async function PUT(request) {
     // Import models here to avoid circular dependency issues
     const Participant = (await import("@/models/Participant")).default;
     const Team = (await import("@/models/Team")).default;
+
+    // Handle result number assignment
+    if (newDeclarationStatus && !result.isResultDeclared) {
+      // DECLARING RESULT - Assign new result number
+      const lastDeclaredResult = await Result.findOne({
+        resultNumber: { $ne: null },
+      }).sort({ resultNumber: -1 });
+
+      const nextResultNumber = lastDeclaredResult
+        ? lastDeclaredResult.resultNumber + 1
+        : 1;
+      result.resultNumber = nextResultNumber;
+      result.declaredAt = new Date();
+    } else if (!newDeclarationStatus && result.isResultDeclared) {
+      // UNDECLARING RESULT - Remove result number
+      result.resultNumber = null;
+      result.declaredAt = null;
+    }
 
     if (newDeclarationStatus) {
       // DECLARING RESULT - Update participant and team records
@@ -484,6 +503,8 @@ export async function PUT(request) {
         programId: result.programId._id,
         programName: result.programId.name,
         isResultDeclared: result.isResultDeclared,
+        resultNumber: result.resultNumber,
+        declaredAt: result.declaredAt,
         updatedAt: result.updatedAt,
       },
     });

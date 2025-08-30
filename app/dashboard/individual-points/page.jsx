@@ -90,6 +90,9 @@ export default async function IndividualPointsPage() {
           limit={20}
           readOnly={true}
           isFestival={true}
+          apiFilters={{
+            sortByPoints: true,
+          }}
         />
       </>
     );

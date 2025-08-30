@@ -68,8 +68,7 @@ export async function GET(req, res) {
       .populate("divisionId", ["_id", "name"])
       .skip(page * limit)
       .limit(limit)
-      .sort({ createdAt: -1 })
-      .collation({ locale: "en_US", numericOrdering: true });
+      .sort({ name: 1 });
 
     // Get total count for pagination info
     const total = await Program.countDocuments(query);

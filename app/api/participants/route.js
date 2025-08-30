@@ -159,38 +159,44 @@ export async function GET(req, res) {
     // Get total count for pagination info
     const total = await Participant.countDocuments(query);
 
-    const formattedParticipants = participants.map((participant) => ({
-      ...participant.toObject(),
-      _id: participant._id?._id,
-      profilePic: participant._id?.profilePic,
-      batchId: participant.batchId?._id,
-      batchName: participant.batchId?.name || "Unknown",
-      teamId: participant.teamId?._id,
-      teamName: participant.teamId?.name || "Unknown",
-      divisionId: participant.divisionId?._id,
-      divisionName: participant.divisionId?.name || "Unknown",
-      programsCount: participant.programs?.length || 0,
-      stageProgramsCount:
-        participant.programs?.filter(
-          (program) => program.id.category === "Stage"
-        )?.length || 0,
-      offStageProgramsCount:
-        participant.programs?.filter(
-          (program) => program.id.category === "Off-Stage"
-        )?.length || 0,
+    const formattedParticipants = participants
+      .map((participant) => ({
+        ...participant.toObject(),
+        _id: participant._id?._id,
+        profilePic: participant._id?.profilePic,
+        batchId: participant.batchId?._id,
+        batchName: participant.batchId?.name || "Unknown",
+        teamId: participant.teamId?._id,
+        teamName: participant.teamId?.name || "Unknown",
+        divisionId: participant.divisionId?._id,
+        divisionName: participant.divisionId?.name || "Unknown",
+        programsCount: participant.programs?.length || 0,
+        stageProgramsCount:
+          participant.programs?.filter(
+            (program) => program.id.category === "Stage"
+          )?.length || 0,
+        offStageProgramsCount:
+          participant.programs?.filter(
+            (program) => program.id.category === "Off-Stage"
+          )?.length || 0,
 
-      totalPoints:
-        (participant.stagePoints || 0) + (participant.offStagePoints || 0),
-      programs: participant.programs.map((program) => ({
-        ...program.toObject(),
-        id: program?.id?._id,
-        name: program?.id?.name,
-        type: program?.id?.type,
-        category: program?.id?.category,
-        divisionId: program?.id?.divisionId?._id,
-        divisionType: program?.id?.divisionId?.type,
-      })),
-    }));
+        totalPoints:
+          (participant.stagePoints || 0) + (participant.offStagePoints || 0),
+        programs: participant.programs.map((program) => ({
+          ...program.toObject(),
+          id: program?.id?._id,
+          name: program?.id?.name,
+          type: program?.id?.type,
+          category: program?.id?.category,
+          divisionId: program?.id?.divisionId?._id,
+          divisionType: program?.id?.divisionId?.type,
+        })),
+      }))
+      ?.sort((a, b) =>
+        filterParams.sortByPoints === "true"
+          ? b.totalPoints - a.totalPoints
+          : a.chestNumber - b.chestNumber
+      ); // Sort by totalPoints descending
 
     const nonWinners = [];
 

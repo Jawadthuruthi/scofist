@@ -200,14 +200,19 @@ export default function PublicResultsPage() {
             </div>
 
             {/* Participant details */}
-            <h3
-              className={`
-              font-bold mb-2 ${textColor} drop-shadow-sm
+            <div className="mb-4">
+              <h3
+                className={`
+              font-bold ${textColor} drop-shadow-sm
               ${isFirst ? "text-xl" : "text-lg"}
             `}
-            >
-              {participant.participantDetails?.name || "Unknown"}
-            </h3>
+              >
+                {participant.participantDetails?.name || "Unknown"}
+              </h3>
+              <h5 className={`text-sm ${textColor} font-semibold`}>
+                {participant.participantDetails?.teamId?.name || "Unknown"}
+              </h5>
+            </div>
 
             <div className="space-y-2 space-x-2 w-full">
               <Badge
