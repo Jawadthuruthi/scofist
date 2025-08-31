@@ -340,7 +340,7 @@ const ResultComponent = ({
             return a.programName.localeCompare(b.programName);
           } else {
             // Both declared - sort by result number ascending
-            return (a.resultNumber || 0) - (b.resultNumber || 0);
+            return (b.resultNumber || 0) - (a.resultNumber || 0);
           }
         });
         break;
