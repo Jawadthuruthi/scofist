@@ -12,14 +12,32 @@ export async function POST(req) {
       );
     }
 
-    // Upload image to Cloudinary
+    // Option 1: Minimal transformation for better quality
     const result = await cloudinary.uploader.upload(image, {
       folder: "profiles",
       transformation: [
-        { width: 500, height: 500, crop: "limit" },
-        { quality: "auto" },
+        { width: 1200, height: 1200, crop: "limit" }, // Increased size limit
+        { quality: "90" }, // Fixed high quality (80-100 is good range)
+        { format: "auto" }, // Auto-select best format (WebP, AVIF, etc.)
       ],
     });
+
+    // Option 2: Different settings based on use case
+    // For profile images - moderate compression
+    // const result = await cloudinary.uploader.upload(image, {
+    //   folder: "profiles",
+    //   transformation: [
+    //     { width: 800, height: 800, crop: "limit" },
+    //     { quality: "85" },
+    //     { format: "auto" },
+    //   ],
+    // });
+
+    // Option 3: No transformation for original quality
+    // const result = await cloudinary.uploader.upload(image, {
+    //   folder: "profiles",
+    //   // No transformation - keeps original quality and size
+    // });
 
     return NextResponse.json(
       {
