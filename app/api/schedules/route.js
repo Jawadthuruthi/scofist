@@ -261,40 +261,42 @@ export async function POST(req, res) {
       );
     }
 
-    // Check for time conflicts on the same stage and date
-    const conflictingSchedule = await Schedule.findOne({
-      date: scheduleDate,
-      stageNumber: scheduleData.stageNumber,
-      _id: { $ne: scheduleData._id }, // Exclude current schedule if updating
-      $or: [
-        {
-          $and: [
-            { startTime: { $lte: scheduleData.startTime } },
-            { endTime: { $gt: scheduleData.startTime } },
-          ],
-        },
-        {
-          $and: [
-            { startTime: { $lt: scheduleData.endTime } },
-            { endTime: { $gte: scheduleData.endTime } },
-          ],
-        },
-        {
-          $and: [
-            { startTime: { $gte: scheduleData.startTime } },
-            { endTime: { $lte: scheduleData.endTime } },
-          ],
-        },
-      ],
-    }).populate("programId", "name");
+    if (startTime && endTime) {
+      // Check for time conflicts on the same stage and date
+      const conflictingSchedule = await Schedule.findOne({
+        date: scheduleDate,
+        stageNumber: scheduleData.stageNumber,
+        _id: { $ne: scheduleData._id }, // Exclude current schedule if updating
+        $or: [
+          {
+            $and: [
+              { startTime: { $lte: scheduleData.startTime } },
+              { endTime: { $gt: scheduleData.startTime } },
+            ],
+          },
+          {
+            $and: [
+              { startTime: { $lt: scheduleData.endTime } },
+              { endTime: { $gte: scheduleData.endTime } },
+            ],
+          },
+          {
+            $and: [
+              { startTime: { $gte: scheduleData.startTime } },
+              { endTime: { $lte: scheduleData.endTime } },
+            ],
+          },
+        ],
+      }).populate("programId", "name");
 
-    if (conflictingSchedule) {
-      return NextResponse.json(
-        {
-          message: `Time conflict with "${conflictingSchedule.programId.name}" on Stage ${scheduleData.stageNumber} from ${formatTimeForDisplay(conflictingSchedule.startTime)} to ${formatTimeForDisplay(conflictingSchedule.endTime)}`,
-        },
-        { status: 409 }
-      );
+      if (conflictingSchedule) {
+        return NextResponse.json(
+          {
+            message: `Time conflict with "${conflictingSchedule.programId.name}" on Stage ${scheduleData.stageNumber} from ${formatTimeForDisplay(conflictingSchedule.startTime)} to ${formatTimeForDisplay(conflictingSchedule.endTime)}`,
+          },
+          { status: 409 }
+        );
+      }
     }
 
     // Create new schedule (without status field)
@@ -435,40 +437,42 @@ export async function PUT(req, res) {
       );
     }
 
-    // Check for time conflicts on the same stage and date
-    const conflictingSchedule = await Schedule.findOne({
-      date: finalDate,
-      stageNumber: finalStageNumber,
-      _id: { $ne: scheduleId },
-      $or: [
-        {
-          $and: [
-            { startTime: { $lte: finalStartTime } },
-            { endTime: { $gt: finalStartTime } },
-          ],
-        },
-        {
-          $and: [
-            { startTime: { $lt: finalEndTime } },
-            { endTime: { $gte: finalEndTime } },
-          ],
-        },
-        {
-          $and: [
-            { startTime: { $gte: finalStartTime } },
-            { endTime: { $lte: finalEndTime } },
-          ],
-        },
-      ],
-    }).populate("programId", "name");
+    if (startTime && endTime) {
+      // Check for time conflicts on the same stage and date
+      const conflictingSchedule = await Schedule.findOne({
+        date: finalDate,
+        stageNumber: finalStageNumber,
+        _id: { $ne: scheduleId },
+        $or: [
+          {
+            $and: [
+              { startTime: { $lte: finalStartTime } },
+              { endTime: { $gt: finalStartTime } },
+            ],
+          },
+          {
+            $and: [
+              { startTime: { $lt: finalEndTime } },
+              { endTime: { $gte: finalEndTime } },
+            ],
+          },
+          {
+            $and: [
+              { startTime: { $gte: finalStartTime } },
+              { endTime: { $lte: finalEndTime } },
+            ],
+          },
+        ],
+      }).populate("programId", "name");
 
-    if (conflictingSchedule) {
-      return NextResponse.json(
-        {
-          message: `Time conflict with "${conflictingSchedule.programId.name}" on Stage ${finalStageNumber} from ${formatTimeForDisplay(conflictingSchedule.startTime)} to ${formatTimeForDisplay(conflictingSchedule.endTime)}`,
-        },
-        { status: 409 }
-      );
+      if (conflictingSchedule) {
+        return NextResponse.json(
+          {
+            message: `Time conflict with "${conflictingSchedule.programId.name}" on Stage ${finalStageNumber} from ${formatTimeForDisplay(conflictingSchedule.startTime)} to ${formatTimeForDisplay(conflictingSchedule.endTime)}`,
+          },
+          { status: 409 }
+        );
+      }
     }
 
     // Handle bulk update for multiple schedules (only for isPublished since status is calculated)
