@@ -128,10 +128,11 @@ const ResultPoster = ({
 
           {/* Result Number Overlay (Left Side) */}
           <div
-            className="absolute poster-text text-white text-2xl md:text-3xl"
+            className="absolute poster-text  text-2xl md:text-3xl"
             style={{
               top: "47%",
               left: "19%",
+              color: textColors[posterNumber - 1] || "#ffffff",
             }}
           >
             {resultNumber || "00"}
