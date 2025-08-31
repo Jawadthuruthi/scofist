@@ -15,11 +15,6 @@ export async function POST(req) {
     // Option 1: Minimal transformation for better quality
     const result = await cloudinary.uploader.upload(image, {
       folder: "profiles",
-      transformation: [
-        { width: 1200, height: 1200, crop: "limit" }, // Increased size limit
-        { quality: "90" }, // Fixed high quality (80-100 is good range)
-        { format: "auto" }, // Auto-select best format (WebP, AVIF, etc.)
-      ],
     });
 
     // Option 2: Different settings based on use case
