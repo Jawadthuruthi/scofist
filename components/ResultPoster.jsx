@@ -3,13 +3,13 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Loader } from "lucide-react";
 import { toast } from "sonner";
-import { applyPrintStyles, removePrintStyles } from "@/lib/utils";
 import html2canvas from "html2canvas";
 
 const ResultPoster = ({
   posterUrl,
   posterNumber = 1,
   resultNumber,
+  textColors = [],
   winners = [],
   programName = "",
   divisionName = "",
@@ -21,9 +21,9 @@ const ResultPoster = ({
 
   // Position configurations for winner names (right side dots)
   const rankPositions = {
-    1: { top: "51%", left: "46%" }, // Single dot line - rank 1
-    2: { top: "61%", left: "46%" }, // Double dot line - rank 2
-    3: { top: "72%", left: "46%" }, // Triple dot line - rank 3
+    1: { top: "46%", left: "44%" }, // Single dot line - rank 1
+    2: { top: "58%", left: "44%" }, // Double dot line - rank 2
+    3: { top: "71%", left: "44%" }, // Triple dot line - rank 3
   };
 
   const handleDownloadPoster = async () => {
@@ -150,30 +150,35 @@ const ResultPoster = ({
             }}
           >
             <h2>{programName}</h2>
-            <h3 className="text-xxs font-semibold">{divisionName}</h3>
+            <h3 className="text-[9px] font-semibold">{divisionName}</h3>
           </div>
 
           {/* Winners Overlay (Right Side Dots) */}
           {winners.slice(0, 3).map((winner, index) => {
             const rank = winner.rank;
             const position = rankPositions[rank];
+            const textColor = textColors[posterNumber - 1] || "#ffffff";
 
             if (!position || !winner) return null;
 
             return (
               <div
                 key={`winner-${rank}`}
-                className="absolute text-white font-semibold poster-text text-xxs"
+                className="absolute  font-semibold poster-text text-[9px]"
                 style={{
                   ...position,
                   textShadow: "2px 2px 4px rgba(0,0,0,0.9)",
                   lineHeight: "1.1",
                   maxWidth: "120px",
                   wordBreak: "break-word",
+                  color: textColor,
                 }}
               >
-                <div className=" px-2 py-1 rounded-md ">
+                <div className=" px-2 py-1 rounded-md whitespace-nowrap">
                   {winner.name || "Unknown"}
+                </div>
+                <div className=" px-2 rounded-md whitespace-nowrap text-[8px]">
+                  {winner.team || "Unknown"}
                 </div>
               </div>
             );

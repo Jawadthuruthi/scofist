@@ -17,6 +17,7 @@ const ResultPostersSection = ({ resultData = null, settings = null }) => {
         .map((p) => ({
           rank: p.rank,
           name: p.participantDetails?.name || "Unknown",
+          team: p.participantDetails?.teamId?.name || "N/A",
           codeLetter: p.codeLetter,
         }));
 
@@ -48,6 +49,12 @@ const ResultPostersSection = ({ resultData = null, settings = null }) => {
   if (posters.length === 0) {
     return null;
   }
+
+  const textColors = [
+    settings.festival.resultPoster1?.textColor || "#ffffff",
+    settings.festival.resultPoster2?.textColor || "#ffffff",
+    settings.festival.resultPoster3?.textColor || "#ffffff",
+  ];
 
   return (
     <div className="w-full mt-12">
@@ -84,6 +91,7 @@ const ResultPostersSection = ({ resultData = null, settings = null }) => {
                 key={`poster-${poster.number}`}
                 posterUrl={poster.url}
                 posterNumber={poster.number}
+                textColors={textColors}
                 resultNumber={resultData.resultNumber}
                 winners={winners}
                 programName={resultData.programName}

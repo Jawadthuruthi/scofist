@@ -138,6 +138,16 @@ const SettingsSchema = new Schema(
         publicId: {
           type: String,
         },
+        textColor: {
+          type: String,
+          default: "#ffffff",
+          trim: true,
+          validate: {
+            validator: (v) =>
+              !v || /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v),
+            message: "Invalid hex color format",
+          },
+        },
       },
       resultPoster2: {
         url: {
@@ -151,6 +161,16 @@ const SettingsSchema = new Schema(
         publicId: {
           type: String,
         },
+        textColor: {
+          type: String,
+          default: "#ffffff",
+          trim: true,
+          validate: {
+            validator: (v) =>
+              !v || /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v),
+            message: "Invalid hex color format",
+          },
+        },
       },
       resultPoster3: {
         url: {
@@ -163,6 +183,16 @@ const SettingsSchema = new Schema(
         },
         publicId: {
           type: String,
+        },
+        textColor: {
+          type: String,
+          default: "#ffffff",
+          trim: true,
+          validate: {
+            validator: (v) =>
+              !v || /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v),
+            message: "Invalid hex color format",
+          },
         },
       },
     },

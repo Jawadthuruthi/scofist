@@ -96,12 +96,24 @@ export async function POST(req, res) {
         },
         instructions:
           data.instructions ?? existingSettings?.festival?.instructions,
-        resultPoster1:
-          data.resultPoster1 ?? existingSettings?.festival?.resultPoster1,
-        resultPoster2:
-          data.resultPoster2 ?? existingSettings?.festival?.resultPoster2,
-        resultPoster3:
-          data.resultPoster3 ?? existingSettings?.festival?.resultPoster3,
+        resultPoster1: {
+          ...data.resultPoster1,
+          textColor:
+            data.poster1TextColor ??
+            existingSettings?.festival?.resultPoster1?.textColor,
+        },
+        resultPoster2: {
+          ...data.resultPoster2,
+          textColor:
+            data.poster2TextColor ??
+            existingSettings?.festival?.resultPoster2?.textColor,
+        },
+        resultPoster3: {
+          ...data.resultPoster3,
+          textColor:
+            data.poster3TextColor ??
+            existingSettings?.festival?.resultPoster3?.textColor,
+        },
       },
     };
 
@@ -206,10 +218,24 @@ export async function PUT(req, res) {
         },
         instructions:
           data.instructions ?? existingSettings?.festival?.instructions,
-        resultPoster1:
-          data.resultPoster1 ?? existingSettings?.festival?.resultPoster1,
-        resultPoster2:
-          data.resultPoster2 ?? existingSettings?.festival?.resultPoster2,
+        resultPoster1: {
+          ...data.resultPoster1,
+          textColor:
+            data.poster1TextColor ??
+            existingSettings?.festival?.resultPoster1?.textColor,
+        },
+        resultPoster2: {
+          ...data.resultPoster2,
+          textColor:
+            data.poster2TextColor ??
+            existingSettings?.festival?.resultPoster2?.textColor,
+        },
+        resultPoster3: {
+          ...data.resultPoster3,
+          textColor:
+            data.poster3TextColor ??
+            existingSettings?.festival?.resultPoster3?.textColor,
+        },
       },
     };
 

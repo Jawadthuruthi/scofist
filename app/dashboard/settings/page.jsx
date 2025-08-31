@@ -202,6 +202,24 @@ const festivalFormField = [
     minWidth: 1024,
     minHeight: 1024,
   },
+  {
+    name: "poster1TextColor",
+    label: " Poster 1 Text Color",
+    type: "color",
+    className: "col-span-1",
+  },
+  {
+    name: "poster2TextColor",
+    label: " Poster 2 Text Color",
+    type: "color",
+    className: "col-span-1",
+  },
+  {
+    name: "poster3TextColor",
+    label: " Poster 3 Text Color",
+    type: "color",
+    className: "col-span-1",
+  },
 ];
 
 export default async function SettingsPage() {
@@ -228,10 +246,12 @@ export default async function SettingsPage() {
       right: data.festival.participantsCard.textPositions.right || 0,
       bottom: data.festival.participantsCard.textPositions.bottom || 0,
       left: data.festival.participantsCard.textPositions.left || 0,
-      registrationDeadline: data.festival.registrationDeadline,
       resultPoster1: data.festival.resultPoster1 || {},
       resultPoster2: data.festival.resultPoster2 || {},
       resultPoster3: data.festival.resultPoster3 || {},
+      poster1TextColor: data.festival.resultPoster1.textColor || "#ffffff",
+      poster2TextColor: data.festival.resultPoster2.textColor || "#ffffff",
+      poster3TextColor: data.festival.resultPoster3.textColor || "#ffffff",
     };
 
     const idCard = {
