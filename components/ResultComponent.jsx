@@ -32,17 +32,13 @@ import { toast } from "sonner";
 import {
   Trophy,
   Printer,
-  Filter,
   X,
   Loader,
   FileText,
   Eye,
   EyeOff,
-  RefreshCw,
-  Award,
   Users,
   TrendingUp,
-  Calendar,
   ArrowUpDown,
 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
@@ -61,7 +57,7 @@ const ResultComponent = ({
   const [selectedProgram, setSelectedProgram] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedType, setSelectedType] = useState("");
-  const [sortBy, setSortBy] = useState("program");
+  const [sortBy, setSortBy] = useState("team-points");
   const [page, setPage] = useState(0);
   const [declaring, setDeclaring] = useState({});
   const [generating, setGenerating] = useState({});
@@ -305,7 +301,7 @@ const ResultComponent = ({
     // Apply sorting
     switch (sortBy) {
       case "team-points":
-        // New global team-based sorting logic
+        // New global pointsbased sorting logic
         filtered = filtered.sort((a, b) => {
           const aDecl = a.isResultDeclared ? 1 : 0;
           const bDecl = b.isResultDeclared ? 1 : 0;
@@ -548,7 +544,7 @@ const ResultComponent = ({
     setSelectedProgram("");
     setSelectedType("");
     setSelectedStatus("all");
-    setSortBy("program");
+    setSortBy("team-points");
   };
 
   const isLoading = fetchResultsQuery.isLoading || fetchTeamsQuery.isLoading;
@@ -657,8 +653,8 @@ const ResultComponent = ({
                   <SelectValue placeholder="Sort By" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="program">Name</SelectItem>
                   <SelectItem value="team-points">Team Priority</SelectItem>
+                  <SelectItem value="program">Name</SelectItem>
                   <SelectItem value="status">Status</SelectItem>
                 </SelectContent>
               </Select>
@@ -668,7 +664,7 @@ const ResultComponent = ({
               selectedProgram ||
               selectedType ||
               selectedStatus !== "all" ||
-              sortBy !== "program") && (
+              sortBy !== "team-points") && (
               <Button
                 variant="outline"
                 size="sm"
