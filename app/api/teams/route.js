@@ -60,15 +60,19 @@ export async function GET(req, res) {
     // Get total count for pagination info
     const total = await Team.countDocuments(query);
 
-    const formattedTeams = teams.map((team) => ({
-      ...team.toObject(),
-      leaderId: team.leaderId?._id,
-      leaderName: team.leaderId?.name || "Unknown",
-      membersCount: team.membersId?.length || 0,
-      totalPoints: (team.stagePoints || 0) + (team.offStagePoints || 0),
-      membersId: team.membersId?.map((member) => member._id) || [],
-      membersNames: team.membersId?.map((member) => member.name) || [],
-    }));
+    const formattedTeams = teams
+      .map((team) => ({
+        ...team.toObject(),
+        leaderId: team.leaderId?._id,
+        leaderName: team.leaderId?.name || "Unknown",
+        membersCount: team.membersId?.length || 0,
+        totalPoints: (team.stagePoints || 0) + (team.offStagePoints || 0),
+        membersId: team.membersId?.map((member) => member._id) || [],
+        membersNames: team.membersId?.map((member) => member.name) || [],
+      }))
+      ?.sort((a, b) =>
+        filterParams.sortByPoints === "true" ? b.totalPoints - a.totalPoints : 0
+      );
 
     return NextResponse.json(
       {

@@ -51,6 +51,7 @@ export default async function TeamPointsPage() {
           filterConfig={filterConfig}
           limit={20}
           readOnly={true}
+          apiFilters={{ sortByPoints: true }}
         />
       </>
     );

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Loader } from "lucide-react";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
+import Image from "next/image";
 
 const ResultPoster = ({
   posterUrl,
@@ -114,16 +115,23 @@ const ResultPoster = ({
           style={{ maxWidth: "400px" }}
         >
           {/* Background Poster Image */}
-          <img
+          <Image
             src={posterUrl}
-            alt={`Result Poster ${posterNumber}`}
-            className="w-full h-full object-cover"
-            onLoad={() => setImageLoaded(true)}
-            onError={() => {
-              setImageLoaded(false);
-              toast.error(`Failed to load poster ${posterNumber}`);
+            alt={`Poster ${posterNumber}`}
+            width={1024} // placeholder, real size comes from CSS below
+            height={1024} // placeholder, real size comes from CSS below
+            unoptimized // serve exactly like <img> to preserve look
+            priority // optional; same perceived load as before
+            onLoadingComplete={() => setImageLoaded(true)}
+            onError={() => setImageLoaded(true)}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              objectPosition: "center",
+              pointerEvents: "none",
+              userSelect: "none",
             }}
-            crossOrigin="anonymous"
           />
 
           {/* Result Number Overlay (Left Side) */}

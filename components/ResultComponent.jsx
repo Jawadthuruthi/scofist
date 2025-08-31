@@ -43,6 +43,7 @@ import {
   Users,
   TrendingUp,
   Calendar,
+  ArrowUpDown,
 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
@@ -60,9 +61,11 @@ const ResultComponent = ({
   const [selectedProgram, setSelectedProgram] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedType, setSelectedType] = useState("");
+  const [sortBy, setSortBy] = useState("program"); // New sorting state
   const [page, setPage] = useState(0);
   const [declaring, setDeclaring] = useState({});
   const [generating, setGenerating] = useState({});
+  const [teams, setTeams] = useState([]); // Store team data for sorting
 
   const printRef = useRef();
 
@@ -70,9 +73,13 @@ const ResultComponent = ({
   const { useFetchItems } = useCrud("results", apiKey);
   const { useUpdateItem: useResultUpdate } = useCrud("results", apiKey);
   const { useAddItem: useResultCreate } = useCrud("results", apiKey);
+  const { useFetchItems: useFetchTeams } = useCrud("teams", apiKey);
 
   const updateResult = useResultUpdate();
   const createResult = useResultCreate();
+
+  // Fetch teams data for sorting
+  const fetchTeamsQuery = useFetchTeams(0, 1000, { sortByPoints: "true" });
 
   // Fetch results
   const fetchResultsQuery = useFetchItems(
@@ -102,19 +109,66 @@ const ResultComponent = ({
     }
   }, [fetchResultsQuery.error]);
 
+  // Store teams data
+  useEffect(() => {
+    if (fetchTeamsQuery.data) {
+      setTeams(fetchTeamsQuery.data.teams || []);
+    }
+  }, [fetchTeamsQuery.data]);
+
+  // Helper function to get team total points
+  const getTeamTotalPoints = useCallback(
+    (teamId) => {
+      const team = teams.find((t) => t._id === teamId);
+      return team ? (team.stagePoints || 0) + (team.offStagePoints || 0) : 0;
+    },
+    [teams]
+  );
+
+  // Helper function to get average team points for a result
+  const getResultAverageTeamPoints = useCallback(
+    (result) => {
+      if (!result.participants || result.participants.length === 0) return 0;
+
+      // Get unique team IDs from participants
+      const teamIds = [
+        ...new Set(
+          result.participants
+            .map(
+              (p) =>
+                p.participantDetails?.teamId?._id ||
+                p.participantDetails?.teamId
+            )
+            .filter(Boolean)
+        ),
+      ];
+
+      if (teamIds.length === 0) return 0;
+
+      // Calculate average team points
+      const totalTeamPoints = teamIds.reduce(
+        (sum, teamId) => sum + getTeamTotalPoints(teamId),
+        0
+      );
+
+      return totalTeamPoints / teamIds.length;
+    },
+    [getTeamTotalPoints]
+  );
+
   // Process fetched data
   useEffect(() => {
     if (fetchResultsQuery.data) {
       const fetchedResults = fetchResultsQuery.data.results || [];
       setResults(fetchedResults);
-      setFilteredResults(fetchedResults);
     }
   }, [fetchResultsQuery.data]);
 
-  // Filter results
+  // Filter and sort results
   useEffect(() => {
     let filtered = results;
 
+    // Apply filters
     if (selectedDivision) {
       filtered = filtered.filter(
         (result) => result.divisionId === selectedDivision
@@ -140,13 +194,56 @@ const ResultComponent = ({
       );
     }
 
+    // Apply sorting
+    switch (sortBy) {
+      case "team-points":
+        // Sort pending results by average team points (ascending - lower points first), then declared results
+        filtered = filtered.sort((a, b) => {
+          // If both are declared or both are pending
+          if (a.isResultDeclared === b.isResultDeclared) {
+            if (!a.isResultDeclared && !b.isResultDeclared) {
+              // Both pending - sort by average team points (lower first for strategic advantage)
+              const avgA = getResultAverageTeamPoints(a);
+              const avgB = getResultAverageTeamPoints(b);
+              return avgA - avgB; // Lower points first
+            } else {
+              // Both declared - sort by result number
+              return (a.resultNumber || 0) - (b.resultNumber || 0);
+            }
+          }
+          // Declared results first, then pending
+          return b.isResultDeclared - a.isResultDeclared;
+        });
+        break;
+
+      case "status":
+        // Sort by declaration status, then by program name
+        filtered = filtered.sort((a, b) => {
+          if (a.isResultDeclared !== b.isResultDeclared) {
+            return b.isResultDeclared - a.isResultDeclared;
+          }
+          return a.programName.localeCompare(b.programName);
+        });
+        break;
+
+      case "program":
+      default:
+        // Sort alphabetically by program name
+        filtered = filtered.sort((a, b) =>
+          a.programName.localeCompare(b.programName)
+        );
+        break;
+    }
+
     setFilteredResults(filtered);
   }, [
     selectedDivision,
     selectedProgram,
     selectedType,
     selectedStatus,
+    sortBy,
     results,
+    getResultAverageTeamPoints,
   ]);
 
   // Get available programs for selected division
@@ -301,8 +398,6 @@ const ResultComponent = ({
           font-weight: semibold !important;
         }
         
-       
-        
         .trophy-icon {
           display: inline-block !important;
           width: 8px !important;
@@ -317,9 +412,10 @@ const ResultComponent = ({
     setSelectedProgram("");
     setSelectedType("");
     setSelectedStatus("all");
+    setSortBy("program");
   };
 
-  const isLoading = fetchResultsQuery.isLoading;
+  const isLoading = fetchResultsQuery.isLoading || fetchTeamsQuery.isLoading;
   const totalResults = filteredResults.length;
   const declaredResultsCount = filteredResults.filter(
     (r) => r.isResultDeclared
@@ -355,9 +451,8 @@ const ResultComponent = ({
       <div className="no-print">
         <div className="flex flex-col gap-4">
           {/* Filters Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 flex-shrink-0" />
+          <div className="grid grid-cols-12 gap-3">
+            <div className="flex items-center gap-2 col-span-12 xs:col-span-6 lg:col-span-2">
               <Select
                 value={selectedDivision}
                 onValueChange={setSelectedDivision}
@@ -375,55 +470,76 @@ const ResultComponent = ({
                 </SelectContent>
               </Select>
             </div>
+            <div className="col-span-12 xs:col-span-6 lg:col-span-3">
+              <Select
+                value={selectedProgram}
+                onValueChange={setSelectedProgram}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All Programs" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>All Programs</SelectItem>
+                  {availablePrograms.map((program) => (
+                    <SelectItem key={program._id} value={program._id}>
+                      {program.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-12 xs:col-span-6 lg:col-span-2">
+              <Select value={selectedType} onValueChange={setSelectedType}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>All Types</SelectItem>
+                  <SelectItem value="stage">Stage</SelectItem>
+                  <SelectItem value="off-stage">Off-Stage</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-12 xs:col-span-6 lg:col-span-2">
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="declared">Declared</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select value={selectedProgram} onValueChange={setSelectedProgram}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="All Programs" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={null}>All Programs</SelectItem>
-                {availablePrograms.map((program) => (
-                  <SelectItem key={program._id} value={program._id}>
-                    {program.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={null}>All Types</SelectItem>
-                <SelectItem value="stage">Stage</SelectItem>
-                <SelectItem value="off-stage">Off-Stage</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="declared">Declared</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* New Sort By Filter */}
+            <div className="flex items-center gap-2 col-span-12 xs:col-span-6 lg:col-span-2">
+              <ArrowUpDown className="h-4 w-4 flex-shrink-0" />
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sort By" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="program">Name</SelectItem>
+                  <SelectItem value="team-points">Points</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             {(selectedDivision ||
               selectedProgram ||
               selectedType ||
-              selectedStatus !== "all") && (
+              selectedStatus !== "all" ||
+              sortBy !== "program") && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={clearFilters}
-                className="w-full"
+                className="w-full col-span-12 xs:col-span-6 lg:col-span-1"
               >
-                <X className="h-3 w-3 mr-1" />
-                Clear
+                <X className="h-3 w-3" />
               </Button>
             )}
           </div>
@@ -447,6 +563,12 @@ const ResultComponent = ({
                 <EyeOff className="h-4 w-4 text-orange-500" />
                 <span>{pendingResults} pending</span>
               </div>
+              {sortBy === "team-points" && pendingResults > 0 && (
+                <div className="flex items-center gap-1 text-xs text-blue-600 font-medium">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>Lower teams prioritized</span>
+                </div>
+              )}
             </div>
             <Button
               variant="default"
@@ -472,264 +594,279 @@ const ResultComponent = ({
           </div>
         ) : filteredResults.length > 0 ? (
           <div className="space-y-8 print:space-y-0">
-            {filteredResults.map((result, resultIndex) => (
-              <div key={result._id} className="result-section">
-                {/* Header - only for declared results in print */}
-                {result.isResultDeclared && (
-                  <PrintHeader apiKey={apiKey} isFestival={true} />
-                )}
+            {filteredResults.map((result, resultIndex) => {
+              const avgTeamPoints = getResultAverageTeamPoints(result);
 
-                {/* Result Header */}
-                <div className="result-info mb-4 p-3 sm:p-4 bg-muted rounded-lg border w-full print:bg-transparent print:border-none print:p-1 print:mb-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full">
-                    <div className="mb-2 sm:mb-0 w-full">
-                      <div className="flex items-center gap-2 mb-1 print:hidden">
-                        <h3 className="text-lg sm:text-xl font-semibold text-foreground">
-                          {result.programName}
-                        </h3>
-                        <Badge
-                          variant={
-                            result.isResultDeclared ? "default" : "secondary"
-                          }
-                          className="hidden sm:inline-flex"
-                        >
-                          {result.isResultDeclared ? (
-                            <>
-                              <Eye className="h-3 w-3 mr-1" />
-                              Declared
-                            </>
-                          ) : (
-                            <>
-                              <EyeOff className="h-3 w-3 mr-1" />
-                              Pending
-                            </>
-                          )}
-                        </Badge>
-                      </div>
-                      <div className="flex flex-wrap print:justify-center w-full gap-2 sm:gap-4 text-xs sm:text-sm text-foreground print:text-black print:text-xs">
-                        {result.isResultDeclared && (
-                          <span className="whitespace-nowrap print:hidden">
-                            <strong>Result No.:</strong>{" "}
-                            {result.resultNumber || "N/A"}
-                          </span>
-                        )}
-                        <span className="capitalize whitespace-nowrap hidden print:block">
-                          <strong>Program:</strong> {result.programName}
-                        </span>
-                        <span className="whitespace-nowrap">
-                          <strong>Division:</strong> {result.divisionName}
-                        </span>
-                        <span className="capitalize whitespace-nowrap print:hidden">
-                          <strong>Type:</strong> {result.programType}
-                        </span>
-                        <span className="capitalize whitespace-nowrap print:hidden">
-                          <strong>Category:</strong> {result.programCategory}
-                        </span>
-                        {result.isResultDeclared && (
-                          <span className="whitespace-nowrap hidden print:block print:ml-auto">
-                            <strong>Result No.:</strong>{" "}
-                            {result.resultNumber || "N/A"}
-                          </span>
-                        )}
-                        <span className="print:hidden whitespace-nowrap">
-                          <strong>Participants:</strong>{" "}
-                          {result.participants.length}
-                        </span>
-                      </div>
-                    </div>
+              return (
+                <div key={result._id} className="result-section">
+                  {/* Header - only for declared results in print */}
+                  {result.isResultDeclared && (
+                    <PrintHeader apiKey={apiKey} isFestival={true} />
+                  )}
 
-                    <div className="flex items-center gap-2 no-print">
-                      {!result._id && (
-                        <Button
-                          onClick={() => handleGenerateResult(result.programId)}
-                          disabled={generating[result.programId]}
-                          size="sm"
-                          variant="outline"
-                        >
-                          {generating[result.programId] ? (
-                            <Loader className="animate-spin h-3 w-3 mr-1" />
-                          ) : (
-                            <TrendingUp className="h-3 w-3 mr-1" />
-                          )}
-                          Generate
-                        </Button>
-                      )}
-
-                      {/* Declare/Undeclare Button */}
-                      {result._id && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant={
-                                result.isResultDeclared
-                                  ? "destructive"
-                                  : "default"
-                              }
-                              disabled={declaring[result._id]}
-                            >
-                              {declaring[result._id] ? (
-                                <Loader className="animate-spin h-3 w-3 mr-1" />
-                              ) : result.isResultDeclared ? (
-                                <EyeOff className="h-3 w-3 mr-1" />
-                              ) : (
+                  {/* Result Header */}
+                  <div className="result-info mb-4 p-3 sm:p-4 bg-muted rounded-lg border w-full print:bg-transparent print:border-none print:p-1 print:mb-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full">
+                      <div className="mb-2 sm:mb-0 w-full">
+                        <div className="flex items-center gap-2 mb-1 print:hidden">
+                          <h3 className="text-lg sm:text-xl font-semibold text-foreground">
+                            {result.programName}
+                          </h3>
+                          <Badge
+                            variant={
+                              result.isResultDeclared ? "default" : "secondary"
+                            }
+                            className="hidden sm:inline-flex"
+                          >
+                            {result.isResultDeclared ? (
+                              <>
                                 <Eye className="h-3 w-3 mr-1" />
-                              )}
-                              <span className="hidden sm:inline">
-                                {result.isResultDeclared
-                                  ? "Undeclare"
-                                  : "Declare"}
-                              </span>
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                {result.isResultDeclared
-                                  ? "Undeclare"
-                                  : "Declare"}{" "}
-                                Result
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {result.isResultDeclared
-                                  ? "Are you sure you want to undeclare this result? This will remove all participant and team points associated with this program."
-                                  : "Are you sure you want to declare this result? This will update participant and team records with the final rankings and points."}
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() =>
-                                  handleDeclareResult(
-                                    result._id,
-                                    result.isResultDeclared
-                                  )
-                                }
-                                className={
+                                Declared
+                              </>
+                            ) : (
+                              <>
+                                <EyeOff className="h-3 w-3 mr-1" />
+                                Pending
+                              </>
+                            )}
+                          </Badge>
+                          {/* Show team strength indicator for pending results */}
+                          {!result.isResultDeclared &&
+                            sortBy === "team-points" &&
+                            avgTeamPoints > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                <TrendingUp className="h-3 w-3 mr-1" />
+                                Avg. Team Points: {Math.round(avgTeamPoints)}
+                              </Badge>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap print:justify-center w-full gap-2 sm:gap-4 text-xs sm:text-sm text-foreground print:text-black print:text-xs">
+                          {result.isResultDeclared && (
+                            <span className="whitespace-nowrap print:hidden">
+                              <strong>Result No.:</strong>{" "}
+                              {result.resultNumber || "N/A"}
+                            </span>
+                          )}
+                          <span className="capitalize whitespace-nowrap hidden print:block">
+                            <strong>Program:</strong> {result.programName}
+                          </span>
+                          <span className="whitespace-nowrap">
+                            <strong>Division:</strong> {result.divisionName}
+                          </span>
+                          <span className="capitalize whitespace-nowrap print:hidden">
+                            <strong>Type:</strong> {result.programType}
+                          </span>
+                          <span className="capitalize whitespace-nowrap print:hidden">
+                            <strong>Category:</strong> {result.programCategory}
+                          </span>
+                          {result.isResultDeclared && (
+                            <span className="whitespace-nowrap hidden print:block print:ml-auto">
+                              <strong>Result No.:</strong>{" "}
+                              {result.resultNumber || "N/A"}
+                            </span>
+                          )}
+                          <span className="print:hidden whitespace-nowrap">
+                            <strong>Participants:</strong>{" "}
+                            {result.participants.length}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 no-print">
+                        {!result._id && (
+                          <Button
+                            onClick={() =>
+                              handleGenerateResult(result.programId)
+                            }
+                            disabled={generating[result.programId]}
+                            size="sm"
+                            variant="outline"
+                          >
+                            {generating[result.programId] ? (
+                              <Loader className="animate-spin h-3 w-3 mr-1" />
+                            ) : (
+                              <TrendingUp className="h-3 w-3 mr-1" />
+                            )}
+                            Generate
+                          </Button>
+                        )}
+
+                        {/* Declare/Undeclare Button */}
+                        {result._id && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant={
                                   result.isResultDeclared
-                                    ? "bg-destructive hover:bg-destructive/90"
-                                    : ""
+                                    ? "destructive"
+                                    : "default"
                                 }
+                                disabled={declaring[result._id]}
                               >
-                                {result.isResultDeclared
-                                  ? "Undeclare"
-                                  : "Declare"}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
+                                {declaring[result._id] ? (
+                                  <Loader className="animate-spin h-3 w-3 mr-1" />
+                                ) : result.isResultDeclared ? (
+                                  <EyeOff className="h-3 w-3 mr-1" />
+                                ) : (
+                                  <Eye className="h-3 w-3 mr-1" />
+                                )}
+                                <span className="hidden sm:inline">
+                                  {result.isResultDeclared
+                                    ? "Undeclare"
+                                    : "Declare"}
+                                </span>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  {result.isResultDeclared
+                                    ? "Undeclare"
+                                    : "Declare"}{" "}
+                                  Result
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {result.isResultDeclared
+                                    ? "Are you sure you want to undeclare this result? This will remove all participant and team points associated with this program."
+                                    : "Are you sure you want to declare this result? This will update participant and team records with the final rankings and points."}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() =>
+                                    handleDeclareResult(
+                                      result._id,
+                                      result.isResultDeclared
+                                    )
+                                  }
+                                  className={
+                                    result.isResultDeclared
+                                      ? "bg-destructive hover:bg-destructive/90"
+                                      : ""
+                                  }
+                                >
+                                  {result.isResultDeclared
+                                    ? "Undeclare"
+                                    : "Declare"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Results Table */}
-                <div className="table-container border rounded-lg overflow-hidden print:rounded-none print:border-none">
-                  <div className="overflow-x-auto print:overflow-visible h-full">
-                    <Table className="min-w-full">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border print:border-black">
-                            Rank
-                          </TableHead>
-                          <TableHead className="w-20 whitespace-nowrap border-t border-r border-border print:border-black">
-                            Chest Number
-                          </TableHead>
-                          <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black">
-                            Code Letter
-                          </TableHead>
-                          <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border print:border-black">
-                            Name
-                          </TableHead>
-                          <TableHead className="whitespace-nowrap border-t border-r border-border print:border-black">
-                            Team
-                          </TableHead>
-                          <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border print:border-black">
-                            Grade
-                          </TableHead>
-                          <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black">
-                            Points
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {result.participants.length > 0 ? (
-                          result.participants
-                            .sort((a, b) => a.rank - b.rank)
-                            .filter((participant) => participant.points > 0)
-                            .map((participant, index) => (
-                              <TableRow key={participant.id || index}>
-                                <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border print:border-black">
-                                  <div className="flex items-center justify-center gap-1">
-                                    {getPositionIcon(participant.rank)}
+                  {/* Results Table */}
+                  <div className="table-container border rounded-lg overflow-hidden print:rounded-none print:border-none">
+                    <div className="overflow-x-auto print:overflow-visible h-full">
+                      <Table className="min-w-full">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                              Rank
+                            </TableHead>
+                            <TableHead className="w-20 whitespace-nowrap border-t border-r border-border print:border-black">
+                              Chest Number
+                            </TableHead>
+                            <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                              Code Letter
+                            </TableHead>
+                            <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border print:border-black">
+                              Name
+                            </TableHead>
+                            <TableHead className="whitespace-nowrap border-t border-r border-border print:border-black">
+                              Team
+                            </TableHead>
+                            <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                              Grade
+                            </TableHead>
+                            <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                              Points
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {result.participants.length > 0 ? (
+                            result.participants
+                              .sort((a, b) => a.rank - b.rank)
+                              .filter((participant) => participant.points > 0)
+                              .map((participant, index) => (
+                                <TableRow key={participant.id || index}>
+                                  <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border print:border-black">
+                                    <div className="flex items-center justify-center gap-1">
+                                      {getPositionIcon(participant.rank)}
+                                      <Badge
+                                        variant={getPositionVariant(
+                                          participant.rank
+                                        )}
+                                        className="print:hidden"
+                                      >
+                                        {participant.rank}
+                                      </Badge>
+                                      <span className="hidden print:inline">
+                                        {participant.rank}
+                                      </span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="font-medium whitespace-nowrap border-t border-r border-border print:border-black">
+                                    {participant.participantDetails
+                                      ?.chestNumber || "N/A"}
+                                  </TableCell>
+                                  <TableCell className="text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                                    {participant.codeLetter || "-"}
+                                  </TableCell>
+                                  <TableCell className="font-medium whitespace-nowrap border-t border-r border-border print:border-black">
+                                    {participant.participantDetails?.name ||
+                                      "N/A"}
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap border-t border-r border-border print:border-black">
+                                    {participant.participantDetails?.teamId
+                                      ?.name || "N/A"}
+                                  </TableCell>
+                                  <TableCell className="text-center whitespace-nowrap border-t border-r border-border print:border-black">
                                     <Badge
-                                      variant={getPositionVariant(
-                                        participant.rank
-                                      )}
+                                      variant="outline"
                                       className="print:hidden"
                                     >
-                                      {participant.rank}
+                                      {participant.grade}
                                     </Badge>
                                     <span className="hidden print:inline">
-                                      {participant.rank}
+                                      {participant.grade}
                                     </span>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="font-medium whitespace-nowrap border-t border-r border-border print:border-black">
-                                  {participant.participantDetails
-                                    ?.chestNumber || "N/A"}
-                                </TableCell>
-                                <TableCell className="text-center whitespace-nowrap border-t border-r border-border print:border-black">
-                                  {participant.codeLetter || "-"}
-                                </TableCell>
-                                <TableCell className="font-medium whitespace-nowrap border-t border-r border-border print:border-black">
-                                  {participant.participantDetails?.name ||
-                                    "N/A"}
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap border-t border-r border-border print:border-black">
-                                  {participant.participantDetails?.teamId
-                                    ?.name || "N/A"}
-                                </TableCell>
-                                <TableCell className="text-center whitespace-nowrap border-t border-r border-border print:border-black">
-                                  <Badge
-                                    variant="outline"
-                                    className="print:hidden"
-                                  >
-                                    {participant.grade}
-                                  </Badge>
-                                  <span className="hidden print:inline">
-                                    {participant.grade}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border print:border-black">
-                                  <Badge
-                                    variant="secondary"
-                                    className="print:hidden"
-                                  >
-                                    {participant.points}
-                                  </Badge>
-                                  <span className="hidden print:inline">
-                                    {participant.points}
-                                  </span>
-                                </TableCell>
-                              </TableRow>
-                            ))
-                        ) : (
-                          <TableRow>
-                            <TableCell
-                              colSpan={7}
-                              className="text-center py-6 text-muted-foreground print:border-black"
-                            >
-                              No participants found for this result
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
+                                  </TableCell>
+                                  <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border print:border-black">
+                                    <Badge
+                                      variant="secondary"
+                                      className="print:hidden"
+                                    >
+                                      {participant.points}
+                                    </Badge>
+                                    <span className="hidden print:inline">
+                                      {participant.points}
+                                    </span>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                          ) : (
+                            <TableRow>
+                              <TableCell
+                                colSpan={7}
+                                className="text-center py-6 text-muted-foreground print:border-black"
+                              >
+                                No participants found for this result
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-12">
