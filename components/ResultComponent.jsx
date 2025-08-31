@@ -774,8 +774,7 @@ const ResultComponent = ({
                             weakestTeamRank !== null && (
                               <Badge variant="outline" className="text-xs">
                                 <TrendingUp className="h-3 w-3 mr-1" />
-                                Priority Rank: {weakestTeamRank +
-                                  1} (Presence: {Math.round(weakestPresence)})
+                                Presence: {Math.round(weakestPresence)}
                               </Badge>
                             )}
                         </div>
