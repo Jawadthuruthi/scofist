@@ -265,8 +265,8 @@ export async function POST(req, res) {
     // Enhanced time format validation for 24-hour format
     const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
     if (
-      !timeRegex.test(scheduleData.startTime) ||
-      !timeRegex.test(scheduleData.endTime)
+      (!!scheduleData.startTime && !timeRegex.test(scheduleData.startTime)) ||
+      (!!scheduleData.endTime && !timeRegex.test(scheduleData.endTime))
     ) {
       return NextResponse.json(
         { message: "Invalid time format. Use 24-hour format (HH:MM)" },
@@ -274,20 +274,15 @@ export async function POST(req, res) {
       );
     }
 
-    // Optional: Validate business hours (uncomment if needed)
-    // const businessHoursCheck = validateBusinessHours(scheduleData.startTime, scheduleData.endTime);
-    // if (!businessHoursCheck.valid) {
-    //   return NextResponse.json(
-    //     { message: businessHoursCheck.message },
-    //     { status: 400 }
-    //   );
-    // }
-
     // Validate start time is before end time
-    const startTime = new Date(`2000-01-01T${scheduleData.startTime}:00`);
-    const endTime = new Date(`2000-01-01T${scheduleData.endTime}:00`);
+    const startTime = scheduleData.startTime
+      ? new Date(`2000-01-01T${scheduleData.startTime}:00`)
+      : null;
+    const endTime = scheduleData.endTime
+      ? new Date(`2000-01-01T${scheduleData.endTime}:00`)
+      : null;
 
-    if (startTime >= endTime) {
+    if (startTime && endTime && startTime >= endTime) {
       return NextResponse.json(
         { message: "Start time must be before end time" },
         { status: 400 }
@@ -446,26 +441,22 @@ export async function PUT(req, res) {
     }
 
     // Prepare final values for validation
-    const finalStartTime = updateData.startTime || currentSchedule.startTime;
-    const finalEndTime = updateData.endTime || currentSchedule.endTime;
+    const finalStartTime =
+      updateData.startTime || currentSchedule.startTime || null;
+    const finalEndTime = updateData.endTime || currentSchedule.endTime || null;
     const finalDate = updateData.date || currentSchedule.date;
     const finalStageNumber =
       updateData.stageNumber || currentSchedule.stageNumber;
 
-    // Optional: Validate business hours (uncomment if needed)
-    // const businessHoursCheck = validateBusinessHours(finalStartTime, finalEndTime);
-    // if (!businessHoursCheck.valid) {
-    //   return NextResponse.json(
-    //     { message: businessHoursCheck.message },
-    //     { status: 400 }
-    //   );
-    // }
-
     // Validate start time is before end time
-    const startTime = new Date(`2000-01-01T${finalStartTime}:00`);
-    const endTime = new Date(`2000-01-01T${finalEndTime}:00`);
+    const startTime = finalStartTime
+      ? new Date(`2000-01-01T${finalStartTime}:00`)
+      : null;
+    const endTime = finalEndTime
+      ? new Date(`2000-01-01T${finalEndTime}:00`)
+      : null;
 
-    if (startTime >= endTime) {
+    if (startTime && endTime && startTime >= endTime) {
       return NextResponse.json(
         { message: "Start time must be before end time" },
         { status: 400 }
