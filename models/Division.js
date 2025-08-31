@@ -7,7 +7,6 @@ const divisionSchema = new Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true,
       validate: {
         validator: function (value) {
           return /^[A-Z0-9-]+$/.test(value);
