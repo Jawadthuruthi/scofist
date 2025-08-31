@@ -54,9 +54,6 @@ const resultSchema = new Schema(
   { timestamps: true }
 );
 
-// Index for efficient querying by result number
-resultSchema.index({ resultNumber: 1 });
-
 const Result = models.Result || model("Result", resultSchema);
 
 export default Result;
