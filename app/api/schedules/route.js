@@ -6,6 +6,7 @@ import Program from "@/models/Program";
 
 // Helper function to format time for display (12-hour format)
 const formatTimeForDisplay = (time24) => {
+  if (!time24) return "N/A";
   const [hours, minutes] = time24.split(":");
   const hour12 = ((parseInt(hours) + 11) % 12) + 1;
   const ampm = parseInt(hours) >= 12 ? "PM" : "AM";
@@ -39,18 +40,6 @@ const calculateScheduleStatus = (date, startTime, endTime) => {
   }
 };
 
-// Helper function to add minutes to time
-const addMinutes = (timeStr, minutes) => {
-  if (!timeStr) {
-    return null;
-  }
-  const [hours, mins] = timeStr.split(":").map(Number);
-  const totalMinutes = hours * 60 + mins + minutes;
-  const newHours = Math.floor(totalMinutes / 60) % 24;
-  const newMins = totalMinutes % 60;
-  return `${newHours.toString().padStart(2, "0")}:${newMins.toString().padStart(2, "0")}`;
-};
-
 export async function GET(req, res) {
   try {
     await connectToDB();
@@ -80,7 +69,7 @@ export async function GET(req, res) {
 
     // Convert projection param to MongoDB projection object
     if (projectionParam) {
-      const fields = projectionParam.split(",");
+      const fields = projectionParam?.split(",");
       fields.forEach((field) => {
         projections[field] = 1; // Include each field
       });
