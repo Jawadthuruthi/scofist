@@ -132,7 +132,6 @@ const ResultPoster = ({
             style={{
               top: "47%",
               left: "19%",
-              textShadow: "3px 3px 6px rgba(0,0,0,0.8)",
             }}
           >
             {resultNumber || "00"}
@@ -141,12 +140,12 @@ const ResultPoster = ({
           {/* Program Info */}
 
           <div
-            className="absolute text-white poster-text font-bold text-xxs"
+            className="absolute poster-text font-bold text-xxs"
             style={{
               top: "30%",
               left: "50%",
               textAlign: "center",
-              textShadow: "3px 3px 6px rgba(0,0,0,0.8)",
+              color: textColors[posterNumber - 1] || "#ffffff",
             }}
           >
             <h2>{programName}</h2>
@@ -167,7 +166,6 @@ const ResultPoster = ({
                 className="absolute  font-semibold poster-text text-[9px]"
                 style={{
                   ...position,
-                  textShadow: "2px 2px 4px rgba(0,0,0,0.9)",
                   lineHeight: "1.1",
                   maxWidth: "120px",
                   wordBreak: "break-word",
