@@ -281,7 +281,7 @@ const ResultComponent = ({
         
         table th, table td {
           border: 1px solid #000 !important;
-          padding: 4px !important;
+          padding: 8px !important;
           text-align: left;
           vertical-align: middle;
           line-height: 1.1 !important;
