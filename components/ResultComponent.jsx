@@ -451,7 +451,6 @@ const ResultComponent = ({
             <Button
               variant="default"
               onClick={handlePrint}
-              disabled={declaredResults.length === 0}
               className="flex-1 sm:flex-none"
             >
               <Printer className="mr-2 h-4 w-4" />
