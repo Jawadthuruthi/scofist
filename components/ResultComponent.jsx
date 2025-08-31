@@ -55,7 +55,7 @@ const ResultComponent = ({
   const [filteredResults, setFilteredResults] = useState([]);
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedProgram, setSelectedProgram] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("pending");
   const [selectedType, setSelectedType] = useState("");
   const [sortBy, setSortBy] = useState("team-points");
   const [page, setPage] = useState(0);
@@ -543,7 +543,7 @@ const ResultComponent = ({
     setSelectedDivision("");
     setSelectedProgram("");
     setSelectedType("");
-    setSelectedStatus("all");
+    setSelectedStatus("pending");
     setSortBy("team-points");
   };
 
