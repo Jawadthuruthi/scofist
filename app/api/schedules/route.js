@@ -231,13 +231,7 @@ export async function POST(req, res) {
     const { status, ...scheduleData } = data;
 
     // Validate required fields
-    const requiredFields = [
-      "programId",
-      "date",
-      "startTime",
-      "endTime",
-      "stageNumber",
-    ];
+    const requiredFields = ["programId", "date", "stageNumber"];
     for (const field of requiredFields) {
       if (!scheduleData[field]) {
         return NextResponse.json(
