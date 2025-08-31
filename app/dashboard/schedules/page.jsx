@@ -148,14 +148,12 @@ export default async function SchedulePage() {
         name: "startTime",
         label: "Start Time",
         type: "time",
-        required: true,
         placeholder: "Select start time",
       },
       {
         name: "endTime",
         label: "End Time",
         type: "time",
-        required: true,
         placeholder: "Select end time",
       },
       {
@@ -164,7 +162,6 @@ export default async function SchedulePage() {
         type: "number",
         inputType: "select",
         options: stageOptions,
-        required: true,
         placeholder: "Select stage",
         validators: {
           min: 1,

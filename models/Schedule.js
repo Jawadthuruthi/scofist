@@ -15,15 +15,12 @@ const scheduleSchema = new Schema(
     },
     startTime: {
       type: String,
-      required: true,
     },
     endTime: {
       type: String,
-      required: true,
     },
     stageNumber: {
       type: Number,
-      required: true,
     },
 
     isPublished: {

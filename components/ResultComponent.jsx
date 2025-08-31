@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -61,11 +61,11 @@ const ResultComponent = ({
   const [selectedProgram, setSelectedProgram] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedType, setSelectedType] = useState("");
-  const [sortBy, setSortBy] = useState("program"); // New sorting state
+  const [sortBy, setSortBy] = useState("program");
   const [page, setPage] = useState(0);
   const [declaring, setDeclaring] = useState({});
   const [generating, setGenerating] = useState({});
-  const [teams, setTeams] = useState([]); // Store team data for sorting
+  const [teams, setTeams] = useState([]);
 
   const printRef = useRef();
 
@@ -116,33 +116,123 @@ const ResultComponent = ({
     }
   }, [fetchTeamsQuery.data]);
 
-  // Helper function to get team total points
-  const getTeamTotalPoints = useCallback(
-    (teamId) => {
-      const team = teams.find((t) => t._id === teamId);
-      return team ? (team.stagePoints || 0) + (team.offStagePoints || 0) : 0;
+  // Build global team totals and ranks (memoized for performance)
+  const teamTotalsAndRanks = useMemo(() => {
+    if (!teams.length) return { teamTotals: new Map(), teamRanks: new Map() };
+
+    // Build team totals: teamId -> (stagePoints + offStagePoints)
+    const teamTotals = new Map();
+    teams.forEach((team) => {
+      const total = (team.stagePoints || 0) + (team.offStagePoints || 0);
+      teamTotals.set(team._id, total);
+    });
+
+    // Sort teams by total points ascending and create rank map
+    const sortedTeams = [...teams].sort((a, b) => {
+      const totalA = teamTotals.get(a._id);
+      const totalB = teamTotals.get(b._id);
+      return totalA - totalB;
+    });
+
+    // Build rank map: teamId -> rankIndex (0-based, ties get same rank)
+    const teamRanks = new Map();
+    let currentRank = 0;
+    let lastTotal = null;
+
+    sortedTeams.forEach((team, index) => {
+      const total = teamTotals.get(team._id);
+      if (lastTotal !== null && total !== lastTotal) {
+        currentRank = index;
+      }
+      teamRanks.set(team._id, currentRank);
+      lastTotal = total;
+    });
+
+    return { teamTotals, teamRanks };
+  }, [teams]);
+
+  const { teamTotals, teamRanks } = teamTotalsAndRanks;
+
+  // Helper: Extract team IDs from result participants
+  const extractTeamIds = useCallback((result) => {
+    if (!result.participants || !result.participants.length) return [];
+
+    return [
+      ...new Set(
+        result.participants
+          .map(
+            (p) =>
+              p.participantDetails?.teamId?._id || p.participantDetails?.teamId
+          )
+          .filter(Boolean)
+      ),
+    ];
+  }, []);
+
+  // Helper: Build team presence map for a result (teamId -> sum of points or count)
+  const buildResultTeamSums = useCallback((result) => {
+    const teamSums = new Map();
+
+    if (!result.participants || !result.participants.length) return teamSums;
+
+    result.participants.forEach((participant) => {
+      const teamId =
+        participant.participantDetails?.teamId?._id ||
+        participant.participantDetails?.teamId;
+
+      if (!teamId) return;
+
+      const currentSum = teamSums.get(teamId) || 0;
+      // Use participant points if available, otherwise count as 1
+      const pointsToAdd =
+        typeof participant.points === "number" ? participant.points : 1;
+      teamSums.set(teamId, currentSum + pointsToAdd);
+    });
+
+    return teamSums;
+  }, []);
+
+  // Helper: Get weakest team ID and its presence for a result
+  const getWeakestTeamAndPresence = useCallback(
+    (result) => {
+      const teamIds = extractTeamIds(result);
+      if (!teamIds.length) return { weakestTeamId: null, weakestPresence: 0 };
+
+      // Find globally weakest team among participants (lowest rank = weakest)
+      let weakestTeamId = null;
+      let weakestRank = Number.MAX_SAFE_INTEGER;
+
+      teamIds.forEach((teamId) => {
+        const rank = teamRanks.get(teamId);
+        if (rank !== undefined && rank < weakestRank) {
+          weakestRank = rank;
+          weakestTeamId = teamId;
+        }
+      });
+
+      // Get presence (sum of points or count) for the weakest team
+      const teamSums = buildResultTeamSums(result);
+      const weakestPresence = teamSums.get(weakestTeamId) || 0;
+
+      return { weakestTeamId, weakestPresence };
     },
-    [teams]
+    [teamRanks, extractTeamIds, buildResultTeamSums]
   );
 
-  // Helper function to get average team points for a result
+  // Fixed helper: Get team total points
+  const getTeamTotalPoints = useCallback(
+    (teamId) => {
+      return teamTotals.get(teamId) || 0;
+    },
+    [teamTotals]
+  );
+
+  // Fixed helper: Get average team points for a result
   const getResultAverageTeamPoints = useCallback(
     (result) => {
       if (!result.participants || result.participants.length === 0) return 0;
 
-      // Get unique team IDs from participants
-      const teamIds = [
-        ...new Set(
-          result.participants
-            .map(
-              (p) =>
-                p.participantDetails?.teamId?._id ||
-                p.participantDetails?.teamId
-            )
-            .filter(Boolean)
-        ),
-      ];
-
+      const teamIds = extractTeamIds(result);
       if (teamIds.length === 0) return 0;
 
       // Calculate average team points
@@ -153,7 +243,25 @@ const ResultComponent = ({
 
       return totalTeamPoints / teamIds.length;
     },
-    [getTeamTotalPoints]
+    [extractTeamIds, getTeamTotalPoints]
+  );
+
+  // Fixed helper: Get minimum team points for a result
+  const getResultMinTeamPoints = useCallback(
+    (result) => {
+      if (!result?.participants?.length) return Number.POSITIVE_INFINITY;
+
+      const teamIds = extractTeamIds(result);
+      if (teamIds.length === 0) return Number.POSITIVE_INFINITY;
+
+      let min = Number.POSITIVE_INFINITY;
+      teamIds.forEach((teamId) => {
+        const total = getTeamTotalPoints(teamId);
+        if (total < min) min = total;
+      });
+      return min;
+    },
+    [extractTeamIds, getTeamTotalPoints]
   );
 
   // Process fetched data
@@ -197,22 +305,47 @@ const ResultComponent = ({
     // Apply sorting
     switch (sortBy) {
       case "team-points":
-        // Sort pending results by average team points (ascending - lower points first), then declared results
+        // New global team-based sorting logic
         filtered = filtered.sort((a, b) => {
-          // If both are declared or both are pending
-          if (a.isResultDeclared === b.isResultDeclared) {
-            if (!a.isResultDeclared && !b.isResultDeclared) {
-              // Both pending - sort by average team points (lower first for strategic advantage)
-              const avgA = getResultAverageTeamPoints(a);
-              const avgB = getResultAverageTeamPoints(b);
-              return avgA - avgB; // Lower points first
-            } else {
-              // Both declared - sort by result number
-              return (a.resultNumber || 0) - (b.resultNumber || 0);
-            }
+          const aDecl = a.isResultDeclared ? 1 : 0;
+          const bDecl = b.isResultDeclared ? 1 : 0;
+
+          // Group by declaration status: pending (false) first, then declared (true)
+          if (aDecl !== bDecl) {
+            return aDecl - bDecl; // pending (0) comes before declared (1)
           }
-          // Declared results first, then pending
-          return b.isResultDeclared - a.isResultDeclared;
+
+          if (!aDecl) {
+            // Both pending - sort by global weakest team priority
+            const { weakestTeamId: aWeakest, weakestPresence: aPresence } =
+              getWeakestTeamAndPresence(a);
+            const { weakestTeamId: bWeakest, weakestPresence: bPresence } =
+              getWeakestTeamAndPresence(b);
+
+            // Get global ranks for comparison
+            const aRank = aWeakest
+              ? (teamRanks.get(aWeakest) ?? Number.MAX_SAFE_INTEGER)
+              : Number.MAX_SAFE_INTEGER;
+            const bRank = bWeakest
+              ? (teamRanks.get(bWeakest) ?? Number.MAX_SAFE_INTEGER)
+              : Number.MAX_SAFE_INTEGER;
+
+            // Primary: Compare by weakest team's global rank (ascending - lower rank first)
+            if (aRank !== bRank) {
+              return aRank - bRank;
+            }
+
+            // Secondary: Compare by presence of weakest team (descending - higher presence first)
+            if (aPresence !== bPresence) {
+              return bPresence - aPresence;
+            }
+
+            // Tertiary: Deterministic tie-breaker
+            return a.programName.localeCompare(b.programName);
+          } else {
+            // Both declared - sort by result number ascending
+            return (a.resultNumber || 0) - (b.resultNumber || 0);
+          }
         });
         break;
 
@@ -243,7 +376,10 @@ const ResultComponent = ({
     selectedStatus,
     sortBy,
     results,
+    getWeakestTeamAndPresence,
+    teamRanks,
     getResultAverageTeamPoints,
+    getResultMinTeamPoints,
   ]);
 
   // Get available programs for selected division
@@ -513,7 +649,7 @@ const ResultComponent = ({
               </Select>
             </div>
 
-            {/* New Sort By Filter */}
+            {/* Sort By Filter */}
             <div className="flex items-center gap-2 col-span-12 xs:col-span-6 lg:col-span-2">
               <ArrowUpDown className="h-4 w-4 flex-shrink-0" />
               <Select value={sortBy} onValueChange={setSortBy}>
@@ -522,7 +658,7 @@ const ResultComponent = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="program">Name</SelectItem>
-                  <SelectItem value="team-points">Points</SelectItem>
+                  <SelectItem value="team-points">Team Priority</SelectItem>
                   <SelectItem value="status">Status</SelectItem>
                 </SelectContent>
               </Select>
@@ -566,7 +702,7 @@ const ResultComponent = ({
               {sortBy === "team-points" && pendingResults > 0 && (
                 <div className="flex items-center gap-1 text-xs text-blue-600 font-medium">
                   <TrendingUp className="h-4 w-4" />
-                  <span>Lower teams prioritized</span>
+                  <span>Weakest teams prioritized</span>
                 </div>
               )}
             </div>
@@ -596,6 +732,12 @@ const ResultComponent = ({
           <div className="space-y-8 print:space-y-0">
             {filteredResults.map((result, resultIndex) => {
               const avgTeamPoints = getResultAverageTeamPoints(result);
+              const minTeamPoints = getResultMinTeamPoints(result);
+              const { weakestTeamId, weakestPresence } =
+                getWeakestTeamAndPresence(result);
+              const weakestTeamRank = weakestTeamId
+                ? teamRanks.get(weakestTeamId)
+                : null;
 
               return (
                 <div key={result._id} className="result-section">
@@ -630,13 +772,14 @@ const ResultComponent = ({
                               </>
                             )}
                           </Badge>
-                          {/* Show team strength indicator for pending results */}
+                          {/* Show team priority indicator for pending results when sorted by team-points */}
                           {!result.isResultDeclared &&
                             sortBy === "team-points" &&
-                            avgTeamPoints > 0 && (
+                            weakestTeamRank !== null && (
                               <Badge variant="outline" className="text-xs">
                                 <TrendingUp className="h-3 w-3 mr-1" />
-                                Avg. Team Points: {Math.round(avgTeamPoints)}
+                                Priority Rank: {weakestTeamRank +
+                                  1} (Presence: {Math.round(weakestPresence)})
                               </Badge>
                             )}
                         </div>

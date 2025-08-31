@@ -1,6 +1,7 @@
 import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
+import { fetchData } from "@/lib/utils";
 
 const columnsConfig = [
   {
@@ -37,11 +38,19 @@ export default async function TeamPointsPage() {
   try {
     const apiKey = process.env.API_KEY;
 
+    const results = await fetchData(
+      "results",
+      "projection=_id&isResultDeclared=true",
+      0
+    );
+
+    console.log("Fetched results:", results?.length);
+
     return (
       <>
         <Header
           title="TEAM POINTS"
-          subTitle="View and Manage Team-wise Points"
+          subTitle={`Team result after ${results?.length} results.`}
         />
         <DataTableComponent
           resource="teams"
