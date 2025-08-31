@@ -31,9 +31,9 @@ export async function GET(request) {
     await connectToDB();
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page")) || 1;
+    const page = parseInt(searchParams.get("page")) || 0;
     const limit = parseInt(searchParams.get("limit")) || 50;
-    const skip = (page - 1) * limit;
+    const skip = page * limit;
 
     const divisionId = searchParams.get("divisionId");
     const programId = searchParams.get("programId");
