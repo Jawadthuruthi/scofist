@@ -14,6 +14,9 @@ const formatTimeForDisplay = (time24) => {
 
 // Helper function to calculate schedule status based on date and time
 const calculateScheduleStatus = (date, startTime, endTime) => {
+  if (!date || !startTime || !endTime) {
+    return "Unknown";
+  }
   const now = new Date();
   const scheduleDate = new Date(date);
 
@@ -36,42 +39,14 @@ const calculateScheduleStatus = (date, startTime, endTime) => {
   }
 };
 
-// Helper function to validate business hours (optional - uncomment if needed)
-const validateBusinessHours = (startTime, endTime) => {
-  const start = parseInt(startTime.split(":")[0]);
-  const end = parseInt(endTime.split(":")[0]);
-
-  // Business hours: 6 AM to 10 PM (22:00)
-  if (start < 6 || start > 22 || end < 6 || end > 22) {
-    return {
-      valid: false,
-      message:
-        "Schedule times must be between 6:00 AM (06:00) and 10:00 PM (22:00)",
-    };
-  }
-
-  return { valid: true };
-};
-
 // Helper function to add minutes to time
 const addMinutes = (timeStr, minutes) => {
+  if (!timeStr) {
+    return null;
+  }
   const [hours, mins] = timeStr.split(":").map(Number);
   const totalMinutes = hours * 60 + mins + minutes;
   const newHours = Math.floor(totalMinutes / 60) % 24;
-  const newMins = totalMinutes % 60;
-  return `${newHours.toString().padStart(2, "0")}:${newMins.toString().padStart(2, "0")}`;
-};
-
-// Helper function to subtract minutes from time
-const subtractMinutes = (timeStr, minutes) => {
-  const [hours, mins] = timeStr.split(":").map(Number);
-  const totalMinutes = hours * 60 + mins - minutes;
-
-  if (totalMinutes < 0) {
-    return "00:00";
-  }
-
-  const newHours = Math.floor(totalMinutes / 60);
   const newMins = totalMinutes % 60;
   return `${newHours.toString().padStart(2, "0")}:${newMins.toString().padStart(2, "0")}`;
 };

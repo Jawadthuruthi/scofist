@@ -8,8 +8,6 @@ export async function GET(req, res) {
   try {
     await connectToDB();
 
-    console.time("Total request time");
-
     // Parse URL to get search params
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "0");
@@ -96,8 +94,6 @@ export async function GET(req, res) {
       ];
     }
 
-    console.time("Database query");
-
     // Use lean for better performance when appropriate
     const users = await User.find(query, projections)
       .populate("studentSpecificField.batchId")
@@ -108,14 +104,9 @@ export async function GET(req, res) {
       .sort({ _id: 1 })
       .collation({ locale: "en_US", numericOrdering: true });
 
-    console.timeEnd("Database query");
-
     // Get total count for pagination info - use efficient counting
-    console.time("Count query");
     const total = await User.countDocuments(query);
-    console.timeEnd("Count query");
 
-    console.time("Data formatting");
     // Optimize the data transformation to avoid deep cloning
     const formattedUsers = users.map((user) => {
       // Handle null/undefined safely
@@ -186,9 +177,6 @@ export async function GET(req, res) {
           : teacherSpecificField.status,
       };
     });
-    console.timeEnd("Data formatting");
-
-    console.timeEnd("Total request time");
 
     return NextResponse.json(
       {
