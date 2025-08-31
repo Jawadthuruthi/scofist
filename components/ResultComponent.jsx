@@ -44,6 +44,8 @@ import {
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "./PrintHeader";
+import { MultiSelect } from "./ui/multi-select";
+import { formatOptions } from "@/lib/utils";
 
 const ResultComponent = ({
   programs = [],
@@ -603,22 +605,13 @@ const ResultComponent = ({
               </Select>
             </div>
             <div className="col-span-12 xs:col-span-6 lg:col-span-3">
-              <Select
+              <MultiSelect
                 value={selectedProgram}
                 onValueChange={setSelectedProgram}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="All Programs" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={null}>All Programs</SelectItem>
-                  {availablePrograms.map((program) => (
-                    <SelectItem key={program._id} value={program._id}>
-                      {program.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={formatOptions(availablePrograms)}
+                placeholder="All Programs"
+                multiSelect={false}
+              />
             </div>
             <div className="col-span-12 xs:col-span-6 lg:col-span-2">
               <Select value={selectedType} onValueChange={setSelectedType}>
