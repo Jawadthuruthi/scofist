@@ -12,13 +12,12 @@ export async function POST(req) {
       );
     }
 
-    // Option 1: Minimal transformation for better quality
     const result = await cloudinary.uploader.upload(image, {
       folder: "profiles",
       transformation: [
-        { width: 3000, height: 3000, crop: "limit" }, // Very high resolution
-        { quality: "95" }, // Near-maximum quality
-        { format: "auto" }, // Let Cloudinary choose best format
+        { width: 800, height: 800, crop: "limit" },
+        { quality: "auto" },
+        { fetch_format: "auto" },
       ],
     });
 
