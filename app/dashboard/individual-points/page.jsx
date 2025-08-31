@@ -47,10 +47,11 @@ export default async function IndividualPointsPage() {
     const apiKey = process.env.API_KEY;
 
     // Fetch related data for form options
-    const [batches, teams, divisions] = await Promise.all([
+    const [batches, teams, divisions, results] = await Promise.all([
       fetchData("batches", "projection=_id,name&status=Active", 0),
       fetchData("teams", "projection=_id,name", 0),
       fetchData("divisions", "projection=_id,name&type=Primary", 0),
+      fetchData("results", "projection=_id&isResultDeclared=true", 0),
     ]);
 
     const filterConfig = [
@@ -79,7 +80,7 @@ export default async function IndividualPointsPage() {
       <>
         <Header
           title="INDIVIDUAL POINTS"
-          subTitle="View and Manage Participant-wise Points"
+          subTitle={`Participant result after ${results?.length} results.`}
         />
         <DataTableComponent
           resource="participants"

@@ -44,8 +44,6 @@ export default async function TeamPointsPage() {
       0
     );
 
-    console.log("Fetched results:", results?.length);
-
     return (
       <>
         <Header
