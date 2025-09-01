@@ -58,7 +58,7 @@ const ResultComponent = ({
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedProgram, setSelectedProgram] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedType, setSelectedType] = useState("");
+  const [selectedCategory, setSelectedType] = useState("");
   const [sortBy, setSortBy] = useState("team-points");
   const [page, setPage] = useState(0);
   const [declaring, setDeclaring] = useState({});
@@ -89,7 +89,7 @@ const ResultComponent = ({
       ...(selectedStatus !== "all" && {
         isResultDeclared: selectedStatus === "declared",
       }),
-      ...(selectedType && { type: selectedType }),
+      ...(selectedCategory && { programCategory: selectedCategory }),
     },
     {
       retry: 2,
@@ -287,9 +287,9 @@ const ResultComponent = ({
       );
     }
 
-    if (selectedType) {
+    if (selectedCategory) {
       filtered = filtered.filter(
-        (result) => result.programType === selectedType
+        (result) => result.programCategory === selectedCategory
       );
     }
 
@@ -370,7 +370,7 @@ const ResultComponent = ({
   }, [
     selectedDivision,
     selectedProgram,
-    selectedType,
+    selectedCategory,
     selectedStatus,
     sortBy,
     results,
@@ -614,14 +614,14 @@ const ResultComponent = ({
               />
             </div>
             <div className="col-span-12 xs:col-span-6 lg:col-span-2">
-              <Select value={selectedType} onValueChange={setSelectedType}>
+              <Select value={selectedCategory} onValueChange={setSelectedType}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="All Types" />
+                  <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={null}>All Types</SelectItem>
-                  <SelectItem value="stage">Stage</SelectItem>
-                  <SelectItem value="off-stage">Off-Stage</SelectItem>
+                  <SelectItem value={null}>All Categories</SelectItem>
+                  <SelectItem value="Stage">Stage</SelectItem>
+                  <SelectItem value="Off-Stage">Off-Stage</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -655,7 +655,7 @@ const ResultComponent = ({
 
             {(selectedDivision ||
               selectedProgram ||
-              selectedType ||
+              selectedCategory ||
               selectedStatus !== "all" ||
               sortBy !== "team-points") && (
               <Button
