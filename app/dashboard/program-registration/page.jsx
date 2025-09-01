@@ -110,7 +110,6 @@ export default async function ProgramRegistrationPage() {
         inputType: "select",
         options: formatOptions(divisions),
         placeholder: "Select division",
-        readOnlyOnEdit: true,
       },
       {
         name: "programId",
@@ -161,7 +160,6 @@ export default async function ProgramRegistrationPage() {
         inputType: "select",
         options: formatOptions(divisions),
         placeholder: "Select division",
-        readOnlyOnEdit: true,
       },
       {
         name: "programId",
