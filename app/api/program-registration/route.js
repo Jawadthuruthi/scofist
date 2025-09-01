@@ -63,7 +63,7 @@ export async function GET(request) {
             programId: new mongoose.Types.ObjectId(programId),
           }),
           ...(teamId && {
-            teamId: new mongoose.Types.ObjectId(teamId),
+            teamId: teamId,
           }),
           ...(isResultDeclared !== null && {
             isResultDeclared: isResultDeclared === "true",
@@ -127,7 +127,7 @@ export async function GET(request) {
         ? [
             {
               $match: {
-                "program.division._id": new mongoose.Types.ObjectId(divisionId),
+                "program.division._id": divisionId,
               },
             },
           ]

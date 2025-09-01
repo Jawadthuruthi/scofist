@@ -61,11 +61,11 @@ export default async function ProgramRegistrationPage() {
           "projection=_id,name,maxParticipants,type,divisionId",
           0
         ),
-        fetchData("teams", "projection=_id,name", 0),
+        fetchData("teams", "projection=_id,name", 60),
         // include divisionId for participant option-level filtering
-        fetchData("participants", "projection=_id,name,teamId,divisionId", 0),
-        fetchData("divisions", "projection=_id,name", 0),
-        fetchData("settings", "projection=festival", 0),
+        fetchData("participants", "projection=_id,name,teamId,divisionId", 60),
+        fetchData("divisions", "projection=_id,name", 60),
+        fetchData("settings", "projection=festival", 60),
       ]);
     } else if (activeRole === "Program Leader") {
       const userTeams = await fetchData(
@@ -84,16 +84,16 @@ export default async function ProgramRegistrationPage() {
         fetchData(
           "programs",
           "projection=_id,name,maxParticipants,type,divisionId",
-          0
+          60
         ),
         // Only participants from leader's first team
         fetchData(
           "participants",
-          `teamId=${teamIds[0]}&projection=_id,name,teamId,divisionId`,
-          0
+          `teamId=${teamIds[60]}&projection=_id,name,teamId,divisionId`,
+          60
         ),
-        fetchData("divisions", "projection=_id,name", 0),
-        fetchData("settings", "projection=festival", 0),
+        fetchData("divisions", "projection=_id,name", 60),
+        fetchData("settings", "projection=festival", 60),
       ]);
 
       teams = userTeams;
