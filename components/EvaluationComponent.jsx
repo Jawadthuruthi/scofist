@@ -314,7 +314,7 @@ const EvaluationComponent = ({
     return { grade: "F", points: 0 };
   };
 
-  // COMPLETELY REWRITTEN Save function to use participant IDs
+  // handleSave function that properly handles multiple judge marks
   const handleSave = async () => {
     if (Object.keys(changes).length === 0) {
       toast.info("No changes to save");
@@ -324,22 +324,64 @@ const EvaluationComponent = ({
     try {
       setSaving(true);
 
-      // Group changes by registration ID
-      const updatesByRegistration = {};
+      // Group changes by registration ID AND participant ID (not just registration)
+      const updatesByRegistrationAndParticipant = {};
 
       Object.entries(changes).forEach(([uniqueId, markData]) => {
         const { registrationId, participantId, marks, judgeIndex } = markData;
 
-        if (!updatesByRegistration[registrationId]) {
-          updatesByRegistration[registrationId] = [];
+        // Create a key that combines registration and participant
+        const key = `${registrationId}-${participantId}`;
+
+        if (!updatesByRegistrationAndParticipant[key]) {
+          updatesByRegistrationAndParticipant[key] = {
+            registrationId,
+            participantId,
+            marksByJudges: {}, // Store marks by judge index
+          };
         }
 
-        updatesByRegistration[registrationId].push({
-          participantId,
-          marks,
-          judgeIndex,
-        });
+        // Store the marks for this specific judge
+        updatesByRegistrationAndParticipant[key].marksByJudges[judgeIndex] =
+          marks;
       });
+
+      // Convert to the format expected by backend, but merge all judge marks per participant
+      const updatesByRegistration = {};
+
+      Object.values(updatesByRegistrationAndParticipant).forEach(
+        ({ registrationId, participantId, marksByJudges }) => {
+          if (!updatesByRegistration[registrationId]) {
+            updatesByRegistration[registrationId] = [];
+          }
+
+          // Find the current participant data to get existing marks
+          let existingMarksByJudges = [];
+
+          // Find the participant in current state to get their existing marks
+          for (const program of programRegistrations) {
+            const participant = program.participants.find(
+              (p) =>
+                p.registrationId === registrationId &&
+                p.participantId === participantId
+            );
+            if (participant) {
+              existingMarksByJudges = [...(participant.marksByJudges || [])];
+              break;
+            }
+          }
+
+          // Merge the new marks with existing marks
+          Object.entries(marksByJudges).forEach(([judgeIndex, marks]) => {
+            existingMarksByJudges[parseInt(judgeIndex)] = marks;
+          });
+
+          updatesByRegistration[registrationId].push({
+            participantId,
+            marksByJudges: existingMarksByJudges, // Send complete marks array
+          });
+        }
+      );
 
       // Convert to the format expected by backend
       const updates = Object.entries(updatesByRegistration).map(

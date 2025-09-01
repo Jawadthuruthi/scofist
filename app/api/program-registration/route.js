@@ -1,4 +1,4 @@
-// app/api/program-registration/route.js
+// app/api/program-registration/route.js - OPTIMIZED VERSION
 import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import ProgramRegistration from "@/models/ProgramRegistration";
@@ -38,14 +38,13 @@ const addProgramToParticipants = async (participantIds, programId) => {
   }
 };
 
-// ----------------------------- GET -----------------------------
-
+// ----------------------------- OPTIMIZED GET -----------------------------
 export async function GET(request) {
   try {
     await connectToDB();
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page")) || "0";
-    const limit = parseInt(searchParams.get("limit")) || Infinity;
+    const page = parseInt(searchParams.get("page")) || 0;
+    const limit = parseInt(searchParams.get("limit")) || 50; // Reduced default limit
     const skip = page * limit;
 
     const programId = searchParams.get("programId");
@@ -55,28 +54,22 @@ export async function GET(request) {
     const isCodeLetter = searchParams.get("isCodeLetter") === "true";
     const isResultDeclared = searchParams.get("isResultDeclared");
 
-    // ALL filtering moved to aggregation pipeline BEFORE pagination
+    // Build optimized aggregation pipeline with early filtering
     let pipeline = [
-      // Initial match conditions
+      // EARLY FILTERING - Most restrictive filters first
       {
         $match: {
           ...(programId && {
             programId: new mongoose.Types.ObjectId(programId),
           }),
-          ...(teamId && { teamId }),
+          ...(teamId && {
+            teamId: new mongoose.Types.ObjectId(teamId),
+          }),
           ...(isResultDeclared !== null && {
             isResultDeclared: isResultDeclared === "true",
           }),
 
-          // Status filtering
-          ...(status === "Evaluated" && {
-            "participants.totalMarks": { $gt: 0 },
-          }),
-          ...(status === "Registered" && {
-            "participants.totalMarks": { $eq: 0 },
-          }),
-
-          // isCodeLetter filtering
+          // Code letter filtering - early exit if no code letters
           ...(isCodeLetter && {
             participants: {
               $elemMatch: {
@@ -84,134 +77,182 @@ export async function GET(request) {
               },
             },
           }),
+
+          // Status filtering with indexed field
+          ...(status === "Evaluated" && {
+            "participants.totalMarks": { $gt: 0 },
+          }),
+          ...(status === "Registered" && {
+            $nor: [{ "participants.totalMarks": { $gt: 0 } }],
+          }),
         },
       },
 
-      // Lookup program with division
+      // Single optimized lookup with nested population
       {
         $lookup: {
           from: "programs",
-          localField: "programId",
-          foreignField: "_id",
-          as: "programDetails",
+          let: { programId: "$programId" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$_id", "$$programId"] } } },
+            {
+              $lookup: {
+                from: "divisions",
+                localField: "divisionId",
+                foreignField: "_id",
+                as: "division",
+              },
+            },
+            {
+              $unwind: { path: "$division", preserveNullAndEmptyArrays: true },
+            },
+            {
+              $project: {
+                name: 1,
+                type: 1,
+                category: 1,
+                maxParticipants: 1,
+                divisionId: 1,
+                division: 1,
+              },
+            },
+          ],
+          as: "program",
         },
       },
-      { $unwind: "$programDetails" },
+      { $unwind: "$program" },
 
-      // Lookup division
-      {
-        $lookup: {
-          from: "divisions",
-          localField: "programDetails.divisionId",
-          foreignField: "_id",
-          as: "divisionDetails",
-        },
-      },
-      {
-        $unwind: { path: "$divisionDetails", preserveNullAndEmptyArrays: true },
-      },
-
-      // CRITICAL: divisionId filtering BEFORE pagination
+      // Division filtering after lookup but before team/participant lookup
       ...(divisionId
         ? [
             {
               $match: {
-                "divisionDetails._id": divisionId,
+                "program.division._id": new mongoose.Types.ObjectId(divisionId),
               },
             },
           ]
         : []),
 
-      // Lookup team and participants
+      // Optimized team lookup
       {
         $lookup: {
           from: "teams",
           localField: "teamId",
           foreignField: "_id",
-          as: "teamDetails",
+          as: "team",
+          pipeline: [{ $project: { name: 1 } }],
         },
       },
-      { $unwind: { path: "$teamDetails", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$team", preserveNullAndEmptyArrays: true } },
 
+      // Optimized participant lookup - only get needed fields
       {
         $lookup: {
           from: "participants",
-          localField: "participants.id",
-          foreignField: "_id",
+          let: { participantIds: "$participants.id" },
+          pipeline: [
+            { $match: { $expr: { $in: ["$_id", "$$participantIds"] } } },
+            { $project: { name: 1, chestNumber: 1, age: 1 } },
+          ],
           as: "participantDetails",
         },
       },
+
+      // Project only needed fields to reduce data transfer
+      {
+        $project: {
+          programId: "$program._id",
+          programName: "$program.name",
+          programType: "$program.type",
+          programCategory: "$program.category",
+          maxParticipants: "$program.maxParticipants",
+          divisionId: "$program.division._id",
+          divisionName: "$program.division.name",
+          teamId: "$team._id",
+          teamName: "$team.name",
+          participants: 1,
+          participantDetails: 1,
+          status: 1,
+          isResultDeclared: 1,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+
+      // Sort early to enable index usage
+      { $sort: { programName: 1, "team.name": 1 } },
     ];
 
-    // Get accurate total count
-    const totalResult = await ProgramRegistration.aggregate([
-      ...pipeline,
-      { $count: "total" },
-    ]);
-    const total = totalResult.length > 0 ? totalResult[0].total : 0;
+    // Get total count efficiently
+    const countPipeline = [...pipeline, { $count: "total" }];
 
-    // Add pagination AFTER all filtering
-    const results = await ProgramRegistration.aggregate([
-      ...pipeline,
-      { $sort: { updatedAt: -1 } },
-      { $skip: skip },
-      { $limit: limit },
+    const [countResult, results] = await Promise.all([
+      ProgramRegistration.aggregate(countPipeline),
+      ProgramRegistration.aggregate([
+        ...pipeline,
+        { $skip: skip },
+        { $limit: limit },
+      ]),
     ]);
 
-    // Transform data
-    const transformedData = results
-      .map((reg, index) => {
-        const participantMap = {};
-        (reg.participantDetails || []).forEach((p) => {
-          participantMap[p._id.toString()] = p;
-        });
+    const total = countResult.length > 0 ? countResult[0].total : 0;
 
-        const participants = isCodeLetter
-          ? (reg.participants || []).filter(
-              (p) => p.codeLetter && p.codeLetter.trim() !== ""
-            )
-          : reg.participants || [];
+    // Optimized data transformation with Map for O(1) lookups
+    const transformedData = results.map((reg, index) => {
+      // Create participant lookup map once
+      const participantMap = new Map();
+      (reg.participantDetails || []).forEach((p) => {
+        participantMap.set(p._id.toString(), p);
+      });
 
+      // Filter participants if needed
+      const participants = isCodeLetter
+        ? (reg.participants || []).filter(
+            (p) => p.codeLetter && p.codeLetter.trim() !== ""
+          )
+        : reg.participants || [];
+
+      // Build participant details efficiently
+      const participantsDetails = participants.map((p) => {
+        const participant = participantMap.get(p.id?.toString() || p.id) || {};
         return {
-          _id: reg._id,
-          serialNo: skip + index + 1,
-          programId: reg.programDetails._id,
-          programName: reg.programDetails.name,
-          programType: reg.programDetails.type,
-          programCategory: reg.programDetails.category,
-          maxParticipants: reg.programDetails.maxParticipants,
-          divisionId: reg.divisionDetails?._id,
-          divisionName: reg.divisionDetails?.name,
-          teamId: reg.teamDetails?._id,
-          teamName: reg.teamDetails?.name || "N/A",
-          participants: participants.map((p) => p.id?.toString() || p.id),
-          participantsDetails: participants.map((p) => {
-            const participant = participantMap[p.id?.toString() || p.id] || {};
-            return {
-              id: participant._id,
-              name: participant.name || "Unknown",
-              chestNumber: participant.chestNumber,
-              totalMarks: p.totalMarks,
-              codeLetter: p.codeLetter || "",
-              marksByJudges: p.marksByJudges || [],
-            };
-          }),
-          participantsCount: participants.length,
-          participantNames: participants.map((p) => {
-            const participant = participantMap[p.id?.toString() || p.id] || {};
-            return participant.chestNumber
-              ? `${participant.chestNumber} - ${participant.name || "Unknown"}`
-              : participant.name || "Unknown";
-          }),
-          status: participants.some((p) => (p.totalMarks || 0) > 0)
-            ? "Evaluated"
-            : "Registered",
-          isResultDeclared: reg.isResultDeclared,
-          createdAt: reg.createdAt,
-          updatedAt: reg.updatedAt,
+          id: participant._id,
+          name: participant.name || "Unknown",
+          chestNumber: participant.chestNumber,
+          totalMarks: p.totalMarks || 0,
+          codeLetter: p.codeLetter || "",
+          marksByJudges: p.marksByJudges || [],
         };
-      })
-      ?.sort((a, b) => a.programName.localeCompare(b.programName));
+      });
+
+      const participantNames = participantsDetails.map((p) => {
+        return p.chestNumber ? `${p.chestNumber} - ${p.name}` : p.name;
+      });
+
+      return {
+        _id: reg._id,
+        serialNo: skip + index + 1,
+        programId: reg.programId,
+        programName: reg.programName,
+        programType: reg.programType,
+        programCategory: reg.programCategory,
+        maxParticipants: reg.maxParticipants,
+        divisionId: reg.divisionId,
+        divisionName: reg.divisionName,
+        teamId: reg.teamId,
+        teamName: reg.teamName || "N/A",
+        participants: participants.map((p) => p.id?.toString() || p.id),
+        participantsDetails,
+        participantsCount: participants.length,
+        participantNames,
+        status: participantsDetails.some((p) => p.totalMarks > 0)
+          ? "Evaluated"
+          : "Registered",
+        isResultDeclared: reg.isResultDeclared,
+        createdAt: reg.createdAt,
+        updatedAt: reg.updatedAt,
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -221,7 +262,7 @@ export async function GET(request) {
         totalPages: Math.ceil(total / limit) || 1,
         total,
         hasNextPage: skip + limit < total,
-        hasPrevPage: page > 1,
+        hasPrevPage: page > 0,
       },
     });
   } catch (error) {
@@ -251,7 +292,7 @@ export async function POST(request) {
       );
     }
 
-    // Fetch program
+    // Fetch program with division in single query
     const program = await Program.findById(programId).populate("divisionId");
     if (!program) {
       return NextResponse.json(
@@ -259,6 +300,7 @@ export async function POST(request) {
         { status: 404 }
       );
     }
+
     const division = program.divisionId;
     if (!division) {
       return NextResponse.json(
@@ -267,10 +309,11 @@ export async function POST(request) {
       );
     }
 
-    // Fetch participants with their teamId
+    // Fetch participants with their teamId and divisionId
     const participantDocs = await Participant.find({
       _id: { $in: participants },
     }).populate("divisionId");
+
     if (participantDocs.length !== participants.length) {
       return NextResponse.json(
         { success: false, message: "Some participants not found" },
@@ -278,7 +321,7 @@ export async function POST(request) {
       );
     }
 
-    // If Program Leader â€" check team ownership
+    // If Program Leader — check team ownership
     let allowedTeamIds = [];
     if (activeRole === "Program Leader") {
       const leaderTeams = await Team.find({ leaderId: userId }).select("_id");
@@ -324,7 +367,7 @@ export async function POST(request) {
         return NextResponse.json(
           {
             success: false,
-            message: `Team ${teamId} already registered for this program`,
+            message: `Team already registered for this program`,
           },
           { status: 400 }
         );
@@ -332,20 +375,20 @@ export async function POST(request) {
 
       // For Primary divisions, check individual stage/off-stage event limits
       if (division.type === "Primary" && program.type === "Individual") {
-        for (const participantId of participants) {
-          const participant = participantDocs.find(
-            (p) => p._id === participantId
+        // Batch query for all participants' current registrations
+        const currentRegistrations = await ProgramRegistration.find({
+          "participants.id": { $in: teamParticipants },
+        }).populate({
+          path: "programId",
+          select: "category type",
+        });
+
+        for (const participantId of teamParticipants) {
+          const participantRegistrations = currentRegistrations.filter((reg) =>
+            reg.participants.some((p) => p.id.toString() === participantId)
           );
 
-          // Count current registrations for this participant in the same category
-          const currentRegistrations = await ProgramRegistration.find({
-            "participants.id": participantId,
-          }).populate({
-            path: "programId",
-            select: "category type",
-          });
-
-          const currentCategoryCount = currentRegistrations.filter(
+          const currentCategoryCount = participantRegistrations.filter(
             (reg) =>
               reg.programId.category === program.category &&
               reg.programId.type === "Individual"
@@ -359,10 +402,13 @@ export async function POST(request) {
           }
 
           if (maxAllowed > 0 && currentCategoryCount >= maxAllowed) {
+            const participant = participantDocs.find(
+              (p) => p._id.toString() === participantId
+            );
             return NextResponse.json(
               {
                 success: false,
-                message: `Participant ${participant.name} has reached maximum limit of ${maxAllowed} individual ${program.category.toLowerCase()} events`,
+                message: `Participant ${participant?.name} has reached maximum limit of ${maxAllowed} individual ${program.category.toLowerCase()} events`,
               },
               { status: 400 }
             );
@@ -377,6 +423,7 @@ export async function POST(request) {
         marksByJudges: [],
         totalMarks: 0,
       }));
+
       const reg = await ProgramRegistration.create({
         programId,
         teamId,
@@ -442,6 +489,7 @@ export async function PUT(request) {
     const participantDocs = await Participant.find({
       _id: { $in: participants },
     }).populate("divisionId");
+
     if (participantDocs.length !== participants.length) {
       return NextResponse.json(
         { success: false, message: "Some participants not found" },
@@ -490,21 +538,21 @@ export async function PUT(request) {
       }
 
       if (division.type === "Primary" && program.type === "Individual") {
-        for (const participantId of participants) {
-          const participant = participantDocs.find(
-            (p) => p._id === participantId
+        // Batch query for current registrations
+        const currentRegistrations = await ProgramRegistration.find({
+          _id: { $ne: id },
+          "participants.id": { $in: teamParticipants },
+        }).populate({
+          path: "programId",
+          select: "category type",
+        });
+
+        for (const participantId of teamParticipants) {
+          const participantRegistrations = currentRegistrations.filter((reg) =>
+            reg.participants.some((p) => p.id.toString() === participantId)
           );
 
-          // Count current registrations excluding this one
-          const currentRegistrations = await ProgramRegistration.find({
-            _id: { $ne: id },
-            "participants.id": participantId,
-          }).populate({
-            path: "programId",
-            select: "category type",
-          });
-
-          const currentCategoryCount = currentRegistrations.filter(
+          const currentCategoryCount = participantRegistrations.filter(
             (reg) =>
               reg.programId.category === program.category &&
               reg.programId.type === "Individual"
@@ -518,10 +566,13 @@ export async function PUT(request) {
           }
 
           if (maxAllowed > 0 && currentCategoryCount >= maxAllowed) {
+            const participant = participantDocs.find(
+              (p) => p._id.toString() === participantId
+            );
             return NextResponse.json(
               {
                 success: false,
-                message: `Participant ${participant.name} has reached maximum limit of ${maxAllowed} individual ${program.category.toLowerCase()} events`,
+                message: `Participant ${participant?.name} has reached maximum limit of ${maxAllowed} individual ${program.category.toLowerCase()} events`,
               },
               { status: 400 }
             );
@@ -637,6 +688,7 @@ export async function DELETE(request) {
     const regsToDelete = await ProgramRegistration.find({
       _id: { $in: ids },
     }).select("participants programId");
+
     const pairs = [];
     regsToDelete.forEach((reg) => {
       reg.participants.forEach((p) => {
@@ -649,13 +701,24 @@ export async function DELETE(request) {
 
     const result = await ProgramRegistration.deleteMany({ _id: { $in: ids } });
 
-    // Remove program references from participants
-    for (const pair of pairs) {
-      await Participant.updateOne(
-        { _id: pair.participantId },
-        { $pull: { programs: { id: pair.programId } } }
-      );
-    }
+    // Batch update participant program lists
+    const participantUpdates = {};
+    pairs.forEach((pair) => {
+      if (!participantUpdates[pair.participantId]) {
+        participantUpdates[pair.participantId] = [];
+      }
+      participantUpdates[pair.participantId].push(pair.programId);
+    });
+
+    // Remove program references from participants in batch
+    const participantUpdatePromises = Object.entries(participantUpdates).map(
+      ([participantId, programIds]) =>
+        Participant.updateOne(
+          { _id: participantId },
+          { $pull: { programs: { id: { $in: programIds } } } }
+        )
+    );
+    await Promise.all(participantUpdatePromises);
 
     return NextResponse.json({
       success: true,

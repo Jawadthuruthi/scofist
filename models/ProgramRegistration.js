@@ -48,6 +48,13 @@ const programRegistrationSchema = new Schema(
   }
 );
 
+programRegistrationSchema.index({ programId: 1, teamId: 1 }, { unique: true }); // Prevent duplicate registrations
+programRegistrationSchema.index({ "participants.id": 1 }); // For participant queries
+programRegistrationSchema.index({ "participants.totalMarks": 1 }); // For status filtering
+programRegistrationSchema.index({ "participants.codeLetter": 1 }); // For code letter filtering
+programRegistrationSchema.index({ programId: 1, isResultDeclared: 1 }); // For result queries
+programRegistrationSchema.index({ teamId: 1, createdAt: -1 }); // For team-based queries with sorting
+
 const ProgramRegistration =
   models.ProgramRegistration ||
   model("ProgramRegistration", programRegistrationSchema);

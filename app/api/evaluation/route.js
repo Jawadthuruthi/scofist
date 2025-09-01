@@ -131,7 +131,7 @@ export async function GET(request) {
   }
 }
 
-// ----------------------------- PUT - Update Marks by Participant ID -----------------------------
+// ----------------------------- PUT - Update Marks by Participant ID (FIXED) -----------------------------
 export async function PUT(request) {
   try {
     await connectToDB();
@@ -164,7 +164,7 @@ export async function PUT(request) {
     // Keep track of programIds affected by updates
     const affectedProgramIds = new Set();
 
-    // CRITICAL FIX: Process updates using participant IDs instead of indices
+    // FIXED: Process updates with proper array handling
     const updatePromises = updates.map(async (update) => {
       const { registrationId, participantUpdates } = update;
 
@@ -182,10 +182,12 @@ export async function PUT(request) {
       });
 
       // Process each participant update using participant ID matching
-      const updateOperations = {};
+      const bulkOps = [];
 
       for (const participantUpdate of participantUpdates) {
-        const { participantId, marks, judgeIndex } = participantUpdate;
+        // FIXED: Handle both single mark updates and complete marks array updates
+        const { participantId, marks, judgeIndex, marksByJudges } =
+          participantUpdate;
 
         // Find the participant by ID in the registration
         const participantIndex = registration.participants.findIndex(
@@ -199,69 +201,85 @@ export async function PUT(request) {
           continue;
         }
 
-        console.log(
-          `Found participant ${participantId} at index ${participantIndex}:`,
-          {
-            currentMarks:
-              registration.participants[participantIndex].marksByJudges,
-            newMarks: marks,
-            judgeIndex,
+        // Get current participant data
+        const currentParticipant = registration.participants[participantIndex];
+
+        let finalMarksByJudges;
+
+        if (marksByJudges) {
+          // Frontend sent complete marks array (preferred method)
+          finalMarksByJudges = marksByJudges;
+        } else if (marks !== undefined && judgeIndex !== undefined) {
+          // Fallback: single mark update (legacy support)
+          let currentMarksByJudges = currentParticipant.marksByJudges || [];
+
+          // Ensure the array is long enough for the judge index
+          while (currentMarksByJudges.length <= judgeIndex) {
+            currentMarksByJudges.push(0);
           }
+
+          // Update the specific judge's marks
+          currentMarksByJudges[judgeIndex] = marks;
+          finalMarksByJudges = currentMarksByJudges;
+        } else {
+          console.warn(`Invalid participant update data for ${participantId}`);
+          continue;
+        }
+
+        // Calculate new average marks from all valid marks
+        const validMarks = finalMarksByJudges.filter(
+          (m) => m !== undefined && m !== null && m > 0
         );
+        const averageMarks =
+          validMarks.length > 0
+            ? Math.round(
+                validMarks.reduce((sum, mark) => sum + mark, 0) /
+                  validMarks.length
+              )
+            : 0;
 
-        // Initialize marksByJudges array if it doesn't exist
-        if (!registration.participants[participantIndex].marksByJudges) {
-          registration.participants[participantIndex].marksByJudges = [];
-        }
-
-        // Update the specific judge's marks
-        if (judgeIndex !== undefined && marks !== undefined) {
-          updateOperations[
-            `participants.${participantIndex}.marksByJudges.${judgeIndex}`
-          ] = marks;
-        }
-
-        // Calculate new average marks
-        const currentMarks =
-          registration.participants[participantIndex].marksByJudges || [];
-        if (judgeIndex !== undefined) {
-          currentMarks[judgeIndex] = marks;
-        }
-
-        const averageMarks = calculateAverageMarks(
-          currentMarks.filter((m) => m !== undefined)
-        );
-        updateOperations[`participants.${participantIndex}.totalMarks`] =
-          averageMarks;
-
-        console.log(`Update operations for participant ${participantId}:`, {
+        console.log(`Updating participant ${participantId}:`, {
           participantIndex,
-          marksOperation: `participants.${participantIndex}.marksByJudges.${judgeIndex}`,
-          totalMarksOperation: `participants.${participantIndex}.totalMarks`,
+          finalMarksByJudges,
           newAverageMarks: averageMarks,
+        });
+
+        // Create bulk operation to update this specific participant
+        bulkOps.push({
+          updateOne: {
+            filter: {
+              _id: registrationId,
+              [`participants.${participantIndex}.id`]: participantId,
+            },
+            update: {
+              $set: {
+                [`participants.${participantIndex}.marksByJudges`]:
+                  finalMarksByJudges,
+                [`participants.${participantIndex}.totalMarks`]: averageMarks,
+              },
+            },
+          },
         });
       }
 
-      if (Object.keys(updateOperations).length === 0) {
+      if (bulkOps.length === 0) {
         console.log(`No update operations for registration ${registrationId}`);
         return { modifiedCount: 0 };
       }
 
       console.log(
-        `Executing update operations for ${registrationId}:`,
-        updateOperations
+        `Executing ${bulkOps.length} bulk operations for ${registrationId}`
       );
 
-      return await ProgramRegistration.updateOne(
-        { _id: registrationId },
-        { $set: updateOperations }
-      );
+      // Execute all bulk operations for this registration
+      const result = await ProgramRegistration.bulkWrite(bulkOps);
+      return { modifiedCount: result.modifiedCount };
     });
 
     const results = await Promise.all(updatePromises);
-    const successCount = results.filter((r) => r.modifiedCount > 0).length;
+    const successCount = results.reduce((sum, r) => sum + r.modifiedCount, 0);
 
-    console.log(`Updated ${successCount} registrations successfully`);
+    console.log(`Updated ${successCount} participant marks successfully`);
 
     // ----------------------------- Auto Generate Results -----------------------------
     const resultPromises = Array.from(affectedProgramIds).map(
@@ -331,7 +349,7 @@ export async function PUT(request) {
 
     return NextResponse.json({
       success: true,
-      message: `${successCount} registration(s) updated and results regenerated`,
+      message: `${successCount} participant marks updated and results regenerated`,
       updatedCount: successCount,
       generatedResultsCount: generatedResults.length,
     });
