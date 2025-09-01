@@ -280,7 +280,7 @@ const IndividualResultsComponent = ({ divisions = [], apiKey }) => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-2 sm:p-4 md:p-6">
+    <div className="space-y-4 sm:space-y-6 ">
       {/* Controls */}
       <div className="no-print">
         <div className="flex flex-col gap-3 sm:gap-4">
