@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Loader } from "lucide-react";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
+import Image from "next/image";
 
 const ResultPoster = ({
   posterUrl,
@@ -114,11 +115,13 @@ const ResultPoster = ({
           style={{ maxWidth: "400px" }}
         >
           {/* Background Poster Image */}
-          <img
+          <Image
             src={posterUrl}
             alt={`Result Poster ${posterNumber}`}
+            width={1024} // adjust based on your design
+            height={1024} // adjust based on your design
             className="w-full h-full object-cover"
-            onLoad={() => setImageLoaded(true)}
+            onLoadingComplete={() => setImageLoaded(true)}
             onError={() => {
               setImageLoaded(false);
               toast.error(`Failed to load poster ${posterNumber}`);

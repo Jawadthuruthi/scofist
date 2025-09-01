@@ -32,7 +32,7 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page")) || 0;
-    const limit = parseInt(searchParams.get("limit")) || 50;
+    const limit = parseInt(searchParams.get("limit")) || infinity;
     const skip = page * limit;
 
     const divisionId = searchParams.get("divisionId");

@@ -12,31 +12,12 @@ export async function POST(req) {
       );
     }
 
-    const result = await cloudinary.uploader.upload(image, {
-      folder: "profiles",
-      transformation: [
-        { width: 800, height: 800, crop: "limit" },
-        { quality: "auto" },
-        { fetch_format: "auto" },
-      ],
-    });
-
-    // Option 2: Different settings based on use case
-    // For profile images - moderate compression
-    // const result = await cloudinary.uploader.upload(image, {
-    //   folder: "profiles",
-    //   transformation: [
-    //     { width: 800, height: 800, crop: "limit" },
-    //     { quality: "85" },
-    //     { format: "auto" },
-    //   ],
-    // });
-
-    // Option 3: No transformation for original quality
-    // const result = await cloudinary.uploader.upload(image, {
-    //   folder: "profiles",
-    //   // No transformation - keeps original quality and size
-    // });
+    const result = await cloudinary.uploader.upload(imagePathOrDataUri, {
+    folder: "profiles",
+    use_filename: true,       
+    unique_filename: false,   
+    overwrite: true,          
+  });
 
     return NextResponse.json(
       {

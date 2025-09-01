@@ -311,7 +311,7 @@ const EvaluationComponent = ({
         return { grade: scheme.grade, points: scheme.points };
       }
     }
-    return { grade: "F", points: 0 };
+    return { grade: "-", points: 0 };
   };
 
   // handleSave function that properly handles multiple judge marks
@@ -463,7 +463,7 @@ const EvaluationComponent = ({
   const isLoading = fetchRegistrationsQuery.isLoading;
 
   return (
-    <div className="space-y-6 p-2 sm:p-4 md:p-6">
+    <div className="space-y-6">
       {/* Controls */}
       <div className="no-print">
         <div className="flex flex-col gap-4">
