@@ -15,7 +15,7 @@ function calculateGrade(totalMarks, gradeSchemes) {
       };
     }
   }
-  return { grade: "F", points: 0 };
+  return { grade: "-", points: 0 };
 }
 
 // Helper function to calculate average marks
