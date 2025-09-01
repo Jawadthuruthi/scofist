@@ -12,12 +12,12 @@ export async function POST(req) {
       );
     }
 
-    const result = await cloudinary.uploader.upload(imagePathOrDataUri, {
-    folder: "profiles",
-    use_filename: true,       
-    unique_filename: false,   
-    overwrite: true,          
-  });
+    const result = await cloudinary.uploader.upload(image, {
+      folder: "profiles",
+      use_filename: true,
+      unique_filename: false,
+      overwrite: true,
+    });
 
     return NextResponse.json(
       {
