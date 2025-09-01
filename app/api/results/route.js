@@ -31,7 +31,7 @@ export async function GET(request) {
     await connectToDB();
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page")) || "0";
+    const page = parseInt(searchParams.get("page")) || 0;
     const limit = parseInt(searchParams.get("limit")) || Infinity;
     const skip = page * limit;
 
@@ -67,7 +67,8 @@ export async function GET(request) {
           select: "name",
         },
       })
-      .sort({ resultNumber: 1 });
+      .sort({ resultNumber: 1 })
+      .skip(skip);
 
     // Filter results based on additional criteria
     let filteredResults = results.filter((result) => {
@@ -113,11 +114,10 @@ export async function GET(request) {
     }));
 
     const totalCount = filteredResults.length;
-    const paginatedResults = formattedResults.slice(skip, skip + limit);
 
     return NextResponse.json({
       success: true,
-      results: paginatedResults,
+      results: formattedResults,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(totalCount / limit) || 1,
