@@ -41,6 +41,18 @@ export default async function WinnersListPage() {
         options: formatOptions(divisions),
       },
       {
+        id: "category",
+        label: "Category",
+        inputType: "select",
+        options: [
+          {
+            value: "Stage",
+            label: "Stage",
+          },
+          { value: "Off-Stage", label: "Off-Stage" },
+        ],
+      },
+      {
         id: "rank",
         label: "Rank",
         inputType: "select",
