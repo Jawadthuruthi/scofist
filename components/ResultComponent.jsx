@@ -354,8 +354,12 @@ const ResultComponent = ({
             }
 
             // Calculate performance scores
-            const aScore = aPresence - aMaxOtherPresence;
-            const bScore = bPresence - bMaxOtherPresence;
+            const aScore = aMaxOtherPresence
+              ? aPresence / aMaxOtherPresence
+              : aPresence;
+            const bScore = bMaxOtherPresence
+              ? bPresence / bMaxOtherPresence
+              : bPresence;
 
             // Compare by score (higher first - better performance)
             if (aScore !== bScore) {
