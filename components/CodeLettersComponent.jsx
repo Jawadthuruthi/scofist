@@ -173,7 +173,7 @@ const CodeLettersComponent = ({
       .sort((a, b) => a.name?.localeCompare(b.name))
       .filter(
         (program) =>
-          (!selectedDivision || program.divisionId === selectedDivision) &&
+          program.divisionId === selectedDivision &&
           !seen.has(program._id) &&
           seen.add(program._id) &&
           (category === "both" || program.programCategory === category)

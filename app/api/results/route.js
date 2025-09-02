@@ -41,6 +41,7 @@ export async function GET(request) {
     const type = searchParams.get("type");
     const category = searchParams.get("category");
     const rank = searchParams.get("rank");
+    const resultNumber = searchParams.get("resultNumber");
 
     // Build query
     const query = {};
@@ -48,6 +49,7 @@ export async function GET(request) {
     if (isResultDeclared !== null && isResultDeclared !== undefined) {
       query.isResultDeclared = isResultDeclared === "true";
     }
+    if (resultNumber) query.resultNumber = parseInt(resultNumber);
 
     // Get all results with program and division details
     const results = await Result.find(query)

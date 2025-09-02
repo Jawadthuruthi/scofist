@@ -14,6 +14,7 @@ import { Loader2, Medal, Trophy, X } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { formatOptions } from "@/lib/utils";
 import ResultPostersSection from "@/components/ResultPostersSection";
+import { Input } from "@/components/ui/input";
 
 /* ---------------------- helper constants ---------------------- */
 
@@ -64,6 +65,7 @@ export default function PublicResultsPage() {
   const [programs, setPrograms] = useState([]);
   const [settings, setSettings] = useState({});
   const [resultData, setResultData] = useState([]);
+  const [resultNo, setResultNo] = useState("");
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedProgram, setSelectedProgram] = useState("");
   const [results, setResults] = useState(null);
@@ -102,7 +104,7 @@ export default function PublicResultsPage() {
 
   /* --------------- fetch results when program picked --------------- */
   useEffect(() => {
-    if (!selectedProgram) {
+    if (!selectedProgram && !resultNo) {
       setResults(null);
       setShowResults(false);
       return;
@@ -112,7 +114,9 @@ export default function PublicResultsPage() {
     setError("");
     setShowResults(false);
 
-    fetchJSON(`/api/results?programId=${selectedProgram}&isResultDeclared=true`)
+    fetchJSON(
+      `/api/results?programId=${selectedProgram}&isResultDeclared=true&resultNumber=${resultNo}`
+    )
       .then((r) => {
         setResultData(r.results?.[0] || []);
         const top = (r.results?.[0]?.participants ?? [])
@@ -123,7 +127,7 @@ export default function PublicResultsPage() {
       })
       .catch(() => setError("Unable to load results"))
       .finally(() => setLoading(false));
-  }, [selectedProgram]);
+  }, [selectedProgram, resultNo]);
 
   /* --------------- memoized options --------------- */
   const divisionOptions = useMemo(
@@ -336,6 +340,17 @@ export default function PublicResultsPage() {
       <div className=" bg-white/60   border-b border-white/20">
         <div className="max-w-6xl mx-auto p-4 h-full flex items-center justify-center">
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full max-w-2xl">
+            {/* Result No. */}
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  placeholder="Result No."
+                  value={resultNo}
+                  onChange={(e) => setResultNo(e.target.value)}
+                />
+              </div>
+            </div>
             {/* Division Select */}
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -389,7 +404,7 @@ export default function PublicResultsPage() {
         )}
 
         {/* Empty State - No Program Selected */}
-        {!loading && !error && !selectedProgram && (
+        {!loading && !error && !selectedProgram && !results && (
           <div className="text-center py-16">
             <div className="max-w-md mx-auto">
               <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-[#9e6237]/20 to-[#f0c76e]/20 rounded-full flex items-center justify-center">

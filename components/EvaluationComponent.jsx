@@ -215,8 +215,7 @@ const EvaluationComponent = ({
     );
     return programs?.filter(
       (program) =>
-        (!selectedDivision || program.divisionId === selectedDivision) &&
-        programIds.has(program._id)
+        program.divisionId === selectedDivision && programIds.has(program._id)
     );
   }, [selectedDivision, programs, filteredRegistrations]);
 

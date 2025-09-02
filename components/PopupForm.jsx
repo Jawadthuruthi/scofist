@@ -83,6 +83,7 @@ function FieldRenderer({ field, form, apiKey, data }) {
     if (field.filter && !field.filters) {
       const dependentFieldName = field.filter.dependentField;
       const key = field.filter.key;
+      const fallbackKey = field.filter.fallbackKey;
       const valueToMatch = depValue;
 
       const filteredOptions = (field.options || []).filter((option) => {

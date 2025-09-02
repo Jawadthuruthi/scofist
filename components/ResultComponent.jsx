@@ -381,10 +381,9 @@ const ResultComponent = ({
   ]);
 
   // Get available programs for selected division
-  const availablePrograms = selectedDivision
-    ? programs.filter((p) => p.divisionId === selectedDivision)
-    : programs;
-
+  const availablePrograms = programs.filter(
+    (p) => p.divisionId === selectedDivision
+  );
   // Generate results for a program
   const handleGenerateResult = async (programId) => {
     try {
