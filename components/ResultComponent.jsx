@@ -314,7 +314,7 @@ const ResultComponent = ({
           }
 
           if (!aDecl) {
-            // Both pending - sort by global weakest team priority
+            // Both pending - sort by how well the globally weakest team performs compared to other teams
             const { weakestTeamId: aWeakest, weakestPresence: aPresence } =
               getWeakestTeamAndPresence(a);
             const { weakestTeamId: bWeakest, weakestPresence: bPresence } =
@@ -333,12 +333,41 @@ const ResultComponent = ({
               return aRank - bRank;
             }
 
-            // Secondary: Compare by presence of weakest team (descending - higher presence first)
+            // Secondary: Calculate performance score (weakest vs other teams within each result)
+            const aTeamSums = buildResultTeamSums(a);
+            const bTeamSums = buildResultTeamSums(b);
+
+            // Get max presence of other teams in result A
+            let aMaxOtherPresence = 0;
+            for (const [teamId, presence] of aTeamSums) {
+              if (teamId !== aWeakest && presence > aMaxOtherPresence) {
+                aMaxOtherPresence = presence;
+              }
+            }
+
+            // Get max presence of other teams in result B
+            let bMaxOtherPresence = 0;
+            for (const [teamId, presence] of bTeamSums) {
+              if (teamId !== bWeakest && presence > bMaxOtherPresence) {
+                bMaxOtherPresence = presence;
+              }
+            }
+
+            // Calculate performance scores
+            const aScore = aPresence - aMaxOtherPresence;
+            const bScore = bPresence - bMaxOtherPresence;
+
+            // Compare by score (higher first - better performance)
+            if (aScore !== bScore) {
+              return bScore - aScore;
+            }
+
+            // Tertiary: Compare by weakest team presence (higher first)
             if (aPresence !== bPresence) {
               return bPresence - aPresence;
             }
 
-            // Tertiary: Deterministic tie-breaker
+            // Final: Deterministic tie-breaker
             return a.programName.localeCompare(b.programName);
           } else {
             // Both declared - sort by result number ascending
