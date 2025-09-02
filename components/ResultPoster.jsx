@@ -115,13 +115,11 @@ const ResultPoster = ({
           style={{ maxWidth: "400px" }}
         >
           {/* Background Poster Image */}
-          <Image
+          <img
             src={posterUrl}
             alt={`Result Poster ${posterNumber}`}
-            width={1024} // adjust based on your design
-            height={1024} // adjust based on your design
             className="w-full h-full object-cover"
-            onLoadingComplete={() => setImageLoaded(true)}
+            onLoad={() => setImageLoaded(true)}
             onError={() => {
               setImageLoaded(false);
               toast.error(`Failed to load poster ${posterNumber}`);
