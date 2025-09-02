@@ -39,7 +39,7 @@ const ResultPoster = ({
       const canvas = await html2canvas(posterRef.current, {
         allowTaint: true,
         useCORS: true,
-        scale: 2,
+        scale: 3,
         width: posterRef.current.offsetWidth,
         height: posterRef.current.offsetHeight,
         backgroundColor: null,
@@ -112,7 +112,6 @@ const ResultPoster = ({
         <div
           ref={posterRef}
           className="relative w-full aspect-square mx-auto bg-white rounded-lg shadow-lg overflow-hidden"
-          style={{ maxWidth: "400px" }}
         >
           {/* Background Poster Image */}
           <img
