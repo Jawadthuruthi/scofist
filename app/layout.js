@@ -10,8 +10,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata = {
-  title:
-    "Sadiya Dawa College | Sa-adiya Da-awa College - Islamic College Of Integrated Studies | Da awa | Sa adiya | College | Scofist",
+  title: "Sa-adiya Da-awa College - Islamic College Of Integrated Studies",
   description:
     "Sadiya Dawa College (Sa-adiya Da-awa College) offers comprehensive Islamic and integrated studies, promoting academic excellence and spiritual growth. Leading Islamic college for higher education and spiritual development.",
   authors: [{ name: "Jawad TS" }],
