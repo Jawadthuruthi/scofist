@@ -280,7 +280,10 @@ const pages = [
 ];
 
 export async function middleware(req) {
-  if (req.nextUrl.pathname === "/" || req.nextUrl.pathname === "/login") {
+  if (req.nextUrl.pathname === "/") {
+    return NextResponse.next();
+  }
+  if (req.nextUrl.pathname === "/login") {
     return handleLoginPageRequest(req);
   }
   // Check if this is an API route
