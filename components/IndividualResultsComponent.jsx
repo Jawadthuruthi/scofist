@@ -73,9 +73,7 @@ const IndividualResultsComponent = ({ divisions = [], apiKey }) => {
     {
       retry: 2,
       retryDelay: 1000,
-      enabled:
-        !!selectedDivision ||
-        (!!chestNumberSearch.trim() && searchByChestNumber),
+      enabled: !!selectedDivision,
     }
   );
 

@@ -2,7 +2,6 @@ import DataTableComponent from "@/components/DataTableComponent";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
-import { filter } from "lodash";
 
 const columnsConfig = [
   {

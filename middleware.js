@@ -304,6 +304,7 @@ async function handleLoginPageRequest(req) {
   try {
     // Verify JWT token to check if it's valid
     const { payload } = await jwtVerify(token, SECRET_KEY);
+    console.log(payload);
 
     if (activeRole === "Teacher") {
       return NextResponse.redirect(new URL("/dashboard/my-periods", req.url));

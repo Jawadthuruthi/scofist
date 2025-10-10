@@ -92,7 +92,7 @@ export const metadata = {
     ],
   },
 
-  metadataBase: new URL("https://www.scofist.com"), // Use your main domain
+  metadataBase: new URL("https://www.scofist.com"),
 
   // Additional structured data
   other: {
