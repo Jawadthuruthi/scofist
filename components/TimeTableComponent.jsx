@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader, UserX } from "lucide-react";
+import { AlertCircle, Loader, UserX } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -107,6 +107,7 @@ const TimeTableComponent = ({
   periods = [],
   attendances = [],
   classes = [],
+  teachersLeaveRecord = [],
 }) => {
   const timeTableRef = useRef(null);
   const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
@@ -361,6 +362,18 @@ const TimeTableComponent = ({
                         [];
                       const isAttendanceMarked = markedAttendance?.length > 0;
 
+                      const leaveRecord = teachersLeaveRecord.find((record) => {
+                        const day = new Date(record.date).toLocaleDateString(
+                          "en-US",
+                          { weekday: "long" }
+                        );
+                        return (
+                          record.periodNumber === period.periodNumber &&
+                          record.teacherId === cellData?.teacherId?._id &&
+                          day === day
+                        );
+                      });
+
                       return (
                         <TableCell
                           onClick={() => {
@@ -409,6 +422,13 @@ const TimeTableComponent = ({
                                     </Tooltip>
                                   </TooltipProvider>
                                 )}
+
+                              {leaveRecord && !isAttendanceMarked && (
+                                <div className="flex items-center gap-1 text-xxs text-muted-foreground">
+                                  <AlertCircle className="text-red-500 h-3 w-3" />
+                                  <span>{leaveRecord.leaveReason}</span>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="flex flex-col items-center">

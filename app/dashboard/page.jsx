@@ -37,6 +37,11 @@ const API_ENDPOINTS = [
     searchParams: "isArrived=false",
     key: "leaveRecords",
   },
+  {
+    pathname: "teachers-leave-record",
+    searchParams: "isForTimeTable=true",
+    key: "teachersLeaveRecord",
+  },
 ];
 
 export default async function DashboardPage() {
@@ -57,6 +62,7 @@ export default async function DashboardPage() {
       attendances,
       settings,
       leaveRecords,
+      teachersLeaveRecord,
     ] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
         fetchData(
@@ -83,6 +89,7 @@ export default async function DashboardPage() {
         settings={settings}
         activeRole={activeRole}
         leaveRecords={filteredLeaveRecords}
+        teachersLeaveRecord={teachersLeaveRecord}
       />
     );
   } catch (error) {

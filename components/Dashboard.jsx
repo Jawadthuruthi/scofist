@@ -548,7 +548,15 @@ FacultyProfileCard.displayName = "FacultyProfileCard";
 
 // ===== LAZY TIMETABLE COMPONENT =====
 const LazyTimeTable = memo(
-  ({ apiKey, activeRole, timeTable, periods, attendances, classes }) => (
+  ({
+    apiKey,
+    activeRole,
+    timeTable,
+    periods,
+    attendances,
+    classes,
+    teachersLeaveRecord,
+  }) => (
     <Suspense fallback={<ChartSkeleton height="400px" />}>
       <TimeTableComponent
         apiKey={apiKey}
@@ -558,6 +566,7 @@ const LazyTimeTable = memo(
         periods={periods}
         attendances={attendances}
         classes={classes}
+        teachersLeaveRecord={teachersLeaveRecord}
       />
     </Suspense>
   )
@@ -574,6 +583,7 @@ export default function Dashboard({
   periods = [],
   attendances = [],
   leaveRecords = [],
+  teachersLeaveRecord = [],
   settings = {},
   activeRole,
 }) {
@@ -749,6 +759,7 @@ export default function Dashboard({
                   periods={periods}
                   attendances={attendances}
                   classes={classes}
+                  teachersLeaveRecord={teachersLeaveRecord}
                 />
               </CardContent>
             </Card>
