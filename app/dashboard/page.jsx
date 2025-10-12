@@ -39,7 +39,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "teachers-leave-record",
-    searchParams: "isForTimeTable=true",
+    searchParams: `date=${today}`,
     key: "teachersLeaveRecord",
   },
 ];
