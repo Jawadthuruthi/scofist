@@ -312,6 +312,7 @@ export async function DELETE(req, res) {
     await connectToDB();
 
     const { ids } = await req.json();
+    console.log("Deleting attendance records with IDs:", ids);
     const _id = ids[0];
 
     const deletedAttendances = await Attendance.find({ _id: { $in: ids } });
