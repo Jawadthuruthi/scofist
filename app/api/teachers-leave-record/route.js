@@ -2,26 +2,6 @@ import { apiResponse } from "@/lib/apiResponse";
 import TeachersLeaveRecord from "@/models/TeachersLeaveRecord";
 import { NextResponse } from "next/server";
 
-function convertToIST(date) {
-  const dateObj = new Date(date);
-
-  // Format the date in IST timezone
-  const istString = dateObj.toLocaleString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-
-  // Parse the formatted string (format: DD/MM/YYYY)
-  const [day, month, year] = istString.split("/");
-
-  // Create date at midnight IST
-  const istDate = new Date(`${year}-${month}-${day}T00:00:00+05:30`);
-
-  return istDate;
-}
-
 export async function GET(req) {
   try {
     const url = new URL(req.url);
@@ -44,7 +24,7 @@ export async function GET(req) {
       query.periodNumber = parseInt(filterParams.periodNumber);
     }
     if (filterParams?.date) {
-      const startDate = convertToIST(filterParams.date);
+      const startDate = new Date(filterParams.date);
       startDate.setUTCHours(0, 0, 0, 0);
       const nextDay = new Date(startDate);
       nextDay.setUTCDate(nextDay.getUTCDate() + 1);
@@ -52,7 +32,7 @@ export async function GET(req) {
       query.date = { $gte: startDate, $lt: nextDay };
     }
     if (filterParams?.isForTimeTable === "true") {
-      const endDate = convertToIST(new Date());
+      const endDate = new Date();
       endDate.setUTCHours(0, 0, 0, 0);
 
       const startDate = new Date(endDate);
@@ -74,7 +54,7 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const data = await req.json();
-    const date = convertToIST(data.date);
+    const date = new Date(data.date);
     date.setUTCHours(0, 0, 0, 0);
     const teachersLeaveRecord = await TeachersLeaveRecord.updateOne(
       {

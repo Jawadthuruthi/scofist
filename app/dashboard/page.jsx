@@ -39,7 +39,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "teachers-leave-record",
-    searchParams: `date=${today}`,
+    searchParams: `date=${istTime.toISOString().split("T")[0]}`,
     key: "teachersLeaveRecord",
   },
 ];
@@ -77,6 +77,8 @@ export default async function DashboardPage() {
     const filteredLeaveRecords = leaveRecords.filter(
       (record) => record.studentStatus === "Active"
     );
+
+    console.log(teachersLeaveRecord);
 
     return (
       <Dashboard
