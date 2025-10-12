@@ -56,10 +56,20 @@ export async function POST(req) {
     const data = await req.json();
     const date = new Date(data.date);
     date.setUTCHours(0, 0, 0, 0);
-    const teachersLeaveRecord = await TeachersLeaveRecord.create({
-      ...data,
-      date,
-    });
+    const teachersLeaveRecord = await TeachersLeaveRecord.updateOne(
+      {
+        teacherId: data.teacherId,
+        date: date,
+        periodNumber: data.periodNumber,
+        classId: data.classId,
+      },
+      {
+        $set: {
+          leaveReason: data.leaveReason,
+        },
+      },
+      { upsert: true }
+    );
 
     return NextResponse.json(
       { message: "Team created successfully!", teachersLeaveRecord },

@@ -228,6 +228,9 @@ const MyPeriods = ({ apiKey, teacherId }) => {
         leaveReason: reason,
       });
       toast.success("Leave reason submitted successfully.");
+      setOpen(false);
+      setReason("");
+      await leaveRecordQuery.refetch();
     } catch (error) {
       console.error("Error submitting leave reason:", error);
       toast.error(error.message || "Error submitting leave reason");
@@ -328,6 +331,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                               setOpen(true);
                               setClassId(slot.classId._id);
                               setPeriodNumber(slot.periodNumber);
+                              setReason(leaveRecord?.leaveReason || "");
                             }}
                           >
                             <FileText className="text-muted-foreground h-5 w-5 md:hidden" />
@@ -352,10 +356,8 @@ const MyPeriods = ({ apiKey, teacherId }) => {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent>
-            <DialogTitle>Apply for Leave</DialogTitle>
-            <DialogDescription>
-              Please provide a reason for your leave application.
-            </DialogDescription>
+            <DialogTitle>Leave Reason</DialogTitle>
+            <DialogDescription>Provide a leave reason.</DialogDescription>
             <div className="relative">
               <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
               <Input
@@ -365,7 +367,9 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                 className="pl-10"
               />
             </div>
-            <Button onClick={handleLeave}>Submit</Button>
+            <Button disabled={addLeaveRecord.isPending} onClick={handleLeave}>
+              Submit
+            </Button>
           </DialogContent>
         </Dialog>
       </div>
