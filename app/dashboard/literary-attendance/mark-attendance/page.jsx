@@ -307,7 +307,9 @@ const LiteraryAttendance = () => {
         toast.error("No attendance record to delete.");
         return;
       }
-      await deleteAttendance.mutateAsync(existingAttendance._id);
+      await deleteAttendance.mutateAsync({
+        data: { ids: [existingAttendance?._id] },
+      });
       setAttendance({});
       toast.success("Attendance record deleted successfully.");
       router.refresh();
