@@ -78,8 +78,6 @@ export default async function DashboardPage() {
       (record) => record.studentStatus === "Active"
     );
 
-    console.log(teachersLeaveRecord);
-
     return (
       <Dashboard
         apiKey={apiKey}

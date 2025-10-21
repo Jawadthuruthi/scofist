@@ -24,13 +24,24 @@ const MyTimeTablePage = async () => {
         pathname: "attendances",
         searchParams: `teacherId=${user?._id}&startDate=${startDate.toISOString().split("T")[0]}&endDate=${endDate.toISOString().split("T")[0]}`,
       },
+      {
+        pathname: "teachers-leave-record",
+        searchParams: "isForTimeTable=true",
+        key: "teachersLeaveRecord",
+      },
     ];
 
-    const [periods, attendances] = await Promise.all(
+    const [periods, attendances, teachersLeaveRecord] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
-        fetchData(endpoint.pathname, endpoint.searchParams)
+        fetchData(
+          endpoint.pathname,
+          endpoint.searchParams,
+          endpoint.revalidateTime,
+          endpoint.key
+        )
       )
     );
+
     return (
       <>
         <Header title="MY TIME TABLE" subTitle="View Teaching Schedule" />
@@ -39,6 +50,7 @@ const MyTimeTablePage = async () => {
           teacherId={user?._id}
           periods={periods}
           attendances={attendances}
+          teachersLeaveRecord={teachersLeaveRecord}
         />
       </>
     );

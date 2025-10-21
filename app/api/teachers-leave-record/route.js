@@ -41,6 +41,8 @@ export async function GET(req) {
       query.date = { $gte: startDate, $lte: endDate };
     }
 
+    console.log("Teachers Leave Record Query:", query);
+
     const teachersLeaveRecord = await TeachersLeaveRecord.find(query).sort({
       createdAt: -1,
     });

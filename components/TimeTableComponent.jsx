@@ -274,6 +274,18 @@ const TimeTableComponent = ({
                         [];
                       const isAttendanceMarked = markedAttendance?.length > 0;
 
+                      const leaveRecord = teachersLeaveRecord.find((record) => {
+                        const recordDay = new Date(
+                          record.date
+                        ).toLocaleDateString("en-US", { weekday: "long" });
+
+                        return (
+                          record.periodNumber === period.periodNumber &&
+                          record.teacherId === teacherId &&
+                          day === recordDay
+                        );
+                      });
+
                       return (
                         <TableCell
                           onClick={() => {
@@ -322,6 +334,12 @@ const TimeTableComponent = ({
                                     </Tooltip>
                                   </TooltipProvider>
                                 )}
+                              {leaveRecord && !isAttendanceMarked && (
+                                <div className="flex items-center gap-1 text-xxs text-muted-foreground">
+                                  <AlertCircle className="text-red-500 h-3 w-3" />
+                                  <span>{leaveRecord.leaveReason}</span>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="flex flex-col items-center">
