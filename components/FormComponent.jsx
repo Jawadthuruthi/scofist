@@ -335,8 +335,10 @@ export default function FormComponent({
         (field) =>
           (data ? !field?.hideOnEdit : true) &&
           (!field.conditionalRender ||
-            field.conditionalRender.expectedValue ===
-              formValues[field.conditionalRender.dependentField])
+            (field.conditionalRender.expectedValue
+              ? field.conditionalRender.expectedValue ===
+                formValues[field.conditionalRender.dependentField]
+              : !!formValues[field.conditionalRender.dependentField]))
       )
     );
   }, [data, formFields, formValues]);

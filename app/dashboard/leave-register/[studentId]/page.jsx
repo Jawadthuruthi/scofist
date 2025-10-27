@@ -120,6 +120,7 @@ export default async function IndividualLeaveRegisterPage({ params }) {
         label: "Remark",
         type: "text",
         inputType: "select",
+        required: true,
         options: [
           { value: "Very Good", label: "Very Good" },
           { value: "Good", label: "Good" },
@@ -127,7 +128,10 @@ export default async function IndividualLeaveRegisterPage({ params }) {
           { value: "Bad", label: "Bad" },
           { value: "Very Bad", label: "Very Bad" },
         ],
-        placeholder: "Any additional remarks (optional)",
+        placeholder: "Any additional remarks",
+        conditionalRender: {
+          dependentField: "arrivedDate",
+        },
       },
     ];
 
