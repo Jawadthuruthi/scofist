@@ -216,6 +216,12 @@ const MyPeriods = ({ apiKey, teacherId }) => {
   const handleLeave = async () => {
     if (!reason.trim()) {
       toast.error("Please enter a reason for leave.");
+      s;
+      return;
+    }
+
+    if (reason.length > 20) {
+      toast.error("Leave reason should not exceed 20 characters.");
       return;
     }
 
