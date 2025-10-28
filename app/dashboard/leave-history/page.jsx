@@ -53,13 +53,16 @@ export default async function LeaveHistoryPage() {
     };
 
     const filterConfig = [
-      { id: "studentName", label: "StudentName" },
+      { id: "studentName", label: "Student Name" },
       {
         id: "className",
         label: "Class",
         inputType: "select",
         type: "text",
-        options: formatOptions(classes),
+        options: classes.map((cls) => ({
+          value: cls?.name,
+          label: cls?.name,
+        })),
       },
     ];
 
