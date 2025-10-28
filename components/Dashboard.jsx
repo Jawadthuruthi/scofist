@@ -50,6 +50,13 @@ import useCrud from "@/hooks/use-crud";
 import Header from "@/components/Header";
 import TimeTableComponent from "@/components/TimeTableComponent";
 import { formatDateForDisplay } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 
 // ===== CUSTOM HOOKS =====
 const useIsClient = () => {
@@ -216,6 +223,7 @@ ErrorAlert.displayName = "ErrorAlert";
 // ===== CLASS CARD COMPONENT =====
 const ClassCard = memo(
   ({ classData, students, batches, attendances, leaveStudents }) => {
+    const [open, setOpen] = useState(false);
     const { classStudents, classBatch, attendanceStats } = useMemo(() => {
       const filteredStudents =
         students?.filter(
@@ -241,60 +249,80 @@ const ClassCard = memo(
       };
     }, [classData, students, batches, attendances]);
 
-    const presentStudents = classStudents - leaveStudents;
+    const presentStudents = classStudents - (leaveStudents?.length || 0);
 
     return (
-      <Card
-        className="overflow-hidden hover:border-primary/50 transition-all focus-within:outline-none focus-within:ring-2 focus-within:ring-primary"
-        role="region"
-        aria-labelledby={`class-${classData._id}`}
-      >
-        <CardHeader className="pb-2 bg-muted/30">
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle id={`class-${classData._id}`} className="text-lg">
-                {classData.name}
-              </CardTitle>
-              <CardDescription>
-                {classBatch
-                  ? `${classBatch.name} (${classBatch.academicYear})`
-                  : "N/A"}
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="text-sm space-y-3">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Students:</span>
-              <span className="font-medium">{classStudents || "N/A"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Present:</span>
-              <span className="font-medium">{presentStudents || "N/A"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">On Leave:</span>
-              <span className="font-medium">{leaveStudents}</span>
-            </div>
-            <div className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">
-                  Today's Attendance:
-                </span>
-                <span className="font-medium">
-                  {attendanceStats.percentage}%
-                </span>
+      <>
+        <Card
+          className="overflow-hidden hover:border-primary/50 transition-all focus-within:outline-none focus-within:ring-2 focus-within:ring-primary"
+          role="region"
+          aria-labelledby={`class-${classData._id}`}
+          onClick={() => setOpen(true)}
+        >
+          <CardHeader className="pb-2 bg-muted/30">
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle id={`class-${classData._id}`} className="text-lg">
+                  {classData.name}
+                </CardTitle>
+                <CardDescription>
+                  {classBatch
+                    ? `${classBatch.name} (${classBatch.academicYear})`
+                    : "N/A"}
+                </CardDescription>
               </div>
-              <Progress
-                value={attendanceStats.percentage}
-                className="h-1"
-                aria-label={`Attendance: ${attendanceStats.percentage}%`}
-              />
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-sm space-y-3">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Students:</span>
+                <span className="font-medium">{classStudents || "N/A"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Present:</span>
+                <span className="font-medium">{presentStudents || "N/A"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">On Leave:</span>
+                <span className="font-medium">{leaveStudents.length}</span>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    Today's Attendance:
+                  </span>
+                  <span className="font-medium">
+                    {attendanceStats.percentage}%
+                  </span>
+                </div>
+                <Progress
+                  value={attendanceStats.percentage}
+                  className="h-1"
+                  aria-label={`Attendance: ${attendanceStats.percentage}%`}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Absentees</DialogTitle>
+              <DialogDescription>
+                {classData.name}'s absentees'
+              </DialogDescription>
+            </DialogHeader>
+            <div className="text-sm">
+              {leaveStudents.map((std, index) => (
+                <div id={`classIndex - ${index}`}>
+                  {index + 1}. {std.studentName}
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 );
@@ -819,7 +847,7 @@ export default function Dashboard({
                   {classes.map((classData) => {
                     const leaveStudents = leaveRecords.filter(
                       (record) => record.classId === classData._id
-                    ).length;
+                    );
 
                     return (
                       <ClassCard
