@@ -257,6 +257,7 @@ export default function PopupFilter({
   // Handle date range change
   const handleDateRangeChange = useCallback(
     (filterId, field, value, currentValue, operator, nestedArrayField) => {
+      console.log(currentValue);
       const updatedValue = { ...currentValue, [field]: value };
       if (updatedValue.startDate || updatedValue.endDate) {
         handleFilterChange(filterId, updatedValue, operator, nestedArrayField);

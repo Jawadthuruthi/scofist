@@ -71,8 +71,8 @@ export async function GET(req, res) {
       endDate.setHours(23, 59, 59, 999);
 
       query.date = {
-        $gte: startDate,
-        $lt: endDate,
+        $gte: start ? startDate : undefined,
+        $lt: end ? endDate : undefined,
       };
     }
 

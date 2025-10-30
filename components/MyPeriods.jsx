@@ -35,6 +35,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
   const [reason, setReason] = useState("");
   const [classId, setClassId] = useState("");
   const [periodNumber, setPeriodNumber] = useState("");
+  const [error, setError] = useState(false);
 
   const router = useRouter();
 
@@ -369,9 +370,19 @@ const MyPeriods = ({ apiKey, teacherId }) => {
               <Input
                 placeholder="write your leave reason here"
                 value={reason}
-                onChange={(e) => setReason(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value.length > 20) {
+                    setError(true);
+                  }
+                  setReason(e.target.value);
+                }}
                 className="pl-10"
-              />
+              />{" "}
+              {error && (
+                <p className="text-destructive text-xs p-1">
+                  Leave reason should not exceed 20 characters.
+                </p>
+              )}
             </div>
             <Button disabled={addLeaveRecord.isPending} onClick={handleLeave}>
               Submit
