@@ -404,7 +404,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         placeholder="Enter transaction note or description"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
-                        rows={1}
+                        className="min-h-[40px]"
                       />
                     </div>
                   )}
