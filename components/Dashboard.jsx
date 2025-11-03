@@ -776,7 +776,7 @@ export default function Dashboard({
                   <span>Today's Schedule</span>
                 </CardTitle>
                 <CardDescription>
-                  View your scheduled classes and attendance for today
+                  View Today's scheduled classes and attendance
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
