@@ -182,8 +182,6 @@ export default async function BatchesPage() {
           { label: "Librarian", value: "Librarian" },
           { label: "Program Committee", value: "Program Committee" },
           { label: "Program Leader", value: "Program Leader" },
-          { label: "Stationary", value: "Stationary" },
-          { label: "IT Lab", value: "IT Lab" },
         ],
         validators: {
           minLength: 1,

@@ -79,6 +79,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const [showClearHistoryDialogue, setShowClearHistoryDialogue] =
     useState(false);
   const [loading, setLoading] = useState(false);
+  const amountInputRef = useRef(null);
 
   const printRef = useRef();
   const allStudentsFundRef = useRef();
@@ -351,7 +352,10 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                       variant={
                         transactionType === "Deposit" ? "default" : "outline"
                       }
-                      onClick={() => setTransactionType("Deposit")}
+                      onClick={() => {
+                        setTransactionType("Deposit");
+                        amountInputRef.current?.focus();
+                      }}
                       className="h-16 flex-col gap-2"
                     >
                       <Plus className="h-5 w-5" />
@@ -361,7 +365,10 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                       variant={
                         transactionType === "Withdrawal" ? "default" : "outline"
                       }
-                      onClick={() => setTransactionType("Withdrawal")}
+                      onClick={() => {
+                        setTransactionType("Withdrawal");
+                        amountInputRef.current?.focus();
+                      }}
                       className={`h-16 flex-col gap-2 ${transactionType === "Withdrawal" ? "!bg-destructive !text-destructive-foreground" : ""}`}
                     >
                       <Minus className="h-5 w-5" />
@@ -374,6 +381,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                     <div className="space-y-2">
                       <Label htmlFor="amount">Amount (₹)</Label>
                       <Input
+                        ref={amountInputRef}
                         id="amount"
                         type="number"
                         placeholder="Enter amount"
