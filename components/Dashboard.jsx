@@ -739,7 +739,7 @@ export default function Dashboard({
   }, [teachers]);
 
   return (
-    <div className="flex flex-col space-y-6">
+    <div className="flex flex-col">
       <Header
         title="DASHBOARD"
         subTitle={currentDate}
@@ -776,7 +776,7 @@ export default function Dashboard({
                   <span>Today's Schedule</span>
                 </CardTitle>
                 <CardDescription>
-                  View Today's scheduled classes and attendance
+                  View Today's scheduled classes
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
