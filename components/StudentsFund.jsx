@@ -285,13 +285,20 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                 </Select>
 
                 {selectedBatch && (
-                  <MultiSelect
-                    options={formatOptions(availableStudents)}
-                    onValueChange={setSelectedStudent}
-                    value={selectedStudent}
-                    placeholder="Select a student"
-                    multiSelect={false}
-                  />
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-semibold">
+                        {selectedBatchData?.name}
+                      </h3>
+                    </div>
+                    <MultiSelect
+                      options={formatOptions(availableStudents)}
+                      onValueChange={setSelectedStudent}
+                      value={selectedStudent}
+                      placeholder="Select a student"
+                      multiSelect={false}
+                    />
+                  </div>
                 )}
               </>
             </CardContent>
