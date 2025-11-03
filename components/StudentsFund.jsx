@@ -79,7 +79,6 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const [showClearHistoryDialogue, setShowClearHistoryDialogue] =
     useState(false);
   const [loading, setLoading] = useState(false);
-  const amountInputRef = useRef(null);
 
   const printRef = useRef();
   const allStudentsFundRef = useRef();
@@ -352,10 +351,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                       variant={
                         transactionType === "Deposit" ? "default" : "outline"
                       }
-                      onClick={() => {
-                        setTransactionType("Deposit");
-                        amountInputRef.current?.focus();
-                      }}
+                      onClick={() => setTransactionType("Deposit")}
                       className="h-16 flex-col gap-2"
                     >
                       <Plus className="h-5 w-5" />
@@ -365,10 +361,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                       variant={
                         transactionType === "Withdrawal" ? "default" : "outline"
                       }
-                      onClick={() => {
-                        setTransactionType("Withdrawal");
-                        amountInputRef.current?.focus();
-                      }}
+                      onClick={() => setTransactionType("Withdrawal")}
                       className={`h-16 flex-col gap-2 ${transactionType === "Withdrawal" ? "!bg-destructive !text-destructive-foreground" : ""}`}
                     >
                       <Minus className="h-5 w-5" />
@@ -381,7 +374,6 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                     <div className="space-y-2">
                       <Label htmlFor="amount">Amount (₹)</Label>
                       <Input
-                        ref={amountInputRef}
                         id="amount"
                         type="number"
                         placeholder="Enter amount"
@@ -402,7 +394,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         placeholder="Enter transaction note or description"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
-                        rows={1}
+                        className="min-h-[40px]"
                       />
                     </div>
                   )}
