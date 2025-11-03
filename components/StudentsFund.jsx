@@ -79,7 +79,6 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const [showClearHistoryDialogue, setShowClearHistoryDialogue] =
     useState(false);
   const [loading, setLoading] = useState(false);
-  const amountInputRef = useRef(null);
 
   const printRef = useRef();
   const allStudentsFundRef = useRef();
@@ -136,12 +135,6 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
       setStudentBalance(balance || 0);
     }
   }, [studentFund, selectedStudent]);
-
-  useEffect(() => {
-    if (transactionType && amountInputRef.current) {
-      amountInputRef.current.focus();
-    }
-  }, [transactionType]);
   useEffect(() => {
     setSelectedStudent("");
   }, [selectedBatch]);
@@ -381,7 +374,6 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                     <div className="space-y-2">
                       <Label htmlFor="amount">Amount (₹)</Label>
                       <Input
-                        ref={amountInputRef}
                         id="amount"
                         type="number"
                         placeholder="Enter amount"
