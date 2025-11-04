@@ -80,6 +80,8 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const [loading, setLoading] = useState(false);
   const amountInputRef = useRef(null);
   const noteInputRef = useRef(null);
+  const confirmButtonRef = useRef(null);
+  const finalConfirmButtonRef = useRef(null);
 
   const printRef = useRef();
   const allStudentsFundRef = useRef();
@@ -147,6 +149,14 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   useEffect(() => {
     setSelectedStudent("");
   }, [selectedBatch]);
+
+  useEffect(() => {
+    if (showConfirmDialog && finalConfirmButtonRef.current) {
+      setTimeout(() => {
+        finalConfirmButtonRef.current.focus();
+      }, 0);
+    }
+  }, [showConfirmDialog]);
 
   // Filter students based on selected batch
   const availableStudents = useMemo(() => {
@@ -426,6 +436,11 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         placeholder="Enter transaction note or description"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            confirmButtonRef.current.focus();
+                          }
+                        }}
                       />
                     </div>
                   )}
@@ -433,7 +448,13 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                   {/* Submit Button */}
                   {transactionType && (
                     <Button
+                      ref={confirmButtonRef}
                       onClick={handleTransaction}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleTransaction();
+                        }
+                      }}
                       disabled={!amount || loading}
                       className="w-full"
                       size="lg"
@@ -816,7 +837,11 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmTransaction} disabled={loading}>
+            <AlertDialogAction
+              ref={finalConfirmButtonRef}
+              onClick={confirmTransaction}
+              disabled={loading}
+            >
               {loading ? "Processing..." : "Confirm"}
             </AlertDialogAction>
           </AlertDialogFooter>
