@@ -157,6 +157,20 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
     return batches.find((batch) => batch._id === selectedBatch) || {};
   }, [selectedBatch]);
 
+  const dropdownOptions = useMemo(() => {
+    if (!selectedBatch) return [];
+
+    const batchOption = {
+      value: selectedBatchData._id,
+      label: selectedBatchData.name,
+      isBatch: true, // Custom property to identify the batch option
+    };
+
+    const studentOptions = formatOptions(availableStudents);
+
+    return [batchOption, ...studentOptions];
+  }, [selectedBatch, availableStudents, selectedBatchData]);
+
   const handleTransaction = () => {
     if (!amount || !transactionType) return;
     setShowConfirmDialog(true);
@@ -292,7 +306,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                       </h3>
                     </div>
                     <MultiSelect
-                      options={formatOptions(availableStudents)}
+                      options={dropdownOptions}
                       onValueChange={setSelectedStudent}
                       value={selectedStudent}
                       placeholder="Select a student"
@@ -305,7 +319,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
           </Card>
 
           {/* Student Balance & Transaction Form */}
-          {selectedStudent && (
+          {selectedStudent && selectedStudent !== selectedBatch && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -444,7 +458,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
               <CardDescription>Recent fund activities</CardDescription>
             </CardHeader>
             <CardContent>
-              {selectedStudent ? (
+              {selectedStudent && selectedStudent !== selectedBatch ? (
                 <div className="space-y-4">
                   <div className="max-h-[320px] overflow-y-auto hide-scrollbar">
                     {transactions?.length > 0 ? (
