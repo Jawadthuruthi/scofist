@@ -300,11 +300,6 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
 
                 {selectedBatch && (
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-semibold">
-                        {selectedBatchData?.name}
-                      </h3>
-                    </div>
                     <MultiSelect
                       options={dropdownOptions}
                       onValueChange={setSelectedStudent}
