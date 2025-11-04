@@ -841,6 +841,11 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
               ref={finalConfirmButtonRef}
               onClick={confirmTransaction}
               disabled={loading}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  confirmTransaction();
+                }
+              }}
             >
               {loading ? "Processing..." : "Confirm"}
             </AlertDialogAction>
