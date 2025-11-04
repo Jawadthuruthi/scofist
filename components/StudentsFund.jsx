@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -80,6 +79,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
     useState(false);
   const [loading, setLoading] = useState(false);
   const amountInputRef = useRef(null);
+  const noteInputRef = useRef(null);
 
   const printRef = useRef();
   const allStudentsFundRef = useRef();
@@ -407,6 +407,11 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         onChange={(e) => setAmount(e.target.value)}
                         min="1"
                         step="0.01"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            noteInputRef.current.focus();
+                          }
+                        }}
                       />
                     </div>
                   )}
@@ -415,12 +420,12 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                   {transactionType && (
                     <div className="space-y-2">
                       <Label htmlFor="note">Note</Label>
-                      <Textarea
+                      <Input
+                        ref={noteInputRef}
                         id="note"
                         placeholder="Enter transaction note or description"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
-                        className="min-h-[40px]"
                       />
                     </div>
                   )}
