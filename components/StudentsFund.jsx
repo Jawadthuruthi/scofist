@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -421,7 +420,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                   {transactionType && (
                     <div className="space-y-2">
                       <Label htmlFor="note">Note</Label>
-                      <Textarea
+                      <Input
                         ref={noteInputRef}
                         id="note"
                         placeholder="Enter transaction note or description"
