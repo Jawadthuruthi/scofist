@@ -88,7 +88,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
 
   const isMobile = useIsMobile();
 
-  const { useFetchItems, useAddItem, useUpdateItem } = useCrud(
+  const { useFetchItems, useAddItem, useUpdateItem, useAddBatch } = useCrud(
     "studentsFund",
     apiKey
   );
@@ -117,6 +117,8 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   }, [allStudentsFund]);
 
   const addStudentFund = useAddItem();
+
+  const addBatchFund = useAddBatch();
 
   const updateStudentFund = useUpdateItem();
 
@@ -189,46 +191,58 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const confirmTransaction = async () => {
     setLoading(true);
 
-    // Store original balance for potential rollback
-    const originalBalance = studentBalance;
+    const isBatchTransaction = selectedStudent === selectedBatch;
 
-    // Calculate new balance
-    const newBalance =
-      (transactionType === "Deposit"
-        ? studentBalance + parseFloat(amount)
-        : studentBalance - parseFloat(amount)) || 0;
-
-    // Create transaction object before clearing state
+    // Create transaction object
     const transaction = {
       type: transactionType,
       amount: parseFloat(amount),
       note,
     };
 
-    // Optimistically update UI for a responsive feel
-    setStudentBalance(newBalance);
+    // Reset form fields immediately
     setAmount("");
     setNote("");
     setTransactionType("");
     setShowConfirmDialog(false);
 
     try {
-      // Perform the API call in the background
-      await addStudentFund.mutateAsync({
-        studentId: selectedStudent,
-        teacherId,
-        batchId: selectedBatch,
-        transaction,
-        balance: newBalance,
-      });
+      if (isBatchTransaction) {
+        // Handle batch transaction
+        await addBatchFund.mutateAsync({
+          batchId: selectedBatch,
+          teacherId,
+          transaction,
+        });
+      } else {
+        // Handle single student transaction with optimistic update
+        const originalBalance = studentBalance;
+        const newBalance =
+          (transaction.type === "Deposit"
+            ? originalBalance + transaction.amount
+            : originalBalance - transaction.amount) || 0;
 
-      // Refetch to sync with the authoritative server state
+        // Optimistically update UI
+        setStudentBalance(newBalance);
+
+        await addStudentFund.mutateAsync({
+          studentId: selectedStudent,
+          teacherId,
+          batchId: selectedBatch,
+          transaction,
+          balance: newBalance,
+        });
+      }
+
+      // Refetch data to ensure UI is in sync with the server
       await fetchStudentFundQuery.refetch();
     } catch (error) {
-      console.error("Transaction failed, reverting optimistic update:", error);
-      // If the API call fails, revert the state to its original value
-      setStudentBalance(originalBalance);
-      // NOTE: Consider adding a user notification (e.g., a toast) here to inform them of the failure.
+      console.error("Transaction failed:", error);
+      if (!isBatchTransaction) {
+        // Revert optimistic update on failure for single student transaction
+        setStudentBalance(studentBalance); // Re-set to the original state before refetch
+      }
+      // Consider adding a user notification (e.g., a toast) here to inform them of the failure.
     } finally {
       setLoading(false);
     }
@@ -338,7 +352,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
           </Card>
 
           {/* Student Balance & Transaction Form */}
-          {selectedStudent && selectedStudent !== selectedBatch && (
+          {(selectedStudent || selectedBatch) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -361,35 +375,43 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                   {/* Student Info & Balance */}
                   <div className="flex items-center justify-between p-4 bg-accent rounded-lg border">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-7 md:h-12 w-7 md:w-12">
-                        <AvatarImage
-                          src={selectedStudentData?.profilePic.url}
-                        />
-                        <AvatarFallback>
-                          {selectedStudentData?.name?.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      {selectedStudent !== selectedBatch && (
+                        <Avatar className="h-7 md:h-12 w-7 md:w-12">
+                          <AvatarImage
+                            src={selectedStudentData?.profilePic.url}
+                          />
+                          <AvatarFallback>
+                            {selectedStudentData?.name?.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
                       <div>
                         <h3 className="font-semibold text-sm md:text-base text-foreground">
-                          {selectedStudentData?.name}
+                          {selectedStudent === selectedBatch
+                            ? selectedBatchData?.name
+                            : selectedStudentData?.name}
                         </h3>
-                        <p className="text-xs md:text-sm text-accent-foreground">
-                          Student ID: {selectedStudent}
-                        </p>
+                        {selectedStudent !== selectedBatch && (
+                          <p className="text-xs md:text-sm text-accent-foreground">
+                            Student ID: {selectedStudent}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs md:text-sm text-accent-foreground">
-                        Current Balance
-                      </p>
-                      <p
-                        className={`"text-lg md:text-2xl font-bold " ${studentBalance < 0 ? "text-destructive" : "text-green-600"}`}
-                      >
-                        {studentBalance
-                          ? `₹ ${studentBalance?.toFixed(2)}`
-                          : "0"}
-                      </p>
-                    </div>
+                    {selectedStudent !== selectedBatch && (
+                      <div className="text-right">
+                        <p className="text-xs md:text-sm text-accent-foreground">
+                          Current Balance
+                        </p>
+                        <p
+                          className={`"text-lg md:text-2xl font-bold " ${studentBalance < 0 ? "text-destructive" : "text-green-600"}`}
+                        >
+                          {studentBalance
+                            ? `₹ ${studentBalance?.toFixed(2)}`
+                            : "0"}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <Separator />
