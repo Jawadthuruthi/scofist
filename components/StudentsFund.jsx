@@ -295,7 +295,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                       options={formatOptions(availableStudents)}
                       onValueChange={setSelectedStudent}
                       value={selectedStudent}
-                      placeholder="Select a student"
+                      placeholder={`Select a student from ${selectedBatchData?.name}`}
                       multiSelect={false}
                     />
                   </div>
