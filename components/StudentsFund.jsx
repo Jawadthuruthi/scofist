@@ -188,35 +188,49 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
 
   const confirmTransaction = async () => {
     setLoading(true);
-    const balance =
+
+    // Store original balance for potential rollback
+    const originalBalance = studentBalance;
+
+    // Calculate new balance
+    const newBalance =
       (transactionType === "Deposit"
         ? studentBalance + parseFloat(amount)
         : studentBalance - parseFloat(amount)) || 0;
 
+    // Create transaction object before clearing state
+    const transaction = {
+      type: transactionType,
+      amount: parseFloat(amount),
+      note,
+    };
+
+    // Optimistically update UI for a responsive feel
+    setStudentBalance(newBalance);
+    setAmount("");
+    setNote("");
+    setTransactionType("");
+    setShowConfirmDialog(false);
+
     try {
-      const transaction = {
-        type: transactionType,
-        amount: parseFloat(amount),
-        note,
-      };
+      // Perform the API call in the background
       await addStudentFund.mutateAsync({
         studentId: selectedStudent,
         teacherId,
         batchId: selectedBatch,
         transaction,
-        balance,
+        balance: newBalance,
       });
-      await fetchStudentFundQuery.refetch();
 
-      // Reset form
-      setAmount("");
-      setNote("");
-      setTransactionType("");
+      // Refetch to sync with the authoritative server state
+      await fetchStudentFundQuery.refetch();
     } catch (error) {
-      console.error("Transaction failed:", error);
+      console.error("Transaction failed, reverting optimistic update:", error);
+      // If the API call fails, revert the state to its original value
+      setStudentBalance(originalBalance);
+      // NOTE: Consider adding a user notification (e.g., a toast) here to inform them of the failure.
     } finally {
       setLoading(false);
-      setShowConfirmDialog(false);
     }
   };
 
