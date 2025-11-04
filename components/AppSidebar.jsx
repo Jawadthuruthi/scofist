@@ -83,6 +83,8 @@ const items = [
       "Program Leader",
       "Finance",
       "Literary Leader",
+      "Stationary",
+      "IT Lab",
     ],
   },
   {

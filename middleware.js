@@ -23,6 +23,8 @@ const pages = [
       "Program Leader",
       "Finance",
       "Literary Leader",
+      "Stationary",
+      "IT Lab",
     ],
   },
   {
