@@ -34,6 +34,7 @@ import {
   CheckCircle,
   TicketPercent,
   UserMinus,
+  Download,
 } from "lucide-react";
 
 import {
@@ -122,6 +123,12 @@ const items = [
     url: "/dashboard/students-fund",
     allowedRoles: ["College Admin", "Teacher"],
     icon: CreditCard,
+  },
+  {
+    title: "Downloads",
+    url: "/dashboard/downloads",
+    allowedRoles: ["College Admin", "Student"],
+    icon: Download,
   },
   {
     title: "Marks",
