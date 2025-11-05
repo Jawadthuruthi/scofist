@@ -69,10 +69,9 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "your_upload_preset"); // Replace with your Cloudinary upload preset
 
     try {
-      const response = await fetch("https://api.cloudinary.com/v1_1/your_cloud_name/upload", { // Replace with your Cloudinary cloud name
+      const response = await fetch("/api/mock-upload", {
         method: "POST",
         body: formData,
       });
@@ -188,21 +187,38 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredDownloads.map((download) => (
-                <TableRow key={download._id}>
-                  <TableCell>{download.subject}</TableCell>
-                  <TableCell>{download.year}</TableCell>
-                  <TableCell>{download.semester}</TableCell>
-                  <TableCell>
-                    <a href={download.fileUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline">
-                        <DownloadIcon className="mr-2" />
-                        Download
-                      </Button>
-                    </a>
+              {filteredDownloads.length > 0 ? (
+                filteredDownloads.map((download) => (
+                  <TableRow key={download._id}>
+                    <TableCell>{download.subject}</TableCell>
+                    <TableCell>{download.year}</TableCell>
+                    <TableCell>{download.semester}</TableCell>
+                    <TableCell>
+                      <a
+                        href={download.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button variant="outline">
+                          <DownloadIcon className="mr-2" />
+                          Download
+                        </Button>
+                      </a>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="text-center text-muted-foreground"
+                  >
+                    {role === "College Admin"
+                      ? "No question papers uploaded yet. Use the form above to upload one."
+                      : "No question papers available at the moment. Please check back later."}
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
