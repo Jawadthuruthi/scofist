@@ -11,7 +11,10 @@ export async function POST(req, res) {
     const { batchId, teacherId, transaction } = await req.json();
 
     // Find all students in the given batch
-    const students = await User.find({ batchId });
+    const students = await User.find({
+      "studentSpecificField.batchId": batchId,
+      "studentSpecificField.status": "Active",
+    });
 
     if (!students || students.length === 0) {
       return apiResponse.error("No students found in this batch", 404);

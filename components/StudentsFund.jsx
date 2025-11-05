@@ -240,7 +240,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
       console.error("Transaction failed:", error);
       if (!isBatchTransaction) {
         // Revert optimistic update on failure for single student transaction
-        setStudentBalance(studentBalance); // Re-set to the original state before refetch
+        setStudentBalance(originalBalance); // Re-set to the original state before refetch
       }
       // Consider adding a user notification (e.g., a toast) here to inform them of the failure.
     } finally {
