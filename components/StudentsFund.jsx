@@ -375,40 +375,50 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                   {/* Student Info & Balance */}
                   <div className="flex items-center justify-between p-4 bg-accent rounded-lg border">
                     <div className="flex items-center gap-3">
-                      {selectedStudent !== selectedBatch && (
-                        <Avatar className="h-7 md:h-12 w-7 md:w-12">
-                          <AvatarImage
-                            src={selectedStudentData?.profilePic.url}
-                          />
-                          <AvatarFallback>
-                            {selectedStudentData?.name?.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
+                      {selectedStudent && selectedStudent !== selectedBatch ? (
+                        <>
+                          <Avatar className="h-7 md:h-12 w-7 md:w-12">
+                            <AvatarImage
+                              src={selectedStudentData?.profilePic.url}
+                            />
+                            <AvatarFallback>
+                              {selectedStudentData?.name
+                                ?.charAt(0)
+                                .toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h3 className="font-semibold text-sm md:text-base text-foreground">
+                              {selectedStudentData?.name}
+                            </h3>
+                            <p className="text-xs md:text-sm text-accent-foreground">
+                              Student ID: {selectedStudent}
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div>
+                          <h3 className="font-semibold text-sm md:text-base text-foreground">
+                            {selectedBatchData?.name}
+                          </h3>
+                        </div>
                       )}
-                      <div>
-                        <h3 className="font-semibold text-sm md:text-base text-foreground">
-                          {selectedStudent === selectedBatch
-                            ? selectedBatchData?.name
-                            : selectedStudentData?.name}
-                        </h3>
-                        {selectedStudent !== selectedBatch && (
-                          <p className="text-xs md:text-sm text-accent-foreground">
-                            Student ID: {selectedStudent}
-                          </p>
-                        )}
-                      </div>
                     </div>
-                    {selectedStudent !== selectedBatch && (
+                    {selectedStudent && selectedStudent !== selectedBatch && (
                       <div className="text-right">
                         <p className="text-xs md:text-sm text-accent-foreground">
                           Current Balance
                         </p>
                         <p
-                          className={`"text-lg md:text-2xl font-bold " ${studentBalance < 0 ? "text-destructive" : "text-green-600"}`}
+                          className={`text-lg md:text-2xl font-bold ${
+                            studentBalance < 0
+                              ? "text-destructive"
+                              : "text-green-600"
+                          }`}
                         >
                           {studentBalance
                             ? `₹ ${studentBalance?.toFixed(2)}`
-                            : "0"}
+                            : "₹ 0.00"}
                         </p>
                       </div>
                     )}
@@ -442,7 +452,14 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
 
                   {/* Amount Input */}
                   {transactionType && (
-                    <div className="space-y-2">
+                    <div
+                      className="space-y-2"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          noteInputRef.current.focus();
+                        }
+                      }}
+                    >
                       <Label htmlFor="amount">Amount (₹)</Label>
                       <Input
                         ref={amountInputRef}
@@ -453,11 +470,6 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         onChange={(e) => setAmount(e.target.value)}
                         min="1"
                         step="0.01"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            noteInputRef.current.focus();
-                          }
-                        }}
                       />
                     </div>
                   )}
@@ -845,8 +857,14 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
           <div className="my-4 p-4 bg-accent rounded-lg">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-accent-foreground">Student</p>
-                <p className="font-medium">{selectedStudentData?.name}</p>
+                <p className="text-accent-foreground">
+                  {selectedStudent === selectedBatch ? "Batch" : "Student"}
+                </p>
+                <p className="font-medium">
+                  {selectedStudent === selectedBatch
+                    ? selectedBatchData?.name
+                    : selectedStudentData?.name}
+                </p>
               </div>
               <div>
                 <p className="text-accent-foreground">Transaction Type</p>
@@ -856,15 +874,17 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                 <p className="text-accent-foreground">Amount</p>
                 <p className="font-medium">₹{parseFloat(amount || 0)}</p>
               </div>
-              <div>
-                <p className="text-accent-foreground">New Balance</p>
-                <p className="font-medium">
-                  ₹
-                  {transactionType === "Deposit"
-                    ? studentBalance + parseFloat(amount)
-                    : studentBalance - parseFloat(amount) || 0}
-                </p>
-              </div>
+              {selectedStudent !== selectedBatch && (
+                <div>
+                  <p className="text-accent-foreground">New Balance</p>
+                  <p className="font-medium">
+                    ₹
+                    {transactionType === "Deposit"
+                      ? studentBalance + parseFloat(amount)
+                      : studentBalance - parseFloat(amount) || 0}
+                  </p>
+                </div>
+              )}
             </div>
             <div className="mt-3">
               <p className="text-accent-foreground text-sm">Note</p>
