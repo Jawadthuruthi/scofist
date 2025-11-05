@@ -71,7 +71,7 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
     formData.append("file", file);
 
     try {
-      const response = await fetch("/api/mock-upload", {
+      const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
