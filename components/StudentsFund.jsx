@@ -88,7 +88,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
 
   const isMobile = useIsMobile();
 
-  const { useFetchItems, useAddItem, useUpdateItem, useAddBatch } = useCrud(
+  const { useFetchItems, useAddItem, useUpdateItem } = useCrud(
     "studentsFund",
     apiKey
   );
@@ -117,8 +117,6 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   }, [allStudentsFund]);
 
   const addStudentFund = useAddItem();
-
-  const addBatchFund = useAddBatch();
 
   const updateStudentFund = useUpdateItem();
 
@@ -191,60 +189,42 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const confirmTransaction = async () => {
     setLoading(true);
 
-    const isBatchTransaction = selectedStudent === selectedBatch;
+    const isBatchTransaction = !selectedStudent;
 
-    // Create transaction object
+    const originalBalance = studentBalance;
+    const newBalance =
+      (transactionType === "Deposit"
+        ? originalBalance + parseFloat(amount)
+        : originalBalance - parseFloat(amount)) || 0;
+
     const transaction = {
       type: transactionType,
       amount: parseFloat(amount),
       note,
     };
 
-    // Reset form fields immediately
+    // Optimistically update UI
+    setStudentBalance(newBalance);
+    setShowConfirmDialog(false);
     setAmount("");
     setNote("");
-    setTransactionType("");
-    setShowConfirmDialog(false);
 
     try {
-      if (isBatchTransaction) {
-        // Handle batch transaction
-        await addBatchFund.mutateAsync({
-          batchId: selectedBatch,
-          teacherId,
-          transaction,
-        });
-      } else {
-        // Handle single student transaction with optimistic update
-        const originalBalance = studentBalance;
-        const newBalance =
-          (transaction.type === "Deposit"
-            ? originalBalance + transaction.amount
-            : originalBalance - transaction.amount) || 0;
+      await addStudentFund.mutateAsync({
+        studentId: isBatchTransaction ? undefined : selectedStudent,
+        teacherId,
+        batchId: selectedBatch,
+        transaction,
+        balance: newBalance,
+      });
 
-        // Optimistically update UI
-        setStudentBalance(newBalance);
-
-        await addStudentFund.mutateAsync({
-          studentId: selectedStudent,
-          teacherId,
-          batchId: selectedBatch,
-          transaction,
-          balance: newBalance,
-        });
-      }
-
-      // Refetch data to ensure UI is in sync with the server
       await fetchStudentFundQuery.refetch();
     } catch (error) {
-      console.error("Transaction failed:", error);
-      if (!isBatchTransaction) {
-        // Revert optimistic update on failure for single student transaction
-        setStudentBalance(originalBalance); // Re-set to the original state before refetch
-      }
-      // Consider adding a user notification (e.g., a toast) here to inform them of the failure.
+      console.error("Transaction failed, reverting optimistic update:", error);
+      setStudentBalance(originalBalance);
     } finally {
       setLoading(false);
+      setTransactionType("");
     }
   };
 
@@ -375,7 +355,13 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                   {/* Student Info & Balance */}
                   <div className="flex items-center justify-between p-4 bg-accent rounded-lg border">
                     <div className="flex items-center gap-3">
-                      {selectedStudent && selectedStudent !== selectedBatch ? (
+                      {!selectedStudent ? (
+                        <div>
+                          <h3 className="font-semibold text-sm md:text-base text-foreground">
+                            {selectedBatchData?.name}
+                          </h3>
+                        </div>
+                      ) : (
                         <>
                           <Avatar className="h-7 md:h-12 w-7 md:w-12">
                             <AvatarImage
@@ -396,32 +382,24 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                             </p>
                           </div>
                         </>
-                      ) : (
-                        <div>
-                          <h3 className="font-semibold text-sm md:text-base text-foreground">
-                            {selectedBatchData?.name}
-                          </h3>
-                        </div>
                       )}
                     </div>
-                    {selectedStudent && selectedStudent !== selectedBatch && (
-                      <div className="text-right">
-                        <p className="text-xs md:text-sm text-accent-foreground">
-                          Current Balance
-                        </p>
-                        <p
-                          className={`text-lg md:text-2xl font-bold ${
-                            studentBalance < 0
-                              ? "text-destructive"
-                              : "text-green-600"
-                          }`}
-                        >
-                          {studentBalance
-                            ? `₹ ${studentBalance?.toFixed(2)}`
-                            : "₹ 0.00"}
-                        </p>
-                      </div>
-                    )}
+                    <div className="text-right">
+                      <p className="text-xs md:text-sm text-accent-foreground">
+                        Current Balance
+                      </p>
+                      <p
+                        className={`text-lg md:text-2xl font-bold ${
+                          studentBalance < 0
+                            ? "text-destructive"
+                            : "text-green-600"
+                        }`}
+                      >
+                        {studentBalance
+                          ? `₹ ${studentBalance?.toFixed(2)}`
+                          : "₹ 0.00"}
+                      </p>
+                    </div>
                   </div>
 
                   <Separator />
@@ -858,10 +836,10 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-accent-foreground">
-                  {selectedStudent === selectedBatch ? "Batch" : "Student"}
+                  {!selectedStudent ? "Batch" : "Student"}
                 </p>
                 <p className="font-medium">
-                  {selectedStudent === selectedBatch
+                  {!selectedStudent
                     ? selectedBatchData?.name
                     : selectedStudentData?.name}
                 </p>
