@@ -160,6 +160,11 @@ const pages = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
+    title: "Downloads",
+    path: "/dashboard/downloads",
+    allowedRoles: ["College Admin", "Student"],
+  },
+  {
     title: "Divisions",
     path: "/dashboard/divisions",
     allowedRoles: ["Program Committee", "Program Leader"],
