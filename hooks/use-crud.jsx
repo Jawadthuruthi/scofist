@@ -5,6 +5,7 @@ import {
   addItem,
   updateItem,
   deleteItem,
+  addBatchTransaction,
 } from "@/lib/api";
 
 const useCrud = (apiEndpoint, apiKey) => {
@@ -70,12 +71,26 @@ const useCrud = (apiEndpoint, apiKey) => {
     });
   };
 
+  const useAddBatch = () => {
+    return useMutation({
+      mutationFn: (data) => addBatchTransaction(apiEndpoint, data, apiKey),
+      onSuccess: () => {
+        queryClient.removeQueries([apiEndpoint]);
+        queryClient.invalidateQueries({
+          queryKey: [apiEndpoint],
+          exact: false,
+        });
+      },
+    });
+  };
+
   return {
     useFetchItems,
     useFetchItemById,
     useAddItem,
     useUpdateItem,
     useDeleteItem,
+    useAddBatch,
   };
 };
 

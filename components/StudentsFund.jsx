@@ -80,13 +80,15 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const [loading, setLoading] = useState(false);
   const amountInputRef = useRef(null);
   const noteInputRef = useRef(null);
+  const confirmButtonRef = useRef(null);
+  const finalConfirmButtonRef = useRef(null);
 
   const printRef = useRef();
   const allStudentsFundRef = useRef();
 
   const isMobile = useIsMobile();
 
-  const { useFetchItems, useAddItem, useUpdateItem } = useCrud(
+  const { useFetchItems, useAddItem, useUpdateItem, useAddBatch } = useCrud(
     "studentsFund",
     apiKey
   );
@@ -115,6 +117,8 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   }, [allStudentsFund]);
 
   const addStudentFund = useAddItem();
+
+  const addBatchFund = useAddBatch();
 
   const updateStudentFund = useUpdateItem();
 
@@ -148,6 +152,14 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
     setSelectedStudent("");
   }, [selectedBatch]);
 
+  useEffect(() => {
+    if (showConfirmDialog && finalConfirmButtonRef.current) {
+      setTimeout(() => {
+        finalConfirmButtonRef.current.focus();
+      }, 0);
+    }
+  }, [showConfirmDialog]);
+
   // Filter students based on selected batch
   const availableStudents = useMemo(() => {
     return students.filter((student) => student.batchId === selectedBatch);
@@ -178,35 +190,61 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
 
   const confirmTransaction = async () => {
     setLoading(true);
-    const balance =
-      (transactionType === "Deposit"
-        ? studentBalance + parseFloat(amount)
-        : studentBalance - parseFloat(amount)) || 0;
+
+    const isBatchTransaction = selectedStudent === selectedBatch;
+
+    // Create transaction object
+    const transaction = {
+      type: transactionType,
+      amount: parseFloat(amount),
+      note,
+    };
+
+    // Reset form fields immediately
+    setAmount("");
+    setNote("");
+    setTransactionType("");
+    setShowConfirmDialog(false);
 
     try {
-      const transaction = {
-        type: transactionType,
-        amount: parseFloat(amount),
-        note,
-      };
-      await addStudentFund.mutateAsync({
-        studentId: selectedStudent,
-        teacherId,
-        batchId: selectedBatch,
-        transaction,
-        balance,
-      });
-      await fetchStudentFundQuery.refetch();
+      if (isBatchTransaction) {
+        // Handle batch transaction
+        await addBatchFund.mutateAsync({
+          batchId: selectedBatch,
+          teacherId,
+          transaction,
+        });
+      } else {
+        // Handle single student transaction with optimistic update
+        const originalBalance = studentBalance;
+        const newBalance =
+          (transaction.type === "Deposit"
+            ? originalBalance + transaction.amount
+            : originalBalance - transaction.amount) || 0;
 
-      // Reset form
-      setAmount("");
-      setNote("");
-      setTransactionType("");
+        // Optimistically update UI
+        setStudentBalance(newBalance);
+
+        await addStudentFund.mutateAsync({
+          studentId: selectedStudent,
+          teacherId,
+          batchId: selectedBatch,
+          transaction,
+          balance: newBalance,
+        });
+      }
+
+      // Refetch data to ensure UI is in sync with the server
+      await fetchStudentFundQuery.refetch();
     } catch (error) {
       console.error("Transaction failed:", error);
+      if (!isBatchTransaction) {
+        // Revert optimistic update on failure for single student transaction
+        setStudentBalance(originalBalance); // Re-set to the original state before refetch
+      }
+      // Consider adding a user notification (e.g., a toast) here to inform them of the failure.
     } finally {
       setLoading(false);
-      setShowConfirmDialog(false);
     }
   };
 
@@ -314,7 +352,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
           </Card>
 
           {/* Student Balance & Transaction Form */}
-          {selectedStudent && selectedStudent !== selectedBatch && (
+          {(selectedStudent || selectedBatch) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -337,35 +375,53 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                   {/* Student Info & Balance */}
                   <div className="flex items-center justify-between p-4 bg-accent rounded-lg border">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-7 md:h-12 w-7 md:w-12">
-                        <AvatarImage
-                          src={selectedStudentData?.profilePic.url}
-                        />
-                        <AvatarFallback>
-                          {selectedStudentData?.name?.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="font-semibold text-sm md:text-base text-foreground">
-                          {selectedStudentData?.name}
-                        </h3>
+                      {selectedStudent && selectedStudent !== selectedBatch ? (
+                        <>
+                          <Avatar className="h-7 md:h-12 w-7 md:w-12">
+                            <AvatarImage
+                              src={selectedStudentData?.profilePic.url}
+                            />
+                            <AvatarFallback>
+                              {selectedStudentData?.name
+                                ?.charAt(0)
+                                .toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h3 className="font-semibold text-sm md:text-base text-foreground">
+                              {selectedStudentData?.name}
+                            </h3>
+                            <p className="text-xs md:text-sm text-accent-foreground">
+                              Student ID: {selectedStudent}
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div>
+                          <h3 className="font-semibold text-sm md:text-base text-foreground">
+                            {selectedBatchData?.name}
+                          </h3>
+                        </div>
+                      )}
+                    </div>
+                    {selectedStudent && selectedStudent !== selectedBatch && (
+                      <div className="text-right">
                         <p className="text-xs md:text-sm text-accent-foreground">
-                          Student ID: {selectedStudent}
+                          Current Balance
+                        </p>
+                        <p
+                          className={`text-lg md:text-2xl font-bold ${
+                            studentBalance < 0
+                              ? "text-destructive"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {studentBalance
+                            ? `₹ ${studentBalance?.toFixed(2)}`
+                            : "₹ 0.00"}
                         </p>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs md:text-sm text-accent-foreground">
-                        Current Balance
-                      </p>
-                      <p
-                        className={`"text-lg md:text-2xl font-bold " ${studentBalance < 0 ? "text-destructive" : "text-green-600"}`}
-                      >
-                        {studentBalance
-                          ? `₹ ${studentBalance?.toFixed(2)}`
-                          : "0"}
-                      </p>
-                    </div>
+                    )}
                   </div>
 
                   <Separator />
@@ -396,7 +452,14 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
 
                   {/* Amount Input */}
                   {transactionType && (
-                    <div className="space-y-2">
+                    <div
+                      className="space-y-2"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          noteInputRef.current.focus();
+                        }
+                      }}
+                    >
                       <Label htmlFor="amount">Amount (₹)</Label>
                       <Input
                         ref={amountInputRef}
@@ -407,11 +470,6 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         onChange={(e) => setAmount(e.target.value)}
                         min="1"
                         step="0.01"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            noteInputRef.current.focus();
-                          }
-                        }}
                       />
                     </div>
                   )}
@@ -426,6 +484,11 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         placeholder="Enter transaction note or description"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            confirmButtonRef.current.focus();
+                          }
+                        }}
                       />
                     </div>
                   )}
@@ -433,7 +496,13 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                   {/* Submit Button */}
                   {transactionType && (
                     <Button
+                      ref={confirmButtonRef}
                       onClick={handleTransaction}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleTransaction();
+                        }
+                      }}
                       disabled={!amount || loading}
                       className="w-full"
                       size="lg"
@@ -788,8 +857,14 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
           <div className="my-4 p-4 bg-accent rounded-lg">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-accent-foreground">Student</p>
-                <p className="font-medium">{selectedStudentData?.name}</p>
+                <p className="text-accent-foreground">
+                  {selectedStudent === selectedBatch ? "Batch" : "Student"}
+                </p>
+                <p className="font-medium">
+                  {selectedStudent === selectedBatch
+                    ? selectedBatchData?.name
+                    : selectedStudentData?.name}
+                </p>
               </div>
               <div>
                 <p className="text-accent-foreground">Transaction Type</p>
@@ -799,15 +874,17 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                 <p className="text-accent-foreground">Amount</p>
                 <p className="font-medium">₹{parseFloat(amount || 0)}</p>
               </div>
-              <div>
-                <p className="text-accent-foreground">New Balance</p>
-                <p className="font-medium">
-                  ₹
-                  {transactionType === "Deposit"
-                    ? studentBalance + parseFloat(amount)
-                    : studentBalance - parseFloat(amount) || 0}
-                </p>
-              </div>
+              {selectedStudent !== selectedBatch && (
+                <div>
+                  <p className="text-accent-foreground">New Balance</p>
+                  <p className="font-medium">
+                    ₹
+                    {transactionType === "Deposit"
+                      ? studentBalance + parseFloat(amount)
+                      : studentBalance - parseFloat(amount) || 0}
+                  </p>
+                </div>
+              )}
             </div>
             <div className="mt-3">
               <p className="text-accent-foreground text-sm">Note</p>
@@ -816,7 +893,16 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmTransaction} disabled={loading}>
+            <AlertDialogAction
+              ref={finalConfirmButtonRef}
+              onClick={confirmTransaction}
+              disabled={loading}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  confirmTransaction();
+                }
+              }}
+            >
               {loading ? "Processing..." : "Confirm"}
             </AlertDialogAction>
           </AlertDialogFooter>
