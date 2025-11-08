@@ -73,8 +73,16 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
     try {
       const response = await fetch("/api/upload", {
         method: "POST",
+        headers: {
+          "api-key": apiKey,
+        },
         body: formData,
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Upload failed with status: ${response.status}, message: ${errorText}`);
+      }
 
       const data = await response.json();
       const fileUrl = data.secure_url;
@@ -97,7 +105,7 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
       toast.success("File uploaded successfully!");
     } catch (error) {
       console.error("Upload failed:", error);
-      toast.error("Upload failed. Please try again.");
+      toast.error("Upload failed. Please check the console for details.");
     } finally {
       setUploading(false);
     }
