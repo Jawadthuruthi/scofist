@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const downloadSchema = new mongoose.Schema({
-  title: {
+  course: {
     type: String,
     required: true,
   },

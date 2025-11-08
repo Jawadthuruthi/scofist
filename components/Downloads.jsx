@@ -35,7 +35,7 @@ import { toast } from "sonner";
 const Downloads = ({ initialDownloads = [], role, apiKey }) => {
   const [year, setYear] = useState("");
   const [semester, setSemester] = useState("");
-  const [title, setTitle] = useState("");
+  const [course, setCourse] = useState("");
   const [subject, setSubject] = useState("");
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -61,7 +61,7 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
   });
 
   const handleUpload = async () => {
-    if (!file || !title || !year || !semester || !subject) {
+    if (!file || !course || !year || !semester || !subject) {
       toast.error("Please fill all fields and select a file.");
       return;
     }
@@ -88,7 +88,7 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
       const fileUrl = data.secure_url;
 
       await addDownload.mutateAsync({
-        title,
+        course,
         year,
         semester,
         subject,
@@ -97,7 +97,7 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
 
       await fetchDownloadsQuery.refetch();
 
-      setTitle("");
+      setCourse("");
       setYear("");
       setSemester("");
       setSubject("");
@@ -135,10 +135,10 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input placeholder="File Name / Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-              <Input placeholder="Subject Name" value={subject} onChange={(e) => setSubject(e.target.value)} />
+              <Input placeholder="Course" value={course} onChange={(e) => setCourse(e.target.value)} />
               <Input type="number" placeholder="Year" value={year} onChange={(e) => setYear(e.target.value)} />
               <Input type="number" placeholder="Semester" value={semester} onChange={(e) => setSemester(e.target.value)} />
+              <Input placeholder="Subject Name" value={subject} onChange={(e) => setSubject(e.target.value)} />
             </div>
             <div
               {...getRootProps()}

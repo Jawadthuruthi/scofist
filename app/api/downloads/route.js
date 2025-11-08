@@ -31,10 +31,10 @@ export async function GET(req, res) {
 export async function POST(req, res) {
   try {
     await connectToDB();
-    const { title, year, semester, subject, fileUrl } = await req.json();
+    const { course, year, semester, subject, fileUrl } = await req.json();
 
     const newDownload = new Download({
-      title,
+      course,
       year,
       semester,
       subject,
