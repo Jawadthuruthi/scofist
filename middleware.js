@@ -88,6 +88,11 @@ const pages = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
+    title: "Remarks",
+    path: "/dashboard/remarks",
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Leave Register",
     path: "/dashboard/leave-register",
     allowedRoles: ["College Admin", "Teacher"],
