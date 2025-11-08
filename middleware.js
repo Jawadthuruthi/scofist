@@ -165,6 +165,11 @@ const pages = [
     allowedRoles: ["College Admin", "Student"],
   },
   {
+    path: "/dashboard/downloads",
+    pattern: /^\/dashboard\/downloads(?:\/[^/]+)?$/,
+    allowedRoles: ["College Admin", "Student"],
+  },
+  {
     title: "Divisions",
     path: "/dashboard/divisions",
     allowedRoles: ["Program Committee", "Program Leader"],
