@@ -160,6 +160,16 @@ const pages = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
+    title: "Downloads",
+    path: "/dashboard/downloads",
+    allowedRoles: ["College Admin", "Student"],
+  },
+  {
+    path: "/dashboard/downloads",
+    pattern: /^\/dashboard\/downloads(?:\/[^/]+)?$/,
+    allowedRoles: ["College Admin", "Student"],
+  },
+  {
     title: "Divisions",
     path: "/dashboard/divisions",
     allowedRoles: ["Program Committee", "Program Leader"],
@@ -324,6 +334,9 @@ async function handleLoginPageRequest(req) {
 }
 
 async function handleApiRequest(req) {
+  if (req.nextUrl.pathname === "/api/upload") {
+    return NextResponse.next();
+  }
   const url = new URL(req.url);
   const apiKey = req.headers.get("api-key");
   const cronSecret = url.searchParams.get("cronSecret");
