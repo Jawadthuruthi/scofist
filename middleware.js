@@ -334,6 +334,9 @@ async function handleLoginPageRequest(req) {
 }
 
 async function handleApiRequest(req) {
+  if (req.nextUrl.pathname === "/api/upload") {
+    return NextResponse.next();
+  }
   const url = new URL(req.url);
   const apiKey = req.headers.get("api-key");
   const cronSecret = url.searchParams.get("cronSecret");
