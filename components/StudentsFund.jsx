@@ -355,13 +355,8 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                   {/* Student Info & Balance */}
                   <div className="flex items-center justify-between p-4 bg-accent rounded-lg border">
                     <div className="flex items-center gap-3">
-                      {!selectedStudent ? (
-                        <div>
-                          <h3 className="font-semibold text-sm md:text-base text-foreground">
-                            {selectedBatchData?.name}
-                          </h3>
-                        </div>
-                      ) : (
+                      {selectedStudent &&
+                      selectedStudent !== selectedBatchData?._id ? (
                         <>
                           <Avatar className="h-7 md:h-12 w-7 md:w-12">
                             <AvatarImage
@@ -382,6 +377,12 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                             </p>
                           </div>
                         </>
+                      ) : (
+                        <div>
+                          <h3 className="font-semibold text-sm md:text-base text-foreground">
+                            {selectedBatchData?.name}
+                          </h3>
+                        </div>
                       )}
                     </div>
                     <div className="text-right">
@@ -505,7 +506,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
               <CardDescription>Recent fund activities</CardDescription>
             </CardHeader>
             <CardContent>
-              {selectedStudent && selectedStudent !== selectedBatch ? (
+              {selectedStudent ? (
                 <div className="space-y-4">
                   <div className="max-h-[320px] overflow-y-auto hide-scrollbar">
                     {transactions?.length > 0 ? (
@@ -565,7 +566,10 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                             Complete Transaction History
                           </DialogTitle>
                           <DialogDescription>
-                            All transactions for {selectedStudentData?.name}
+                            All transactions for{" "}
+                            {selectedStudent !== selectedBatchData?._id
+                              ? selectedStudentData?.name
+                              : selectedBatchData?.name}
                           </DialogDescription>
                         </DialogHeader>
 
@@ -619,47 +623,48 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                               Print
                             </Button>
                           )}
-
-                          <Button variant="destructive">
-                            <Dialog
-                              open={showClearHistoryDialogue}
-                              onOpenChange={setShowClearHistoryDialogue}
-                            >
-                              <DialogTrigger asChild>
-                                <span className="flex items-center gap-2">
-                                  <Trash2 className="h-4 w-4" />
-                                  Clear History
-                                </span>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Clear History</DialogTitle>
-                                  <DialogDescription>
-                                    Are you sure you want to clear the history
-                                    for {selectedStudentData?.name}?
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <DialogFooter className="gap-2">
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                      setShowClearHistoryDialogue(false);
-                                      setShowHistoryDialog(false);
-                                    }}
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button
-                                    className="!bg-destructive !text-destructive-foreground"
-                                    onClick={handleClearHistory}
-                                    disabled={updateStudentFund.isPending}
-                                  >
-                                    Clear
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                          </Button>
+                          {selectedStudent !== selectedBatchData?._id && (
+                            <Button variant="destructive">
+                              <Dialog
+                                open={showClearHistoryDialogue}
+                                onOpenChange={setShowClearHistoryDialogue}
+                              >
+                                <DialogTrigger asChild>
+                                  <span className="flex items-center gap-2">
+                                    <Trash2 className="h-4 w-4" />
+                                    Clear History
+                                  </span>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Clear History</DialogTitle>
+                                    <DialogDescription>
+                                      Are you sure you want to clear the history
+                                      for {selectedStudentData?.name}?
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <DialogFooter className="gap-2">
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setShowClearHistoryDialogue(false);
+                                        setShowHistoryDialog(false);
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      className="!bg-destructive !text-destructive-foreground"
+                                      onClick={handleClearHistory}
+                                      disabled={updateStudentFund.isPending}
+                                    >
+                                      Clear
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                            </Button>
+                          )}
                         </div>
                       </DialogFooter>
                     </DialogContent>
@@ -836,12 +841,14 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-accent-foreground">
-                  {!selectedStudent ? "Batch" : "Student"}
+                  {selectedStudent !== selectedBatchData?._id
+                    ? "Student"
+                    : "Batch"}
                 </p>
                 <p className="font-medium">
-                  {!selectedStudent
-                    ? selectedBatchData?.name
-                    : selectedStudentData?.name}
+                  {selectedStudent !== selectedBatchData?._id
+                    ? selectedStudentData?.name
+                    : selectedBatchData?.name}
                 </p>
               </div>
               <div>
