@@ -137,6 +137,12 @@ const items = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
+    title: "Remarks",
+    url: "/dashboard/remarks",
+    icon: FileSpreadsheet,
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Applications",
     url: "/dashboard/applications",
     icon: FolderCheck,
