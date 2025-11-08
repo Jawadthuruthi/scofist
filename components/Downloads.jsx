@@ -31,6 +31,7 @@ import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
+import { MultiSelect } from "./ui/multi-select";
 
 const Downloads = ({ initialDownloads = [], role, apiKey }) => {
   const [year, setYear] = useState("");
@@ -135,9 +136,39 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input placeholder="Course" value={course} onChange={(e) => setCourse(e.target.value)} />
-              <Input type="number" placeholder="Year" value={year} onChange={(e) => setYear(e.target.value)} />
-              <Input type="number" placeholder="Semester" value={semester} onChange={(e) => setSemester(e.target.value)} />
+              <MultiSelect
+                placeholder="Course"
+                value={course}
+                onValueChange={setCourse}
+                options={[
+                  { label: "BSIc (5Years)", value: "BSIc (5Years)" },
+                  { label: "HSIc(2Years)", value: "HSIc(2Years)" },
+                  { label: "SISc(3Years)", value: "SISc(3Years)" },
+                ]}
+                multiSelect={false}
+                freeSolo={true}
+              />
+              <Select value={year} onValueChange={setYear}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                  <SelectItem value="4">4</SelectItem>
+                  <SelectItem value="5">5</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={semester} onValueChange={setSemester}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Semester" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                </SelectContent>
+              </Select>
               <Input placeholder="Subject Name" value={subject} onChange={(e) => setSubject(e.target.value)} />
             </div>
             <div
