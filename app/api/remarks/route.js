@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import Remark from "@/models/Remark";
 import Class from "@/models/Class";
+import User from "@/models/User";
 import { apiResponse } from "@/lib/apiResponse";
 import { parseUser } from "@/lib/utils";
 import { headers } from "next/headers";
@@ -12,40 +13,62 @@ export async function GET(req) {
   try {
     await connectToDB();
 
+    const { searchParams } = new URL(req.url);
+    const classId = searchParams.get("classId");
+    const status = searchParams.get("status");
+    const teacherId = searchParams.get("teacherId");
+    const studentName = searchParams.get("studentName");
+    const date = searchParams.get("date");
+    const comments = searchParams.get("comments");
+
     const headerStore = headers();
     const user = parseUser(headerStore);
     const activeRole = headerStore.get("active-role");
 
-    let remarks;
+    let query = {};
 
-    if (activeRole === "College Admin") {
-      // College Admin can see all remarks
-      remarks = await Remark.find({})
-        .populate("studentId", "name")
-        .populate("teacherId", "name")
-        .populate("classId", "name")
-        .sort({ createdAt: -1 });
-    } else if (activeRole === "Teacher") {
-      // Teacher can only see remarks for their own class
+    if (activeRole === "Teacher") {
       const teacherClass = await Class.findOne({ teacherId: user.userId });
       if (!teacherClass) {
         return apiResponse.error("You are not assigned to any class.", 403);
       }
-      remarks = await Remark.find({ classId: teacherClass._id })
-        .populate("studentId", "name")
-        .populate("teacherId", "name")
-        .populate("classId", "name")
-        .sort({ createdAt: -1 });
-    } else {
+      query.classId = teacherClass._id;
+    } else if (activeRole !== "College Admin") {
       return apiResponse.error("You are not authorized to view remarks.", 403);
     }
+
+    if (classId) query.classId = classId;
+    if (status) query.status = status;
+    if (teacherId) query.teacherId = teacherId;
+    if (comments) query.comments = { $regex: comments, $options: "i" };
+
+    if (date) {
+      const startDate = new Date(date);
+      const endDate = new Date(date);
+      endDate.setDate(endDate.getDate() + 1);
+      query.date = { $gte: startDate, $lt: endDate };
+    }
+
+    if (studentName) {
+      const students = await User.find({
+        name: { $regex: studentName, $options: "i" },
+        roles: "Student",
+      }).select("_id");
+      const studentIds = students.map((s) => s._id);
+      query.studentId = { $in: studentIds };
+    }
+
+    const remarks = await Remark.find(query)
+      .populate("studentId", "name")
+      .populate("teacherId", "name")
+      .populate("classId", "name")
+      .sort({ createdAt: -1 });
 
     return NextResponse.json({ remarks }, { status: 200 });
   } catch (error) {
     return apiResponse.error(error.message, 500);
   }
 }
-
 // @desc POST a new remark
 // @route POST /api/remarks
 export async function POST(req) {

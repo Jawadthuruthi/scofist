@@ -1,6 +1,6 @@
 import { Schema, model, models } from "mongoose";
 
-const STATUSES = ["Very Good", "Good", "Bad"];
+const STATUSES = ["Active", "Resolved", "Pending"];
 
 const remarkSchema = new Schema(
   {
