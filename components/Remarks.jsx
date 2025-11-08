@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -24,6 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
@@ -47,7 +48,7 @@ const Remarks = ({
 }) => {
   const [filters, setFilters] = useState({
     classId: "",
-    status: "",
+    status: "All",
     teacherId: "",
     studentName: "",
     date: "",
@@ -64,8 +65,12 @@ const Remarks = ({
   const { data: remarksData, isLoading, refetch } = useFetchItems(
     null,
     null,
-    filters
+    { ...filters, status: filters.status === "All" ? "" : filters.status }
   );
+
+  useEffect(() => {
+    refetch();
+  }, [filters.status, refetch]);
 
   const remarks = useMemo(() => remarksData?.remarks || [], [remarksData]);
 
@@ -75,11 +80,6 @@ const Remarks = ({
 
   const classOptions = useMemo(() => formatOptions(classes), [classes]);
   const teacherOptions = useMemo(() => formatOptions(teachers), [teachers]);
-  const statusOptions = [
-    { value: "Active", label: "Active" },
-    { value: "Resolved", label: "Resolved" },
-    { value: "Pending", label: "Pending" },
-  ];
 
   const handleFilterChange = (name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
@@ -109,8 +109,18 @@ const Remarks = ({
   return (
     <div className="min-h-screen">
       <Header title="REMARKS" subTitle="Manage Student Remarks" />
-
-      <Card>
+      <Tabs
+        value={filters.status}
+        onValueChange={(value) => handleFilterChange("status", value)}
+      >
+        <TabsList>
+          <TabsTrigger value="All">All</TabsTrigger>
+          <TabsTrigger value="good">Good</TabsTrigger>
+          <TabsTrigger value="bad">Bad</TabsTrigger>
+          <TabsTrigger value="Pending">Pending</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      <Card className="mt-6">
         <CardHeader>
           <CardTitle>Filters</CardTitle>
           <CardDescription>
@@ -149,21 +159,6 @@ const Remarks = ({
               value={filters.comments}
               onChange={(e) => handleFilterChange("comments", e.target.value)}
             />
-            <Select
-              value={filters.status}
-              onValueChange={(value) => handleFilterChange("status", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a status" />
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             {role === "College Admin" && (
               <Select
                 value={filters.teacherId}

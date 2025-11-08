@@ -31,8 +31,8 @@ const RemarkForm = ({
   const studentOptions = formatOptions(students);
   const classOptions = formatOptions(classes);
   const statusOptions = [
-    { value: "Active", label: "Active" },
-    { value: "Resolved", label: "Resolved" },
+    { value: "good", label: "Good" },
+    { value: "bad", label: "Bad" },
     { value: "Pending", label: "Pending" },
   ];
 
