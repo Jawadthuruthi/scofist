@@ -58,6 +58,38 @@ export async function GET(req, res) {
       .limit(limit)
       .sort({ _id: 1 })
       .collation({ locale: "en_US", numericOrdering: true });
+
+    const classOrder = [
+      "PLUS ONE A",
+      "PLUS ONE B",
+      "PLUS TWO",
+      "DEGREE FIRST YEAR",
+      "DEGREE SECOND YEAR",
+      "DEGREE THIRD YEAR",
+      "PG FIRST YEAR",
+      "PG SECOND YEAR",
+      "8TH STD",
+      "9TH STD",
+      "10TH STD",
+    ];
+
+    classes.sort((a, b) => {
+      const nameA = a.name.toUpperCase();
+      const nameB = b.name.toUpperCase();
+      const indexA = classOrder.indexOf(nameA);
+      const indexB = classOrder.indexOf(nameB);
+
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      if (indexA !== -1) {
+        return -1;
+      }
+      if (indexB !== -1) {
+        return 1;
+      }
+      return nameA.localeCompare(nameB);
+    });
     // Get total count for pagination info
     const total = await Class.countDocuments(query);
 
