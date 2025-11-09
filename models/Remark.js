@@ -1,23 +1,24 @@
 import { Schema, model, models } from "mongoose";
-
-const STATUSES = ["good", "bad", "Pending"];
+import Class from "./Class";
+import User from "./User";
 
 const remarkSchema = new Schema(
   {
+    classId: {
+      type: String,
+      ref: "Class",
+      required: true,
+      index: true,
+    },
     studentId: {
       type: String,
       ref: "User",
       required: true,
     },
-    classId: {
-      type: String,
-      ref: "Class",
-      required: true,
-    },
     teacherId: {
-      type: String,
-      ref: "User",
-      required: true,
+        type: String,
+        ref: "User",
+        required: true,
     },
     date: {
       type: Date,
@@ -26,19 +27,17 @@ const remarkSchema = new Schema(
     comments: {
       type: String,
       required: true,
-      trim: true,
     },
     status: {
       type: String,
-      enum: STATUSES,
-      required: true,
-    },
+      enum: ["good", "bad", "pending"],
+      default: "pending"
+    }
   },
-  {
-    timestamps: true,
-    versionKey: false,
-  }
+  { timestamps: true }
 );
 
-const Remark = models.Remark || model("Remark", remarkSchema);
+const Remark =
+  models?.Remark || model("Remark", remarkSchema);
+
 export default Remark;
