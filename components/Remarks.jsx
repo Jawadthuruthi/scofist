@@ -50,6 +50,10 @@ const Remarks = ({ apiKey, role }) => {
       apiFilters: {
         roles: "Student",
       },
+      filter: {
+        dependentField: "classId",
+        key: "studentSpecificField.classId",
+      },
     },
     {
       name: "date",
