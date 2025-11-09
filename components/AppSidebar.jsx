@@ -12,6 +12,7 @@ import {
   UserX,
   Home,
   Settings,
+  MessageSquare,
   FileSpreadsheet,
   FolderCheck,
   FileSearch,
@@ -111,6 +112,12 @@ const items = [
     url: "/dashboard/leave-register",
     icon: UserX,
     allowedRoles: ["College Admin", "Teacher"],
+  },
+  {
+    title: "Remarks",
+    url: "/dashboard/remarks",
+    icon: MessageSquare,
+    allowedRoles: ["College Admin"],
   },
   {
     title: "Students Contacts",
