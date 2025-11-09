@@ -35,6 +35,8 @@ const days = [
   "Saturday",
 ];
 
+const prayers = ["ZUHR", "ASAR", "MAGRIB", "ISHA", "SUBH"];
+
 const AbsenteesDialog = ({ open, setOpen, date, absentees }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -87,6 +89,7 @@ const MasjidAttendance = ({
   const [attendance, setAttendance] = useState({});
   const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState("");
+  const [selectedPrayer, setSelectedPrayer] = useState("");
 
   const router = useRouter();
 
@@ -167,70 +170,109 @@ const MasjidAttendance = ({
       <div className="mb-6 py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
         {date}
       </div>
-      <div className="overflow-x-auto border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Class</TableHead>
-              <TableHead className="text-right">Absentees</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {classes.map((cls) => (
-              <TableRow key={cls._id} className="hover:bg-accent/50">
-                <TableCell className="whitespace-nowrap">
-                  <div className="text-xs md:text-base">{cls?.name}</div>
-                  {isAttendanceMarked(cls._id) && (
-                    <div className="flex items-center gap-1 text-xxs text-muted-foreground">
-                      <CheckCircle2 className="text-green-500 h-3 w-3" />
-                      <span>Attendance Marked</span>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  {classBasedAbsentees[cls._id] &&
-                  classBasedAbsentees[cls._id].length > 0 ? (
-                    <div
-                      className={`flex items-center ml-auto max-w-fit gap-2 rounded-full px-2 py-1 border cursor-pointer`}
-                      onClick={() => {
-                        setAbsenteesDialogOpen(true);
-                        setSelectedClassId(cls._id);
-                      }}
-                    >
-                      <AlertTriangle className="text-red-500 h-4 w-4" />
-                      <Badge
-                        variant="destructive"
-                        className="text-xs whitespace-nowrap"
-                      >
-                        {classBasedAbsentees[cls._id].length}
-                      </Badge>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">
-                      {isAttendanceMarked(cls._id) ? "No Absentees" : ""}
-                    </span>
-                  )}
-                </TableCell>
+      {selectedPrayer ? (
+        <>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">{selectedPrayer}</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedPrayer("")}
+            >
+              Back
+            </Button>
+          </div>
+          <div className="overflow-x-auto border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Class</TableHead>
+                  <TableHead className="text-right">Absentees</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {classes.map((cls) => (
+                  <TableRow key={cls._id} className="hover:bg-accent/50">
+                    <TableCell className="whitespace-nowrap">
+                      <div className="text-xs md:text-base">{cls?.name}</div>
+                      {isAttendanceMarked(cls._id) && (
+                        <div className="flex items-center gap-1 text-xxs text-muted-foreground">
+                          <CheckCircle2 className="text-green-500 h-3 w-3" />
+                          <span>Attendance Marked</span>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {classBasedAbsentees[cls._id] &&
+                      classBasedAbsentees[cls._id].length > 0 ? (
+                        <div
+                          className={`flex items-center ml-auto max-w-fit gap-2 rounded-full px-2 py-1 border cursor-pointer`}
+                          onClick={() => {
+                            setAbsenteesDialogOpen(true);
+                            setSelectedClassId(cls._id);
+                          }}
+                        >
+                          <AlertTriangle className="text-red-500 h-4 w-4" />
+                          <Badge
+                            variant="destructive"
+                            className="text-xs whitespace-nowrap"
+                          >
+                            {classBasedAbsentees[cls._id].length}
+                          </Badge>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {isAttendanceMarked(cls._id) ? "No Absentees" : ""}
+                        </span>
+                      )}
+                    </TableCell>
 
-                <TableCell align="right">
-                  <Link
-                    href={`/dashboard/masjid-attendance/mark-attendance?classId=${cls?._id}&className=${cls?.name}&apiKey=${apiKey}&date=${formattedDate}&day=${today}&batchId=${cls.batchId}`}
-                    prefetch={false}
-                  >
-                    <ExternalLink className="text-muted-foreground h-5 w-5 md:hidden" />
-                    <Button size="sm" className="hidden md:inline-flex">
-                      {isAttendanceMarked(cls._id)
-                        ? "Update Attendance"
-                        : "Take Attendance"}
-                    </Button>
-                  </Link>
-                </TableCell>
+                    <TableCell align="right">
+                      <Link
+                        href={`/dashboard/masjid-attendance/mark-attendance?classId=${cls?._id}&className=${cls?.name}&apiKey=${apiKey}&date=${formattedDate}&day=${today}&batchId=${cls.batchId}&prayer=${selectedPrayer}`}
+                        prefetch={false}
+                      >
+                        <ExternalLink className="text-muted-foreground h-5 w-5 md:hidden" />
+                        <Button size="sm" className="hidden md:inline-flex">
+                          {isAttendanceMarked(cls._id)
+                            ? "Update Attendance"
+                            : "Take Attendance"}
+                        </Button>
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      ) : (
+        <div className="overflow-x-auto border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Prayer</TableHead>
+                <TableHead></TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {prayers.map((prayer) => (
+                <TableRow
+                  key={prayer}
+                  className="hover:bg-accent/50 cursor-pointer"
+                  onClick={() => setSelectedPrayer(prayer)}
+                >
+                  <TableCell className="whitespace-nowrap">{prayer}</TableCell>
+                  <TableCell align="right">
+                    <Button size="sm">Select</Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
       <AbsenteesDialog
         open={absenteesDialogOpen}
         setOpen={setAbsenteesDialogOpen}
