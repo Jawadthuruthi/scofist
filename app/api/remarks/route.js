@@ -72,7 +72,7 @@ export async function GET(req) {
     }
 
     const remarks = await Remark.find(query, projections)
-      .populate("studentId", "name studentSpecificField")
+      .populate("studentId", "name")
       .populate("teacherId", "name")
       .populate("classId", "name")
       .skip(page * limit)

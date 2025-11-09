@@ -1,6 +1,6 @@
 "use client";
 import Header from "./Header";
-import { DataTableComponent } from "./DataTableComponent";
+import DynamicDataTable from "./DynamicDataTable";
 
 const Remarks = ({ apiKey, role }) => {
   const columnsConfig = [
@@ -81,7 +81,7 @@ const Remarks = ({ apiKey, role }) => {
   return (
     <div className="space-y-4">
       <Header title="REMARKS" subTitle="Manage Remarks Of Students" />
-      <DataTableComponent
+      <DynamicDataTable
         apiKey={apiKey}
         resource="remarks"
         columnsConfig={columnsConfig}
