@@ -27,6 +27,7 @@ import { getDefaultValues } from "@/lib/utils";
 import ImageUploader from "./ImageUploader";
 import { Progress } from "@/components/ui/progress";
 import RangeInput from "./RangeInput";
+import usePopulateFormFields from "@/hooks/use-populate-form-fields";
 
 /* ---------- SectionNavigation (unchanged) ---------- */
 const SectionNavigation = ({
@@ -54,127 +55,11 @@ const SectionNavigation = ({
   </div>
 );
 
-/* ---------- FieldRenderer: isolated watcher + stable options ---------- */
+/* ---------- FieldRenderer: simplified for direct rendering ---------- */
 function FieldRenderer({ field, form, apiKey, data }) {
-  // 1) Hooks always run in the same order (important)
-  const depName =
-    field.conditionalRender?.dependentField || field.filter?.dependentField;
-  const depValue = useWatch({ control: form.control, name: depName }); // hook 1
-  const thisValue = useWatch({ control: form.control, name: field.name }); // hook 2
+  const depName = field.conditionalRender?.dependentField;
+  const depValue = useWatch({ control: form.control, name: depName });
 
-  // Watch multiple dependent fields for filters array
-  const multipleFilters = field.filters || (field.filter ? [field.filter] : []);
-  const watchedValues = {};
-
-  // Watch all dependent fields (hook 3 - but called consistently)
-  multipleFilters.forEach((filter) => {
-    if (filter.dependentField) {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      watchedValues[filter.dependentField] = useWatch({
-        control: form.control,
-        name: filter.dependentField,
-      });
-    }
-  });
-
-  // compute mergedOptions in a useMemo (hook 4)
-  const mergedOptions = React.useMemo(() => {
-    // Handle legacy single filter
-    if (field.filter && !field.filters) {
-      const dependentFieldName = field.filter.dependentField;
-      const key = field.filter.key;
-      const fallbackKey = field.filter.fallbackKey;
-      const valueToMatch = depValue;
-
-      const filteredOptions = (field.options || []).filter((option) => {
-        if (!valueToMatch) return true;
-        if (key) {
-          return option?.[dependentFieldName]?.[key] === valueToMatch;
-        }
-        return option?.[dependentFieldName] === valueToMatch;
-      });
-
-      const selectedOptions = (field.options || []).filter((option) =>
-        Array.isArray(thisValue)
-          ? thisValue.includes(option.value)
-          : thisValue === option.value
-      );
-
-      return [
-        ...filteredOptions,
-        ...selectedOptions.filter(
-          (opt) => !filteredOptions.some((f) => f.value === opt.value)
-        ),
-      ];
-    }
-
-    // Handle multiple filters
-    if (field.filters && field.filters.length > 0) {
-      let filteredOptions = field.options || [];
-
-      // Apply each filter sequentially
-      field.filters.forEach((filter) => {
-        const dependentFieldName = filter.dependentField;
-        const key = filter.key;
-        const valueToMatch = watchedValues[dependentFieldName];
-
-        if (valueToMatch) {
-          filteredOptions = filteredOptions.filter((option) => {
-            if (key) {
-              return option?.[dependentFieldName]?.[key] === valueToMatch;
-            }
-            return option?.[dependentFieldName] === valueToMatch;
-          });
-        }
-      });
-
-      // Always include currently selected options to prevent them from disappearing
-      const selectedOptions = (field.options || []).filter((option) =>
-        Array.isArray(thisValue)
-          ? thisValue.includes(option.value)
-          : thisValue === option.value
-      );
-
-      return [
-        ...filteredOptions,
-        ...selectedOptions.filter(
-          (opt) => !filteredOptions.some((f) => f.value === opt.value)
-        ),
-      ];
-    }
-
-    // No filters - return all options
-    return field.options ?? [];
-  }, [
-    field.options,
-    field.filter,
-    field.filters,
-    depValue,
-    thisValue,
-    watchedValues,
-    field.filter?.key,
-    field.filter?.dependentField,
-  ]);
-
-  // keep stable reference for options (hook 5)
-  const stableRef = React.useRef(mergedOptions);
-
-  // update stableRef in an effect (hook 6)
-  React.useEffect(() => {
-    const prev = stableRef.current;
-    if (!Array.isArray(prev) || prev.length !== mergedOptions.length) {
-      stableRef.current = mergedOptions;
-      return;
-    }
-    const same = prev.every((p, i) => p?.value === mergedOptions[i]?.value);
-    if (!same) stableRef.current = mergedOptions;
-    // if same, keep previous reference (stability)
-  }, [mergedOptions]);
-
-  const stableOptions =
-    field.filter || field.filters ? mergedOptions : stableRef.current;
-
-  // 2) Now that all hooks ran, we can early-return for hidden fields
   if (data && field.hideOnEdit) return null;
 
   if (field.conditionalRender) {
@@ -182,98 +67,73 @@ function FieldRenderer({ field, form, apiKey, data }) {
     if (depValue !== expected) return null;
   }
 
-  // 3) Determine field object to render (preserve identity where possible)
-  const sameOptions =
-    Array.isArray(field.options) &&
-    Array.isArray(stableOptions) &&
-    field.options.length === stableOptions.length &&
-    field.options.every((o, i) => o?.value === stableOptions[i]?.value);
-
-  const fieldToRender = sameOptions
-    ? field
-    : { ...field, options: stableOptions };
-
-  // 4) Render (unchanged)
   return (
     <FormField
       control={form.control}
-      name={fieldToRender.name}
+      name={field.name}
       render={({ field: formField }) => (
-        <FormItem className={fieldToRender.className}>
-          {fieldToRender.label && !fieldToRender.hideLabel && (
-            <FormLabel htmlFor={fieldToRender.name}>
-              {fieldToRender.label}
-              {fieldToRender.required && (
-                <span className="text-red-500 ml-1">*</span>
-              )}
+        <FormItem className={field.className}>
+          {field.label && !field.hideLabel && (
+            <FormLabel htmlFor={field.name}>
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
             </FormLabel>
           )}
           <FormControl>
-            {fieldToRender.inputType === "image" ? (
+            {field.inputType === "image" ? (
               <ImageUploader
                 value={formField.value}
                 onChange={(val) => formField.onChange(val)}
-                disabled={fieldToRender.disabled}
+                disabled={field.disabled}
                 apiKey={apiKey}
-                maxFileSize={fieldToRender.maxFileSize}
-                allowedTypes={fieldToRender.allowedTypes}
-                minWidth={fieldToRender.minWidth}
-                minHeight={fieldToRender.minHeight}
-                maxWidth={fieldToRender.maxWidth}
-                maxHeight={fieldToRender.maxHeight}
-                aspectRatio={fieldToRender.aspectRatio}
-                readOnly={
-                  (data && fieldToRender.readOnlyOnEdit) ||
-                  fieldToRender.readOnly
-                }
+                maxFileSize={field.maxFileSize}
+                allowedTypes={field.allowedTypes}
+                minWidth={field.minWidth}
+                minHeight={field.minHeight}
+                maxWidth={field.maxWidth}
+                maxHeight={field.maxHeight}
+                aspectRatio={field.aspectRatio}
+                readOnly={(data && field.readOnlyOnEdit) || field.readOnly}
               />
-            ) : fieldToRender.inputType === "select" ||
-              fieldToRender.inputType === "multiSelect" ? (
+            ) : field.inputType === "select" ||
+              field.inputType === "multiSelect" ? (
               <MultiSelect
-                options={fieldToRender.options || []}
-                placeholder={fieldToRender.placeholder || "Select options"}
-                multiSelect={fieldToRender.inputType === "multiSelect"}
+                options={field.options || []}
+                placeholder={field.placeholder || "Select options"}
+                multiSelect={field.inputType === "multiSelect"}
                 value={formField.value}
                 onValueChange={(value) => formField.onChange(value)}
-                variant={fieldToRender.variant || "default"}
-                maxCount={fieldToRender.maxCount}
-                disableSearch={fieldToRender.disableSearch}
-                freeSolo={fieldToRender.freeSolo}
-                showSelectedCount={fieldToRender.showSelectedCount}
-                readOnly={
-                  (data && fieldToRender.readOnlyOnEdit) ||
-                  fieldToRender.readOnly
-                }
+                variant={field.variant || "default"}
+                maxCount={field.maxCount}
+                disableSearch={field.disableSearch}
+                freeSolo={field.freeSolo}
+                showSelectedCount={field.showSelectedCount}
+                readOnly={(data && field.readOnlyOnEdit) || field.readOnly}
+                isLoading={field.isLoading}
               />
-            ) : fieldToRender.inputType === "range" ? (
+            ) : field.inputType === "range" ? (
               <RangeInput
-                min={fieldToRender.min}
-                max={fieldToRender.max}
-                step={fieldToRender.step}
-                unit={fieldToRender.unit}
+                min={field.min}
+                max={field.max}
+                step={field.step}
+                unit={field.unit}
                 value={formField.value}
                 onChange={(value) => formField.onChange(value)}
-                disabled={fieldToRender.disabled}
-                variant={fieldToRender.variant || "default"}
-                type={fieldToRender.type || "number"}
-                placeholder={fieldToRender.placeholder}
-                fromLabel={fieldToRender.fromLabel || "From"}
-                toLabel={fieldToRender.toLabel || "To"}
-                className={fieldToRender.className}
-                readOnly={
-                  (data && fieldToRender.readOnlyOnEdit) ||
-                  fieldToRender.readOnly
-                }
-                {...fieldToRender.props}
+                disabled={field.disabled}
+                variant={field.variant || "default"}
+                type={field.type || "number"}
+                placeholder={field.placeholder}
+                fromLabel={field.fromLabel || "From"}
+                toLabel={field.toLabel || "To"}
+                className={field.className}
+                readOnly={(data && field.readOnlyOnEdit) || field.readOnly}
+                {...field.props}
               />
             ) : (
               <Input
-                type={fieldToRender.type || "text"}
-                placeholder={fieldToRender.placeholder}
-                readOnly={
-                  (data && fieldToRender.readOnlyOnEdit) ||
-                  fieldToRender.readOnly
-                }
+                type={field.type || "text"}
+                placeholder={field.placeholder}
+                readOnly={(data && field.readOnlyOnEdit) || field.readOnly}
                 {...formField}
               />
             )}
@@ -285,7 +145,6 @@ function FieldRenderer({ field, form, apiKey, data }) {
   );
 }
 
-/* ---------- FormFields now renders FieldRenderer for each field ---------- */
 const FormFields = ({ form, fields, apiKey, data }) =>
   fields.map((field, idx) => (
     <FieldRenderer
@@ -297,7 +156,7 @@ const FormFields = ({ form, fields, apiKey, data }) =>
     />
   ));
 
-/* ---------- FormContent (unchanged) ---------- */
+/* ---------- FormContent with Data Population ---------- */
 const FormContent = ({
   form,
   formFields,
@@ -307,14 +166,43 @@ const FormContent = ({
   apiKey,
 }) => {
   const sectionRefs = React.useRef([]);
+  const [dependentFilters, setDependentFilters] = React.useState({});
+  const { populatedFormFields, isLoading: fieldsLoading } =
+    usePopulateFormFields(formFields, apiKey, dependentFilters);
+
+  // Watch for changes in dependent fields to trigger API refetches
+  React.useEffect(() => {
+    const subscription = form.watch((value, { name, type }) => {
+      const field = formFields.find((f) => f.name === name);
+      if (field) {
+        // Find fields that depend on the changed field
+        formFields.forEach((dependentField) => {
+          if (
+            dependentField.filter &&
+            dependentField.filter.dependentField === name
+          ) {
+            setDependentFilters((prev) => ({
+              ...prev,
+              [dependentField.resource]: {
+                [dependentField.filter.key]: value[name],
+              },
+            }));
+            // Reset the value of the dependent field
+            form.setValue(dependentField.name, undefined);
+          }
+        });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, formFields]);
 
   const sections = React.useMemo(() => {
-    return formFields.reduce((acc, field) => {
+    return populatedFormFields.reduce((acc, field) => {
       acc[field.section] = acc[field.section] || [];
       acc[field.section].push(field);
       return acc;
     }, {});
-  }, [formFields]);
+  }, [populatedFormFields]);
 
   const sectionOrder = Object.keys(sections);
   const [activeSectionIndex, setActiveSectionIndex] = React.useState(0);
@@ -385,8 +273,12 @@ const FormContent = ({
             </Button>
           )}
           {activeSectionIndex === totalSections - 1 ? (
-            <Button className="w-full" type="submit" disabled={loading}>
-              {loading ? (
+            <Button
+              className="w-full"
+              type="submit"
+              disabled={loading || fieldsLoading}
+            >
+              {loading || fieldsLoading ? (
                 <Loader className="animate-spin mr-2" />
               ) : (
                 "Save changes"
@@ -429,14 +321,13 @@ export default function PopupForm({
     } else {
       return formFields;
     }
-  });
+  }, [data, formFields]);
 
-  // keep your existing dynamic schema hook if you want
   const { schema } = useDynamicFormSchema(customFormFields);
 
   const defaultValues = React.useMemo(() => {
     return getDefaultValues(data, customFormFields);
-  }, [data, customFormFields, schema]);
+  }, [data, customFormFields]);
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -444,20 +335,13 @@ export default function PopupForm({
     mode: "all",
   });
 
-  const {
-    formState: { errors },
-  } = form;
-
-  React.useEffect(() => {
-    console.log(errors);
-  }, [errors]);
-
   const handleSubmit = React.useCallback(async () => {
     try {
       const values = form.getValues();
       const success = await onSubmit(values);
       if (success) {
         setOpen(false);
+        form.reset();
       }
     } catch (error) {
       console.error("Form submission failed:", error.message);
@@ -471,8 +355,6 @@ export default function PopupForm({
             message: `${fieldLabel} ${message}`,
           });
         });
-
-        return;
       }
     }
   }, [form, customFormFields, onSubmit]);
@@ -494,7 +376,7 @@ export default function PopupForm({
         </DialogHeader>
 
         <FormContent
-          key={data ? `edit-${data?._id}` : `create ${title}`}
+          key={data ? `edit-${data?._id}` : `create-${title}`}
           form={form}
           formFields={customFormFields}
           handleSubmit={handleSubmit}
