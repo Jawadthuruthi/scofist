@@ -47,6 +47,7 @@ const Remarks = ({ apiKey, role }) => {
       inputType: "select",
       resource: "users",
       required: true,
+      freeSolo: true,
       apiFilters: {
         roles: "Student",
       },
