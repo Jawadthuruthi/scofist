@@ -294,6 +294,11 @@ const pages = [
     path: "/dashboard/settings",
     allowedRoles: ["College Admin", "Program Committee"],
   },
+  {
+    title: "Masjid Attendance",
+    path: "/dashboard/masjid-attendance",
+    allowedRoles: ["College Admin", "Org Admin"],
+  },
 ];
 
 export async function middleware(req) {

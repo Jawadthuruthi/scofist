@@ -409,7 +409,7 @@ const items = [
     title: "Masjid Attendance",
     url: "/dashboard/masjid-attendance",
     icon: ClipboardList,
-    allowedRoles: ["College Admin"],
+    allowedRoles: ["College Admin", "Org Admin"],
   },
 ];
 
