@@ -7,10 +7,16 @@ const Remarks = ({ apiKey, role }) => {
     {
       accessorKey: "studentName",
       header: "Student",
+      meta: {
+        minWidth: "200px",
+      },
     },
     {
       accessorKey: "className",
       header: "Class",
+      meta: {
+        minWidth: "200px",
+      },
     },
     {
       accessorKey: "teacherName",
@@ -24,6 +30,9 @@ const Remarks = ({ apiKey, role }) => {
     {
       accessorKey: "comments",
       header: "Comments",
+      meta: {
+        minWidth: "300px",
+      },
     },
     {
       accessorKey: "status",
