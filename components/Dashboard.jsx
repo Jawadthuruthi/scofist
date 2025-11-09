@@ -645,6 +645,38 @@ export default function Dashboard({
 
   // Memoized dashboard data
   const dashboardData = useMemo(() => {
+    const classOrder = [
+      "PLUS ONE A",
+      "PLUS ONE B",
+      "PLUS TWO",
+      "DEGREE FIRST YEAR",
+      "DEGREE SECOND YEAR",
+      "DEGREE THIRD YEAR",
+      "PG FIRST YEAR",
+      "PG SECOND YEAR",
+      "8TH STD",
+      "9TH STD",
+      "10TH STD",
+    ];
+
+    const sortedClasses = [...classes].sort((a, b) => {
+      const nameA = a.name.trim().toUpperCase();
+      const nameB = b.name.trim().toUpperCase();
+      const indexA = classOrder.indexOf(nameA);
+      const indexB = classOrder.indexOf(nameB);
+
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      if (indexA !== -1) {
+        return -1;
+      }
+      if (indexB !== -1) {
+        return 1;
+      }
+      return nameA.localeCompare(nameB);
+    });
+
     const activeStudents = students.filter(
       (student) => student.status === "Active"
     );
@@ -657,7 +689,7 @@ export default function Dashboard({
     return {
       students,
       batches,
-      classes,
+      classes: sortedClasses,
       teachers,
       activeStudents,
       graduatedStudents,
