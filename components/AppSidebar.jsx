@@ -405,6 +405,12 @@ const items = [
     icon: Settings,
     allowedRoles: ["College Admin", "Program Committee"],
   },
+  {
+    title: "Masjid Attendance",
+    url: "/dashboard/masjid-attendance",
+    icon: ClipboardList,
+    allowedRoles: ["College Admin", "Org Admin"],
+  },
 ];
 
 function ComboBox({ roles, role }) {
