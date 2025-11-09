@@ -49,16 +49,14 @@ export async function GET(req, res) {
       query.teacherId = filterParams.teacherId;
     }
 
-    // Execute query with pagination
-    const classes = await Class.find(query, projections)
+    // Execute query to get all classes matching the filter
+    const allClasses = await Class.find(query, projections)
       .populate("batchId", "name")
       .populate("teacherId", "name")
       .populate("subjects", "name")
-      .skip(page * limit)
-      .limit(limit)
-      .sort({ _id: 1 })
       .collation({ locale: "en_US", numericOrdering: true });
 
+    // Define the custom sort order
     const classOrder = [
       "PLUS ONE A",
       "PLUS ONE B",
@@ -73,7 +71,8 @@ export async function GET(req, res) {
       "10TH STD",
     ];
 
-    classes.sort((a, b) => {
+    // Apply custom sorting to the full list of classes
+    allClasses.sort((a, b) => {
       const nameA = a.name.toUpperCase();
       const nameB = b.name.toUpperCase();
       const indexA = classOrder.indexOf(nameA);
@@ -83,15 +82,38 @@ export async function GET(req, res) {
         return indexA - indexB;
       }
       if (indexA !== -1) {
-        return -1;
+        return -1; // a comes first
       }
       if (indexB !== -1) {
-        return 1;
+        return 1; // b comes first
       }
+      // Fallback for classes not in the custom order
       return nameA.localeCompare(nameB);
     });
+
     // Get total count for pagination info
-    const total = await Class.countDocuments(query);
+    const total = allClasses.length;
+
+    // Apply pagination manually after sorting
+    const startIndex = page * limit;
+    const paginatedClasses =
+      limit === Infinity
+        ? allClasses
+        : allClasses.slice(startIndex, startIndex + limit);
+
+    const formattedClasses = paginatedClasses.map((cls) => ({
+      ...cls._doc,
+      batchId: cls.batchId?._id,
+      teacherId: cls.teacherId?._id,
+      batchName: cls.batchId?.name,
+      teacherName: cls.teacherId?.name,
+      subjectIds: cls.subjects.map((subject) => subject?._id),
+      subjectsName: cls.subjects.map((subject) => subject.name),
+    }));
+
+    return NextResponse.json(
+      {
+        classes: formattedClasses,
 
     const formattedClasses = classes.map((cls) => ({
       ...cls._doc,
