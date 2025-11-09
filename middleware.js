@@ -98,6 +98,11 @@ const pages = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
+    path: "/dashboard/remarks",
+    pattern: /^\/dashboard\/remarks(?:\/[^/]+)?$/,
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Applications",
     path: "/dashboard/applications",
     allowedRoles: ["College Admin"],
