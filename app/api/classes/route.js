@@ -114,20 +114,6 @@ export async function GET(req, res) {
     return NextResponse.json(
       {
         classes: formattedClasses,
-
-    const formattedClasses = classes.map((cls) => ({
-      ...cls._doc,
-      batchId: cls.batchId?._id,
-      teacherId: cls.teacherId?._id,
-      batchName: cls.batchId?.name,
-      teacherName: cls.teacherId?.name,
-      subjectIds: cls.subjects.map((subject) => subject?._id),
-      subjectsName: cls.subjects.map((subject) => subject.name),
-    }));
-
-    return NextResponse.json(
-      {
-        classes: formattedClasses,
         pagination: {
           page,
           limit,
