@@ -49,59 +49,19 @@ export async function GET(req, res) {
       query.teacherId = filterParams.teacherId;
     }
 
-    // Execute query to get all classes matching the filter
-    const allClasses = await Class.find(query, projections)
+    // Execute query with pagination
+    const classes = await Class.find(query, projections)
       .populate("batchId", "name")
       .populate("teacherId", "name")
       .populate("subjects", "name")
+      .skip(page * limit)
+      .limit(limit)
+      .sort({ _id: 1 })
       .collation({ locale: "en_US", numericOrdering: true });
-
-    // Define the custom sort order
-    const classOrder = [
-      "PLUS ONE A",
-      "PLUS ONE B",
-      "PLUS TWO",
-      "DEGREE FIRST YEAR",
-      "DEGREE SECOND YEAR",
-      "DEGREE THIRD YEAR",
-      "PG FIRST YEAR",
-      "PG SECOND YEAR",
-      "8TH STD",
-      "9TH STD",
-      "10TH STD",
-    ];
-
-    // Apply custom sorting to the full list of classes
-    allClasses.sort((a, b) => {
-      const nameA = a.name.trim().toUpperCase();
-      const nameB = b.name.trim().toUpperCase();
-      const indexA = classOrder.indexOf(nameA);
-      const indexB = classOrder.indexOf(nameB);
-
-      if (indexA !== -1 && indexB !== -1) {
-        return indexA - indexB;
-      }
-      if (indexA !== -1) {
-        return -1; // a comes first
-      }
-      if (indexB !== -1) {
-        return 1; // b comes first
-      }
-      // Fallback for classes not in the custom order
-      return nameA.localeCompare(nameB);
-    });
-
     // Get total count for pagination info
-    const total = allClasses.length;
+    const total = await Class.countDocuments(query);
 
-    // Apply pagination manually after sorting
-    const startIndex = page * limit;
-    const paginatedClasses =
-      limit === Infinity
-        ? allClasses
-        : allClasses.slice(startIndex, startIndex + limit);
-
-    const formattedClasses = paginatedClasses.map((cls) => ({
+    const formattedClasses = classes.map((cls) => ({
       ...cls._doc,
       batchId: cls.batchId?._id,
       teacherId: cls.teacherId?._id,
