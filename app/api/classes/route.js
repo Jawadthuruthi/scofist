@@ -73,8 +73,8 @@ export async function GET(req, res) {
 
     // Apply custom sorting to the full list of classes
     allClasses.sort((a, b) => {
-      const nameA = a.name.toUpperCase();
-      const nameB = b.name.toUpperCase();
+      const nameA = a.name.trim().toUpperCase();
+      const nameB = b.name.trim().toUpperCase();
       const indexA = classOrder.indexOf(nameA);
       const indexB = classOrder.indexOf(nameB);
 
