@@ -1,53 +1,9 @@
 "use client";
-import { useState } from "react";
-import useCrud from "@/hooks/use-crud";
 import Header from "./Header";
 import { DataTableComponent } from "./DataTableComponent";
-import RemarkForm from "./RemarkForm";
-import { Button } from "./ui/button";
 
-const Remarks = ({ apiKey, role, teacherId }) => {
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedRemark, setSelectedRemark] = useState(null);
-
-  const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud(
-    "remarks",
-    apiKey
-  );
-  const { data: remarksData, isLoading: remarksLoading } = useFetchItems();
-  const { data: classesData } = useCrud("classes", apiKey).useFetchItems();
-  const { data: studentsData } = useCrud("users", apiKey).useFetchItems(0, 0, {
-    roles: "Student",
-  });
-
-  const addRemark = useAddItem();
-  const updateRemark = useUpdateItem();
-  const deleteRemark = useDeleteItem();
-
-  const handleAdd = () => {
-    setSelectedRemark(null);
-    setIsFormOpen(true);
-  };
-
-  const handleEdit = (remark) => {
-    setSelectedRemark(remark);
-    setIsFormOpen(true);
-  };
-
-  const handleDelete = (remarkIds) => {
-    deleteRemark.mutate({ ids: remarkIds });
-  };
-
-  const handleSubmit = (data) => {
-    if (selectedRemark) {
-      updateRemark.mutate({ ids: [selectedRemark._id], ...data });
-    } else {
-      addRemark.mutate(data);
-    }
-    setIsFormOpen(false);
-  };
-
-  const columns = [
+const Remarks = ({ apiKey, role }) => {
+  const columnsConfig = [
     {
       accessorKey: "studentName",
       header: "Student",
@@ -61,13 +17,13 @@ const Remarks = ({ apiKey, role, teacherId }) => {
       header: "Teacher",
     },
     {
-        accessorKey: "date",
-        header: "Date",
-        cell: ({ row }) => new Date(row.original.date).toLocaleDateString(),
+      accessorKey: "date",
+      header: "Date",
+      cell: ({ row }) => new Date(row.original.date).toLocaleDateString(),
     },
     {
-        accessorKey: "comments",
-        header: "Comments",
+      accessorKey: "comments",
+      header: "Comments",
     },
     {
       accessorKey: "status",
@@ -75,26 +31,62 @@ const Remarks = ({ apiKey, role, teacherId }) => {
     },
   ];
 
+  const formFields = [
+    {
+      name: "classId",
+      label: "Class",
+      type: "text",
+      inputType: "select",
+      resource: "classes",
+      required: true,
+    },
+    {
+      name: "studentId",
+      label: "Student",
+      type: "text",
+      inputType: "select",
+      resource: "users",
+      required: true,
+      apiFilters: {
+        roles: "Student",
+      },
+    },
+    {
+      name: "date",
+      label: "Date",
+      type: "date",
+      required: true,
+    },
+    {
+      name: "comments",
+      label: "Comments",
+      type: "text",
+      inputType: "textarea",
+      required: true,
+    },
+    {
+      name: "status",
+      label: "Status",
+      type: "text",
+      inputType: "select",
+      options: [
+        { value: "good", label: "Good" },
+        { value: "bad", label: "Bad" },
+        { value: "pending", label: "Pending" },
+      ],
+      required: true,
+    },
+  ];
+
   return (
     <div className="space-y-4">
       <Header title="REMARKS" subTitle="Manage Remarks Of Students" />
-      <Button onClick={handleAdd}>Add Remark</Button>
       <DataTableComponent
-        columns={columns}
-        data={remarksData?.remarks || []}
-        isLoading={remarksLoading}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        canApprove={role === "College Admin"}
-        canDelete={role === "College Admin"}
-      />
-      <RemarkForm
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleSubmit}
-        initialData={selectedRemark}
-        students={studentsData?.users || []}
-        classes={classesData?.classes || []}
+        apiKey={apiKey}
+        resource="remarks"
+        columnsConfig={columnsConfig}
+        formFields={formFields}
+        enableDelete={role === "College Admin"}
       />
     </div>
   );
