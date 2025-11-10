@@ -9,6 +9,11 @@
     "start": "next start",
     "lint": "eslint ."
   },
+  "overrides": {
+    "react-date-range": {
+      "date-fns": "$date-fns"
+    }
+  },
   "dependencies": {
     "@hookform/resolvers": "^4.1.2",
     "@next/font": "^14.2.15",
