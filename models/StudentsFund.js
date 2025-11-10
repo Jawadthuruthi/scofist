@@ -5,7 +5,6 @@ const studentsFundSchema = new Schema(
   {
     studentId: {
       type: String,
-      required: true,
       ref: "User",
     },
     teacherId: {
@@ -49,9 +48,22 @@ const studentsFundSchema = new Schema(
   }
 );
 
+// Add a compound unique index for student-specific funds
 studentsFundSchema.index(
   { studentId: 1, batchId: 1, teacherId: 1 },
-  { unique: true }
+  {
+    unique: true,
+    partialFilterExpression: { studentId: { $exists: true } },
+  }
+);
+
+// Add a compound unique index for batch-specific funds
+studentsFundSchema.index(
+  { batchId: 1, teacherId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { studentId: { $exists: false } },
+  }
 );
 
 const StudentsFund =

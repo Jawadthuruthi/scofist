@@ -23,6 +23,8 @@ const pages = [
       "Program Leader",
       "Finance",
       "Literary Leader",
+      "Stationary",
+      "IT Lab",
     ],
   },
   {
@@ -96,6 +98,16 @@ const pages = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
+    path: "/dashboard/remarks",
+    pattern: /^\/dashboard\/remarks(?:\/[^/]+)?$/,
+    allowedRoles: ["College Admin"],
+  },
+  {
+    title: "Finance",
+    path: "/dashboard/finance",
+    allowedRoles: ["College Admin", "Finance"],
+  },
+  {
     title: "Applications",
     path: "/dashboard/applications",
     allowedRoles: ["College Admin"],
@@ -155,7 +167,17 @@ const pages = [
   {
     title: "Students Fund",
     path: "/dashboard/students-fund",
-    allowedRoles: ["College Admin", "Teacher", "Stationary", "IT Lab"],
+    allowedRoles: ["College Admin", "Teacher"],
+  },
+  {
+    title: "Downloads",
+    path: "/dashboard/downloads",
+    allowedRoles: ["College Admin", "Student"],
+  },
+  {
+    path: "/dashboard/downloads",
+    pattern: /^\/dashboard\/downloads(?:\/[^/]+)?$/,
+    allowedRoles: ["College Admin", "Student"],
   },
   {
     title: "Divisions",
@@ -277,6 +299,11 @@ const pages = [
     path: "/dashboard/settings",
     allowedRoles: ["College Admin", "Program Committee"],
   },
+  {
+    title: "Masjid Attendance",
+    path: "/dashboard/masjid-attendance",
+    allowedRoles: ["College Admin", "Org Admin"],
+  },
 ];
 
 export async function middleware(req) {
@@ -322,6 +349,9 @@ async function handleLoginPageRequest(req) {
 }
 
 async function handleApiRequest(req) {
+  if (req.nextUrl.pathname === "/api/upload") {
+    return NextResponse.next();
+  }
   const url = new URL(req.url);
   const apiKey = req.headers.get("api-key");
   const cronSecret = url.searchParams.get("cronSecret");

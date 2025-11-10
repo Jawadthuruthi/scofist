@@ -12,6 +12,7 @@ import {
   UserX,
   Home,
   Settings,
+  MessageSquare,
   FileSpreadsheet,
   FolderCheck,
   FileSearch,
@@ -34,6 +35,7 @@ import {
   CheckCircle,
   TicketPercent,
   UserMinus,
+  Download,
 } from "lucide-react";
 
 import {
@@ -83,6 +85,8 @@ const items = [
       "Program Leader",
       "Finance",
       "Literary Leader",
+      "Stationary",
+      "IT Lab",
     ],
   },
   {
@@ -122,10 +126,34 @@ const items = [
     icon: CreditCard,
   },
   {
+    title: "Downloads",
+    url: "/dashboard/downloads",
+    allowedRoles: ["College Admin", "Student"],
+    icon: Download,
+  },
+  {
     title: "Marks",
     url: "/dashboard/marks",
     icon: FileSpreadsheet,
     allowedRoles: ["College Admin", "Teacher"],
+  },
+  {
+    title: "Remarks",
+    url: "/dashboard/remarks",
+    icon: MessageSquare,
+    allowedRoles: ["College Admin"],
+  },
+  {
+    title: "Finance",
+    url: "/dashboard/finance",
+    icon: CreditCard,
+    allowedRoles: ["College Admin", "Finance"],
+  },
+  {
+    title: "Masjid Attendance",
+    url: "/dashboard/masjid-attendance",
+    icon: ClipboardList,
+    allowedRoles: ["College Admin", "Org Admin"],
   },
   {
     title: "Applications",

@@ -15,6 +15,8 @@ export async function GET(req, res) {
     const query = {};
     if (searchParams.studentId) {
       query.studentId = searchParams.studentId;
+    } else {
+      query.studentId = { $exists: false };
     }
     if (searchParams.teacherId) {
       query.teacherId = searchParams.teacherId;
@@ -45,34 +47,37 @@ export async function POST(req, res) {
     const { studentId, teacherId, batchId, balance, transaction } =
       await req.json();
 
-    const isStudentFundExist = await StudentsFund.findOne({
-      studentId: studentId,
-      batchId: batchId,
-      teacherId: teacherId,
-    });
-    if (!isStudentFundExist) {
-      const newStudentsFund = new StudentsFund({
-        studentId,
-        batchId,
-        teacherId,
+    const query = {
+      batchId,
+      teacherId,
+    };
+
+    if (studentId) {
+      query.studentId = studentId;
+    } else {
+      query.studentId = { $exists: false };
+    }
+
+    let studentFund = await StudentsFund.findOne(query);
+
+    if (!studentFund) {
+      const newStudentsFundData = {
+        ...query,
         balance,
         transactions: [{ ...transaction, date: new Date() }],
-      });
-      await newStudentsFund.save();
-      return NextResponse.json({ newStudentsFund }, { status: 200 });
+      };
+      if (studentId) {
+        newStudentsFundData.studentId = studentId;
+      }
+      studentFund = new StudentsFund(newStudentsFundData);
     } else {
-      const newStudentsFund = await StudentsFund.findOneAndUpdate(
-        { studentId, batchId, teacherId },
-        {
-          balance,
-          $push: {
-            transactions: { ...transaction, date: new Date() },
-          },
-        },
-        { new: true }
-      );
-      return NextResponse.json({ newStudentsFund }, { status: 200 });
+      studentFund.balance = balance;
+      studentFund.transactions.push({ ...transaction, date: new Date() });
     }
+
+    await studentFund.save();
+
+    return NextResponse.json({ newStudentsFund: studentFund }, { status: 200 });
   } catch (error) {
     return apiResponse.error(error);
   }

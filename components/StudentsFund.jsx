@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -80,6 +79,9 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
     useState(false);
   const [loading, setLoading] = useState(false);
   const amountInputRef = useRef(null);
+  const noteInputRef = useRef(null);
+  const confirmButtonRef = useRef(null);
+  const finalConfirmButtonRef = useRef(null);
 
   const printRef = useRef();
   const allStudentsFundRef = useRef();
@@ -148,6 +150,14 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
     setSelectedStudent("");
   }, [selectedBatch]);
 
+  useEffect(() => {
+    if (showConfirmDialog && finalConfirmButtonRef.current) {
+      setTimeout(() => {
+        finalConfirmButtonRef.current.focus();
+      }, 0);
+    }
+  }, [showConfirmDialog]);
+
   // Filter students based on selected batch
   const availableStudents = useMemo(() => {
     return students.filter((student) => student.batchId === selectedBatch);
@@ -178,35 +188,43 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
 
   const confirmTransaction = async () => {
     setLoading(true);
-    const balance =
+
+    const isBatchTransaction = !selectedStudent;
+
+    const originalBalance = studentBalance;
+    const newBalance =
       (transactionType === "Deposit"
-        ? studentBalance + parseFloat(amount)
-        : studentBalance - parseFloat(amount)) || 0;
+        ? originalBalance + parseFloat(amount)
+        : originalBalance - parseFloat(amount)) || 0;
+
+    const transaction = {
+      type: transactionType,
+      amount: parseFloat(amount),
+      note,
+    };
+
+    // Optimistically update UI
+    setStudentBalance(newBalance);
+    setShowConfirmDialog(false);
+    setAmount("");
+    setNote("");
 
     try {
-      const transaction = {
-        type: transactionType,
-        amount: parseFloat(amount),
-        note,
-      };
       await addStudentFund.mutateAsync({
-        studentId: selectedStudent,
+        studentId: isBatchTransaction ? undefined : selectedStudent,
         teacherId,
         batchId: selectedBatch,
         transaction,
-        balance,
+        balance: newBalance,
       });
-      await fetchStudentFundQuery.refetch();
 
-      // Reset form
-      setAmount("");
-      setNote("");
-      setTransactionType("");
+      await fetchStudentFundQuery.refetch();
     } catch (error) {
-      console.error("Transaction failed:", error);
+      console.error("Transaction failed, reverting optimistic update:", error);
+      setStudentBalance(originalBalance);
     } finally {
       setLoading(false);
-      setShowConfirmDialog(false);
+      setTransactionType("");
     }
   };
 
@@ -314,7 +332,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
           </Card>
 
           {/* Student Balance & Transaction Form */}
-          {selectedStudent && selectedStudent !== selectedBatch && (
+          {(selectedStudent || selectedBatch) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -337,33 +355,50 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                   {/* Student Info & Balance */}
                   <div className="flex items-center justify-between p-4 bg-accent rounded-lg border">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-7 md:h-12 w-7 md:w-12">
-                        <AvatarImage
-                          src={selectedStudentData?.profilePic.url}
-                        />
-                        <AvatarFallback>
-                          {selectedStudentData?.name?.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="font-semibold text-sm md:text-base text-foreground">
-                          {selectedStudentData?.name}
-                        </h3>
-                        <p className="text-xs md:text-sm text-accent-foreground">
-                          Student ID: {selectedStudent}
-                        </p>
-                      </div>
+                      {selectedStudent &&
+                      selectedStudent !== selectedBatchData?._id ? (
+                        <>
+                          <Avatar className="h-7 md:h-12 w-7 md:w-12">
+                            <AvatarImage
+                              src={selectedStudentData?.profilePic.url}
+                            />
+                            <AvatarFallback>
+                              {selectedStudentData?.name
+                                ?.charAt(0)
+                                .toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h3 className="font-semibold text-sm md:text-base text-foreground">
+                              {selectedStudentData?.name}
+                            </h3>
+                            <p className="text-xs md:text-sm text-accent-foreground">
+                              Student ID: {selectedStudent}
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div>
+                          <h3 className="font-semibold text-sm md:text-base text-foreground">
+                            {selectedBatchData?.name}
+                          </h3>
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-xs md:text-sm text-accent-foreground">
                         Current Balance
                       </p>
                       <p
-                        className={`"text-lg md:text-2xl font-bold " ${studentBalance < 0 ? "text-destructive" : "text-green-600"}`}
+                        className={`text-lg md:text-2xl font-bold ${
+                          studentBalance < 0
+                            ? "text-destructive"
+                            : "text-green-600"
+                        }`}
                       >
                         {studentBalance
                           ? `₹ ${studentBalance?.toFixed(2)}`
-                          : "0"}
+                          : "₹ 0.00"}
                       </p>
                     </div>
                   </div>
@@ -396,7 +431,14 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
 
                   {/* Amount Input */}
                   {transactionType && (
-                    <div className="space-y-2">
+                    <div
+                      className="space-y-2"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          noteInputRef.current.focus();
+                        }
+                      }}
+                    >
                       <Label htmlFor="amount">Amount (₹)</Label>
                       <Input
                         ref={amountInputRef}
@@ -415,12 +457,17 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                   {transactionType && (
                     <div className="space-y-2">
                       <Label htmlFor="note">Note</Label>
-                      <Textarea
+                      <Input
+                        ref={noteInputRef}
                         id="note"
                         placeholder="Enter transaction note or description"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
-                        className="min-h-[40px]"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            confirmButtonRef.current.focus();
+                          }
+                        }}
                       />
                     </div>
                   )}
@@ -428,7 +475,13 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                   {/* Submit Button */}
                   {transactionType && (
                     <Button
+                      ref={confirmButtonRef}
                       onClick={handleTransaction}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleTransaction();
+                        }
+                      }}
                       disabled={!amount || loading}
                       className="w-full"
                       size="lg"
@@ -453,7 +506,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
               <CardDescription>Recent fund activities</CardDescription>
             </CardHeader>
             <CardContent>
-              {selectedStudent && selectedStudent !== selectedBatch ? (
+              {selectedStudent ? (
                 <div className="space-y-4">
                   <div className="max-h-[320px] overflow-y-auto hide-scrollbar">
                     {transactions?.length > 0 ? (
@@ -513,7 +566,10 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                             Complete Transaction History
                           </DialogTitle>
                           <DialogDescription>
-                            All transactions for {selectedStudentData?.name}
+                            All transactions for{" "}
+                            {selectedStudent !== selectedBatchData?._id
+                              ? selectedStudentData?.name
+                              : selectedBatchData?.name}
                           </DialogDescription>
                         </DialogHeader>
 
@@ -567,47 +623,48 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                               Print
                             </Button>
                           )}
-
-                          <Button variant="destructive">
-                            <Dialog
-                              open={showClearHistoryDialogue}
-                              onOpenChange={setShowClearHistoryDialogue}
-                            >
-                              <DialogTrigger asChild>
-                                <span className="flex items-center gap-2">
-                                  <Trash2 className="h-4 w-4" />
-                                  Clear History
-                                </span>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Clear History</DialogTitle>
-                                  <DialogDescription>
-                                    Are you sure you want to clear the history
-                                    for {selectedStudentData?.name}?
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <DialogFooter className="gap-2">
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                      setShowClearHistoryDialogue(false);
-                                      setShowHistoryDialog(false);
-                                    }}
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button
-                                    className="!bg-destructive !text-destructive-foreground"
-                                    onClick={handleClearHistory}
-                                    disabled={updateStudentFund.isPending}
-                                  >
-                                    Clear
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                          </Button>
+                          {selectedStudent !== selectedBatchData?._id && (
+                            <Button variant="destructive">
+                              <Dialog
+                                open={showClearHistoryDialogue}
+                                onOpenChange={setShowClearHistoryDialogue}
+                              >
+                                <DialogTrigger asChild>
+                                  <span className="flex items-center gap-2">
+                                    <Trash2 className="h-4 w-4" />
+                                    Clear History
+                                  </span>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Clear History</DialogTitle>
+                                    <DialogDescription>
+                                      Are you sure you want to clear the history
+                                      for {selectedStudentData?.name}?
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <DialogFooter className="gap-2">
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setShowClearHistoryDialogue(false);
+                                        setShowHistoryDialog(false);
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      className="!bg-destructive !text-destructive-foreground"
+                                      onClick={handleClearHistory}
+                                      disabled={updateStudentFund.isPending}
+                                    >
+                                      Clear
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                            </Button>
+                          )}
                         </div>
                       </DialogFooter>
                     </DialogContent>
@@ -783,8 +840,16 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
           <div className="my-4 p-4 bg-accent rounded-lg">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-accent-foreground">Student</p>
-                <p className="font-medium">{selectedStudentData?.name}</p>
+                <p className="text-accent-foreground">
+                  {selectedStudent !== selectedBatchData?._id
+                    ? "Student"
+                    : "Batch"}
+                </p>
+                <p className="font-medium">
+                  {selectedStudent !== selectedBatchData?._id
+                    ? selectedStudentData?.name
+                    : selectedBatchData?.name}
+                </p>
               </div>
               <div>
                 <p className="text-accent-foreground">Transaction Type</p>
@@ -794,15 +859,17 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                 <p className="text-accent-foreground">Amount</p>
                 <p className="font-medium">₹{parseFloat(amount || 0)}</p>
               </div>
-              <div>
-                <p className="text-accent-foreground">New Balance</p>
-                <p className="font-medium">
-                  ₹
-                  {transactionType === "Deposit"
-                    ? studentBalance + parseFloat(amount)
-                    : studentBalance - parseFloat(amount) || 0}
-                </p>
-              </div>
+              {selectedStudent !== selectedBatch && (
+                <div>
+                  <p className="text-accent-foreground">New Balance</p>
+                  <p className="font-medium">
+                    ₹
+                    {transactionType === "Deposit"
+                      ? studentBalance + parseFloat(amount)
+                      : studentBalance - parseFloat(amount) || 0}
+                  </p>
+                </div>
+              )}
             </div>
             <div className="mt-3">
               <p className="text-accent-foreground text-sm">Note</p>
@@ -811,7 +878,16 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmTransaction} disabled={loading}>
+            <AlertDialogAction
+              ref={finalConfirmButtonRef}
+              onClick={confirmTransaction}
+              disabled={loading}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  confirmTransaction();
+                }
+              }}
+            >
               {loading ? "Processing..." : "Confirm"}
             </AlertDialogAction>
           </AlertDialogFooter>
