@@ -643,8 +643,7 @@ export default function Dashboard({
   const isLoadingStats = isLoadingStudents;
   const isLoadingCharts = isLoadingStudents;
 
-  // Memoized dashboard data
-  const dashboardData = useMemo(() => {
+  const sortedClasses = useMemo(() => {
     const classOrder = [
       "PLUS ONE A",
       "PLUS ONE B",
@@ -659,7 +658,7 @@ export default function Dashboard({
       "10TH STD",
     ];
 
-    const sortedClasses = [...classes].sort((a, b) => {
+    return [...classes].sort((a, b) => {
       const nameA = a.name.trim().toUpperCase();
       const nameB = b.name.trim().toUpperCase();
       const indexA = classOrder.indexOf(nameA);
@@ -676,7 +675,10 @@ export default function Dashboard({
       }
       return nameA.localeCompare(nameB);
     });
+  }, [classes]);
 
+  // Memoized dashboard data
+  const dashboardData = useMemo(() => {
     const activeStudents = students.filter(
       (student) => student.status === "Active"
     );
@@ -707,7 +709,7 @@ export default function Dashboard({
   }, [
     students,
     batches,
-    classes,
+    sortedClasses,
     teachers,
     attendances,
     leaveRecords,
@@ -818,7 +820,7 @@ export default function Dashboard({
                   timeTable={timeTable}
                   periods={periods}
                   attendances={attendances}
-                  classes={classes}
+                  classes={sortedClasses}
                   teachersLeaveRecord={teachersLeaveRecord}
                 />
               </CardContent>
@@ -845,7 +847,7 @@ export default function Dashboard({
             <CardContent className="grid grid-cols-6 gap-4">
               {sortedTeachers?.map((teacher) => {
                 const assignedClass =
-                  classes.find((c) => c.teacherId === teacher._id)?.name ||
+                  sortedClasses.find((c) => c.teacherId === teacher._id)?.name ||
                   "No Class Assigned";
                 return (
                   <FacultyProfileCard
@@ -876,7 +878,7 @@ export default function Dashboard({
                 <ClassesSkeleton />
               ) : hasClasses ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {classes.map((classData) => {
+                  {sortedClasses.map((classData) => {
                     const leaveStudents = leaveRecords.filter(
                       (record) => record.classId === classData._id
                     );
