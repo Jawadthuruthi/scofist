@@ -9,11 +9,6 @@
     "start": "next start",
     "lint": "eslint ."
   },
-  "overrides": {
-    "react-date-range": {
-      "date-fns": "$date-fns"
-    }
-  },
   "dependencies": {
     "@hookform/resolvers": "^4.1.2",
     "@next/font": "^14.2.15",
@@ -57,7 +52,6 @@
     "next-pwa": "^5.6.0",
     "next-themes": "^0.4.4",
     "react": "^18.3.1",
-    "react-date-range": "^2.0.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.3.8",

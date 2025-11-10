@@ -1,5 +1,11 @@
-import Finance from "@/components/Finance";
+"use client";
+import dynamic from "next/dynamic";
 
-export default async function FinancePage() {
-  return <Finance />;
+const FinanceClient = dynamic(() => import("@/components/FinanceClient"), {
+  ssr: false,
+});
+
+export default function FinancePage() {
+  const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+  return <FinanceClient apiKey={apiKey} />;
 }

@@ -103,11 +103,6 @@ const pages = [
     allowedRoles: ["College Admin"],
   },
   {
-    title: "Finance",
-    path: "/dashboard/finance",
-    allowedRoles: ["College Admin", "Finance"],
-  },
-  {
     title: "Applications",
     path: "/dashboard/applications",
     allowedRoles: ["College Admin"],
