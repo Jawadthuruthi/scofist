@@ -656,11 +656,11 @@ export default function Dashboard({
       "8TH STD",
       "9TH STD",
       "10TH STD",
-    ];
+    ].map((name) => name.replace(/\s/g, ""));
 
     return [...classes].sort((a, b) => {
-      const nameA = a.name.trim().toUpperCase();
-      const nameB = b.name.trim().toUpperCase();
+      const nameA = a.name.trim().toUpperCase().replace(/\s/g, "");
+      const nameB = b.name.trim().toUpperCase().replace(/\s/g, "");
       const indexA = classOrder.indexOf(nameA);
       const indexB = classOrder.indexOf(nameB);
 
@@ -673,7 +673,7 @@ export default function Dashboard({
       if (indexB !== -1) {
         return 1;
       }
-      return nameA.localeCompare(nameB);
+      return a.name.localeCompare(b.name);
     });
   }, [classes]);
 
