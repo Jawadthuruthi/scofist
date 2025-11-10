@@ -264,9 +264,6 @@ const MasjidAttendance = ({
                   onClick={() => setSelectedPrayer(prayer)}
                 >
                   <TableCell className="whitespace-nowrap">{prayer}</TableCell>
-                  <TableCell align="right">
-                    <Button size="sm">Select</Button>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
