@@ -74,7 +74,7 @@ import { usePathname } from "next/navigation";
 const items = [
   {
     title: "Dashboard",
-    url: "/dashboard",
+    getUrl: (role) => (role === "Student" ? "/dashboard/student" : "/dashboard"),
     icon: Home,
     allowedRoles: [
       "College Admin",
@@ -101,11 +101,11 @@ const items = [
     icon: Calendar,
     allowedRoles: ["Teacher"],
   },
-  {
+   {
     title: "Students",
     url: "/dashboard/students",
     icon: GraduationCap,
-    allowedRoles: ["Teacher", "Student"],
+    allowedRoles: ["Teacher"],
   },
   {
     title: "Leave Register",
@@ -556,6 +556,7 @@ export function AppSidebar({ roles, activeRole }) {
       .filter((item) => item.allowedRoles?.includes(role))
       .map((item) => ({
         ...item,
+        url: typeof item.getUrl === "function" ? item.getUrl(role) : item.url,
         subItems: item.subItems
           ? item.subItems.filter((subItem) =>
               subItem.allowedRoles?.includes(role)
