@@ -74,7 +74,7 @@ import { usePathname } from "next/navigation";
 const items = [
   {
     title: "Dashboard",
-    getUrl: (role) => (role === "Student" ? "/dashboard/student" : "/dashboard"),
+    url: "/dashboard",
     icon: Home,
     allowedRoles: [
       "College Admin",
@@ -100,6 +100,12 @@ const items = [
     url: "/dashboard/my-time-table",
     icon: Calendar,
     allowedRoles: ["Teacher"],
+  },
+  {
+    title: "My Dashboard",
+    url: "/dashboard/student",
+    icon: Home,
+    allowedRoles: ["Student"],
   },
    {
     title: "Students",
