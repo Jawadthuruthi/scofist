@@ -150,15 +150,25 @@ const MasjidAttendance = ({
     }
   }, [students, attendance]);
 
+  const isPrayerMarked = useCallback(
+    (prayer) => {
+      return attendanceData.some(
+        (att) => att.prayer === prayer && att.date === formattedDate
+      );
+    },
+    [attendanceData, formattedDate]
+  );
+
   const isAttendanceMarked = useCallback(
     (id) => {
       return attendanceData.some(
         (att) =>
           att.classId === id &&
+          att.prayer === selectedPrayer &&
           att.date === formattedDate
       );
     },
-    [attendanceData, formattedDate]
+    [attendanceData, formattedDate, selectedPrayer]
   );
 
   return (
@@ -253,7 +263,7 @@ const MasjidAttendance = ({
             <TableHeader>
               <TableRow>
                 <TableHead>Prayer</TableHead>
-                <TableHead></TableHead>
+                <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -264,6 +274,13 @@ const MasjidAttendance = ({
                   onClick={() => setSelectedPrayer(prayer)}
                 >
                   <TableCell className="whitespace-nowrap">{prayer}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={isPrayerMarked(prayer) ? "success" : "warning"}
+                    >
+                      {isPrayerMarked(prayer) ? "attendance marked" : "Pending"}
+                    </Badge>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
