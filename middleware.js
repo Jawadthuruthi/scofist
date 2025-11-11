@@ -339,9 +339,6 @@ async function handleLoginPageRequest(req) {
     if (activeRole === "Teacher") {
       return NextResponse.redirect(new URL("/dashboard/my-periods", req.url));
     }
-    if (activeRole === "Student") {
-      return NextResponse.redirect(new URL("/dashboard/student", req.url));
-    }
 
     return NextResponse.redirect(new URL("/dashboard", req.url));
   } catch (error) {
