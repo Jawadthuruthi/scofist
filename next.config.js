@@ -20,6 +20,7 @@ const pwaConfig = withPWA({
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
   buildExcludes: [
+    /middleware-manifest\.json$/,
     /^pages\/index\.html$/,
     /^index\.html$/,
   ],

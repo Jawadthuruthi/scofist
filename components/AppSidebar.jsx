@@ -102,16 +102,10 @@ const items = [
     allowedRoles: ["Teacher"],
   },
   {
-    title: "My Dashboard",
-    url: "/dashboard/student",
-    icon: Home,
-    allowedRoles: ["Student"],
-  },
-   {
     title: "Students",
     url: "/dashboard/students",
     icon: GraduationCap,
-    allowedRoles: ["Teacher"],
+    allowedRoles: ["Teacher", "Student"],
   },
   {
     title: "Leave Register",
@@ -562,7 +556,6 @@ export function AppSidebar({ roles, activeRole }) {
       .filter((item) => item.allowedRoles?.includes(role))
       .map((item) => ({
         ...item,
-        url: typeof item.getUrl === "function" ? item.getUrl(role) : item.url,
         subItems: item.subItems
           ? item.subItems.filter((subItem) =>
               subItem.allowedRoles?.includes(role)
