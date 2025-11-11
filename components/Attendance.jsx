@@ -137,7 +137,7 @@ const Attendance = ({ apiKey, teacherId }) => {
   // Fetch historical attendance for absentee tracking
   const historicalAttendanceQuery = useFetchAttendance(
     0,
-    10,
+    1000,
     {
       classId,
       batchId,
