@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { formatDateForDisplay } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 const StudentsIdCard = ({
   students = [],
@@ -27,10 +28,21 @@ const StudentsIdCard = ({
 
   const pageRef = useRef(null);
 
+  const router = useRouter();
+
   const handlePrint = useReactToPrint({
     contentRef: pageRef,
     documentTitle: "Students ID Cards",
   });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+      console.log("hi");
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [router]);
 
   const currentYear = new Date().getFullYear();
   const academicYear = `${currentYear}-${currentYear + 1}`;

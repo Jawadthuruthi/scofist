@@ -29,11 +29,11 @@ import {
 import { Upload, Download as DownloadIcon, Loader } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
-import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import { MultiSelect } from "./ui/multi-select";
+import { useDropzone } from "react-dropzone";
 
-const Downloads = ({ initialDownloads = [], role, apiKey }) => {
+const Downloads = ({ initialDownloads = [], apiKey }) => {
   const [year, setYear] = useState("");
   const [semester, setSemester] = useState("");
   const [course, setCourse] = useState("");
@@ -43,9 +43,7 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
 
   const { useFetchItems, useAddItem } = useCrud("downloads", apiKey);
 
-  const fetchDownloadsQuery = useFetchItems(null, initialDownloads, { year, semester }, {
-    enabled: !!year || !!semester
-  });
+  const fetchDownloadsQuery = useFetchItems(null, null, { year, semester }, {});
 
   const addDownload = useAddItem();
 
@@ -82,7 +80,9 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Upload failed with status: ${response.status}, message: ${errorText}`);
+        throw new Error(
+          `Upload failed with status: ${response.status}, message: ${errorText}`
+        );
       }
 
       const data = await response.json();
@@ -116,86 +116,101 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
     return fetchDownloadsQuery.data?.downloads || initialDownloads;
   }, [fetchDownloadsQuery.data, initialDownloads]);
 
-  const years = [...new Set(initialDownloads.map(d => d.year))].sort((a, b) => b - a);
-  const semesters = [...new Set(initialDownloads.map(d => d.semester))].sort((a, b) => a - b);
+  const years = [...new Set(initialDownloads.map((d) => d.year))].sort(
+    (a, b) => b - a
+  );
+  const semesters = [...new Set(initialDownloads.map((d) => d.semester))].sort(
+    (a, b) => a - b
+  );
 
   return (
     <div className="min-h-screen">
-      <Header title="DOWNLOADS" subTitle="Download previous year question papers" />
+      <Header
+        title="DOWNLOADS"
+        subTitle="Download previous year question papers"
+      />
 
-      {role === "College Admin" && (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              Upload Question Paper
-            </CardTitle>
-            <CardDescription>
-              Upload a new question paper for students to download.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <MultiSelect
-                placeholder="Course"
-                value={course}
-                onValueChange={setCourse}
-                options={[
-                  { label: "BSIc (5Years)", value: "BSIc (5Years)" },
-                  { label: "HSIc(2Years)", value: "HSIc(2Years)" },
-                  { label: "SISc(3Years)", value: "SISc(3Years)" },
-                ]}
-                multiSelect={false}
-                freeSolo={true}
-              />
-              <Select value={year} onValueChange={setYear}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Year" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1</SelectItem>
-                  <SelectItem value="2">2</SelectItem>
-                  <SelectItem value="3">3</SelectItem>
-                  <SelectItem value="4">4</SelectItem>
-                  <SelectItem value="5">5</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={semester} onValueChange={setSemester}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Semester" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1</SelectItem>
-                  <SelectItem value="2">2</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input placeholder="Subject Name" value={subject} onChange={(e) => setSubject(e.target.value)} />
-            </div>
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer ${
-                isDragActive ? "border-primary" : "border-border"
-              }`}
-            >
-              <input {...getInputProps()} />
-              {file ? (
-                <p>{file.name}</p>
-              ) : (
-                <p>Drag 'n' drop a PDF here, or click to select one</p>
-              )}
-            </div>
-            <Button onClick={handleUpload} disabled={uploading}>
-              {uploading ? <Loader className="mr-2 animate-spin" /> : <Upload className="mr-2" />}
-              Upload
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Upload className="h-5 w-5" />
+            Upload Question Paper
+          </CardTitle>
+          <CardDescription>
+            Upload a new question paper for students to download.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <MultiSelect
+              placeholder="Course"
+              value={course}
+              onValueChange={setCourse}
+              options={[
+                { label: "BSIc (5Years)", value: "BSIc (5Years)" },
+                { label: "HSIc(2Years)", value: "HSIc(2Years)" },
+                { label: "SISc(3Years)", value: "SISc(3Years)" },
+              ]}
+              multiSelect={false}
+              freeSolo={true}
+            />
+            <Select value={year} onValueChange={setYear}>
+              <SelectTrigger>
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1</SelectItem>
+                <SelectItem value="2">2</SelectItem>
+                <SelectItem value="3">3</SelectItem>
+                <SelectItem value="4">4</SelectItem>
+                <SelectItem value="5">5</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={semester} onValueChange={setSemester}>
+              <SelectTrigger>
+                <SelectValue placeholder="Semester" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1</SelectItem>
+                <SelectItem value="2">2</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="Subject Name"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
+          </div>
+          <div
+            {...getRootProps()}
+            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer ${
+              isDragActive ? "border-primary" : "border-border"
+            }`}
+          >
+            <input {...getInputProps()} />
+            {file ? (
+              <p>{file.name}</p>
+            ) : (
+              <p>Drag 'n' drop a PDF here, or click to select one</p>
+            )}
+          </div>
+          <Button onClick={handleUpload} disabled={uploading}>
+            {uploading ? (
+              <Loader className="mr-2 animate-spin" />
+            ) : (
+              <Upload className="mr-2" />
+            )}
+            Upload
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>Available Question Papers</CardTitle>
-          <CardDescription>Filter and download question papers.</CardDescription>
+          <CardDescription>
+            Filter and download question papers.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 mb-4">
@@ -204,7 +219,11 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
                 <SelectValue placeholder="Filter by Year" />
               </SelectTrigger>
               <SelectContent>
-                {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                {years.map((y) => (
+                  <SelectItem key={y} value={y}>
+                    {y}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={semester} onValueChange={setSemester}>
@@ -212,7 +231,11 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
                 <SelectValue placeholder="Filter by Semester" />
               </SelectTrigger>
               <SelectContent>
-                {semesters.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {semesters.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -252,9 +275,8 @@ const Downloads = ({ initialDownloads = [], role, apiKey }) => {
                     colSpan={4}
                     className="text-center text-muted-foreground"
                   >
-                    {role === "College Admin"
-                      ? "No question papers uploaded yet. Use the form above to upload one."
-                      : "No question papers available at the moment. Please check back later."}
+                    No question papers uploaded yet. Use the form above to
+                    upload one.
                   </TableCell>
                 </TableRow>
               )}
