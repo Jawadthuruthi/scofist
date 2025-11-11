@@ -1,7 +1,8 @@
 import ErrorPage from "@/components/ErrorPage";
 import Dashboard from "@/components/Dashboard";
+import StudentDashboard from "@/components/StudentDashboard";
 import { fetchData, WEEKDAYS } from "@/lib/utils";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import FestDashboard from "@/components/FestDashboard";
 
 const today = new Date();
@@ -77,6 +78,12 @@ export default async function DashboardPage() {
     const filteredLeaveRecords = leaveRecords.filter(
       (record) => record.studentStatus === "Active"
     );
+
+    if (activeRole === "Student") {
+      const headersList = headers();
+      const user = JSON.parse(headersList.get("x-user"));
+      return <StudentDashboard user={user} apiKey={apiKey} />;
+    }
 
     return (
       <Dashboard
