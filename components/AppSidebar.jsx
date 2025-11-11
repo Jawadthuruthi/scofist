@@ -122,7 +122,7 @@ const items = [
   {
     title: "Students Fund",
     url: "/dashboard/students-fund",
-    allowedRoles: ["College Admin", "Teacher", "Stationary", "IT Lab"],
+    allowedRoles: ["College Admin", "Teacher"],
     icon: CreditCard,
   },
   {

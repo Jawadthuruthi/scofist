@@ -1,3 +1,0 @@
-
-> scofist@0.1.0 dev
-> cross-env NODE_OPTIONS='--max-old-space-size=8192' next dev
