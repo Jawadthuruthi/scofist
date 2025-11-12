@@ -202,6 +202,10 @@ export default function StudentDashboard({ user, apiKey, classes, batches }) {
               label="Academic Qualification"
               value={user?.studentSpecificField?.academicQualification}
             />
+            <ProfileField
+              label="Graduated Year"
+              value={user?.studentSpecificField?.graduatedYear}
+            />
           </CardContent>
         </Card>
 
