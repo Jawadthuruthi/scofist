@@ -1,33 +1,66 @@
 import { NextResponse } from "next/server";
-import { writeFile } from "fs/promises";
-import { join } from "path";
-import { mkdir } from "fs/promises";
+import cloudinary from "@/lib/cloudinary";
 
-export async function POST(req, res) {
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+export async function POST(req) {
   try {
     const formData = await req.formData();
     const file = formData.get("file");
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      return NextResponse.json(
+        { message: "No file provided" },
+        { status: 400 }
+      );
     }
 
+    // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const uploadDir = join(process.cwd(), "public", "uploads");
-    await mkdir(uploadDir, { recursive: true });
+    // Upload to Cloudinary using upload_stream
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: "downloads",
+          resource_type: "auto",
+          use_filename: true,
+          unique_filename: true,
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result);
+          }
+        }
+      );
 
-    const filename = `${Date.now()}-${file.name}`;
-    const filepath = join(uploadDir, filename);
+      uploadStream.end(buffer);
+    });
 
-    await writeFile(filepath, buffer);
-
-    const fileUrl = `/uploads/${filename}`;
-
-    return NextResponse.json({ secure_url: fileUrl }, { status: 200 });
+    return NextResponse.json(
+      {
+        secure_url: uploadResult.secure_url,
+        public_id: uploadResult.public_id,
+        format: uploadResult.format,
+        resource_type: uploadResult.resource_type,
+      },
+      { status: 200 }
+    );
   } catch (error) {
-    console.error("Upload failed:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Error uploading to Cloudinary:", error);
+    return NextResponse.json(
+      {
+        message: "Error uploading file",
+        error: error.message,
+      },
+      { status: 500 }
+    );
   }
 }
