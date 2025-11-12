@@ -42,6 +42,10 @@ export default function StudentDashboard({ user, apiKey, classes, batches }) {
     (c) => c._id === user?.studentSpecificField?.classId
   )?.name;
 
+  const admissionClassName = classes.find(
+    (c) => c._id === user?.studentSpecificField?.admissionClassId
+  )?.name;
+
   const batchName = batches.find(
     (b) => b._id === user?.studentSpecificField?.batchId
   )?.name;
@@ -75,7 +79,7 @@ export default function StudentDashboard({ user, apiKey, classes, batches }) {
   const currentDate = formatDateForDisplay(new Date());
 
   return (
-    <div className="flex flex-col space-y-6">
+    <div className="flex flex-col space-y-4">
       <Header
         title="DASHBOARD"
         subTitle={currentDate}
@@ -83,9 +87,9 @@ export default function StudentDashboard({ user, apiKey, classes, batches }) {
       />
 
       {/* Profile Header */}
-      <Card>
+      <Card className="bg-blue-100">
         <CardContent className="flex items-center space-x-6 p-6">
-          <Avatar className="h-24 w-24">
+          <Avatar className="h-24 w-24 rounded-lg">
             <AvatarImage src={user?.profilePic?.url} alt={user?.name} />
             <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
           </Avatar>
@@ -119,6 +123,10 @@ export default function StudentDashboard({ user, apiKey, classes, batches }) {
               label="Aadhar No"
               value={user?.studentSpecificField?.aadharNo}
             />
+            <ProfileField
+              label="Address"
+              value={`${user?.address?.houseName}, ${user?.address?.place}, ${user?.address?.postOffice}, ${user?.address?.district}, ${user?.address?.state} - ${user?.address?.pin}`}
+            />
           </CardContent>
         </Card>
 
@@ -129,6 +137,10 @@ export default function StudentDashboard({ user, apiKey, classes, batches }) {
           </CardHeader>
           <CardContent>
             <ProfileField label="Batch" value={batchName} />
+            <ProfileField
+              label="Admission Class"
+              value={admissionClassName}
+            />
             <ProfileField
               label="Admission Date"
               value={formatDateForDisplay(
@@ -167,8 +179,8 @@ export default function StudentDashboard({ user, apiKey, classes, batches }) {
               value={user?.studentSpecificField?.guardianContactNumber}
             />
             <ProfileField
-              label="Address"
-              value={`${user?.address?.houseName}, ${user?.address?.place}, ${user?.address?.postOffice}, ${user?.address?.district}, ${user?.address?.state} - ${user?.address?.pin}`}
+              label="Guardian Alt. Contact"
+              value={user?.studentSpecificField?.guardianAlternativeNumber}
             />
           </CardContent>
         </Card>
