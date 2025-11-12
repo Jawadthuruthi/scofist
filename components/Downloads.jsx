@@ -53,12 +53,19 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
   const [uploading, setUploading] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [filterYear, setFilterYear] = useState(null);
+  const [filterSemester, setFilterSemester] = useState(null);
 
   const { useFetchItems, useAddItem, useDeleteItem } = useCrud(
     "downloads",
     apiKey
   );
-  const fetchDownloadsQuery = useFetchItems(null, null, { year, semester }, {});
+  const fetchDownloadsQuery = useFetchItems(
+    null,
+    null,
+    { year: filterYear, semester: filterSemester },
+    {}
+  );
   const addDownload = useAddItem();
   const deleteDownload = useDeleteItem();
 
@@ -221,12 +228,8 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
     return fetchDownloadsQuery.data?.downloads || initialDownloads;
   }, [fetchDownloadsQuery.data, initialDownloads]);
 
-  const years = [...new Set(initialDownloads.map((d) => d.year))].sort(
-    (a, b) => b - a
-  );
-  const semesters = [...new Set(initialDownloads.map((d) => d.semester))].sort(
-    (a, b) => a - b
-  );
+  const years = [1, 2, 3, 4, 5];
+  const semesters = [1, 2];
 
   return (
     <>
@@ -370,7 +373,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
                 <Label>Filter by Year</Label>
-                <Select value={year} onValueChange={setYear}>
+                <Select value={filterYear} onValueChange={setFilterYear}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Years" />
                   </SelectTrigger>
@@ -386,7 +389,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
               </div>
               <div className="space-y-2">
                 <Label>Filter by Semester</Label>
-                <Select value={semester} onValueChange={setSemester}>
+                <Select value={filterSemester} onValueChange={setFilterSemester}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Semesters" />
                   </SelectTrigger>
