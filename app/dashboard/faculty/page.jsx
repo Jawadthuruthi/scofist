@@ -12,10 +12,13 @@ export default async function FacultyPage() {
 
     const classes = await fetchData("classes");
 
+    // Sort teachers by date of birth (age seniority)
+    teachers.sort((a, b) => new Date(a.dateOfBirth) - new Date(b.dateOfBirth));
+
     return (
       <div className="flex flex-col space-y-6">
         <Header
-          title="Faculty Profiles"
+          title="FACULTY PROFILES"
           subTitle="View active teaching staff profile and information"
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
