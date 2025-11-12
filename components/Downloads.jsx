@@ -44,8 +44,8 @@ import { useDropzone } from "react-dropzone";
 import { saveAs } from "file-saver";
 
 const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
-  const [year, setYear] = useState("");
-  const [semester, setSemester] = useState("");
+  const [year, setYear] = useState(null);
+  const [semester, setSemester] = useState(null);
   const [course, setCourse] = useState("");
   const [subject, setSubject] = useState("");
   const [file, setFile] = useState(null);
@@ -381,7 +381,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                     <SelectValue placeholder="All Years" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Years</SelectItem>
+                    <SelectItem value={null}>All Years</SelectItem>
                     {years.map((y) => (
                       <SelectItem key={y} value={String(y)}>
                         Year {y}
@@ -397,7 +397,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                     <SelectValue placeholder="All Semesters" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Semesters</SelectItem>
+                    <SelectItem value={null}>All Semesters</SelectItem>
                     {semesters.map((s) => (
                       <SelectItem key={s} value={String(s)}>
                         Semester {s}
