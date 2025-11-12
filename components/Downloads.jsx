@@ -43,7 +43,7 @@ import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
 import { saveAs } from "file-saver";
 
-const Downloads = ({ initialDownloads = [], apiKey }) => {
+const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
   const [year, setYear] = useState("");
   const [semester, setSemester] = useState("");
   const [course, setCourse] = useState("");
@@ -229,107 +229,140 @@ const Downloads = ({ initialDownloads = [], apiKey }) => {
 
   return (
     <>
-      <Header />
+      <Header
+        title="Downloads"
+        description="Download and upload study materials"
+      />
       <div className="container mx-auto p-4 space-y-6">
         {/* Upload Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload Study Material</CardTitle>
-            <CardDescription>
-              Upload documents for students to download
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="course">Course</Label>
-                <Input
-                  id="course"
-                  placeholder="e.g., BCA, MCA"
-                  value={course}
-                  onChange={(e) => setCourse(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="year">Year</Label>
-                <Input
-                  id="year"
-                  type="number"
-                  placeholder="e.g., 1, 2, 3"
-                  value={year}
-                  onChange={(e) => setYear(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="semester">Semester</Label>
-                <Input
-                  id="semester"
-                  type="number"
-                  placeholder="e.g., 1, 2"
-                  value={semester}
-                  onChange={(e) => setSemester(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="subject">Subject</Label>
-                <Input
-                  id="subject"
-                  placeholder="e.g., Mathematics"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Dropzone */}
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                isDragActive
-                  ? "border-primary bg-primary/5"
-                  : "border-muted-foreground/25 hover:border-primary/50"
-              }`}
-            >
-              <input {...getInputProps()} />
-              {file ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Upload className="h-5 w-5" />
-                  <span className="font-medium">{file.name}</span>
-                </div>
-              ) : (
+        {activeRole === "College Admin" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Upload Study Material</CardTitle>
+              <CardDescription>
+                Upload documents for students to download
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    {isDragActive
-                      ? "Drop the file here..."
-                      : "Drag 'n' drop a file here, or click to select one"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Supports: PDF, DOC, DOCX, PPT, PPTX
-                  </p>
+                  <Label htmlFor="course">Course</Label>
+                  <Select
+                    id="course"
+                    value={course}
+                    onValueChange={setCourse}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BSIc(5 Years)">
+                        BSIc(5 Years)
+                      </SelectItem>
+                      <SelectItem value="HSIc(3 Years)">
+                        HSIc(3 Years)
+                      </SelectItem>
+                      <SelectItem value="HSIc(2 Years)">
+                        HSIc(2 Years)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="year">Year</Label>
+                  <Select id="year" value={year} onValueChange={setYear}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5].map((y) => (
+                        <SelectItem key={y} value={String(y)}>
+                          {y}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="semester">Semester</Label>
+                  <Select
+                    id="semester"
+                    value={semester}
+                    onValueChange={setSemester}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2].map((s) => (
+                        <SelectItem key={s} value={String(s)}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Subject</Label>
+                  <Input
+                    id="subject"
+                    placeholder="e.g., Mathematics"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                  />
+                </div>
+              </div>
 
-            <Button
-              onClick={handleUpload}
-              disabled={uploading || !file}
-              className="w-full"
-            >
-              {uploading ? (
-                <>
-                  <Loader className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+              {/* Dropzone */}
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                  isDragActive
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:border-primary/50"
+                }`}
+              >
+                <input {...getInputProps()} />
+                {file ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Upload className="h-5 w-5" />
+                    <span className="font-medium">{file.name}</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      {isDragActive
+                        ? "Drop the file here..."
+                        : "Drag 'n' drop a file here, or click to select one"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Supports: PDF, DOC, DOCX, PPT, PPTX
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <Button
+                onClick={handleUpload}
+                disabled={uploading || !file}
+                className="w-full"
+              >
+                {uploading ? (
+                  <>
+                    <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Downloads Table */}
         <Card>
@@ -348,7 +381,7 @@ const Downloads = ({ initialDownloads = [], apiKey }) => {
                     <SelectValue placeholder="All Years" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={null}>All Years</SelectItem>
+                    <SelectItem value="">All Years</SelectItem>
                     {years.map((y) => (
                       <SelectItem key={y} value={String(y)}>
                         Year {y}
@@ -364,7 +397,7 @@ const Downloads = ({ initialDownloads = [], apiKey }) => {
                     <SelectValue placeholder="All Semesters" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={null}>All Semesters</SelectItem>
+                    <SelectItem value="">All Semesters</SelectItem>
                     {semesters.map((s) => (
                       <SelectItem key={s} value={String(s)}>
                         Semester {s}
@@ -426,45 +459,48 @@ const Downloads = ({ initialDownloads = [], apiKey }) => {
                                 </>
                               )}
                             </Button>
-
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  disabled={deletingId === download._id}
-                                >
-                                  {deletingId === download._id ? (
-                                    <Loader className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Are you sure?
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete the file "
-                                    {download.subject}" from {download.course}{" "}
-                                    Year {download.year} Semester{" "}
-                                    {download.semester}. This action cannot be
-                                    undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(download)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            {activeRole === "College Admin" && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    disabled={deletingId === download._id}
                                   >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                                    {deletingId === download._id ? (
+                                      <Loader className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Are you sure?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete the file "
+                                      {download.subject}" from {download.course}{" "}
+                                      Year {download.year} Semester{" "}
+                                      {download.semester}. This action cannot
+                                      be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDelete(download)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
