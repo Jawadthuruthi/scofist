@@ -242,7 +242,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
         {activeRole === "College Admin" && (
           <Card>
             <CardHeader>
-              <CardTitle>Upload Study Material</CardTitle>
+              <CardTitle>Upload previous year question papers</CardTitle>
               <CardDescription>
                 Upload documents for students to download
               </CardDescription>
