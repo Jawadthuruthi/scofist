@@ -42,22 +42,30 @@ import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
 import { saveAs } from "file-saver";
+import { MultiSelect } from "@/components/ui/multi-select";
 
-const Downloads = ({ initialDownloads = [], apiKey }) => {
-  const [year, setYear] = useState("");
-  const [semester, setSemester] = useState("");
+const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
+  const [year, setYear] = useState(null);
+  const [semester, setSemester] = useState(null);
   const [course, setCourse] = useState("");
   const [subject, setSubject] = useState("");
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [filterYear, setFilterYear] = useState(null);
+  const [filterSemester, setFilterSemester] = useState(null);
 
   const { useFetchItems, useAddItem, useDeleteItem } = useCrud(
     "downloads",
     apiKey
   );
-  const fetchDownloadsQuery = useFetchItems(null, null, { year, semester }, {});
+  const fetchDownloadsQuery = useFetchItems(
+    null,
+    null,
+    { year: filterYear, semester: filterSemester },
+    {}
+  );
   const addDownload = useAddItem();
   const deleteDownload = useDeleteItem();
 
@@ -220,116 +228,138 @@ const Downloads = ({ initialDownloads = [], apiKey }) => {
     return fetchDownloadsQuery.data?.downloads || initialDownloads;
   }, [fetchDownloadsQuery.data, initialDownloads]);
 
-  const years = [...new Set(initialDownloads.map((d) => d.year))].sort(
-    (a, b) => b - a
-  );
-  const semesters = [...new Set(initialDownloads.map((d) => d.semester))].sort(
-    (a, b) => a - b
-  );
+  const years = [1, 2, 3, 4, 5];
+  const semesters = [1, 2];
 
   return (
     <>
-      <Header />
+      <Header
+        title="DOWNLOADS"
+        description="Download and upload study materials"
+      />
       <div className="container mx-auto p-4 space-y-6">
         {/* Upload Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload Study Material</CardTitle>
-            <CardDescription>
-              Upload documents for students to download
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="course">Course</Label>
-                <Input
-                  id="course"
-                  placeholder="e.g., BCA, MCA"
-                  value={course}
-                  onChange={(e) => setCourse(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="year">Year</Label>
-                <Input
-                  id="year"
-                  type="number"
-                  placeholder="e.g., 1, 2, 3"
-                  value={year}
-                  onChange={(e) => setYear(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="semester">Semester</Label>
-                <Input
-                  id="semester"
-                  type="number"
-                  placeholder="e.g., 1, 2"
-                  value={semester}
-                  onChange={(e) => setSemester(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="subject">Subject</Label>
-                <Input
-                  id="subject"
-                  placeholder="e.g., Mathematics"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Dropzone */}
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                isDragActive
-                  ? "border-primary bg-primary/5"
-                  : "border-muted-foreground/25 hover:border-primary/50"
-              }`}
-            >
-              <input {...getInputProps()} />
-              {file ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Upload className="h-5 w-5" />
-                  <span className="font-medium">{file.name}</span>
-                </div>
-              ) : (
+        {activeRole === "College Admin" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Upload previous year question papers</CardTitle>
+              <CardDescription>
+                Upload documents for students to download
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    {isDragActive
-                      ? "Drop the file here..."
-                      : "Drag 'n' drop a file here, or click to select one"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Supports: PDF, DOC, DOCX, PPT, PPTX
-                  </p>
+                  <Label htmlFor="course">Course</Label>
+                  <MultiSelect
+                    id="course"
+                    value={course}
+                    onValueChange={setCourse}
+                    options={[
+                      { value: "BSIc(5 Years)", label: "BSIc(5 Years)" },
+                      { value: "HSIc(3 Years)", label: "HSIc(3 Years)" },
+                      { value: "HSIc(2 Years)", label: "HSIc(2 Years)" },
+                    ]}
+                    placeholder="Select or type a course"
+                    freeSolo
+                    multiSelect={false}
+                  />
                 </div>
-              )}
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="year">Year</Label>
+                  <Select id="year" value={year} onValueChange={setYear}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5].map((y) => (
+                        <SelectItem key={y} value={String(y)}>
+                          {y}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="semester">Semester</Label>
+                  <Select
+                    id="semester"
+                    value={semester}
+                    onValueChange={setSemester}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2].map((s) => (
+                        <SelectItem key={s} value={String(s)}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Subject</Label>
+                  <Input
+                    id="subject"
+                    placeholder="e.g., Mathematics"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                  />
+                </div>
+              </div>
 
-            <Button
-              onClick={handleUpload}
-              disabled={uploading || !file}
-              className="w-full"
-            >
-              {uploading ? (
-                <>
-                  <Loader className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+              {/* Dropzone */}
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                  isDragActive
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:border-primary/50"
+                }`}
+              >
+                <input {...getInputProps()} />
+                {file ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Upload className="h-5 w-5" />
+                    <span className="font-medium">{file.name}</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      {isDragActive
+                        ? "Drop the file here..."
+                        : "Drag 'n' drop a file here, or click to select one"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Supports: PDF, DOC, DOCX, PPT, PPTX
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <Button
+                onClick={handleUpload}
+                disabled={uploading || !file}
+                className="w-full"
+              >
+                {uploading ? (
+                  <>
+                    <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Downloads Table */}
         <Card>
@@ -343,7 +373,7 @@ const Downloads = ({ initialDownloads = [], apiKey }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
                 <Label>Filter by Year</Label>
-                <Select value={year} onValueChange={setYear}>
+                <Select value={filterYear} onValueChange={setFilterYear}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Years" />
                   </SelectTrigger>
@@ -359,7 +389,7 @@ const Downloads = ({ initialDownloads = [], apiKey }) => {
               </div>
               <div className="space-y-2">
                 <Label>Filter by Semester</Label>
-                <Select value={semester} onValueChange={setSemester}>
+                <Select value={filterSemester} onValueChange={setFilterSemester}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Semesters" />
                   </SelectTrigger>
@@ -426,45 +456,48 @@ const Downloads = ({ initialDownloads = [], apiKey }) => {
                                 </>
                               )}
                             </Button>
-
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  disabled={deletingId === download._id}
-                                >
-                                  {deletingId === download._id ? (
-                                    <Loader className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Are you sure?
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete the file "
-                                    {download.subject}" from {download.course}{" "}
-                                    Year {download.year} Semester{" "}
-                                    {download.semester}. This action cannot be
-                                    undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(download)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            {activeRole === "College Admin" && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    disabled={deletingId === download._id}
                                   >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                                    {deletingId === download._id ? (
+                                      <Loader className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Are you sure?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete the file "
+                                      {download.subject}" from {download.course}{" "}
+                                      Year {download.year} Semester{" "}
+                                      {download.semester}. This action cannot
+                                      be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDelete(download)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
