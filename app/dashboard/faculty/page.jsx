@@ -12,7 +12,7 @@ export default async function FacultyPage() {
 
     const classes = await fetchData("classes");
 
-    // Sort teachers by date of birth (age seniority)
+    // Sort teachers by date of birth (age seniority) - oldest first
     teachers.sort((a, b) => new Date(a.dateOfBirth) - new Date(b.dateOfBirth));
 
     return (
