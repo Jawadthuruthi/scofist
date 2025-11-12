@@ -82,7 +82,7 @@ export default async function DashboardPage() {
     if (activeRole === "Student") {
       const headersList = headers();
       const user = JSON.parse(headersList.get("x-user"));
-      return <StudentDashboard user={user} apiKey={apiKey} />;
+      return <StudentDashboard user={user} apiKey={apiKey} classes={classes} batches={batches} />;
     }
 
     return (

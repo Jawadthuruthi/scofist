@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -14,18 +14,46 @@ import Header from "@/components/Header";
 import { Calendar } from "lucide-react";
 import { formatDateForDisplay } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
+const ProfileField = ({ label, value }) =>
+  value ? (
+    <div className="flex justify-between py-2 border-b">
+      <span className="text-sm font-medium text-gray-500">{label}</span>
+      <span className="text-sm text-gray-900">{value}</span>
+    </div>
+  ) : null;
 
-export default function StudentDashboard({ user, apiKey }) {
+export default function StudentDashboard({ user, apiKey, classes, batches }) {
   const { useFetchItems } = useCrud("student-attendance", apiKey);
-  const { data: attendanceData, isLoading, error } = useFetchItems(0, 0, { studentId: user?._id });
+  const { data: attendanceData, isLoading, error } = useFetchItems(0, 0, {
+    studentId: user?._id,
+  });
+
+  const className = classes.find(
+    (c) => c._id === user?.studentSpecificField?.classId
+  )?.name;
+
+  const batchName = batches.find(
+    (b) => b._id === user?.studentSpecificField?.batchId
+  )?.name;
 
   const attendanceHistory = useMemo(() => {
     if (!attendanceData) return [];
     const history = {};
     attendanceData.forEach((record) => {
-      const month = new Date(record.date).toLocaleString('default', { month: 'long', year: 'numeric' });
+      const month = new Date(record.date).toLocaleString("default", {
+        month: "long",
+        year: "numeric",
+      });
       if (!history[month]) {
         history[month] = {
           workingDays: 0,
@@ -53,26 +81,100 @@ export default function StudentDashboard({ user, apiKey }) {
         subTitle={currentDate}
         icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
       />
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="md:col-span-1">
+
+      {/* Profile Header */}
+      <Card>
+        <CardContent className="flex items-center space-x-6 p-6">
+          <Avatar className="h-24 w-24">
+            <AvatarImage src={user?.profilePic?.url} alt={user?.name} />
+            <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <h2 className="text-2xl font-bold">{user?.name}</h2>
+            <p className="text-muted-foreground">Admission ID: {user?._id}</p>
+            <p className="text-muted-foreground">Class: {className}</p>
+            <p className="text-muted-foreground">
+              Status: {user?.studentSpecificField?.status}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Personal Information */}
+        <Card>
           <CardHeader>
-            <CardTitle>Student Profile</CardTitle>
+            <CardTitle>Personal Information</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col items-center space-y-4">
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={user?.profilePic?.url} alt={user?.name} />
-              <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
-            </Avatar>
-            <h2 className="text-xl font-semibold">{user?.name}</h2>
-            <div className="text-sm text-muted-foreground">
-              <p>Email: {user?.email}</p>
-              <p>Contact: {user?.contactNumber}</p>
-              <p>Address: {user?.address?.place}</p>
-              <p>DOB: {formatDateForDisplay(user?.dateOfBirth)}</p>
-            </div>
+          <CardContent>
+            <ProfileField
+              label="Date of Birth"
+              value={formatDateForDisplay(user?.dateOfBirth)}
+            />
+            <ProfileField
+              label="Blood Group"
+              value={user?.studentSpecificField?.bloodGroup}
+            />
+            <ProfileField
+              label="Aadhar No"
+              value={user?.studentSpecificField?.aadharNo}
+            />
           </CardContent>
         </Card>
-        <Card className="md:col-span-2">
+
+        {/* Academic Info */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Academic Info</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProfileField label="Batch" value={batchName} />
+            <ProfileField
+              label="Admission Date"
+              value={formatDateForDisplay(
+                user?.studentSpecificField?.admissionDate
+              )}
+            />
+            <ProfileField
+              label="Islamic Qualification"
+              value={user?.studentSpecificField?.islamicQualification}
+            />
+            <ProfileField
+              label="Academic Qualification"
+              value={user?.studentSpecificField?.academicQualification}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Contact Info */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact Info</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProfileField label="Email" value={user?.email} />
+            <ProfileField label="Contact Number" value={user?.contactNumber} />
+            <ProfileField
+              label="Alternative Number"
+              value={user?.alternativeNumber}
+            />
+            <ProfileField
+              label="Guardian Name"
+              value={user?.studentSpecificField?.guardianName}
+            />
+            <ProfileField
+              label="Guardian Contact"
+              value={user?.studentSpecificField?.guardianContactNumber}
+            />
+            <ProfileField
+              label="Address"
+              value={`${user?.address?.houseName}, ${user?.address?.place}, ${user?.address?.postOffice}, ${user?.address?.district}, ${user?.address?.state} - ${user?.address?.pin}`}
+            />
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
           <CardHeader>
             <CardTitle>Month-wise Attendance History</CardTitle>
           </CardHeader>
@@ -99,23 +201,24 @@ export default function StudentDashboard({ user, apiKey }) {
             </Table>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Attendance Chart</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={attendanceHistory}>
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="percentage" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Attendance Chart</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={attendanceHistory}>
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="percentage" fill="#8884d8" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
     </div>
   );
 }
