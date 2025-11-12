@@ -23,6 +23,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { Button } from "./ui/button";
+import { Printer } from "lucide-react";
 
 const ProfileField = ({ label, value }) =>
   value ? (
@@ -143,10 +145,35 @@ export default function StudentDashboard({ user, apiKey, classes, batches }) {
               label="Aadhar No"
               value={user?.studentSpecificField?.aadharNo}
             />
-            <ProfileField
-              label="Address"
-              value={`${user?.address?.houseName}, ${user?.address?.place}, ${user?.address?.postOffice}, ${user?.address?.district}, ${user?.address?.state} - ${user?.address?.pin}`}
-            />
+            {user?.address && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-sm font-medium text-gray-500">
+                  Address
+                </span>
+                <div className="text-sm text-gray-900 text-right">
+                  {user.address.houseName && (
+                    <div>{user.address.houseName}</div>
+                  )}
+                  {(user.address.place || user.address.postOffice) && (
+                    <div>
+                      {[user.address.place, user.address.postOffice]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </div>
+                  )}
+                  {(user.address.district ||
+                    user.address.state ||
+                    user.address.pin) && (
+                    <div>
+                      {[user.address.district, user.address.state]
+                        .filter(Boolean)
+                        .join(", ")}
+                      {user.address.pin && ` - ${user.address.pin}`}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -250,6 +277,12 @@ export default function StudentDashboard({ user, apiKey, classes, batches }) {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </div>
+      <div className="fixed bottom-4 right-4 no-print">
+        <Button onClick={() => window.print()}>
+          <Printer className="mr-2 h-4 w-4" />
+          Print
+        </Button>
       </div>
     </div>
   );
