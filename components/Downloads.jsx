@@ -55,6 +55,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
   const [deletingId, setDeletingId] = useState(null);
   const [filterYear, setFilterYear] = useState(null);
   const [filterSemester, setFilterSemester] = useState(null);
+  const [filterCourse, setFilterCourse] = useState(null);
 
   const { useFetchItems, useAddItem, useDeleteItem } = useCrud(
     "downloads",
@@ -63,7 +64,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
   const fetchDownloadsQuery = useFetchItems(
     null,
     null,
-    { year: filterYear, semester: filterSemester },
+    { year: filterYear, semester: filterSemester, course: filterCourse },
     {}
   );
   const addDownload = useAddItem();
@@ -223,12 +224,13 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
 
   const years = [1, 2, 3, 4, 5];
   const semesters = [1, 2];
+  const courses = ["BSIc(5 Years)", "HSIc(3 Years)", "HSIc(2 Years)"];
 
   return (
     <>
       <Header
         title="DOWNLOADS"
-        description="Download and upload study materials"
+        subTitle="Download and upload study materials"
       />
       <div className="container mx-auto p-4 space-y-6">
         {/* Upload Section */}
@@ -382,7 +384,10 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
               </div>
               <div className="space-y-2">
                 <Label>Filter by Semester</Label>
-                <Select value={filterSemester} onValueChange={setFilterSemester}>
+                <Select
+                  value={filterSemester}
+                  onValueChange={setFilterSemester}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="All Semesters" />
                   </SelectTrigger>
@@ -391,6 +396,22 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                     {semesters.map((s) => (
                       <SelectItem key={s} value={String(s)}>
                         Semester {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Filter by Course</Label>
+                <Select value={filterCourse} onValueChange={setFilterCourse}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Courses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>All Courses</SelectItem>
+                    {courses.map((s) => (
+                      <SelectItem key={s} value={String(s)}>
+                        Course {s}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -473,8 +494,8 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                                       This will permanently delete the file "
                                       {download.subject}" from {download.course}{" "}
                                       Year {download.year} Semester{" "}
-                                      {download.semester}. This action cannot
-                                      be undone.
+                                      {download.semester}. This action cannot be
+                                      undone.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>

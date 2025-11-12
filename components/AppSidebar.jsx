@@ -134,7 +134,7 @@ const items = [
   {
     title: "Downloads",
     url: "/dashboard/downloads",
-    allowedRoles: ["College Admin", "Student"],
+    allowedRoles: ["College Admin", "Student", "Teacher"],
     icon: Download,
   },
   {

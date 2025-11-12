@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 
 const DownloadsPage = async () => {
   const apiKey = process.env.API_KEY;
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const activeRole = cookieStore.get("active-role")?.value;
 
   try {

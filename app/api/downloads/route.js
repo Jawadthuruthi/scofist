@@ -22,6 +22,10 @@ export async function GET(req, res) {
       query.semester = searchParams.semester;
     }
 
+    if (searchParams.course) {
+      query.course = searchParams.course;
+    }
+
     const downloads = await Download.find(query).sort({ createdAt: -1 });
     return NextResponse.json({ downloads }, { status: 200 });
   } catch (error) {
