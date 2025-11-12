@@ -73,22 +73,42 @@ export async function DELETE(req) {
     const urlToDelete = fileUrl || download.fileUrl;
     if (urlToDelete && urlToDelete.includes("cloudinary.com")) {
       try {
+        // Determine resource_type from URL (raw, image, video)
+        let resourceType = "raw";
+        if (urlToDelete.includes("/image/upload/")) {
+          resourceType = "image";
+        } else if (urlToDelete.includes("/video/upload/")) {
+          resourceType = "video";
+        } else if (urlToDelete.includes("/raw/upload/")) {
+          resourceType = "raw";
+        }
+
         // Extract public_id from URL
-        // Example URL: https://res.cloudinary.com/xxx/image/upload/v123456/downloads/filename.pdf
         const urlParts = urlToDelete.split("/");
         const uploadIndex = urlParts.indexOf("upload");
+
         if (uploadIndex !== -1 && uploadIndex + 2 < urlParts.length) {
           // Get everything after 'upload/v123456/'
           const pathAfterVersion = urlParts.slice(uploadIndex + 2).join("/");
-          // Remove file extension
-          const publicId = pathAfterVersion.replace(/\.[^/.]+$/, "");
+
+          // For raw files, keep the extension in public_id
+          let publicId;
+          if (resourceType === "raw") {
+            publicId = pathAfterVersion; // Keep extension for raw files
+          } else {
+            publicId = pathAfterVersion.replace(/\.[^/.]+$/, ""); // Remove extension for images
+          }
+
+          console.log(
+            `Deleting from Cloudinary - Public ID: ${publicId}, Resource Type: ${resourceType}`
+          );
 
           // Delete from Cloudinary
-          await cloudinary.uploader.destroy(publicId, {
-            resource_type: "raw", // Use 'raw' for non-image files like PDFs
+          const result = await cloudinary.uploader.destroy(publicId, {
+            resource_type: resourceType,
           });
 
-          console.log(`Deleted file from Cloudinary: ${publicId}`);
+          console.log(`Cloudinary deletion result:`, result);
         }
       } catch (cloudinaryError) {
         console.error("Error deleting from Cloudinary:", cloudinaryError);

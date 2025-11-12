@@ -140,20 +140,48 @@ const Downloads = ({ initialDownloads = [], apiKey }) => {
   const handleDownload = async (fileUrl, subject, downloadId) => {
     setDownloadingId(downloadId);
     try {
-      // Fetch the file as a blob
-      const response = await fetch(fileUrl);
+      // Extract the actual filename from Cloudinary URL
+      // Example: https://res.cloudinary.com/.../downloads/file_ia0po8.pdf
+      const urlParts = fileUrl.split("/");
+      const cloudinaryFilename = urlParts[urlParts.length - 1];
+
+      // Get extension from the Cloudinary filename (includes version params)
+      // Remove query parameters first
+      const filenameWithoutParams = cloudinaryFilename.split("?")[0];
+      const extension = filenameWithoutParams.split(".").pop();
+
+      // Generate clean filename with subject name
+      const filename = `${subject.replace(/\s+/g, "_")}.${extension}`;
+
+      console.log("Downloading:", {
+        cloudinaryUrl: fileUrl,
+        cloudinaryFilename: filenameWithoutParams,
+        extension: extension,
+        finalFilename: filename,
+      });
+
+      // Use API proxy route to avoid CORS issues
+      const proxyUrl = `/api/download-file?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(filename)}`;
+
+      // Fetch through proxy
+      const response = await fetch(proxyUrl, {
+        headers: {
+          "api-key": apiKey,
+        },
+      });
+
       if (!response.ok) {
-        throw new Error("Failed to download file");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to download file");
       }
 
+      // Get blob from response with correct type
       const blob = await response.blob();
 
-      // Extract file extension from URL or default to pdf
-      const urlParts = fileUrl.split(".");
-      const extension = urlParts[urlParts.length - 1].split("?")[0] || "pdf";
-
-      // Generate filename
-      const filename = `${subject.replace(/\s+/g, "_")}.${extension}`;
+      console.log("Blob received:", {
+        size: blob.size,
+        type: blob.type,
+      });
 
       // Use file-saver to download
       saveAs(blob, filename);
@@ -161,7 +189,7 @@ const Downloads = ({ initialDownloads = [], apiKey }) => {
       toast.success("Download started!");
     } catch (error) {
       console.error("Download failed:", error);
-      toast.error("Failed to download file. Please try again.");
+      toast.error(`Failed to download file: ${error.message}`);
     } finally {
       setDownloadingId(null);
     }
@@ -295,7 +323,7 @@ const Downloads = ({ initialDownloads = [], apiKey }) => {
                 </>
               ) : (
                 <>
-                  <Upload className="h-4 w-4" />
+                  <Upload className="mr-2 h-4 w-4" />
                   Upload
                 </>
               )}

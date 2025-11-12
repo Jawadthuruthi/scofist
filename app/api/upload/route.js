@@ -23,12 +23,27 @@ export async function POST(req) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
+    // Get file extension
+    const fileName = file.name;
+    const fileExtension = fileName.split(".").pop().toLowerCase();
+
+    // Determine if it's a PDF or document (should be raw) vs image
+    const isPdfOrDoc = [
+      "pdf",
+      "doc",
+      "docx",
+      "ppt",
+      "pptx",
+      "xls",
+      "xlsx",
+    ].includes(fileExtension);
+
     // Upload to Cloudinary using upload_stream
     const uploadResult = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: "downloads",
-          resource_type: "auto",
+          resource_type: isPdfOrDoc ? "raw" : "auto", // Use 'raw' for documents
           use_filename: true,
           unique_filename: true,
         },
