@@ -367,6 +367,22 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
+                <Label>Filter by Course</Label>
+                <Select value={filterCourse} onValueChange={setFilterCourse}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Courses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>All Courses</SelectItem>
+                    {courses.map((s) => (
+                      <SelectItem key={s} value={String(s)}>
+                        Course {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Filter by Year</Label>
                 <Select value={filterYear} onValueChange={setFilterYear}>
                   <SelectTrigger>
@@ -396,22 +412,6 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                     {semesters.map((s) => (
                       <SelectItem key={s} value={String(s)}>
                         Semester {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Filter by Course</Label>
-                <Select value={filterCourse} onValueChange={setFilterCourse}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Courses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={null}>All Courses</SelectItem>
-                    {courses.map((s) => (
-                      <SelectItem key={s} value={String(s)}>
-                        Course {s}
                       </SelectItem>
                     ))}
                   </SelectContent>
