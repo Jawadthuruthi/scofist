@@ -42,6 +42,7 @@ import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
 import { saveAs } from "file-saver";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
   const [year, setYear] = useState(null);
@@ -230,7 +231,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
   return (
     <>
       <Header
-        title="Downloads"
+        title="DOWNLOADS"
         description="Download and upload study materials"
       />
       <div className="container mx-auto p-4 space-y-6">
@@ -247,26 +248,19 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="course">Course</Label>
-                  <Select
+                  <MultiSelect
                     id="course"
                     value={course}
                     onValueChange={setCourse}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BSIc(5 Years)">
-                        BSIc(5 Years)
-                      </SelectItem>
-                      <SelectItem value="HSIc(3 Years)">
-                        HSIc(3 Years)
-                      </SelectItem>
-                      <SelectItem value="HSIc(2 Years)">
-                        HSIc(2 Years)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                    options={[
+                      { value: "BSIc(5 Years)", label: "BSIc(5 Years)" },
+                      { value: "HSIc(3 Years)", label: "HSIc(3 Years)" },
+                      { value: "HSIc(2 Years)", label: "HSIc(2 Years)" },
+                    ]}
+                    placeholder="Select or type a course"
+                    freeSolo
+                    multiSelect={false}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="year">Year</Label>
