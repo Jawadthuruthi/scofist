@@ -78,6 +78,19 @@ export default function StudentDashboard({ user, apiKey, classes, batches }) {
 
   const currentDate = formatDateForDisplay(new Date());
 
+  const getStatusClass = (status) => {
+    switch (status) {
+      case "Active":
+        return "bg-green-200 text-green-800";
+      case "Dropped Out":
+        return "bg-red-200 text-red-800";
+      case "Graduated":
+        return "bg-blue-200 text-blue-800";
+      default:
+        return "bg-gray-200 text-gray-800";
+    }
+  };
+
   return (
     <div className="flex flex-col space-y-4">
       <Header
@@ -98,7 +111,14 @@ export default function StudentDashboard({ user, apiKey, classes, batches }) {
             <p className="text-muted-foreground">Admission ID: {user?._id}</p>
             <p className="text-muted-foreground">Class: {className}</p>
             <p className="text-muted-foreground">
-              Status: {user?.studentSpecificField?.status}
+              Status:{" "}
+              <span
+                className={`px-2 py-1 rounded-md ${getStatusClass(
+                  user?.studentSpecificField?.status
+                )}`}
+              >
+                {user?.studentSpecificField?.status}
+              </span>
             </p>
           </div>
         </CardContent>
