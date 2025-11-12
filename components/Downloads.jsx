@@ -153,18 +153,11 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
       const urlParts = fileUrl.split("/");
       const cloudinaryFilename = urlParts[urlParts.length - 1];
 
-      // Get extension from the Cloudinary filename (includes version params)
-      // Remove query parameters first
-      const filenameWithoutParams = cloudinaryFilename.split("?")[0];
-      const extension = filenameWithoutParams.split(".").pop();
-
-      // Generate clean filename with subject name
-      const filename = `${subject.replace(/\s+/g, "_")}.${extension}`;
+      // Generate clean filename with subject name, enforcing PDF extension
+      const filename = `${subject.replace(/\s+/g, "_")}.pdf`;
 
       console.log("Downloading:", {
         cloudinaryUrl: fileUrl,
-        cloudinaryFilename: filenameWithoutParams,
-        extension: extension,
         finalFilename: filename,
       });
 
@@ -366,7 +359,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
           <CardHeader>
             <CardTitle>Available Downloads</CardTitle>
             <CardDescription>
-              Filter and download study materials
+              Filter and download question papers
             </CardDescription>
           </CardHeader>
           <CardContent>
