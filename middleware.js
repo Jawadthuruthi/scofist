@@ -172,7 +172,7 @@ const pages = [
   {
     title: "Students Fund",
     path: "/dashboard/students-fund",
-    allowedRoles: ["College Admin", "Teacher"],
+    allowedRoles: ["College Admin", "Teacher", "Stationary", "IT Lab"],
   },
   {
     title: "Downloads",
