@@ -212,12 +212,24 @@ const useTableColumns = (columnConfig) => {
     if (col.type?.includes("badge")) {
       columnDefinition.cell = ({ row }) => {
         const status = row.getValue(col.accessorKey);
-        const color =
-          status === "active"
-            ? "bg-green-200 text-green-800"
-            : "bg-red-200 text-red-800";
+        let color;
+        switch (status?.toLowerCase()) {
+          case "active":
+            color = "bg-green-200 text-green-800";
+            break;
+          case "graduated":
+            color = "bg-blue-200 text-blue-800";
+            break;
+          case "dropped out":
+            color = "bg-red-200 text-red-800";
+            break;
+          default:
+            color = "bg-gray-200 text-gray-800";
+        }
         return (
-          <span className={`py-1 rounded text-sm font-semibold ${color}`}>
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-semibold ${color}`}
+          >
             {status}
           </span>
         );
