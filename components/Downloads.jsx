@@ -359,7 +359,9 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
         {/* Downloads Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Available Downloads</CardTitle>
+            <CardTitle>
+              Available Downloads ({filteredDownloads.length})
+            </CardTitle>
             <CardDescription>
               Filter and download question papers
             </CardDescription>
