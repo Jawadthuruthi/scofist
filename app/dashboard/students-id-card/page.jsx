@@ -5,10 +5,11 @@ import { fetchData } from "@/lib/utils";
 export const revalidate = 60;
 const studentsIdCardPage = async () => {
   try {
-    const [students, settings, classes] = await Promise.all([
+    const [students, settings, classes, teachers] = await Promise.all([
       fetchData("users", "roles=Student&status=Active"),
       fetchData("settings"),
       fetchData("classes"),
+      fetchData("users", "roles=Teacher"),
     ]);
 
     return (
@@ -17,6 +18,7 @@ const studentsIdCardPage = async () => {
         institution={settings.institution}
         idCardBackgroundImageUrl={settings.idCard?.backgroundImage?.url}
         classes={classes}
+        teachers={teachers}
       />
     );
   } catch (error) {
