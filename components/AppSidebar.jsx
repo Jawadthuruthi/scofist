@@ -246,8 +246,8 @@ const items = [
         allowedRoles: ["College Admin", "Teacher"],
       },
       {
-        title: "Students ID Card",
-        url: "/dashboard/students-id-card",
+        title: "Identity Cards",
+        url: "/dashboard/identity-cards",
         icon: IdCard,
         allowedRoles: ["College Admin"],
       },
