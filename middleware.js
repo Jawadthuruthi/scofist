@@ -148,9 +148,9 @@ const pages = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
-    title: "Students ID Card",
-    path: "/dashboard/students-id-card",
-    allowedRoles: ["College Admin"],
+    title: "Identity Cards",
+    path: "/dashboard/identity-cards",
+    allowedRoles: ["College Admin", "Teacher"],
   },
   {
     title: "Literary Groups",

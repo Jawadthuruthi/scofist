@@ -17,7 +17,7 @@ import {
 import { formatDateForDisplay } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
-const StudentsIdCard = ({
+const IdentityCards = ({
   students = [],
   institution = {},
   classes = [],
@@ -35,7 +35,7 @@ const StudentsIdCard = ({
 
   const handlePrint = useReactToPrint({
     contentRef: pageRef,
-    documentTitle: "Students ID Cards",
+    documentTitle: "Identity Cards",
   });
 
   useEffect(() => {
@@ -83,8 +83,8 @@ const StudentsIdCard = ({
   return (
     <div>
       <Header
-        title="STUDENTS ID CARD"
-        subTitle="Official Identity for Students"
+        title="IDENTITY CARDS"
+        subTitle="Official Identity for Students and Teachers"
       />
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="w-full md:w-1/4">
@@ -154,6 +154,7 @@ const StudentsIdCard = ({
                 <SelectValue placeholder="Select a teacher" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value={null}>None</SelectItem>
                 {teachers.map((teacher) => (
                   <SelectItem key={teacher._id} value={teacher._id}>
                     {teacher.name}
@@ -352,10 +353,16 @@ const IdCard = ({
               {/* Person Name and ID - Centered */}
               <div className="text-center space-y-1">
                 <h2 className="text-base font-bold mt-1 bg-white/20 inline-block px-2 py-0.5 rounded">
-                  {isStudent ? "Admn No:" : "Teacher ID:"}{" "}
-                  {person._id?.substring(0, 8).toUpperCase()}
+                  {isStudent
+                    ? `Admn No: ${person._id?.substring(0, 8).toUpperCase()}`
+                    : ""}
                 </h2>
                 <h3 className="font-bold text-xs">{person.name}</h3>
+                {!isStudent && (
+                  <p className="text-xs">
+                    {person.address?.place || "No place provided"}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -445,6 +452,33 @@ const PersonDetails = ({ person, academicYear, isStudent }) => {
               </span>
               <span className="text-gray-700">
                 {person.guardianContactNumber || "No contact provided"}
+              </span>
+            </div>
+          </>
+        )}
+        {!isStudent && (
+          <>
+            <div className="flex items-start">
+              <span className="mr-1 font-semibold min-w-20 w-20">Email:</span>
+              <span className="text-gray-700">
+                {person.email || "No email provided"}
+              </span>
+            </div>
+            <div className="flex items-start">
+              <span className="mr-1 font-semibold min-w-20 w-20">
+                Date of Joining:
+              </span>
+              <span className="text-gray-700">
+                {formatDateForDisplay(new Date(person.dateOfJoining)) ||
+                  "No date provided"}
+              </span>
+            </div>
+            <div className="flex items-start">
+              <span className="mr-1 font-semibold min-w-20 w-20">
+                Alternative Contact:
+              </span>
+              <span className="text-gray-700">
+                {person.alternativeContactNumber || "No contact provided"}
               </span>
             </div>
           </>
@@ -548,10 +582,16 @@ const PrintableIdCard = ({
 
             <div className="text-center">
               <h3 className="text-base font-bold mt-0.5 bg-white/20 inline-block px-1 py-0.5 rounded">
-                {isStudent ? "Admn No:" : "Teacher ID:"}{" "}
-                {person._id?.substring(0, 8).toUpperCase()}
+                {isStudent
+                  ? `Admn No: ${person._id?.substring(0, 8).toUpperCase()}`
+                  : ""}
               </h3>
               <h3 className="font-bold text-xs">{person.name}</h3>
+              {!isStudent && (
+                <p className="text-xs">
+                  {person.address?.place || "No place provided"}
+                </p>
+              )}
             </div>
           </div>
 
@@ -599,4 +639,4 @@ const PrintableIdCard = ({
   );
 };
 
-export default StudentsIdCard;
+export default IdentityCards;
