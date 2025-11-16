@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Loader, Check, X, ChevronLeft, ChevronRight, Printer } from "lucide-react";
 import axios from "axios";
@@ -25,6 +25,55 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "./Header";
+
+const PrintableComponent = React.memo(React.forwardRef(({ date, selectedClass, selectedSubject, classes, subjects, students, daysInMonth, attendance, leaveRecords }, ref) => {
+    return (
+        <div ref={ref} className="p-4">
+            <h2 className="text-xl font-bold mb-4 text-center">
+                Attendance Report - {date.toLocaleString('default', { month: 'long', year: 'numeric' })}
+            </h2>
+            <h3 className="text-lg mb-2 text-center">
+                Class: {classes.find(c => c._id === selectedClass)?.name} | Subject: {subjects.find(s => s._id === selectedSubject)?.name}
+            </h3>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Sl. No.</TableHead>
+                        <TableHead>Student</TableHead>
+                        {daysInMonth.map((day) => (
+                            <TableHead key={day.toISOString()} className="text-center">{day.getDate()}</TableHead>
+                        ))}
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {students.map((student, index) => (
+                        <TableRow key={student._id}>
+                            <TableCell>{index + 1}</TableCell>
+                            <TableCell className="font-medium">{student.name}</TableCell>
+                            {daysInMonth.map((day) => {
+                                const dayOfMonth = day.getDate();
+                                const isPresent = attendance[student._id]?.[dayOfMonth];
+                                const leaveReason = leaveRecords[student._id]?.[dayOfMonth];
+                                return (
+                                    <TableCell key={day.toISOString()} className="text-center">
+                                        {isPresent === true && "P"}
+                                        {isPresent === false && (
+                                            <>
+                                                <div>A</div>
+                                                {leaveReason && <div className="text-xs">{leaveReason}</div>}
+                                            </>
+                                        )}
+                                        {isPresent === undefined && "-"}
+                                    </TableCell>
+                                );
+                            })}
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
+}));
 
 const AttendanceSheet = ({ apiKey }) => {
   const [selectedClass, setSelectedClass] = useState("");
@@ -136,62 +185,39 @@ const AttendanceSheet = ({ apiKey }) => {
     return year > today.getFullYear() || (year === today.getFullYear() && month >= today.getMonth());
   };
 
-  const PrintableComponent = () => (
-    <div ref={componentRef} className="p-4">
-        <h2 className="text-xl font-bold mb-4 text-center">
-            Attendance Report - {date.toLocaleString('default', { month: 'long', year: 'numeric' })}
-        </h2>
-        <h3 className="text-lg mb-2 text-center">
-            Class: {classes.find(c => c._id === selectedClass)?.name} | Subject: {subjects.find(s => s._id === selectedSubject)?.name}
-        </h3>
-        <Table>
-            <TableHeader>
-            <TableRow>
-                <TableHead>Student</TableHead>
-                {daysInMonth.map((day) => (
-                <TableHead key={day.toISOString()} className="text-center">{day.getDate()}</TableHead>
-                ))}
-            </TableRow>
-            </TableHeader>
-            <TableBody>
-            {students.map((student) => (
-                <TableRow key={student._id}>
-                <TableCell className="font-medium">{student.name}</TableCell>
-                {daysInMonth.map((day) => {
-                    const dayOfMonth = day.getDate();
-                    const isPresent = attendance[student._id]?.[dayOfMonth];
-                    const leaveReason = leaveRecords[student._id]?.[dayOfMonth];
-                    return (
-                    <TableCell key={day.toISOString()} className="text-center">
-                        {isPresent === true && "P"}
-                        {isPresent === false && (
-                        <>
-                            <div>A</div>
-                            {leaveReason && <div className="text-xs">{leaveReason}</div>}
-                        </>
-                        )}
-                        {isPresent === undefined && "-"}
-                    </TableCell>
-                    );
-                })}
-                </TableRow>
-            ))}
-            </TableBody>
-        </Table>
-    </div>
-  );
-
-
   return (
-    <div className="space-y-6">
+    <>
         <div style={{ display: "none" }}>
-            <PrintableComponent />
+            <PrintableComponent
+                ref={componentRef}
+                date={date}
+                selectedClass={selectedClass}
+                selectedSubject={selectedSubject}
+                classes={classes}
+                subjects={subjects}
+                students={students}
+                daysInMonth={daysInMonth}
+                attendance={attendance}
+                leaveRecords={leaveRecords}
+            />
         </div>
+    <div className="space-y-6">
       <Header
         title="ATTENDANCE SHEET"
         subTitle="Monthly attendance report for each subject"
       />
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" onClick={() => handleMonthChange(-1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <h3 className="text-lg font-semibold w-32 text-center">
+            {date.toLocaleString('default', { month: 'long', year: 'numeric' })}
+          </h3>
+          <Button variant="outline" size="icon" onClick={() => handleMonthChange(1)} disabled={isNextMonthDisabled()}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
         <div className="flex gap-4">
           <Select onValueChange={setSelectedClass} value={selectedClass}>
             <SelectTrigger>
@@ -218,17 +244,6 @@ const AttendanceSheet = ({ apiKey }) => {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => handleMonthChange(-1)}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h3 className="text-lg font-semibold w-32 text-center">
-            {date.toLocaleString('default', { month: 'long', year: 'numeric' })}
-          </h3>
-          <Button variant="outline" size="icon" onClick={() => handleMonthChange(1)} disabled={isNextMonthDisabled()}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
       </div>
 
       {loading && (
@@ -243,16 +258,18 @@ const AttendanceSheet = ({ apiKey }) => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="sticky left-0 bg-background z-10">Student</TableHead>
+                  <TableHead className="sticky left-0 bg-background z-10 w-16">Sl. No.</TableHead>
+                  <TableHead className="sticky left-16 bg-background z-10">Student</TableHead>
                   {daysInMonth.map((day) => (
                     <TableHead key={day.toISOString()} className="text-center">{day.getDate()}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map((student) => (
+                {students.map((student, index) => (
                   <TableRow key={student._id}>
-                    <TableCell className="sticky left-0 bg-background z-10 font-medium">{student.name}</TableCell>
+                    <TableCell className="sticky left-0 bg-background z-10 w-16">{index + 1}</TableCell>
+                    <TableCell className="sticky left-16 bg-background z-10 font-medium">{student.name}</TableCell>
                     {daysInMonth.map((day) => {
                       const dayOfMonth = day.getDate();
                       const isPresent = attendance[student._id]?.[dayOfMonth];
@@ -288,6 +305,7 @@ const AttendanceSheet = ({ apiKey }) => {
         </>
       )}
     </div>
+    </>
   );
 };
 
