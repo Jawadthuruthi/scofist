@@ -31,6 +31,7 @@ const AttendanceSheet = ({ apiKey }) => {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [students, setStudents] = useState([]);
   const [attendance, setAttendance] = useState({});
+  const [leaveRecords, setLeaveRecords] = useState({});
   const [daysInMonth, setDaysInMonth] = useState([]);
   const [date, setDate] = useState(new Date());
   const [loading, setLoading] = useState(false);
@@ -93,6 +94,13 @@ const AttendanceSheet = ({ apiKey }) => {
           });
           setAttendance(attendanceRes.data.attendance || {});
 
+          // Fetch leave records
+          const leaveRecordsRes = await axios.get("/api/monthly-leave-records", {
+            headers: { "api-key": apiKey },
+            params: { classId: selectedClass, month, year },
+          });
+          setLeaveRecords(leaveRecordsRes.data.leaveRecords || {});
+
         } catch (error) {
           toast.error("Failed to fetch data.");
           console.error("Error fetching data:", error);
@@ -152,10 +160,16 @@ const AttendanceSheet = ({ apiKey }) => {
                 {daysInMonth.map((day) => {
                     const dayOfMonth = day.getDate();
                     const isPresent = attendance[student._id]?.[dayOfMonth];
+                    const leaveReason = leaveRecords[student._id]?.[dayOfMonth];
                     return (
                     <TableCell key={day.toISOString()} className="text-center">
                         {isPresent === true && "P"}
-                        {isPresent === false && "A"}
+                        {isPresent === false && (
+                        <>
+                            <div>A</div>
+                            {leaveReason && <div className="text-xs">{leaveReason}</div>}
+                        </>
+                        )}
                         {isPresent === undefined && "-"}
                     </TableCell>
                     );
@@ -242,10 +256,20 @@ const AttendanceSheet = ({ apiKey }) => {
                     {daysInMonth.map((day) => {
                       const dayOfMonth = day.getDate();
                       const isPresent = attendance[student._id]?.[dayOfMonth];
+                      const leaveReason = leaveRecords[student._id]?.[dayOfMonth];
                       return (
                         <TableCell key={day.toISOString()} className="text-center">
                           {isPresent === true && <Check className="text-green-500 mx-auto" />}
-                          {isPresent === false && <X className="text-red-500 mx-auto" />}
+                          {isPresent === false && (
+                            <div className="flex flex-col items-center">
+                              <X className="text-red-500" />
+                              {leaveReason && (
+                                <span className="text-xs text-muted-foreground writing-mode-vertical-rl">
+                                  {leaveReason}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           {isPresent === undefined && <span className="text-muted-foreground">-</span>}
                         </TableCell>
                       );
