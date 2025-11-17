@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,6 +10,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Header from "@/components/Header";
 import { Calendar } from "lucide-react";
 import { formatDateForDisplay } from "@/lib/utils";
@@ -34,11 +41,25 @@ const ProfileField = ({ label, value }) =>
     </div>
   ) : null;
 
-export default function StudentDashboard({ user, apiKey, classes, batches }) {
-  const { useFetchItems } = useCrud("student-attendance", apiKey);
-  const { data: attendanceData, isLoading, error } = useFetchItems(0, 0, {
-    studentId: user?._id,
-  });
+export default function StudentDashboard({
+  user,
+  apiKey,
+  classes,
+  batches,
+  attendanceData: initialData,
+}) {
+  const { useFetchItems } = useCrud("studentAttendances", apiKey);
+  const { data: fetchedData, isLoading, error } = useFetchItems(
+    0,
+    0,
+    {
+      studentId: user?._id,
+    },
+    { enabled: !initialData }
+  );
+  const attendanceData = initialData || fetchedData;
+  const [expandedMonth, setExpandedMonth] = useState(null);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const className = classes.find(
     (c) => c._id === user?.studentSpecificField?.classId
@@ -52,31 +73,58 @@ export default function StudentDashboard({ user, apiKey, classes, batches }) {
     (b) => b._id === user?.studentSpecificField?.batchId
   )?.name;
 
+  const academicYears = useMemo(() => {
+    if (!batchName) return [new Date().getFullYear()];
+    const years = batchName.match(/\d{4}/g);
+    if (!years) return [new Date().getFullYear()];
+    const startYear = parseInt(years[0], 10);
+    const endYear = years[1] ? parseInt(years[1], 10) : startYear + 1;
+    const allYears = [];
+    for (let year = startYear; year <= endYear; year++) {
+      allYears.push(year);
+    }
+    return allYears;
+  }, [batchName]);
+
   const attendanceHistory = useMemo(() => {
-    if (!attendanceData) return [];
-    const history = {};
-    attendanceData.forEach((record) => {
-      const month = new Date(record.date).toLocaleString("default", {
-        month: "long",
-        year: "numeric",
-      });
-      if (!history[month]) {
-        history[month] = {
-          workingDays: 0,
-          presentDays: 0,
-        };
-      }
-      history[month].workingDays++;
-      if (record.present) {
-        history[month].presentDays++;
-      }
+    const records =
+      attendanceData?.studentAttendances?.[0]?.attendanceRecords || [];
+
+    const allMonthsMeta = [];
+    for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+      const date = new Date(selectedYear, monthIndex, 1);
+      const monthName = date.toLocaleString("en-US", { month: "long" });
+      allMonthsMeta.push({ year: selectedYear, monthIndex, monthName });
+    }
+
+    return allMonthsMeta.map(({ year, monthIndex, monthName }) => {
+      const recordsForMonth = records
+        ? records.filter((r) => {
+            const d = new Date(r.date);
+            return d.getFullYear() === year && d.getMonth() === monthIndex;
+          })
+        : [];
+
+      const totalPeriods = recordsForMonth.length;
+      const presentPeriods = recordsForMonth.filter((r) => r.present).length;
+
+      const details = recordsForMonth.map((r) => ({
+        date: formatDateForDisplay(r.date),
+        present: r.present,
+      }));
+
+      return {
+        month: monthName,
+        totalPeriods,
+        presentPeriods,
+        details,
+        percentage:
+          totalPeriods > 0
+            ? ((presentPeriods / totalPeriods) * 100).toFixed(2)
+            : 0,
+      };
     });
-    return Object.entries(history).map(([month, data]) => ({
-      month,
-      ...data,
-      percentage: ((data.presentDays / data.workingDays) * 100).toFixed(2),
-    }));
-  }, [attendanceData]);
+  }, [attendanceData, batchName, selectedYear]);
 
   const currentDate = formatDateForDisplay(new Date());
 
@@ -238,27 +286,75 @@ export default function StudentDashboard({ user, apiKey, classes, batches }) {
       </div>
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Month-wise Attendance History</CardTitle>
+            <Select
+              onValueChange={(value) => setSelectedYear(parseInt(value))}
+              defaultValue={selectedYear.toString()}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {academicYears.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Month</TableHead>
-                  <TableHead>Working Days</TableHead>
-                  <TableHead>Present Days</TableHead>
+                  <TableHead>Total Periods</TableHead>
+                  <TableHead>Present</TableHead>
                   <TableHead>Percentage</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {attendanceHistory.map((row) => (
-                  <TableRow key={row.month}>
-                    <TableCell>{row.month}</TableCell>
-                    <TableCell>{row.workingDays}</TableCell>
-                    <TableCell>{row.presentDays}</TableCell>
-                    <TableCell>{row.percentage}%</TableCell>
-                  </TableRow>
+                  <React.Fragment key={row.month}>
+                    <TableRow
+                      onClick={() =>
+                        setExpandedMonth(
+                          expandedMonth === row.month ? null : row.month
+                        )
+                      }
+                      className="cursor-pointer"
+                    >
+                      <TableCell>{row.month}</TableCell>
+                      <TableCell>{row.totalPeriods}</TableCell>
+                      <TableCell>{row.presentPeriods}</TableCell>
+                      <TableCell>{row.percentage}%</TableCell>
+                    </TableRow>
+                    {expandedMonth === row.month && (
+                      <TableRow>
+                        <TableCell colSpan={4}>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Status</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {row.details.map((detail) => (
+                                <TableRow key={detail.date}>
+                                  <TableCell>{detail.date}</TableCell>
+                                  <TableCell>
+                                    {detail.present ? "Present" : "Absent"}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 ))}
               </TableBody>
             </Table>
