@@ -57,6 +57,7 @@ export default function StudentDashboard({
     },
     { enabled: !initialData }
   );
+
   const attendanceData = initialData || fetchedData;
   const [expandedMonth, setExpandedMonth] = useState(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -87,8 +88,7 @@ export default function StudentDashboard({
   }, [batchName]);
 
   const attendanceHistory = useMemo(() => {
-    const records =
-      attendanceData?.studentAttendances?.[0]?.attendanceRecords || [];
+    const records = attendanceData?.[0]?.attendanceRecords || [];
 
     const allMonthsMeta = [];
     for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
