@@ -95,7 +95,7 @@ export async function GET(req, res) {
     }
 
     // Use lean for better performance when appropriate
-    const users = await User.find(query, projections)
+    let usersQuery = User.find(query, projections)
       .populate("studentSpecificField.batchId")
       .populate("studentSpecificField.classId")
       .populate("studentSpecificField.admissionClassId", "name")
@@ -103,6 +103,12 @@ export async function GET(req, res) {
       .limit(limit)
       .sort({ _id: 1 })
       .collation({ locale: "en_US", numericOrdering: true });
+
+    if (url.searchParams.get("populate") === "funds") {
+      usersQuery = usersQuery.populate("funds");
+    }
+
+    const users = await usersQuery;
 
     // Get total count for pagination info - use efficient counting
     const total = await User.countDocuments(query);
@@ -175,6 +181,7 @@ export async function GET(req, res) {
         status: user.roles?.includes("Student")
           ? studentSpecificField.status
           : teacherSpecificField.status,
+        funds: user.funds,
       };
     });
 

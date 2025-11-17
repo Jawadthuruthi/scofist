@@ -52,6 +52,24 @@ const columnsConfig = [
   },
 
   { accessorKey: "status", header: "Status", type: ["badge"] },
+  {
+    accessorKey: "itLabFund",
+    header: "IT Lab Fund",
+    cell: ({ row }) => {
+      const funds = row.original.funds;
+      const itLabFund = funds?.find(fund => fund.teacherId === "655c48737c229973bf1f4648");
+      return itLabFund ? itLabFund.balance : 0;
+    }
+  },
+  {
+    accessorKey: "stationaryFund",
+    header: "Stationary Fund",
+    cell: ({ row }) => {
+      const funds = row.original.funds;
+      const stationaryFund = funds?.find(fund => fund.teacherId === "655c487f7c229973bf1f464a");
+      return stationaryFund ? stationaryFund.balance : 0;
+    }
+  },
 ];
 
 const statusMessages = {
@@ -62,6 +80,7 @@ const statusMessages = {
 
 const apiFilters = {
   roles: ["Student"],
+  populate: "funds",
 };
 
 const API_ENDPOINTS = [
