@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -33,11 +33,11 @@ import {
 import { Button } from "./ui/button";
 import { Printer } from "lucide-react";
 
-const ProfileField = ({ label, value }) =>
-  value ? (
+const ProfileField = ({ label, value, isBold }) =>
+  value || value === 0 ? (
     <div className="flex justify-between py-2 border-b">
-      <span className="text-sm font-medium text-gray-500">{label}</span>
-      <span className="text-sm text-gray-900">{value}</span>
+      <span className={`text-sm font-medium ${isBold ? 'font-bold' : 'text-gray-500'}`}>{label}</span>
+      <span className={`text-sm ${isBold ? 'font-bold' : 'text-gray-900'}`}>{value}</span>
     </div>
   ) : null;
 
@@ -60,6 +60,8 @@ export default function StudentDashboard({
   const attendanceData = initialData || fetchedData;
   const [expandedMonth, setExpandedMonth] = useState(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [pendingFunds, setPendingFunds] = useState(null);
+  const [fundsLoading, setFundsLoading] = useState(true);
 
   const className = classes.find(
     (c) => c._id === user?.studentSpecificField?.classId
@@ -72,6 +74,63 @@ export default function StudentDashboard({
   const batchName = batches.find(
     (b) => b._id === user?.studentSpecificField?.batchId
   )?.name;
+
+  useEffect(() => {
+    const fetchFunds = async () => {
+      setFundsLoading(true);
+      const fundsToFetch = [
+        { name: "IT Lab Fund", teacherId: "655c48737c229973bf1f4648" },
+        { name: "Stationary Fund", teacherId: "655c487f7c229973bf1f464a" },
+        { name: "Coupon Fund", teacherId: "655c488a7c229973bf1f464c" },
+      ];
+
+      const classInfo = classes.find(
+        (c) => c._id === user?.studentSpecificField?.classId
+      );
+      if (classInfo?.teacherId) {
+        fundsToFetch.push({ name: "Others", teacherId: classInfo.teacherId });
+      }
+
+      try {
+        const fundPromises = fundsToFetch.map(({ teacherId }) =>
+          fetch(`/api/studentsFund?studentId=${user._id}&teacherId=${teacherId}&batchId=${user.studentSpecificField.batchId}`, {
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": apiKey,
+            },
+          }).then(res => {
+            if (!res.ok) {
+              console.error(`Error fetching fund for teacher ${teacherId}: ${res.statusText}`);
+              return { studentFund: { balance: 0 } };
+            }
+            return res.json();
+          })
+        );
+
+        const results = await Promise.all(fundPromises);
+
+        const funds = results.reduce((acc, result, index) => {
+          const fundName = fundsToFetch[index].name;
+          acc[fundName] = result.studentFund?.balance || 0;
+          return acc;
+        }, {});
+
+        setPendingFunds(funds);
+      } catch (error) {
+        console.error("Error fetching pending funds:", error);
+        setPendingFunds({});
+      } finally {
+        setFundsLoading(false);
+      }
+    };
+
+    if (user?._id && user?.studentSpecificField?.batchId && apiKey) {
+      fetchFunds();
+    } else {
+      setFundsLoading(false);
+    }
+  }, [user, classes, apiKey]);
+
 
   const academicYears = useMemo(() => {
     if (!batchName) return [new Date().getFullYear()];
@@ -140,6 +199,12 @@ export default function StudentDashboard({
         return "bg-gray-200 text-gray-800";
     }
   };
+
+  const totalPending = useMemo(() => {
+    if (!pendingFunds) return 0;
+    return Object.values(pendingFunds).reduce((acc, balance) => acc + balance, 0);
+  }, [pendingFunds]);
+
 
   return (
     <div className="flex flex-col space-y-4">
@@ -281,6 +346,29 @@ export default function StudentDashboard({
               label="Guardian Alt. Contact"
               value={user?.studentSpecificField?.guardianAlternativeNumber}
             />
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Pending Transactions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Transactions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {fundsLoading ? (
+              <p>Loading funds...</p>
+            ) : pendingFunds ? (
+              <>
+                {Object.entries(pendingFunds).map(([fund, balance]) => (
+                  <ProfileField key={fund} label={fund} value={balance.toFixed(2)} />
+                ))}
+                <ProfileField label="Total Pending" value={totalPending.toFixed(2)} isBold={true}/>
+
+              </>
+            ) : (
+              <p>Could not load pending funds.</p>
+            )}
           </CardContent>
         </Card>
       </div>
