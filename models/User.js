@@ -1,4 +1,5 @@
 import { Schema, model, models, mongoose } from "mongoose";
+import "./StudentsFund.js"; // Import to ensure schema is registered
 import Batch from "./Batch";
 import Class from "./Class";
 
