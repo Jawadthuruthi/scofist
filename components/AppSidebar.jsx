@@ -133,9 +133,28 @@ const items = [
   },
   {
     title: "Downloads",
-    url: "/dashboard/downloads",
-    allowedRoles: ["College Admin", "Student", "Teacher"],
     icon: Download,
+    allowedRoles: ["College Admin", "Student", "Teacher"],
+    subItems: [
+      {
+        title: "Question Papers",
+        url: "/dashboard/downloads",
+        icon: FileText,
+        allowedRoles: ["College Admin", "Student", "Teacher"],
+      },
+      {
+        title: "Syllabus",
+        url: "/dashboard/syllabus",
+        icon: BookOpen,
+        allowedRoles: ["College Admin", "Student", "Teacher"],
+      },
+      {
+        title: "Identity Cards",
+        url: "/dashboard/identity-cards",
+        icon: IdCard,
+        allowedRoles: ["College Admin"],
+      },
+    ],
   },
   {
     title: "Marks",
@@ -244,12 +263,6 @@ const items = [
         url: "/dashboard/students-reports",
         icon: FileSearch,
         allowedRoles: ["College Admin", "Teacher"],
-      },
-      {
-        title: "Identity Cards",
-        url: "/dashboard/identity-cards",
-        icon: IdCard,
-        allowedRoles: ["College Admin"],
       },
     ],
   },
