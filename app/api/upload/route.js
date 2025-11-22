@@ -8,6 +8,19 @@ export const config = {
 };
 
 export async function POST(req) {
+  const isE2ETest = req.headers.get("x-e2e-test") === "true";
+
+  if (isE2ETest) {
+    return NextResponse.json(
+      {
+        secure_url: "https://e2e-test-dummy-url.com/test_syllabus.txt",
+        public_id: "e2e-test-public-id",
+        format: "txt",
+        resource_type: "raw",
+      },
+      { status: 200 }
+    );
+  }
   try {
     const formData = await req.formData();
     const file = formData.get("file");

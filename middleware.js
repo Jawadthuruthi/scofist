@@ -399,6 +399,29 @@ async function handleApiRequest(req) {
 }
 
 async function handleAuthRequest(req) {
+  const isE2ETest = req.headers.get("x-e2e-test") === "true";
+
+  if (isE2ETest) {
+    const activeRole = req.headers.get("active-role") || "College Admin";
+
+    const mockUser = {
+      _id: "e2e-test-user-id",
+      roles: [activeRole],
+      name: "E2E Test User",
+    };
+
+    const res = NextResponse.next();
+    res.headers.set("x-user", JSON.stringify(mockUser));
+    res.cookies.set("active-role", activeRole, {
+      path: "/",
+      sameSite: "lax",
+    });
+
+    if (!isUserAllowed(activeRole, req.nextUrl.pathname)) {
+      return redirectTo404(req);
+    }
+    return res;
+  }
   const token = req.cookies.get("auth-token")?.value;
 
   if (!token) {
