@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -8,7 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -40,10 +39,12 @@ import { Upload, Download as DownloadIcon, Loader, Trash2 } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
+import { useDropzone } from "react-dropzone";
 import { saveAs } from "file-saver";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
-  const [year, setYear] = useState("");
+  const [year, setYear] = useState(null);
   const [course, setCourse] = useState("");
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -51,7 +52,6 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
   const [deletingId, setDeletingId] = useState(null);
   const [filterYear, setFilterYear] = useState(null);
   const [filterCourse, setFilterCourse] = useState(null);
-  const fileRef = useRef(null);
 
   const { useFetchItems, useAddItem, useDeleteItem } = useCrud(
     "syllabus",
@@ -66,11 +66,23 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
   const addSyllabus = useAddItem();
   const deleteSyllabus = useDeleteItem();
 
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
+  const onDrop = (acceptedFiles) => {
+    setFile(acceptedFiles[0]);
   };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "application/pdf": [".pdf"],
+      "application/msword": [".doc"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        [".docx"],
+      "application/vnd.ms-powerpoint": [".ppt"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        [".pptx"],
+    },
+    multiple: false,
+  });
 
   const handleUpload = async () => {
     if (!file || !course || !year) {
@@ -83,9 +95,12 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
     formData.append("file", file);
 
     try {
+      // Upload via /api/upload
       const response = await fetch("/api/upload", {
         method: "POST",
-        headers: { "api-key": apiKey },
+        headers: {
+          "api-key": apiKey,
+        },
         body: formData,
       });
 
@@ -99,6 +114,7 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
       const data = await response.json();
       const fileUrl = data.secure_url;
 
+      // Save syllabus metadata to database
       await addSyllabus.mutateAsync({
         course,
         year,
@@ -106,14 +122,13 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
         fileName: file.name,
       });
 
+      // Refresh syllabus list
       await fetchSyllabusQuery.refetch();
 
+      // Reset form
       setCourse("");
-      setYear("");
+      setYear(null);
       setFile(null);
-      if (fileRef.current) {
-        fileRef.current.value = "";
-      }
 
       toast.success("File uploaded successfully!");
     } catch (error) {
@@ -128,10 +143,16 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
     setDownloadingId(downloadId);
     try {
       const filename = `${course}_${year}_syllabus.pdf`;
+
       const proxyUrl = `/api/download-file?url=${encodeURIComponent(
         fileUrl
       )}&filename=${encodeURIComponent(filename)}`;
-      const response = await fetch(proxyUrl, { headers: { "api-key": apiKey } });
+
+      const response = await fetch(proxyUrl, {
+        headers: {
+          "api-key": apiKey,
+        },
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -154,8 +175,12 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
     setDeletingId(syllabus._id);
     try {
       await deleteSyllabus.mutateAsync({
-        data: { _id: syllabus._id, fileUrl: syllabus.fileUrl },
+        data: {
+          _id: syllabus._id,
+          fileUrl: syllabus.fileUrl,
+        },
       });
+
       await fetchSyllabusQuery.refetch();
       toast.success("File deleted successfully!");
     } catch (error) {
@@ -175,7 +200,10 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
 
   return (
     <>
-      <Header title="SYLLABUS" subTitle="Download and upload syllabus" />
+      <Header
+        title="SYLLABUS"
+        subTitle="Download and upload syllabus"
+      />
       <div className="container mx-auto p-4 space-y-6">
         {activeRole === "College Admin" && (
           <Card>
@@ -189,27 +217,24 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="course">Course</Label>
-                  <Select
+                  <MultiSelect
+                    id="course"
                     value={course}
                     onValueChange={setCourse}
-                    name="course"
-                  >
-                    <SelectTrigger id="course" data-testid="course-select">
-                      <SelectValue placeholder="Select Course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {courses.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    options={[
+                      { value: "BSIc(5 Years)", label: "BSIc(5 Years)" },
+                      { value: "HSIc(3 Years)", label: "HSIc(3 Years)" },
+                      { value: "HSIc(2 Years)", label: "HSIc(2 Years)" },
+                    ]}
+                    placeholder="Select or type a course"
+                    freeSolo
+                    multiSelect={false}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="year">Year</Label>
-                  <Select value={year} onValueChange={setYear} name="year">
-                    <SelectTrigger id="year" data-testid="year-select">
+                  <Select id="year" value={year} onValueChange={setYear}>
+                    <SelectTrigger>
                       <SelectValue placeholder="Select Year" />
                     </SelectTrigger>
                     <SelectContent>
@@ -223,23 +248,39 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="file">Syllabus File</Label>
-                <Input
-                  id="file"
-                  type="file"
-                  ref={fileRef}
-                  onChange={handleFileChange}
-                  className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                  data-testid="file-input"
-                />
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                  isDragActive
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:border-primary/50"
+                }`}
+              >
+                <input {...getInputProps()} />
+                {file ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Upload className="h-5 w-5" />
+                    <span className="font-medium">{file.name}</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      {isDragActive
+                        ? "Drop the file here..."
+                        : "Drag 'n' drop a file here, or click to select one"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Supports: PDF, DOC, DOCX, PPT, PPTX
+                    </p>
+                  </div>
+                )}
               </div>
 
               <Button
                 onClick={handleUpload}
                 disabled={uploading || !file}
                 className="w-full"
-                data-testid="upload-button"
               >
                 {uploading ? (
                   <>
@@ -341,11 +382,16 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
                               disabled={downloadingId === syllabus._id}
                             >
                               {downloadingId === syllabus._id ? (
-                                <Loader className="mr-2 h-4 w-4 animate-spin" />
+                                <>
+                                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                                  Downloading...
+                                </>
                               ) : (
-                                <DownloadIcon className="mr-2 h-4 w-4" />
+                                <>
+                                  <DownloadIcon className="mr-2 h-4 w-4" />
+                                  Download
+                                </>
                               )}
-                              Download
                             </Button>
                             {activeRole === "College Admin" && (
                               <AlertDialog>
