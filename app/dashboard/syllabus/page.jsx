@@ -1,22 +1,26 @@
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import Syllabus from "@/components/Syllabus";
-import { fetchData } from "@/lib/utils";
+import connectToDB from "@/lib/db";
+import SyllabusModel from "@/models/Syllabus.js";
 
 export default async function SyllabusPage() {
-  const nextCookies = await cookies();
   const headersList = await headers();
   const activeRole = headersList.get("active-role");
-  const nextAuthSessionToken = nextCookies.get("auth-token");
   const apiKey = process.env.API_KEY;
 
-  const syllabuses = await fetchData(
-    "syllabus",
-    `auth-token=${nextAuthSessionToken?.value}`
-  );
+  let syllabuses = [];
+  try {
+    await connectToDB();
+    const data = await SyllabusModel.find({}).sort({ createdAt: -1 }).lean();
+    syllabuses = JSON.parse(JSON.stringify(data));
+  } catch (error) {
+    console.error("Failed to fetch syllabus data:", error);
+    // Handle the error appropriately, maybe return an error message to the user
+  }
 
   return (
     <Syllabus
-      initialSyllabus={syllabuses?.syllabuses}
+      initialSyllabus={syllabuses}
       apiKey={apiKey}
       activeRole={activeRole}
     />
