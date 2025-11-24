@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState, useEffect } from "react";
 import {
   BarChart as RechartsBarChart,
   Bar,
@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { Loader } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const ChartSkeleton = memo(({ height = "300px" }) => (
   <div
@@ -26,6 +27,13 @@ ChartSkeleton.displayName = "ChartSkeleton";
 
 const StudentStatusByBatchChart = memo(
   ({ batches = [], students = [], isLoading }) => {
+    const isMobile = useIsMobile();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+      setIsClient(true);
+    }, []);
+
     const chartData = useMemo(() => {
       if (!batches?.length || !students?.length) return [];
 
@@ -67,29 +75,45 @@ const StudentStatusByBatchChart = memo(
       );
     }
 
+    const chartContent = (
+      <RechartsBarChart
+        width={isClient && isMobile ? chartData.length * 150 : undefined}
+        height={isClient && isMobile ? 250 : undefined}
+        data={chartData}
+        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+      >
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip />
+        <Legend />
+        <Bar
+          dataKey="droppedOut"
+          fill="#FF8042"
+          name="Dropped Out"
+          barSize={isClient && isMobile ? 50 : undefined}
+        >
+          <LabelList dataKey="droppedOut" position="top" />
+        </Bar>
+        <Bar
+          dataKey="activeOrGraduated"
+          fill="#8884d8"
+          name="Active/Graduated"
+          barSize={isClient && isMobile ? 50 : undefined}
+        >
+          <LabelList dataKey="activeOrGraduated" position="top" />
+        </Bar>
+      </RechartsBarChart>
+    );
+
     return (
       <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <RechartsBarChart
-            data={chartData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-          >
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="droppedOut" fill="#FF8042" name="Dropped Out">
-              <LabelList dataKey="droppedOut" position="top" />
-            </Bar>
-            <Bar
-              dataKey="activeOrGraduated"
-              fill="#8884d8"
-              name="Active/Graduated"
-            >
-              <LabelList dataKey="activeOrGraduated" position="top" />
-            </Bar>
-          </RechartsBarChart>
-        </ResponsiveContainer>
+        {isClient && isMobile ? (
+          <div className="overflow-x-auto">{chartContent}</div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            {chartContent}
+          </ResponsiveContainer>
+        )}
       </div>
     );
   }
