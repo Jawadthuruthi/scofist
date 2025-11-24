@@ -1,11 +1,12 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import Syllabus from "@/components/Syllabus";
 import connectToDB from "@/lib/db";
 import SyllabusModel from "@/models/Syllabus.js";
 
 export default async function SyllabusPage() {
-  const headersList = await headers();
-  const activeRole = headersList.get("active-role");
+  const cookieStore = cookies();
+  const activeRole = cookieStore.get("active-role")?.value;
+  const headersList = headers();
   const isE2ETest = headersList.get("x-e2e-test") === "true";
   const apiKey = process.env.API_KEY;
 
