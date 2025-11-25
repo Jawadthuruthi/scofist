@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 
 const bookSchema = new mongoose.Schema({
-  course: {
+  name: {
     type: String,
     required: true,
   },
-  year: {
+  course: {
     type: String,
     required: true,
   },

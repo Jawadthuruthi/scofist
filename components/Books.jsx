@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -44,23 +45,20 @@ import { saveAs } from "file-saver";
 import { MultiSelect } from "@/components/ui/multi-select";
 
 const Books = ({ initialBooks = [], apiKey, activeRole }) => {
-  const [year, setYear] = useState(null);
+  const [name, setName] = useState("");
   const [course, setCourse] = useState("");
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [filterYear, setFilterYear] = useState(null);
+  const [filterName, setFilterName] = useState("");
   const [filterCourse, setFilterCourse] = useState(null);
 
-  const { useFetchItems, useAddItem, useDeleteItem } = useCrud(
-    "books",
-    apiKey
-  );
+  const { useFetchItems, useAddItem, useDeleteItem } = useCrud("books", apiKey);
   const fetchBooksQuery = useFetchItems(
     null,
     null,
-    { year: filterYear, course: filterCourse },
+    { name: filterName, course: filterCourse },
     { initialData: { books: initialBooks } }
   );
   const addBook = useAddItem();
@@ -85,7 +83,7 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
   });
 
   const handleUpload = async () => {
-    if (!file || !course || !year) {
+    if (!file || !course || !name) {
       toast.error("Please fill all fields and select a file.");
       return;
     }
@@ -95,7 +93,6 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
     formData.append("file", file);
 
     try {
-      // Upload via /api/upload
       const response = await fetch("/api/upload", {
         method: "POST",
         headers: {
@@ -114,20 +111,17 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
       const data = await response.json();
       const fileUrl = data.secure_url;
 
-      // Save book metadata to database
       await addBook.mutateAsync({
+        name,
         course,
-        year,
         fileUrl,
         fileName: file.name,
       });
 
-      // Refresh book list
       await fetchBooksQuery.refetch();
 
-      // Reset form
+      setName("");
       setCourse("");
-      setYear(null);
       setFile(null);
 
       toast.success("File uploaded successfully!");
@@ -139,15 +133,13 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
     }
   };
 
-  const handleDownload = async (fileUrl, course, year, downloadId) => {
+  const handleDownload = async (book, downloadId) => {
     setDownloadingId(downloadId);
     try {
-      const filename = `${course}_${year}_book.pdf`;
-
+      const filename = `${book.course}_${book.name}_book.pdf`;
       const proxyUrl = `/api/download-file?url=${encodeURIComponent(
-        fileUrl
+        book.fileUrl
       )}&filename=${encodeURIComponent(filename)}`;
-
       const response = await fetch(proxyUrl, {
         headers: {
           "api-key": apiKey,
@@ -161,7 +153,6 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
 
       const blob = await response.blob();
       saveAs(blob, filename);
-
       toast.success("Download started!");
     } catch (error) {
       console.error("Download failed:", error);
@@ -180,7 +171,6 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
           fileUrl: book.fileUrl,
         },
       });
-
       await fetchBooksQuery.refetch();
       toast.success("File deleted successfully!");
     } catch (error) {
@@ -195,23 +185,17 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
     return fetchBooksQuery.data?.books || [];
   }, [fetchBooksQuery.data]);
 
-  const years = [1, 2, 3, 4, 5];
   const courses = ["BSIc(5 Years)", "HSIc(3 Years)", "HSIc(2 Years)"];
 
   return (
     <>
-      <Header
-        title="BOOKS"
-        subTitle="Download and upload books"
-      />
+      <Header title="BOOKS" subTitle="Download and upload books" />
       <div className="container mx-auto p-4 space-y-6">
         {activeRole === "College Admin" && (
           <Card>
             <CardHeader>
               <CardTitle>Upload Book</CardTitle>
-              <CardDescription>
-                Upload book for students to download
-              </CardDescription>
+              <CardDescription>Upload a new book for a course</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -221,30 +205,20 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                     id="course"
                     value={course}
                     onValueChange={setCourse}
-                    options={[
-                      { value: "BSIc(5 Years)", label: "BSIc(5 Years)" },
-                      { value: "HSIc(3 Years)", label: "HSIc(3 Years)" },
-                      { value: "HSIc(2 Years)", label: "HSIc(2 Years)" },
-                    ]}
+                    options={courses.map((c) => ({ value: c, label: c }))}
                     placeholder="Select or type a course"
                     freeSolo
                     multiSelect={false}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="year">Year</Label>
-                  <Select id="year" value={year} onValueChange={setYear}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 4, 5].map((y) => (
-                        <SelectItem key={y} value={String(y)}>
-                          {y}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="name">Book Name</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter book name"
+                  />
                 </div>
               </div>
 
@@ -300,12 +274,8 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
 
         <Card>
           <CardHeader>
-            <CardTitle>
-              Available Books ({filteredBooks.length})
-            </CardTitle>
-            <CardDescription>
-              Filter and download books
-            </CardDescription>
+            <CardTitle>Available Books ({filteredBooks.length})</CardTitle>
+            <CardDescription>Filter and download books</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -319,27 +289,19 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                     <SelectItem value={null}>All Courses</SelectItem>
                     {courses.map((s) => (
                       <SelectItem key={s} value={String(s)}>
-                        Course {s}
+                        {s}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Filter by Year</Label>
-                <Select value={filterYear} onValueChange={setFilterYear}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Years" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={null}>All Years</SelectItem>
-                    {years.map((y) => (
-                      <SelectItem key={y} value={String(y)}>
-                        Year {y}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Filter by Book Name</Label>
+                <Input
+                  value={filterName}
+                  onChange={(e) => setFilterName(e.target.value)}
+                  placeholder="Search by book name..."
+                />
               </div>
             </div>
 
@@ -347,8 +309,8 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Book Name</TableHead>
                     <TableHead>Course</TableHead>
-                    <TableHead>Year</TableHead>
                     <TableHead>File Name</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -363,22 +325,15 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                   ) : (
                     filteredBooks.map((book) => (
                       <TableRow key={book._id}>
+                        <TableCell>{book.name}</TableCell>
                         <TableCell>{book.course}</TableCell>
-                        <TableCell>{book.year}</TableCell>
                         <TableCell>{book.fileName}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() =>
-                                handleDownload(
-                                  book.fileUrl,
-                                  book.course,
-                                  book.year,
-                                  book._id
-                                )
-                              }
+                              onClick={() => handleDownload(book, book._id)}
                               disabled={downloadingId === book._id}
                             >
                               {downloadingId === book._id ? (
@@ -415,9 +370,8 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                                     </AlertDialogTitle>
                                     <AlertDialogDescription>
                                       This will permanently delete the file "
-                                      {book.fileName}" from {book.course}{" "}
-                                      Year {book.year}. This action cannot be
-                                      undone.
+                                      {book.fileName}" ({book.name}). This
+                                      action cannot be undone.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>

@@ -14,8 +14,9 @@ export async function GET(req, res) {
     }
 
     const query = {};
-    if (searchParams.year) {
-      query.year = searchParams.year;
+    if (searchParams.name) {
+      // Use a case-insensitive regex for searching by book name
+      query.name = { $regex: new RegExp(searchParams.name, "i") };
     }
 
     if (searchParams.course) {
@@ -37,10 +38,10 @@ export async function POST(req, res) {
     }
 
     await connectToDB();
-    const { course, year, fileUrl, fileName } = await req.json();
+    const { name, course, fileUrl, fileName } = await req.json();
     const newBook = new Book({
+      name,
       course,
-      year,
       fileUrl,
       fileName,
     });
