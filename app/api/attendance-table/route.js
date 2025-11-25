@@ -6,14 +6,11 @@ import TimeTable from "@/models/TimeTable.js";
 export async function GET(req) {
   try {
     await connectToDB();
-    console.log("API route hit: /api/attendance-table");
 
     const url = new URL(req.url);
     const classId = url.searchParams.get("classId");
     const month = parseInt(url.searchParams.get("month"));
     const year = parseInt(url.searchParams.get("year"));
-    console.log(`Query Params: classId=${classId}, month=${month}, year=${year}`);
-
 
     if (!classId || !month || !year) {
       return NextResponse.json(
@@ -25,16 +22,15 @@ export async function GET(req) {
     const subjectTeacherPairs = {};
 
     // 1. Fetch TimeTable for the class to get scheduled pairs
-    console.log("Fetching timetables...");
     const timeTables = await TimeTable.find({ classId }).populate([
       { path: "timeSlots.subjectId", select: "name" },
       { path: "timeSlots.teacherId", select: "name" },
     ]);
-    console.log(`Found ${timeTables.length} timetables.`);
 
     if (timeTables) {
       timeTables.forEach((tt) => {
         tt.timeSlots.forEach((p) => {
+          // DEFENSIVE CHECK: Ensure populated documents exist
           if (p.subjectId && p.teacherId) {
             const key = `${p.subjectId._id.toString()}-${p.teacherId._id.toString()}`;
             if (!subjectTeacherPairs[key]) {
@@ -49,14 +45,11 @@ export async function GET(req) {
         });
       });
     }
-    console.log("Processed timetable pairs:", Object.keys(subjectTeacherPairs).length);
-
 
     // 2. Fetch attendance for the month and merge in any new pairs
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
 
-    console.log("Fetching attendances...");
     const attendances = await Attendance.find({
       classId,
       date: { $gte: startDate, $lte: endDate },
@@ -64,10 +57,9 @@ export async function GET(req) {
       { path: "subjectId", select: "name" },
       { path: "teacherId", select: "name" },
     ]);
-    console.log(`Found ${attendances.length} attendance records.`);
-
 
     attendances.forEach((att) => {
+       // DEFENSIVE CHECK: Ensure populated documents exist
       if (att.subjectId && att.teacherId) {
         const key = `${att.subjectId._id.toString()}-${att.teacherId._id.toString()}`;
         if (!subjectTeacherPairs[key]) {
@@ -84,12 +76,11 @@ export async function GET(req) {
     const uniquePairs = Object.values(subjectTeacherPairs).sort((a, b) =>
       a.subjectName.localeCompare(b.subjectName)
     );
-    console.log("Total unique subject-teacher pairs:", uniquePairs.length);
-
 
     // 3. Create a Set for quick lookups of marked attendance
     const markedAttendances = new Set();
     attendances.forEach((att) => {
+       // DEFENSIVE CHECK: Ensure populated documents exist
       if(att.subjectId && att.teacherId) {
          const isoDate = new Date(att.date).toISOString().split("T")[0];
          const key = `${isoDate}-${att.subjectId._id.toString()}-${att.teacherId._id.toString()}`;
@@ -108,8 +99,6 @@ export async function GET(req) {
         accessor: `${pair.subjectId}-${pair.teacherId}`,
       })),
     ];
-    console.log("Generated columns:", columns.length);
-
 
     // 5. Create table data
     const daysInMonth = endDate.getDate();
@@ -129,8 +118,6 @@ export async function GET(req) {
 
       return row;
     });
-    console.log("Generated table data rows:", tableData.length);
-
 
     return NextResponse.json({ tableData, columns });
   } catch (error) {
