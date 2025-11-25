@@ -15,7 +15,7 @@ async function getClasses() {
 }
 
 export default async function AttendanceTablePage() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const activeRole = cookieStore.get("active-role")?.value;
 
   if (activeRole !== "College Admin") {

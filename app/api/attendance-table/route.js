@@ -23,13 +23,13 @@ export async function GET(req) {
 
     // 1. Fetch TimeTable for the class to get scheduled pairs
     const timeTables = await TimeTable.find({ classId }).populate([
-      { path: "periods.subjectId", select: "name" },
-      { path: "periods.teacherId", select: "name" },
+      { path: "timeSlots.subjectId", select: "name" },
+      { path: "timeSlots.teacherId", select: "name" },
     ]);
 
     if (timeTables) {
       timeTables.forEach((tt) => {
-        tt.periods.forEach((p) => {
+        tt.timeSlots.forEach((p) => {
           if (p.subjectId && p.teacherId) {
             const key = `${p.subjectId._id.toString()}-${p.teacherId._id.toString()}`;
             if (!subjectTeacherPairs[key]) {
