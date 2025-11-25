@@ -309,25 +309,23 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Book Name</TableHead>
                     <TableHead>Course</TableHead>
-                    <TableHead>File Name</TableHead>
+                    <TableHead>Book Name</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredBooks.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
+                      <TableCell colSpan={3} className="text-center py-8">
                         No books available
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredBooks.map((book) => (
                       <TableRow key={book._id}>
-                        <TableCell>{book.name}</TableCell>
                         <TableCell>{book.course}</TableCell>
-                        <TableCell>{book.fileName}</TableCell>
+                        <TableCell>{book.name}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
