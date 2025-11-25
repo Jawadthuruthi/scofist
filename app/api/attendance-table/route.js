@@ -6,11 +6,14 @@ import TimeTable from "@/models/TimeTable.js";
 export async function GET(req) {
   try {
     await connectToDB();
+    console.log("API route hit: /api/attendance-table");
 
     const url = new URL(req.url);
     const classId = url.searchParams.get("classId");
     const month = parseInt(url.searchParams.get("month"));
     const year = parseInt(url.searchParams.get("year"));
+    console.log(`Query Params: classId=${classId}, month=${month}, year=${year}`);
+
 
     if (!classId || !month || !year) {
       return NextResponse.json(
@@ -22,10 +25,12 @@ export async function GET(req) {
     const subjectTeacherPairs = {};
 
     // 1. Fetch TimeTable for the class to get scheduled pairs
+    console.log("Fetching timetables...");
     const timeTables = await TimeTable.find({ classId }).populate([
       { path: "timeSlots.subjectId", select: "name" },
       { path: "timeSlots.teacherId", select: "name" },
     ]);
+    console.log(`Found ${timeTables.length} timetables.`);
 
     if (timeTables) {
       timeTables.forEach((tt) => {
@@ -44,11 +49,14 @@ export async function GET(req) {
         });
       });
     }
+    console.log("Processed timetable pairs:", Object.keys(subjectTeacherPairs).length);
+
 
     // 2. Fetch attendance for the month and merge in any new pairs
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
 
+    console.log("Fetching attendances...");
     const attendances = await Attendance.find({
       classId,
       date: { $gte: startDate, $lte: endDate },
@@ -56,6 +64,8 @@ export async function GET(req) {
       { path: "subjectId", select: "name" },
       { path: "teacherId", select: "name" },
     ]);
+    console.log(`Found ${attendances.length} attendance records.`);
+
 
     attendances.forEach((att) => {
       if (att.subjectId && att.teacherId) {
@@ -74,13 +84,17 @@ export async function GET(req) {
     const uniquePairs = Object.values(subjectTeacherPairs).sort((a, b) =>
       a.subjectName.localeCompare(b.subjectName)
     );
+    console.log("Total unique subject-teacher pairs:", uniquePairs.length);
+
 
     // 3. Create a Set for quick lookups of marked attendance
     const markedAttendances = new Set();
     attendances.forEach((att) => {
-      const isoDate = new Date(att.date).toISOString().split("T")[0];
-      const key = `${isoDate}-${att.subjectId._id.toString()}-${att.teacherId._id.toString()}`;
-      markedAttendances.add(key);
+      if(att.subjectId && att.teacherId) {
+         const isoDate = new Date(att.date).toISOString().split("T")[0];
+         const key = `${isoDate}-${att.subjectId._id.toString()}-${att.teacherId._id.toString()}`;
+         markedAttendances.add(key);
+      }
     });
 
     // 4. Create columns for the table
@@ -94,6 +108,8 @@ export async function GET(req) {
         accessor: `${pair.subjectId}-${pair.teacherId}`,
       })),
     ];
+    console.log("Generated columns:", columns.length);
+
 
     // 5. Create table data
     const daysInMonth = endDate.getDate();
@@ -113,12 +129,14 @@ export async function GET(req) {
 
       return row;
     });
+    console.log("Generated table data rows:", tableData.length);
+
 
     return NextResponse.json({ tableData, columns });
   } catch (error) {
-    console.error(error);
+    console.error("Error in /api/attendance-table:", error);
     return NextResponse.json(
-      { message: "Internal Server Error" },
+      { message: "Internal Server Error", error: error.message },
       { status: 500 }
     );
   }
