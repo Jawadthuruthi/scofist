@@ -149,6 +149,12 @@ const items = [
         allowedRoles: ["College Admin", "Student", "Teacher"],
       },
       {
+        title: "Books",
+        url: "/dashboard/downloads/books",
+        icon: BookOpen,
+        allowedRoles: ["College Admin", "Teacher"],
+      },
+      {
         title: "Identity Cards",
         url: "/dashboard/identity-cards",
         icon: IdCard,
