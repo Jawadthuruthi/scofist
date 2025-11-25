@@ -197,7 +197,7 @@ const pages = [
   {
     path: "/dashboard/downloads",
     pattern: /^\/dashboard\/downloads(?:\/[^/]+)?$/,
-    allowedRoles: ["College Admin", "Student"],
+    allowedRoles: ["College Admin", "Student", "Teacher"],
   },
   {
     title: "Divisions",

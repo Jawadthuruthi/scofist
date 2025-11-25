@@ -4,9 +4,9 @@ import connectToDB from "@/lib/db";
 import BookModel from "@/models/Book.js";
 
 export default async function BooksPage() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const activeRole = cookieStore.get("active-role")?.value;
-  const headersList = headers();
+  const headersList = await headers();
   const isE2ETest = headersList.get("x-e2e-test") === "true";
   const apiKey = process.env.API_KEY;
 
