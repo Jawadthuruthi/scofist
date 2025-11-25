@@ -264,6 +264,12 @@ const items = [
         icon: FileSearch,
         allowedRoles: ["College Admin", "Teacher"],
       },
+      {
+        title: "Attendance Table",
+        url: "/dashboard/attendance-table",
+        icon: FileSpreadsheet,
+        allowedRoles: ["College Admin"],
+      },
     ],
   },
   {

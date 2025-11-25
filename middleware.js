@@ -148,6 +148,11 @@ const pages = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
+    title: "Attendance Table",
+    path: "/dashboard/attendance-table",
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Identity Cards",
     path: "/dashboard/identity-cards",
     allowedRoles: ["College Admin", "Teacher"],
