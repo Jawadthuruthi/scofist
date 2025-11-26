@@ -184,7 +184,7 @@ const items = [
     title: "Masjid Attendance",
     url: "/dashboard/masjid-attendance",
     icon: ClipboardList,
-    allowedRoles: ["College Admin", "Org Admin"],
+    allowedRoles: ["College Admin"],
   },
   {
     title: "Applications",
@@ -256,12 +256,6 @@ const items = [
         title: "Attendance Tracking",
         url: "/dashboard/attendance-tracking",
         icon: UserCheck,
-        allowedRoles: ["College Admin", "Teacher"],
-      },
-      {
-        title: "Leave History",
-        url: "/dashboard/leave-history",
-        icon: ClipboardList,
         allowedRoles: ["College Admin", "Teacher"],
       },
       {
