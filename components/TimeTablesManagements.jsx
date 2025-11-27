@@ -656,41 +656,69 @@ const TimeTablesManagements = ({
         return;
       }
 
-      // **NEW: Loop through all days and create a change for each day**
-      const newChanges = DAYS.map((day) => {
-        const changeForDay = {
-          classId: selectedClass,
-          timeSlots: {
-            day: day,
-            periodNumber: parseInt(selectedPeriod),
-            subjectId: selectedSubject,
-            teacherId: selectedTeacher,
-          },
-        };
+      // **NEW: Loop through all days but only add changes for EMPTY slots**
+      const newChanges = [];
+      let emptyCount = 0;
 
-        // Check if there's an existing slot for this day/period combination
+      DAYS.forEach((day) => {
+        // Get existing data for this day/period
         const existingSlotForDay = timeTableData?.timeSlots?.find(
           (slot) =>
             slot.periodNumber === parseInt(selectedPeriod) && slot.day === day
         );
 
-        if (existingSlotForDay?.id) {
-          changeForDay.timeSlots.id = existingSlotForDay.id;
-        }
+        // Check if there's a pending change for this day/period
+        const hasPendingChange = pendingChanges.some(
+          (change) =>
+            change.timeSlots.periodNumber === parseInt(selectedPeriod) &&
+            change.timeSlots.day === day &&
+            change.classId === selectedClass
+        );
 
-        if (timeTableData?.id) {
-          changeForDay.id = timeTableData?.id;
-        }
+        // **Only add change if slot is empty (no existing data AND no pending change)
+        // OR if it's the current day being edited**
+        const isEmptySlot =
+          !existingSlotForDay?.teacherId &&
+          !existingSlotForDay?.subjectId &&
+          !hasPendingChange;
+        const isCurrentDay = day === selectedDay;
 
-        return changeForDay;
+        if (isEmptySlot || isCurrentDay) {
+          const changeForDay = {
+            classId: selectedClass,
+            timeSlots: {
+              day: day,
+              periodNumber: parseInt(selectedPeriod),
+              subjectId: selectedSubject,
+              teacherId: selectedTeacher,
+            },
+          };
+
+          // If editing an existing slot, include its ID
+          if (existingSlotForDay?.id) {
+            changeForDay.timeSlots.id = existingSlotForDay.id;
+          }
+
+          if (timeTableData?.id) {
+            changeForDay.id = timeTableData?.id;
+          }
+
+          newChanges.push(changeForDay);
+
+          if (!isCurrentDay) {
+            emptyCount++;
+          }
+        }
       });
 
-      // Remove existing pending changes for the same period across all days
+      // Remove existing pending changes for the days we're updating
+      const daysToUpdate = newChanges.map((change) => change.timeSlots.day);
       const filteredPendingChanges = pendingChanges.filter(
         (change) =>
           !(
             change.timeSlots.periodNumber === parseInt(selectedPeriod) &&
-            change.classId === selectedClass
+            change.classId === selectedClass &&
+            daysToUpdate.includes(change.timeSlots.day)
           )
       );
 
@@ -698,9 +726,17 @@ const TimeTablesManagements = ({
       setPendingChanges([...filteredPendingChanges, ...newChanges]);
       setHasPendingChanges(true);
       setEditDialogOpen(false);
-      toast.success(
-        `Changes added to queue for all days (Period ${selectedPeriod}). Save all to apply changes.`
-      );
+
+      // Show appropriate success message
+      if (emptyCount > 0) {
+        toast.success(
+          `Changes added for ${selectedDay} + ${emptyCount} empty slot${emptyCount > 1 ? "s" : ""} in Period ${selectedPeriod}. Save all to apply changes.`
+        );
+      } else {
+        toast.success(
+          `Changes added for ${selectedDay} Period ${selectedPeriod}. Save all to apply changes.`
+        );
+      }
 
       // Reset form
       setSelectedSubject("");
