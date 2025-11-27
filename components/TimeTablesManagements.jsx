@@ -637,7 +637,6 @@ const TimeTablesManagements = ({
         existingTimeSlotId
       );
 
-      // Get conflicts from pending changes
       const pendingConflicts = checkPendingConflicts(
         selectedTeacher,
         selectedPeriod,
@@ -647,67 +646,67 @@ const TimeTablesManagements = ({
           : null
       );
 
-      // Combine all conflicts
       const allConflicts = [...existingConflicts, ...pendingConflicts];
 
-      // If conflicts exist, show error and don't proceed
       if (allConflicts.length > 0) {
         toast.error(
           "Teacher scheduling conflict detected. Cannot add to pending changes."
         );
-
-        // Update conflict state to display in UI
         setTeacherScheduleConflicts(allConflicts);
         return;
       }
+
+      // **NEW: Loop through all days and create a change for each day**
+      const newChanges = DAYS.map((day) => {
+        const changeForDay = {
+          classId: selectedClass,
+          timeSlots: {
+            day: day,
+            periodNumber: parseInt(selectedPeriod),
+            subjectId: selectedSubject,
+            teacherId: selectedTeacher,
+          },
+        };
+
+        // Check if there's an existing slot for this day/period combination
+        const existingSlotForDay = timeTableData?.timeSlots?.find(
+          (slot) =>
+            slot.periodNumber === parseInt(selectedPeriod) && slot.day === day
+        );
+
+        if (existingSlotForDay?.id) {
+          changeForDay.timeSlots.id = existingSlotForDay.id;
+        }
+
+        if (timeTableData?.id) {
+          changeForDay.id = timeTableData?.id;
+        }
+
+        return changeForDay;
+      });
+
+      // Remove existing pending changes for the same period across all days
+      const filteredPendingChanges = pendingChanges.filter(
+        (change) =>
+          !(
+            change.timeSlots.periodNumber === parseInt(selectedPeriod) &&
+            change.classId === selectedClass
+          )
+      );
+
+      // Add all new changes
+      setPendingChanges([...filteredPendingChanges, ...newChanges]);
+      setHasPendingChanges(true);
+      setEditDialogOpen(false);
+      toast.success(
+        `Changes added to queue for all days (Period ${selectedPeriod}). Save all to apply changes.`
+      );
+
+      // Reset form
+      setSelectedSubject("");
+      setSelectedTeacher("");
+      setExistingTimeSlotId(null);
     }
-
-    const newChange = {
-      classId: selectedClass,
-      timeSlots: {
-        day: selectedDay,
-        periodNumber: parseInt(selectedPeriod),
-        subjectId: selectedSubject,
-        teacherId: selectedTeacher,
-      },
-    };
-
-    // If we're editing an existing slot, include its ID
-    if (existingTimeSlotId) {
-      newChange.timeSlots._id = existingTimeSlotId;
-    }
-
-    // Add timetable _id if it exists
-    if (timeTableData?._id) {
-      newChange._id = timeTableData?._id;
-    }
-
-    // Check if we're updating an existing pending change
-    const existingIndex = pendingChanges.findIndex(
-      (change) =>
-        change.timeSlots.periodNumber === parseInt(selectedPeriod) &&
-        change.timeSlots.day === selectedDay &&
-        change.classId === selectedClass
-    );
-
-    if (existingIndex !== -1) {
-      // Update existing pending change
-      const updatedChanges = [...pendingChanges];
-      updatedChanges[existingIndex] = newChange;
-      setPendingChanges(updatedChanges);
-    } else {
-      // Add new pending change
-      setPendingChanges([...pendingChanges, newChange]);
-    }
-
-    setHasPendingChanges(true);
-    setEditDialogOpen(false);
-    toast.success("Changes added to queue. Save all to apply changes.");
-
-    // Reset form
-    setSelectedSubject("");
-    setSelectedTeacher("");
-    setExistingTimeSlotId(null);
   };
 
   // Process changes in batches to prevent timeout
@@ -797,7 +796,7 @@ const TimeTablesManagements = ({
       setIsSubmitting(true);
 
       // Create a reset request - this will clear all time slots for this class
-      await deleteItem.mutateAsync([timeTableData?._id]);
+      await deleteItem.mutateAsync({ data: { ids: [timeTableData?._id] } });
 
       // Clear any pending changes for this class
       const remainingChanges = pendingChanges.filter(
