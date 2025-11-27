@@ -525,6 +525,7 @@ const StudentStatusChart = memo(({ students, isLoading }) => {
 StudentStatusChart.displayName = "StudentStatusChart";
 
 import FacultyProfileCard from "./FacultyProfileCard";
+import StudentStatusByBatchChart from "./StudentStatusByBatchChart";
 
 // ===== LAZY TIMETABLE COMPONENT =====
 const LazyTimeTable = memo(
@@ -895,6 +896,27 @@ export default function Dashboard({
                 <BatchChart
                   batches={dashboardData.batches}
                   students={dashboardData.graduatedStudents}
+                  isLoading={isLoadingCharts}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Student Status By Batch Chart */}
+            <Card className="border-t-4 border-t-primary">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <BarChart className="h-5 w-5" />
+                  <span>Student Status By Batch</span>
+                </CardTitle>
+                <CardDescription>
+                  Comparison of active/graduated and dropped out students by
+                  batch
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <StudentStatusByBatchChart
+                  batches={dashboardData.batches}
+                  students={dashboardData.students}
                   isLoading={isLoadingCharts}
                 />
               </CardContent>

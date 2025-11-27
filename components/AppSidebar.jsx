@@ -128,14 +128,39 @@ const items = [
   {
     title: "Students Fund",
     url: "/dashboard/students-fund",
-    allowedRoles: ["College Admin", "Teacher"],
+    allowedRoles: ["College Admin", "Teacher", "Stationary", "IT Lab"],
     icon: CreditCard,
   },
   {
     title: "Downloads",
-    url: "/dashboard/downloads",
-    allowedRoles: ["College Admin", "Student", "Teacher"],
     icon: Download,
+    allowedRoles: ["College Admin", "Student", "Teacher"],
+    subItems: [
+      {
+        title: "Question Papers",
+        url: "/dashboard/downloads",
+        icon: FileText,
+        allowedRoles: ["College Admin", "Student", "Teacher"],
+      },
+      {
+        title: "Syllabus",
+        url: "/dashboard/syllabus",
+        icon: BookOpen,
+        allowedRoles: ["College Admin", "Student", "Teacher"],
+      },
+      {
+        title: "Books",
+        url: "/dashboard/downloads/books",
+        icon: BookOpen,
+        allowedRoles: ["College Admin", "Teacher"],
+      },
+      {
+        title: "Identity Cards",
+        url: "/dashboard/identity-cards",
+        icon: IdCard,
+        allowedRoles: ["College Admin"],
+      },
+    ],
   },
   {
     title: "Marks",
@@ -159,7 +184,7 @@ const items = [
     title: "Masjid Attendance",
     url: "/dashboard/masjid-attendance",
     icon: ClipboardList,
-    allowedRoles: ["College Admin", "Org Admin"],
+    allowedRoles: ["College Admin"],
   },
   {
     title: "Applications",
@@ -222,15 +247,15 @@ const items = [
     allowedRoles: ["College Admin", "Teacher"],
     subItems: [
       {
-        title: "Attendance Tracking",
-        url: "/dashboard/attendance-tracking",
-        icon: UserCheck,
+        title: "Attendance Sheet",
+        url: "/dashboard/attendance-sheet",
+        icon: FileSpreadsheet,
         allowedRoles: ["College Admin", "Teacher"],
       },
       {
-        title: "Leave History",
-        url: "/dashboard/leave-history",
-        icon: ClipboardList,
+        title: "Attendance Tracking",
+        url: "/dashboard/attendance-tracking",
+        icon: UserCheck,
         allowedRoles: ["College Admin", "Teacher"],
       },
       {
@@ -240,9 +265,9 @@ const items = [
         allowedRoles: ["College Admin", "Teacher"],
       },
       {
-        title: "Students ID Card",
-        url: "/dashboard/students-id-card",
-        icon: IdCard,
+        title: "Attendance Table",
+        url: "/dashboard/attendance-table",
+        icon: FileSpreadsheet,
         allowedRoles: ["College Admin"],
       },
     ],

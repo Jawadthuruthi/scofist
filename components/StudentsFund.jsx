@@ -78,6 +78,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
   const [showClearHistoryDialogue, setShowClearHistoryDialogue] =
     useState(false);
   const [loading, setLoading] = useState(false);
+  const [transactions, setTransactions] = useState([]);
   const amountInputRef = useRef(null);
   const noteInputRef = useRef(null);
   const confirmButtonRef = useRef(null);
@@ -124,18 +125,15 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
     return fetchStudentFundQuery.data?.studentFund || {};
   }, [fetchStudentFundQuery.data, selectedStudent, selectedBatch]);
 
-  const transactions = useMemo(() => {
-    return (
-      studentFund?.transactions?.sort(
-        (a, b) => new Date(b.date) - new Date(a.date)
-      ) || []
-    );
-  }, [studentFund, selectedStudent]);
-
   useEffect(() => {
     if (fetchStudentFundQuery.data && studentFund) {
       const balance = studentFund.balance;
       setStudentBalance(balance || 0);
+      setTransactions(
+        studentFund?.transactions?.sort(
+          (a, b) => new Date(b.date) - new Date(a.date)
+        ) || []
+      );
     }
   }, [studentFund, selectedStudent]);
 
@@ -204,28 +202,45 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
     };
 
     // Optimistically update UI
+    const newTransaction = {
+      ...transaction,
+      _id: `temp-${Date.now()}`,
+      date: new Date().toISOString(),
+    };
+    const previousTransactions = transactions;
+
     setStudentBalance(newBalance);
+    setTransactions((prev) => [newTransaction, ...prev]);
     setShowConfirmDialog(false);
     setAmount("");
     setNote("");
 
-    try {
-      await addStudentFund.mutateAsync({
+    addStudentFund.mutate(
+      {
         studentId: isBatchTransaction ? undefined : selectedStudent,
         teacherId,
         batchId: selectedBatch,
         transaction,
         balance: newBalance,
-      });
-
-      await fetchStudentFundQuery.refetch();
-    } catch (error) {
-      console.error("Transaction failed, reverting optimistic update:", error);
-      setStudentBalance(originalBalance);
-    } finally {
-      setLoading(false);
-      setTransactionType("");
-    }
+      },
+      {
+        onSuccess: () => {
+          fetchStudentFundQuery.refetch();
+        },
+        onError: (error) => {
+          console.error(
+            "Transaction failed, reverting optimistic update:",
+            error
+          );
+          setStudentBalance(originalBalance);
+          setTransactions(previousTransactions);
+        },
+        onSettled: () => {
+          setLoading(false);
+          setTransactionType("");
+        },
+      }
+    );
   };
 
   const handleClearHistory = async () => {

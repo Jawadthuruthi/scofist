@@ -17,14 +17,17 @@ import {
 import { formatDateForDisplay } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
-const StudentsIdCard = ({
+const IdentityCards = ({
   students = [],
   institution = {},
   classes = [],
   idCardBackgroundImageUrl = "",
+  teachers = [],
 }) => {
+  const [selectionType, setSelectionType] = useState("Student ID");
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedStudent, setSelectedStudent] = useState("");
+  const [selectedTeacher, setSelectedTeacher] = useState("");
 
   const pageRef = useRef(null);
 
@@ -32,7 +35,7 @@ const StudentsIdCard = ({
 
   const handlePrint = useReactToPrint({
     contentRef: pageRef,
-    documentTitle: "Students ID Cards",
+    documentTitle: "Identity Cards",
   });
 
   useEffect(() => {
@@ -49,12 +52,18 @@ const StudentsIdCard = ({
 
   // Memoize filtered students to prevent recalculation on every render
   const filteredStudents = useMemo(() => {
+    if (selectionType === "Teacher ID") return [];
     return students.filter(
       (student) =>
         (!selectedClass || student.classId === selectedClass) &&
         (!selectedStudent || student._id === selectedStudent)
     );
-  }, [students, selectedClass, selectedStudent]);
+  }, [students, selectedClass, selectedStudent, selectionType]);
+
+  const filteredTeachers = useMemo(() => {
+    if (selectionType === "Student ID") return [];
+    return teachers.filter((teacher) => !selectedTeacher || teacher._id === selectedTeacher);
+  }, [teachers, selectedTeacher, selectionType]);
 
   // Memoize filtered students by class
   const studentsInSelectedClass = useMemo(() => {
@@ -74,48 +83,83 @@ const StudentsIdCard = ({
   return (
     <div>
       <Header
-        title="STUDENTS ID CARD"
-        subTitle="Official Identity for Students"
+        title="IDENTITY CARDS"
+        subTitle="Official Identity for Students and Teachers"
       />
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="w-full md:w-1/4">
-          <label htmlFor="class-select" className="sr-only">
-            Select a Class
-          </label>
-          <Select value={selectedClass} onValueChange={setSelectedClass}>
-            <SelectTrigger className="w-full" id="class-select">
-              <SelectValue placeholder="Select a Class" />
+          <Select value={selectionType} onValueChange={setSelectionType}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select an option" />
             </SelectTrigger>
             <SelectContent>
-              <SelectGroup>
-                <SelectItem value={null}>None</SelectItem>
-                {classes.map((classItem) => (
-                  <SelectItem key={classItem._id} value={classItem._id}>
-                    {classItem.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
+              <SelectItem value="Student ID">Student ID</SelectItem>
+              <SelectItem value="Teacher ID">Teacher ID</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        {selectedClass && (
+        {selectionType === "Student ID" && (
+          <>
+            <div className="w-full md:w-1/4">
+              <label htmlFor="class-select" className="sr-only">
+                Select a Class
+              </label>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger className="w-full" id="class-select">
+                  <SelectValue placeholder="Select a Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value={null}>None</SelectItem>
+                    {classes.map((classItem) => (
+                      <SelectItem key={classItem._id} value={classItem._id}>
+                        {classItem.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedClass && (
+              <div className="w-full md:w-1/4">
+                <label htmlFor="student-select" className="sr-only">
+                  Select a Student
+                </label>
+                <Select
+                  value={selectedStudent}
+                  onValueChange={setSelectedStudent}
+                >
+                  <SelectTrigger className="w-full" id="student-select">
+                    <SelectValue placeholder="Select a Student" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value={null}>None</SelectItem>
+                      {studentsInSelectedClass.map((student) => (
+                        <SelectItem key={student._id} value={student._id}>
+                          {student.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </>
+        )}
+        {selectionType === "Teacher ID" && (
           <div className="w-full md:w-1/4">
-            <label htmlFor="student-select" className="sr-only">
-              Select a Student
-            </label>
-            <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-              <SelectTrigger className="w-full" id="student-select">
-                <SelectValue placeholder="Select a Student" />
+            <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a teacher" />
               </SelectTrigger>
               <SelectContent>
-                <SelectGroup>
-                  <SelectItem value={null}>None</SelectItem>
-                  {studentsInSelectedClass.map((student) => (
-                    <SelectItem key={student._id} value={student._id}>
-                      {student.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
+                <SelectItem value={null}>None</SelectItem>
+                {teachers.map((teacher) => (
+                  <SelectItem key={teacher._id} value={teacher._id}>
+                    {teacher.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -134,51 +178,71 @@ const StudentsIdCard = ({
 
       {/* Screen Preview */}
       <div className="grid grid-cols-12 gap-4 print:hidden">
-        {filteredStudents.map((student) => (
-          <IdCard
-            key={student._id}
-            student={student}
-            institution={institution}
-            academicYear={academicYear}
-            idCardBackgroundImageUrl={idCardBackgroundImageUrl}
-          />
-        ))}
+        {selectionType === "Student ID"
+          ? filteredStudents.map((student) => (
+              <IdCard
+                key={student._id}
+                person={student}
+                institution={institution}
+                academicYear={academicYear}
+                idCardBackgroundImageUrl={idCardBackgroundImageUrl}
+                isStudent={true}
+              />
+            ))
+          : filteredTeachers.map((teacher) => (
+              <IdCard
+                key={teacher._id}
+                person={teacher}
+                institution={institution}
+                academicYear={academicYear}
+                idCardBackgroundImageUrl={idCardBackgroundImageUrl}
+                isStudent={false}
+              />
+            ))}
       </div>
 
       {/* Print Layout - A4 Landscape with Front-Back-Front-Back pattern */}
       <div ref={pageRef} className="hidden print:block">
-        {Array.from({ length: Math.ceil(filteredStudents.length / 4) }).map(
-          (_, pageIndex) => (
-            <div
-              key={`page-${pageIndex}`}
-              className="print-page w-full p-4 flex flex-wrap"
-              style={{
-                width: "297mm",
-                height: "210mm",
-                pageBreakAfter: "always",
-                pageBreakInside: "avoid",
-                breakAfter: "page",
-              }}
-              aria-hidden="true" // Hide from screen readers when printing
-            >
-              <div className="print:hidden text-xs text-gray-400">
-                Page {pageIndex + 1}
-              </div>
-
-              {filteredStudents
-                .slice(pageIndex * 4, (pageIndex + 1) * 4)
-                .map((student) => (
-                  <PrintableIdCard
-                    key={`print-${student._id}`}
-                    student={student}
-                    institution={institution}
-                    academicYear={academicYear}
-                    idCardBackgroundImageUrl={idCardBackgroundImageUrl}
-                  />
-                ))}
+        {Array.from({
+          length: Math.ceil(
+            (selectionType === "Student ID"
+              ? filteredStudents.length
+              : filteredTeachers.length) / 4
+          ),
+        }).map((_, pageIndex) => (
+          <div
+            key={`page-${pageIndex}`}
+            className="print-page w-full p-4 flex flex-wrap"
+            style={{
+              width: "297mm",
+              height: "210mm",
+              pageBreakAfter: "always",
+              pageBreakInside: "avoid",
+              breakAfter: "page",
+            }}
+            aria-hidden="true" // Hide from screen readers when printing
+          >
+            <div className="print:hidden text-xs text-gray-400">
+              Page {pageIndex + 1}
             </div>
-          )
-        )}
+
+            {(selectionType === "Student ID"
+              ? filteredStudents
+              : filteredTeachers
+            )
+              .slice(pageIndex * 4, (pageIndex + 1) * 4)
+              .map((person) => (
+                <PrintableIdCard
+                  key={`print-${person._id}`}
+                  person={person}
+                  institution={institution}
+                  academicYear={academicYear}
+                  idCardBackgroundImageUrl={idCardBackgroundImageUrl}
+                  isStudent={selectionType === "Student ID"}
+                />
+              ))}
+          </div>
+        ))}
       </div>
 
       {/* Enhanced CSS for print and display */}
@@ -220,10 +284,11 @@ const StudentsIdCard = ({
 
 // Extracted component for ID card preview
 const IdCard = ({
-  student,
+  person,
   institution,
   academicYear,
   idCardBackgroundImageUrl,
+  isStudent,
 }) => {
   return (
     <div className="preview-container col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 gap-4">
@@ -264,15 +329,15 @@ const IdCard = ({
               </div>
             </div>
 
-            {/* Student Photo and Details - Centered Layout */}
+            {/* Person Photo and Details - Centered Layout */}
             <div className="flex flex-col items-center">
               <div className="mb-3">
                 <div className="w-20 h-24 bg-white border-2 border-white rounded-md relative overflow-hidden shadow-md">
-                  {student.profilePic?.url ? (
+                  {person.profilePic?.url ? (
                     <div className="relative h-full w-full">
                       <Image
-                        src={student.profilePic.url || ""}
-                        alt={`${student.name}'s photo`}
+                        src={person.profilePic.url || ""}
+                        alt={`${person.name}'s photo`}
                         fill
                         className="object-cover"
                       />
@@ -285,19 +350,28 @@ const IdCard = ({
                 </div>
               </div>
 
-              {/* Student Name and ID - Centered */}
+              {/* Person Name and ID - Centered */}
               <div className="text-center space-y-1">
                 <h2 className="text-base font-bold mt-1 bg-white/20 inline-block px-2 py-0.5 rounded">
-                  Admn No: {student._id?.substring(0, 8).toUpperCase()}
+                  {isStudent
+                    ? `Admn No: ${person._id?.substring(0, 8).toUpperCase()}`
+                    : ""}
                 </h2>
-                <h3 className="font-bold text-xs">{student.name}</h3>
+                <h3 className="font-bold text-xs">{person.name}</h3>
+                {!isStudent && (
+                  <p className="text-xs">
+                    {person.address?.place || "No place provided"}
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
           <div className="p-2 bg-gradient-to-b from-indigo-50 to-white">
             <div className="text-xs text-center font-medium text-indigo-800">
-              OFFICIAL STUDENT IDENTIFICATION
+              {isStudent
+                ? "OFFICIAL STUDENT IDENTIFICATION"
+                : "OFFICIAL TEACHER IDENTIFICATION"}
             </div>
           </div>
         </CardContent>
@@ -312,7 +386,11 @@ const IdCard = ({
             </h3>
           </div>
 
-          <StudentDetails student={student} academicYear={academicYear} />
+          <PersonDetails
+            person={person}
+            academicYear={academicYear}
+            isStudent={isStudent}
+          />
 
           <div className="mt-auto bg-indigo-50 p-2 rounded-md">
             <div className="text-xs text-center text-gray-700">
@@ -339,8 +417,8 @@ const IdCard = ({
   );
 };
 
-// Extracted component for student details (reused in both preview and print views)
-const StudentDetails = ({ student, academicYear }) => {
+// Extracted component for person details (reused in both preview and print views)
+const PersonDetails = ({ person, academicYear, isStudent }) => {
   return (
     <div className="relative">
       <div
@@ -352,39 +430,70 @@ const StudentDetails = ({ student, academicYear }) => {
         }}
       ></div>
       <div className="relative text-xs space-y-1 z-10">
-        <div className="flex items-start">
-          <span className="mr-1 font-semibold min-w-20 w-20">Class:</span>
-          <span className="text-gray-700">{student.className}</span>
-        </div>
-        <div className="flex items-start">
-          <span className="mr-1 font-semibold min-w-20 w-20">Batch:</span>
-          <span className="text-gray-700">{student.batchName}</span>
-        </div>
+        {isStudent && (
+          <>
+            <div className="flex items-start">
+              <span className="mr-1 font-semibold min-w-20 w-20">Class:</span>
+              <span className="text-gray-700">{person.className}</span>
+            </div>
+            <div className="flex items-start">
+              <span className="mr-1 font-semibold min-w-20 w-20">Batch:</span>
+              <span className="text-gray-700">{person.batchName}</span>
+            </div>
+            <div className="flex items-start">
+              <span className="mr-1 font-semibold min-w-20 w-20">S/o:</span>
+              <span className="text-gray-700">
+                {person.guardianName || "No guardian provided"}
+              </span>
+            </div>
+            <div className="flex items-start">
+              <span className="mr-1 font-semibold min-w-20 w-20 whitespace-nowrap">
+                Contact No:
+              </span>
+              <span className="text-gray-700">
+                {person.guardianContactNumber || "No contact provided"}
+              </span>
+            </div>
+          </>
+        )}
+        {!isStudent && (
+          <>
+            <div className="flex items-start">
+              <span className="mr-1 font-semibold min-w-20 w-20">Email:</span>
+              <span className="text-gray-700">
+                {person.email || "No email provided"}
+              </span>
+            </div>
+            <div className="flex items-start">
+              <span className="mr-1 font-semibold min-w-20 w-20">
+                Date of Joining:
+              </span>
+              <span className="text-gray-700">
+                {formatDateForDisplay(new Date(person.dateOfJoining)) ||
+                  "No date provided"}
+              </span>
+            </div>
+            <div className="flex items-start">
+              <span className="mr-1 font-semibold min-w-20 w-20">
+                Alternative Contact:
+              </span>
+              <span className="text-gray-700">
+                {person.alternativeContactNumber || "No contact provided"}
+              </span>
+            </div>
+          </>
+        )}
         <div className="flex items-start">
           <span className="mr-1 font-semibold min-w-20 w-20">Dob:</span>
           <span className="text-gray-700">
-            {formatDateForDisplay(new Date(student.dateOfBirth)) ||
+            {formatDateForDisplay(new Date(person.dateOfBirth)) ||
               "No DOB provided"}
-          </span>
-        </div>
-        <div className="flex items-start">
-          <span className="mr-1 font-semibold min-w-20 w-20">S/o:</span>
-          <span className="text-gray-700">
-            {student.guardianName || "No guardian provided"}
-          </span>
-        </div>
-        <div className="flex items-start">
-          <span className="mr-1 font-semibold min-w-20 w-20 whitespace-nowrap">
-            Contact No:
-          </span>
-          <span className="text-gray-700">
-            {student.guardianContactNumber || "No contact provided"}
           </span>
         </div>
         <div className="flex items-start">
           <span className="mr-1 font-semibold min-w-20 w-20">Address:</span>
           <span className="text-gray-700">
-            {Object.values(student.address || {})
+            {Object.values(person.address || {})
               .filter(Boolean)
               .join(", ") || "No address provided"}
           </span>
@@ -392,7 +501,7 @@ const StudentDetails = ({ student, academicYear }) => {
         <div className="flex items-start">
           <span className="mr-1 font-semibold min-w-20 w-20">Phone No:</span>
           <span className="text-gray-700">
-            {student.contactNumber || "No phone provided"}
+            {person.contactNumber || "No phone provided"}
           </span>
         </div>
         <div className="flex items-start">
@@ -406,10 +515,11 @@ const StudentDetails = ({ student, academicYear }) => {
 
 // Extracted component for printable ID card
 const PrintableIdCard = ({
-  student,
+  person,
   institution,
   academicYear,
   idCardBackgroundImageUrl,
+  isStudent,
 }) => {
   return (
     <div
@@ -453,11 +563,11 @@ const PrintableIdCard = ({
           <div className="flex flex-col items-center flex-grow">
             <div className="mb-1">
               <div className="w-28 h-28 bg-white border border-white rounded relative overflow-hidden">
-                {student.profilePic?.url ? (
+                {person.profilePic?.url ? (
                   <div className="relative h-full w-full">
                     <Image
-                      src={student.profilePic.url || ""}
-                      alt={`${student.name}'s photo`}
+                      src={person.profilePic.url || ""}
+                      alt={`${person.name}'s photo`}
                       fill
                       className="object-cover"
                     />
@@ -472,14 +582,21 @@ const PrintableIdCard = ({
 
             <div className="text-center">
               <h3 className="text-base font-bold mt-0.5 bg-white/20 inline-block px-1 py-0.5 rounded">
-                Admn No: {student._id?.substring(0, 8).toUpperCase()}
+                {isStudent
+                  ? `Admn No: ${person._id?.substring(0, 8).toUpperCase()}`
+                  : ""}
               </h3>
-              <h3 className="font-bold text-xs">{student.name}</h3>
+              <h3 className="font-bold text-xs">{person.name}</h3>
+              {!isStudent && (
+                <p className="text-xs">
+                  {person.address?.place || "No place provided"}
+                </p>
+              )}
             </div>
           </div>
 
           <div className="bg-white/10 text-xs font-bold text-center mt-1 p-0.5 rounded">
-            OFFICIAL STUDENT ID
+            {isStudent ? "OFFICIAL STUDENT ID" : "OFFICIAL TEACHER ID"}
           </div>
         </div>
       </div>
@@ -493,7 +610,11 @@ const PrintableIdCard = ({
             </h3>
           </div>
 
-          <StudentDetails student={student} academicYear={academicYear} />
+          <PersonDetails
+            person={person}
+            academicYear={academicYear}
+            isStudent={isStudent}
+          />
 
           <div className="bg-indigo-50 p-1 rounded text-center text-xs mt-auto">
             <p className="font-bold text-indigo-700 text-xs px-8">
@@ -518,4 +639,4 @@ const PrintableIdCard = ({
   );
 };
 
-export default StudentsIdCard;
+export default IdentityCards;

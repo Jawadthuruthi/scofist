@@ -1,4 +1,5 @@
 import { Schema, model, models, mongoose } from "mongoose";
+import "./StudentsFund.js"; // Import to ensure schema is registered
 import Batch from "./Batch";
 import Class from "./Class";
 
@@ -252,6 +253,13 @@ const userSchema = new Schema(
 
 // Indexes for common query patterns
 userSchema.index({ name: "text" });
+
+// Virtual for student's funds
+userSchema.virtual('funds', {
+  ref: 'StudentsFund',
+  localField: '_id',
+  foreignField: 'studentId'
+});
 
 const User = models.User || model("User", userSchema);
 export default User;

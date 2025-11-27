@@ -230,27 +230,19 @@ export async function DELETE(req, res) {
       );
     }
 
-    let result;
-    let message;
+    const result = await TimeTable.deleteMany({ _id: { $in: ids } });
 
-    if (ids.length > 1) {
-      result = await TimeTable.deleteMany({ _id: { $in: ids } });
-      message = `${result.deletedCount} TimeTables deleted successfully!`;
-    } else {
-      const _id = ids[0];
-      result = await TimeTable.findByIdAndDelete(_id);
-
-      if (!result) {
-        return NextResponse.json(
-          { message: "TimeTable not found" },
-          { status: 404 }
-        );
-      }
-
-      message = "TimeTable deleted successfully!";
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { message: "No TimeTables found to delete" },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json({ result, message }, { status: 200 });
+    return NextResponse.json(
+      { message: `${result.deletedCount} TimeTables deleted successfully!` },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error deleting time tables:", error);
     return apiResponse.error(error);

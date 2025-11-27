@@ -229,8 +229,8 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
   return (
     <>
       <Header
-        title="DOWNLOADS"
-        subTitle="Download and upload study materials"
+        title="QUESTION PAPERS"
+        subTitle="Download and upload question papers"
       />
       <div className="container mx-auto p-4 space-y-6">
         {/* Upload Section */}
@@ -239,7 +239,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
             <CardHeader>
               <CardTitle>Upload previous year question papers</CardTitle>
               <CardDescription>
-                Upload documents for students to download
+                Upload question papers for students to download
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -359,7 +359,9 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
         {/* Downloads Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Available Downloads</CardTitle>
+            <CardTitle>
+              Available Question Papers ({filteredDownloads.length})
+            </CardTitle>
             <CardDescription>
               Filter and download question papers
             </CardDescription>

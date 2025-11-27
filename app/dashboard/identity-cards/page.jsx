@@ -1,26 +1,28 @@
 import ErrorPage from "@/components/ErrorPage";
-import StudentsIdCard from "@/components/StudentsIdCard";
+import IdentityCards from "@/components/IdentityCards";
 import { fetchData } from "@/lib/utils";
 
 export const revalidate = 60;
-const studentsIdCardPage = async () => {
+const identityCardsPage = async () => {
   try {
-    const [students, settings, classes] = await Promise.all([
+    const [students, settings, classes, teachers] = await Promise.all([
       fetchData("users", "roles=Student&status=Active"),
       fetchData("settings"),
       fetchData("classes"),
+      fetchData("users", "roles=Teacher"),
     ]);
 
     return (
-      <StudentsIdCard
+      <IdentityCards
         students={students}
         institution={settings.institution}
         idCardBackgroundImageUrl={settings.idCard?.backgroundImage?.url}
         classes={classes}
+        teachers={teachers}
       />
     );
   } catch (error) {
-    console.error("Error loading students id card:", error.message);
+    console.error("Error loading identity card:", error.message);
     return (
       <ErrorPage
         statusCode={500}
@@ -31,4 +33,4 @@ const studentsIdCardPage = async () => {
   }
 };
 
-export default studentsIdCardPage;
+export default identityCardsPage;
