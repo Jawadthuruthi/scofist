@@ -59,7 +59,8 @@ const useCrud = (apiEndpoint, apiKey) => {
   // Delete an item
   const useDeleteItem = () => {
     return useMutation({
-      mutationFn: (ids) => deleteItem(apiEndpoint, { ids }, apiKey),
+      mutationFn: ({ data }) =>
+        deleteItem(apiEndpoint, { ids: data.ids }, apiKey),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [apiEndpoint] });
       },
