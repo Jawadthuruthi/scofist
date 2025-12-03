@@ -109,7 +109,6 @@ const LiteraryAttendance = () => {
     0,
     {
       classId: queryParams.classId,
-      batchId: queryParams.batchId,
       roles: "Student",
       status: "Active",
     },
@@ -400,7 +399,7 @@ const LiteraryAttendance = () => {
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={student.profilePic?.url} />
                               <AvatarFallback>
-                                {student.name.substring(0, 1)} {}
+                                {student.name.substring(0, 1)} { }
                               </AvatarFallback>
                             </Avatar>
                             <div>
