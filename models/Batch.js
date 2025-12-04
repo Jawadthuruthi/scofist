@@ -63,9 +63,8 @@ const batchSchema = new Schema(
 // Virtual for graduation year format
 batchSchema.virtual("academicYear").get(function () {
   if (!this.startYear || !this.endYear) return "";
-  return `${
-    this.startYear
-  }-${(this.endYear % 100).toString().padStart(2, "0")}`;
+  return `${this.startYear
+    }-${(this.endYear % 100).toString().padStart(2, "0")}`;
 });
 
 // Virtual for student count
