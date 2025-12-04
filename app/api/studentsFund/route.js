@@ -18,20 +18,41 @@ export async function GET(req, res) {
     } else {
       query.studentId = { $exists: false };
     }
-    if (searchParams.teacherId) {
+
+    // Hybrid Fund Logic
+    if (searchParams.department) {
+      query.department = searchParams.department;
+      query.fundType = "Department";
+    } else if (searchParams.teacherId) {
       query.teacherId = searchParams.teacherId;
+      // Allow legacy docs (missing fundType) or new docs (fundType="Individual")
+      query.$or = [{ fundType: "Individual" }, { fundType: { $exists: false } }];
     }
+
     if (searchParams.batchId) {
       query.batchId = searchParams.batchId;
     }
 
     const studentFund = await StudentsFund.findOne(query);
 
-    const allStudentsFund = await StudentsFund.find({
-      teacherId: searchParams.teacherId,
+    // Query for "All Students Balance" list
+    const allStudentsQuery = {
       batchId: searchParams.batchId,
       balance: { $ne: 0 },
-    })
+    };
+
+    if (searchParams.department) {
+      allStudentsQuery.department = searchParams.department;
+      allStudentsQuery.fundType = "Department";
+    } else if (searchParams.teacherId) {
+      allStudentsQuery.teacherId = searchParams.teacherId;
+      allStudentsQuery.$or = [
+        { fundType: "Individual" },
+        { fundType: { $exists: false } },
+      ];
+    }
+
+    const allStudentsFund = await StudentsFund.find(allStudentsQuery)
       .populate("studentId")
       .sort({ updatedAt: -1 });
 
@@ -44,13 +65,28 @@ export async function GET(req, res) {
 export async function POST(req, res) {
   try {
     await connectToDB();
-    const { studentId, teacherId, batchId, balance, transaction } =
-      await req.json();
+    const {
+      studentId,
+      teacherId,
+      batchId,
+      balance,
+      transaction,
+      department,
+      fundType = "Individual",
+    } = await req.json();
 
     const query = {
       batchId,
-      teacherId,
     };
+
+    if (fundType === "Department" && department) {
+      query.department = department;
+      query.fundType = "Department";
+    } else {
+      query.teacherId = teacherId;
+      // Allow legacy docs (missing fundType) or new docs (fundType="Individual")
+      query.$or = [{ fundType: "Individual" }, { fundType: { $exists: false } }];
+    }
 
     if (studentId) {
       query.studentId = studentId;
@@ -65,14 +101,28 @@ export async function POST(req, res) {
         ...query,
         balance,
         transactions: [{ ...transaction, date: new Date() }],
+        fundType, // Ensure fundType is set for new docs
       };
+      // Clean up query artifacts from newStudentsFundData if necessary
+      delete newStudentsFundData.$or;
+
       if (studentId) {
         newStudentsFundData.studentId = studentId;
       }
+      // Explicitly set teacherId if it's an Individual fund (it might be in query, but good to be safe)
+      if (fundType === "Individual") {
+        newStudentsFundData.teacherId = teacherId;
+      }
+
       studentFund = new StudentsFund(newStudentsFundData);
     } else {
       studentFund.balance = balance;
       studentFund.transactions.push({ ...transaction, date: new Date() });
+
+      // Migration: Ensure fundType is set if it was missing
+      if (!studentFund.fundType) {
+        studentFund.fundType = "Individual";
+      }
     }
 
     await studentFund.save();
@@ -86,18 +136,39 @@ export async function POST(req, res) {
 export async function PUT(req, res) {
   try {
     await connectToDB();
-    const { studentId, teacherId, batchId } = await req.json();
+    const {
+      studentId,
+      teacherId,
+      batchId,
+      department,
+      fundType = "Individual",
+    } = await req.json();
+
+    const query = {
+      batchId,
+    };
+
+    if (studentId) {
+      query.studentId = studentId;
+    }
+
+    if (fundType === "Department" && department) {
+      query.department = department;
+      query.fundType = "Department";
+    } else {
+      query.teacherId = teacherId;
+      query.$or = [{ fundType: "Individual" }, { fundType: { $exists: false } }];
+    }
+
     const studentFund = await StudentsFund.findOneAndUpdate(
-      {
-        studentId,
-        teacherId,
-        batchId,
-      },
+      query,
       {
         $set: {
           transactions: [],
+          fundType: fundType, // Migrate on update
         },
-      }
+      },
+      { new: true }
     );
     return NextResponse.json({ studentFund }, { status: 200 });
   } catch (error) {

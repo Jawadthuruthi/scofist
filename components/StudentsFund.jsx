@@ -65,7 +65,13 @@ import { formatOptions } from "@/lib/utils";
 import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
+const StudentsFund = ({
+  batches = [],
+  students = [],
+  apiKey,
+  teacherId,
+  department,
+}) => {
   const [selectedStudent, setSelectedStudent] = useState("");
   const [selectedBatch, setSelectedBatch] = useState("");
   const [studentBalance, setStudentBalance] = useState(0);
@@ -99,11 +105,12 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
     null,
     {
       studentId: selectedStudent,
-      teacherId,
+      teacherId: department ? undefined : teacherId,
+      department,
       batchId: selectedBatch,
     },
     {
-      enabled: !!teacherId && !!selectedBatch,
+      enabled: !!(teacherId || department) && !!selectedBatch,
     }
   );
 
@@ -218,9 +225,14 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
     addStudentFund.mutate(
       {
         studentId: isBatchTransaction ? undefined : selectedStudent,
-        teacherId,
+        teacherId: department ? undefined : teacherId,
+        department,
+        fundType: department ? "Department" : "Individual",
         batchId: selectedBatch,
-        transaction,
+        transaction: {
+          ...transaction,
+          performedBy: teacherId,
+        },
         balance: newBalance,
       },
       {
@@ -248,7 +260,9 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
       await updateStudentFund.mutateAsync({
         data: {
           studentId: selectedStudent,
-          teacherId,
+          teacherId: department ? undefined : teacherId,
+          department,
+          fundType: department ? "Department" : "Individual",
           batchId: selectedBatch,
         },
       });
@@ -310,7 +324,14 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
 
   return (
     <div className="min-h-screen">
-      <Header title="STUDENTS FUND" subTitle="Review Student Fund Activities" />
+      <Header
+        title={department ? `${department.toUpperCase()} FUND` : "STUDENTS FUND"}
+        subTitle={
+          department
+            ? `Manage ${department} Fund Activities`
+            : "Review Student Fund Activities"
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
@@ -371,7 +392,7 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                   <div className="flex items-center justify-between p-4 bg-accent rounded-lg border">
                     <div className="flex items-center gap-3">
                       {selectedStudent &&
-                      selectedStudent !== selectedBatchData?._id ? (
+                        selectedStudent !== selectedBatchData?._id ? (
                         <>
                           <Avatar className="h-7 md:h-12 w-7 md:w-12">
                             <AvatarImage
@@ -405,11 +426,10 @@ const StudentsFund = ({ batches = [], students = [], apiKey, teacherId }) => {
                         Current Balance
                       </p>
                       <p
-                        className={`text-lg md:text-2xl font-bold ${
-                          studentBalance < 0
+                        className={`text-lg md:text-2xl font-bold ${studentBalance < 0
                             ? "text-destructive"
                             : "text-green-600"
-                        }`}
+                          }`}
                       >
                         {studentBalance
                           ? `₹ ${studentBalance?.toFixed(2)}`

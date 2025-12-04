@@ -41,6 +41,10 @@ const StudentsFundPage = async () => {
         };
       });
 
+    let department = null;
+    if (activeRole === "Stationary") department = "Stationary";
+    if (activeRole === "IT Lab") department = "IT Lab";
+
     return (
       <StudentsFund
         batches={formattedBatches}
@@ -48,6 +52,7 @@ const StudentsFundPage = async () => {
         role={activeRole}
         teacherId={user?.userId}
         apiKey={apiKey}
+        department={department}
       />
     );
   } catch (error) {

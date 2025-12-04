@@ -9,8 +9,19 @@ const studentsFundSchema = new Schema(
     },
     teacherId: {
       type: String,
-      required: true,
       ref: "User",
+      // Required only if fundType is 'Individual'
+    },
+    department: {
+      type: String,
+      enum: ["Stationary", "IT Lab"],
+      // Required only if fundType is 'Department'
+    },
+    fundType: {
+      type: String,
+      enum: ["Individual", "Department"],
+      default: "Individual",
+      required: true,
     },
     batchId: {
       type: String,
@@ -36,6 +47,10 @@ const studentsFundSchema = new Schema(
         note: {
           type: String,
         },
+        performedBy: {
+          type: String,
+          ref: "User", // Track who actually performed the transaction
+        },
         date: {
           type: Date,
           default: Date.now,
@@ -48,25 +63,59 @@ const studentsFundSchema = new Schema(
   }
 );
 
-// Add a compound unique index for student-specific funds
+// Compound unique index for Individual funds (Teacher-specific)
 studentsFundSchema.index(
   { studentId: 1, batchId: 1, teacherId: 1 },
   {
     unique: true,
-    partialFilterExpression: { studentId: { $exists: true } },
+    partialFilterExpression: {
+      studentId: { $exists: true },
+      fundType: "Individual",
+    },
   }
 );
 
-// Add a compound unique index for batch-specific funds
+// Compound unique index for Department funds (Shared)
+studentsFundSchema.index(
+  { studentId: 1, batchId: 1, department: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      studentId: { $exists: true },
+      fundType: "Department",
+    },
+  }
+);
+
+// Compound unique index for Batch-specific Individual funds
 studentsFundSchema.index(
   { batchId: 1, teacherId: 1 },
   {
     unique: true,
-    partialFilterExpression: { studentId: { $exists: false } },
+    partialFilterExpression: {
+      studentId: { $exists: false },
+      fundType: "Individual",
+    },
   }
 );
 
-const StudentsFund =
-  models.StudentsFund || model("StudentsFund", studentsFundSchema);
+// Compound unique index for Batch-specific Department funds
+studentsFundSchema.index(
+  { batchId: 1, department: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      studentId: { $exists: false },
+      fundType: "Department",
+    },
+  }
+);
+
+// Force model recompilation to apply schema changes in dev mode
+if (models.StudentsFund) {
+  delete models.StudentsFund;
+}
+
+const StudentsFund = model("StudentsFund", studentsFundSchema);
 
 export default StudentsFund;
