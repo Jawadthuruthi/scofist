@@ -49,6 +49,7 @@ import {
   FileText,
   Trash2,
   Loader,
+  Users,
 } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
@@ -64,6 +65,8 @@ import { MultiSelect } from "./ui/multi-select";
 import { formatOptions } from "@/lib/utils";
 import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 
 const StudentsFund = ({
   batches = [],
@@ -89,6 +92,14 @@ const StudentsFund = ({
   const noteInputRef = useRef(null);
   const confirmButtonRef = useRef(null);
   const finalConfirmButtonRef = useRef(null);
+
+  // Bulk Transaction States
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [bulkSelectedStudents, setBulkSelectedStudents] = useState([]);
+  const [bulkTransactionType, setBulkTransactionType] = useState("Deposit");
+  const [bulkAmount, setBulkAmount] = useState("");
+  const [bulkNote, setBulkNote] = useState("");
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const printRef = useRef();
   const allStudentsFundRef = useRef();
@@ -322,6 +333,64 @@ const StudentsFund = ({
     html2pdf().set(opt).from(element).save();
   };
 
+  // Bulk Transaction Handlers
+  const toggleBulkStudent = (studentId) => {
+    setBulkSelectedStudents((prev) =>
+      prev.includes(studentId)
+        ? prev.filter((id) => id !== studentId)
+        : [...prev, studentId]
+    );
+  };
+
+  const toggleAllBulkStudents = () => {
+    if (bulkSelectedStudents.length === availableStudents.length) {
+      setBulkSelectedStudents([]);
+    } else {
+      setBulkSelectedStudents(availableStudents.map((s) => s._id));
+    }
+  };
+
+  const handleBulkTransaction = async () => {
+    if (!bulkAmount || bulkSelectedStudents.length === 0) return;
+
+    setBulkLoading(true);
+    try {
+      const response = await fetch("/api/studentsFund/bulk", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": apiKey,
+        },
+        body: JSON.stringify({
+          batchId: selectedBatch,
+          studentIds: bulkSelectedStudents,
+          transaction: {
+            type: bulkTransactionType,
+            amount: parseFloat(bulkAmount),
+            note: bulkNote,
+          },
+          teacherId: department ? undefined : teacherId,
+          department,
+          fundType: department ? "Department" : "Individual",
+        }),
+      });
+
+      if (!response.ok) throw new Error("Bulk transaction failed");
+
+      toast.success("Bulk transaction processed successfully");
+      setShowBulkDialog(false);
+      setBulkAmount("");
+      setBulkNote("");
+      setBulkSelectedStudents([]);
+      fetchStudentFundQuery.refetch();
+    } catch (error) {
+      console.error("Bulk transaction error:", error);
+      toast.error("Failed to process bulk transaction");
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <Header
@@ -339,18 +408,160 @@ const StudentsFund = ({
           <Card>
             <CardContent className="p-6 space-y-6">
               <>
-                <Select value={selectedBatch} onValueChange={setSelectedBatch}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a batch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {batches.map((batch) => (
-                      <SelectItem key={batch._id} value={batch._id}>
-                        {batch.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-col sm:flex-row gap-4 items-end">
+                  <div className="flex-1 w-full">
+                    <Select
+                      value={selectedBatch}
+                      onValueChange={setSelectedBatch}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a batch" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {batches.map((batch) => (
+                          <SelectItem key={batch._id} value={batch._id}>
+                            {batch.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedBatch && (
+                    <Dialog
+                      open={showBulkDialog}
+                      onOpenChange={setShowBulkDialog}
+                    >
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="gap-2 w-full sm:w-auto">
+                          <Users className="h-4 w-4" />
+                          Bulk Transaction
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col w-[95vw] sm:w-full">
+                        <DialogHeader>
+                          <DialogTitle>Bulk Transaction</DialogTitle>
+                          <DialogDescription>
+                            Apply a transaction to multiple students at once.
+                          </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="flex-1 overflow-y-auto py-4 space-y-4">
+                          <div className="flex items-center justify-between px-1">
+                            <Label className="text-sm font-medium">
+                              Select Students ({bulkSelectedStudents.length})
+                            </Label>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={toggleAllBulkStudents}
+                              className="h-8 text-xs"
+                            >
+                              {bulkSelectedStudents.length ===
+                                availableStudents.length
+                                ? "Deselect All"
+                                : "Select All"}
+                            </Button>
+                          </div>
+
+                          <div className="border rounded-md p-2 max-h-[40vh] sm:max-h-60 overflow-y-auto space-y-1">
+                            {availableStudents.map((student) => (
+                              <div
+                                key={student._id}
+                                className="flex items-center space-x-2 p-2 hover:bg-accent rounded-sm cursor-pointer"
+                                onClick={() => toggleBulkStudent(student._id)}
+                              >
+                                <Checkbox
+                                  checked={bulkSelectedStudents.includes(
+                                    student._id
+                                  )}
+                                  // Remove onCheckedChange to prevent double toggle, let parent div handle it
+                                  className="pointer-events-none"
+                                />
+                                <span className="text-sm">{student.name}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <Button
+                              variant={
+                                bulkTransactionType === "Deposit"
+                                  ? "default"
+                                  : "outline"
+                              }
+                              onClick={() => setBulkTransactionType("Deposit")}
+                              className="flex gap-2"
+                            >
+                              <Plus className="h-4 w-4" /> Deposit
+                            </Button>
+                            <Button
+                              variant={
+                                bulkTransactionType === "Withdrawal"
+                                  ? "default"
+                                  : "outline"
+                              }
+                              onClick={() =>
+                                setBulkTransactionType("Withdrawal")
+                              }
+                              className={`flex gap-2 ${bulkTransactionType === "Withdrawal"
+                                ? "!bg-destructive !text-destructive-foreground"
+                                : ""
+                                }`}
+                            >
+                              <Minus className="h-4 w-4" /> Withdrawal
+                            </Button>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Amount (₹)</Label>
+                            <Input
+                              type="number"
+                              placeholder="Enter amount"
+                              value={bulkAmount}
+                              onChange={(e) => setBulkAmount(e.target.value)}
+                              min="1"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Note</Label>
+                            <Input
+                              placeholder="Transaction note"
+                              value={bulkNote}
+                              onChange={(e) => setBulkNote(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowBulkDialog(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={handleBulkTransaction}
+                            disabled={
+                              !bulkAmount ||
+                              bulkSelectedStudents.length === 0 ||
+                              bulkLoading
+                            }
+                          >
+                            {bulkLoading ? (
+                              <>
+                                <Loader className="mr-2 h-4 w-4 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              "Confirm Bulk Transaction"
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </div>
 
                 {selectedBatch && (
                   <div className="space-y-2">
@@ -427,8 +638,8 @@ const StudentsFund = ({
                       </p>
                       <p
                         className={`text-lg md:text-2xl font-bold ${studentBalance < 0
-                            ? "text-destructive"
-                            : "text-green-600"
+                          ? "text-destructive"
+                          : "text-green-600"
                           }`}
                       >
                         {studentBalance
@@ -457,7 +668,10 @@ const StudentsFund = ({
                         transactionType === "Withdrawal" ? "default" : "outline"
                       }
                       onClick={() => setTransactionType("Withdrawal")}
-                      className={`h-16 flex-col gap-2 ${transactionType === "Withdrawal" ? "!bg-destructive !text-destructive-foreground" : ""}`}
+                      className={`h-16 flex-col gap-2 ${transactionType === "Withdrawal"
+                        ? "!bg-destructive !text-destructive-foreground"
+                        : ""
+                        }`}
                     >
                       <Minus className="h-5 w-5" />
                       Withdrawal
@@ -734,27 +948,29 @@ const StudentsFund = ({
                             {allStudentBalance?.toFixed(2)}
                           </span>
                         </div>
-                        <Table className="border border-border w-full">
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Student Name</TableHead>
-                              <TableHead>Balance</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {allStudentsFund.map((student) => (
-                              <TableRow
-                                key={student._id}
-                                className="break-inside-avoid"
-                              >
-                                <TableCell>{student.studentId?.name}</TableCell>
-                                <TableCell>
-                                  {student.balance?.toFixed(2)}
-                                </TableCell>
+                        <div className="overflow-x-auto">
+                          <Table className="border border-border w-full">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Student Name</TableHead>
+                                <TableHead>Balance</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                            </TableHeader>
+                            <TableBody>
+                              {allStudentsFund.map((student) => (
+                                <TableRow
+                                  key={student._id}
+                                  className="break-inside-avoid"
+                                >
+                                  <TableCell>{student.studentId?.name}</TableCell>
+                                  <TableCell>
+                                    {student.balance?.toFixed(2)}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
                       </div>
                       <DialogFooter>
                         {isMobile ? (
@@ -811,29 +1027,31 @@ const StudentsFund = ({
                               {allStudentBalance?.toFixed(2)}
                             </span>
                           </div>
-                          <Table className="border border-border w-full">
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Student Name</TableHead>
-                                <TableHead>Balance</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {allStudentsFund.map((student) => (
-                                <TableRow
-                                  key={student._id}
-                                  className="break-inside-avoid"
-                                >
-                                  <TableCell>
-                                    {student.studentId?.name}
-                                  </TableCell>
-                                  <TableCell>
-                                    {student.balance?.toFixed(2)}
-                                  </TableCell>
+                          <div className="overflow-x-auto">
+                            <Table className="border border-border w-full">
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Student Name</TableHead>
+                                  <TableHead>Balance</TableHead>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+                              </TableHeader>
+                              <TableBody>
+                                {allStudentsFund.map((student) => (
+                                  <TableRow
+                                    key={student._id}
+                                    className="break-inside-avoid"
+                                  >
+                                    <TableCell>
+                                      {student.studentId?.name}
+                                    </TableCell>
+                                    <TableCell>
+                                      {student.balance?.toFixed(2)}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
                         </div>
                         <DialogFooter>
                           {isMobile ? (
@@ -862,68 +1080,31 @@ const StudentsFund = ({
         </div>
       </div>
 
-      {/* Confirmation Dialog */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Transaction</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to process this{" "}
-              {transactionType?.toLowerCase()} transaction?
+              Are you sure you want to {transactionType.toLowerCase()} ₹{amount}{" "}
+              {transactionType === "Deposit" ? "to" : "from"}{" "}
+              {selectedStudent !== selectedBatchData?._id
+                ? selectedStudentData?.name
+                : selectedBatchData?.name}
+              's account?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="my-4 p-4 bg-accent rounded-lg">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-accent-foreground">
-                  {selectedStudent !== selectedBatchData?._id
-                    ? "Student"
-                    : "Batch"}
-                </p>
-                <p className="font-medium">
-                  {selectedStudent !== selectedBatchData?._id
-                    ? selectedStudentData?.name
-                    : selectedBatchData?.name}
-                </p>
-              </div>
-              <div>
-                <p className="text-accent-foreground">Transaction Type</p>
-                <p className="font-medium">{transactionType}</p>
-              </div>
-              <div>
-                <p className="text-accent-foreground">Amount</p>
-                <p className="font-medium">₹{parseFloat(amount || 0)}</p>
-              </div>
-              {selectedStudent !== selectedBatch && (
-                <div>
-                  <p className="text-accent-foreground">New Balance</p>
-                  <p className="font-medium">
-                    ₹
-                    {transactionType === "Deposit"
-                      ? studentBalance + parseFloat(amount)
-                      : studentBalance - parseFloat(amount) || 0}
-                  </p>
-                </div>
-              )}
-            </div>
-            <div className="mt-3">
-              <p className="text-accent-foreground text-sm">Note</p>
-              <p className="text-sm">{note}</p>
-            </div>
-          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               ref={finalConfirmButtonRef}
               onClick={confirmTransaction}
-              disabled={loading}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  confirmTransaction();
-                }
-              }}
+              className={
+                transactionType === "Withdrawal"
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : ""
+              }
             >
-              {loading ? "Processing..." : "Confirm"}
+              Confirm
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
