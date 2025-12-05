@@ -1,36 +1,35 @@
-import MasjidAttendance from "@/components/MasjidAttendance";
-import { fetchData } from "@/lib/utils";
+import MasjidDashboard from "@/components/masjid-attendance/MasjidDashboard";
+import { headers } from "next/headers";
+import { parseUser } from "@/lib/utils";
+import connectDB from "@/lib/db";
+import Class from "@/models/Class";
 
-const API_ENDPOINTS = [
-  {
-    pathname: "users",
-    searchParams: "projection=_id,name,profilePic&status=Active&roles=Student",
-  },
-  {
-    pathname: "classes",
-  },
-];
+const MasjidAttendancePage = async () => {
+    const apiKey = process.env.API_KEY;
+    const headerStore = await headers();
+    const user = parseUser(headerStore);
 
-const apiKey = process.env.API_KEY;
-const masjidAttendancePage = async () => {
-  const [students, classes] = await Promise.all(
-    API_ENDPOINTS.map((endpoint) =>
-      fetchData(
-        endpoint.pathname,
-        endpoint.searchParams,
-        endpoint.revalidate,
-        endpoint.key
-      )
-    )
-  );
-  return (
-    <MasjidAttendance
-      students={students}
-      classes={classes}
-      apiKey={apiKey}
-    />
-  );
+    await connectDB();
+    // Fetch all active classes
+    // We serialize the data to pass it to the client component
+    const classes = await Class.find({})
+        .select("name batchId")
+        .lean();
+
+    console.log("Fetched Classes Count:", classes.length);
+    if (classes.length > 0) {
+        console.log("First Class:", classes[0]);
+    } else {
+        console.log("No classes found.");
+    }
+
+    const serializedClasses = classes.map((cls) => ({
+        _id: cls._id.toString(),
+        name: cls.name,
+        batchId: cls.batchId.toString(),
+    }));
+
+    return <MasjidDashboard classes={serializedClasses} apiKey={apiKey} />;
 };
 
-export default masjidAttendancePage;
-export const revalidate = 60;
+export default MasjidAttendancePage;

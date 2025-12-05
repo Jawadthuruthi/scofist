@@ -1,71 +1,70 @@
-import { Schema } from "mongoose";
-import { models, model } from "mongoose";
-import Class from "./Class";
+import mongoose from "mongoose";
 
-const masjidAttendanceSchema = new Schema(
-  {
-    date: {
-      type: Date,
-      required: true,
-      validate: {
-        validator: (v) => v <= new Date(),
-        message: "Attendance date cannot be in the future",
-      },
-    },
-    day: {
-      type: String,
-      required: true,
-      enum: [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-      ],
-    },
-    classId: {
-      type: String,
-      required: true,
-      ref: "Class",
-      uppercase: true,
-      trim: true,
-      match: [
-        /^[A-Z0-9-]+$/,
-        "Class ID must only contain uppercase letters, numbers, and hyphens (-).",
-      ],
-    },
-    batchId: {
-      type: String,
-      required: true,
-      ref: "Batch",
-      uppercase: true,
-      trim: true,
-      match: [
-        /^[A-Z0-9-]+$/,
-        "Batch ID must only contain uppercase letters, numbers, and hyphens (-).",
-      ],
-    },
-    attendanceData: [
-      {
-        studentId: {
-          type: String,
-          required: true,
-          ref: "User",
+const masjidAttendanceSchema = new mongoose.Schema(
+    {
+        date: {
+            type: Date,
+            required: true,
+            index: true,
         },
-        present: {
-          type: Boolean,
-          default: true,
+        day: {
+            type: String,
+            required: true,
         },
-      },
-    ],
-  },
-  { timestamps: true }
+        prayer: {
+            type: String,
+            required: true,
+            enum: ["ZUHR", "ASAR", "MAGRIB", "ISHA", "SUBH"],
+        },
+        classId: {
+            type: String,
+            ref: "Class",
+            required: true,
+        },
+        batchId: {
+            type: String,
+            ref: "Batch",
+            required: true,
+        },
+        markedBy: {
+            type: String,
+            ref: "User",
+            required: true,
+        },
+        attendanceData: [
+            {
+                studentId: {
+                    type: String,
+                    ref: "User",
+                    required: true,
+                },
+                status: {
+                    type: String,
+                    enum: ["PRESENT", "ABSENT", "LEAVE"],
+                    default: "PRESENT",
+                },
+                remarks: {
+                    type: String,
+                    default: "",
+                },
+            },
+        ],
+    },
+    {
+        timestamps: true,
+    }
 );
 
+// Compound index to prevent duplicate attendance for the same class, prayer, and date
+masjidAttendanceSchema.index({ date: 1, prayer: 1, classId: 1 }, { unique: true });
+
+// Force model rebuild to pick up schema changes
+if (mongoose.models.MasjidAttendance) {
+    delete mongoose.models.MasjidAttendance;
+}
+
 const MasjidAttendance =
-  models.MasjidAttendance ||
-  model("MasjidAttendance", masjidAttendanceSchema);
+    mongoose.models.MasjidAttendance ||
+    mongoose.model("MasjidAttendance", masjidAttendanceSchema);
 
 export default MasjidAttendance;

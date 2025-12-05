@@ -27,6 +27,10 @@ const studentAttendanceSchema = new Schema(
           type: String,
           required: true,
         },
+        prayer: {
+          type: String,
+          required: true,
+        },
         date: {
           type: Date,
           required: true,
