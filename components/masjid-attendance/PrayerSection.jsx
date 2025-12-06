@@ -67,7 +67,9 @@ const PrayerSection = ({ prayer, classes, date, apiKey }) => {
                                             }`}
                                     >
                                         <div>
-                                            <h4 className="font-medium">{cls.name}</h4>
+                                            <h4 className="font-medium">
+                                                {cls.name} {cls.batchName && `(${cls.batchName})`}
+                                            </h4>
                                             <p className="text-xs text-muted-foreground">
                                                 {isMarked ? "Attendance Marked" : "Pending"}
                                             </p>

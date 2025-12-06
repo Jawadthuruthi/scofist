@@ -11,7 +11,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "classes",
-    searchParams: "projection=_id,name",
+    searchParams: "projection=_id,name,batchId",
   },
   {
     pathname: "subjects",
@@ -35,6 +35,11 @@ const AttendanceTrackingPage = async () => {
         fetchData(endpoint.pathname, endpoint.searchParams)
       )
     );
+
+    const formattedClasses = classes.map((c) => ({
+      ...c,
+      name: c.batchName ? `${c.name} (${c.batchName})` : c.name,
+    }));
 
     const tabsConfig = [
       {
@@ -94,7 +99,7 @@ const AttendanceTrackingPage = async () => {
             inputType: "select",
             nestedArrayField: "attendanceRecords",
 
-            options: formatOptions(classes),
+            options: formatOptions(formattedClasses),
           },
           {
             id: "studentId",
@@ -185,7 +190,7 @@ const AttendanceTrackingPage = async () => {
             inputType: "select",
             nestedArrayField: "attendanceRecords",
 
-            options: formatOptions(classes),
+            options: formatOptions(formattedClasses),
           },
           {
             id: "subjectId",
@@ -253,7 +258,7 @@ const AttendanceTrackingPage = async () => {
             inputType: "select",
             nestedArrayField: "attendanceRecords",
 
-            options: formatOptions(classes),
+            options: formatOptions(formattedClasses),
           },
 
           {
@@ -339,7 +344,7 @@ const AttendanceTrackingPage = async () => {
             inputType: "select",
             nestedArrayField: "attendanceRecords",
 
-            options: formatOptions(classes),
+            options: formatOptions(formattedClasses),
           },
           {
             id: "subjectId",
@@ -407,7 +412,7 @@ const AttendanceTrackingPage = async () => {
             inputType: "select",
             nestedArrayField: "attendanceRecords",
 
-            options: formatOptions(classes),
+            options: formatOptions(formattedClasses),
           },
 
           {

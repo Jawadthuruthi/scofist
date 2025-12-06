@@ -27,52 +27,52 @@ import {
 import Header from "./Header";
 
 const PrintableComponent = React.memo(React.forwardRef(({ date, selectedClass, selectedSubject, classes, subjects, students, daysInMonth, attendance, leaveRecords }, ref) => {
-    return (
-        <div ref={ref} className="p-4">
-            <h2 className="text-xl font-bold mb-4 text-center">
-                Attendance Report - {date.toLocaleString('default', { month: 'long', year: 'numeric' })}
-            </h2>
-            <h3 className="text-lg mb-2 text-center">
-                Class: {classes.find(c => c._id === selectedClass)?.name} | Subject: {subjects.find(s => s._id === selectedSubject)?.name}
-            </h3>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Sl. No.</TableHead>
-                        <TableHead>Student</TableHead>
-                        {daysInMonth.map((day) => (
-                            <TableHead key={day.toISOString()} className="text-center">{day.getDate()}</TableHead>
-                        ))}
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {students.map((student, index) => (
-                        <TableRow key={student._id}>
-                            <TableCell>{index + 1}</TableCell>
-                            <TableCell className="font-medium">{student.name}</TableCell>
-                            {daysInMonth.map((day) => {
-                                const dayOfMonth = day.getDate();
-                                const isPresent = attendance[student._id]?.[dayOfMonth];
-                                const leaveReason = leaveRecords[student._id]?.[dayOfMonth];
-                                return (
-                                    <TableCell key={day.toISOString()} className="text-center">
-                                        {isPresent === true && "P"}
-                                        {isPresent === false && (
-                                            <>
-                                                <div>A</div>
-                                                {leaveReason && <div className="text-xs">{leaveReason}</div>}
-                                            </>
-                                        )}
-                                        {isPresent === undefined && "-"}
-                                    </TableCell>
-                                );
-                            })}
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
-    );
+  return (
+    <div ref={ref} className="p-4">
+      <h2 className="text-xl font-bold mb-4 text-center">
+        Attendance Report - {date.toLocaleString('default', { month: 'long', year: 'numeric' })}
+      </h2>
+      <h3 className="text-lg mb-2 text-center">
+        Class: {classes.find(c => c._id === selectedClass)?.name} | Subject: {subjects.find(s => s._id === selectedSubject)?.name}
+      </h3>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Sl. No.</TableHead>
+            <TableHead>Student</TableHead>
+            {daysInMonth.map((day) => (
+              <TableHead key={day.toISOString()} className="text-center">{day.getDate()}</TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {students.map((student, index) => (
+            <TableRow key={student._id}>
+              <TableCell>{index + 1}</TableCell>
+              <TableCell className="font-medium">{student.name}</TableCell>
+              {daysInMonth.map((day) => {
+                const dayOfMonth = day.getDate();
+                const isPresent = attendance[student._id]?.[dayOfMonth];
+                const leaveReason = leaveRecords[student._id]?.[dayOfMonth];
+                return (
+                  <TableCell key={day.toISOString()} className="text-center">
+                    {isPresent === true && "P"}
+                    {isPresent === false && (
+                      <>
+                        <div>A</div>
+                        {leaveReason && <div className="text-xs">{leaveReason}</div>}
+                      </>
+                    )}
+                    {isPresent === undefined && "-"}
+                  </TableCell>
+                );
+              })}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }));
 
 const AttendanceSheet = ({ apiKey }) => {
@@ -187,124 +187,124 @@ const AttendanceSheet = ({ apiKey }) => {
 
   return (
     <>
-        <div style={{ display: "none" }}>
-            <PrintableComponent
-                ref={componentRef}
-                date={date}
-                selectedClass={selectedClass}
-                selectedSubject={selectedSubject}
-                classes={classes}
-                subjects={subjects}
-                students={students}
-                daysInMonth={daysInMonth}
-                attendance={attendance}
-                leaveRecords={leaveRecords}
-            />
-        </div>
-    <div className="space-y-6">
-      <Header
-        title="ATTENDANCE SHEET"
-        subTitle="Monthly attendance report for each subject"
-      />
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => handleMonthChange(-1)}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h3 className="text-lg font-semibold w-32 text-center">
-            {date.toLocaleString('default', { month: 'long', year: 'numeric' })}
-          </h3>
-          <Button variant="outline" size="icon" onClick={() => handleMonthChange(1)} disabled={isNextMonthDisabled()}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex gap-4">
-          <Select onValueChange={setSelectedClass} value={selectedClass}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select Class" />
-            </SelectTrigger>
-            <SelectContent>
-              {classes.map((c) => (
-                <SelectItem key={c._id} value={c._id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select onValueChange={setSelectedSubject} value={selectedSubject} disabled={!selectedClass}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select Subject" />
-            </SelectTrigger>
-            <SelectContent>
-              {subjects.map((s) => (
-                <SelectItem key={s._id} value={s._id}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div style={{ display: "none" }}>
+        <PrintableComponent
+          ref={componentRef}
+          date={date}
+          selectedClass={selectedClass}
+          selectedSubject={selectedSubject}
+          classes={classes}
+          subjects={subjects}
+          students={students}
+          daysInMonth={daysInMonth}
+          attendance={attendance}
+          leaveRecords={leaveRecords}
+        />
       </div>
-
-      {loading && (
-        <div className="flex justify-center items-center h-40">
-          <Loader className="h-8 w-8 animate-spin" />
-        </div>
-      )}
-
-      {!loading && selectedClass && selectedSubject && (
-        <>
-          <div className="overflow-x-auto border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="sticky left-0 bg-background z-10 w-16">Sl. No.</TableHead>
-                  <TableHead className="sticky left-16 bg-background z-10">Student</TableHead>
-                  {daysInMonth.map((day) => (
-                    <TableHead key={day.toISOString()} className="text-center">{day.getDate()}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {students.map((student, index) => (
-                  <TableRow key={student._id}>
-                    <TableCell className="sticky left-0 bg-background z-10 w-16">{index + 1}</TableCell>
-                    <TableCell className="sticky left-16 bg-background z-10 font-medium">{student.name}</TableCell>
-                    {daysInMonth.map((day) => {
-                      const dayOfMonth = day.getDate();
-                      const isPresent = attendance[student._id]?.[dayOfMonth];
-                      const leaveReason = leaveRecords[student._id]?.[dayOfMonth];
-                      return (
-                        <TableCell key={day.toISOString()} className="text-center">
-                          {isPresent === true && <Check className="text-green-500 mx-auto" />}
-                          {isPresent === false && (
-                            <div className="flex flex-col items-center">
-                              <X className="text-red-500" />
-                              {leaveReason && (
-                                <span className="text-xs text-muted-foreground writing-mode-vertical-rl">
-                                  {leaveReason}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          {isPresent === undefined && <span className="text-muted-foreground">-</span>}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+      <div className="space-y-6">
+        <Header
+          title="ATTENDANCE SHEET"
+          subTitle="Monthly attendance report for each subject"
+        />
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" onClick={() => handleMonthChange(-1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h3 className="text-lg font-semibold w-32 text-center">
+              {date.toLocaleString('default', { month: 'long', year: 'numeric' })}
+            </h3>
+            <Button variant="outline" size="icon" onClick={() => handleMonthChange(1)} disabled={isNextMonthDisabled()}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
+          <div className="flex gap-4">
+            <Select onValueChange={setSelectedClass} value={selectedClass}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Class" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((c) => (
+                  <SelectItem key={c._id} value={c._id}>
+                    {c.name} {c.batchName && `(${c.batchName})`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select onValueChange={setSelectedSubject} value={selectedSubject} disabled={!selectedClass}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Subject" />
+              </SelectTrigger>
+              <SelectContent>
+                {subjects.map((s) => (
+                  <SelectItem key={s._id} value={s._id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {loading && (
+          <div className="flex justify-center items-center h-40">
+            <Loader className="h-8 w-8 animate-spin" />
+          </div>
+        )}
+
+        {!loading && selectedClass && selectedSubject && (
+          <>
+            <div className="overflow-x-auto border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 bg-background z-10 w-16">Sl. No.</TableHead>
+                    <TableHead className="sticky left-16 bg-background z-10">Student</TableHead>
+                    {daysInMonth.map((day) => (
+                      <TableHead key={day.toISOString()} className="text-center">{day.getDate()}</TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {students.map((student, index) => (
+                    <TableRow key={student._id}>
+                      <TableCell className="sticky left-0 bg-background z-10 w-16">{index + 1}</TableCell>
+                      <TableCell className="sticky left-16 bg-background z-10 font-medium">{student.name}</TableCell>
+                      {daysInMonth.map((day) => {
+                        const dayOfMonth = day.getDate();
+                        const isPresent = attendance[student._id]?.[dayOfMonth];
+                        const leaveReason = leaveRecords[student._id]?.[dayOfMonth];
+                        return (
+                          <TableCell key={day.toISOString()} className="text-center">
+                            {isPresent === true && <Check className="text-green-500 mx-auto" />}
+                            {isPresent === false && (
+                              <div className="flex flex-col items-center">
+                                <X className="text-red-500" />
+                                {leaveReason && (
+                                  <span className="text-xs text-muted-foreground writing-mode-vertical-rl">
+                                    {leaveReason}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {isPresent === undefined && <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
             <div className="flex justify-end mt-4">
-                <Button onClick={handlePrint}>
+              <Button onClick={handlePrint}>
                 <Printer className="mr-2 h-4 w-4" />
                 Print
-                </Button>
+              </Button>
             </div>
-        </>
-      )}
-    </div>
+          </>
+        )}
+      </div>
     </>
   );
 };

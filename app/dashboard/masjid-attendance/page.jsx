@@ -14,6 +14,7 @@ const MasjidAttendancePage = async () => {
     // We serialize the data to pass it to the client component
     const classes = await Class.find({})
         .select("name batchId")
+        .populate("batchId", "name")
         .lean();
 
     console.log("Fetched Classes Count:", classes.length);
@@ -26,7 +27,8 @@ const MasjidAttendancePage = async () => {
     const serializedClasses = classes.map((cls) => ({
         _id: cls._id.toString(),
         name: cls.name,
-        batchId: cls.batchId.toString(),
+        batchId: cls.batchId?._id?.toString(),
+        batchName: cls.batchId?.name,
     }));
 
     return <MasjidDashboard classes={serializedClasses} apiKey={apiKey} />;

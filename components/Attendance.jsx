@@ -472,50 +472,64 @@ const Attendance = ({ apiKey, teacherId }) => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <Header
-        title="ATTENDANCE MANAGEMENT"
-        subTitle={`Mark Attendance For ${classDetails?.name} - ${subjectName}`}
-      />
+    <div className="space-y-4">
+      {/* Header & Metadata */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+        <div className="flex-1 -mb-4 md:mb-0">
+          <Header
+            title="ATTENDANCE MANAGEMENT"
+            subTitle={`Mark Attendance For ${classDetails?.name} - ${subjectName}`}
+          />
+        </div>
 
-      {/* Info Panel */}
-      <div className="p-4 border border-border space-y-4 rounded-md">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Metadata */}
+        <div className="flex items-center gap-4 text-muted-foreground px-3 md:px-0 pb-2 md:pb-0">
           <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Calendar className="h-4 w-4" />
             <span className="text-sm font-medium">{today}</span>
           </div>
+          <div className="h-4 w-px bg-border"></div>
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4" />
             <span className="text-sm font-medium">
               Period {periodNumber}: {periodDetails?.formattedTime}
             </span>
           </div>
-          <div className="flex items-center gap-4">
-            <Badge
-              variant={
-                attendanceStats.presentPercentage > 80
-                  ? "success"
-                  : "destructive"
-              }
-            >
-              {attendanceStats.present}/{attendanceStats.total} Present (
-              {attendanceStats.presentPercentage}%)
-            </Badge>
-            <Badge
-              variant={
-                attendanceStats.absentPercentage < 20
-                  ? "success"
-                  : "destructive"
-              }
-            >
-              {attendanceStats.absent}/{attendanceStats.total} Absent (
-              {attendanceStats.absentPercentage}%)
-            </Badge>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="border border-border rounded-lg p-2 md:p-4 bg-card/30">
+        <div className="grid grid-cols-3 gap-2 md:gap-4 text-center">
+          <div className="flex flex-col items-center gap-1 md:gap-2">
+            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+              Total
+            </span>
+            <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+              {attendanceStats.total}
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-1 md:gap-2">
+            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+              Present
+            </span>
+            <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+              {attendanceStats.present}
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-1 md:gap-2">
+            <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+              Absent
+            </span>
+            <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg bg-red-500 text-white text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+              {attendanceStats.absent}
+            </div>
           </div>
         </div>
       </div>
+
 
       {/* Students Table */}
       <div className="overflow-x-auto max-h-[calc(100vh-415px)] md:max-h-[calc(100vh-339px)] border rounded-md">
@@ -620,7 +634,7 @@ const Attendance = ({ apiKey, teacherId }) => {
           {attendanceExists ? "Update" : "Save"}
         </Button>
       </div>
-    </div>
+    </div >
   );
 };
 

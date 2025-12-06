@@ -123,7 +123,11 @@ export async function GET(req, res) {
     // Use Promise.all for parallel queries
     const [timeTables, total] = await Promise.all([
       TimeTable.find(query, projections)
-        .populate("classId", ["name", "batchId"])
+        .populate({
+          path: "classId",
+          select: "name batchId",
+          populate: { path: "batchId", select: "name" },
+        })
         .populate("timeSlots.subjectId", "name")
         .populate("timeSlots.teacherId", "name")
         .skip(page * limit)
