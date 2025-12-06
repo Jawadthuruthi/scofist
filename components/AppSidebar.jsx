@@ -246,7 +246,12 @@ const items = [
     icon: FileText,
     allowedRoles: ["College Admin", "Teacher"],
     subItems: [
-
+      {
+        title: "Attendance Sheet",
+        url: "/dashboard/attendance-sheet",
+        icon: FileSpreadsheet,
+        allowedRoles: ["College Admin", "Teacher"],
+      },
       {
         title: "Attendance Tracking",
         url: "/dashboard/attendance-tracking",
