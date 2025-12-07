@@ -23,7 +23,7 @@ export default async function AttendanceSheetPage() {
 
     return (
         <div className="p-6">
-            <div className="mb-6">
+            <div className="mb-6 print:hidden">
                 <h1 className="text-2xl font-bold tracking-tight">ATTENDANCE SHEET</h1>
                 <p className="text-muted-foreground">View monthly attendance history.</p>
             </div>

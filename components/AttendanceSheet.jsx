@@ -119,16 +119,35 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
             {/* Styles for Print */}
             <style jsx global>{`
                 @media print {
-                    @page { margin: 10mm; size: landscape; }
-                    body { -webkit-print-color-adjust: exact; }
+                    @page { margin: 2mm; size: landscape; }
+                    body { -webkit-print-color-adjust: exact; margin: 0; padding: 0; overflow: visible !important; }
+                    html { margin: 0; padding: 0; overflow: visible !important; }
+                    
+                    /* Hide App Layout Elements */
+                    nav, aside, header, .header, .sidebar, .top-bar, .app-sidebar, [data-sidebar="sidebar"] { display: none !important; }
+                    .print\:hidden { display: none !important; }
+
+                    /* Reset Layout Containers for Full Print */
+                    div, main { overflow: visible !important; height: auto !important; }
+                    
+                    /* Pagination Control */
+                    table { page-break-inside: auto; }
+                    tr { page-break-inside: avoid; page-break-after: auto; }
+                    thead { display: table-header-group; }
+                    tfoot { display: table-footer-group; }
                 }
             `}</style>
             <Card className="print:border-none print:shadow-none">
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-row items-center justify-between print:hidden">
                     <CardTitle>ATTENDANCE SHEET</CardTitle>
                     {/* Export/Save buttons removed as requested */}
                 </CardHeader>
                 <CardContent className="print:p-0">
+                    {/* Print-only Header */}
+                    <div className="hidden print:block text-center tracking-widest font-bold text-xl mb-1 mt-1 uppercase leading-none">
+                        ATTENDANCE SHEET
+                    </div>
+
                     {/* Filters - Hidden in Print */}
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6 print:hidden">
                         <Select value={filters.year.toString()} onValueChange={(v) => setFilters(prev => ({ ...prev, year: parseInt(v) }))}>
@@ -240,8 +259,45 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
 
                                                 // Visuals
                                                 let Icon = null;
-                                                if (isPresent === true) Icon = <Check className="w-4 h-4 text-green-600 font-bold" />; // Slightly smaller for dense print
-                                                else if (isPresent === false) Icon = <X className="w-3 h-3 text-red-600" />;
+                                                const leaveReason = data.leavesMap?.[student._id]?.[dateKey];
+
+                                                if (isPresent === true) {
+                                                    Icon = <Check className="w-4 h-4 text-green-600 font-bold" />;
+                                                } else if (isPresent === false) {
+                                                    Icon = (
+                                                        <div className="flex flex-col items-center">
+                                                            <X className="w-3 h-3 text-red-600" />
+                                                            {leaveReason && (
+                                                                <span className="text-[7px] text-red-500 leading-none mt-0.5 line-clamp-1 max-w-[40px]">
+                                                                    {leaveReason}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                }
+                                                // Removed previous return block - handled by replace_file_content scope implicitly?
+                                                // Wait, I need to include the return block to match the EndLine correctly or the structure.
+                                                // Actually, I can just stop here as the next line is `return (` which I didn't include in ReplacementContent
+                                                // BUT I need to make sure I am replacing the VALID range.
+                                                // Let's check StartLine 120 to EndLine 266 covers EVERYTHING from styles to tooltips?
+                                                // Line 120 is styles.
+                                                // Line 266 is inside Tooltip.
+                                                // This is a HUGE chunk.
+                                                // I should be careful.
+                                                // Maybe split it?
+                                                // No, a large chunk ensures consistency if I have the content right.
+                                                // The content I pasted above ends at `}` of `else if`.
+                                                // The original file goes on to `return ( ... <TableCell ...`.
+                                                // So I need to verify what I am replacing.
+                                                // StartLine 120: <style jsx global>...
+                                                // EndLine 244 (in original): ...Icon = <X ... />;
+                                                // My ReplacementContent ends with the `if (isPresent ...` block.
+                                                // So I should target up to there.
+
+                                                // Let's refined the chunk to be safe.
+                                                // Chunk 1: Styles to Filters.
+                                                // Chunk 2: Table Loop body (Friday + Visuals).
+
 
                                                 return (
                                                     <TableCell
