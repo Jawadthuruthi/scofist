@@ -36,7 +36,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Upload, Download as DownloadIcon, Loader, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Upload, Download as DownloadIcon, Loader, Trash2, Pencil } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
@@ -57,7 +64,8 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
   const [filterSemester, setFilterSemester] = useState(null);
   const [filterCourse, setFilterCourse] = useState(null);
 
-  const { useFetchItems, useAddItem, useDeleteItem } = useCrud(
+
+  const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud(
     "downloads",
     apiKey
   );
@@ -68,7 +76,47 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
     {}
   );
   const addDownload = useAddItem();
+  const updateDownload = useUpdateItem();
   const deleteDownload = useDeleteItem();
+
+  const [editingDownload, setEditingDownload] = useState(null);
+  const [editCourse, setEditCourse] = useState("");
+  const [editYear, setEditYear] = useState("");
+  const [editSemester, setEditSemester] = useState("");
+  const [editSubject, setEditSubject] = useState("");
+
+  const handleEditClick = (download) => {
+    setEditingDownload(download);
+    setEditCourse(download.course);
+    setEditYear(download.year);
+    setEditSemester(download.semester);
+    setEditSubject(download.subject);
+  };
+
+  const handleUpdate = async () => {
+    if (!editCourse || !editYear || !editSemester || !editSubject) {
+      toast.error("Please fill all fields");
+      return;
+    }
+
+    try {
+      await updateDownload.mutateAsync({
+        data: {
+          _id: editingDownload._id,
+          course: editCourse,
+          year: editYear,
+          semester: editSemester,
+          subject: editSubject,
+        },
+      });
+      toast.success("Updated successfully");
+      setEditingDownload(null);
+      await fetchDownloadsQuery.refetch();
+    } catch (error) {
+      console.error("Update failed:", error);
+      toast.error("Failed to update");
+    }
+  };
 
   const onDrop = (acceptedFiles) => {
     setFile(acceptedFiles[0]);
@@ -308,11 +356,10 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
               {/* Dropzone */}
               <div
                 {...getRootProps()}
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                  isDragActive
-                    ? "border-primary bg-primary/5"
-                    : "border-muted-foreground/25 hover:border-primary/50"
-                }`}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragActive
+                  ? "border-primary bg-primary/5"
+                  : "border-muted-foreground/25 hover:border-primary/50"
+                  }`}
               >
                 <input {...getInputProps()} />
                 {file ? (
@@ -473,46 +520,55 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                               )}
                             </Button>
                             {activeRole === "College Admin" && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    disabled={deletingId === download._id}
-                                  >
-                                    {deletingId === download._id ? (
-                                      <Loader className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Trash2 className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      Are you sure?
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will permanently delete the file "
-                                      {download.subject}" from {download.course}{" "}
-                                      Year {download.year} Semester{" "}
-                                      {download.semester}. This action cannot be
-                                      undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                      Cancel
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDelete(download)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditClick(download)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      disabled={deletingId === download._id}
                                     >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                                      {deletingId === download._id ? (
+                                        <Loader className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Are you sure?
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete the file "
+                                        {download.subject}" from {download.course}{" "}
+                                        Year {download.year} Semester{" "}
+                                        {download.semester}. This action cannot be
+                                        undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDelete(download)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </>
                             )}
                           </div>
                         </TableCell>
@@ -525,8 +581,103 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
           </CardContent>
         </Card>
       </div>
+      <EditDialog
+        open={!!editingDownload}
+        onOpenChange={(open) => !open && setEditingDownload(null)}
+        course={editCourse}
+        setCourse={setEditCourse}
+        year={editYear}
+        setYear={setEditYear}
+        semester={editSemester}
+        setSemester={setEditSemester}
+        subject={editSubject}
+        setSubject={setEditSubject}
+        onSave={handleUpdate}
+        loading={updateDownload.isPending}
+      />
     </>
   );
 };
+
+/* Edit Dialog Component logic is embedded inside for simplicity based on current structure */
+const EditDialog = ({
+  open,
+  onOpenChange,
+  course,
+  setCourse,
+  year,
+  setYear,
+  semester,
+  setSemester,
+  subject,
+  setSubject,
+  onSave,
+  loading
+}) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Question Paper</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Course</Label>
+            <Select value={course} onValueChange={setCourse}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Course" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="BSIc(5 Years)">BSIc(5 Years)</SelectItem>
+                <SelectItem value="HSIc(3 Years)">HSIc(3 Years)</SelectItem>
+                <SelectItem value="HSIc(2 Years)">HSIc(2 Years)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Year</Label>
+            <Select value={String(year)} onValueChange={setYear}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5].map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Semester</Label>
+            <Select value={String(semester)} onValueChange={setSemester}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Semester" />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2].map((s) => (
+                  <SelectItem key={s} value={String(s)}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Subject</Label>
+            <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={onSave} disabled={loading}>
+            {loading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ... existing imports ...
+
 
 export default Downloads;

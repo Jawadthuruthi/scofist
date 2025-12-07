@@ -51,6 +51,42 @@ export async function POST(req, res) {
   }
 }
 
+export async function PUT(req) {
+  try {
+    await connectToDB();
+    const { _id, course, year, semester, subject } = await req.json();
+
+    if (!_id) {
+      return NextResponse.json(
+        { message: "Download ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const updatedDownload = await Download.findByIdAndUpdate(
+      _id,
+      {
+        course,
+        year,
+        semester,
+        subject,
+      },
+      { new: true }
+    );
+
+    if (!updatedDownload) {
+      return NextResponse.json(
+        { message: "Download not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ updatedDownload }, { status: 200 });
+  } catch (error) {
+    return apiResponse.error(error);
+  }
+}
+
 export async function DELETE(req) {
   try {
     await connectToDB();
