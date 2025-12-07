@@ -61,7 +61,7 @@ export async function GET(req, res) {
           totalPages:
             limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
         },
-        message: "Groups fetched successfully!",
+        message: "Applications fetched successfully!",
       },
       { status: 200 }
     );
@@ -93,7 +93,7 @@ export async function POST(req, res) {
     await applicationForm.save();
 
     return NextResponse.json(
-      { message: "Group created successfully!", applicationForm },
+      { message: "Application submitted successfully!", applicationForm },
       { status: 201 }
     );
   } catch (error) {
@@ -129,14 +129,14 @@ export async function PUT(req, res) {
 
     if (!updatedApplicationForm) {
       return NextResponse.json(
-        { message: "Group not found!" },
+        { message: "Application not found!" },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
       {
-        message: "Group updated successfully!",
+        message: "Application updated successfully!",
         applicationForm: updatedApplicationForm,
       },
       { status: 200 }
@@ -157,13 +157,13 @@ export async function DELETE(req, res) {
         _id: { $in: ids },
       });
       return NextResponse.json(
-        { deletedApplicationForms, message: "Groups deleted successfully!" },
+        { deletedApplicationForms, message: "Applications deleted successfully!" },
         { status: 200 }
       );
     }
     const deletedApplicationForm = await ApplicationForm.findByIdAndDelete(_id);
     return NextResponse.json(
-      { deletedApplicationForm, message: "Group deleted successfully!" },
+      { deletedApplicationForm, message: "Application deleted successfully!" },
       { status: 200 }
     );
   } catch (error) {

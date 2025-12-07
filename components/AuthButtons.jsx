@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import ApplicationForm from "@/components/ApplicationForm";
 
 // ONLY this small piece is client-side - much better for SEO!
 export default function AuthButtons() {
@@ -32,15 +33,17 @@ export default function AuthButtons() {
           {isAuthenticated ? "Dashboard" : "Login"}
         </Button>
       </Link>
-      <Link href="/admissions" aria-label="Apply for admission">
-        <Button
-          size="lg"
-          variant="outline"
-          className="w-full py-6 sm:w-40 border-2 border-emerald-700 text-emerald-700 bg-transparent hover:bg-emerald-50 rounded-lg shadow-sm hover:shadow-md transition-all"
-        >
-          Apply Now
-        </Button>
-      </Link>
+      <ApplicationForm
+        trigger={
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-full py-6 sm:w-40 border-2 border-emerald-700 text-emerald-700 bg-transparent hover:bg-emerald-50 rounded-lg shadow-sm hover:shadow-md transition-all"
+          >
+            Apply Now
+          </Button>
+        }
+      />
     </nav>
   );
 }
