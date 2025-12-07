@@ -866,7 +866,7 @@ export default function Dashboard({
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <BarChart className="h-5 w-5" />
-                  <span>Active Students By Batch</span>
+                  <span>Active Students By Batch ({dashboardData.activeStudents.length})</span>
                 </CardTitle>
                 <CardDescription>
                   Distribution of students across different batches
@@ -886,7 +886,7 @@ export default function Dashboard({
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <BarChart className="h-5 w-5" />
-                  <span>Graduated Students By Batch</span>
+                  <span>Graduated Students By Batch ({dashboardData.graduatedStudents.length})</span>
                 </CardTitle>
                 <CardDescription>
                   Distribution of graduated students across different batches
@@ -906,7 +906,7 @@ export default function Dashboard({
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <BarChart className="h-5 w-5" />
-                  <span>Student Status By Batch</span>
+                  <span>Student Status By Batch ({dashboardData.students.length})</span>
                 </CardTitle>
                 <CardDescription>
                   Comparison of active/graduated and dropped out students by
@@ -927,7 +927,7 @@ export default function Dashboard({
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Users className="h-5 w-5" />
-                  <span>Student Status Distribution</span>
+                  <span>Student Status Distribution ({dashboardData.students.length})</span>
                 </CardTitle>
                 <CardDescription>
                   Distribution of students by enrollment status
