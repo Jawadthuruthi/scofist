@@ -113,6 +113,13 @@ export async function DELETE(req) {
     const urlToDelete = fileUrl || download.fileUrl;
     if (urlToDelete && urlToDelete.includes("cloudinary.com")) {
       try {
+        // Explicitly configure Cloudinary
+        cloudinary.config({
+          cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+          api_key: process.env.CLOUDINARY_API_KEY,
+          api_secret: process.env.CLOUDINARY_API_SECRET,
+        });
+
         // Determine resource_type from URL (raw, image, video)
         let resourceType = "raw";
         if (urlToDelete.includes("/image/upload/")) {
