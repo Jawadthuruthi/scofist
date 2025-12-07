@@ -238,16 +238,28 @@ const Attendance = ({ apiKey, teacherId }) => {
       const studentsList = studentsQuery.data.users;
       setStudents(studentsList);
 
-      // Only initialize attendance if it's empty and we have leave status
-      if (
-        Object.keys(attendance).length === 0 &&
-        Object.keys(studentLeaveStatus).length > 0
-      ) {
+      // Initialize attendance if it's empty
+      if (Object.keys(attendance).length === 0) {
         const initialAttendance = initializeAttendance(
           studentsList,
-          studentLeaveStatus
+          studentLeaveStatus || {}
         );
         setAttendance(initialAttendance);
+      }
+      // If we have unsaved attendance and leave status updates, apply leave overrides
+      else if (!attendanceExists && Object.keys(studentLeaveStatus).length > 0) {
+        setAttendance(prev => {
+          const next = { ...prev };
+          let changed = false;
+          studentsList.forEach(student => {
+            const leaveInfo = studentLeaveStatus[student._id];
+            if (leaveInfo?.isOnLeave && !leaveInfo?.hasArrived && next[student._id] !== false) {
+              next[student._id] = false;
+              changed = true;
+            }
+          });
+          return changed ? next : prev;
+        });
       }
     }
   }, [
@@ -255,6 +267,7 @@ const Attendance = ({ apiKey, teacherId }) => {
     studentLeaveStatus,
     attendance,
     initializeAttendance,
+    attendanceExists
   ]);
 
   // Process existing attendance data
