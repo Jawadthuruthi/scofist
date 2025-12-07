@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-
 import DataTableComponent from "@/components/DataTableComponent";
 import Header from "@/components/Header";
 import { formatOptions } from "@/lib/utils";
@@ -41,6 +40,14 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
             return a.name.localeCompare(b.name);
         });
     }, [classes]);
+
+    const formattedStudents = useMemo(() => {
+        return students.map(student => ({
+            ...student,
+            classId: student.studentSpecificField?.classId
+        }));
+    }, [students]);
+
     const columnsConfig = [
         {
             id: "select",
@@ -108,9 +115,17 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
             inputType: "select",
             options: formatOptions(sortedClasses),
         },
-        { id: "studentName", label: "Student Name" }, // Text search by student name is handled by global search usually, but specific filter is good too if API supports it. 
-        // API supports 'studentId' but not directly 'studentName' regex on the main query without population filter which might be tricky.
-        // Let's stick to Class filter for now as it's robust.
+        {
+            id: "studentId",
+            label: "Student Name",
+            inputType: "select",
+            options: formatOptions(formattedStudents),
+            filters: [
+                {
+                    dependentField: "classId",
+                }
+            ]
+        },
         {
             id: "isArrived",
             label: "Status",
@@ -124,15 +139,6 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
 
     const formFields = [
         {
-            name: "studentId",
-            label: "Student",
-            type: "text",
-            inputType: "select",
-            options: formatOptions(students),
-            required: true,
-            placeholder: "Select Student",
-        },
-        {
             name: "classId",
             label: "Class",
             type: "text",
@@ -140,6 +146,20 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
             options: formatOptions(sortedClasses),
             required: true,
             placeholder: "Select Class",
+        },
+        {
+            name: "studentId",
+            label: "Student",
+            type: "text",
+            inputType: "select",
+            options: formatOptions(formattedStudents),
+            required: true,
+            placeholder: "Select Student",
+            filters: [
+                {
+                    dependentField: "classId",
+                }
+            ]
         },
         {
             name: "dateOfLeave",

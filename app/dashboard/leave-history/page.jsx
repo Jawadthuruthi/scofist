@@ -28,8 +28,8 @@ export default async function LeaveHistoryPage() {
         // But current FormComponent implementation usually takes static options. 
         // Let's fetch all active students for now as per previous patterns.
         const studentsData = await User.find({ "studentSpecificField.status": "Active", roles: "Student" })
-            .select("_id name")
-            .sort({ name: 1 })
+            .select("_id name studentSpecificField.classId")
+            .sort({ _id: 1 })
             .lean();
 
         const classes = JSON.parse(JSON.stringify(classesData));
