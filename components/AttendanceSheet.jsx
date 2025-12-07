@@ -238,23 +238,28 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                                 const isFriday = day.getDay() === 5;
 
                                                 if (isFriday) {
-                                                    if (index === 0) {
-                                                        return (
-                                                            <TableCell
-                                                                key={day.toISOString()}
-                                                                rowSpan={data.students.length}
-                                                                className="text-center p-0 border-l bg-red-50/50 print:bg-red-50 align-middle"
-                                                            >
-                                                                <div className="flex items-center justify-center h-full w-full writing-mode-vertical rotate-180">
-                                                                    <span className="text-xl text-red-300 font-bold tracking-[1em] uppercase [writing-mode:vertical-lr] py-4">
+                                                    const isMiddle = index === Math.floor(data.students.length / 2);
+
+                                                    // VISUAL MERGE: We simulate a merged column by hiding borders between cells.
+                                                    // This allows the browser to break the table across pages (starting on Page 1),
+                                                    // which is impossible with a real 'rowSpan' of 50+ rows.
+                                                    const borderTop = index === 0 ? '' : 'border-t-0 print:border-t-0';
+                                                    const borderBottom = index === data.students.length - 1 ? '' : 'border-b-0 print:border-b-0';
+
+                                                    return (
+                                                        <TableCell
+                                                            key={day.toISOString()}
+                                                            className={`text-center p-0 border-l bg-red-50/50 print:bg-red-50 align-middle ${borderTop} ${borderBottom}`}
+                                                        >
+                                                            <div className="flex items-center justify-center w-full h-12 relative overflow-visible">
+                                                                {isMiddle && (
+                                                                    <span className="absolute z-10 text-xl text-red-300 font-bold tracking-[1em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
                                                                         Friday
                                                                     </span>
-                                                                </div>
-                                                            </TableCell>
-                                                        );
-                                                    } else {
-                                                        return null;
-                                                    }
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                    );
                                                 }
 
                                                 // Visuals
