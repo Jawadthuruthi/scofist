@@ -77,10 +77,11 @@ const StudentStatusByBatchChart = memo(
 
     const chartContent = (
       <RechartsBarChart
-        width={isClient && isMobile ? chartData.length * 150 : undefined}
+        width={isClient && isMobile ? chartData.length * 90 : undefined}
         height={isClient && isMobile ? 250 : undefined}
         data={chartData}
         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+        barCategoryGap={10}
       >
         <XAxis dataKey="name" />
         <YAxis />
@@ -90,7 +91,7 @@ const StudentStatusByBatchChart = memo(
           dataKey="droppedOut"
           fill="#FF8042"
           name="Dropped Out"
-          barSize={isClient && isMobile ? 50 : undefined}
+          barSize={isClient && isMobile ? 25 : undefined}
         >
           <LabelList dataKey="droppedOut" position="top" />
         </Bar>
@@ -98,7 +99,7 @@ const StudentStatusByBatchChart = memo(
           dataKey="activeOrGraduated"
           fill="#8884d8"
           name="Active/Graduated"
-          barSize={isClient && isMobile ? 50 : undefined}
+          barSize={isClient && isMobile ? 25 : undefined}
         >
           <LabelList dataKey="activeOrGraduated" position="top" />
         </Bar>
