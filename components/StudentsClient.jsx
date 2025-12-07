@@ -43,9 +43,34 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
     { accessorKey: "dateOfBirth", header: "Date Of Birth", type: ["date"] },
     { accessorKey: "bloodGroup", header: "Blood Group" },
     { accessorKey: "roles", header: "Roles", type: ["array"] },
-    { accessorKey: "address", header: "Address", type: ["nestedObject"] },
-    { accessorKey: "guardianName", header: "Guardian Name" },
-    { accessorKey: "relationship", header: "Guardian Relationship" },
+    {
+      accessorKey: "address",
+      header: "Address",
+      minWidth: 180,
+      width: 200,
+      cell: ({ row }) => {
+        const addr = row.original.address || {};
+        return (
+          <div className="flex flex-col text-xs gap-0.5 whitespace-normal break-words leading-tight py-1">
+            {addr.houseName && <span>{addr.houseName}</span>}
+            {addr.place && <span>{addr.place}</span>}
+            {addr.postOffice && <span>{addr.postOffice}</span>}
+            {addr.district && <span>{addr.district}</span>}
+            {(addr.state || addr.pin) && <span>{addr.state}{addr.pin ? ` - ${addr.pin}` : ''}</span>}
+          </div>
+        );
+      }
+    },
+    {
+      accessorKey: "guardianName",
+      header: "Guardian Name",
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="font-medium">{row.original.guardianName}</span>
+          <span className="text-xs text-muted-foreground">({row.original.relationship})</span>
+        </div>
+      ),
+    },
     { accessorKey: "guardianContactNumber", header: "Guardian Contact Number" },
     {
       accessorKey: "guardianAlternativeNumber",
@@ -54,22 +79,41 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
 
     { accessorKey: "status", header: "Status", type: ["badge"] },
     {
-      accessorKey: "itLabFund",
-      header: "IT Lab Fund",
+      id: "statusDetails",
+      header: "Status Details",
       cell: ({ row }) => {
-        const funds = row.original.funds;
-        const itLabFund = funds?.find(fund => fund.teacherId === "655c48737c229973bf1f4648");
-        return itLabFund ? itLabFund.balance : 0;
-      }
-    },
-    {
-      accessorKey: "stationaryFund",
-      header: "Stationary Fund",
-      cell: ({ row }) => {
-        const funds = row.original.funds;
-        const stationaryFund = funds?.find(fund => fund.teacherId === "655c487f7c229973bf1f464a");
-        return stationaryFund ? stationaryFund.balance : 0;
-      }
+        const {
+          status,
+          graduatedYear,
+          islamicQualification,
+          academicQualification,
+          droppedOutDate,
+          droppedOutClass,
+          droppedOutReason,
+        } = row.original;
+
+        if (status === "Graduated") {
+          return (
+            <div className="flex flex-col text-xs gap-0.5 whitespace-normal break-words leading-tight py-1">
+              <span className="font-semibold text-green-600">Graduated: {graduatedYear}</span>
+              {islamicQualification && <span>Islamic: {islamicQualification}</span>}
+              {academicQualification && <span>Academic: {academicQualification}</span>}
+            </div>
+          );
+        } else if (status === "Dropped Out") {
+          const formattedDate = droppedOutDate ? new Date(droppedOutDate).toLocaleDateString() : 'N/A';
+          const classObj = classes?.find((c) => c._id === droppedOutClass);
+          const className = classObj ? classObj.name : droppedOutClass;
+          return (
+            <div className="flex flex-col text-xs gap-0.5 whitespace-normal break-words leading-tight py-1">
+              <span className="font-semibold text-red-600">Dropped Out: {formattedDate}</span>
+              {droppedOutClass && <span>Class: {className}</span>}
+              {droppedOutReason && <span>Reason: {droppedOutReason}</span>}
+            </div>
+          );
+        }
+        return <span className="text-muted-foreground">-</span>;
+      },
     },
   ];
 
@@ -204,7 +248,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
       placeholder: "Contact Number",
       required: true,
       validators: {
-        pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
+        pattern: "^(\\+?\\d{1, 3}[-.\\s]?)?\\d{10}$",
         patternMessage: "Invalid contact number format",
       },
     },
@@ -215,7 +259,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
       type: "text",
       placeholder: "Alternative Number",
       validators: {
-        pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
+        pattern: "^(\\+?\\d{1, 3}[-.\\s]?)?\\d{10}$",
         patternMessage: "Invalid contact number format",
       },
     },
@@ -253,7 +297,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
       placeholder: "Guardian Contact Number",
       required: true,
       validators: {
-        pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
+        pattern: "^(\\+?\\d{1, 3}[-.\\s]?)?\\d{10}$",
         patternMessage: "Invalid contact number format",
       },
     },
@@ -264,7 +308,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
       type: "text",
       placeholder: "Guardian Alternative Number",
       validators: {
-        pattern: "^(\\+?\\d{1,3}[-.\\s]?)?\\d{10}$",
+        pattern: "^(\\+?\\d{1, 3}[-.\\s]?)?\\d{10}$",
         patternMessage: "Invalid alternative number format",
       },
     },
