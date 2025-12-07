@@ -216,6 +216,27 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                                 const entry = data.attendanceMap[student._id]?.[dateKey];
                                                 // Determine status: Database
                                                 const isPresent = entry?.present;
+                                                const isFriday = day.getDay() === 5;
+
+                                                if (isFriday) {
+                                                    if (index === 0) {
+                                                        return (
+                                                            <TableCell
+                                                                key={day.toISOString()}
+                                                                rowSpan={data.students.length}
+                                                                className="text-center p-0 border-l bg-red-50/50 print:bg-red-50 align-middle"
+                                                            >
+                                                                <div className="flex items-center justify-center h-full w-full writing-mode-vertical rotate-180">
+                                                                    <span className="text-xl text-red-300 font-bold tracking-[1em] uppercase [writing-mode:vertical-lr] py-4">
+                                                                        Friday
+                                                                    </span>
+                                                                </div>
+                                                            </TableCell>
+                                                        );
+                                                    } else {
+                                                        return null;
+                                                    }
+                                                }
 
                                                 // Visuals
                                                 let Icon = null;
@@ -225,7 +246,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                                 return (
                                                     <TableCell
                                                         key={day.toISOString()}
-                                                        className={`text-center p-0.5 border-l ${day.getDay() === 5 ? 'bg-red-50/50 print:bg-red-50' : ''}`}
+                                                        className={`text-center p-0.5 border-l`}
                                                     >
                                                         <TooltipProvider>
                                                             <Tooltip>
