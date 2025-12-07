@@ -119,8 +119,8 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
             {/* Styles for Print */}
             <style jsx global>{`
                 @media print {
-                    @page { margin: 2mm; size: landscape; }
-                    body { -webkit-print-color-adjust: exact; margin: 0; padding: 0; overflow: visible !important; }
+                    @page { margin: 0; size: landscape; }
+                    body { -webkit-print-color-adjust: exact; margin: 0; padding: 0 !important; overflow: visible !important; }
                     html { margin: 0; padding: 0; overflow: visible !important; }
                     
                     /* Hide App Layout Elements */
@@ -144,7 +144,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                 </CardHeader>
                 <CardContent className="print:p-0">
                     {/* Print-only Header */}
-                    <div className="hidden print:flex flex-col items-center mb-4 mt-2 text-black print:text-black">
+                    <div className="hidden print:flex flex-col items-center mb-2 -mt-8 text-black print:text-black">
                         <div className="tracking-[0.2em] font-bold text-2xl uppercase leading-tight">
                             ATTENDANCE SHEET
                         </div>
