@@ -199,10 +199,10 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
         subTitle="Manage Leave Records Of Students"
       />
 
-      <div className="flex flex-col space-y-4">
-        <div className="w-full max-w-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div className="w-full max-w-[200px] sm:max-w-xs">
           <Select value={selectedClass} onValueChange={setSelectedClass}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full h-9 sm:h-10">
               <SelectValue placeholder="Select Class" />
             </SelectTrigger>
             <SelectContent>
@@ -214,6 +214,13 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
             </SelectContent>
           </Select>
         </div>
+        <Link href="/dashboard/leave-history">
+          <Button size="sm" className="h-9 sm:h-10 whitespace-nowrap">
+            <Clock className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Leave Records</span>
+            <span className="sm:hidden">Records</span>
+          </Button>
+        </Link>
       </div>
 
       {selectedClass && (
@@ -382,14 +389,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
           </TableBody>
         </Table>
       </div>
-      <div className="flex justify-end space-x-2 pb-4">
-        <Link href="/dashboard/leave-history">
-          <Button>
-            <Clock className="mr-2 h-4 w-4" />
-            Leave Records
-          </Button>
-        </Link>
-      </div>
+
     </div>
   );
 };
