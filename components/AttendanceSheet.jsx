@@ -144,8 +144,17 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                 </CardHeader>
                 <CardContent className="print:p-0">
                     {/* Print-only Header */}
-                    <div className="hidden print:block text-center tracking-widest font-bold text-xl mb-1 mt-1 uppercase leading-none">
-                        ATTENDANCE SHEET
+                    <div className="hidden print:flex flex-col items-center mb-4 mt-2 text-black print:text-black">
+                        <div className="tracking-[0.2em] font-bold text-2xl uppercase leading-tight">
+                            ATTENDANCE SHEET
+                        </div>
+                        <div className="flex items-center gap-6 text-sm font-semibold uppercase tracking-wider mt-1 text-black print:text-black">
+                            <span>{new Date(0, filters.month).toLocaleString('default', { month: 'long' })} {filters.year}</span>
+                            <span>•</span>
+                            <span>{classes.find(c => c._id === filters.classId)?.name || 'Class'}</span>
+                            <span>•</span>
+                            <span>{subjects.find(s => s._id === filters.subjectId)?.name || 'Subject'}</span>
+                        </div>
                     </div>
 
                     {/* Filters - Hidden in Print */}
