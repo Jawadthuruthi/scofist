@@ -35,7 +35,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Upload, Download as DownloadIcon, Loader, Trash2 } from "lucide-react";
+import { Upload, Download as DownloadIcon, Loader, Trash2, Pencil } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
@@ -53,7 +60,7 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
   const [filterYear, setFilterYear] = useState(null);
   const [filterCourse, setFilterCourse] = useState(null);
 
-  const { useFetchItems, useAddItem, useDeleteItem } = useCrud(
+  const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud(
     "syllabus",
     apiKey
   );
@@ -64,7 +71,41 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
     { initialData: { syllabuses: initialSyllabus } }
   );
   const addSyllabus = useAddItem();
+  const updateSyllabus = useUpdateItem();
   const deleteSyllabus = useDeleteItem();
+
+  const [editingSyllabus, setEditingSyllabus] = useState(null);
+  const [editCourse, setEditCourse] = useState("");
+  const [editYear, setEditYear] = useState("");
+
+  const handleEditClick = (syllabus) => {
+    setEditingSyllabus(syllabus);
+    setEditCourse(syllabus.course);
+    setEditYear(syllabus.year);
+  };
+
+  const handleUpdate = async () => {
+    if (!editCourse || !editYear) {
+      toast.error("Please fill all fields");
+      return;
+    }
+
+    try {
+      await updateSyllabus.mutateAsync({
+        data: {
+          _id: editingSyllabus._id,
+          course: editCourse,
+          year: editYear,
+        },
+      });
+      toast.success("Updated successfully");
+      setEditingSyllabus(null);
+      await fetchSyllabusQuery.refetch();
+    } catch (error) {
+      console.error("Update failed:", error);
+      toast.error("Failed to update");
+    }
+  };
 
   const onDrop = (acceptedFiles) => {
     setFile(acceptedFiles[0]);
@@ -250,11 +291,10 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
 
               <div
                 {...getRootProps()}
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                  isDragActive
-                    ? "border-primary bg-primary/5"
-                    : "border-muted-foreground/25 hover:border-primary/50"
-                }`}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragActive
+                  ? "border-primary bg-primary/5"
+                  : "border-muted-foreground/25 hover:border-primary/50"
+                  }`}
               >
                 <input {...getInputProps()} />
                 {file ? (
@@ -394,45 +434,54 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
                               )}
                             </Button>
                             {activeRole === "College Admin" && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    disabled={deletingId === syllabus._id}
-                                  >
-                                    {deletingId === syllabus._id ? (
-                                      <Loader className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Trash2 className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      Are you sure?
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will permanently delete the file "
-                                      {syllabus.fileName}" from {syllabus.course}{" "}
-                                      Year {syllabus.year}. This action cannot be
-                                      undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                      Cancel
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDelete(syllabus)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditClick(syllabus)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      disabled={deletingId === syllabus._id}
                                     >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                                      {deletingId === syllabus._id ? (
+                                        <Loader className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Are you sure?
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete the file "
+                                        {syllabus.fileName}" from {syllabus.course}{" "}
+                                        Year {syllabus.year}. This action cannot be
+                                        undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDelete(syllabus)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </>
                             )}
                           </div>
                         </TableCell>
@@ -445,6 +494,48 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
           </CardContent>
         </Card>
       </div>
+      <Dialog open={!!editingSyllabus} onOpenChange={(open) => !open && setEditingSyllabus(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Syllabus</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Course</Label>
+              <Select value={editCourse} onValueChange={setEditCourse}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Course" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Year</Label>
+              <Select value={String(editYear)} onValueChange={setEditYear}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5].map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingSyllabus(null)}>Cancel</Button>
+            <Button onClick={handleUpdate} disabled={updateSyllabus.isPending}>
+              {updateSyllabus.isPending && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

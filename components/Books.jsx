@@ -36,7 +36,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Upload, Download as DownloadIcon, Loader, Trash2 } from "lucide-react";
+import { Upload, Download as DownloadIcon, Loader, Trash2, Pencil } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
@@ -54,7 +61,7 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
   const [filterName, setFilterName] = useState("");
   const [filterCourse, setFilterCourse] = useState(null);
 
-  const { useFetchItems, useAddItem, useDeleteItem } = useCrud("books", apiKey);
+  const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud("books", apiKey);
   const fetchBooksQuery = useFetchItems(
     null,
     null,
@@ -62,7 +69,41 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
     { initialData: { books: initialBooks } }
   );
   const addBook = useAddItem();
+  const updateBook = useUpdateItem();
   const deleteBook = useDeleteItem();
+
+  const [editingBook, setEditingBook] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editCourse, setEditCourse] = useState("");
+
+  const handleEditClick = (book) => {
+    setEditingBook(book);
+    setEditName(book.name);
+    setEditCourse(book.course);
+  };
+
+  const handleUpdate = async () => {
+    if (!editName || !editCourse) {
+      toast.error("Please fill all fields");
+      return;
+    }
+
+    try {
+      await updateBook.mutateAsync({
+        data: {
+          _id: editingBook._id,
+          name: editName,
+          course: editCourse,
+        },
+      });
+      toast.success("Updated successfully");
+      setEditingBook(null);
+      await fetchBooksQuery.refetch();
+    } catch (error) {
+      console.error("Update failed:", error);
+      toast.error("Failed to update");
+    }
+  };
 
   const onDrop = (acceptedFiles) => {
     setFile(acceptedFiles[0]);
@@ -224,11 +265,10 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
 
               <div
                 {...getRootProps()}
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                  isDragActive
-                    ? "border-primary bg-primary/5"
-                    : "border-muted-foreground/25 hover:border-primary/50"
-                }`}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragActive
+                  ? "border-primary bg-primary/5"
+                  : "border-muted-foreground/25 hover:border-primary/50"
+                  }`}
               >
                 <input {...getInputProps()} />
                 {file ? (
@@ -347,44 +387,53 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
                               )}
                             </Button>
                             {activeRole === "College Admin" && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    disabled={deletingId === book._id}
-                                  >
-                                    {deletingId === book._id ? (
-                                      <Loader className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Trash2 className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      Are you sure?
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will permanently delete the file "
-                                      {book.fileName}" ({book.name}). This
-                                      action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                      Cancel
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDelete(book)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditClick(book)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      disabled={deletingId === book._id}
                                     >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                                      {deletingId === book._id ? (
+                                        <Loader className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Are you sure?
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete the file "
+                                        {book.fileName}" ({book.name}). This
+                                        action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDelete(book)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </>
                             )}
                           </div>
                         </TableCell>
@@ -397,6 +446,43 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
           </CardContent>
         </Card>
       </div>
+      <Dialog open={!!editingBook} onOpenChange={(open) => !open && setEditingBook(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Book</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Course</Label>
+              <Select value={editCourse} onValueChange={setEditCourse}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Course" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Book Name</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Enter book name"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingBook(null)}>Cancel</Button>
+            <Button onClick={handleUpdate} disabled={updateBook.isPending}>
+              {updateBook.isPending && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

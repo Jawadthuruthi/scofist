@@ -52,6 +52,45 @@ export async function POST(req, res) {
   }
 }
 
+export async function PUT(req) {
+  try {
+    const activeRole = req.headers.get("active-role");
+    if (activeRole !== "College Admin") {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+    }
+
+    await connectToDB();
+    const { _id, name, course } = await req.json();
+
+    if (!_id) {
+      return NextResponse.json(
+        { message: "Book ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const updatedBook = await Book.findByIdAndUpdate(
+      _id,
+      {
+        name,
+        course,
+      },
+      { new: true }
+    );
+
+    if (!updatedBook) {
+      return NextResponse.json(
+        { message: "Book not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ updatedBook }, { status: 200 });
+  } catch (error) {
+    return apiResponse.error(error);
+  }
+}
+
 export async function DELETE(req) {
   try {
     const activeRole = req.headers.get("active-role");

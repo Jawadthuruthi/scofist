@@ -46,6 +46,40 @@ export async function POST(req, res) {
   }
 }
 
+export async function PUT(req) {
+  try {
+    await connectToDB();
+    const { _id, course, year } = await req.json();
+
+    if (!_id) {
+      return NextResponse.json(
+        { message: "Syllabus ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const updatedSyllabus = await Syllabus.findByIdAndUpdate(
+      _id,
+      {
+        course,
+        year,
+      },
+      { new: true }
+    );
+
+    if (!updatedSyllabus) {
+      return NextResponse.json(
+        { message: "Syllabus not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ updatedSyllabus }, { status: 200 });
+  } catch (error) {
+    return apiResponse.error(error);
+  }
+}
+
 export async function DELETE(req) {
   try {
     await connectToDB();
