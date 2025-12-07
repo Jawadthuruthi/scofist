@@ -1,11 +1,46 @@
 "use client";
 
+import { useMemo } from "react";
+
 import DataTableComponent from "@/components/DataTableComponent";
 import Header from "@/components/Header";
 import { formatOptions } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 export default function LeaveHistory({ classes, students, apiKey, role }) {
+    const sortedClasses = useMemo(() => {
+        const classOrder = [
+            "PLUS ONE A",
+            "PLUS ONE B",
+            "PLUS TWO",
+            "DEGREE FIRST YEAR",
+            "DEGREE SECOND YEAR",
+            "DEGREE THIRD YEAR",
+            "PG FIRST YEAR",
+            "PG SECOND YEAR",
+            "8TH STD",
+            "9TH STD",
+            "10TH STD",
+        ].map((name) => name.replace(/\s/g, ""));
+
+        return [...classes].sort((a, b) => {
+            const nameA = a.name.trim().toUpperCase().replace(/\s/g, "");
+            const nameB = b.name.trim().toUpperCase().replace(/\s/g, "");
+            const indexA = classOrder.indexOf(nameA);
+            const indexB = classOrder.indexOf(nameB);
+
+            if (indexA !== -1 && indexB !== -1) {
+                return indexA - indexB;
+            }
+            if (indexA !== -1) {
+                return -1;
+            }
+            if (indexB !== -1) {
+                return 1;
+            }
+            return a.name.localeCompare(b.name);
+        });
+    }, [classes]);
     const columnsConfig = [
         {
             id: "select",
@@ -71,7 +106,7 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
             id: "classId",
             label: "Class",
             inputType: "select",
-            options: formatOptions(classes),
+            options: formatOptions(sortedClasses),
         },
         { id: "studentName", label: "Student Name" }, // Text search by student name is handled by global search usually, but specific filter is good too if API supports it. 
         // API supports 'studentId' but not directly 'studentName' regex on the main query without population filter which might be tricky.
@@ -102,7 +137,7 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
             label: "Class",
             type: "text",
             inputType: "select",
-            options: formatOptions(classes),
+            options: formatOptions(sortedClasses),
             required: true,
             placeholder: "Select Class",
         },
