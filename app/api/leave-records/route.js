@@ -81,7 +81,7 @@ export async function GET(req, res) {
 
     return NextResponse.json(
       {
-        leaveRecords: formattedLeaveRecords,
+        "leave-records": formattedLeaveRecords,
         pagination: {
           page,
           limit,

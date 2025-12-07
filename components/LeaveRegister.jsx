@@ -139,11 +139,11 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
         totalLeaves: studentLeaves.length,
         latestRecord: latestRecord
           ? {
-              ...latestRecord,
-              status:
-                recordsWithStatus.find((r) => r._id === latestRecord._id)
-                  ?.status || "pending",
-            }
+            ...latestRecord,
+            status:
+              recordsWithStatus.find((r) => r._id === latestRecord._id)
+                ?.status || "pending",
+          }
           : null,
         pendingLeaves: pendingRecords.length,
         overdueLeaves: overdueRecords.length,
@@ -283,34 +283,31 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                       }}
                     >
                       <TableCell
-                        className={`text-center font-medium text-sm ${
-                          stats.pendingLeaves > 0 || stats.overdueLeaves > 0
-                            ? "text-red-900 dark:text-red-100"
-                            : ""
-                        }`}
+                        className={`text-center font-medium text-sm ${stats.pendingLeaves > 0 || stats.overdueLeaves > 0
+                          ? "text-red-900 dark:text-red-100"
+                          : ""
+                          }`}
                       >
                         {index + 1}
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
                           <div
-                            className={`font-medium text-xs ${
-                              stats.pendingLeaves > 0 || stats.overdueLeaves > 0
-                                ? "text-red-900 dark:text-red-100"
-                                : ""
-                            }`}
+                            className={`font-medium text-xs ${stats.pendingLeaves > 0 || stats.overdueLeaves > 0
+                              ? "text-red-900 dark:text-red-100"
+                              : ""
+                              }`}
                           >
                             {student.name}
                           </div>
 
                           <div className="flex items-center gap-2 text-xs">
                             <span
-                              className={`${
-                                stats.pendingLeaves > 0 ||
+                              className={`${stats.pendingLeaves > 0 ||
                                 stats.overdueLeaves > 0
-                                  ? "text-red-700 dark:text-red-300"
-                                  : "text-muted-foreground"
-                              }`}
+                                ? "text-red-700 dark:text-red-300"
+                                : "text-muted-foreground"
+                                }`}
                             >
                               {stats.totalLeaves || 0}{" "}
                               {stats.totalLeaves <= 1 ? "leave" : "leaves"}
@@ -339,11 +336,10 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                           <div className="space-y-1">
                             {getStatusBadge(latestRecord.remark)}
                             <div
-                              className={`text-xs px-2 ${
-                                stats.pendingLeaves > 0
-                                  ? "text-red-700 dark:text-red-300"
-                                  : "text-muted-foreground"
-                              }`}
+                              className={`text-xs px-2 ${stats.pendingLeaves > 0
+                                ? "text-red-700 dark:text-red-300"
+                                : "text-muted-foreground"
+                                }`}
                             >
                               Days:{" "}
                               {calculateDaysOnLeave(
@@ -355,11 +351,10 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                           </div>
                         ) : (
                           <div
-                            className={`text-sm ${
-                              stats.pendingLeaves > 0
-                                ? "text-red-700 dark:text-red-300"
-                                : "text-muted-foreground"
-                            }`}
+                            className={`text-sm ${stats.pendingLeaves > 0
+                              ? "text-red-700 dark:text-red-300"
+                              : "text-muted-foreground"
+                              }`}
                           >
                             -
                           </div>
