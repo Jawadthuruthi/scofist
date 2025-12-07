@@ -252,7 +252,19 @@ export default async function ApplicationsPage() {
       },
     ];
 
-    const filterConfig = [{ id: "name", label: "Name" }];
+    const filterConfig = [
+      { id: "name", label: "Name" },
+      {
+        id: "status",
+        label: "Status",
+        inputType: "select",
+        options: [
+          { label: "Pending", value: "Pending" },
+          { label: "Approved", value: "Approved" },
+          { label: "Rejected", value: "Rejected" },
+        ],
+      },
+    ];
 
     return (
       <>
