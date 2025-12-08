@@ -336,6 +336,11 @@ const pages = [
     pattern: /^\/dashboard\/masjid-attendance\/mark(?:\/[^/]+)?$/,
     allowedRoles: ["College Admin", "Org Admin"],
   },
+  {
+    title: "Masjid Attendance History",
+    path: "/dashboard/masjid-attendance/history",
+    allowedRoles: ["College Admin", "Org Admin"],
+  },
 ];
 
 export async function middleware(req) {

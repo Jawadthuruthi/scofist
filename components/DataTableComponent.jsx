@@ -85,10 +85,14 @@ const handleError = (error) => {
   }
 };
 
+const DEFAULT_API_FILTERS = {};
+const DEFAULT_ARRAY = [];
+const DEFAULT_OBJECT = {};
+
 const DataTableComponent = ({
   resource,
   apiEndpoint = "",
-  initialData = [],
+  initialData = DEFAULT_ARRAY,
   columnsConfig,
   tableHeight = "calc(100vh - 312px)",
   formFields,
@@ -99,20 +103,20 @@ const DataTableComponent = ({
   createFormTitle = "Add New Item",
   editFormTitle = "Edit Item",
   deleteFormTitle = "Delete Item",
-  filterConfig = [],
+  filterConfig = DEFAULT_ARRAY,
   multiEdit = false,
   limit = 20,
-  apiFilters = {},
+  apiFilters = DEFAULT_API_FILTERS,
   readOnly = false,
   filterTitle = "",
   filterType = "client",
   infiniteScrollThreshold = 0.3,
   printTitle,
   enableDelete = false,
-  editFormFields = [],
-  additionalProps = {},
+  editFormFields = DEFAULT_ARRAY,
+  additionalProps = DEFAULT_OBJECT,
   isFestival = false,
-  multiEditFormFields = [],
+  multiEditFormFields = DEFAULT_ARRAY,
   enableCreate = true,
   printInReverse = false,
 }) => {
