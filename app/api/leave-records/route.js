@@ -1,6 +1,9 @@
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import LeaveRecord from "@/models/LeaveRecord";
+import StudentAttendance from "@/models/StudentAttendance";
+import TimeTable from "@/models/TimeTable";
+import User from "@/models/User";
 import { NextResponse } from "next/server";
 
 export async function GET(req, res) {
@@ -169,7 +172,74 @@ export async function PUT(req, res) {
 
     const _id = Array.isArray(ids) ? ids[0] : ids;
 
-    if (ids.length > 1) {
+    // Handle single record update with arrivedDate (Attendance Logic)
+    if (arrivedDate && (!ids || ids.length === 1) && _id) {
+      try {
+        // Fetch student to get batchId
+        const student = await User.findById(studentId);
+        if (!student) {
+          throw new Error("Student not found");
+        }
+
+        const batchId = student.studentSpecificField?.batchId;
+        if (!batchId) {
+          console.warn(`No batchId found for student ${studentId}`);
+        }
+
+        // Fetch TimeTable for the class
+        const timeTable = await TimeTable.findOne({ classId });
+
+        if (timeTable && batchId) {
+          const arrival = new Date(arrivedDate);
+          const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+          const dayName = days[arrival.getDay()];
+
+          // Get slots for the arrival day
+          const dailySlots = timeTable.timeSlots.filter((slot) => slot.day === dayName);
+
+          if (dailySlots.length > 0) {
+            const newAttendanceRecords = dailySlots.map((slot) => ({
+              classId,
+              batchId,
+              subjectId: slot.subjectId,
+              periodNumber: slot.periodNumber,
+              day: dayName,
+              date: arrival,
+              present: true,
+            }));
+
+            // Remove existing records for this day/periods to avoid duplicates
+            await StudentAttendance.updateOne(
+              { studentId },
+              {
+                $pull: {
+                  attendanceRecords: {
+                    date: arrival,
+                    periodNumber: { $in: dailySlots.map((s) => s.periodNumber) },
+                  },
+                },
+              }
+            );
+
+            // Add new attendance records
+            await StudentAttendance.updateOne(
+              { studentId },
+              {
+                $push: {
+                  attendanceRecords: { $each: newAttendanceRecords },
+                },
+              },
+              { upsert: true }
+            );
+          }
+        }
+      } catch (attendanceError) {
+        console.error("Error updating attendance on leave return:", attendanceError);
+        // Continue to update leave record even if attendance fails
+      }
+    }
+
+    if (ids && ids.length > 1) {
       const updatedLeaveRecords = await LeaveRecord.updateMany(
         { _id: { $in: ids } },
         {

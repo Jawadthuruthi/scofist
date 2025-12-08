@@ -13,7 +13,7 @@ export default async function IndividualLeaveRegisterPage({ params }) {
         pathname: "leave-records",
         searchParams: `studentId=${studentId}&isArrived=false`,
         revalidate: 0,
-        key: "leaveRecords",
+        key: "leave-records",
       },
       {
         pathname: "users",
@@ -59,11 +59,11 @@ export default async function IndividualLeaveRegisterPage({ params }) {
         inputType: "select",
         options: student?.[0]?.classId
           ? [
-              {
-                value: student[0].classId,
-                label: student[0].className || "Unknown Class",
-              },
-            ]
+            {
+              value: student[0].classId,
+              label: student[0].className || "Unknown Class",
+            },
+          ]
           : [],
         readOnly: true,
       },
