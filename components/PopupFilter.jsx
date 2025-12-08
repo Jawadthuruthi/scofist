@@ -70,7 +70,6 @@ export default function PopupFilter({
 }) {
   const [open, setOpen] = useState(false);
   const [localFilters, setLocalFilters] = useState(filters);
-
   // Sync local filters with props
   useEffect(() => {
     setLocalFilters(filters);
@@ -79,6 +78,41 @@ export default function PopupFilter({
   // Helper function to get filtered options based on dependent fields
   const getFilteredOptions = useCallback(
     (filterItem) => {
+      // Handle legacy single filter
+      if (filterItem.filter && (!filterItem.filters || filterItem.filters.length === 0)) {
+        const dependentFieldName = filterItem.filter.dependentField;
+        const key = filterItem.filter.key;
+        const valueToMatch =
+          localFilters[dependentFieldName]?.value ||
+          localFilters[dependentFieldName];
+
+        if (!valueToMatch) {
+          return filterItem.options || [];
+        }
+
+        // Normalize values for comparison
+        const normalize = (val) => {
+          if (val === undefined || val === null) return "";
+          if (Array.isArray(val)) return val.length > 0 ? normalize(val[0]) : "";
+          if (typeof val === "object") {
+            if (val._id) return String(val._id).trim();
+            if (val.value) return String(val.value).trim();
+            if (val.id) return String(val.id).trim();
+          }
+          return String(val).trim();
+        };
+
+        const normalizedValue = normalize(valueToMatch);
+
+        return (filterItem.options || []).filter((option) => {
+          const rawOptionValue = key ? option?.[dependentFieldName]?.[key] : option?.[dependentFieldName];
+          const normalizedOption = normalize(rawOptionValue);
+
+          const isMatch = normalizedOption === normalizedValue;
+          return isMatch;
+        });
+      }
+
       if (!filterItem.filters || filterItem.filters.length === 0) {
         return filterItem.options || [];
       }
@@ -96,11 +130,12 @@ export default function PopupFilter({
             localFilters[dependentFieldName];
 
           if (valueToMatch) {
+            const normalizedValue = normalize(valueToMatch);
+
             filteredOptions = filteredOptions.filter((option) => {
-              if (key) {
-                return option?.[dependentFieldName]?.[key] === valueToMatch;
-              }
-              return option?.[dependentFieldName] === valueToMatch;
+              const rawOptionValue = key ? option?.[dependentFieldName]?.[key] : option?.[dependentFieldName];
+              const normalizedOption = normalize(rawOptionValue);
+              return normalizedOption === normalizedValue;
             });
           }
         });
@@ -123,7 +158,6 @@ export default function PopupFilter({
           ),
         ];
       }
-
       return filterItem.options || [];
     },
     [localFilters]

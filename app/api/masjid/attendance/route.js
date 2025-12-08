@@ -20,8 +20,14 @@ export async function GET(req) {
         const date = searchParams.get("date");
         const prayer = searchParams.get("prayer");
         const classId = searchParams.get("classId");
+        const distinctField = searchParams.get("distinct");
 
-        console.log("GET /api/masjid/attendance Params:", { date, prayer, classId });
+        console.log("GET /api/masjid/attendance Params:", { date, prayer, classId, distinctField });
+
+        if (distinctField) {
+            const distinctValues = await MasjidAttendance.distinct(distinctField);
+            return NextResponse.json({ [distinctField]: distinctValues }, { status: 200 });
+        }
 
         if (!date) {
             return NextResponse.json(

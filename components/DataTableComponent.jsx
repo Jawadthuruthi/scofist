@@ -159,6 +159,24 @@ const DataTableComponent = ({
   }, [router]);
 
   // Client-side filtering
+  const initialFilters = useMemo(() => {
+    const defaults = {};
+    if (filterConfig) {
+      filterConfig.forEach((f) => {
+        if (f.defaultValue) {
+          defaults[f.id] = { value: f.defaultValue };
+          if (f.inputType === "dateRange") {
+            // For dateRange, structure might need startDate/endDate if it's an object
+            // But if we pass a string yyyy-mm-dd from URL, useDataFilter might expect specific structure ?
+            // Let's assume for now simple value passing works, or logic needs adaptation
+            defaults[f.id] = f.defaultValue;
+          }
+        }
+      });
+    }
+    return defaults;
+  }, [filterConfig]);
+
   const {
     filteredData,
     filters,
@@ -168,7 +186,7 @@ const DataTableComponent = ({
     globalFilter,
     setGlobalFilter,
     hasFilters,
-  } = useDataFilter(data);
+  } = useDataFilter(data, initialFilters);
 
   const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud(
     apiEndpoint ? apiEndpoint : resource,

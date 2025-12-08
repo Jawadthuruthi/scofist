@@ -3,7 +3,7 @@ import ErrorPage from "@/components/ErrorPage";
 import { cookies } from "next/headers";
 import Header from "@/components/Header";
 import AdvancedDataTableComponent from "@/components/AdvancedDataTableComponent";
-import { fetchData, formatOptions, OPERATORS } from "@/lib/utils";
+import { fetchData, formatOptions, OPERATORS, formatDateForDisplay } from "@/lib/utils";
 
 const API_ENDPOINTS = [
     {
@@ -16,25 +16,57 @@ const API_ENDPOINTS = [
     },
     {
         pathname: "users",
-        searchParams: "projection=_id,name&roles=Student",
+        searchParams: "projection=_id,name,studentSpecificField&roles=Student",
+    },
+    {
+        pathname: "masjid/attendance",
+        searchParams: "distinct=prayer",
+        key: "prayer"
     },
 ];
 
-const MasjidAttendanceHistoryPage = async () => {
+const MasjidAttendanceHistoryPage = async ({ searchParams }) => {
     try {
         const cookieStore = await cookies();
         const apiKey = process.env.API_KEY;
 
-        const [batches, classes, students] = await Promise.all(
+        const [batches, classes, students, prayers] = await Promise.all(
             API_ENDPOINTS.map((endpoint) =>
-                fetchData(endpoint.pathname, endpoint.searchParams)
+                fetchData(endpoint.pathname, endpoint.searchParams, 60, endpoint.key)
             )
         );
 
-        const formattedClasses = classes.map((c) => ({
+        console.log("Data check:", {
+            batchesLen: batches?.length,
+            classesLen: classes?.length,
+            studentsLen: students?.length
+        });
+
+        const formattedClasses = (classes || []).map((c) => ({
             ...c,
-            name: c.batchName ? `${c.name} (${c.batchName})` : c.name,
+            name: c.name,
         }));
+
+        const currentFilters = await searchParams; // Next.js 15+ await searchParams
+        const dateFilter = currentFilters?.date || "";
+
+        // Format date to human readable format for display
+        const displayDate = dateFilter ? formatDateForDisplay(dateFilter) : "";
+
+        const formattedStudents = (students || []).map((s) => ({
+            ...s,
+            classId: s.studentSpecificField?.classId?._id || s.studentSpecificField?.classId,
+            date: displayDate // Inject formatted date for display
+        }));
+
+        if (formattedStudents.length > 0) {
+            console.log("Sample Formatted Student:", {
+                id: formattedStudents[0]._id,
+                name: formattedStudents[0].name,
+                classId: formattedStudents[0].classId,
+                rawClassId: formattedStudents[0].studentSpecificField?.classId
+            });
+        }
 
         const tablesConfig = [
             {
@@ -42,7 +74,7 @@ const MasjidAttendanceHistoryPage = async () => {
                 value: "student",
                 resource: "studentMasjidAttendances",
                 printTitle: "Student Masjid Attendance",
-                filterTitle: "Student Masjid Attendance",
+                filterTitle: "Masjid Attendance",
                 columnsConfig: [
                     {
                         header: "Sl.No.",
@@ -54,6 +86,11 @@ const MasjidAttendanceHistoryPage = async () => {
                     },
                     { header: "Student ID", accessorKey: "_id" },
                     { header: "Name", accessorKey: "name" },
+                    {
+                        header: "Date",
+                        accessorKey: "date",
+                        width: 120, // Adjust width as needed
+                    },
                     {
                         header: "Total Prayers",
                         accessorKey: "totalClass",
@@ -100,10 +137,18 @@ const MasjidAttendanceHistoryPage = async () => {
                         type: "text",
                         inputType: "select",
                         nestedArrayField: "attendanceRecords",
-                        options: formatOptions(students),
+                        options: formatOptions(formattedStudents),
                         filter: {
-                            dependentField: "batchId",
+                            dependentField: "classId",
                         },
+                    },
+                    {
+                        id: "prayer",
+                        label: "Prayer Name",
+                        type: "text",
+                        inputType: "select",
+                        nestedArrayField: "attendanceRecords",
+                        options: (prayers || []).map((p) => ({ value: p, label: p })),
                     },
                     {
                         id: "date",
@@ -112,6 +157,7 @@ const MasjidAttendanceHistoryPage = async () => {
                         inputType: "dateRange",
                         nestedArrayField: "attendanceRecords",
                         className: "col-span-1 md:col-span-2",
+                        defaultValue: dateFilter,
                     },
                 ],
                 readOnly: true,
