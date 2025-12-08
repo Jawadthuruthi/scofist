@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +11,9 @@ import useCrud from "@/hooks/use-crud";
 import { formatDate } from "@/lib/utils";
 
 const PrayerSection = ({ prayer, classes, date, apiKey }) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const searchParams = useSearchParams();
+    const shouldBeOpen = searchParams.get("expanded") === prayer;
+    const [isOpen, setIsOpen] = useState(shouldBeOpen);
     const formattedDate = formatDate(date);
 
     // Fetch attendance status for this prayer

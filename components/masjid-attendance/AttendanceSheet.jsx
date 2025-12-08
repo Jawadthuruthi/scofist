@@ -173,7 +173,8 @@ const AttendanceSheet = ({
 
             await saveAttendance.mutateAsync(payload);
             toast.success("Attendance saved successfully");
-            router.back();
+            // Navigate back to dashboard with expanded state
+            router.push(`/dashboard/masjid-attendance?expanded=${prayer}`);
         } catch (error) {
             console.error("Error saving attendance:", error);
             toast.error("Failed to save attendance");
@@ -190,7 +191,7 @@ const AttendanceSheet = ({
             await deleteAttendance.mutateAsync({ data: { ids: [existingRecordId] } });
             toast.success("Attendance reset successfully");
             setResetDialogOpen(false);
-            router.back();
+            router.push(`/dashboard/masjid-attendance?expanded=${prayer}`);
         } catch (error) {
             console.error("Error resetting attendance:", error);
             toast.error("Failed to reset attendance");
@@ -218,7 +219,7 @@ const AttendanceSheet = ({
         <div className="space-y-6 pb-20 md:pb-24">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                    <Button variant="ghost" size="icon" onClick={() => router.push(`/dashboard/masjid-attendance?expanded=${prayer}`)}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div>
