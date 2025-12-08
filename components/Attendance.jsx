@@ -198,9 +198,9 @@ const Attendance = ({ apiKey, teacherId }) => {
 
   // Process leave records effect
   useEffect(() => {
-    if (leaveRecordsQuery.data?.leaveRecords && students.length > 0) {
+    if (leaveRecordsQuery.data?.["leave-records"] && students.length > 0) {
       const leaveStatus = processLeaveStatus(
-        leaveRecordsQuery.data.leaveRecords,
+        leaveRecordsQuery.data["leave-records"],
         students
       );
       setStudentLeaveStatus(leaveStatus);
@@ -596,16 +596,14 @@ const Attendance = ({ apiKey, teacherId }) => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        {leaveInfo?.isOnLeave && !leaveInfo?.hasArrived && (
-                          <Badge variant="destructive" className="text-xs">
-                            Leave
-                          </Badge>
-                        )}
-                      </div>
                       {leaveInfo?.isOnLeave && !leaveInfo?.hasArrived && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {leaveInfo.leaveReason}
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="destructive" className="text-xs w-fit">
+                            On Leave
+                          </Badge>
+                          <span className="text-[10px] font-medium text-red-600 dark:text-red-400">
+                            {leaveInfo.leaveReason}
+                          </span>
                         </div>
                       )}
                     </TableCell>
