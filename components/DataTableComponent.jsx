@@ -30,6 +30,7 @@ import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { applyPrintStyles, removePrintStyles } from "@/lib/utils";
 import PrintHeader from "@/components/PrintHeader";
+import DateRangeFilter from "@/components/DateRangeFilter";
 
 const PopupFilter = dynamic(() => import("./PopupFilter"), {
   ssr: false,
@@ -621,14 +622,28 @@ const DataTableComponent = ({
     : filteredData.length;
   const totalItemsText =
     isApiFiltering && totalPages > 0 ? ` of ${dataCount} total` : "";
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="mr-auto space-x-2 flex">
           <ColumnCustomization table={table} columnsConfig={columnsConfig} />
+          {/* Desktop Date Range Filter */}
+          {!isMobile && filterConfig.find(f => f.inputType === "dateRange") && (
+            <DateRangeFilter
+              value={filters[filterConfig.find(f => f.inputType === "dateRange").id] || {}}
+              onChange={(val) => {
+                const config = filterConfig.find(f => f.inputType === "dateRange");
+                if (val.startDate || val.endDate) {
+                  handleSetFilter(config.id, val, "dateRange", null);
+                } else {
+                  handleRemoveFilter(config.id);
+                }
+              }}
+            />
+          )}
+
           <PopupFilter
-            filterConfig={filterConfig}
+            filterConfig={isMobile ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
             filters={filters}
             setFilter={handleSetFilter}
             removeFilter={handleRemoveFilter}
@@ -639,7 +654,7 @@ const DataTableComponent = ({
             title={filterTitle || capitalize(resource)}
             filterType={filterType}
           />
-        </div>
+        </div >
         <div className="space-x-2">
           {!!selectedData?.length && (!readOnly || enableDelete) && (
             <ConfirmationPopup
@@ -688,7 +703,7 @@ const DataTableComponent = ({
             </>
           )}
         </div>
-      </div>
+      </div >
       {!!selectedData.length && (
         <div className="text-muted-foreground">
           {selectedData?.length} selected
@@ -827,7 +842,7 @@ const DataTableComponent = ({
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
