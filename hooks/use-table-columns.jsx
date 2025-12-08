@@ -259,6 +259,7 @@ const useTableColumns = (columnConfig) => {
           row.original?.[col.totalKey]?.filter(
             (item) => item?.[col.filterKey] === col.filterValue
           )?.length || 0;
+        if (total === 0) return "0.00%";
         const percentage = ((divide / total) * 100).toFixed(2);
         return `${percentage}%`;
       };

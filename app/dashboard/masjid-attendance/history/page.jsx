@@ -36,9 +36,9 @@ const MasjidAttendanceHistoryPage = async () => {
             name: c.batchName ? `${c.name} (${c.batchName})` : c.name,
         }));
 
-        const tabsConfig = [
+        const tablesConfig = [
             {
-                label: "Student",
+                // label: "Student", // No longer needed for single table view
                 value: "student",
                 resource: "studentMasjidAttendances",
                 printTitle: "Student Masjid Attendance",
@@ -125,7 +125,7 @@ const MasjidAttendanceHistoryPage = async () => {
                     title="MASJID ATTENDANCE HISTORY"
                     subTitle="Track Masjid Attendance Records"
                 />
-                <AdvancedDataTableComponent tabsConfig={tabsConfig} apiKey={apiKey} />
+                <AdvancedDataTableComponent tablesConfig={tablesConfig} apiKey={apiKey} />
             </>
         );
     } catch (error) {

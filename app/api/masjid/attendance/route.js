@@ -21,6 +21,8 @@ export async function GET(req) {
         const prayer = searchParams.get("prayer");
         const classId = searchParams.get("classId");
 
+        console.log("GET /api/masjid/attendance Params:", { date, prayer, classId });
+
         if (!date) {
             return NextResponse.json(
                 { message: "Date is required" },
