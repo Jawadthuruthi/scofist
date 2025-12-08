@@ -178,7 +178,7 @@ const pages = [
   {
     title: "Finance",
     path: "/dashboard/finance",
-    allowedRoles: ["Org Admin"],
+    allowedRoles: [],
   },
   {
     title: "Accounts",

@@ -178,7 +178,7 @@ const items = [
     title: "Finance",
     url: "/dashboard/finance",
     icon: CreditCard,
-    allowedRoles: ["Org Admin"],
+    allowedRoles: [],
   },
   {
     title: "Accounts",
