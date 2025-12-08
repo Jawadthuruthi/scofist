@@ -184,7 +184,7 @@ const items = [
     title: "Accounts",
     url: "/dashboard/accounts",
     icon: FileText,
-    allowedRoles: ["College Admin"],
+    allowedRoles: ["College Admin", "Org Admin"],
   },
 
   {

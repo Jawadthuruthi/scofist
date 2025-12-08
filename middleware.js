@@ -183,7 +183,7 @@ const pages = [
   {
     title: "Accounts",
     path: "/dashboard/accounts",
-    allowedRoles: ["College Admin"],
+    allowedRoles: ["College Admin", "Org Admin"],
   },
   {
     title: "Students Fund",
