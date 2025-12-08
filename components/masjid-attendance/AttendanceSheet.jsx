@@ -60,7 +60,7 @@ const AttendanceSheet = ({
         [studentsQuery.data]
     );
 
-    // Fetch existing attendance
+    // Fetch existing attendance for current day/prayer
     const {
         useFetchItems: useFetchAttendance,
         useAddItem: useSaveAttendance,
@@ -80,6 +80,44 @@ const AttendanceSheet = ({
             refetchOnMount: true,
         }
     );
+
+    // Fetch ALL historical attendance for this class to calculate stats
+    // Note: This might be heavy if there are many records. 
+    // Ideally, the backend should provide stats, but we are doing it client-side as per request.
+    const historyQuery = useFetchAttendance(
+        0,
+        0,
+        {
+            classId,
+        },
+        {
+            staleTime: 1000 * 60 * 5,
+        }
+    );
+
+    // Calculate absent days per student
+    const studentHistory = useMemo(() => {
+        if (!historyQuery.data?.attendances) return {};
+
+        const historyMap = {};
+
+        // Initialize for all current students
+        students.forEach(s => {
+            historyMap[s._id] = 0;
+        });
+
+        historyQuery.data.attendances.forEach(record => {
+            record.attendanceData.forEach(item => {
+                const studentId = item.studentId._id || item.studentId;
+                if (item.status === "ABSENT") {
+                    historyMap[studentId] = (historyMap[studentId] || 0) + 1;
+                }
+            });
+        });
+
+        return historyMap;
+    }, [historyQuery.data, students]);
+
 
     useEffect(() => {
         if (attendanceQuery.data?.attendances?.length > 0) {
@@ -177,29 +215,30 @@ const AttendanceSheet = ({
     }
 
     return (
-        <div className="space-y-6 pb-20 md:pb-0">
-            <div className="flex flex-col md:flex-row md:items-center gap-4">
+        <div className="space-y-6 pb-20 md:pb-24">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" onClick={() => router.back()}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div>
-                        <h1 className="text-xl md:text-2xl font-bold tracking-tight">
-                            Mark Attendance
+                        <h1 className="text-xl md:text-2xl font-bold tracking-tight uppercase">
+                            MARK ATTENDANCE
                         </h1>
                         <p className="text-sm text-muted-foreground">
                             {prayer} - {className}
                         </p>
                     </div>
                 </div>
-                <div className="hidden md:block ml-auto text-sm text-muted-foreground border px-3 py-1 rounded-md">
+                {/* Date Display - Right side, styled like MyPeriods */}
+                <div className="py-1 px-8 border border-border rounded-lg text-sm font-medium self-start md:self-auto">
                     {date}
                 </div>
             </div>
 
             {/* Stats Card - Sticky on Mobile */}
             <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2 -mx-4 px-4 md:static md:bg-transparent md:p-0 md:mx-0">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-card p-4 rounded-lg border shadow-sm gap-4">
+                <div className="flex flex-col md:flex-row items-center justify-between bg-card p-4 rounded-lg border shadow-sm gap-4">
                     <div className="flex w-full md:w-auto justify-between md:justify-start gap-2 md:gap-4">
                         <div className="flex flex-col items-center md:flex-row md:gap-2">
                             <span className="text-xs text-muted-foreground uppercase font-bold md:hidden">
@@ -232,23 +271,6 @@ const AttendanceSheet = ({
                             </Badge>
                         </div>
                     </div>
-
-                    <div className="hidden md:flex gap-2">
-                        {existingRecordId && (
-                            <Button
-                                variant="destructive"
-                                onClick={() => setResetDialogOpen(true)}
-                                disabled={saving}
-                            >
-                                Reset
-                            </Button>
-                        )}
-                        <Button onClick={handleSave} disabled={saving}>
-                            {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-                            <Save className="mr-2 h-4 w-4" />
-                            {existingRecordId ? "Update" : "Save"}
-                        </Button>
-                    </div>
                 </div>
             </div>
 
@@ -256,9 +278,9 @@ const AttendanceSheet = ({
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[50px]">#</TableHead>
+                            <TableHead className="w-[50px]">Sl No</TableHead>
                             <TableHead>Student</TableHead>
-                            <TableHead className="w-[100px] text-right md:text-left">Status</TableHead>
+                            <TableHead className="w-[100px] text-right md:text-center">History</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -292,13 +314,16 @@ const AttendanceSheet = ({
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-right md:text-left">
-                                        <Badge
-                                            variant={isPresent ? "success" : "destructive"}
-                                            className="whitespace-nowrap"
-                                        >
-                                            {isPresent ? "Present" : "Absent"}
-                                        </Badge>
+                                    <TableCell className="text-right md:text-center">
+                                        {/* History Column - Shows absent days count */}
+                                        <div className="flex flex-col items-end md:items-center">
+                                            <span className="text-sm font-bold text-muted-foreground">
+                                                {studentHistory[student._id] || 0}
+                                            </span>
+                                            <span className="text-[10px] text-muted-foreground uppercase">
+                                                Days Absent
+                                            </span>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             );
@@ -317,26 +342,32 @@ const AttendanceSheet = ({
                 </Table>
             </div>
 
-            {/* Floating Action Bar for Mobile */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t md:hidden flex gap-2 z-20">
-                {existingRecordId && (
+            {/* Floating Action Bar - Fixed at bottom for ALL screens as requested */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t flex justify-end gap-2 z-20">
+                <div className="container max-w-7xl mx-auto flex justify-end gap-2 w-full">
+                    {existingRecordId && (
+                        <Button
+                            variant="outline"
+                            className="border-destructive text-destructive hover:bg-destructive/10"
+                            onClick={() => setResetDialogOpen(true)}
+                            disabled={saving}
+                        >
+                            Reset
+                        </Button>
+                    )}
                     <Button
-                        variant="outline"
-                        className="flex-1 border-destructive text-destructive hover:bg-destructive/10"
-                        onClick={() => setResetDialogOpen(true)}
+                        className="w-full sm:w-auto"
+                        onClick={handleSave}
                         disabled={saving}
                     >
-                        Reset
+                        {saving ? (
+                            <Loader className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Save className="mr-2 h-4 w-4" />
+                        )}
+                        {existingRecordId ? "Update Attendance" : "Save Attendance"}
                     </Button>
-                )}
-                <Button className="flex-1" onClick={handleSave} disabled={saving}>
-                    {saving ? (
-                        <Loader className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                        <Save className="mr-2 h-4 w-4" />
-                    )}
-                    {existingRecordId ? "Update Attendance" : "Save Attendance"}
-                </Button>
+                </div>
             </div>
 
             <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
