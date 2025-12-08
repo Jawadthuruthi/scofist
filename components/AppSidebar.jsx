@@ -174,12 +174,7 @@ const items = [
     icon: MessageSquare,
     allowedRoles: ["College Admin"],
   },
-  {
-    title: "Finance",
-    url: "/dashboard/finance",
-    icon: CreditCard,
-    allowedRoles: ["College Admin", "Finance"],
-  },
+
   {
     title: "Masjid Attendance",
     url: "/dashboard/masjid-attendance",

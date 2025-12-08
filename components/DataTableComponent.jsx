@@ -221,7 +221,7 @@ const DataTableComponent = ({
     if (fetchItemsQuery.error) {
       toast.error(
         fetchItemsQuery.error.message ||
-          "Failed to fetch data. Please try again."
+        "Failed to fetch data. Please try again."
       );
     }
   }, [fetchItemsQuery.error]);
@@ -702,9 +702,9 @@ const DataTableComponent = ({
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </TableHead>
                 ))}
               </TableRow>

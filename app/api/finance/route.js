@@ -25,7 +25,7 @@ export async function GET(req) {
     const headerStore = headers();
     const activeRole = headerStore.get("active-role");
 
-    if (activeRole !== "College Admin" && activeRole !== "Finance") {
+    if (activeRole !== "Finance") {
       return apiResponse.error("You are not authorized to view finance records.", 403);
     }
 
@@ -50,19 +50,19 @@ export async function GET(req) {
     const total = await Finance.countDocuments(query);
 
     return NextResponse.json(
-        {
-          data: financeEntries,
-          pagination: {
-            page,
-            limit,
-            total,
-            totalPages:
-              limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
-          },
-          message: "Finance entries fetched successfully!",
+      {
+        data: financeEntries,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages:
+            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
         },
-        { status: 200 }
-      );
+        message: "Finance entries fetched successfully!",
+      },
+      { status: 200 }
+    );
   } catch (error) {
     return apiResponse.error(error.message, 500);
   }
@@ -71,80 +71,80 @@ export async function GET(req) {
 // @desc POST a new finance entry
 // @route POST /api/finance
 export async function POST(req) {
-    try {
-      await connectToDB();
+  try {
+    await connectToDB();
 
-      const headerStore = headers();
-      const activeRole = headerStore.get("active-role");
+    const headerStore = headers();
+    const activeRole = headerStore.get("active-role");
 
-      if (activeRole !== "College Admin" && activeRole !== "Finance") {
-        return apiResponse.error("You are not authorized to create finance records.", 403);
-      }
-
-      const { date, type, invoiceNo, category, amount } = await req.json();
-
-      const newEntry = new Finance({
-        date,
-        type,
-        invoiceNo,
-        category,
-        amount,
-      });
-
-      await newEntry.save();
-
-      return NextResponse.json({ data: newEntry, message: "Finance entry created successfully!" }, { status: 201 });
-    } catch (error) {
-      return apiResponse.error(error.message, 500);
+    if (activeRole !== "Finance") {
+      return apiResponse.error("You are not authorized to create finance records.", 403);
     }
+
+    const { date, type, invoiceNo, category, amount } = await req.json();
+
+    const newEntry = new Finance({
+      date,
+      type,
+      invoiceNo,
+      category,
+      amount,
+    });
+
+    await newEntry.save();
+
+    return NextResponse.json({ data: newEntry, message: "Finance entry created successfully!" }, { status: 201 });
+  } catch (error) {
+    return apiResponse.error(error.message, 500);
+  }
 }
 
 
 // @desc PUT (update) a finance entry
 // @route PUT /api/finance
 export async function PUT(req) {
-    try {
-      await connectToDB();
+  try {
+    await connectToDB();
 
-      const headerStore = headers();
-      const activeRole = headerStore.get("active-role");
+    const headerStore = headers();
+    const activeRole = headerStore.get("active-role");
 
-      if (activeRole !== "College Admin" && activeRole !== "Finance") {
-        return apiResponse.error("You are not authorized to update finance records.", 403);
-      }
-
-      const { ids, date, type, invoiceNo, category, amount } = await req.json();
-
-      const updatedEntries = await Finance.updateMany(
-        { _id: { $in: ids } },
-        { $set: { date, type, invoiceNo, category, amount } }
-      );
-
-      return NextResponse.json({ data: updatedEntries, message: "Finance entries updated successfully!" }, { status: 200 });
-    } catch (error) {
-      return apiResponse.error(error.message, 500);
+    if (activeRole !== "Finance") {
+      return apiResponse.error("You are not authorized to update finance records.", 403);
     }
+
+    const { ids, date, type, invoiceNo, category, amount } = await req.json();
+
+    const updatedEntries = await Finance.updateMany(
+      { _id: { $in: ids } },
+      { $set: { date, type, invoiceNo, category, amount } }
+    );
+
+    return NextResponse.json({ data: updatedEntries, message: "Finance entries updated successfully!" }, { status: 200 });
+  } catch (error) {
+    return apiResponse.error(error.message, 500);
+  }
 }
 
 // @desc DELETE a finance entry
 // @route DELETE /api/finance
 export async function DELETE(req) {
-    try {
-        await connectToDB();
+  try {
+    await connectToDB();
 
-        const headerStore = headers();
-        const activeRole = headerStore.get("active-role");
+    const headerStore = headers();
+    const activeRole = headerStore.get("active-role");
 
-        if (activeRole !== "College Admin" && activeRole !== "Finance") {
-            return apiResponse.error("You are not authorized to delete finance records.", 403);
-        }
-
-        const { ids } = await req.json();
-
-        await Finance.deleteMany({_id: { $in: ids }});
-
-        return NextResponse.json({ message: "Finance entries deleted successfully." }, { status: 200 });
-    } catch (error) {
-        return apiResponse.error(error.message, 500);
+    if (activeRole !== "Finance") {
+      return apiResponse.error("You are not authorized to delete finance records.", 403);
     }
+
+    const { ids } = await req.json();
+
+    await Finance.deleteMany({ _id: { $in: ids } });
+
+    return NextResponse.json({ message: "Finance entries deleted successfully." }, { status: 200 });
+  } catch (error) {
+    return apiResponse.error(error.message, 500);
+  }
 }

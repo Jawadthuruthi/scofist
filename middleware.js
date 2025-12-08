@@ -107,11 +107,7 @@ const pages = [
     pattern: /^\/dashboard\/remarks(?:\/[^/]+)?$/,
     allowedRoles: ["College Admin"],
   },
-  {
-    title: "Finance",
-    path: "/dashboard/finance",
-    allowedRoles: ["College Admin", "Finance"],
-  },
+
   {
     title: "Applications",
     path: "/dashboard/applications",
