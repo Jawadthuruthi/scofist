@@ -94,14 +94,14 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
   }, [fetchStudentsQuery.data]);
 
   const leaveRecords = useMemo(() => {
-    return fetchLeaveRecordsQuery.data?.leaveRecords || [];
+    return fetchLeaveRecordsQuery.data?.["leave-records"] || [];
   }, [fetchLeaveRecordsQuery.data]);
 
   const studentLeaveStats = useMemo(() => {
     const stats = {};
     students.forEach((student) => {
       const studentLeaves = leaveRecords.filter(
-        (record) => record.studentId === student._id
+        (record) => String(record.studentId?._id || record.studentId) === String(student._id)
       );
 
       const latestRecord = studentLeaves.sort(
@@ -242,11 +242,10 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
             </CardHeader>
             <CardContent className="p-0 pt-2">
               <div className="text-xl font-bold">
-                {Object.values(studentLeaveStats).reduce(
-                  (total, stats) =>
-                    total + stats.pendingLeaves + stats.overdueLeaves,
-                  0
-                )}
+                {students.filter(student => {
+                  const stats = studentLeaveStats[student._id];
+                  return stats && (stats.pendingLeaves > 0 || stats.overdueLeaves > 0);
+                }).length}
               </div>
             </CardContent>
           </Card>
@@ -266,12 +265,15 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
             {students?.length > 0 ? (
               students
                 .sort((a, b) => {
-                  if (
-                    studentLeaveStats[a._id]?.pendingLeaves > 0 ||
-                    studentLeaveStats[a._id]?.overdueLeaves > 0
-                  ) {
-                    return -1;
-                  }
+                  const statsA = studentLeaveStats[a._id] || {};
+                  const statsB = studentLeaveStats[b._id] || {};
+
+                  const isActiveA = statsA.pendingLeaves > 0 || statsA.overdueLeaves > 0;
+                  const isActiveB = statsB.pendingLeaves > 0 || statsB.overdueLeaves > 0;
+
+                  if (isActiveA && !isActiveB) return -1;
+                  if (!isActiveA && isActiveB) return 1;
+                  return 0;
                 })
                 .map((student, index) => {
                   const stats = studentLeaveStats[student._id] || {};
@@ -319,29 +321,25 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                               {stats.totalLeaves || 0}{" "}
                               {stats.totalLeaves <= 1 ? "leave" : "leaves"}
                             </span>
-                            {stats.pendingLeaves > 0 && (
-                              <Badge
-                                variant="destructive"
-                                className="text-xs px-1 py-0 bg-red-600 text-white dark:bg-red-400 dark:text-red-950"
-                              >
-                                pending
-                              </Badge>
-                            )}
-                            {stats.overdueLeaves > 0 && (
-                              <Badge
-                                variant="destructive"
-                                className="text-xs px-1 py-0 bg-red-800 text-white dark:bg-red-600 dark:text-white"
-                              >
-                                {stats.overdueLeaves} overdue
-                              </Badge>
-                            )}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="p-0 py-2">
                         {latestRecord ? (
                           <div className="space-y-1">
-                            {getStatusBadge(latestRecord.remark)}
+                            <div className="flex flex-wrap gap-1">
+                              {stats.overdueLeaves > 0 && (
+                                <Badge variant="destructive" className="text-xs px-1 py-0">
+                                  Overdue
+                                </Badge>
+                              )}
+                              {stats.pendingLeaves > 0 && (
+                                <Badge variant="destructive" className="text-xs px-1 py-0 bg-orange-500 hover:bg-orange-600">
+                                  Pending
+                                </Badge>
+                              )}
+                              {getStatusBadge(latestRecord.remark)}
+                            </div>
                             <div
                               className={`text-xs px-2 ${stats.pendingLeaves > 0
                                 ? "text-red-700 dark:text-red-300"
@@ -390,7 +388,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
         </Table>
       </div>
 
-    </div>
+    </div >
   );
 };
 

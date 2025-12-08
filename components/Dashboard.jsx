@@ -656,7 +656,25 @@ export default function Dashboard({
         activeStudents: activeStudents.length,
         graduatedStudents: graduatedStudents.length,
         activeBatches: activeBatches.length,
-        leaveStudents: leaveRecords.length,
+        leaveStudents: students.filter(student => {
+          const studentLeaves = leaveRecords.filter(
+            (record) => String(record.studentId?._id || record.studentId) === String(student._id)
+          );
+          return studentLeaves.some(record => {
+            if (record.arrivedDate) return false;
+            const arrivalDate = new Date(record.dateOfArrival);
+            const currentDate = new Date();
+            currentDate.setHours(0, 0, 0, 0);
+            arrivalDate.setHours(0, 0, 0, 0);
+            // It is active if no arrivedDate (pending) OR if overdue
+            // The logic from LeaveRegister: 
+            // if arrivedDate -> completed
+            // else if currentDate > arrivalDate -> overdue (which is active)
+            // else -> pending (which is active)
+            // So basicaly if !arrivedDate, it is active.
+            return !record.arrivedDate;
+          });
+        }).length,
       },
     };
   }, [

@@ -36,7 +36,7 @@ const API_ENDPOINTS = [
   {
     pathname: "leave-records",
     searchParams: "isArrived=false",
-    key: "leaveRecords",
+    key: "leave-records",
   },
   {
     pathname: "teachers-leave-record",
