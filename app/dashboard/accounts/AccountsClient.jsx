@@ -13,31 +13,47 @@ export default function AccountsClient({ initialSummary, apiKey }) {
     const [summary, setSummary] = useState(initialSummary);
     const router = useRouter();
 
-    // Custom Filter States
-    const [dateFilter, setDateFilter] = useState({ start: "", end: "" });
-    const [categoryFilter, setCategoryFilter] = useState("");
-
-    // Create apiFilters object for DataTable
-    const [apiFilters, setApiFilters] = useState({});
-
     useEffect(() => {
         setSummary(initialSummary);
     }, [initialSummary]);
 
-    // Update apiFilters when local filter states change
-    useEffect(() => {
-        const filters = {};
-        if (dateFilter.start && dateFilter.end) {
-            // The API route expects startDate and endDate as separate query params.
-            filters.startDate = dateFilter.start;
-            filters.endDate = dateFilter.end;
+    // Custom Filter States
+    // Filter Config for PopupFilter
+    const filterConfig = [
+        {
+            id: "dateRange",
+            label: "Date Range",
+            inputType: "dateRange",
+        },
+        {
+            id: "category",
+            label: "Category",
+            inputType: "select",
+            options: [
+                { value: "Stationary", label: "Stationary" },
+                { value: "IT Lab", label: "IT Lab" },
+                { value: "Donation", label: "Donation" },
+            ]
+        },
+        {
+            id: "type",
+            label: "Type",
+            inputType: "select",
+            options: [
+                { value: "Income", label: "Income" },
+                { value: "Expense", label: "Expense" },
+            ]
+        },
+        {
+            id: "mode",
+            label: "Mode",
+            inputType: "select",
+            options: [
+                { value: "Cash", label: "Cash" },
+                { value: "Bank", label: "Bank" },
+            ]
         }
-        if (categoryFilter) {
-            filters.category = categoryFilter;
-        }
-        setApiFilters(filters);
-    }, [dateFilter, categoryFilter]);
-
+    ];
 
     const handleSuccess = useCallback(() => {
         router.refresh();
@@ -67,6 +83,10 @@ export default function AccountsClient({ initialSummary, apiKey }) {
                     {row.original.type}
                 </span>
             )
+        },
+        {
+            accessorKey: "mode",
+            header: "Mode",
         },
         {
             accessorKey: "invoiceNo",
@@ -103,7 +123,19 @@ export default function AccountsClient({ initialSummary, apiKey }) {
             required: true,
         },
         { name: "invoiceNo", label: "Invoice/Receipt No", type: "text", required: true },
-        { name: "category", label: "Category", type: "text", required: true },
+        {
+            name: "category",
+            label: "Category",
+            type: "text",
+            inputType: "select",
+            options: [
+                { value: "Stationary", label: "Stationary" },
+                { value: "IT Lab", label: "IT Lab" },
+                { value: "Donation", label: "Donation" },
+            ],
+            required: true,
+            freeSolo: true
+        },
         {
             name: "mode",
             label: "Mode",
@@ -124,37 +156,7 @@ export default function AccountsClient({ initialSummary, apiKey }) {
 
             <TransactionForm apiKey={apiKey} onSuccess={handleSuccess} />
 
-            {/* Inline Filters */}
-            <div className="flex flex-col md:flex-row gap-4 items-end bg-transparent">
-                <div className="grid grid-cols-2 gap-2 w-full md:w-auto">
-                    <div className="space-y-1">
-                        <label className="text-xs font-semibold text-muted-foreground ml-1">Start Date</label>
-                        <Input
-                            type="date"
-                            value={dateFilter.start}
-                            onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-xs font-semibold text-muted-foreground ml-1">End Date</label>
-                        <Input
-                            type="date"
-                            value={dateFilter.end}
-                            onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
-                            className="w-full"
-                        />
-                    </div>
-                </div>
-                <div className="w-full md:w-64 space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground ml-1">Category Search</label>
-                    <Input
-                        placeholder="Search category..."
-                        value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
-                    />
-                </div>
-            </div>
+
 
             <DataTableComponent
                 key={refreshKey}
@@ -168,16 +170,11 @@ export default function AccountsClient({ initialSummary, apiKey }) {
                 enableCreate={false} // Disable built-in add button
                 createFormTitle="Add Transaction"
                 editFormTitle="Edit Transaction"
-                apiFilters={apiFilters}
-                filterConfig={[]} // Disable built-in popup filter since we have inline
+                apiFilters={{}}
+                filterConfig={filterConfig}
             />
 
-            <div className="flex justify-end mt-4">
-                <Button variant="default" className="bg-black text-white hover:bg-gray-800">
-                    <Printer className="w-4 h-4 mr-2" />
-                    Print Statement
-                </Button>
-            </div>
+
         </div>
     );
 }

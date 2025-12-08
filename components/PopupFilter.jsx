@@ -337,9 +337,9 @@ export default function PopupFilter({
                                 nestedArrayField
                               )
                             }
-                            className="flex-1"
+                            className="flex-1 h-8 text-xs"
                           />
-                          <span className="text-sm">to</span>
+                          <span className="text-xs">to</span>
                           <Input
                             type="date"
                             value={currentValue.endDate || ""}
@@ -354,7 +354,7 @@ export default function PopupFilter({
                                 nestedArrayField
                               )
                             }
-                            className="flex-1"
+                            className="flex-1 h-8 text-xs"
                           />
                         </div>
                       </div>

@@ -10,6 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -124,13 +125,20 @@ export default function TransactionForm({ apiKey, onSuccess }) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="category">Category</Label>
-                        <Input
-                            id="category"
-                            name="category"
-                            placeholder="Select or type category"
+                        <MultiSelect
+                            options={[
+                                { value: "Stationary", label: "Stationary" },
+                                { value: "IT Lab", label: "IT Lab" },
+                                { value: "Donation", label: "Donation" },
+                            ]}
                             value={formData.category}
-                            onChange={handleChange}
-                            required
+                            onValueChange={(val) => handleSelectChange("category", val)}
+                            placeholder="Select or type category"
+                            variant="default"
+                            animation={2}
+                            maxCount={1}
+                            multiSelect={false}
+                            freeSolo={true}
                         />
                     </div>
 
