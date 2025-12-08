@@ -1,150 +1,83 @@
-import { NextResponse } from "next/server";
+
 import connectToDB from "@/lib/db";
 import Finance from "@/models/Finance";
-import { apiResponse } from "@/lib/apiResponse";
-import { parseUser } from "@/lib/utils";
-import { headers } from "next/headers";
+import { getFinanceSummary } from "@/libservices/financeService";
+import { NextResponse } from "next/server";
 
-// @desc GET all finance entries
-// @route GET /api/finance
 export async function GET(req) {
   try {
     await connectToDB();
+    const { searchParams } = new URL(req.url);
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const category = searchParams.get("category");
+    const mode = searchParams.get("mode");
 
-    const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
-
-    const filterParams = {};
-    for (const [key, value] of url.searchParams.entries()) {
-      if (key !== "page" && key !== "limit") {
-        filterParams[key] = value;
-      }
-    }
-
-    const headerStore = headers();
-    const activeRole = headerStore.get("active-role");
-
-    if (activeRole !== "Finance") {
-      return apiResponse.error("You are not authorized to view finance records.", 403);
-    }
+    const page = parseInt(searchParams.get("page")) || 1;
+    const limit = parseInt(searchParams.get("limit")) || 20;
+    const skip = (page - 1) * limit;
 
     let query = {};
 
-    if (filterParams.category) {
-      query.category = { $regex: filterParams.category, $options: "i" };
-    }
-
-    if (filterParams.startDate && filterParams.endDate) {
+    if (startDate && endDate) {
       query.date = {
-        $gte: new Date(filterParams.startDate),
-        $lte: new Date(filterParams.endDate),
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
       };
     }
 
-    const financeEntries = await Finance.find(query)
-      .skip(page * limit)
-      .limit(limit)
-      .sort({ date: -1 });
+    if (category && category !== "all") {
+      query.category = { $regex: category, $options: "i" }; // Case-insensitive partial match for robust filtering
+    }
+
+    if (mode && mode !== "all") {
+      query.mode = mode;
+    }
+
+    const transactions = await Finance.find(query)
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit);
 
     const total = await Finance.countDocuments(query);
+    const totalPages = Math.ceil(total / limit);
 
-    return NextResponse.json(
-      {
-        data: financeEntries,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages:
-            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
-        },
-        message: "Finance entries fetched successfully!",
+    // Calculate Summary (Global Balance)
+    const summary = await getFinanceSummary();
+
+    return NextResponse.json({
+      success: true,
+      finance: transactions,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages
       },
-      { status: 200 }
-    );
+      summary
+    });
   } catch (error) {
-    return apiResponse.error(error.message, 500);
+    console.error("Error fetching finance data:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch data" },
+      { status: 500 }
+    );
   }
 }
 
-// @desc POST a new finance entry
-// @route POST /api/finance
 export async function POST(req) {
   try {
     await connectToDB();
+    const body = await req.json();
 
-    const headerStore = headers();
-    const activeRole = headerStore.get("active-role");
+    const newTransaction = await Finance.create(body);
 
-    if (activeRole !== "Finance") {
-      return apiResponse.error("You are not authorized to create finance records.", 403);
-    }
-
-    const { date, type, invoiceNo, category, amount } = await req.json();
-
-    const newEntry = new Finance({
-      date,
-      type,
-      invoiceNo,
-      category,
-      amount,
-    });
-
-    await newEntry.save();
-
-    return NextResponse.json({ data: newEntry, message: "Finance entry created successfully!" }, { status: 201 });
+    return NextResponse.json({ success: true, data: newTransaction }, { status: 201 });
   } catch (error) {
-    return apiResponse.error(error.message, 500);
-  }
-}
-
-
-// @desc PUT (update) a finance entry
-// @route PUT /api/finance
-export async function PUT(req) {
-  try {
-    await connectToDB();
-
-    const headerStore = headers();
-    const activeRole = headerStore.get("active-role");
-
-    if (activeRole !== "Finance") {
-      return apiResponse.error("You are not authorized to update finance records.", 403);
-    }
-
-    const { ids, date, type, invoiceNo, category, amount } = await req.json();
-
-    const updatedEntries = await Finance.updateMany(
-      { _id: { $in: ids } },
-      { $set: { date, type, invoiceNo, category, amount } }
+    console.error("Error creating transaction:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to create transaction" },
+      { status: 500 }
     );
-
-    return NextResponse.json({ data: updatedEntries, message: "Finance entries updated successfully!" }, { status: 200 });
-  } catch (error) {
-    return apiResponse.error(error.message, 500);
-  }
-}
-
-// @desc DELETE a finance entry
-// @route DELETE /api/finance
-export async function DELETE(req) {
-  try {
-    await connectToDB();
-
-    const headerStore = headers();
-    const activeRole = headerStore.get("active-role");
-
-    if (activeRole !== "Finance") {
-      return apiResponse.error("You are not authorized to delete finance records.", 403);
-    }
-
-    const { ids } = await req.json();
-
-    await Finance.deleteMany({ _id: { $in: ids } });
-
-    return NextResponse.json({ message: "Finance entries deleted successfully." }, { status: 200 });
-  } catch (error) {
-    return apiResponse.error(error.message, 500);
   }
 }

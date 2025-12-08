@@ -24,6 +24,11 @@ const financeSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    mode: {
+      type: String,
+      enum: ["Cash", "Bank"],
+      required: true,
+    },
   },
   { timestamps: true }
 );

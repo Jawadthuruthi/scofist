@@ -176,6 +176,16 @@ const pages = [
     allowedRoles: ["Literary Leader"],
   },
   {
+    title: "Finance",
+    path: "/dashboard/finance",
+    allowedRoles: ["Org Admin"],
+  },
+  {
+    title: "Accounts",
+    path: "/dashboard/accounts",
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Students Fund",
     path: "/dashboard/students-fund",
     allowedRoles: ["College Admin", "Teacher", "Stationary", "IT Lab"],

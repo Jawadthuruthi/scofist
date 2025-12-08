@@ -112,6 +112,7 @@ const DataTableComponent = ({
   additionalProps = {},
   isFestival = false,
   multiEditFormFields = [],
+  enableCreate = true,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -136,6 +137,11 @@ const DataTableComponent = ({
   const router = useRouter();
 
   const isMobile = useIsMobile();
+
+  // Sync activeApiFilters with prop
+  useEffect(() => {
+    setActiveApiFilters(apiFilters);
+  }, [apiFilters]);
 
   // Periodic refresh
   useEffect(() => {
@@ -660,7 +666,7 @@ const DataTableComponent = ({
                 apiKey={apiKey}
               />
             )}
-          {!readOnly && (
+          {!readOnly && enableCreate && (
             <PopupForm
               formFields={formFields}
               onSubmit={handleSubmit}

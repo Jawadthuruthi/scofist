@@ -42,11 +42,10 @@ const SectionNavigation = ({
         ref={(el) => (ref.current[index] = el)}
         key={section}
         type="button"
-        className={`px-4 py-2 text-sm text-nowrap ${
-          activeIndex === index
+        className={`px-4 py-2 text-sm text-nowrap ${activeIndex === index
             ? "border-b-2 border-primary text-primary"
             : "text-muted-foreground"
-        }`}
+          }`}
         onClick={() => setActiveIndex(index)}
       >
         {section}

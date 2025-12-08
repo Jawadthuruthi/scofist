@@ -174,6 +174,18 @@ const items = [
     icon: MessageSquare,
     allowedRoles: ["College Admin"],
   },
+  {
+    title: "Finance",
+    url: "/dashboard/finance",
+    icon: CreditCard,
+    allowedRoles: ["Org Admin"],
+  },
+  {
+    title: "Accounts",
+    url: "/dashboard/accounts",
+    icon: FileText,
+    allowedRoles: ["College Admin"],
+  },
 
   {
     title: "Masjid Attendance",
