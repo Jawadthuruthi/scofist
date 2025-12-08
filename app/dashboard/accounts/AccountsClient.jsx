@@ -172,6 +172,8 @@ export default function AccountsClient({ initialSummary, apiKey }) {
                 editFormTitle="Edit Transaction"
                 apiFilters={{}}
                 filterConfig={filterConfig}
+                printInReverse={true}
+                printTitle="Accounts"
             />
 
 

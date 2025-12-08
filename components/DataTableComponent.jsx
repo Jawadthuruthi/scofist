@@ -113,6 +113,7 @@ const DataTableComponent = ({
   isFestival = false,
   multiEditFormFields = [],
   enableCreate = true,
+  printInReverse = false,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -675,6 +676,17 @@ const DataTableComponent = ({
               apiKey={apiKey}
             />
           )}
+          {table.getRowModel().rows?.length > 0 && (
+            <>
+              {isMobile ? (
+                <Button onClick={handleDownloadPDF} className="print:hidden bg-black text-white hover:bg-gray-800">
+                  Download PDF
+                </Button>
+              ) : (
+                <Button onClick={handlePrint} className="bg-black text-white hover:bg-gray-800">Print</Button>
+              )}
+            </>
+          )}
         </div>
       </div>
       {!!selectedData.length && (
@@ -716,7 +728,7 @@ const DataTableComponent = ({
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
+          <TableBody className={printInReverse ? "print:hidden" : ""}>
             {isInitialLoading ? (
               Array(3)
                 .fill(0)
@@ -766,6 +778,31 @@ const DataTableComponent = ({
               </TableRow>
             )}
           </TableBody>
+          {printInReverse && table.getRowModel().rows?.length > 0 && (
+            <TableBody className="hidden print:table-row-group">
+              {[...table.getRowModel().rows].reverse().map((row) => (
+                <TableRow
+                  key={`print-${row.id}`}
+                  className="break-inside-avoid"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      style={getCellStyles(cell.column.columnDef.meta)}
+                      key={`print-${cell.id}`}
+                      className={
+                        cell.column.id === "select" ? "print:hidden" : ""
+                      }
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          )}
         </Table>
         {hasNextPage && table.getRowModel().rows?.length > 0 && (
           <div ref={loaderRef} className="w-full p-4 text-center print:hidden">
@@ -789,17 +826,6 @@ const DataTableComponent = ({
             </span>
           )}
         </div>
-        {table.getRowModel().rows?.length > 0 && (
-          <>
-            {isMobile ? (
-              <Button onClick={handleDownloadPDF} className="print:hidden">
-                Download PDF
-              </Button>
-            ) : (
-              <Button onClick={handlePrint}>Print</Button>
-            )}
-          </>
-        )}
       </div>
     </div>
   );
