@@ -256,7 +256,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                                 >
                                                     <div className="flex items-center justify-center w-full h-12 relative overflow-visible">
                                                         {isMiddle && (
-                                                            <span className="absolute z-10 text-xl text-red-300 font-bold tracking-[1em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
+                                                            <span className="absolute z-0 text-xl text-red-300 font-bold tracking-[1em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
                                                                 Friday
                                                             </span>
                                                         )}
