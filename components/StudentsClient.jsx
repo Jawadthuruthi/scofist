@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import { formatOptions } from "@/lib/utils";
 import { useMemo } from "react";
 
-export default function StudentsClient({ batches, classes, activeRole, apiKey, isReadOnly = false, pageTitle, excludedColumns = [] }) {
+export default function StudentsClient({ batches, classes, activeRole, apiKey, isReadOnly = false, pageTitle, excludedColumns = [], filterTitle }) {
   const columnsConfig = [
     {
       id: "select",
@@ -563,7 +563,32 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
     },
   ];
 
-  const filterConfig = [
+  const filterConfig = pageTitle === "ADMISSION REGISTER" ? [
+    { id: "_id", label: "ID" },
+    { id: "name", label: "Name" },
+    {
+      id: "batchId",
+      label: "Batch",
+      inputType: "select",
+      options: formatOptions(batches),
+    },
+    {
+      id: "classId",
+      label: "Class",
+      inputType: "select",
+      options: formatOptions(classes),
+    },
+    {
+      id: "status",
+      label: "Status",
+      inputType: "select",
+      options: [
+        { label: "Active", value: "Active" },
+        { label: "Graduated", value: "Graduated" },
+        { label: "Dropped Out", value: "Dropped Out" },
+      ],
+    },
+  ] : [
     { id: "name", label: "Name" },
     { id: "_id", label: "ID" },
     {
@@ -636,7 +661,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         filterConfig={filterConfig}
         limit={20}
         apiFilters={apiFilters}
-        filterTitle="Students"
+        filterTitle={filterTitle || "Students"}
         printTitle={pageTitle || "Students"}
         filterType="api"
         readOnly={activeRole !== "College Admin" || isReadOnly}
