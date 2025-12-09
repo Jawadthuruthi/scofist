@@ -176,9 +176,15 @@ const pages = [
     allowedRoles: ["Literary Leader"],
   },
   {
+    title: "Admission Register",
+    path: "/dashboard/admission-register",
+    pattern: /^\/dashboard\/admission-register(?:\/[^/]+)?$/,
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Finance",
     path: "/dashboard/finance",
-    allowedRoles: [],
+    allowedRoles: ["Org Admin"],
   },
   {
     title: "Accounts",

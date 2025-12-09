@@ -20,16 +20,17 @@ const ColumnCustomization = ({ table, columnsConfig }) => {
       </DropdownMenuTrigger>
       <DropdownMenuContent className="mx-4" align="end">
         {columnsConfig.map((columnConfig) => {
-          if (!columnConfig.accessorKey) return null;
+          const columnId = columnConfig.accessorKey || columnConfig.id;
+          if (!columnId) return null;
 
-          const column = table.getColumn(columnConfig.accessorKey);
+          const column = table.getColumn(columnId);
 
           // Skip if column doesn't exist in the table
           if (!column) return null;
 
           return (
             <DropdownMenuCheckboxItem
-              key={columnConfig.accessorKey}
+              key={columnId}
               className="capitalize"
               checked={column.getIsVisible()}
               onSelect={(event) => event.preventDefault()}
@@ -37,8 +38,8 @@ const ColumnCustomization = ({ table, columnsConfig }) => {
                 column.toggleVisibility(!!value);
               }}
             >
-              {columnConfig.header ||
-                columnConfig.name ||
+              {(typeof columnConfig.header !== "function" && columnConfig.header) ||
+                columnConfig.id ||
                 columnConfig.accessorKey}
             </DropdownMenuCheckboxItem>
           );

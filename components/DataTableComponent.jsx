@@ -244,6 +244,7 @@ const DataTableComponent = ({
   const fetchItemsQuery = useFetchItems(page, limit, combinedApiFilters, {
     retry: 2,
     retryDelay: 1000,
+    refetchOnMount: "always",
   });
 
   // Handle fetch errors

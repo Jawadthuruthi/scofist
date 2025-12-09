@@ -3,8 +3,9 @@
 import DataTableComponent from "@/components/DataTableComponent";
 import Header from "@/components/Header";
 import { formatOptions } from "@/lib/utils";
+import { useMemo } from "react";
 
-export default function StudentsClient({ batches, classes, activeRole, apiKey }) {
+export default function StudentsClient({ batches, classes, activeRole, apiKey, isReadOnly = false, pageTitle, excludedColumns = [] }) {
   const columnsConfig = [
     {
       id: "select",
@@ -30,16 +31,52 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
       maxWidth: 70,
       minWidth: 70,
     },
-    { accessorKey: "_id", header: "Student ID", type: ["sortable"] },
-    { accessorKey: "name", header: "Name" },
+    {
+      accessorKey: "_id",
+      header: pageTitle === "ADMISSION REGISTER" ? <div>Student<br />ID</div> : "Student ID",
+      type: ["sortable"]
+    },
+    {
+      accessorKey: "name",
+      header: pageTitle === "ADMISSION REGISTER" ? <div>Student Name &<br />Contact Number</div> : "Name",
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="font-medium">{row.original.name}</span>
+          {pageTitle === "ADMISSION REGISTER" && (
+            <div className="flex flex-col gap-0.5 mt-1">
+              {row.original.contactNumber && <span className="text-xs text-muted-foreground">Ph: {row.original.contactNumber}</span>}
+              {row.original.alternativeNumber && <span className="text-xs text-muted-foreground">Alt: {row.original.alternativeNumber}</span>}
+            </div>
+          )}
+        </div>
+      ),
+    },
     { accessorKey: "email", header: "Email" },
     { accessorKey: "contactNumber", header: "Contact Number" },
     { accessorKey: "alternativeNumber", header: "Alternative Number" },
     { accessorKey: "aadharNo", header: "Aadhar Number" },
     { accessorKey: "batchName", header: "Batch" },
     { accessorKey: "className", header: "Class" },
-    { accessorKey: "admissionClassName", header: "Admission Class" },
-    { accessorKey: "admissionDate", header: "Admission Date", type: ["date"] },
+    {
+      accessorKey: "admissionClassName",
+      header: pageTitle === "ADMISSION REGISTER" ? <div>Admission<br />Class</div> : "Admission Class"
+    },
+    {
+      accessorKey: "admissionDate",
+      header: pageTitle === "ADMISSION REGISTER" ? <div>Admission<br />Date & Class</div> : "Admission Date",
+      cell: ({ row }) => {
+        const date = row.getValue("admissionDate");
+        const formattedDate = date ? new Date(date).toLocaleDateString() : "";
+        return (
+          <div className="flex flex-col">
+            <span>{formattedDate}</span>
+            {pageTitle === "ADMISSION REGISTER" && row.original.admissionClassName && (
+              <span className="text-xs text-muted-foreground">{row.original.admissionClassName}</span>
+            )}
+          </div>
+        );
+      },
+    },
     { accessorKey: "dateOfBirth", header: "Date Of Birth", type: ["date"] },
     { accessorKey: "bloodGroup", header: "Blood Group" },
     { accessorKey: "roles", header: "Roles", type: ["array"] },
@@ -63,11 +100,17 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
     },
     {
       accessorKey: "guardianName",
-      header: "Guardian Name",
+      header: pageTitle === "ADMISSION REGISTER" ? <div>Guardian Name &<br />Contact Number</div> : "Guardian Name",
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="font-medium">{row.original.guardianName}</span>
           <span className="text-xs text-muted-foreground">({row.original.relationship})</span>
+          {pageTitle === "ADMISSION REGISTER" && (
+            <div className="flex flex-col gap-0.5 mt-1">
+              {row.original.guardianContactNumber && <span className="text-xs text-muted-foreground">Ph: {row.original.guardianContactNumber}</span>}
+              {row.original.guardianAlternativeNumber && <span className="text-xs text-muted-foreground">Alt: {row.original.guardianAlternativeNumber}</span>}
+            </div>
+          )}
         </div>
       ),
     },
@@ -81,6 +124,8 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
     {
       id: "statusDetails",
       header: "Status Details",
+      minWidth: 250,
+      width: 300,
       cell: ({ row }) => {
         const {
           status,
@@ -108,7 +153,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
             <div className="flex flex-col text-xs gap-0.5 whitespace-normal break-words leading-tight py-1">
               <span className="font-semibold text-red-600">Dropped Out: {formattedDate}</span>
               {droppedOutClass && <span>Class: {className}</span>}
-              {droppedOutReason && <span>Reason: {droppedOutReason}</span>}
+              {droppedOutReason && droppedOutReason.toLowerCase() !== 'unknown' && <span>Reason: {droppedOutReason}</span>}
             </div>
           );
         }
@@ -123,10 +168,10 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
     delete: "Student deleted successfully!",
   };
 
-  const apiFilters = {
+  const apiFilters = useMemo(() => ({
     roles: ["Student"],
     populate: "funds",
-  };
+  }), []);
 
   const formFields = [
     // Personal Details Section
@@ -546,7 +591,10 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
   ];
 
   const filteredColumnsConfig = columnsConfig.filter((column) => {
-    if (activeRole === "Teacher") {
+    if (excludedColumns.includes(column.accessorKey)) {
+      return false;
+    }
+    if (activeRole === "Teacher" || isReadOnly) {
       return column.header !== "Select";
     }
     if (activeRole === "Student") {
@@ -567,9 +615,9 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
     <>
       <Header
         title={
-          activeRole !== "College Admin"
+          pageTitle || (activeRole !== "College Admin"
             ? "STUDENTS DETAILS"
-            : "STUDENTS MANAGEMENT"
+            : "STUDENTS MANAGEMENT")
         }
         subTitle="Organize and Oversee Students"
       />
@@ -589,9 +637,9 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey })
         limit={20}
         apiFilters={apiFilters}
         filterTitle="Students"
-        printTitle={"Students"}
+        printTitle={pageTitle || "Students"}
         filterType="api"
-        readOnly={activeRole !== "College Admin"}
+        readOnly={activeRole !== "College Admin" || isReadOnly}
       />
     </>
   );

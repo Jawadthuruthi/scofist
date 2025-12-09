@@ -266,6 +266,12 @@ const items = [
         allowedRoles: ["College Admin", "Teacher"],
       },
       {
+        title: "Admission Register",
+        url: "/dashboard/admission-register",
+        icon: FileText,
+        allowedRoles: ["College Admin"],
+      },
+      {
         title: "Students Reports",
         url: "/dashboard/students-reports",
         icon: FileSearch,

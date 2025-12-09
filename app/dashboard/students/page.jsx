@@ -17,8 +17,40 @@ export default async function BatchesPage() {
       throw error;
     }
 
-    const batchesData = await Batch.find({}).select("_id name").lean();
+    const batchesData = await Batch.find({}).select("_id name endYear").sort({ endYear: 1 }).lean();
     const classesData = await Class.find({}).select("_id name").lean();
+
+    const classOrder = [
+      "PLUS ONE A",
+      "PLUS ONE B",
+      "PLUS TWO",
+      "DEGREE FIRST YEAR",
+      "DEGREE SECOND YEAR",
+      "DEGREE THIRD YEAR",
+      "PG FIRST YEAR",
+      "PG SECOND YEAR",
+      "8TH STD",
+      "9TH STD",
+      "10TH STD",
+    ].map((name) => name.replace(/\s/g, "").toUpperCase());
+
+    classesData.sort((a, b) => {
+      const nameA = a.name.trim().toUpperCase().replace(/\s/g, "");
+      const nameB = b.name.trim().toUpperCase().replace(/\s/g, "");
+      const indexA = classOrder.indexOf(nameA);
+      const indexB = classOrder.indexOf(nameB);
+
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      if (indexA !== -1) {
+        return -1;
+      }
+      if (indexB !== -1) {
+        return 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
 
     const batches = JSON.parse(JSON.stringify(batchesData));
     const classes = JSON.parse(JSON.stringify(classesData));
