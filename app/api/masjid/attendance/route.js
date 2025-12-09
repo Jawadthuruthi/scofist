@@ -22,30 +22,21 @@ export async function GET(req) {
         const classId = searchParams.get("classId");
         const distinctField = searchParams.get("distinct");
 
-        console.log("GET /api/masjid/attendance Params:", { date, prayer, classId, distinctField });
+        console.log(`GET /api/masjid/attendance - Date: ${date}, Prayer: ${prayer}, ClassId: ${classId}`);
 
         if (distinctField) {
             const distinctValues = await MasjidAttendance.distinct(distinctField);
             return NextResponse.json({ [distinctField]: distinctValues }, { status: 200 });
         }
 
-        if (!date) {
-            return NextResponse.json(
-                { message: "Date is required" },
-                { status: 400 }
-            );
+        const query = {};
+
+        if (date) {
+            const queryDate = new Date(date);
+            const startOfDay = new Date(queryDate.setHours(0, 0, 0, 0));
+            const endOfDay = new Date(queryDate.setHours(23, 59, 59, 999));
+            query.date = { $gte: startOfDay, $lte: endOfDay };
         }
-
-        // Parse date to ensure consistent comparison (start of day to end of day if needed, but here we store exact date or string)
-        // The model expects a Date object.
-        // To match by date, we should look for the range of that day.
-        const queryDate = new Date(date);
-        const startOfDay = new Date(queryDate.setHours(0, 0, 0, 0));
-        const endOfDay = new Date(queryDate.setHours(23, 59, 59, 999));
-
-        const query = {
-            date: { $gte: startOfDay, $lte: endOfDay },
-        };
 
         if (prayer) query.prayer = prayer;
         if (classId) query.classId = classId;

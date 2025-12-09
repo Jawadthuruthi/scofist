@@ -328,18 +328,18 @@ const pages = [
   {
     title: "Masjid Attendance",
     path: "/dashboard/masjid-attendance",
-    allowedRoles: ["College Admin", "Org Admin"],
+    allowedRoles: ["College Admin", "Org Admin", "Teacher"],
   },
   {
     title: "Masjid Attendance Mark",
     path: "/dashboard/masjid-attendance/mark",
     pattern: /^\/dashboard\/masjid-attendance\/mark(?:\/[^/]+)?$/,
-    allowedRoles: ["College Admin", "Org Admin"],
+    allowedRoles: ["College Admin", "Org Admin", "Teacher"],
   },
   {
     title: "Masjid Attendance History",
     path: "/dashboard/masjid-attendance/history",
-    allowedRoles: ["College Admin", "Org Admin"],
+    allowedRoles: ["College Admin", "Org Admin", "Teacher"],
   },
 ];
 
