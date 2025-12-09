@@ -40,6 +40,7 @@ const PrayerSection = ({ prayer, classes, date, apiKey }) => {
         {
             refetchOnWindowFocus: true,
             staleTime: 1000 * 60 * 5, // 5 minutes
+            enabled: !!formattedDate && !!prayer,
         }
     );
 

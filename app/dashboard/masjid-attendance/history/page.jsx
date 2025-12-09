@@ -87,11 +87,6 @@ const MasjidAttendanceHistoryPage = async ({ searchParams }) => {
                     { header: "Student ID", accessorKey: "_id" },
                     { header: "Name", accessorKey: "name" },
                     {
-                        header: "Date",
-                        accessorKey: "date",
-                        width: 120, // Adjust width as needed
-                    },
-                    {
                         header: "Total Prayers",
                         accessorKey: "totalClass",
                         valueKey: "attendanceRecords",
