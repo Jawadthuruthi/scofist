@@ -14,7 +14,6 @@ const financeSchema = new mongoose.Schema(
     invoiceNo: {
       type: String,
       required: true,
-      unique: true,
     },
     category: {
       type: String,
@@ -32,6 +31,9 @@ const financeSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Add compound unique index
+financeSchema.index({ invoiceNo: 1, type: 1 }, { unique: true });
 
 const Finance =
   mongoose.models.Finance || mongoose.model("Finance", financeSchema);
