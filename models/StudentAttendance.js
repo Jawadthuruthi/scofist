@@ -217,11 +217,55 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
   // Convert to array of class results
   let classResults = Object.values(resultsByClass);
 
+  // Get all class IDs from results (before pagination) to sort them by name
+  const allClassIds = classResults.map(r => r.classId);
+  console.log("Toppers Sorting - allClassIds:", allClassIds);
+
+  const allClasses = await Class.find({ _id: { $in: allClassIds } }, { name: 1 }).lean();
+  console.log("Toppers Sorting - Found Classes count:", allClasses.length);
+
+  const allClassMap = {};
+  allClasses.forEach(c => allClassMap[String(c._id)] = c.name);
+
+  // Custom sort order
+  const classOrder = [
+    "PLUS ONE A",
+    "PLUS ONE B",
+    "PLUS TWO",
+    "DEGREE FIRST YEAR",
+    "DEGREE SECOND YEAR",
+    "DEGREE THIRD YEAR",
+    "PG FIRST YEAR",
+    "PG SECOND YEAR",
+    "8TH STD",
+    "9TH STD",
+    "10TH STD",
+  ].map((name) => name.replace(/\s/g, "").toUpperCase());
+
   classResults.sort((a, b) => {
-    return a.classId.localeCompare(b.classId);
+    const rawNameA = allClassMap[String(a.classId)] || "";
+    const rawNameB = allClassMap[String(b.classId)] || "";
+
+    const nameA = rawNameA.trim().toUpperCase().replace(/\s/g, "");
+    const nameB = rawNameB.trim().toUpperCase().replace(/\s/g, "");
+
+    const indexA = classOrder.indexOf(nameA);
+    const indexB = classOrder.indexOf(nameB);
+
+    // console.log(`Comparing ${rawNameA} (${indexA}) vs ${rawNameB} (${indexB})`);
+
+    if (indexA !== -1 && indexB !== -1) {
+      return indexA - indexB;
+    }
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+
+    return nameA.localeCompare(nameB);
   });
 
-  // Apply pagination to the class results
+  console.log("Toppers Sorting - Sorted Classes:", classResults.map(r => allClassMap[String(r.classId)]));
+
+  // Apply pagination to the sorted class results
   const total = classResults.length;
   const skip = parseInt(page) * parseInt(limit);
   const paginatedClassResults = classResults.slice(
@@ -246,15 +290,8 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
     studentMap[student._id] = student.name;
   });
 
-  // Get class details
-  const classIds = paginatedClassResults.map((result) => result.classId);
-  const classes = await Class.find({ _id: { $in: classIds } }, { name: 1 });
-
-  // Create a map of class IDs to names
-  const classMap = {};
-  classes.forEach((cls) => {
-    classMap[cls._id] = cls.name;
-  });
+  // Re-use the class map we already built (though it contains all classes, it has what we need)
+  const classMap = allClassMap;
 
   // Format the final result
   const toppers = paginatedClassResults.map((classResult) => {

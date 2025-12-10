@@ -28,7 +28,7 @@ import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
 import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { applyPrintStyles, removePrintStyles } from "@/lib/utils";
+import { applyPrintStyles, removePrintStyles, formatDateForDisplay } from "@/lib/utils";
 import PrintHeader from "@/components/PrintHeader";
 import DateRangeFilter from "@/components/DateRangeFilter";
 
@@ -742,6 +742,32 @@ const DataTableComponent = ({
         <PrintHeader
           apiKey={apiKey}
           title={printTitle ? printTitle : resource}
+          subTitle={(() => {
+            const dateFilterConfig = filterConfig.find(f => f.inputType === "dateRange");
+            if (!dateFilterConfig) return null;
+            const filterVal = filters[dateFilterConfig.id];
+
+            // Check if filter exists and has values
+            if (filterVal) {
+              // Handle object format {startDate, endDate}
+              if (typeof filterVal === 'object' && !Array.isArray(filterVal)) {
+                if (filterVal.startDate || filterVal.endDate) {
+                  const start = filterVal.startDate ? formatDateForDisplay(filterVal.startDate) : "";
+                  const end = filterVal.endDate ? formatDateForDisplay(filterVal.endDate) : "";
+
+                  if (start && end) return `Date: ${start} to ${end}`;
+                  if (start) return `Date: From ${start}`;
+                  if (end) return `Date: Up to ${end}`;
+                }
+              }
+              // Handle string format "startDate,endDate" (if used essentially)
+              else if (typeof filterVal === 'string' && filterVal.includes(',')) {
+                const [start, end] = filterVal.split(',');
+                return `Date: ${formatDateForDisplay(start)} to ${formatDateForDisplay(end)}`;
+              }
+            }
+            return null;
+          })()}
           displayOnScreen={showLogo}
           isFestival={isFestival}
         />

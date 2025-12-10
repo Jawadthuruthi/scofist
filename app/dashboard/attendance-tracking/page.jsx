@@ -250,6 +250,7 @@ const AttendanceTrackingPage = async () => {
         value: "toppers",
         resource: "attendanceToppers",
         filterTitle: "Attendance Toppers",
+        printTitle: "Attendance Toppers",
         columnsConfig: [
           {
             header: "Sl.No.",
@@ -410,6 +411,7 @@ const AttendanceTrackingPage = async () => {
         value: "toppers",
         resource: "attendanceToppers",
         filterTitle: "Attendance Toppers",
+        printTitle: "Attendance Toppers",
         columnsConfig: [
           {
             header: "Sl.No.",

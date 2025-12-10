@@ -7,6 +7,7 @@ import useCrud from "@/hooks/use-crud";
 
 export default function PrintHeader({
   title,
+  subTitle,
   apiKey,
   hidePrintLogo = false,
   displayOnScreen = false,
@@ -135,11 +136,19 @@ export default function PrintHeader({
             )}
 
             {/* Black strip for document title */}
-            {title && title.length > 0 && (
+            {/* Black strip for document title */}
+            {(title && title.length > 0 || subTitle) && (
               <div className="bg-black text-white py-1 text-center">
-                <h2 className="text-lg font-medium">
-                  {title}
-                </h2>
+                {title && title.length > 0 && (
+                  <h2 className="text-lg font-medium">
+                    {title}
+                  </h2>
+                )}
+                {subTitle && (
+                  <p className="text-sm font-light mt-0">
+                    {subTitle}
+                  </p>
+                )}
               </div>
             )}
           </div>
