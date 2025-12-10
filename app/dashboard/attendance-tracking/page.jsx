@@ -11,7 +11,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "classes",
-    searchParams: "projection=_id,name,batchId",
+    searchParams: "projection=_id,name,batchId,subjects",
   },
   {
     pathname: "subjects",
@@ -39,6 +39,29 @@ const AttendanceTrackingPage = async () => {
     const formattedClasses = classes.map((c) => ({
       ...c,
       name: c.batchName ? `${c.name} (${c.batchName})` : c.name,
+    }));
+
+    // Map subjects to their classes
+    const subjectClassMap = {};
+    classes.forEach(cls => {
+      if (cls.subjects && Array.isArray(cls.subjects)) {
+        cls.subjects.forEach(subjectId => {
+          if (!subjectClassMap[subjectId]) {
+            subjectClassMap[subjectId] = [];
+          }
+          // Handle both object (populated) and string (ID) cases
+          const sId = typeof subjectId === 'object' ? subjectId._id : subjectId;
+          if (!subjectClassMap[sId]) {
+            subjectClassMap[sId] = [];
+          }
+          subjectClassMap[sId].push(cls._id);
+        });
+      }
+    });
+
+    const formattedSubjects = formatOptions(subjects).map(subject => ({
+      ...subject,
+      classId: subjectClassMap[subject.value] || []
     }));
 
     const tabsConfig = [
@@ -120,7 +143,10 @@ const AttendanceTrackingPage = async () => {
             inputType: "select",
             nestedArrayField: "attendanceRecords",
 
-            options: formatOptions(subjects),
+            options: formattedSubjects,
+            filter: {
+              dependentField: "classId",
+            },
           },
           {
             id: "date",
@@ -199,7 +225,10 @@ const AttendanceTrackingPage = async () => {
             inputType: "select",
             nestedArrayField: "attendanceRecords",
 
-            options: formatOptions(subjects),
+            options: formattedSubjects,
+            filter: {
+              dependentField: "classId",
+            },
           },
 
           {
@@ -353,7 +382,10 @@ const AttendanceTrackingPage = async () => {
             inputType: "select",
             nestedArrayField: "attendanceRecords",
 
-            options: formatOptions(subjects),
+            options: formattedSubjects,
+            filter: {
+              dependentField: "classId",
+            },
           },
           {
             id: "date",

@@ -106,8 +106,12 @@ export default function PopupFilter({
 
         return (filterItem.options || []).filter((option) => {
           const rawOptionValue = key ? option?.[dependentFieldName]?.[key] : option?.[dependentFieldName];
-          const normalizedOption = normalize(rawOptionValue);
 
+          if (Array.isArray(rawOptionValue)) {
+            return rawOptionValue.some(val => normalize(val) === normalizedValue);
+          }
+
+          const normalizedOption = normalize(rawOptionValue);
           const isMatch = normalizedOption === normalizedValue;
           return isMatch;
         });
