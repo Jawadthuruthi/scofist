@@ -67,7 +67,7 @@ export default async function AdmissionRegisterPage() {
                 isReadOnly={true}
                 pageTitle="ADMISSION REGISTER"
                 filterTitle="Admission Register"
-                excludedColumns={["email", "batchName", "className", "bloodGroup", "roles", "status", "guardianContactNumber", "guardianAlternativeNumber", "contactNumber", "alternativeNumber", "aadharNo", "profilePic", "admissionClassName", "serialNo"]}
+                excludedColumns={["email", "batchName", "className", "bloodGroup", "roles", "status", "guardianContactNumber", "guardianAlternativeNumber", "contactNumber", "alternativeNumber", "aadharNo", "profilePic", "admissionClassName", "serialNo", "liabilities"]}
             />
         );
     } catch (error) {

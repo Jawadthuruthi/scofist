@@ -632,7 +632,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
   ];
 
   const filteredColumnsConfig = columnsConfig.filter((column) => {
-    if (excludedColumns.includes(column.accessorKey)) {
+    if (excludedColumns.includes(column.accessorKey) || excludedColumns.includes(column.id)) {
       return false;
     }
     if (activeRole === "Teacher" || isReadOnly) {
