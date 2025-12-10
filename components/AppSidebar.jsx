@@ -186,6 +186,12 @@ const items = [
     icon: FileText,
     allowedRoles: ["College Admin", "Org Admin"],
   },
+  {
+    title: "Coupon Fund",
+    url: "/dashboard/student-coupon-fund",
+    icon: TicketPercent,
+    allowedRoles: ["Org Admin"],
+  },
 
   {
     title: "Masjid Attendance",

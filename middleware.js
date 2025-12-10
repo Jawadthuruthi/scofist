@@ -197,6 +197,11 @@ const pages = [
     allowedRoles: ["College Admin", "Teacher", "Stationary", "IT Lab"],
   },
   {
+    title: "Student Coupon Fund",
+    path: "/dashboard/student-coupon-fund",
+    allowedRoles: ["Org Admin"],
+  },
+  {
     title: "Downloads",
     path: "/dashboard/downloads",
     allowedRoles: ["College Admin", "Student", "Teacher"],
