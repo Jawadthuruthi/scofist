@@ -55,7 +55,6 @@ const MasjidAttendanceHistoryPage = async ({ searchParams }) => {
 
         const formattedStudents = (students || []).map((s) => ({
             ...s,
-            classId: s.studentSpecificField?.classId?._id || s.studentSpecificField?.classId,
             date: displayDate // Inject formatted date for display
         }));
 
