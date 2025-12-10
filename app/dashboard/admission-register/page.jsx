@@ -17,7 +17,7 @@ export default async function AdmissionRegisterPage() {
             throw error;
         }
 
-        const batchesData = await Batch.find({}).select("_id name endYear").sort({ endYear: 1 }).lean();
+        const batchesData = await Batch.find({}).select("_id name endYear").sort({ startYear: 1, endYear: 1 }).lean();
         const classesData = await Class.find({}).select("_id name").lean();
 
         const classOrder = [
@@ -52,10 +52,7 @@ export default async function AdmissionRegisterPage() {
             return a.name.localeCompare(b.name);
         });
 
-        const batches = JSON.parse(JSON.stringify(batchesData)).map(batch => ({
-            ...batch,
-            name: `${batch.name} (${batch.endYear})`
-        }));
+        const batches = JSON.parse(JSON.stringify(batchesData));
         const classes = JSON.parse(JSON.stringify(classesData));
 
         return (

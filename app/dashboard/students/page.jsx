@@ -17,7 +17,7 @@ export default async function BatchesPage() {
       throw error;
     }
 
-    const batchesData = await Batch.find({}).select("_id name endYear").sort({ endYear: 1 }).lean();
+    const batchesData = await Batch.find({}).select("_id name endYear").sort({ startYear: 1, endYear: 1 }).lean();
     const classesData = await Class.find({}).select("_id name").lean();
 
     const classOrder = [
@@ -52,7 +52,10 @@ export default async function BatchesPage() {
       return a.name.localeCompare(b.name);
     });
 
-    const batches = JSON.parse(JSON.stringify(batchesData));
+    const batches = JSON.parse(JSON.stringify(batchesData)).map(batch => ({
+      ...batch,
+      name: batch.endYear ? `${batch.name} (${batch.endYear})` : batch.name
+    }));
     const classes = JSON.parse(JSON.stringify(classesData));
 
     return <StudentsClient batches={batches} classes={classes} activeRole={activeRole} apiKey={process.env.API_KEY} />;

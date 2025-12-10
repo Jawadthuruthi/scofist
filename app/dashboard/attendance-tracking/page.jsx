@@ -7,7 +7,7 @@ import { fetchData, formatOptions, OPERATORS } from "@/lib/utils";
 const API_ENDPOINTS = [
   {
     pathname: "batches",
-    searchParams: "projection=_id,name",
+    searchParams: "projection=_id,name,endYear",
   },
   {
     pathname: "classes",
