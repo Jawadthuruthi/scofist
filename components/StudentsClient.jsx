@@ -3,9 +3,12 @@
 import DataTableComponent from "@/components/DataTableComponent";
 import Header from "@/components/Header";
 import { formatOptions } from "@/lib/utils";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import StudentProfileDialog from "@/components/StudentProfileDialog";
 
 export default function StudentsClient({ batches, classes, activeRole, apiKey, isReadOnly = false, pageTitle, excludedColumns = [], filterTitle }) {
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const columnsConfig = [
     {
       id: "select",
@@ -40,8 +43,14 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
       accessorKey: "name",
       header: pageTitle === "ADMISSION REGISTER" ? <div>Student Name &<br />Contact Number</div> : "Name",
       cell: ({ row }) => (
-        <div className="flex flex-col">
-          <span className="font-medium">{row.original.name}</span>
+        <div
+          className="flex flex-col cursor-pointer hover:bg-muted/50 p-1 rounded transition-colors"
+          onClick={() => {
+            setSelectedStudent(row.original);
+            setIsProfileOpen(true);
+          }}
+        >
+          <span className="font-medium text-blue-600 hover:underline">{row.original.name}</span>
           {pageTitle === "ADMISSION REGISTER" && (
             <div className="flex flex-col gap-0.5 mt-1">
               {row.original.contactNumber && <span className="text-xs text-muted-foreground">Ph: {row.original.contactNumber}</span>}
@@ -159,6 +168,13 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         }
         return <span className="text-muted-foreground">-</span>;
       },
+    },
+    {
+      id: "liabilities",
+      header: "Liabilities",
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">-</span>
+      ),
     },
   ];
 
@@ -665,6 +681,14 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         printTitle={pageTitle || "Students"}
         filterType="api"
         readOnly={activeRole !== "College Admin" || isReadOnly}
+      />
+
+      <StudentProfileDialog
+        student={selectedStudent}
+        open={isProfileOpen}
+        onClose={setIsProfileOpen}
+        classes={classes}
+        apiKey={apiKey}
       />
     </>
   );
