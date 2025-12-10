@@ -19,7 +19,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "users",
-    searchParams: "projection=_id,name&roles=Student",
+    searchParams: "projection=_id,name,studentSpecificField&roles=Student",
   },
 ];
 
@@ -63,6 +63,8 @@ const AttendanceTrackingPage = async () => {
       ...subject,
       classId: subjectClassMap[subject.value] || []
     }));
+
+    const formattedStudents = formatOptions(students);
 
     const tabsConfig = [
       {
@@ -131,9 +133,9 @@ const AttendanceTrackingPage = async () => {
             inputType: "select",
             nestedArrayField: "attendanceRecords",
 
-            options: formatOptions(students),
+            options: formattedStudents,
             filter: {
-              dependentField: "batchId",
+              dependentField: "classId",
             },
           },
           {
@@ -355,7 +357,10 @@ const AttendanceTrackingPage = async () => {
             inputType: "select",
             nestedArrayField: "attendanceRecords",
 
-            options: formatOptions(students),
+            options: formattedStudents,
+            filter: {
+              dependentField: "classId",
+            },
           },
           {
             id: "batchId",
