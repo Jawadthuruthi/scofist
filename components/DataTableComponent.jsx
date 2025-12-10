@@ -748,7 +748,10 @@ const DataTableComponent = ({
           subTitle={(() => {
             const dateFilterConfig = filterConfig.find(f => f.inputType === "dateRange");
             if (!dateFilterConfig) return null;
-            const filterVal = filters[dateFilterConfig.id];
+            const filterState = filters[dateFilterConfig.id];
+
+            // Extract the actual value from the filter state
+            const filterVal = filterState?.value || filterState;
 
             // Check if filter exists and has values
             if (filterVal) {

@@ -136,19 +136,16 @@ export default function PrintHeader({
             )}
 
             {/* Black strip for document title */}
-            {/* Black strip for document title */}
-            {(title && title.length > 0 || subTitle) && (
+            {title && title.length > 0 && (
               <div className="bg-black text-white py-1 text-center">
-                {title && title.length > 0 && (
-                  <h2 className="text-lg font-medium">
-                    {title}
-                  </h2>
-                )}
-                {subTitle && (
-                  <p className="text-sm font-light mt-0">
-                    {subTitle}
-                  </p>
-                )}
+                <h2 className="text-lg font-medium">{title}</h2>
+              </div>
+            )}
+
+            {/* Gray strip for subTitle (Date Range) */}
+            {subTitle && (
+              <div className="bg-gray-100 text-black py-1 text-center border-b border-gray-300">
+                <p className="text-sm font-semibold m-0">{subTitle}</p>
               </div>
             )}
           </div>
