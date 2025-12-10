@@ -71,7 +71,7 @@ const AttendanceTrackingPage = async () => {
         label: "Student",
         value: "student",
         resource: "studentAttendances",
-        printTitle: "Student Attendance",
+        printTitle: "Students Attendances",
         filterTitle: "Student Attendance",
         columnsConfig: [
           {
@@ -167,6 +167,7 @@ const AttendanceTrackingPage = async () => {
         value: "teacher",
         resource: "teacherAttendances",
         filterTitle: "Teacher Attendance",
+        printTitle: "Teachers Attendances",
         columnsConfig: [
           {
             header: "Sl.No.",
@@ -314,7 +315,7 @@ const AttendanceTrackingPage = async () => {
         label: "Student",
         value: "student",
         resource: "studentAttendances",
-        printTitle: "Student Attendance",
+        printTitle: "Students Attendances",
         filterTitle: "Student Attendance",
         columnsConfig: [
           {

@@ -653,7 +653,10 @@ const DataTableComponent = ({
           {/* Desktop Date Range Filter */}
           {!isMobile && filterConfig.find(f => f.inputType === "dateRange") && (
             <DateRangeFilter
-              value={filters[filterConfig.find(f => f.inputType === "dateRange").id] || {}}
+              value={(() => {
+                const filterState = filters[filterConfig.find(f => f.inputType === "dateRange").id];
+                return filterState?.value || filterState || {};
+              })()}
               onChange={(val) => {
                 const config = filterConfig.find(f => f.inputType === "dateRange");
                 if (val.startDate || val.endDate) {

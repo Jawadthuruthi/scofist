@@ -140,7 +140,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
             {/* Print-only Header */}
             <div className="hidden print:flex flex-col items-center mb-2 -mt-8 text-black print:text-black">
                 <div className="tracking-[0.2em] font-bold text-2xl uppercase leading-tight">
-                    ATTENDANCE SHEET
+                    STUDENTS ATTENDANCES
                 </div>
                 <div className="flex items-center gap-6 text-sm font-semibold uppercase tracking-wider mt-1 text-black print:text-black">
                     <span>{new Date(0, filters.month).toLocaleString('default', { month: 'long' })} {filters.year}</span>
