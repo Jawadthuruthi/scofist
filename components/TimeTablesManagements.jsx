@@ -136,11 +136,9 @@ const TimetableSlot = ({
 
   return (
     <TableCell
-      className={`${
-        isAttendanceMarked ? "bg-green-300/50 print:bg-inherit" : ""
-      } ${
-        isPendingChange ? "bg-blue-300/50 print:bg-inherit" : ""
-      } border text-center cursor-pointer transition-colors whitespace-nowrap print:whitespace-normal print:max-w-32 print:p-1`}
+      className={`${isAttendanceMarked ? "bg-green-300/50 print:bg-inherit" : ""
+        } ${isPendingChange ? "bg-blue-300/50 print:bg-inherit" : ""
+        } border text-center cursor-pointer transition-colors whitespace-nowrap print:whitespace-normal print:max-w-32 print:p-1`}
       onClick={() => {
         onCellClick(periodNumber, day);
         if (isAttendanceMarked && category !== "class") {
@@ -154,7 +152,7 @@ const TimetableSlot = ({
             {cellData.subjectId?.name || ""}
           </p>
           <p className="text-xxs text-accent-foreground">
-            {category === "class" && selectedClass
+            {(category === "class" && selectedClass) || category === "date"
               ? cellData.teacherId?.name || ""
               : cellData.classId?.name || ""}
           </p>
@@ -993,102 +991,102 @@ const TimeTablesManagements = ({
             <TableBody>
               {category !== "date"
                 ? DAYS.map((day) => (
-                    <TableRow key={day} className="hover:bg-accent/50">
-                      <TableCell className="border font-medium bg-accent sticky left-0 z-10">
-                        <div className="flex items-center gap-2">
-                          {day.slice(0, 3)}
-                        </div>
-                      </TableCell>
-                      {periods.map((period) => {
-                        const cellData = getCellData(period.periodNumber, day);
-                        const markedAttendance = attendanceData.filter(
-                          (attendance) =>
-                            attendance.periodNumber === period.periodNumber &&
-                            attendance.day === day
-                        );
-                        const absentees = markedAttendance?.map(
-                          (attendance) => ({
-                            absentees: attendance?.attendanceData?.filter(
-                              (record) => record.present === false
-                            ),
-                          })
-                        );
-                        const isPending = isPendingChange(
-                          period.periodNumber,
-                          day
-                        );
+                  <TableRow key={day} className="hover:bg-accent/50">
+                    <TableCell className="border font-medium bg-accent sticky left-0 z-10">
+                      <div className="flex items-center gap-2">
+                        {day.slice(0, 3)}
+                      </div>
+                    </TableCell>
+                    {periods.map((period) => {
+                      const cellData = getCellData(period.periodNumber, day);
+                      const markedAttendance = attendanceData.filter(
+                        (attendance) =>
+                          attendance.periodNumber === period.periodNumber &&
+                          attendance.day === day
+                      );
+                      const absentees = markedAttendance?.map(
+                        (attendance) => ({
+                          absentees: attendance?.attendanceData?.filter(
+                            (record) => record.present === false
+                          ),
+                        })
+                      );
+                      const isPending = isPendingChange(
+                        period.periodNumber,
+                        day
+                      );
 
-                        return (
-                          <TimetableSlot
-                            key={`${day}-${period.periodNumber}`}
-                            periodNumber={period.periodNumber}
-                            day={day}
-                            cellData={cellData}
-                            category={category}
-                            selectedClass={selectedClass}
-                            onCellClick={handleCellClick}
-                            isAttendanceMarked={markedAttendance?.length > 0}
-                            absentees={absentees}
-                            showAbsenteesDialog={showAbsenteesDialog}
-                            isPendingChange={isPending}
-                          />
-                        );
-                      })}
-                    </TableRow>
-                  ))
+                      return (
+                        <TimetableSlot
+                          key={`${day}-${period.periodNumber}`}
+                          periodNumber={period.periodNumber}
+                          day={day}
+                          cellData={cellData}
+                          category={category}
+                          selectedClass={selectedClass}
+                          onCellClick={handleCellClick}
+                          isAttendanceMarked={markedAttendance?.length > 0}
+                          absentees={absentees}
+                          showAbsenteesDialog={showAbsenteesDialog}
+                          isPendingChange={isPending}
+                        />
+                      );
+                    })}
+                  </TableRow>
+                ))
                 : classes.map((classItem) => (
-                    <TableRow
-                      key={classItem?._id}
-                      className="hover:bg-accent/50"
-                    >
-                      <TableCell className="border font-medium bg-accent sticky left-0 z-10">
-                        <div className="flex items-center whitespace-nowrap gap-2">
-                          {classItem.name}
-                        </div>
-                      </TableCell>
-                      {periods.map((period) => {
-                        const cellData = getCellData(
-                          period.periodNumber,
-                          day,
-                          classItem?._id
-                        );
-                        const markedAttendance = attendanceData.filter(
-                          (attendance) =>
-                            attendance.periodNumber === period.periodNumber &&
-                            attendance.day === day &&
-                            attendance.classId?._id === classItem?._id
-                        );
-                        const absentees = markedAttendance.map(
-                          (attendance) => ({
-                            absentees: attendance?.attendanceData?.filter(
-                              (record) => record.present === false
-                            ),
-                          })
-                        );
-                        const isPending = isPendingChange(
-                          period.periodNumber,
-                          day,
-                          classItem?._id
-                        );
+                  <TableRow
+                    key={classItem?._id}
+                    className="hover:bg-accent/50"
+                  >
+                    <TableCell className="border font-medium bg-accent sticky left-0 z-10">
+                      <div className="flex items-center whitespace-nowrap gap-2">
+                        {classItem.name}
+                      </div>
+                    </TableCell>
+                    {periods.map((period) => {
+                      const cellData = getCellData(
+                        period.periodNumber,
+                        day,
+                        classItem?._id
+                      );
+                      const markedAttendance = attendanceData.filter(
+                        (attendance) =>
+                          attendance.periodNumber === period.periodNumber &&
+                          attendance.day === day &&
+                          attendance.classId?._id === classItem?._id
+                      );
+                      const absentees = markedAttendance.map(
+                        (attendance) => ({
+                          absentees: attendance?.attendanceData?.filter(
+                            (record) => record.present === false
+                          ),
+                        })
+                      );
+                      const isPending = isPendingChange(
+                        period.periodNumber,
+                        day,
+                        classItem?._id
+                      );
 
-                        return (
-                          <TimetableSlot
-                            key={`${classItem?._id}-${period.periodNumber}`}
-                            periodNumber={period.periodNumber}
-                            day={day}
-                            cellData={cellData}
-                            category={category}
-                            selectedClass={selectedClass}
-                            onCellClick={handleCellClick}
-                            isAttendanceMarked={markedAttendance?.length > 0}
-                            absentees={absentees}
-                            showAbsenteesDialog={showAbsenteesDialog}
-                            isPendingChange={isPending}
-                          />
-                        );
-                      })}
-                    </TableRow>
-                  ))}
+                      return (
+                        <TimetableSlot
+                          key={`${classItem?._id}-${period.periodNumber}`}
+                          periodNumber={period.periodNumber}
+                          day={day}
+                          cellData={cellData}
+                          category={category}
+                          selectedClass={selectedClass}
+                          onCellClick={handleCellClick}
+                          isAttendanceMarked={markedAttendance?.length > 0}
+                          absentees={absentees}
+                          showAbsenteesDialog={showAbsenteesDialog}
+                          isPendingChange={isPending}
+                        />
+                      );
+                    })}
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </div>
