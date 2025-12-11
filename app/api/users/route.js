@@ -41,10 +41,14 @@ export async function GET(req, res) {
       query._id = filterParams._id;
     }
     if (filterParams.classId) {
-      query["studentSpecificField.classId"] = filterParams.classId;
+      query["studentSpecificField.classId"] = {
+        $in: filterParams.classId.split(",").map((id) => id.trim()),
+      };
     }
     if (filterParams.batchId) {
-      query["studentSpecificField.batchId"] = filterParams.batchId;
+      query["studentSpecificField.batchId"] = {
+        $in: filterParams.batchId.split(",").map((id) => id.trim()),
+      };
     }
     if (filterParams.name) {
       query.name = { $regex: filterParams.name, $options: "i" };
