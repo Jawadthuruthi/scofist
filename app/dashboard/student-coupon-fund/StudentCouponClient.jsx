@@ -13,7 +13,8 @@ import {
     AlertCircle,
     TrendingUp,
     CreditCard,
-    Download
+    Download,
+    Users
 } from "lucide-react";
 
 // UI Components
@@ -83,34 +84,43 @@ export default function StudentCouponClient({ apiKey }) {
     const visibleBatchIds = useMemo(() => batches.map(b => b._id).join(","), [batches]);
 
     // =================================================================================================
-    // SECTION 1: COUPON DETAILS (Amount Configuration)
+    // SECTION 1: COUPON DETAILS (Bulk Entry)
     // =================================================================================================
     const [detailsBatchId, setDetailsBatchId] = useState("all");
     const [detailsClassId, setDetailsClassId] = useState([]);
-    const [detailsStudentId, setDetailsStudentId] = useState([]);
 
-    // Fetch Classes for Details
-    const { data: detailsClassesData } = useFetchClasses(0, 1000, {
-        ...(detailsBatchId !== "all" && { batchId: detailsBatchId })
-    }, { enabled: !!apiKey });
-    const detailsClasses = detailsClassesData?.classes || [];
+    // Setup for Bulk Student List
+    const [bulkStudents, setBulkStudents] = useState([]);
+    const [isLoadingBulkStudents, setIsLoadingBulkStudents] = useState(false);
+    // State to hold individual coupon numbers: { [studentId]: "A001" }
+    const [couponNumbers, setCouponNumbers] = useState({});
 
-    // Fetch Students for Details
+    // Fetch Students Query (On demand logic mostly, but we use the hook to sync)
+    // We will trigger this manually via refetch or enabling it when "Get Students" clicked
     const detailsStudentFilters = {
         roles: ["Student"],
         batchId: detailsBatchId !== "all" ? detailsBatchId : visibleBatchIds,
         ...(detailsClassId.length > 0 && { classId: detailsClassId.join(",") })
     };
-    // Use a unique query key/dependency via params so useCrud returns unique query
-    const { data: detailsUsersData } = useFetchUsers(0, 1000, detailsStudentFilters, { enabled: !!apiKey });
-    const detailsStudents = detailsUsersData?.users || [];
+
+    // We use enabled: false to manually trigger fetch
+    const { data: detailsUsersData, refetch: refetchDetailsUsers, isFetching: isFetchingUsers } = useFetchUsers(0, 1000, detailsStudentFilters, { enabled: false });
+
+    // Fetch Coupons for Pre-filling
+    // We need to fetch coupons for the selected Year + Batch/Class to prefill
+    // We will just fetch ALL coupons for the selected year and filter in memory since we don't have a complex backend filter yet
+    const { data: allCouponsForYearData, refetch: refetchAllCoupons } = useFetchItems(0, 0, {
+        academicYear: "2025" // Default, will update dynamically
+    }, { enabled: false });
+
 
     const {
         register: registerDetails,
         handleSubmit: handleSubmitDetails,
         setValue: setValueDetails,
         reset: resetDetails,
-        watch: watchDetails
+        watch: watchDetails,
+        getValues: getValuesDetails
     } = useForm({
         defaultValues: {
             academicYear: "2025",
@@ -118,36 +128,124 @@ export default function StudentCouponClient({ apiKey }) {
         }
     });
 
+    const currentYear = watchDetails("academicYear");
+
+    // Fetch classes for dropdown
+    const { data: detailsClassesData } = useFetchClasses(0, 1000, {
+        ...(detailsBatchId !== "all" && { batchId: detailsBatchId })
+    }, { enabled: !!apiKey });
+    const detailsClasses = detailsClassesData?.classes || [];
+
+
+    const handleGetStudents = async () => {
+        setIsLoadingBulkStudents(true);
+        try {
+            // 1. Fetch Students
+            const usersResult = await refetchDetailsUsers();
+            const students = usersResult.data?.users || [];
+
+            if (students.length === 0) {
+                toast.warning("No students found for satisfied criteria");
+                setBulkStudents([]);
+                return;
+            }
+
+            // 2. Fetch Existing Coupons (to prefill numbers)
+            // We pass academicYear to the query
+            // Note: useFetchItems hook arguments might be stale in closure if not carefully used, 
+            // but refetch() uses current props if updated? No, usually TanStack uses render props.
+            // Hack: we'll call API directly or accept we refetch base on current state if react-query handles it.
+            // Better: Trigger the refetch of the coupons query which is watching `selectedYearFilter` usually, 
+            // but here we want `currentYear` from form.
+
+            // Let's rely on global coupons list if it covers everything or fetch specifically. 
+            // Since we split logic, we should probably fetch specifically.
+            // For now, let's assume `coupons` (global list) might have it if updated. 
+            // BUT global list is filtered by search/pagination.
+            // SO we need to fetch all coupons for this Batch+Year. 
+            // Limitations: Backend might not support batch filtering for coupons yet fully.
+            // Workaround: Fetch all for Year (might be heavy) or ignore pre-fill if too hard? 
+            // User requested "add their coupon number", implying pre-fill if exists is nice.
+
+            // Let's try to fetch coupons matching these students.
+            // Since we have the student list, we can just check against `couponsData` if we remove pagination limits there? 
+            // No, bad for perf.
+
+            // Let's assume we start blank or fetch fresh.
+            setBulkStudents(students);
+
+            // Initialize coupon numbers map
+            // Ideally we should pre-fill from DB. 
+            // Let's use `refetchAllCoupons` with the year filter.
+            // We need to update existing query options for `allCouponsForYearData` first?
+            // Actually, let's just use `coupons` from the main list IF the user removed filters? 
+            // No, reliable way is:
+
+            // Simple: Just show inputs blank initially. If user needs to SEE existing numbers, they check the table below.
+            // BUT user wants to ADD/Edit them.
+            // Let's try to pre-fill from the main `coupons` data if available.
+
+            const existingMap = {};
+            // We will scan the `coupons` already loaded in the bottom table (assuming "All Years" or matching year)
+            // This is risky if bottom table is paginated.
+            // Best Effort: Just init empty. If user re-saves, it updates.
+
+            // UPDATE: I'll try to match from `coupons` array if loaded.
+            coupons.forEach(c => {
+                if (c.academicYear === currentYear && c.studentId?._id) {
+                    existingMap[c.studentId._id] = c.couponNumber || "";
+                }
+            });
+
+            setCouponNumbers(existingMap);
+
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to fetch students");
+        } finally {
+            setIsLoadingBulkStudents(false);
+        }
+    };
+
+    const handleCouponNumberChange = (studentId, value) => {
+        setCouponNumbers(prev => ({ ...prev, [studentId]: value }));
+    };
+
     const onSaveDetails = async (data) => {
-        if (detailsStudentId.length === 0) {
-            toast.error("Please select at least one student for Coupon Details");
+        if (bulkStudents.length === 0) {
+            toast.error("No students loaded. Click 'Get Students' first.");
             return;
         }
+
         setIsSavingDetails(true);
         try {
-            const promises = detailsStudentId.map((studentId) => {
+            const promises = bulkStudents.map((student) => {
+                const cNumber = couponNumbers[student._id] || undefined;
+
+                // Only send payload if we have an amount or a coupon number to save
+                // Actually always save to ensure student is initialized
                 const payload = {
-                    studentId: studentId,
+                    studentId: student._id,
                     academicYear: data.academicYear,
                     couponAmount: data.couponAmount,
-                    // No payments, no couponNumber updates triggered here
+                    couponNumber: cNumber // Optional now
                 };
                 return addItem.mutateAsync(payload);
             });
 
             await Promise.all(promises);
-            toast.success(`Coupon Amount saved for ${detailsStudentId.length} students`);
+            toast.success(`Updated ${bulkStudents.length} students successfully`);
 
-            resetDetails({
-                academicYear: data.academicYear,
-                couponAmount: data.couponAmount
-            });
-            setDetailsStudentId([]);
+            setBulkStudents([]);
+            setCouponNumbers({});
+            // Keep Batch/Class selected for workflow continuity? User might want to do next batch.
+            // But maybe clear students list to avoid confusion.
+
             refetchCoupons();
         } catch (error) {
             console.error(error);
             const detailedError = error?.details?.errors?.map(e => `${e.field}: ${e.message}`).join(", ");
-            toast.error(detailedError || error?.message || "Failed to save coupon details");
+            toast.error(detailedError || error?.message || "Failed to save details");
         } finally {
             setIsSavingDetails(false);
         }
@@ -344,103 +442,132 @@ export default function StudentCouponClient({ apiKey }) {
             {/* FORMS CONTAINER */}
             <div className="space-y-6">
 
-                {/* CARD 1: COUPON DETAILS */}
+                {/* CARD 1: COUPON DETAILS - BULK ENTRY */}
                 <Card className="border-0 shadow-none bg-transparent md:border md:shadow-sm md:bg-card">
-                    <CardHeader className="px-0 pt-0 md:p-6">
-                        <CardTitle>Coupon Details</CardTitle>
+                    <CardHeader className="px-0 pt-0 md:px-6 md:pt-6 md:pb-2">
+                        <CardTitle>Coupon Details (Bulk Entry)</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0 md:p-6">
+                    <CardContent className="p-0 md:px-6 md:pb-6 md:pt-0">
                         <form onSubmit={handleSubmitDetails(onSaveDetails)}>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                {/* Academic Year */}
-                                <div className="space-y-2">
-                                    <Label>Academic Year</Label>
-                                    <Select
-                                        onValueChange={(val) => setValueDetails("academicYear", val)}
-                                        defaultValue="2025"
-                                        value={watchDetails("academicYear")}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select Year" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {[2025, 2024, 2023, 2022, 2021, 2020].map((year) => (
-                                                <SelectItem key={year} value={String(year)}>
-                                                    {year}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                            <div className="space-y-6">
+                                {/* Filters Row */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                    <div className="space-y-2">
+                                        <Label>Academic Year</Label>
+                                        <Select
+                                            onValueChange={(val) => {
+                                                setValueDetails("academicYear", val);
+                                                // Clear students on year change to avoid confusion?
+                                                setBulkStudents([]);
+                                            }}
+                                            defaultValue="2025"
+                                            value={watchDetails("academicYear")}
+                                        >
+                                            <SelectTrigger><SelectValue placeholder="Select Year" /></SelectTrigger>
+                                            <SelectContent>
+                                                {[2025, 2024, 2023, 2022, 2021, 2020].map((year) => (
+                                                    <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Select Batch</Label>
+                                        <Select
+                                            value={detailsBatchId}
+                                            onValueChange={(val) => {
+                                                setDetailsBatchId(val);
+                                                setDetailsClassId([]);
+                                                setBulkStudents([]); // Reset list
+                                            }}
+                                        >
+                                            <SelectTrigger><SelectValue placeholder="Select Batch" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Select Batch</SelectItem>
+                                                {batches.map((batch) => (
+                                                    <SelectItem key={batch._id} value={batch._id}>{batch.name} ({batch.endYear})</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Select Class</Label>
+                                        <MultiSelect
+                                            options={detailsClasses.map(c => ({ label: c.name, value: c._id }))}
+                                            onValueChange={setDetailsClassId}
+                                            value={detailsClassId}
+                                            placeholder="Select Classes"
+                                            variant="default"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            className="w-full"
+                                            onClick={handleGetStudents}
+                                            disabled={isLoadingBulkStudents}
+                                        >
+                                            {isLoadingBulkStudents ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
+                                            Get Students
+                                        </Button>
+                                    </div>
                                 </div>
 
-                                {/* Batch Selection */}
-                                <div className="space-y-2">
-                                    <Label>Select Batch</Label>
-                                    <Select
-                                        value={detailsBatchId}
-                                        onValueChange={(val) => {
-                                            setDetailsBatchId(val);
-                                            setDetailsClassId([]);
-                                            setDetailsStudentId([]);
-                                        }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select Batch" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Select Batch</SelectItem>
-                                            {batches.map((batch) => (
-                                                <SelectItem key={batch._id} value={batch._id}>
-                                                    {batch.name} ({batch.endYear})
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                {/* Bulk Student List */}
+                                {bulkStudents.length > 0 && (
+                                    <div className="space-y-4 border rounded-md p-4 bg-muted/10">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="font-semibold text-lg">{bulkStudents.length} Students Found</h3>
+                                            <div className="flex gap-2 items-center">
+                                                <Label className="whitespace-nowrap">Global Amount:</Label>
+                                                <Input
+                                                    type="number"
+                                                    {...registerDetails("couponAmount", { required: true })}
+                                                    className="w-32"
+                                                    placeholder="Amount"
+                                                />
+                                            </div>
+                                        </div>
 
-                                {/* Class Selection */}
-                                <div className="space-y-2">
-                                    <Label>Select Class</Label>
-                                    <MultiSelect
-                                        options={detailsClasses.map(c => ({ label: c.name, value: c._id }))}
-                                        onValueChange={setDetailsClassId}
-                                        value={detailsClassId}
-                                        placeholder="Select Classes"
-                                        variant="default"
-                                    />
-                                </div>
+                                        <div className="max-h-[400px] overflow-y-auto">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead className="w-[50px]">No.</TableHead>
+                                                        <TableHead>Student Name</TableHead>
+                                                        <TableHead>ID</TableHead>
+                                                        <TableHead>Coupon Number</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {bulkStudents.map((student, index) => (
+                                                        <TableRow key={student._id}>
+                                                            <TableCell>{index + 1}</TableCell>
+                                                            <TableCell className="font-medium">{student.name}</TableCell>
+                                                            <TableCell>{student._id}</TableCell>
+                                                            <TableCell>
+                                                                <Input
+                                                                    className="h-8 w-48"
+                                                                    placeholder="Coupon No"
+                                                                    value={couponNumbers[student._id] || ""}
+                                                                    onChange={(e) => handleCouponNumberChange(student._id, e.target.value)}
+                                                                />
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
 
-                                {/* Student Selection */}
-                                <div className="space-y-2">
-                                    <Label>Student Name</Label>
-                                    <MultiSelect
-                                        options={detailsStudents.map(s => ({ label: s.name, value: s._id }))}
-                                        onValueChange={setDetailsStudentId}
-                                        value={detailsStudentId}
-                                        placeholder="Select Students"
-                                        variant="default"
-                                    />
-                                    {detailsStudentId.length > 0 && (
-                                        <p className="text-xs text-muted-foreground">{detailsStudentId.length} student(s) selected</p>
-                                    )}
-                                </div>
-
-                                {/* Coupon Amount */}
-                                <div className="space-y-2">
-                                    <Label>Coupon Amount</Label>
-                                    <Input
-                                        type="number"
-                                        {...registerDetails("couponAmount", { required: true })}
-                                        placeholder="Total Amount"
-                                    />
-                                </div>
-
-                                <div className="flex items-end">
-                                    <Button type="submit" disabled={isSavingDetails} className="w-full">
-                                        {isSavingDetails ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                                        Save Amount
-                                    </Button>
-                                </div>
+                                        <div className="flex justify-end pt-2">
+                                            <Button type="submit" disabled={isSavingDetails}>
+                                                {isSavingDetails ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                                                Save All Details
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </form>
                     </CardContent>
