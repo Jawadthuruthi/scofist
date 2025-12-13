@@ -265,7 +265,6 @@ const Attendance = ({ apiKey, teacherId }) => {
   }, [
     studentsQuery.data,
     studentLeaveStatus,
-    attendance,
     initializeAttendance,
     attendanceExists
   ]);
