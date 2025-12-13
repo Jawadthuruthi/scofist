@@ -25,8 +25,7 @@ const studentCouponSchema = new Schema({
     },
     couponNumber: {
         type: String,
-        required: true,
-        unique: true,
+        required: false,
         trim: true,
         uppercase: true
     },
@@ -73,5 +72,8 @@ studentCouponSchema.pre("save", function (next) {
     next();
 });
 
-const StudentCoupon = models.StudentCoupon || model("StudentCoupon", studentCouponSchema);
+// Force recompilation of model to apply schema changes (Remove in production if stable)
+if (models.StudentCoupon) delete models.StudentCoupon;
+
+const StudentCoupon = model("StudentCoupon", studentCouponSchema);
 export default StudentCoupon;

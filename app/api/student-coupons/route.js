@@ -107,16 +107,17 @@ export async function POST(req) {
 
         if (coupon) {
             // Update existing coupon
-            // Validate: check if couponNumber matches (optional, but good for consistency)
-            if (coupon.couponNumber !== couponNumber) {
-                return apiResponse.error("Coupon number mismatch for this student and year");
+
+            // If couponNumber is provided, update it (allow overwriting or setting if was empty)
+            if (couponNumber) {
+                coupon.couponNumber = couponNumber;
             }
 
             // check if we are adding a payment
             if (payment && payment.amount > 0) {
                 coupon.payments.push(payment);
             }
-            // Update coupon amount if changed (rare case, but possible)
+            // Update coupon amount if changed
             if (couponAmount) coupon.couponAmount = couponAmount;
 
             await coupon.save();
@@ -125,7 +126,7 @@ export async function POST(req) {
             coupon = new StudentCoupon({
                 studentId,
                 academicYear,
-                couponNumber,
+                couponNumber, // can be undefined
                 couponAmount,
                 payments: payment && payment.amount > 0 ? [payment] : []
             });
