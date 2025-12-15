@@ -146,18 +146,18 @@ const userSchema = new Schema(
       },
       guardianName: {
         type: String,
-        required: function () {
-          return this.roles.includes("Student");
-        },
+        // required: function () {
+        //   return this.roles.includes("Student");
+        // },
         trim: true,
         uppercase: true,
       },
       guardianContactNumber: {
         type: String,
         trim: true,
-        required: function () {
-          return this.roles.includes("Student");
-        },
+        // required: function () {
+        //   return this.roles.includes("Student");
+        // },
         match: [
           /^(\+?\d{1,3}[-.\s]?)?\d{10,15}$/,
           "Invalid guardian contact number",
@@ -173,9 +173,9 @@ const userSchema = new Schema(
       },
       relationship: {
         type: String,
-        required: function () {
-          return this.roles.includes("Student");
-        },
+        // required: function () {
+        //   return this.roles.includes("Student");
+        // },
         trim: true,
         uppercase: true,
       },
@@ -183,32 +183,32 @@ const userSchema = new Schema(
         type: String,
         trim: true,
         enum: STUDENT_STATUSES,
-        required: function () {
-          return this.roles.includes("Student");
-        },
+        // required: function () {
+        //   return this.roles.includes("Student");
+        // },
       },
       islamicQualification: { type: String, trim: true },
       academicQualification: { type: String, trim: true },
       // Status-dependent fields
       droppedOutDate: {
         type: Date,
-        required: function () {
-          return this.studentSpecificField?.status === "Dropped Out";
-        },
+        // required: function () {
+        //   return this.studentSpecificField?.status === "Dropped Out";
+        // },
       },
       droppedOutClass: {
         type: String,
         trim: true,
-        required: function () {
-          return this.studentSpecificField?.status === "Dropped Out";
-        },
+        // required: function () {
+        //   return this.studentSpecificField?.status === "Dropped Out";
+        // },
       },
       droppedOutReason: {
         type: String,
         trim: true,
-        required: function () {
-          return this.studentSpecificField?.status === "Dropped Out";
-        },
+        // required: function () {
+        //   return this.studentSpecificField?.status === "Dropped Out";
+        // },
       },
       graduatedYear: {
         type: String,
@@ -220,28 +220,28 @@ const userSchema = new Schema(
           },
           message: "Graduation year must be a 4-digit number",
         },
-        required: function () {
-          return this.studentSpecificField?.status === "Graduated";
-        },
+        // required: function () {
+        //   return this.studentSpecificField?.status === "Graduated";
+        // },
       },
       classId: {
         type: String,
         trim: true,
         ref: "Class",
-        required: function () {
-          return (
-            this.roles.includes("Student") &&
-            this.studentSpecificField?.status === "Active"
-          );
-        },
+        // required: function () {
+        //   return (
+        //     this.roles.includes("Student") &&
+        //     this.studentSpecificField?.status === "Active"
+        //   );
+        // },
       },
       batchId: {
         type: String,
         trim: true,
         ref: "Batch",
-        required: function () {
-          return this.roles.includes("Student");
-        },
+        // required: function () {
+        //   return this.roles.includes("Student");
+        // },
       },
     },
   },
