@@ -127,6 +127,7 @@ const TimetableSlot = ({
   absentees,
   showAbsenteesDialog,
   isPendingChange,
+  leaveReason,
 }) => {
   const hasData = cellData && (cellData.subjectId || cellData.teacherId);
   const absenteesList = useMemo(
@@ -138,6 +139,7 @@ const TimetableSlot = ({
     <TableCell
       className={`${isAttendanceMarked ? "bg-green-300/50 print:bg-inherit" : ""
         } ${isPendingChange ? "bg-blue-300/50 print:bg-inherit" : ""
+        } ${leaveReason ? "bg-red-100/50 print:bg-inherit" : ""
         } border text-center cursor-pointer transition-colors whitespace-nowrap print:whitespace-normal print:max-w-32 print:p-1`}
       onClick={() => {
         onCellClick(periodNumber, day);
@@ -147,7 +149,7 @@ const TimetableSlot = ({
       }}
     >
       {hasData ? (
-        <div className="flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center justify-center relative">
           <p className="font-medium text-xxs">
             {cellData.subjectId?.name || ""}
           </p>
@@ -156,6 +158,12 @@ const TimetableSlot = ({
               ? cellData.teacherId?.name || ""
               : cellData.classId?.name || ""}
           </p>
+          {leaveReason && (
+            <div className="flex items-center gap-1 text-xxs text-muted-foreground justify-center mt-1">
+              <AlertCircle className="text-red-500 h-3 w-3" />
+              <span>{leaveReason}</span>
+            </div>
+          )}
           {isAttendanceMarked && absenteesList.length > 0 && (
             <TooltipProvider>
               <Tooltip>
@@ -275,6 +283,10 @@ const TimeTablesManagements = ({
     apiKey
   );
   const { useFetchItems: useFetchAttendance } = useCrud("attendances", apiKey);
+  const { useFetchItems: useFetchTeachersLeaveRecord } = useCrud(
+    "teachers-leave-record",
+    apiKey
+  );
 
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 6);
@@ -289,7 +301,26 @@ const TimeTablesManagements = ({
     date: category === "date" && date ? date : undefined,
   });
 
+  const leaveRecordQuery = useFetchTeachersLeaveRecord(
+    0,
+    0,
+    category === "date" && date
+      ? { date }
+      : {
+        isForTimeTable: "true",
+        teacherId:
+          category === "teacher" && selectedTeacher
+            ? selectedTeacher
+            : undefined,
+      },
+    {
+      staleTime: 1000 * 60 * 5,
+      refetchOnWindowFocus: false,
+    }
+  );
+
   const attendanceData = fetchAttendanceQuery.data?.attendances || [];
+  const leaveRecords = leaveRecordQuery.data?.teachersLeaveRecord || [];
 
   // Queries for data fetching
   const fetchQuery = useMemo(() => {
@@ -1016,6 +1047,15 @@ const TimeTablesManagements = ({
                         day
                       );
 
+                      const leaveReason = leaveRecords.find((record) => {
+                        const recordDay = new Date(record.date).toLocaleDateString("en-US", { weekday: "long" });
+                        return (
+                          record.teacherId === cellData?.teacherId?._id &&
+                          record.periodNumber === period.periodNumber &&
+                          recordDay === day
+                        );
+                      })?.leaveReason;
+
                       return (
                         <TimetableSlot
                           key={`${day}-${period.periodNumber}`}
@@ -1029,6 +1069,7 @@ const TimeTablesManagements = ({
                           absentees={absentees}
                           showAbsenteesDialog={showAbsenteesDialog}
                           isPendingChange={isPending}
+                          leaveReason={leaveReason}
                         />
                       );
                     })}
@@ -1069,6 +1110,23 @@ const TimeTablesManagements = ({
                         classItem?._id
                       );
 
+                      const leaveReason = leaveRecords.find((record) => {
+                        // Check if we are in Date view (no day matching needed as strict date query is used or day is just one day) or Weekly view
+                        if (category === "date") {
+                          return (
+                            record.teacherId === cellData?.teacherId?._id &&
+                            record.periodNumber === period.periodNumber
+                            // Date filtering already done by API query
+                          );
+                        }
+                        const recordDay = new Date(record.date).toLocaleDateString("en-US", { weekday: "long" });
+                        return (
+                          record.teacherId === cellData?.teacherId?._id &&
+                          record.periodNumber === period.periodNumber &&
+                          recordDay === day
+                        );
+                      })?.leaveReason;
+
                       return (
                         <TimetableSlot
                           key={`${classItem?._id}-${period.periodNumber}`}
@@ -1082,6 +1140,7 @@ const TimeTablesManagements = ({
                           absentees={absentees}
                           showAbsenteesDialog={showAbsenteesDialog}
                           isPendingChange={isPending}
+                          leaveReason={leaveReason}
                         />
                       );
                     })}

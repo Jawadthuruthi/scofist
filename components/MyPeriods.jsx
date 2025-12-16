@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Loader, CheckCircle2, FileText, AlertCircle } from "lucide-react";
+import { Loader, CheckCircle2, FileText, AlertCircle, Check, ChevronsUpDown } from "lucide-react";
 
 // UI Components
 import {
@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 // Hooks and Utils
-import { formatDate, formatDateForDisplay } from "@/lib/utils";
+import { formatDate, formatDateForDisplay, cn } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import Header from "./Header";
 import { useRouter } from "next/navigation";
@@ -28,10 +28,36 @@ import {
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { toast } from "sonner";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+const leaveReasons = [
+  "Home Leave",
+  "In a Function",
+  "Unfitness",
+  "Study Leave",
+  "Duty Leave",
+  "Campus Function",
+  "Fiqh Council",
+  "Exam",
+  "Hospital",
+];
 
 const MyPeriods = ({ apiKey, teacherId }) => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [comboboxOpen, setComboboxOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [classId, setClassId] = useState("");
   const [periodNumber, setPeriodNumber] = useState("");
@@ -366,18 +392,57 @@ const MyPeriods = ({ apiKey, teacherId }) => {
             <DialogTitle>Leave Reason</DialogTitle>
             <DialogDescription>Provide a leave reason.</DialogDescription>
             <div className="relative">
-              <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-              <Input
-                placeholder="write your leave reason here"
-                value={reason}
-                onChange={(e) => {
-                  if (e.target.value.length > 20) {
-                    setError(true);
-                  }
-                  setReason(e.target.value);
-                }}
-                className="pl-10"
-              />{" "}
+              <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 z-10" />
+              <div className="relative">
+                <Input
+                  placeholder="Select or type a reason..."
+                  value={reason}
+                  onChange={(e) => {
+                    if (e.target.value.length > 20) {
+                      setError(true);
+                    }
+                    setReason(e.target.value);
+                  }}
+                  className="pl-10 pr-10"
+                />
+                <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    >
+                      <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="end">
+                    <Command>
+                      <CommandList>
+                        <CommandGroup>
+                          {leaveReasons.map((r) => (
+                            <CommandItem
+                              key={r}
+                              value={r}
+                              onSelect={(currentValue) => {
+                                setReason(currentValue);
+                                setComboboxOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  reason === r ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {r}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>{" "}
               {error && (
                 <p className="text-destructive text-xs p-1">
                   Leave reason should not exceed 20 characters.
