@@ -32,12 +32,20 @@ import {
 } from "recharts";
 import { Button } from "./ui/button";
 import { Printer } from "lucide-react";
+import dynamic from "next/dynamic";
+import { getStudentFormFields } from "@/lib/studentFormConfig";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
+const PopupForm = dynamic(() => import("./PopupForm"), {
+  ssr: false,
+});
 
 const ProfileField = ({ label, value, isBold }) =>
   value || value === 0 ? (
-    <div className="flex justify-between py-2 border-b">
-      <span className={`text-sm font-medium ${isBold ? 'font-bold' : 'text-gray-500'}`}>{label}</span>
-      <span className={`text-sm ${isBold ? 'font-bold' : 'text-gray-900'}`}>{value}</span>
+    <div className="flex justify-between py-2 border-b border-border">
+      <span className={`text-sm font-medium ${isBold ? 'font-bold' : 'text-muted-foreground'}`}>{label}</span>
+      <span className={`text-sm ${isBold ? 'font-bold' : 'text-foreground'}`}>{value}</span>
     </div>
   ) : null;
 
@@ -48,12 +56,20 @@ export default function StudentDashboard({
   batches,
   attendanceData: initialData,
 }) {
+  const [currentUser, setCurrentUser] = useState(user);
+
+  useEffect(() => {
+    if (new Date(user?.updatedAt) > new Date(currentUser?.updatedAt)) {
+      setCurrentUser(user);
+    }
+  }, [user, currentUser?.updatedAt]);
+
   const { useFetchItems } = useCrud("studentAttendances", apiKey);
   const { data: fetchedData, isLoading, error } = useFetchItems(
     0,
     0,
     {
-      studentId: user?._id,
+      studentId: currentUser?._id,
     },
     { enabled: !initialData }
   );
@@ -63,17 +79,71 @@ export default function StudentDashboard({
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [pendingFunds, setPendingFunds] = useState(null);
   const [fundsLoading, setFundsLoading] = useState(true);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+
+  const { useUpdateItem } = useCrud("users", apiKey);
+  const updateProfile = useUpdateItem();
+  const router = useRouter();
+
+  const handleProfileUpdate = async (values) => {
+    try {
+      const response = await updateProfile.mutateAsync({
+        data: {
+          ids: [currentUser._id],
+          ...values,
+        },
+      });
+      setCurrentUser(response.updatedUser);
+      toast.success("Profile updated successfully!");
+      router.refresh();
+      return true;
+    } catch (error) {
+      console.error("Profile update failed:", error);
+      toast.error(error.message || "Failed to update profile");
+      throw error;
+    }
+  };
+
+  const formFields = useMemo(() => {
+    const fields = getStudentFormFields(batches, classes);
+    const readOnlyFields = [
+      "roles",
+      "batchId",
+      "classId",
+      "admissionClassId",
+      "status",
+      "admissionDate",
+      "graduatedYear",
+    ];
+    return fields.map((field) => ({
+      ...field,
+      readOnly: readOnlyFields.includes(field.name) ? true : field.readOnly,
+    }));
+  }, [batches, classes]);
+
+  const flatUser = useMemo(() => {
+    if (!currentUser) return null;
+    return {
+      ...currentUser,
+      ...(currentUser.address || {}),
+      ...(currentUser.studentSpecificField || {}),
+      // Ensure we have the IDs if the fields are populated objects
+      batchId: currentUser.studentSpecificField?.batchId?._id || currentUser.studentSpecificField?.batchId,
+      classId: currentUser.studentSpecificField?.classId?._id || currentUser.studentSpecificField?.classId,
+      admissionClassId: currentUser.studentSpecificField?.admissionClassId?._id || currentUser.studentSpecificField?.admissionClassId,
+    };
+  }, [currentUser]);
 
   const className = classes.find(
-    (c) => c._id === user?.studentSpecificField?.classId
+    (c) => c._id === currentUser?.studentSpecificField?.classId
   )?.name;
 
   const admissionClassName = classes.find(
-    (c) => c._id === user?.studentSpecificField?.admissionClassId
+    (c) => c._id === currentUser?.studentSpecificField?.admissionClassId
   )?.name;
 
   const batchName = batches.find(
-    (b) => b._id === user?.studentSpecificField?.batchId
+    (b) => b._id === currentUser?.studentSpecificField?.batchId
   )?.name;
 
   useEffect(() => {
@@ -86,7 +156,7 @@ export default function StudentDashboard({
       ];
 
       const classInfo = classes.find(
-        (c) => c._id === user?.studentSpecificField?.classId
+        (c) => c._id === currentUser?.studentSpecificField?.classId
       );
       if (classInfo?.teacherId) {
         fundsToFetch.push({ name: "Others", teacherId: classInfo.teacherId });
@@ -94,10 +164,10 @@ export default function StudentDashboard({
 
       try {
         const fundPromises = fundsToFetch.map(({ teacherId }) =>
-          fetch(`/api/studentsFund?studentId=${user._id}&teacherId=${teacherId}&batchId=${user.studentSpecificField.batchId}`, {
+          fetch(`/api/studentsFund?studentId=${currentUser._id}&teacherId=${teacherId}&batchId=${currentUser.studentSpecificField.batchId}`, {
             headers: {
               "Content-Type": "application/json",
-              "x-api-key": apiKey,
+              "api-key": apiKey,
             },
           }).then(res => {
             if (!res.ok) {
@@ -125,12 +195,12 @@ export default function StudentDashboard({
       }
     };
 
-    if (user?._id && user?.studentSpecificField?.batchId && apiKey) {
+    if (currentUser?._id && currentUser?.studentSpecificField?.batchId && apiKey) {
       fetchFunds();
     } else {
       setFundsLoading(false);
     }
-  }, [user, classes, apiKey]);
+  }, [currentUser, classes, apiKey]);
 
 
   const academicYears = useMemo(() => {
@@ -159,9 +229,9 @@ export default function StudentDashboard({
     return allMonthsMeta.map(({ year, monthIndex, monthName }) => {
       const recordsForMonth = records
         ? records.filter((r) => {
-            const d = new Date(r.date);
-            return d.getFullYear() === year && d.getMonth() === monthIndex;
-          })
+          const d = new Date(r.date);
+          return d.getFullYear() === year && d.getMonth() === monthIndex;
+        })
         : [];
 
       const totalPeriods = recordsForMonth.length;
@@ -190,13 +260,13 @@ export default function StudentDashboard({
   const getStatusClass = (status) => {
     switch (status) {
       case "Active":
-        return "bg-green-200 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
       case "Dropped Out":
-        return "bg-red-200 text-red-800";
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100";
       case "Graduated":
-        return "bg-blue-200 text-blue-800";
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
       default:
-        return "bg-gray-200 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100";
     }
   };
 
@@ -215,27 +285,32 @@ export default function StudentDashboard({
       />
 
       {/* Profile Header */}
-      <Card className="bg-blue-100">
-        <CardContent className="flex items-center space-x-6 p-6">
-          <Avatar className="h-24 w-24 rounded-lg">
-            <AvatarImage src={user?.profilePic?.url} alt={user?.name} />
-            <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <h2 className="text-2xl font-bold">{user?.name}</h2>
-            <p className="text-muted-foreground">Admission ID: {user?._id}</p>
-            <p className="text-muted-foreground">Class: {className}</p>
-            <p className="text-muted-foreground">
-              Status:{" "}
-              <span
-                className={`px-2 py-1 rounded-md ${getStatusClass(
-                  user?.studentSpecificField?.status
-                )}`}
-              >
-                {user?.studentSpecificField?.status}
-              </span>
-            </p>
+      <Card className="bg-blue-50 dark:bg-blue-950 border-blue-100 dark:border-blue-900">
+        <CardContent className="flex items-center justify-between p-6">
+          <div className="flex items-center space-x-6">
+            <Avatar className="h-24 w-24 rounded-lg">
+              <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} />
+              <AvatarFallback>{currentUser?.name?.[0]}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <h2 className="text-2xl font-bold">{currentUser?.name}</h2>
+              <p className="text-muted-foreground">Admission ID: {currentUser?._id}</p>
+              <p className="text-muted-foreground">Class: {className}</p>
+              <p className="text-muted-foreground">
+                Status:{" "}
+                <span
+                  className={`px-2 py-1 rounded-md ${getStatusClass(
+                    currentUser?.studentSpecificField?.status
+                  )}`}
+                >
+                  {currentUser?.studentSpecificField?.status}
+                </span>
+              </p>
+            </div>
           </div>
+          <Button onClick={() => setIsEditProfileOpen(true)}>
+            Verify Profile
+          </Button>
         </CardContent>
       </Card>
 
@@ -248,42 +323,42 @@ export default function StudentDashboard({
           <CardContent>
             <ProfileField
               label="Date of Birth"
-              value={formatDateForDisplay(user?.dateOfBirth)}
+              value={formatDateForDisplay(currentUser?.dateOfBirth)}
             />
             <ProfileField
               label="Blood Group"
-              value={user?.studentSpecificField?.bloodGroup}
+              value={currentUser?.studentSpecificField?.bloodGroup}
             />
             <ProfileField
               label="Aadhar No"
-              value={user?.studentSpecificField?.aadharNo}
+              value={currentUser?.studentSpecificField?.aadharNo}
             />
-            {user?.address && (
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-sm font-medium text-gray-500">
+            {currentUser?.address && (
+              <div className="flex justify-between py-2 border-b border-border">
+                <span className="text-sm font-medium text-muted-foreground">
                   Address
                 </span>
-                <div className="text-sm text-gray-900 text-right">
-                  {user.address.houseName && (
-                    <div>{user.address.houseName}</div>
+                <div className="text-sm text-foreground text-right">
+                  {currentUser.address.houseName && (
+                    <div>{currentUser.address.houseName}</div>
                   )}
-                  {(user.address.place || user.address.postOffice) && (
+                  {(currentUser.address.place || currentUser.address.postOffice) && (
                     <div>
-                      {[user.address.place, user.address.postOffice]
+                      {[currentUser.address.place, currentUser.address.postOffice]
                         .filter(Boolean)
                         .join(", ")}
                     </div>
                   )}
-                  {(user.address.district ||
-                    user.address.state ||
-                    user.address.pin) && (
-                    <div>
-                      {[user.address.district, user.address.state]
-                        .filter(Boolean)
-                        .join(", ")}
-                      {user.address.pin && ` - ${user.address.pin}`}
-                    </div>
-                  )}
+                  {(currentUser.address.district ||
+                    currentUser.address.state ||
+                    currentUser.address.pin) && (
+                      <div>
+                        {[currentUser.address.district, currentUser.address.state]
+                          .filter(Boolean)
+                          .join(", ")}
+                        {currentUser.address.pin && ` - ${currentUser.address.pin}`}
+                      </div>
+                    )}
                 </div>
               </div>
             )}
@@ -304,20 +379,20 @@ export default function StudentDashboard({
             <ProfileField
               label="Admission Date"
               value={formatDateForDisplay(
-                user?.studentSpecificField?.admissionDate
+                currentUser?.studentSpecificField?.admissionDate
               )}
             />
             <ProfileField
               label="Islamic Qualification"
-              value={user?.studentSpecificField?.islamicQualification}
+              value={currentUser?.studentSpecificField?.islamicQualification}
             />
             <ProfileField
               label="Academic Qualification"
-              value={user?.studentSpecificField?.academicQualification}
+              value={currentUser?.studentSpecificField?.academicQualification}
             />
             <ProfileField
               label="Graduated Year"
-              value={user?.studentSpecificField?.graduatedYear}
+              value={currentUser?.studentSpecificField?.graduatedYear}
             />
           </CardContent>
         </Card>
@@ -328,23 +403,23 @@ export default function StudentDashboard({
             <CardTitle>Contact Info</CardTitle>
           </CardHeader>
           <CardContent>
-            <ProfileField label="Email" value={user?.email} />
-            <ProfileField label="Contact Number" value={user?.contactNumber} />
+            <ProfileField label="Email" value={currentUser?.email} />
+            <ProfileField label="Contact Number" value={currentUser?.contactNumber} />
             <ProfileField
               label="Alternative Number"
-              value={user?.alternativeNumber}
+              value={currentUser?.alternativeNumber}
             />
             <ProfileField
               label="Guardian Name"
-              value={user?.studentSpecificField?.guardianName}
+              value={currentUser?.studentSpecificField?.guardianName}
             />
             <ProfileField
               label="Guardian Contact"
-              value={user?.studentSpecificField?.guardianContactNumber}
+              value={currentUser?.studentSpecificField?.guardianContactNumber}
             />
             <ProfileField
               label="Guardian Alt. Contact"
-              value={user?.studentSpecificField?.guardianAlternativeNumber}
+              value={currentUser?.studentSpecificField?.guardianAlternativeNumber}
             />
           </CardContent>
         </Card>
@@ -363,7 +438,7 @@ export default function StudentDashboard({
                 {Object.entries(pendingFunds).map(([fund, balance]) => (
                   <ProfileField key={fund} label={fund} value={balance.toFixed(2)} />
                 ))}
-                <ProfileField label="Total Pending" value={totalPending.toFixed(2)} isBold={true}/>
+                <ProfileField label="Total Pending" value={totalPending.toFixed(2)} isBold={true} />
 
               </>
             ) : (
@@ -472,6 +547,19 @@ export default function StudentDashboard({
           Print
         </Button>
       </div>
+
+      {isEditProfileOpen && (
+        <PopupForm
+          data={flatUser}
+          formFields={formFields}
+          onSubmit={handleProfileUpdate}
+          title="Edit Profile"
+          apiKey={apiKey}
+          hideButton={true} // Since we trigger it manually
+          open={isEditProfileOpen}
+          onOpenChange={setIsEditProfileOpen}
+        />
+      )}
     </div>
   );
 }

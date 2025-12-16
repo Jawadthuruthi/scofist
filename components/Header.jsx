@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const Header = ({ title, subTitle, alertTitle, alertDescription }) => {
+const Header = ({ title, subTitle, alertTitle, alertDescription, rightAction }) => {
   const [isAlertOpen, setIsAlertOpen] = useState(true); // Opens by default
 
   const handleIconClick = () => {
@@ -21,7 +21,7 @@ const Header = ({ title, subTitle, alertTitle, alertDescription }) => {
 
   return (
     <>
-      <div className="p-2 mb-4 flex items-start">
+      <div className="p-2 mb-4 flex items-center justify-between">
         <div>
           <h1 className="font-bold text-xl md:text-2xl text-foreground">
             {title}
@@ -37,6 +37,7 @@ const Header = ({ title, subTitle, alertTitle, alertDescription }) => {
           </h1>
           <h3 className="text-muted-foreground">{subTitle}</h3>
         </div>
+        {rightAction && <div>{rightAction}</div>}
       </div>
       {(alertTitle || alertDescription) && (
         <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>

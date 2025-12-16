@@ -43,8 +43,8 @@ const SectionNavigation = ({
         key={section}
         type="button"
         className={`px-4 py-2 text-sm text-nowrap ${activeIndex === index
-            ? "border-b-2 border-primary text-primary"
-            : "text-muted-foreground"
+          ? "border-b-2 border-primary text-primary"
+          : "text-muted-foreground"
           }`}
         onClick={() => setActiveIndex(index)}
       >
@@ -376,8 +376,29 @@ export default function PopupForm({
   loading = false,
   apiKey,
   hideButton = false,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }) {
-  const [open, setOpen] = React.useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
+
+  // Determine if component is controlled
+  const isControlled = controlledOpen !== undefined;
+
+  // Use controlled state if available, otherwise local state
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = isControlled ? controlledOnOpenChange : setUncontrolledOpen;
+
+  const handleOpenChange = (newOpen) => {
+    // If not controlled, update local state
+    if (!isControlled) {
+      setUncontrolledOpen(newOpen);
+    }
+    // Always call the onChange handler if provided (for both controlled and uncontrolled scenarios to sync if needed)
+    if (controlledOnOpenChange) {
+      controlledOnOpenChange(newOpen);
+    }
+  };
+
 
   const customFormFields = React.useMemo(() => {
     if (data) {
@@ -421,10 +442,10 @@ export default function PopupForm({
         });
       }
     }
-  }, [form, customFormFields, onSubmit]);
+  }, [form, customFormFields, onSubmit, setOpen]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {!hideButton && (
           <Button variant="outline">
