@@ -303,8 +303,9 @@ const TimeTableComponent = ({
                         }}
                         key={period?._id}
                         className={`${isAttendanceMarked
-                            ? "bg-green-300/50 print:bg-inherit"
-                            : ""
+                          ? "bg-green-300/50 print:bg-inherit"
+                          : ""
+                          } ${leaveRecord ? "bg-red-100/50 print:bg-inherit" : ""
                           } border text-center  cursor-pointer print:max-w-32`}
                       >
                         {cellData ? (
@@ -314,9 +315,6 @@ const TimeTableComponent = ({
                             </p>
                             <p className="text-xxs text-accent-foreground whitespace-nowrap print:whitespace-normal">
                               {cellData.classId?.name || ""}
-                              {cellData.classId?.batchId?.name
-                                ? ` (${cellData.classId.batchId.name})`
-                                : ""}
                             </p>
 
                             {/* Attendance badge */}
@@ -340,7 +338,7 @@ const TimeTableComponent = ({
                                 </TooltipProvider>
                               )}
                             {leaveRecord && !isAttendanceMarked && (
-                              <div className="flex items-center gap-1 text-xxs text-muted-foreground">
+                              <div className="flex items-center gap-1 text-xxs text-muted-foreground justify-center">
                                 <AlertCircle className="text-red-500 h-3 w-3" />
                                 <span>{leaveRecord.leaveReason}</span>
                               </div>
@@ -411,8 +409,9 @@ const TimeTableComponent = ({
                         }}
                         key={period?._id}
                         className={`${isAttendanceMarked
-                            ? "bg-green-300/50 print:bg-inherit"
-                            : ""
+                          ? "bg-green-300/50 print:bg-inherit"
+                          : ""
+                          } ${leaveRecord ? "bg-red-100/50 print:bg-inherit" : ""
                           } border text-center  cursor-pointer print:max-w-32`}
                       >
                         {!!cellData ? (
@@ -446,7 +445,7 @@ const TimeTableComponent = ({
                               )}
 
                             {leaveRecord && !isAttendanceMarked && (
-                              <div className="flex items-center gap-1 text-xxs text-muted-foreground">
+                              <div className="flex items-center gap-1 text-xxs text-muted-foreground justify-center">
                                 <AlertCircle className="text-red-500 h-3 w-3" />
                                 <span>{leaveRecord.leaveReason}</span>
                               </div>
