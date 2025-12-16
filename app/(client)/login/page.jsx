@@ -9,11 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader, Mail } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const [studentId, setStudentId] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
 
   const handleSendOTP = async (e) => {
     e.preventDefault();
@@ -28,7 +32,26 @@ export default function LoginPage() {
       console.error("Error sending OTP:", error.message);
       toast.error(
         error?.response?.data?.message ||
-          "Failed to send OTP. Please try again."
+        "Failed to send OTP. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStudentLogin = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      await axios.post("/api/auth/student-login", { studentId, mobileNumber });
+      toast.success("Login successful!");
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1000);
+    } catch (error) {
+      console.error("Error logging in:", error.message);
+      toast.error(
+        error?.response?.data?.message || "Failed to login. Please try again."
       );
     } finally {
       setLoading(false);
@@ -39,30 +62,68 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
-          <CardTitle className="text-center text-xl">
-            Sign in with OTP
-          </CardTitle>
+          <CardTitle className="text-center text-xl">Sign In</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSendOTP} className="space-y-4">
-            <div className="space-y-1">
-              <Label>Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  required
-                  className="pl-10"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader className="animate-spin mr-2" /> : "Proceed"}
-            </Button>
-          </form>
+          <Tabs defaultValue="otp" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="otp">OTP Login</TabsTrigger>
+              <TabsTrigger value="student">Student Login</TabsTrigger>
+            </TabsList>
+            <TabsContent value="otp">
+              <form onSubmit={handleSendOTP} className="space-y-4 pt-4">
+                <div className="space-y-1">
+                  <Label>Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      required
+                      className="pl-10"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <Loader className="animate-spin mr-2" />
+                  ) : (
+                    "Send OTP"
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+            <TabsContent value="student">
+              <form onSubmit={handleStudentLogin} className="space-y-4 pt-4">
+                <div className="space-y-1">
+                  <Label>Student ID</Label>
+                  <Input
+                    type="text"
+                    placeholder="Enter Student ID"
+                    required
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    className="uppercase"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Mobile Number</Label>
+                  <Input
+                    type="password"
+                    placeholder="Enter Mobile Number"
+                    required
+                    value={mobileNumber}
+                    onChange={(e) => setMobileNumber(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? <Loader className="animate-spin mr-2" /> : "Login"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
