@@ -295,7 +295,9 @@ export default function StudentDashboard({
             <div className="flex flex-col">
               <h2 className="text-2xl font-bold">{currentUser?.name}</h2>
               <p className="text-muted-foreground">Admission ID: {currentUser?._id}</p>
-              <p className="text-muted-foreground">Class: {className}</p>
+              {currentUser?.studentSpecificField?.status === "Active" && (
+                <p className="text-muted-foreground">Class: {className}</p>
+              )}
               <p className="text-muted-foreground">
                 Status:{" "}
                 <span

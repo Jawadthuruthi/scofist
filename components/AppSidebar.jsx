@@ -128,9 +128,22 @@ const items = [
   {
     title: "Students Fund",
     url: "/dashboard/students-fund",
-    allowedRoles: ["College Admin", "Teacher", "Stationary", "IT Lab"],
+    allowedRoles: ["College Admin", "Teacher"],
     icon: CreditCard,
   },
+  {
+    title: "Spark",
+    url: "/dashboard/spark",
+    icon: Briefcase, // Using Briefcase as a placeholder
+    allowedRoles: ["Student"],
+  },
+  {
+    title: "Alumnies",
+    url: "/dashboard/alumnies",
+    icon: GraduationCap, // Reusing GraduationCap or could use another like Users
+    allowedRoles: ["Student"],
+  },
+
   {
     title: "Downloads",
     icon: Download,
@@ -530,7 +543,7 @@ function ComboBox({ roles, role }) {
   );
 }
 
-export function AppSidebar({ roles, activeRole }) {
+export function AppSidebar({ roles, activeRole, user }) {
   const sidebarRef = useRef(null);
   const { setOpen, setOpenMobile } = useSidebar();
   const [role, setRole] = useState(activeRole || roles[0] || "");
@@ -560,7 +573,29 @@ export function AppSidebar({ roles, activeRole }) {
   // Memoized filtered menu items
   const menuItems = useMemo(() => {
     return items
-      .filter((item) => item.allowedRoles?.includes(role))
+      .filter((item) => {
+        if (!item.allowedRoles?.includes(role)) return false;
+
+        // Custom check for Downloads and Students: Visible only for 'Active' students
+        if (
+          (item.title === "Downloads" || item.title === "Students") &&
+          role === "Student" &&
+          user?.studentSpecificField?.status !== "Active"
+        ) {
+          return false;
+        }
+
+        // Custom check for Spark and Alumnies: Visible only for 'Graduated' or 'Dropped Out' students
+        if (
+          (item.title === "Spark" || item.title === "Alumnies") &&
+          role === "Student" &&
+          user?.studentSpecificField?.status === "Active"
+        ) {
+          return false;
+        }
+
+        return true;
+      })
       .map((item) => ({
         ...item,
         subItems: item.subItems
@@ -570,7 +605,7 @@ export function AppSidebar({ roles, activeRole }) {
           : undefined,
       }))
       .filter((item) => item.subItems?.length > 0 || !item.subItems);
-  }, [role]);
+  }, [role, user]);
 
   return (
     <Sidebar ref={sidebarRef}>

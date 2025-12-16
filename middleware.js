@@ -53,6 +53,16 @@ const pages = [
     allowedRoles: ["College Admin"],
   },
   {
+    title: "Spark",
+    path: "/dashboard/spark",
+    allowedRoles: ["Student"],
+  },
+  {
+    title: "Alumnies",
+    path: "/dashboard/alumnies",
+    allowedRoles: ["Student"],
+  },
+  {
     title: "Classes",
     path: "/dashboard/classes",
     allowedRoles: ["College Admin"],
