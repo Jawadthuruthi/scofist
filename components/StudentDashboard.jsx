@@ -460,100 +460,102 @@ export default function StudentDashboard({
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Month-wise Attendance History</CardTitle>
-            <Select
-              onValueChange={(value) => setSelectedYear(parseInt(value))}
-              defaultValue={selectedYear.toString()}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select Year" />
-              </SelectTrigger>
-              <SelectContent>
-                {academicYears.map((year) => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Month</TableHead>
-                  <TableHead>Total Periods</TableHead>
-                  <TableHead>Present</TableHead>
-                  <TableHead>Percentage</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {attendanceHistory.map((row) => (
-                  <React.Fragment key={row.month}>
-                    <TableRow
-                      onClick={() =>
-                        setExpandedMonth(
-                          expandedMonth === row.month ? null : row.month
-                        )
-                      }
-                      className="cursor-pointer"
-                    >
-                      <TableCell>{row.month}</TableCell>
-                      <TableCell>{row.totalPeriods}</TableCell>
-                      <TableCell>{row.presentPeriods}</TableCell>
-                      <TableCell>{row.percentage}%</TableCell>
-                    </TableRow>
-                    {expandedMonth === row.month && (
-                      <TableRow>
-                        <TableCell colSpan={4}>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Status</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {row.details.map((detail) => (
-                                <TableRow key={detail.date}>
-                                  <TableCell>{detail.date}</TableCell>
-                                  <TableCell>
-                                    {detail.present ? "Present" : "Absent"}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableCell>
+      {currentUser?.studentSpecificField?.status === "Active" && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Month-wise Attendance History</CardTitle>
+              <Select
+                onValueChange={(value) => setSelectedYear(parseInt(value))}
+                defaultValue={selectedYear.toString()}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {academicYears.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Month</TableHead>
+                    <TableHead>Total Periods</TableHead>
+                    <TableHead>Present</TableHead>
+                    <TableHead>Percentage</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attendanceHistory.map((row) => (
+                    <React.Fragment key={row.month}>
+                      <TableRow
+                        onClick={() =>
+                          setExpandedMonth(
+                            expandedMonth === row.month ? null : row.month
+                          )
+                        }
+                        className="cursor-pointer"
+                      >
+                        <TableCell>{row.month}</TableCell>
+                        <TableCell>{row.totalPeriods}</TableCell>
+                        <TableCell>{row.presentPeriods}</TableCell>
+                        <TableCell>{row.percentage}%</TableCell>
                       </TableRow>
-                    )}
-                  </React.Fragment>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                      {expandedMonth === row.month && (
+                        <TableRow>
+                          <TableCell colSpan={4}>
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Date</TableHead>
+                                  <TableHead>Status</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {row.details.map((detail) => (
+                                  <TableRow key={detail.date}>
+                                    <TableCell>{detail.date}</TableCell>
+                                    <TableCell>
+                                      {detail.present ? "Present" : "Absent"}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Attendance Chart</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={attendanceHistory}>
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="percentage" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Attendance Chart</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={attendanceHistory}>
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="percentage" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       <div className="fixed bottom-4 right-4 no-print">
         <Button onClick={() => window.print()}>
           <Printer className="mr-2 h-4 w-4" />

@@ -648,7 +648,10 @@ const DataTableComponent = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="mr-auto space-x-2 flex">
+        <div className="mr-auto space-x-2 flex items-center">
+          {additionalProps?.customToolbar && !isMobile && (
+            <div className="mr-2">{additionalProps.customToolbar}</div>
+          )}
           <ColumnCustomization table={table} columnsConfig={columnsConfig} />
           {/* Desktop Date Range Filter */}
           {!isMobile && filterConfig.find(f => f.inputType === "dateRange") && (

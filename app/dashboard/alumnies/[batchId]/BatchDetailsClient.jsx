@@ -9,16 +9,18 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
 import { getStudentColumns } from "@/components/table-configs/studentColumns";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function BatchDetailsClient({ batch, classes, apiKey }) {
     const [activeTab, setActiveTab] = useState("GB"); // 'GB' or 'Alumni'
     const router = useRouter();
+    const isMobile = useIsMobile();
 
     const columnsConfig = getStudentColumns({
         classes,
         pageTitle: `${batch.name} - ${activeTab === "GB" ? "GB Members" : "Alumni Members"}`,
         onNameClick: null,
-        excludeColumns: ["select", "batchName", "className", "liabilities"]
+        excludeColumns: ["select", "batchName", "className", "liabilities", "roles"]
     });
 
     const apiFilters = useMemo(() => {
@@ -38,6 +40,15 @@ export default function BatchDetailsClient({ batch, classes, apiKey }) {
         return filters;
     }, [batch._id, activeTab]);
 
+    const tabsElement = (
+        <Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
+            <TabsList className="grid w-[400px] grid-cols-2">
+                <TabsTrigger value="GB">GB Members</TabsTrigger>
+                <TabsTrigger value="Alumni">Alumni Members</TabsTrigger>
+            </TabsList>
+        </Tabs>
+    );
+
     return (
         <div className="flex flex-col space-y-2">
             <Header
@@ -49,12 +60,7 @@ export default function BatchDetailsClient({ batch, classes, apiKey }) {
                 }
             />
 
-            <Tabs defaultValue="GB" className="w-full" onValueChange={setActiveTab}>
-                <TabsList className="grid w-[400px] grid-cols-2">
-                    <TabsTrigger value="GB">GB Members</TabsTrigger>
-                    <TabsTrigger value="Alumni">Alumni Members</TabsTrigger>
-                </TabsList>
-            </Tabs>
+            {isMobile && tabsElement}
 
             <DataTableComponent
                 resource="users"
@@ -65,6 +71,7 @@ export default function BatchDetailsClient({ batch, classes, apiKey }) {
                 editFormTitle="Edit Student"
                 deleteFormTitle="Delete Student"
                 filterConfig={[]}
+                tableHeight="calc(100vh - 220px)"
                 limit={20}
                 apiFilters={apiFilters}
                 filterTitle="Students"
@@ -72,6 +79,7 @@ export default function BatchDetailsClient({ batch, classes, apiKey }) {
                 filterType="api"
                 readOnly={true}
                 enableCreate={false}
+                additionalProps={{ customToolbar: tabsElement }}
             />
         </div>
     );
