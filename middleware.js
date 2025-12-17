@@ -70,6 +70,11 @@ const pages = [
     allowedRoles: ["Spark Admin"],
   },
   {
+    title: "Spark Verification",
+    path: "/dashboard/spark/verification",
+    allowedRoles: ["Spark Admin"],
+  },
+  {
     title: "Alumnies",
     path: "/dashboard/alumnies",
     allowedRoles: ["Student", "Spark Admin"],

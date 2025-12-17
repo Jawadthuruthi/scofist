@@ -74,6 +74,7 @@ async function getBatchStats() {
 }
 
 import { cookies } from "next/headers";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // ... (existing imports)
 
@@ -83,13 +84,40 @@ export default async function AlumniesPage() {
         const cookieStore = await cookies();
         const activeRole = cookieStore.get("active-role")?.value;
 
+        // Calculate Totals
+        const totalGB = batches.reduce((acc, batch) => acc + batch.gbMembers, 0);
+        const totalAlumni = batches.reduce((acc, batch) => acc + batch.alumniMembers, 0);
+
         return (
-            <div className="flex flex-col space-y-2">
+            <div className="flex flex-col space-y-6">
                 <Header
                     title="ALUMNIES"
                     subTitle="Alumni Network & Directory"
                     icon={<GraduationCap className="h-5 w-5 text-muted-foreground" />}
                 />
+
+                <div className="grid gap-4 md:grid-cols-2">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                Total GB Members (Active)
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{totalGB}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                Total Alumni Members
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{totalAlumni}</div>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {batches.map((batch) => {

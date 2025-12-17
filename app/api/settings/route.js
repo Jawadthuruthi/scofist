@@ -58,6 +58,24 @@ export async function POST(req, res) {
             data.website ?? existingSettings?.institution?.contact.website,
         },
       },
+      spark: {
+        name: data.spark_name ?? existingSettings?.spark?.name,
+        fullName: data.spark_fullName ?? existingSettings?.spark?.fullName,
+        tagline: data.spark_tagline ?? existingSettings?.spark?.tagline,
+        logo: data.spark_logo ?? existingSettings?.spark?.logo,
+        address: data.spark_address ?? existingSettings?.spark?.address,
+        contact: {
+          primaryPhone:
+            data.spark_primaryPhone ??
+            existingSettings?.spark?.contact?.primaryPhone,
+          secondaryPhone:
+            data.spark_secondaryPhone ??
+            existingSettings?.spark?.contact?.secondaryPhone,
+          email: data.spark_email ?? existingSettings?.spark?.contact?.email,
+          website:
+            data.spark_website ?? existingSettings?.spark?.contact?.website,
+        },
+      },
       idCard: {
         backgroundImage:
           data.backgroundImage ?? existingSettings?.idCard?.backgroundImage,

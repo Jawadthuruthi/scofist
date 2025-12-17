@@ -151,6 +151,12 @@ const items = [
     allowedRoles: ["Spark Admin"],
   },
   {
+    title: "Verification",
+    url: "/dashboard/spark/verification",
+    icon: CheckCircle,
+    allowedRoles: ["Spark Admin"],
+  },
+  {
     title: "Alumnies",
     url: "/dashboard/alumnies",
     icon: GraduationCap, // Reusing GraduationCap or could use another like Users

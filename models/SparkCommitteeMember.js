@@ -11,6 +11,10 @@ const sparkCommitteeMemberSchema = new Schema(
             type: String,
             trim: true,
         },
+        place: {
+            type: String,
+            trim: true,
+        },
         photo: {
             url: {
                 type: String,

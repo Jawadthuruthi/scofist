@@ -30,7 +30,7 @@ const generalFormField = [
 const institutionFormField = [
   {
     name: "logo",
-    label: "Institution Logo",
+    label: "Organisation Logo",
     inputType: "image",
     type: "object",
     className: "col-span-2",
@@ -40,14 +40,19 @@ const institutionFormField = [
   },
   {
     name: "name",
-    label: "Institution Name",
-    placeholder: "Enter institution name",
+    label: "Organisation Name",
+    placeholder: "Enter organisation name",
     required: true,
+  },
+  {
+    name: "fullName",
+    label: "Full Name",
+    placeholder: "Enter full name",
   },
   {
     name: "tagline",
     label: "Tagline",
-    placeholder: "Enter institution tagline",
+    placeholder: "Enter organisation tagline",
     className: "col-span-2 md:col-span-1",
   },
   {
@@ -258,6 +263,74 @@ export default async function SettingsPage() {
       ...data.idCard,
     };
 
+    const spark = {
+      spark_name: data.spark?.name,
+      spark_fullName: data.spark?.fullName,
+      spark_tagline: data.spark?.tagline,
+      spark_address: data.spark?.address,
+      spark_primaryPhone: data.spark?.contact?.primaryPhone,
+      spark_secondaryPhone: data.spark?.contact?.secondaryPhone,
+      spark_email: data.spark?.contact?.email,
+      spark_website: data.spark?.contact?.website,
+      spark_logo: data.spark?.logo || {},
+    };
+
+    const sparkFormField = [
+      {
+        name: "spark_logo",
+        label: "Organisation Logo",
+        inputType: "image",
+        type: "object",
+        className: "col-span-2",
+        maxFileSize: 2 * 1024 * 1024,
+        allowedTypes: ["image/jpeg", "image/png", "image/svg+xml"],
+        defaultValue: {},
+      },
+      {
+        name: "spark_name",
+        label: "Organisation Name",
+        placeholder: "Enter organisation name",
+        required: true,
+      },
+      {
+        name: "spark_fullName",
+        label: "Full Name",
+        placeholder: "Enter full name",
+      },
+      {
+        name: "spark_tagline",
+        label: "Tagline",
+        placeholder: "Enter organisation tagline",
+        className: "col-span-2 md:col-span-1",
+      },
+      {
+        name: "spark_address",
+        label: "Address",
+        placeholder: "Enter address",
+      },
+      {
+        name: "spark_primaryPhone",
+        label: "Primary Phone",
+        placeholder: "Enter primary phone",
+      },
+      {
+        name: "spark_secondaryPhone",
+        label: "Secondary Phone",
+        placeholder: "Enter secondary phone",
+      },
+      {
+        name: "spark_email",
+        label: "Email",
+        placeholder: "Enter email address",
+        type: "email",
+      },
+      {
+        name: "spark_website",
+        label: "Website",
+        placeholder: "Enter website URL",
+      },
+    ];
+
     return (
       <>
         <Header title="SETTINGS" subTitle="Customize System Behavior" />
@@ -298,6 +371,16 @@ export default async function SettingsPage() {
               resource="settings"
               title="Festival Settings"
               description="Configure Festival Details"
+            />
+          )}
+          {activeRole === "Spark Admin" && (
+            <FormComponent
+              formFields={sparkFormField}
+              apiKey={apiKey}
+              data={spark}
+              resource="settings"
+              title="Institution Profile"
+              description="Configure Your Institution Details"
             />
           )}
         </div>
