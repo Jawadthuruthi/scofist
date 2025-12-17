@@ -310,9 +310,18 @@ export default function StudentDashboard({
                   {currentUser?.studentSpecificField?.status}
                 </span>
               </p>
+              <Button
+                onClick={() => setIsEditProfileOpen(true)}
+                className="mt-2 md:hidden w-fit"
+              >
+                Verify Profile
+              </Button>
             </div>
           </div>
-          <Button onClick={() => setIsEditProfileOpen(true)}>
+          <Button
+            onClick={() => setIsEditProfileOpen(true)}
+            className="hidden md:inline-flex"
+          >
             Verify Profile
           </Button>
         </CardContent>
