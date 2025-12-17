@@ -141,7 +141,7 @@ const items = [
     title: "Alumnies",
     url: "/dashboard/alumnies",
     icon: GraduationCap, // Reusing GraduationCap or could use another like Users
-    allowedRoles: ["Student"],
+    allowedRoles: ["Student", "College Admin"],
   },
 
   {
