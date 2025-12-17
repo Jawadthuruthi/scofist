@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -105,18 +105,19 @@ export default function CommitteeList({ initialMembers, isSparkAdmin }) {
 
             const data = await res.json();
 
-            if (isEdit) {
-                setMembers(
-                    members.map((m) => (m._id === currentMember._id ? data.member : m))
-                );
+            if (res.ok) {
+                if (isEdit) {
+                    setMembers(
+                        members.map((m) => (m._id === currentMember._id ? data.member : m))
+                    );
+                } else {
+                    setMembers([...members, data.member]);
+                }
+                toast("Success", {
+                    description: `Member ${isEdit ? "updated" : "added"} successfully`,
+                });
+                setIsOpen(false);
             } else {
-                setMembers([...members, data.member]);
-            }
-            toast("Success", {
-                description: `Member ${isEdit ? "updated" : "added"} successfully`,
-            });
-            setIsOpen(false);
-        } else {
             toast("Error", {
                 description: data.message || "Failed to save member",
             });
