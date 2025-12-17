@@ -25,6 +25,7 @@ const pages = [
       "Literary Leader",
       "Stationary",
       "IT Lab",
+      "Spark Admin",
     ],
   },
   {
@@ -55,7 +56,7 @@ const pages = [
   {
     title: "Spark",
     path: "/dashboard/spark",
-    allowedRoles: ["Student"],
+    allowedRoles: ["Student", "Spark Admin"],
   },
   {
     title: "Alumnies",

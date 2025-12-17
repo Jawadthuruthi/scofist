@@ -140,6 +140,7 @@ const formFields = [
       { label: "Literary Leader", value: "Literary Leader" },
       { label: "Program Committee", value: "Program Committee" },
       { label: "Program Leader", value: "Program Leader" },
+      { label: "Spark Admin", value: "Spark Admin" },
     ],
     validators: {
       minLength: 1,

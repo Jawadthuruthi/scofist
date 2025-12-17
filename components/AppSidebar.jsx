@@ -87,6 +87,7 @@ const items = [
       "Literary Leader",
       "Stationary",
       "IT Lab",
+      "Spark Admin",
     ],
   },
   {
@@ -135,7 +136,7 @@ const items = [
     title: "Spark",
     url: "/dashboard/spark",
     icon: Briefcase, // Using Briefcase as a placeholder
-    allowedRoles: ["Student"],
+    allowedRoles: ["Student", "Spark Admin"],
   },
   {
     title: "Alumnies",
