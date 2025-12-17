@@ -12,7 +12,8 @@ export async function GET(req) {
     const endDate = searchParams.get("endDate");
     const category = searchParams.get("category");
     const mode = searchParams.get("mode");
-
+    const accountType = searchParams.get("accountType") || "College"; // Default to College
+    console.log("Finance API GET:", { accountType, allParams: Object.fromEntries(searchParams) });
     const page = parseInt(searchParams.get("page")) || 1;
     const limit = parseInt(searchParams.get("limit")) || 20;
     const skip = (page - 1) * limit;
@@ -34,6 +35,10 @@ export async function GET(req) {
       query.mode = mode;
     }
 
+    if (accountType) {
+      query.accountType = accountType;
+    }
+
     const transactions = await Finance.find(query)
       .sort({ date: -1, createdAt: -1 })
       .skip(skip)
@@ -43,7 +48,7 @@ export async function GET(req) {
     const totalPages = Math.ceil(total / limit);
 
     // Calculate Summary (Global Balance)
-    const summary = await getFinanceSummary();
+    const summary = await getFinanceSummary(accountType);
 
     return NextResponse.json({
       success: true,
@@ -69,6 +74,7 @@ export async function POST(req) {
   try {
     await connectToDB();
     const body = await req.json();
+    console.log("Finance API POST Body:", body);
 
     const newTransaction = await Finance.create(body);
 

@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-export default function AccountsClient({ initialSummary, apiKey }) {
+export default function AccountsClient({ initialSummary, apiKey, accountType = "College" }) {
     const [summary, setSummary] = useState(initialSummary);
     const router = useRouter();
 
@@ -154,7 +154,7 @@ export default function AccountsClient({ initialSummary, apiKey }) {
         <div className="space-y-6">
             <FinanceStats summary={summary} />
 
-            <TransactionForm apiKey={apiKey} onSuccess={handleSuccess} />
+            <TransactionForm apiKey={apiKey} onSuccess={handleSuccess} accountType={accountType} />
 
 
 
@@ -170,7 +170,8 @@ export default function AccountsClient({ initialSummary, apiKey }) {
                 enableCreate={false} // Disable built-in add button
                 createFormTitle="Add Transaction"
                 editFormTitle="Edit Transaction"
-                apiFilters={{}}
+                apiFilters={{ accountType }} // Pass accountType for filtering
+                additionalFormParams={{ accountType }} // Pass accountType for creation
                 filterConfig={filterConfig}
                 printInReverse={true}
                 printTitle="Accounts"

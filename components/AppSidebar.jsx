@@ -135,14 +135,26 @@ const items = [
   {
     title: "Spark",
     url: "/dashboard/spark",
-    icon: Briefcase, // Using Briefcase as a placeholder
+    icon: Briefcase,
     allowedRoles: ["Student", "Spark Admin"],
+  },
+  {
+    title: "Finance",
+    url: "/dashboard/spark/finance",
+    icon: CreditCard,
+    allowedRoles: ["Spark Admin"],
+  },
+  {
+    title: "Committee",
+    url: "/dashboard/spark/committee",
+    icon: Users,
+    allowedRoles: ["Spark Admin"],
   },
   {
     title: "Alumnies",
     url: "/dashboard/alumnies",
     icon: GraduationCap, // Reusing GraduationCap or could use another like Users
-    allowedRoles: ["Student", "College Admin"],
+    allowedRoles: ["Student", "Spark Admin"],
   },
 
   {
@@ -479,7 +491,7 @@ const items = [
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,
-    allowedRoles: ["College Admin", "Program Committee"],
+    allowedRoles: ["College Admin", "Program Committee", "Spark Admin"],
   },
 ];
 
@@ -605,7 +617,16 @@ export function AppSidebar({ roles, activeRole, user }) {
           )
           : undefined,
       }))
-      .filter((item) => item.subItems?.length > 0 || !item.subItems);
+      .filter((item) => {
+        const hasSubItems = item.subItems?.length > 0;
+        const noSubItemsDefined = !item.subItems;
+        const isVisible = hasSubItems || noSubItemsDefined;
+
+        // Debuging Log
+        // console.log(`Item: ${item.title}, Role: ${role}, HasSub: ${hasSubItems}, NoSubDefined: ${noSubItemsDefined}, Visible: ${isVisible}`);
+
+        return isVisible;
+      });
   }, [role, user]);
 
   return (

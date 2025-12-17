@@ -28,6 +28,13 @@ const financeSchema = new mongoose.Schema(
       enum: ["Cash", "Bank"],
       required: true,
     },
+    accountType: {
+      type: String,
+      enum: ["College", "Org", "Spark"],
+      default: "College",
+      required: true,
+      index: true,
+    },
   },
   { timestamps: true }
 );

@@ -73,9 +73,15 @@ async function getBatchStats() {
     });
 }
 
+import { cookies } from "next/headers";
+
+// ... (existing imports)
+
 export default async function AlumniesPage() {
     try {
         const batches = await getBatchStats();
+        const cookieStore = await cookies();
+        const activeRole = cookieStore.get("active-role")?.value;
 
         return (
             <div className="flex flex-col space-y-2">
@@ -86,25 +92,43 @@ export default async function AlumniesPage() {
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {batches.map((batch) => (
-                        <Link
-                            href={`/dashboard/alumnies/${batch._id}`}
-                            key={batch._id}
-                            className="bg-gray-100 text-card-foreground p-6 rounded-lg shadow-sm border flex flex-col items-center justify-center text-center space-y-2 hover:bg-gray-200 hover:shadow-md transition-all block"
-                        >
-                            <h3 className="font-bold text-lg uppercase">
-                                {batch.name} ({batch.academicYear})
-                            </h3>
-                            <div className="text-sm text-muted-foreground space-y-1">
-                                <p>
-                                    GB Members: <span className="font-medium text-foreground">{batch.gbMembers}</span>
-                                </p>
-                                <p>
-                                    Alumni Members: <span className="font-medium text-foreground">{batch.alumniMembers}</span>
-                                </p>
-                            </div>
-                        </Link>
-                    ))}
+                    {batches.map((batch) => {
+                        const CardContent = (
+                            <>
+                                <h3 className="font-bold text-lg uppercase">
+                                    {batch.name} ({batch.academicYear})
+                                </h3>
+                                <div className="text-sm text-muted-foreground space-y-1">
+                                    <p>
+                                        GB Members: <span className="font-medium text-foreground">{batch.gbMembers}</span>
+                                    </p>
+                                    <p>
+                                        Alumni Members: <span className="font-medium text-foreground">{batch.alumniMembers}</span>
+                                    </p>
+                                </div>
+                            </>
+                        );
+
+                        const cardClasses = "bg-gray-100 text-card-foreground p-6 rounded-lg shadow-sm border flex flex-col items-center justify-center text-center space-y-2 hover:bg-gray-200 hover:shadow-md transition-all block w-full h-full";
+
+                        if (activeRole === "Student") {
+                            return (
+                                <div key={batch._id} className={cardClasses}>
+                                    {CardContent}
+                                </div>
+                            );
+                        }
+
+                        return (
+                            <Link
+                                href={`/dashboard/alumnies/${batch._id}`}
+                                key={batch._id}
+                                className={cardClasses}
+                            >
+                                {CardContent}
+                            </Link>
+                        );
+                    })}
                 </div>
                 {batches.length === 0 && (
                     <div className="text-center p-12 text-muted-foreground">
@@ -113,6 +137,7 @@ export default async function AlumniesPage() {
                 )}
             </div>
         );
+
     } catch (error) {
         console.error("Error loading alumni data:", error);
         return (

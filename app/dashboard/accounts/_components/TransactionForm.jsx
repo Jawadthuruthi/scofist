@@ -16,7 +16,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import useCrud from "@/hooks/use-crud";
 
-export default function TransactionForm({ apiKey, onSuccess }) {
+export default function TransactionForm({ apiKey, onSuccess, accountType = "College" }) {
     const [loading, setLoading] = useState(false);
     const { useAddItem } = useCrud("finance", apiKey || process.env.NEXT_PUBLIC_API_KEY);
     const addItem = useAddItem();
@@ -52,6 +52,7 @@ export default function TransactionForm({ apiKey, onSuccess }) {
             const payload = {
                 ...formData,
                 amount: Number(formData.amount),
+                accountType,
             };
 
             await addItem.mutateAsync(payload);

@@ -57,16 +57,27 @@ const pages = [
     title: "Spark",
     path: "/dashboard/spark",
     allowedRoles: ["Student", "Spark Admin"],
+    matchPattern: /^\/dashboard\/spark.*$/,
+  },
+  {
+    title: "Spark Finance",
+    path: "/dashboard/spark/finance",
+    allowedRoles: ["Spark Admin"],
+  },
+  {
+    title: "Spark Committee",
+    path: "/dashboard/spark/committee",
+    allowedRoles: ["Spark Admin"],
   },
   {
     title: "Alumnies",
     path: "/dashboard/alumnies",
-    allowedRoles: ["Student", "College Admin"],
+    allowedRoles: ["Student", "Spark Admin"],
   },
   {
     path: "/dashboard/alumnies",
     pattern: /^\/dashboard\/alumnies.*$/,
-    allowedRoles: ["Student", "College Admin"],
+    allowedRoles: ["Student", "Spark Admin"],
   },
   {
     title: "Classes",
@@ -350,7 +361,7 @@ const pages = [
   {
     title: "Settings",
     path: "/dashboard/settings",
-    allowedRoles: ["College Admin", "Program Committee"],
+    allowedRoles: ["College Admin", "Program Committee", "Spark Admin"],
   },
   {
     title: "Masjid Attendance",

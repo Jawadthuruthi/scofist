@@ -11,10 +11,13 @@ import { useRouter } from "next/navigation";
 import { getStudentColumns } from "@/components/table-configs/studentColumns";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+import Cookies from "js-cookie";
+
 export default function BatchDetailsClient({ batch, classes, apiKey }) {
     const [activeTab, setActiveTab] = useState("GB"); // 'GB' or 'Alumni'
     const router = useRouter();
     const isMobile = useIsMobile();
+    const activeRole = Cookies.get("active-role");
 
     const columnsConfig = getStudentColumns({
         classes,
@@ -64,6 +67,27 @@ export default function BatchDetailsClient({ batch, classes, apiKey }) {
             },
         ];
     }, []);
+
+    // If the user is a Student, they should not see the detailed list
+    if (activeRole === "Student") {
+        return (
+            <div className="flex flex-col space-y-2">
+                <Header
+                    title={`${batch.name} (${batch.academicYear})`}
+                    subTitle={
+                        activeTab === "GB"
+                            ? `${batch.gbMembers} Members`
+                            : `${batch.alumniMembers} Members`
+                    }
+                />
+                {isMobile && tabsElement}
+
+                <div className="flex items-center justify-center p-12 border rounded-lg bg-gray-50 text-muted-foreground">
+                    <p>You do not have permission to view the student list for this batch.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col space-y-2">
