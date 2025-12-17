@@ -1,4 +1,5 @@
 import Batch from "@/models/Batch";
+import Link from "next/link";
 import User from "@/models/User";
 import connectToDB from "@/lib/db";
 import Header from "@/components/Header";
@@ -19,12 +20,22 @@ async function getBatchStats() {
                 _id: "$studentSpecificField.batchId",
                 gbMembers: {
                     $sum: {
-                        $cond: [{ $eq: ["$studentSpecificField.status", "Active"] }, 1, 0],
+                        $cond: [
+                            {
+                                $in: ["$studentSpecificField.status", ["Active", "Graduated"]]
+                            },
+                            1,
+                            0
+                        ],
                     },
                 },
                 alumniMembers: {
                     $sum: {
-                        $cond: [{ $eq: ["$studentSpecificField.status", "Graduated"] }, 1, 0],
+                        $cond: [
+                            { $eq: ["$studentSpecificField.status", "Dropped Out"] },
+                            1,
+                            0
+                        ],
                     },
                 },
             },
@@ -54,6 +65,7 @@ async function getBatchStats() {
 
         return {
             ...batch,
+            _id: batch._id.toString(),
             academicYear,
             gbMembers: batchStats.gbMembers,
             alumniMembers: batchStats.alumniMembers,
@@ -66,7 +78,7 @@ export default async function AlumniesPage() {
         const batches = await getBatchStats();
 
         return (
-            <div className="flex flex-col space-y-6">
+            <div className="flex flex-col space-y-2">
                 <Header
                     title="ALUMNIES"
                     subTitle="Alumni Network & Directory"
@@ -75,9 +87,10 @@ export default async function AlumniesPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {batches.map((batch) => (
-                        <div
+                        <Link
+                            href={`/dashboard/alumnies/${batch._id}`}
                             key={batch._id}
-                            className="bg-card text-card-foreground p-6 rounded-lg shadow-sm border flex flex-col items-center justify-center text-center space-y-2 hover:shadow-md transition-shadow"
+                            className="bg-gray-100 text-card-foreground p-6 rounded-lg shadow-sm border flex flex-col items-center justify-center text-center space-y-2 hover:bg-gray-200 hover:shadow-md transition-all block"
                         >
                             <h3 className="font-bold text-lg uppercase">
                                 {batch.name} ({batch.academicYear})
@@ -90,7 +103,7 @@ export default async function AlumniesPage() {
                                     Alumni Members: <span className="font-medium text-foreground">{batch.alumniMembers}</span>
                                 </p>
                             </div>
-                        </div>
+                        </Link>
                     ))}
                 </div>
                 {batches.length === 0 && (

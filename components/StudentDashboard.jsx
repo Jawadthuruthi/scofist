@@ -91,6 +91,8 @@ export default function StudentDashboard({
         data: {
           ids: [currentUser._id],
           ...values,
+          isVerified: true,
+          verifiedAt: new Date(),
         },
       });
       setCurrentUser(response.updatedUser);

@@ -63,6 +63,11 @@ const pages = [
     allowedRoles: ["Student", "College Admin"],
   },
   {
+    path: "/dashboard/alumnies",
+    pattern: /^\/dashboard\/alumnies.*$/,
+    allowedRoles: ["Student", "College Admin"],
+  },
+  {
     title: "Classes",
     path: "/dashboard/classes",
     allowedRoles: ["College Admin"],

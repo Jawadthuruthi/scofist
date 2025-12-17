@@ -33,7 +33,7 @@ const useCrud = (apiEndpoint, apiKey) => {
     return useMutation({
       mutationFn: (data) => addItem(apiEndpoint, data, apiKey),
       onSuccess: () => {
-        queryClient.removeQueries([apiEndpoint]);
+        // queryClient.removeQueries([apiEndpoint]); // Removed to fix immediate refetching issues
         queryClient.invalidateQueries({
           queryKey: [apiEndpoint],
           exact: false,
@@ -47,7 +47,7 @@ const useCrud = (apiEndpoint, apiKey) => {
     return useMutation({
       mutationFn: ({ data }) => updateItem(apiEndpoint, data, apiKey),
       onSuccess: () => {
-        queryClient.removeQueries([apiEndpoint]);
+        // queryClient.removeQueries([apiEndpoint]);
         queryClient.invalidateQueries({
           queryKey: [apiEndpoint],
           exact: false,

@@ -61,11 +61,17 @@ export async function GET(req, res) {
     if (filterParams.status) {
       // Handle status properly based on role
       if (filterParams.roles && filterParams.roles.includes("Student")) {
-        query["studentSpecificField.status"] = filterParams.status;
+        query["studentSpecificField.status"] = {
+          $in: filterParams.status.split(",").map((s) => s.trim()),
+        };
       } else if (filterParams.roles && filterParams.roles.includes("Teacher")) {
-        query["teacherSpecificField.status"] = filterParams.status;
+        query["teacherSpecificField.status"] = {
+          $in: filterParams.status.split(",").map((s) => s.trim()),
+        };
       } else {
-        query.status = filterParams.status;
+        query.status = {
+          $in: filterParams.status.split(",").map((s) => s.trim()),
+        };
       }
     }
 
@@ -172,7 +178,10 @@ export async function GET(req, res) {
         droppedOutDate: studentSpecificField.droppedOutDate,
         droppedOutClass: studentSpecificField.droppedOutClass,
         droppedOutReason: studentSpecificField.droppedOutReason,
+        droppedOutReason: studentSpecificField.droppedOutReason,
         graduatedYear: studentSpecificField.graduatedYear,
+        isVerified: studentSpecificField.isVerified,
+        verifiedAt: studentSpecificField.verifiedAt,
 
         // Class and batch references
         classId: studentSpecificField.classId?._id,
@@ -430,7 +439,10 @@ export async function PUT(req) {
         "academicQualification",
         "batchId",
         "classId",
+        "classId",
         "status",
+        "isVerified",
+        "verifiedAt",
       ];
       studentFields.forEach((field) => {
         if (updateFields[field] !== undefined) {
@@ -454,6 +466,9 @@ export async function PUT(req) {
         }
       }
     }
+
+    // Force Mongoose to detect changes in nested object
+    user.markModified("studentSpecificField");
 
     // Save the user
     await user.save();

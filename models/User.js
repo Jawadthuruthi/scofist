@@ -4,6 +4,7 @@ import Batch from "./Batch";
 import Class from "./Class";
 
 // Reusable enums
+// Schema updated for verification fields
 const ROLES = [
   "College Admin",
   "Org Admin",
@@ -189,6 +190,11 @@ const userSchema = new Schema(
       },
       islamicQualification: { type: String, trim: true },
       academicQualification: { type: String, trim: true },
+      isVerified: {
+        type: Boolean,
+        default: false,
+      },
+      verifiedAt: Date,
       // Status-dependent fields
       droppedOutDate: {
         type: Date,
