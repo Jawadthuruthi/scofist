@@ -17,6 +17,7 @@ const ROLES = [
   "Literary Leader",
   "Stationary",
   "IT Lab",
+  "Spark Admin",
 ];
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
