@@ -49,6 +49,22 @@ export default function BatchDetailsClient({ batch, classes, apiKey }) {
         </Tabs>
     );
 
+    const filterConfig = useMemo(() => {
+        return [
+            { label: "Student ID", id: "_id", inputType: "text" },
+            { label: "Name", id: "name", inputType: "text" },
+            {
+                label: "Remarks",
+                id: "isVerified",
+                inputType: "select",
+                options: [
+                    { value: "true", label: "Verified" },
+                    { value: "false", label: "Not Verified" },
+                ],
+            },
+        ];
+    }, []);
+
     return (
         <div className="flex flex-col space-y-2">
             <Header
@@ -70,7 +86,7 @@ export default function BatchDetailsClient({ batch, classes, apiKey }) {
                 createFormTitle="Add New Student"
                 editFormTitle="Edit Student"
                 deleteFormTitle="Delete Student"
-                filterConfig={[]}
+                filterConfig={filterConfig}
                 tableHeight="calc(100vh - 220px)"
                 limit={20}
                 apiFilters={apiFilters}

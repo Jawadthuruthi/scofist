@@ -75,6 +75,18 @@ export async function GET(req, res) {
       }
     }
 
+    if (filterParams.isVerified) {
+      const isVerified = filterParams.isVerified === "true";
+      query["studentSpecificField.isVerified"] = isVerified ? true : { $ne: true };
+    }
+
+    if (filterParams.droppedOutReason) {
+      query["studentSpecificField.droppedOutReason"] = {
+        $regex: filterParams.droppedOutReason,
+        $options: "i",
+      };
+    }
+
     // Handle global search parameter
     const globalSearch = url.searchParams.get("global");
     if (globalSearch) {
@@ -92,6 +104,7 @@ export async function GET(req, res) {
         "studentSpecificField.bloodGroup",
         "studentSpecificField.islamicQualification",
         "studentSpecificField.academicQualification",
+        "studentSpecificField.droppedOutReason",
       ];
 
       query.$and = [

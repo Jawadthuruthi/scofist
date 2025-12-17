@@ -1,24 +1,109 @@
-"use client";
+import SparkDashboardClient from "./SparkDashboardClient";
+import User from "@/models/User";
+import Batch from "@/models/Batch";
+import connectToDB from "@/lib/db";
+import ErrorPage from "@/components/ErrorPage";
 
-import Header from "@/components/Header";
-import { Briefcase } from "lucide-react";
+async function getSparkStats() {
+    await connectToDB();
 
-export default function SparkPage() {
-    return (
-        <div className="flex flex-col space-y-4">
-            <Header
-                title="SPARK"
-                subTitle="Alumni Network & Opportunities"
-                icon={<Briefcase className="h-5 w-5 text-muted-foreground" />}
-            />
-            <div className="flex items-center justify-center p-12 border-2 border-dashed rounded-lg">
-                <div className="text-center">
-                    <h3 className="text-lg font-semibold">Spark Module Coming Soon</h3>
-                    <p className="text-muted-foreground mt-2">
-                        This section will contain features for alumni networking and opportunities.
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
+    // 1. Total Alumnies (Dropped Out)
+    const totalAlumnies = await User.countDocuments({
+        roles: "Student",
+        "studentSpecificField.status": "Dropped Out",
+    });
+
+    // 2. Total GB Members (Active + Graduated)
+    const totalGBMembers = await User.countDocuments({
+        roles: "Student",
+        "studentSpecificField.status": { $in: ["Active", "Graduated"] },
+    });
+
+    // 3a. Batch-wise Distribution of GB Members
+    const gbBatchStats = await User.aggregate([
+        {
+            $match: {
+                roles: "Student",
+                "studentSpecificField.status": { $in: ["Active", "Graduated"] },
+            },
+        },
+        {
+            $group: {
+                _id: "$studentSpecificField.batchId",
+                count: { $sum: 1 },
+            },
+        },
+    ]);
+
+    // 3b. Batch-wise Distribution of Alumni Members (Dropped Out)
+    const alumniBatchStats = await User.aggregate([
+        {
+            $match: {
+                roles: "Student",
+                "studentSpecificField.status": "Dropped Out",
+            },
+        },
+        {
+            $group: {
+                _id: "$studentSpecificField.batchId",
+                count: { $sum: 1 },
+            },
+        },
+    ]);
+
+    // Fetch batch names
+    const batches = await Batch.find({}, { name: 1, startYear: 1, endYear: 1 }).lean();
+    const batchMap = batches.reduce((acc, batch) => {
+        acc[batch._id.toString()] = batch;
+        return acc;
+    }, {});
+
+    const processBatchStats = (stats) => {
+        return stats
+            .map((stat) => {
+                const batch = batchMap[stat._id?.toString()];
+                const academicYear = batch
+                    ? `${batch.startYear}-${(batch.endYear % 100).toString().padStart(2, "0")}`
+                    : "N/A";
+
+                return {
+                    name: batch ? batch.name.toUpperCase() : "UNKNOWN",
+                    count: stat.count,
+                    startYear: batch ? batch.startYear : 0,
+                    academicYear,
+                };
+            })
+            .sort((a, b) => a.startYear - b.startYear);
+    };
+
+    const batchDistribution = processBatchStats(gbBatchStats);
+    const alumniBatchDistribution = processBatchStats(alumniBatchStats);
+
+    return {
+        totalAlumnies,
+        totalGBMembers,
+        batchDistribution, // GB Members
+        alumniBatchDistribution, // Alumni Members
+    };
 }
+
+
+
+export default async function SparkPage() {
+    try {
+        const stats = await getSparkStats();
+
+        return <SparkDashboardClient {...stats} />;
+    } catch (error) {
+        console.error("Error loading spark data:", error);
+        return (
+            <ErrorPage
+                statusCode={500}
+                title="Internal Server Error"
+                description="Failed to load spark data."
+            />
+        );
+    }
+}
+
+export const revalidate = 60;
