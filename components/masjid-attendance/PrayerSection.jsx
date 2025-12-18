@@ -89,8 +89,9 @@ const PrayerSection = ({ prayer, classes, date, apiKey }) => {
                                 // Calculate absentees if marked
                                 let absentees = [];
                                 if (isMarked && attendanceRecord.attendanceData) {
+                                    // Count both 'ABSENT' and 'LEAVE' as absentees for the dashboard summary
                                     absentees = attendanceRecord.attendanceData.filter(
-                                        (record) => record.status === "ABSENT"
+                                        (record) => record.status === "ABSENT" || record.status === "LEAVE"
                                     );
                                 }
 
@@ -146,7 +147,7 @@ const PrayerSection = ({ prayer, classes, date, apiKey }) => {
                     <DialogHeader>
                         <DialogTitle>Absentees - {currentClassName}</DialogTitle>
                         <DialogDescription>
-                            List of students marked absent for {prayer}
+                            List of students marked absent (or on leave) for {prayer}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="max-h-[60vh] overflow-y-auto">
@@ -155,7 +156,14 @@ const PrayerSection = ({ prayer, classes, date, apiKey }) => {
                                 {currentAbsentees.map((record, idx) => (
                                     <li key={idx} className="flex items-center gap-3 p-2 rounded-md border text-sm">
                                         <span className="font-medium text-muted-foreground w-6 text-center">{idx + 1}</span>
-                                        <span>{record.studentId?.name || "Unknown Student"}</span>
+                                        <span>
+                                            {record.studentId?.name || "Unknown Student"}
+                                            {record.status === "LEAVE" && (
+                                                <span className="ml-2 text-xs text-yellow-600 bg-yellow-100 px-1 py-0.5 rounded border border-yellow-200">
+                                                    On Leave
+                                                </span>
+                                            )}
+                                        </span>
                                     </li>
                                 ))}
                             </ul>

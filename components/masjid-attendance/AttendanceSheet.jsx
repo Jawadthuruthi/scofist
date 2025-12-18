@@ -13,7 +13,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader, Save, ArrowLeft } from "lucide-react";
+import { Loader, Save, ArrowLeft, Clock } from "lucide-react";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
 import {
@@ -81,6 +81,53 @@ const AttendanceSheet = ({
         }
     );
 
+    // Fetch leave records for the class to identify students on leave
+    const { useFetchItems: useFetchLeaveRecords } = useCrud("leave-records", apiKey);
+    const leaveRecordsQuery = useFetchLeaveRecords(
+        0,
+        0,
+        {
+            classId,
+            projection: "studentId,dateOfLeave,arrivedDate",
+        },
+        {
+            refetchOnMount: true,
+        }
+    );
+
+    const studentsOnLeave = useMemo(() => {
+        if (!leaveRecordsQuery.data?.["leave-records"]) return {};
+
+        const onLeaveMap = {};
+        const attendanceDate = new Date(date);
+        attendanceDate.setHours(0, 0, 0, 0);
+
+        leaveRecordsQuery.data["leave-records"].forEach((record) => {
+            if (!record.studentId) return;
+
+            const studentId = record.studentId._id || record.studentId;
+            const leaveDate = new Date(record.dateOfLeave);
+            leaveDate.setHours(0, 0, 0, 0);
+
+            // Check if student is on leave for the attendance date
+            // Condition: Leave started on or before attendance date
+            // AND (Not arrived yet OR Arrived AFTER attendance date)
+            if (leaveDate <= attendanceDate) {
+                if (!record.arrivedDate) {
+                    onLeaveMap[studentId] = true;
+                } else {
+                    const arrivedDate = new Date(record.arrivedDate);
+                    arrivedDate.setHours(0, 0, 0, 0);
+                    if (arrivedDate > attendanceDate) {
+                        onLeaveMap[studentId] = true;
+                    }
+                }
+            }
+        });
+
+        return onLeaveMap;
+    }, [leaveRecordsQuery.data, date]);
+
     // Fetch ALL historical attendance for this class to calculate stats
     // Note: This might be heavy if there are many records. 
     // Ideally, the backend should provide stats, but we are doing it client-side as per request.
@@ -109,7 +156,7 @@ const AttendanceSheet = ({
         historyQuery.data.attendances.forEach(record => {
             record.attendanceData.forEach(item => {
                 const studentId = item.studentId._id || item.studentId;
-                if (item.status === "ABSENT") {
+                if (item.status === "ABSENT" || item.status === "LEAVE") {
                     historyMap[studentId] = (historyMap[studentId] || 0) + 1;
                 }
             });
@@ -120,6 +167,9 @@ const AttendanceSheet = ({
 
 
     useEffect(() => {
+        // Wait for leave records to load before initializing logic that depends on them
+        if (leaveRecordsQuery.isLoading) return;
+
         if (attendanceQuery.data?.attendances?.length > 0) {
             const record = attendanceQuery.data.attendances[0];
             setExistingRecordId(record._id);
@@ -131,16 +181,20 @@ const AttendanceSheet = ({
             });
             setAttendance(initialAttendance);
         } else if (students.length > 0 && Object.keys(attendance).length === 0) {
-            // Initialize with all present if no record exists
+            // Initialize:
+            // - Normal students: Present (true)
+            // - Leave students: Absent/Leave (false)
             const initialAttendance = {};
             students.forEach((student) => {
-                initialAttendance[student._id] = true;
+                const isOnLeave = studentsOnLeave[student._id];
+                initialAttendance[student._id] = !isOnLeave; // Default false (absent) if on leave, true otherwise
             });
             setAttendance(initialAttendance);
         }
-    }, [attendanceQuery.data, students]);
+    }, [attendanceQuery.data, students, studentsOnLeave, leaveRecordsQuery.isLoading]);
 
     const toggleAttendance = (studentId) => {
+        // Toggle is now allowed for EVERYONE including leave students
         setAttendance((prev) => ({
             ...prev,
             [studentId]: !prev[studentId],
@@ -154,12 +208,24 @@ const AttendanceSheet = ({
     const handleSave = async () => {
         setSaving(true);
         try {
-            const attendanceData = Object.entries(attendance).map(
-                ([studentId, isPresent]) => ({
-                    studentId,
-                    status: isPresent ? "PRESENT" : "ABSENT",
-                })
-            );
+            const attendanceData = students.map((student) => {
+                const isLeave = studentsOnLeave[student._id];
+                const isPresent = attendance[student._id];
+
+                let status = "ABSENT";
+                if (isPresent) {
+                    status = "PRESENT"; // If marked present, it overrides leave
+                } else if (isLeave) {
+                    status = "LEAVE"; // If absent and on leave, status is LEAVE
+                } else {
+                    status = "ABSENT"; // If absent and not on leave
+                }
+
+                return {
+                    studentId: student._id,
+                    status,
+                };
+            });
 
             const payload = {
                 date,
@@ -202,12 +268,23 @@ const AttendanceSheet = ({
 
     const stats = useMemo(() => {
         const total = students.length;
-        const present = Object.values(attendance).filter(Boolean).length;
-        const absent = total - present;
+        let present = 0;
+        let absent = 0;
+
+        students.forEach(student => {
+            // If attendance is true -> Present
+            // If attendance is false -> Absent (regardless of leave status)
+            if (attendance[student._id]) {
+                present++;
+            } else {
+                absent++;
+            }
+        });
+
         return { total, present, absent };
     }, [students, attendance]);
 
-    if (studentsQuery.isLoading || attendanceQuery.isLoading) {
+    if (studentsQuery.isLoading || attendanceQuery.isLoading || leaveRecordsQuery.isLoading) {
         return (
             <div className="flex justify-center items-center h-64">
                 <Loader className="h-8 w-8 animate-spin" />
@@ -240,7 +317,7 @@ const AttendanceSheet = ({
             {/* Stats Card - Sticky on Mobile */}
             <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2 -mx-4 px-4 md:static md:bg-transparent md:p-0 md:mx-0">
                 <div className="flex flex-col md:flex-row items-center justify-between bg-card p-4 rounded-lg border shadow-sm gap-4">
-                    <div className="flex w-full md:w-auto justify-between md:justify-start gap-2 md:gap-4">
+                    <div className="flex w-full md:w-auto justify-between md:justify-start gap-2 md:gap-4 flex-wrap">
                         <div className="flex flex-col items-center md:flex-row md:gap-2">
                             <span className="text-xs text-muted-foreground uppercase font-bold md:hidden">
                                 Total
@@ -286,14 +363,31 @@ const AttendanceSheet = ({
                     </TableHeader>
                     <TableBody>
                         {students.map((student, index) => {
+                            const isOnLeave = studentsOnLeave[student._id];
                             const isPresent = attendance[student._id];
+
+                            // Visual state determination
+                            let rowClass = "hover:bg-transparent";
+
+                            // If present, show normal style even if on leave (user overrode it)
+                            // If NOT present:
+                            //   If on Leave -> Red with Indicator
+                            //   If not on Leave -> Red Normal
+                            if (isPresent) {
+                                rowClass = "cursor-pointer";
+                            } else {
+                                if (isOnLeave) {
+                                    // Red background for leave, border to distinguish "Explained Absence"
+                                    rowClass = "bg-red-50/80 dark:bg-red-950/30 cursor-pointer border-l-4 border-l-yellow-500";
+                                } else {
+                                    rowClass = "bg-red-50 dark:bg-red-950/20 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer";
+                                }
+                            }
+
                             return (
                                 <TableRow
                                     key={student._id}
-                                    className={`cursor-pointer ${!isPresent
-                                        ? "bg-red-50 dark:bg-red-950/20 hover:bg-red-50 dark:hover:bg-red-950/20"
-                                        : "hover:bg-transparent"
-                                        }`}
+                                    className={rowClass}
                                     onClick={() => toggleAttendance(student._id)}
                                 >
                                     <TableCell>{index + 1}</TableCell>
@@ -309,9 +403,17 @@ const AttendanceSheet = ({
                                                 <p className="font-medium text-sm md:text-base">
                                                     {student.name}
                                                 </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {student.admissionNumber}
-                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {student.admissionNumber}
+                                                    </p>
+                                                    {isOnLeave && (
+                                                        <Badge variant="outline" className="h-4 text-[10px] px-1 bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-500 dark:border-yellow-800">
+                                                            <Clock className="w-3 h-3 mr-1" />
+                                                            On Leave
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </TableCell>
