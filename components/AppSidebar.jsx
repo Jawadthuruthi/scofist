@@ -499,6 +499,12 @@ const items = [
     icon: Settings,
     allowedRoles: ["College Admin", "Program Committee", "Spark Admin"],
   },
+  {
+  title: "Admin Users",
+  url: "/dashboard/no-role-users",
+  icon: UserX, 
+  allowedRoles: ["College Admin"],
+},
 ];
 
 function ComboBox({ roles, role }) {
