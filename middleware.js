@@ -433,211 +433,57 @@ async function handleLoginPageRequest(req) {
   }
 }
 
-// ========== API ROUTE PROTECTION CONFIGURATION ==========
-// Maps endpoints to required roles. Empty roles array = public.
-const apiRoutes = [
-  // User Management - FIXED: Separated GET from write operations
-  { path: "/api/users", methods: ["GET"], roles: ["College Admin", "Teacher", "Student"] },
-  { path: "/api/users", methods: ["POST", "PUT", "DELETE"], roles: ["College Admin"] },
-  { path: "/api/users/profile", methods: ["POST"], roles: ["College Admin", "Teacher", "Student", "Org Admin", "Program Committee", "Program Leader", "Literary Leader", "Stationary", "IT Lab", "Spark Admin"] },
-  
-  // Academic Management
-  { path: "/api/batches", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["College Admin"] },
-  { path: "/api/classes", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["College Admin"] },
-  { path: "/api/subjects", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["College Admin"] },
-  { path: "/api/periods", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["College Admin"] },
-  { path: "/api/timeTables", methods: ["GET"], roles: ["College Admin", "Teacher"] },
-  { path: "/api/timeTables", methods: ["POST", "PUT", "DELETE"], roles: ["College Admin"] },
-  
-  // Attendance Management
-  { path: "/api/attendances", methods: ["GET", "POST", "PUT"], roles: ["Teacher", "College Admin"] },
-  { path: "/api/attendances", methods: ["DELETE"], roles: ["College Admin"] },
-  { path: "/api/attendance-sheet", methods: ["GET", "POST"], roles: ["Teacher", "College Admin", "Student"] },
-  { path: "/api/attendance-table", methods: ["GET"], roles: ["College Admin", "Teacher"] },
-  { path: "/api/studentAttendances", methods: ["GET"], roles: ["Teacher", "College Admin", "Student"] },
-  { path: "/api/attendanceToppers", methods: ["GET"], roles: ["Teacher", "College Admin"] },
-  
-  // Teacher Management
-  { path: "/api/teacherAttendances", methods: ["GET", "POST", "PUT"], roles: ["Teacher", "College Admin"] },
-  { path: "/api/teacherAttendances/mark-teacher-absent", methods: ["GET"], roles: ["College Admin"] },
-  
-  // Leave Management
-  { path: "/api/leave-records", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Teacher", "College Admin"] },
-  { path: "/api/teachers-leave-record", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["College Admin"] },
-  
-  // Remarks
-  { path: "/api/remarks", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Teacher", "College Admin"] },
-  
-  // Applications
-  { path: "/api/applications", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["College Admin"] },
-  
-  // Festival/Program Management (Public GET for client results page)
-  { path: "/api/divisions", methods: ["GET"], roles: [] },
-  { path: "/api/divisions", methods: ["POST", "PUT", "DELETE"], roles: ["Program Committee"] },
-  { path: "/api/teams", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Program Committee", "Program Leader"] },
-  { path: "/api/participants", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Program Committee", "Program Leader"] },
-  { path: "/api/programs", methods: ["GET"], roles: [] },
-  { path: "/api/programs", methods: ["POST", "PUT", "DELETE"], roles: ["Program Committee"] },
-  { path: "/api/program-registration", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Program Committee", "Program Leader"] },
-  { path: "/api/program-registration/unregistered", methods: ["GET"], roles: ["Program Committee", "Program Leader"] },
-  { path: "/api/code-letters", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Program Committee"] },
-  { path: "/api/schedules", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Program Committee", "Program Leader"] },
-  { path: "/api/evaluation", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Program Committee"] },
-  { path: "/api/grade-scheme", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Program Committee"] },
-  { path: "/api/results", methods: ["GET"], roles: [] },
-  { path: "/api/results", methods: ["POST", "PUT", "DELETE"], roles: ["Program Committee"] },
-  { path: "/api/settings", methods: ["GET"], roles: [] },
-  { path: "/api/settings", methods: ["POST", "PUT", "DELETE"], roles: ["College Admin", "Program Committee", "Spark Admin"] },
-  
-  // Literary Management
-  { path: "/api/literary/groups", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Literary Leader"] },
-  { path: "/api/literary/attendances", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Literary Leader"] },
-  { path: "/api/literary/attendance-records", methods: ["GET"], roles: ["Literary Leader"] },
-  
-  // Masjid Attendance
-  { path: "/api/masjid/attendance", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["College Admin", "Org Admin", "Teacher"] },
-  { path: "/api/studentMasjidAttendances", methods: ["GET"], roles: ["College Admin", "Org Admin", "Teacher", "Student"] },
-  { path: "/api/clear-masjid-attendance", methods: ["GET"], roles: ["College Admin", "Org Admin"] },
-  
-  // Finance Management
-  { path: "/api/finance", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Org Admin", "College Admin"] },
-  { path: "/api/studentsFund", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["College Admin", "Teacher", "Stationary", "IT Lab"] },
-  { path: "/api/studentsFund/bulk", methods: ["POST"], roles: ["College Admin"] },
-  { path: "/api/student-coupons", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Org Admin"] },
-  
-  // Spark Alumni
-  { path: "/api/spark/committee", methods: ["GET", "POST", "PUT", "DELETE"], roles: ["Spark Admin"] },
-  
-  // Downloads & Resources
-  { path: "/api/books", methods: ["GET"], roles: ["College Admin", "Student", "Teacher"] },
-  { path: "/api/books", methods: ["POST", "PUT", "DELETE"], roles: ["College Admin"] },
-  { path: "/api/downloads", methods: ["GET"], roles: ["College Admin", "Student", "Teacher"] },
-  { path: "/api/downloads", methods: ["POST", "PUT", "DELETE"], roles: ["College Admin"] },
-  { path: "/api/syllabus", methods: ["GET"], roles: ["College Admin", "Student", "Teacher"] },
-  { path: "/api/syllabus", methods: ["POST", "PUT", "DELETE"], roles: ["College Admin"] },
-  { path: "/api/download-file", methods: ["GET"], roles: ["College Admin", "Student", "Teacher"] },
-  
-  // File Upload
-  { path: "/api/cloudinary", methods: ["POST", "DELETE"], roles: ["College Admin"] },
-  { path: "/api/sign-cloudinary", methods: ["POST"], roles: ["College Admin"] },
-];
-
-
 async function handleApiRequest(req) {
-  // Allow upload endpoint (has its own protection)
-  if (req.nextUrl.pathname === "/api/upload") {
+  if (req.nextUrl.pathname === "/api/upload") return NextResponse.next();
+  
+  const url = new URL(req.url);
+  const apiKey = req.headers.get("api-key");
+  const cronSecret = url.searchParams.get("cronSecret");
+  const authToken = req.cookies.get("auth-token")?.value;
+  
+  // Public GET endpoints that don't require API key
+  const publicGet = [
+    "/api/divisions",
+    "/api/programs",
+    "/api/results",
+    "/api/settings",
+    "/api/users",
+  ];
+  
+  if (req.method === "GET" && publicGet.includes(url.pathname)) {
     return NextResponse.next();
   }
-
-  const url = new URL(req.url);
-  const method = req.method;
-  const pathname = url.pathname;
-  const authToken = req.cookies.get("auth-token")?.value;
-  const apiKey = req.headers.get("api-key");
-  const activeRole = req.cookies.get("active-role")?.value; // ← ADD THIS
   
-
-  // Allow cron jobs with secret
-  const cronSecret = url.searchParams.get("cronSecret");
   if (cronSecret === process.env.CRON_SECRET) {
     return NextResponse.next();
   }
-
-  // Allow auth endpoints (login, OTP, etc.)
-  if (pathname.includes("/api/auth")) {
+  
+  if (req.nextUrl.pathname.includes("/api/auth")) {
     return NextResponse.next();
   }
-
-  // Find matching route configuration
-  const routeConfig = apiRoutes.find(
-    (route) => pathname === route.path && route.methods.includes(method)
-  );
-
-  // If no route config found, check legacy API key (backward compatibility)
-  if (!routeConfig) {
-    if (apiKey !== process.env.API_KEY) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized - Invalid API endpoint or key" },
-        { status: 401 }
-      );
+  
+  // Allow authenticated users (with valid JWT) to access API without API key
+  if (authToken) {
+    try {
+      await jwtVerify(authToken, SECRET_KEY);
+      // Token is valid, allow the request
+      return NextResponse.next();
+    } catch (error) {
+      // Token is invalid, continue to check API key
+      console.error("Invalid auth token in API request:", error.message);
     }
-    return NextResponse.next();
   }
-
-  // Public routes (empty roles array)
-  if (routeConfig.roles.length === 0) {
-    return NextResponse.next();
-  }
-
-  // ===== FIX: Allow API key OR JWT for /api/users/profile =====
-  if (pathname === "/api/users/profile" && apiKey === process.env.API_KEY) {
-    return NextResponse.next();
-  }
-
-  // Protected routes - require JWT authentication
-  if (!authToken) {
+  
+  // If no valid auth token, require API key
+  if (apiKey !== process.env.API_KEY) {
     return NextResponse.json(
-      { success: false, message: "Authentication required" },
+      { message: "Unauthorized - API key missing" },
       { status: 401 }
     );
   }
-
-  try {
-    // Verify JWT token
-    const { payload } = await jwtVerify(authToken, SECRET_KEY);
-    
-    // ===== FIXED: Use active-role cookie instead of JWT roles =====
-    const userRoles = activeRole ? [activeRole] : [];
-    
-    // Debug logging (remove after testing)
-    console.log("🔐 API Auth Check:", {
-      path: pathname,
-      method,
-      requiredRoles: routeConfig.roles,
-      userRoles,
-      userId: payload.userId || payload._id || payload.id,
-    });
-
-    // Check if user has required role
-    const hasRequiredRole = routeConfig.roles.some((role) => 
-      userRoles.some((userRole) => 
-        userRole.toLowerCase() === role.toLowerCase()
-      )
-    );
-    
-    if (!hasRequiredRole) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: `Access denied. Required roles: ${routeConfig.roles.join(", ")}. Your role: ${activeRole || 'none'}`,
-        },
-        { status: 403 }
-      );
-    }
-
-    // Authentication successful - inject user info
-    const res = NextResponse.next();
-    res.headers.set(
-      "x-user",
-      JSON.stringify({
-        userId: payload.userId || payload._id || payload.id,
-        roles: userRoles,
-        email: payload.email,
-        name: payload.name,
-      })
-    );
-    res.headers.set("x-auth-token", authToken);
-
-    return res;
-  } catch (error) {
-    console.error("API authentication error:", error.message);
-    return NextResponse.json(
-      { success: false, message: "Invalid or expired token" },
-      { status: 401 }
-    );
-  }
+  
+  return NextResponse.next();
 }
-
 
 
 
