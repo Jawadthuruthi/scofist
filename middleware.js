@@ -535,6 +535,7 @@ async function handleApiRequest(req) {
   const authToken = req.cookies.get("auth-token")?.value;
   const apiKey = req.headers.get("api-key");
   const activeRole = req.cookies.get("active-role")?.value; // ← ADD THIS
+  
 
   // Allow cron jobs with secret
   const cronSecret = url.searchParams.get("cronSecret");
