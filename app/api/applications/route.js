@@ -1,4 +1,5 @@
-import { apiResponse } from "@/lib/apiResponse";
+// app/api/applications/route.js
+import apiResponse from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import ApplicationForm from "@/models/ApplicationForm";
 import { NextResponse } from "next/server";
@@ -6,10 +7,10 @@ import { NextResponse } from "next/server";
 export async function GET(req, res) {
   try {
     await connectToDB();
-
+    
     // Parse URL to get search params
     const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get("page") || "0");
+    const page = parseInt(url.searchParams.get("page")) || 0;
     const limit = parseInt(url.searchParams.get("limit")) || Infinity;
 
     // Build filter object from query parameters
@@ -23,11 +24,12 @@ export async function GET(req, res) {
 
     // Get projection param
     const projectionParam = url.searchParams.get("projection");
-    let projections = {};
+    let projections;
 
     // Convert projection param to MongoDB projection object
     if (projectionParam) {
       const fields = projectionParam.split(",");
+      projections = {};
       fields.forEach((field) => {
         projections[field] = 1; // Include each field
       });
@@ -35,19 +37,16 @@ export async function GET(req, res) {
 
     // Build MongoDB query from filter params
     const query = {};
-
-    if (filterParams?._id) {
-      query._id = filterParams?._id;
-    }
-    if (filterParams.name) {
+    if (filterParams?.id) query._id = filterParams?.id;
+    if (filterParams.name)
       query.name = { $regex: filterParams.name, $options: "i" };
-    }
 
     // Execute query with pagination
     const applications = await ApplicationForm.find(query, projections)
       .skip(page * limit)
       .limit(limit)
-      .sort({ _id: 1 });
+      .sort({ _id: -1 });
+
     // Get total count for pagination info
     const total = await ApplicationForm.countDocuments(query);
 
@@ -73,27 +72,34 @@ export async function GET(req, res) {
 export async function POST(req, res) {
   try {
     await connectToDB();
-
     const body = await req.json();
-    const { houseName, place, postOffice, district, state, pin } = body;
 
-    const formattedBody = {
-      ...body,
-      address: {
-        houseName,
-        place,
-        postOffice,
-        district,
-        state,
-        pin,
-      },
-    };
+    // Extract address fields - handle both nested and flat structures
+    let formattedBody;
+    
+    if (body.address && typeof body.address === 'object') {
+      // Address is already nested (from ApplicationForm component)
+      formattedBody = {
+        ...body,
+        // Address is already in the correct format
+      };
+    } else {
+      // Address fields are flat (legacy format)
+      const { houseName, place, postOffice, district, state, pin } = body;
+      formattedBody = {
+        ...body,
+        address: { houseName, place, postOffice, district, state, pin },
+      };
+    }
 
     const applicationForm = new ApplicationForm(formattedBody);
     await applicationForm.save();
 
     return NextResponse.json(
-      { message: "Application submitted successfully!", applicationForm },
+      {
+        message: "Application submitted successfully!",
+        applicationForm,
+      },
       { status: 201 }
     );
   } catch (error) {
@@ -104,27 +110,24 @@ export async function POST(req, res) {
 export async function PUT(req, res) {
   try {
     await connectToDB();
-
     const body = await req.json();
-    const { _id, ...updateData } = body;
+    const { id, ...updateData } = body;
 
-    const { houseName, place, postOffice, district, state, pin } = updateData;
-
-    if (houseName || place || postOffice || district || state || pin) {
-      updateData.address = {
-        houseName,
-        place,
-        postOffice,
-        district,
-        state,
-        pin,
-      };
+    // Handle address fields - check if they're nested or flat
+    if (updateData.address && typeof updateData.address === 'object') {
+      // Address is already nested, no need to modify
+    } else {
+      // Check if flat address fields exist
+      const { houseName, place, postOffice, district, state, pin } = updateData;
+      if (houseName || place || postOffice || district || state || pin) {
+        updateData.address = { houseName, place, postOffice, district, state, pin };
+      }
     }
 
     const updatedApplicationForm = await ApplicationForm.findByIdAndUpdate(
-      _id,
+      id,
       updateData,
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!updatedApplicationForm) {
@@ -149,21 +152,29 @@ export async function PUT(req, res) {
 export async function DELETE(req, res) {
   try {
     await connectToDB();
+    const ids = await req.json();
+    const id = ids[0];
 
-    const { ids } = await req.json();
-    const _id = ids[0];
     if (ids.length > 1) {
       const deletedApplicationForms = await ApplicationForm.deleteMany({
         _id: { $in: ids },
       });
       return NextResponse.json(
-        { deletedApplicationForms, message: "Applications deleted successfully!" },
+        {
+          deletedApplicationForms,
+          message: "Applications deleted successfully!",
+        },
         { status: 200 }
       );
     }
-    const deletedApplicationForm = await ApplicationForm.findByIdAndDelete(_id);
+
+    const deletedApplicationForm = await ApplicationForm.findByIdAndDelete(id);
+
     return NextResponse.json(
-      { deletedApplicationForm, message: "Application deleted successfully!" },
+      {
+        deletedApplicationForm,
+        message: "Application deleted successfully!",
+      },
       { status: 200 }
     );
   } catch (error) {

@@ -10,549 +10,617 @@ import { CalendarIcon, Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
 
 const formSchema = z.object({
-    name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-    dateOfBirth: z.date({
-        required_error: "Date of birth is required.",
-    }),
-    address: z.object({
-        houseName: z.string().optional(),
-        place: z.string().min(2, "Place is required"),
-        postOffice: z.string().optional(),
-        district: z.string().min(2, "District is required"),
-        state: z.string().min(2, "State is required"),
-        pin: z.string().regex(/^\d{6}$/, "Invalid PIN code"),
-    }),
-    guardianName: z.string().min(2, "Guardian name is required"),
-    guardianContactNumber: z.string().regex(/^\d{10,15}$/, "Invalid contact number"),
-    guardianAlternativeNumber: z.string().regex(/^\d{10,15}$/, "Invalid contact number").optional().or(z.literal("")),
-    relationship: z.string().min(2, "Relationship is required"),
-    admissionClass: z.string().min(1, "Admission class is required"),
-    academicStream: z.string().optional(),
-    sslcRegistrationNumber: z.string().optional(),
-    sslcGraduationYear: z.string().optional(),
-    islamicEducationQualification: z.string().optional(),
-    academicEducationQualification: z.string().optional(),
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+  dateOfBirth: z.date({
+    required_error: "Date of birth is required.",
+  }),
+  address: z.object({
+    houseName: z.string().optional(),
+    place: z.string().min(2, "Place is required"),
+    postOffice: z.string().optional(),
+    district: z.string().min(2, "District is required"),
+    state: z.string().min(2, "State is required"),
+    pin: z.string().regex(/^\d{6}$/, "Invalid PIN code"),
+  }),
+  guardianName: z.string().min(2, "Guardian name is required"),
+  guardianContactNumber: z
+    .string()
+    .regex(/^\d{10,15}$/, "Invalid contact number"),
+  guardianAlternativeNumber: z
+    .string()
+    .regex(/^\d{10,15}$/, "Invalid contact number")
+    .optional()
+    .or(z.literal("")),
+  relationship: z.string().min(2, "Relationship is required"),
+  admissionClass: z.string().min(1, "Admission class is required"),
+  academicStream: z.string().optional(),
+  sslcRegistrationNumber: z.string().optional(),
+  sslcGraduationYear: z.string().optional(),
+  islamicEducationQualification: z.string().optional(),
+  academicEducationQualification: z.string().optional(),
 });
 
 export default function ApplicationForm({ trigger }) {
-    const [open, setOpen] = useState(false);
-    const [file, setFile] = useState(null);
-    const [uploading, setUploading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
-    const form = useForm({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            name: "",
-            address: {
-                houseName: "",
-                place: "",
-                postOffice: "",
-                district: "",
-                state: "Kerala",
-                pin: "",
-            },
-            guardianName: "",
-            guardianContactNumber: "",
-            guardianAlternativeNumber: "",
-            relationship: "",
-            admissionClass: "",
-            academicStream: "",
-            sslcRegistrationNumber: "",
-            sslcGraduationYear: "",
-            islamicEducationQualification: "",
-            academicEducationQualification: "",
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      address: {
+        houseName: "",
+        place: "",
+        postOffice: "",
+        district: "",
+        state: "Kerala",
+        pin: "",
+      },
+      guardianName: "",
+      guardianContactNumber: "",
+      guardianAlternativeNumber: "",
+      relationship: "",
+      admissionClass: "",
+      academicStream: "",
+      sslcRegistrationNumber: "",
+      sslcGraduationYear: "",
+      islamicEducationQualification: "",
+      academicEducationQualification: "",
+    },
+  });
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: (acceptedFiles) => setFile(acceptedFiles[0]),
+    accept: { "image/*": [] },
+    multiple: false,
+  });
+
+  const onSubmit = async (values) => {
+    if (!file) {
+      toast.error("Please upload a profile picture");
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      // 1. Get Signature
+      const signResponse = await fetch("/api/sign-cloudinary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "active-role": "College Admin",
         },
-    });
+        body: JSON.stringify({ folder: "applications" }),
+      });
 
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        onDrop: (acceptedFiles) => setFile(acceptedFiles[0]),
-        accept: { "image/*": [] },
-        multiple: false,
-    });
+      if (!signResponse.ok) {
+        const errorData = await signResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to get upload signature");
+      }
 
-    const onSubmit = async (values) => {
-        if (!file) {
-            toast.error("Please upload a profile picture");
-            return;
-        }
+      const {
+        signature,
+        timestamp,
+        cloudName,
+        apiKey: cloudApiKey,
+        folder,
+      } = await signResponse.json();
 
-        setUploading(true);
+      // 2. Upload Image to Cloudinary
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", cloudApiKey);
+      formData.append("timestamp", timestamp);
+      formData.append("signature", signature);
+      formData.append("folder", folder);
 
-        try {
-            // 1. Get Signature
-            const signResponse = await fetch("/api/sign-cloudinary", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "active-role": "College Admin"
-                },
-                body: JSON.stringify({ folder: "applications" }),
-            });
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
 
-            if (!signResponse.ok) {
-                const errorData = await signResponse.json().catch(() => ({}));
-                throw new Error(errorData.message || "Failed to get upload signature");
-            }
+      const uploadResponse = await fetch(cloudinaryUrl, {
+        method: "POST",
+        body: formData,
+      });
 
-            const { signature, timestamp, cloudName, apiKey: cloudApiKey, folder } = await signResponse.json();
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        throw new Error(errorData.error?.message || "Image upload failed");
+      }
 
-            // 2. Upload Image to Cloudinary
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append("api_key", cloudApiKey);
-            formData.append("timestamp", timestamp);
-            formData.append("signature", signature);
-            formData.append("folder", folder);
+      const uploadResult = await uploadResponse.json();
+      const profilePicUrl = uploadResult.secure_url;
+      const profilePicPublicId = uploadResult.public_id;
 
-            const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
+      // 3. Submit Application Data
+      const applicationData = {
+        ...values,
+        profilePic: {
+          url: profilePicUrl,
+          publicId: profilePicPublicId,
+        },
+        dateOfBirth: values.dateOfBirth.toISOString(),
+      };
 
-            const uploadResponse = await fetch(cloudinaryUrl, {
-                method: "POST",
-                body: formData,
-            });
+      const response = await fetch("/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(applicationData),
+      });
 
-            if (!uploadResponse.ok) {
-                const errorData = await uploadResponse.json();
-                throw new Error(errorData.error?.message || "Image upload failed");
-            }
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Failed to submit application");
+      }
 
-            const uploadResult = await uploadResponse.json();
-            const profilePicUrl = uploadResult.secure_url;
-            const profilePicPublicId = uploadResult.public_id;
+      toast.success("Application submitted successfully!");
+      setOpen(false);
+      form.reset();
+      setFile(null);
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
 
-            // 3. Submit Application Data
-            const applicationData = {
-                ...values,
-                profilePic: {
-                    url: profilePicUrl,
-                    publicId: profilePicPublicId
-                },
-                dateOfBirth: values.dateOfBirth.toISOString(),
-            };
+  const admissionClass = form.watch("admissionClass");
 
-            const response = await fetch("/api/applications", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(applicationData),
-            });
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>New Student Application</DialogTitle>
+        </DialogHeader>
 
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.message || "Failed to submit application");
-            }
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Personal Details */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Personal Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            toast.success("Application submitted successfully!");
-            setOpen(false);
-            form.reset();
-            setFile(null);
-
-        } catch (error) {
-            console.error("Submission error:", error);
-            toast.error(`Error: ${error.message}`);
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const admissionClass = form.watch("admissionClass");
-
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                {trigger}
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>New Student Application</DialogTitle>
-                </DialogHeader>
-
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-
-                        {/* Personal Details */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-medium">Personal Details</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="name"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Full Name</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="John Doe" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="dateOfBirth"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                            <FormLabel>Date of Birth</FormLabel>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button
-                                                            variant={"outline"}
-                                                            className={cn(
-                                                                "w-full pl-3 text-left font-normal",
-                                                                !field.value && "text-muted-foreground"
-                                                            )}
-                                                        >
-                                                            {field.value ? (
-                                                                format(field.value, "PPP")
-                                                            ) : (
-                                                                <span>Pick a date</span>
-                                                            )}
-                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar
-                                                        mode="single"
-                                                        selected={field.value}
-                                                        onSelect={field.onChange}
-                                                        disabled={(date) =>
-                                                            date > new Date() || date < new Date("1900-01-01")
-                                                        }
-                                                        initialFocus
-                                                    />
-                                                </PopoverContent>
-                                            </Popover>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            {/* Photo Upload */}
-                            <div className="space-y-2">
-                                <FormLabel>Profile Picture</FormLabel>
-                                <div
-                                    {...getRootProps()}
-                                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25"
-                                        }`}
-                                >
-                                    <input {...getInputProps()} />
-                                    {file ? (
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Upload className="h-4 w-4" />
-                                            <span className="text-sm font-medium">{file.name}</span>
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground">Drag & drop or click to upload photo</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="address.houseName"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>House Name</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Darul Huda" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="address.place"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Place</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Calicut" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="address.postOffice"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Post Office</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="PO Calicut" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="address.district"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>District</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Kozhikode" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="address.state"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>State</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Kerala" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="address.pin"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>PIN Code</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="673001" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Guardian Details */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-medium">Guardian Details</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="guardianName"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Guardian Name</FormLabel>
-                                            <FormControl>
-                                                <Input {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="relationship"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Relationship</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Father" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="guardianContactNumber"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Contact Number</FormLabel>
-                                            <FormControl>
-                                                <Input type="tel" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="guardianAlternativeNumber"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Alt. Contact Number</FormLabel>
-                                            <FormControl>
-                                                <Input type="tel" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Academic Details */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-medium">Academic Details</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="admissionClass"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Admission Needed For</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select Class" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="+1">+1 (Plus One)</SelectItem>
-                                                    <SelectItem value="Degree">Degree</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {admissionClass === "+1" && (
-                                    <FormField
-                                        control={form.control}
-                                        name="academicStream"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Preferred Stream</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select Stream" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="Science">Science</SelectItem>
-                                                        <SelectItem value="Commerce">Commerce</SelectItem>
-                                                        <SelectItem value="Humanities">Humanities</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                )}
-
-                                {admissionClass === "+1" && (
-                                    <>
-                                        <FormField
-                                            control={form.control}
-                                            name="sslcRegistrationNumber"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>SSLC Reg. Number</FormLabel>
-                                                    <FormControl>
-                                                        <Input {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={form.control}
-                                            name="sslcGraduationYear"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>SSLC Year</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select Year" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
-                                                                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </>
-                                )}
-
-                                <FormField
-                                    control={form.control}
-                                    name="islamicEducationQualification"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Islamic Qualification</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="e.g. 5th Standard" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="academicEducationQualification"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Academic Qualification</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="e.g. 10th Standard" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </div>
-
-
-                        <div className="flex justify-end gap-2 pt-4">
-                            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                            <Button type="submit" disabled={uploading}>
-                                {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Submit Application
+                <FormField
+                  control={form.control}
+                  name="dateOfBirth"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Date of Birth</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
-                        </div>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-    );
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Photo Upload */}
+              <div className="space-y-2">
+                <FormLabel>Profile Picture</FormLabel>
+                <div
+                  {...getRootProps()}
+                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                    isDragActive
+                      ? "border-primary bg-primary/5"
+                      : "border-muted-foreground/25"
+                  }`}
+                >
+                  <input {...getInputProps()} />
+                  {file ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      <span className="text-sm font-medium">{file.name}</span>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Drag & drop or click to upload photo
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Address Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="address.houseName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          House Name{" "}
+                          <span className="text-gray-400">(Optional)</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input placeholder="Darul Huda" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="address.place"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Place <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input placeholder="Calicut" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="address.postOffice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Post Office{" "}
+                          <span className="text-gray-400">(Optional)</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input placeholder="PO Calicut" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="address.district"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          District <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input placeholder="Kozhikode" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="address.state"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          State <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Kerala"
+                            {...field}
+                            value={field.value || "Kerala"}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="address.pin"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          PIN Code <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="673001"
+                            {...field}
+                            maxLength={6}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Guardian Details */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Guardian Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="guardianName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Guardian Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="relationship"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Relationship</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Father" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="guardianContactNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contact Number</FormLabel>
+                      <FormControl>
+                        <Input type="tel" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="guardianAlternativeNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Alt. Contact Number</FormLabel>
+                      <FormControl>
+                        <Input type="tel" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Academic Details */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Academic Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="admissionClass"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Admission Needed For</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Class" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="+1">+1 (Plus One)</SelectItem>
+                          <SelectItem value="Degree">Degree</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {admissionClass === "+1" && (
+                  <FormField
+                    control={form.control}
+                    name="academicStream"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preferred Stream</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Stream" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Science">Science</SelectItem>
+                            <SelectItem value="Commerce">Commerce</SelectItem>
+                            <SelectItem value="Humanities">
+                              Humanities
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {admissionClass === "+1" && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="sslcRegistrationNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>SSLC Reg. Number</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="sslcGraduationYear"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>SSLC Year</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Year" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {Array.from(
+                                { length: 5 },
+                                (_, i) => new Date().getFullYear() - i
+                              ).map((y) => (
+                                <SelectItem key={y} value={String(y)}>
+                                  {y}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+
+                <FormField
+                  control={form.control}
+                  name="islamicEducationQualification"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Islamic Qualification</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. 5th Standard" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="academicEducationQualification"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Academic Qualification</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. 10th Standard" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={uploading}>
+                {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Submit Application
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
 }
