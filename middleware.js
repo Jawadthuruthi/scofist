@@ -385,10 +385,30 @@ const pages = [
     allowedRoles: ["College Admin", "Org Admin", "Teacher"],
   },
   {
-  title: "No Role Users",
-  path: "/dashboard/no-role-users",
-  allowedRoles: ["College Admin"],
-},
+    title: "No Role Users",
+    path: "/dashboard/no-role-users",
+    allowedRoles: ["College Admin"],
+  },
+  {
+    title: "Pending Code Letters",
+    path: "/dashboard/pending-codeletters",
+    allowedRoles: ["Program Committee"],
+  },
+  {
+    title: "Pending Evaluation",
+    path: "/dashboard/pending-evaluation",
+    allowedRoles: ["Program Committee"],
+  },
+  {
+    title: "Undeclared Results",
+    path: "/dashboard/undeclared-results",
+    allowedRoles: ["Program Committee"],
+  },
+  {
+    title: "Results QR Code",
+    path: "/dashboard/results-qr-code",
+    allowedRoles: ["Program Committee", "Program Leader"],
+  },
 ];
 
 export async function middleware(req) {
@@ -435,12 +455,12 @@ async function handleLoginPageRequest(req) {
 
 async function handleApiRequest(req) {
   if (req.nextUrl.pathname === "/api/upload") return NextResponse.next();
-  
+
   const url = new URL(req.url);
   const apiKey = req.headers.get("api-key");
   const cronSecret = url.searchParams.get("cronSecret");
   const authToken = req.cookies.get("auth-token")?.value;
-  
+
   // Public GET endpoints that don't require API key
   const publicGet = [
     "/api/divisions",
@@ -449,19 +469,19 @@ async function handleApiRequest(req) {
     "/api/settings",
     "/api/users",
   ];
-  
+
   if (req.method === "GET" && publicGet.includes(url.pathname)) {
     return NextResponse.next();
   }
-  
+
   if (cronSecret === process.env.CRON_SECRET) {
     return NextResponse.next();
   }
-  
+
   if (req.nextUrl.pathname.includes("/api/auth")) {
     return NextResponse.next();
   }
-  
+
   // Allow authenticated users (with valid JWT) to access API without API key
   if (authToken) {
     try {
@@ -473,7 +493,7 @@ async function handleApiRequest(req) {
       console.error("Invalid auth token in API request:", error.message);
     }
   }
-  
+
   // If no valid auth token, require API key
   if (apiKey !== process.env.API_KEY) {
     return NextResponse.json(
@@ -481,11 +501,9 @@ async function handleApiRequest(req) {
       { status: 401 }
     );
   }
-  
+
   return NextResponse.next();
 }
-
-
 
 async function handleAuthRequest(req) {
   const isE2ETest = req.headers.get("x-e2e-test") === "true";

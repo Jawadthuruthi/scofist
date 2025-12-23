@@ -36,6 +36,9 @@ import {
   TicketPercent,
   UserMinus,
   Download,
+  QrCode,
+  AlertCircle,
+  FileQuestion,
 } from "lucide-react";
 
 import {
@@ -491,6 +494,30 @@ const items = [
         icon: User,
         allowedRoles: ["Program Committee"],
       },
+      {
+        title: "Pending Code Letters",
+        url: "/dashboard/pending-codeletters",
+        allowedRoles: ["Program Committee"],
+        icon: FileQuestion,
+      },
+      {
+        title: "Pending Evaluation",
+        url: "/dashboard/pending-evaluation",
+        allowedRoles: ["Program Committee"],
+        icon: ClipboardList,
+      },
+      {
+        title: "Undeclared Results",
+        url: "/dashboard/undeclared-results",
+        allowedRoles: ["Program Committee"],
+        icon: AlertCircle,
+      },
+      {
+        title: "Results QR Code",
+        url: "/dashboard/results-qr-code",
+        allowedRoles: ["Program Committee", "Program Leader"],
+        icon: QrCode,
+      },
     ],
   },
   {
@@ -500,11 +527,11 @@ const items = [
     allowedRoles: ["College Admin", "Program Committee", "Spark Admin"],
   },
   {
-  title: "Admin Users",
-  url: "/dashboard/no-role-users",
-  icon: UserX, 
-  allowedRoles: ["College Admin"],
-},
+    title: "Admin Users",
+    url: "/dashboard/no-role-users",
+    icon: UserX,
+    allowedRoles: ["College Admin"],
+  },
 ];
 
 function ComboBox({ roles, role }) {
@@ -541,7 +568,7 @@ function ComboBox({ roles, role }) {
                     setOpen(false);
                     try {
                       Cookies.set("active-role", currentValue, {
-                        path: "/",
+                        url: "/",
                       });
                       console.log("Cookie set successfully");
                     } catch (error) {
@@ -625,8 +652,8 @@ export function AppSidebar({ roles, activeRole, user }) {
         ...item,
         subItems: item.subItems
           ? item.subItems.filter((subItem) =>
-            subItem.allowedRoles?.includes(role)
-          )
+              subItem.allowedRoles?.includes(role)
+            )
           : undefined,
       }))
       .filter((item) => {
