@@ -417,6 +417,13 @@ const items = [
     icon: ListChecks,
   },
   {
+    title: "Poster Customizer",
+    url: "/dashboard/poster-customizer",
+    allowedRoles: ["Program Committee"],
+    icon: LayoutGrid,
+  },
+
+  {
     title: "Results",
     url: "/dashboard/results",
     allowedRoles: ["Program Committee"],

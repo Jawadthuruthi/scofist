@@ -407,7 +407,12 @@ const pages = [
   {
     title: "Results QR Code",
     path: "/dashboard/results-qr-code",
-    allowedRoles: ["Program Committee", "Program Leader"],
+    allowedRoles: ["Program Committee"],
+  },
+  {
+    title: "Poster Customizer",
+    path: "/dashboard/poster-customizer",
+    allowedRoles: ["Program Committee"],
   },
 ];
 

@@ -254,6 +254,10 @@ export async function PUT(req, res) {
             data.poster3TextColor ??
             existingSettings?.festival?.resultPoster3?.textColor,
         },
+        resultPosters:
+          data.festival?.resultPosters ??
+          existingSettings?.festival?.resultPosters ??
+          [],
       },
     };
 
