@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 
 /* ---------------------- helper utils ---------------------- */
 async function fetchJSON(url) {
-  const res = await fetch(url, { next: { revalidate: 30 } });
+  const res = await fetch(url, { cache: "no-store" }); // Changed from revalidate
   if (!res.ok) throw new Error(`Fetch failed: ${url}`);
   return res.json();
 }
@@ -21,8 +21,8 @@ export default function PublicResultsPage() {
   /* --------------- state --------------- */
   const [divisions, setDivisions] = useState([]);
   const [programs, setPrograms] = useState([]);
-  const [settings, setSettings] = useState({});
-  const [resultData, setResultData] = useState([]);
+  const [settings, setSettings] = useState(null); // Changed from {}
+  const [resultData, setResultData] = useState(null); // Changed from []
   const [resultNo, setResultNo] = useState("");
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedProgram, setSelectedProgram] = useState("");
@@ -40,9 +40,9 @@ export default function PublicResultsPage() {
 
   /* --------------- fetch settings on mount --------------- */
   useEffect(() => {
-    fetchJSON("/api/settings?projection=_id,name")
-      .then((data) => setSettings(data.settings ?? {}))
-      .catch(() => setError("Unable to load settings"));
+    fetchJSON("/api/settings?projection=festival.resultPosters") // Fixed projection
+      .then((data) => setSettings(data.settings?.[0] || null)) // Get first item
+      .catch(() => console.error("Unable to load settings"));
   }, []);
 
   /* --------------- fetch programs when division changes --------------- */
@@ -59,26 +59,36 @@ export default function PublicResultsPage() {
       .catch(() => setError("Unable to load programs"));
   }, [selectedDivision]);
 
-  /* --------------- fetch results when program picked --------------- */
+  /* --------------- fetch results - FIXED VALIDATION --------------- */
   useEffect(() => {
-    if (!selectedProgram && !resultNo) {
-      setResults(null);
-      setShowResults(false);
+    // Reset states
+    setResults(null);
+    setResultData(null);
+    setShowResults(false);
+    setError("");
+
+    if (!resultNo) {
       return;
     }
 
     setLoading(true);
-    setError("");
-    setShowResults(false);
 
     fetchJSON(
       `/api/results?programId=${selectedProgram}&isResultDeclared=true&resultNumber=${resultNo}`
     )
       .then((r) => {
-        setResultData(r.results?.[0] || []);
-        const top = (r.results?.[0]?.participants ?? [])
+        const result = r.results?.[0];
+
+        if (!result) {
+          setError("No results found");
+          return;
+        }
+
+        setResultData(result);
+        const top = (result.participants ?? [])
           .filter((p) => p.rank <= 3)
           .sort((a, b) => a.rank - b.rank);
+
         setResults(top);
         setTimeout(() => setShowResults(true), 100);
       })
@@ -97,93 +107,95 @@ export default function PublicResultsPage() {
     [programs]
   );
 
-  /* --------------- simplified render helper --------------- */
-  const renderWinnerCard = (participant) => {
-    const rank = participant.rank;
-    const name = participant.participantDetails?.name || "Unknown";
-    const team = participant.participantDetails?.teamId?.name || "Unknown";
-    const chest = participant.participantDetails?.chestNumber;
-    const grade = participant.participantDetails?.grade;
-    const points = participant.points;
-
-    // Medal and color based on rank
-    const getMedal = () => {
-      if (rank === 1)
-        return {
-          emoji: "🥇",
-          bg: "bg-yellow-100",
-          border: "border-yellow-400",
-          text: "text-yellow-700",
-        };
-      if (rank === 2)
-        return {
-          emoji: "🥈",
-          bg: "bg-gray-100",
-          border: "border-gray-400",
-          text: "text-gray-700",
-        };
+  /* --------------- OPTIMIZED: medal config moved outside --------------- */
+  const getMedalConfig = useCallback((rank) => {
+    if (rank === 1)
       return {
-        emoji: "🥉",
-        bg: "bg-orange-100",
-        border: "border-orange-400",
-        text: "text-orange-700",
+        emoji: "🥇",
+        bg: "bg-yellow-100",
+        border: "border-yellow-400",
+        text: "text-yellow-700",
       };
+    if (rank === 2)
+      return {
+        emoji: "🥈",
+        bg: "bg-gray-100",
+        border: "border-gray-400",
+        text: "text-gray-700",
+      };
+    return {
+      emoji: "🥉",
+      bg: "bg-orange-100",
+      border: "border-orange-400",
+      text: "text-orange-700",
     };
+  }, []);
 
-    const medal = getMedal();
+  /* --------------- OPTIMIZED: useCallback prevents re-renders --------------- */
+  const renderWinnerCard = useCallback(
+    (participant) => {
+      const rank = participant.rank;
+      const name = participant.participantDetails?.name || "Unknown";
+      const team = participant.participantDetails?.teamId?.name || "Unknown";
+      const chest = participant.participantDetails?.chestNumber;
+      const grade = participant.participantDetails?.grade;
+      const points = participant.points;
 
-    return (
-      <div
-        key={participant._id}
-        className={`transition-all duration-500 ${
-          showResults ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-        }`}
-      >
-        <Card
-          className={`${medal.bg} border-2 ${medal.border} hover:shadow-lg transition-shadow`}
+      const medal = getMedalConfig(rank);
+
+      return (
+        <div
+          key={participant._id}
+          className={`transition-all duration-500 ${
+            showResults
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-4"
+          }`}
         >
-          <CardContent className="p-4 sm:p-6">
-            {/* Rank and Medal */}
-            <div className="flex items-start justify-between mb-3 sm:mb-4">
-              <div className="text-4xl sm:text-5xl">{medal.emoji}</div>
-              <div
-                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full ${medal.border} border-2 flex items-center justify-center font-bold text-base sm:text-lg ${medal.text}`}
-              >
-                {rank}
+          <Card
+            className={`${medal.bg} border-2 ${medal.border} hover:shadow-lg transition-shadow`}
+          >
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-start justify-between mb-3 sm:mb-4">
+                <div className="text-4xl sm:text-5xl">{medal.emoji}</div>
+                <div
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full ${medal.border} border-2 flex items-center justify-center font-bold text-base sm:text-lg ${medal.text}`}
+                >
+                  {rank}
+                </div>
               </div>
-            </div>
 
-            {/* Participant Name */}
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 leading-tight">
-              {name}
-            </h3>
-            <p className="text-xs sm:text-sm text-gray-600 font-medium mb-3 sm:mb-4">
-              {team}
-            </p>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 leading-tight">
+                {name}
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-600 font-medium mb-3 sm:mb-4">
+                {team}
+              </p>
 
-            {/* Details */}
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {chest && (
-                <Badge variant="outline" className="text-xs">
-                  Chest #{chest}
-                </Badge>
-              )}
-              {grade && (
-                <Badge variant="outline" className="text-xs">
-                  {grade}
-                </Badge>
-              )}
-              {points > 0 && (
-                <Badge className="bg-green-600 text-white text-xs">
-                  {points} pts
-                </Badge>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  };
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                {chest && (
+                  <Badge variant="outline" className="text-xs">
+                    Chest #{chest}
+                  </Badge>
+                )}
+                {grade && (
+                  <Badge variant="outline" className="text-xs">
+                    {grade}
+                  </Badge>
+                )}
+                {points > 0 && (
+                  <Badge className="bg-green-600 text-white text-xs">
+                    {points} pts
+                  </Badge>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    },
+    [showResults, getMedalConfig]
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
