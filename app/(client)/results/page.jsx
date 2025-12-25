@@ -1,56 +1,15 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Medal, Trophy, X } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Trophy } from "lucide-react";
 import { formatOptions } from "@/lib/utils";
 import ResultPostersSection from "@/components/ResultPostersSection";
 import { Input } from "@/components/ui/input";
 
-/* ---------------------- helper constants ---------------------- */
-
-// Festival color palette
-const colors = {
-  copper: "#9e6237",
-  darkBrown: "#3f2720",
-  ivory: "#fbfaf7",
-  slate: "#4b4f57",
-  accentGold: "#f0c76e",
-};
-
-// Metal gradients for podium cards
-const metal = {
-  gold: "from-[#fbc889] via-[#ffdc9b] to-[#e7b44c]",
-  silver: "from-[#dfe5ea] via-[#f4f5f7] to-[#bcc3cd]",
-  bronze: "from-[#c78d63] via-[#e2a67a] to-[#9c6644]",
-};
-
-// Geometric pattern SVG for overlays
-const patternSvg = `data:image/svg+xml,${encodeURIComponent(`
-  <svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <pattern id="geom" width="60" height="60" patternUnits="userSpaceOnUse">
-        <path d="M30 0L45 15L30 30L15 15Z" fill="none" stroke="rgba(158,98,55,0.1)" stroke-width="1"/>
-        <path d="M0 30L15 45L30 30L15 15Z" fill="none" stroke="rgba(158,98,55,0.1)" stroke-width="1"/>
-        <path d="M30 30L45 45L60 30L45 15Z" fill="none" stroke="rgba(158,98,55,0.1)" stroke-width="1"/>
-        <path d="M30 30L15 45L0 30L15 15Z" fill="none" stroke="rgba(158,98,55,0.1)" stroke-width="1"/>
-      </pattern>
-    </defs>
-    <rect width="100%" height="100%" fill="url(#geom)"/>
-  </svg>
-`)}`;
-
 /* ---------------------- helper utils ---------------------- */
-
 async function fetchJSON(url) {
   const res = await fetch(url, { next: { revalidate: 30 } });
   if (!res.ok) throw new Error(`Fetch failed: ${url}`);
@@ -58,7 +17,6 @@ async function fetchJSON(url) {
 }
 
 /* -------------------- main component ---------------------- */
-
 export default function PublicResultsPage() {
   /* --------------- state --------------- */
   const [divisions, setDivisions] = useState([]);
@@ -94,7 +52,6 @@ export default function PublicResultsPage() {
       setSelectedProgram("");
       return;
     }
-
     fetchJSON(
       `/api/programs?divisionId=${selectedDivision}&projection=_id,name`
     )
@@ -140,220 +97,146 @@ export default function PublicResultsPage() {
     [programs]
   );
 
-  /* --------------- render helpers --------------- */
-  const renderPodiumCard = (participant, index) => {
+  /* --------------- simplified render helper --------------- */
+  const renderWinnerCard = (participant) => {
     const rank = participant.rank;
-    const metalGradient =
-      rank === 1 ? metal.gold : rank === 2 ? metal.silver : metal.bronze;
-    const isFirst = rank === 1;
-    const delay = rank === 2 ? 0 : rank === 1 ? 200 : 400;
+    const name = participant.participantDetails?.name || "Unknown";
+    const team = participant.participantDetails?.teamId?.name || "Unknown";
+    const chest = participant.participantDetails?.chestNumber;
+    const grade = participant.participantDetails?.grade;
+    const points = participant.points;
 
-    // Better text colors for contrast
-    const textColor =
-      rank === 1
-        ? "text-yellow-900"
-        : rank === 2
-          ? "text-gray-800"
-          : "text-amber-100";
-    const badgeColor =
-      rank === 1
-        ? "bg-yellow-100/90 text-yellow-900"
-        : rank === 2
-          ? "bg-gray-100/90 text-gray-800"
-          : "bg-amber-100/90 text-amber-900";
+    // Medal and color based on rank
+    const getMedal = () => {
+      if (rank === 1)
+        return {
+          emoji: "🥇",
+          bg: "bg-yellow-100",
+          border: "border-yellow-400",
+          text: "text-yellow-700",
+        };
+      if (rank === 2)
+        return {
+          emoji: "🥈",
+          bg: "bg-gray-100",
+          border: "border-gray-400",
+          text: "text-gray-700",
+        };
+      return {
+        emoji: "🥉",
+        bg: "bg-orange-100",
+        border: "border-orange-400",
+        text: "text-orange-700",
+      };
+    };
+
+    const medal = getMedal();
 
     return (
       <div
         key={participant._id}
-        className={`
-          relative transition-all duration-700 ease-out transform
-          ${showResults ? "translate-y-0 scale-100 opacity-100" : "translate-y-8 scale-95 opacity-0"}
-          ${isFirst ? "md:order-2" : rank === 2 ? "md:order-1" : "md:order-3"}
-          hover:scale-105 hover:-translate-y-2 hover:shadow-2xl
-        `}
-        style={{ transitionDelay: `${delay}ms` }}
+        className={`transition-all duration-500 ${
+          showResults ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        }`}
       >
         <Card
-          className={`
-          relative overflow-hidden bg-gradient-to-br ${metalGradient}
-          border-2 border-white/20 shadow-xl backdrop-blur-sm
-           h-80
-          group cursor-pointer
-        `}
+          className={`${medal.bg} border-2 ${medal.border} hover:shadow-lg transition-shadow`}
         >
-          {/* Background pattern overlay */}
-          <div
-            className="absolute inset-0 opacity-20"
-            style={{ backgroundImage: `url("${patternSvg}")` }}
-          />
-
-          {/* Card content */}
-          <div className="relative h-full flex flex-col items-center justify-center p-6 text-center">
-            {/* Rank number - large and beveled */}
-            <div
-              className={`
-              absolute -top-4 -right-4 w-16 h-16 rounded-full 
-              bg-gradient-to-br ${metalGradient} border-4 border-white/30
-              flex items-center justify-center shadow-2xl
-              text-2xl font-black ${textColor}
-              transform rotate-12 group-hover:rotate-0 transition-transform duration-300
-            `}
-            >
-              #{rank}
-            </div>
-
-            {/* Medal icon with emboss effect */}
-            <div className="mb-4 relative">
-              <Medal
-                size={isFirst ? 64 : 48}
-                className={`${textColor} drop-shadow-lg filter`}
-                style={{
-                  filter: "drop-shadow(2px 2px 4px rgba(0,0,0,0.3))",
-                }}
-              />
-              <div className="absolute inset-0 bg-white/20 rounded-full blur-sm -z-10" />
-            </div>
-
-            {/* Participant details */}
-            <div className="mb-4">
-              <h3
-                className={`
-              font-bold ${textColor} drop-shadow-sm
-              ${isFirst ? "text-xl" : "text-lg"}
-            `}
+          <CardContent className="p-4 sm:p-6">
+            {/* Rank and Medal */}
+            <div className="flex items-start justify-between mb-3 sm:mb-4">
+              <div className="text-4xl sm:text-5xl">{medal.emoji}</div>
+              <div
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full ${medal.border} border-2 flex items-center justify-center font-bold text-base sm:text-lg ${medal.text}`}
               >
-                {participant.participantDetails?.name || "Unknown"}
-              </h3>
-              <h5 className={`text-sm ${textColor} font-semibold`}>
-                {participant.participantDetails?.teamId?.name || "Unknown"}
-              </h5>
+                {rank}
+              </div>
             </div>
 
-            <div className="space-y-2 space-x-2 w-full">
-              <Badge
-                variant="secondary"
-                className={`${badgeColor} border-white/30 text-sm font-medium`}
-              >
-                Chest No: {participant.participantDetails?.chestNumber ?? "?"}
-              </Badge>
+            {/* Participant Name */}
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 leading-tight">
+              {name}
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-600 font-medium mb-3 sm:mb-4">
+              {team}
+            </p>
 
-              {participant.participantDetails?.grade && (
-                <Badge
-                  variant="outline"
-                  className={`${badgeColor} border-white/30 text-sm`}
-                >
-                  {participant.participantDetails.grade}
+            {/* Details */}
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              {chest && (
+                <Badge variant="outline" className="text-xs">
+                  Chest #{chest}
                 </Badge>
               )}
-
-              <Badge
-                className={`
-                bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-900 
-                font-semibold border-0 text-sm
-              `}
-              >
-                {participant.points || 0} pts
-              </Badge>
+              {grade && (
+                <Badge variant="outline" className="text-xs">
+                  {grade}
+                </Badge>
+              )}
+              {points > 0 && (
+                <Badge className="bg-green-600 text-white text-xs">
+                  {points} pts
+                </Badge>
+              )}
             </div>
-          </div>
-
-          {/* Subtle confetti effect on hover */}
-          <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className={`
-                  absolute w-2 h-2 bg-yellow-300 rounded-full
-                  animate-ping
-                `}
-                style={{
-                  left: `${20 + i * 12}%`,
-                  top: `${10 + (i % 2) * 20}%`,
-                  animationDelay: `${i * 100}ms`,
-                  animationDuration: "2s",
-                }}
-              />
-            ))}
-          </div>
+          </CardContent>
         </Card>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#fbfaf7] via-[#f5f3f0] to-[#e8e6e3]">
-      {/* Print Header Section */}
-      <div className="relative overflow-hidden bg-[#fbfaf7] border-b-2 border-[#9e6237]/20">
-        {/* Geometric pattern borders */}
-        <div className="absolute left-0 top-0 w-48 h-full opacity-20">
-          <div
-            className="w-full h-full"
-            style={{ backgroundImage: `url("${patternSvg}")` }}
-          />
-        </div>
-        <div className="absolute right-0 top-0 w-48 h-full opacity-20">
-          <div
-            className="w-full h-full"
-            style={{ backgroundImage: `url("${patternSvg}")` }}
-          />
-        </div>
-
-        <div className="relative z-10 py-8 px-4">
-          <div className="max-w-6xl mx-auto text-center">
-            {/* Tagline */}
-            <p className="text-lg text-[#3f2720] mb-2 font-medium tracking-wide">
-              "Recall the legacy, Reignite the light"
-            </p>
-
-            {/* Main title */}
-            <h1 className="text-6xl md:text-8xl font-black mb-4">
-              <span className="text-[#3f2720]">esperanza</span>
-              <sup className="text-3xl md:text-4xl text-[#9e6237] ml-2">25</sup>
-            </h1>
-
-            {/* Subtitle */}
-            <p className="text-xl text-[#3f2720] mb-4 font-medium">
-              Sa-adiya Da-awa Fiesta
-            </p>
-
-            {/* Dates */}
-            <div className="flex items-center justify-center gap-4 text-[#fbfaf7]">
-              <div className="bg-[#3f2720] px-4 py-2 rounded font-bold text-lg">
-                31
-              </div>
-              <div className="bg-[#9e6237] px-4 py-2 rounded font-bold text-lg">
-                01
-              </div>
-              <div className="bg-[#9e6237] px-4 py-2 rounded font-bold text-lg">
-                02
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header Section - Mobile Optimized */}
+      <div className="bg-white border-b shadow-sm">
+        <div className="max-w-6xl mx-auto py-4 sm:py-6 md:py-8 px-3 sm:px-4 text-center">
+          <p className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2 font-medium tracking-wide">
+            Recall the legacy, Reignite the light
+          </p>
+          <h1 className="text-3xl sm:text-5xl md:text-7xl font-black mb-2 sm:mb-4">
+            <span className="text-gray-900">esperanza</span>
+            <sup className="text-lg sm:text-2xl md:text-3xl text-gray-600 ml-1 sm:ml-2">
+              '25
+            </sup>
+          </h1>
+          <p className="text-base sm:text-lg md:text-xl text-gray-700 mb-2 sm:mb-4 font-medium">
+            Sa-adiya Da-awa Fiesta
+          </p>
+          <div className="flex items-center justify-center gap-2 sm:gap-3">
+            <div className="bg-gray-800 px-3 py-1.5 sm:px-4 sm:py-2 rounded font-bold text-white text-sm sm:text-base">
+              31
             </div>
-
-            <p className="text-sm text-[#4b4f57] mt-2">
-              Sa-adiya Da-awa College
-            </p>
+            <div className="bg-gray-700 px-3 py-1.5 sm:px-4 sm:py-2 rounded font-bold text-white text-sm sm:text-base">
+              01
+            </div>
+            <div className="bg-gray-700 px-3 py-1.5 sm:px-4 sm:py-2 rounded font-bold text-white text-sm sm:text-base">
+              02
+            </div>
           </div>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1.5 sm:mt-2">
+            Sa-adiya Da-awa College
+          </p>
         </div>
       </div>
 
-      {/* Sticky Filter Bar */}
-      <div className=" bg-white/60   border-b border-white/20">
-        <div className="max-w-6xl mx-auto p-4 h-full flex items-center justify-center">
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full max-w-2xl">
-            {/* Result No. */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  placeholder="Result No."
-                  value={resultNo}
-                  onChange={(e) => setResultNo(e.target.value)}
-                />
-              </div>
+      {/* Filter Bar - Mobile Optimized */}
+      <div className="bg-white/90 backdrop-blur-sm sticky top-0 z-10 border-b shadow-sm">
+        <div className="max-w-6xl mx-auto p-3 sm:p-4">
+          <div className="flex flex-col gap-3 sm:gap-4 max-w-3xl mx-auto">
+            {/* Result No. - Full width on mobile */}
+            <div className="w-full sm:hidden">
+              <Input
+                type="number"
+                placeholder="Result No."
+                value={resultNo}
+                onChange={(e) => setResultNo(e.target.value)}
+                className="w-full h-11"
+              />
             </div>
-            {/* Division Select */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
+
+            {/* Division and Program - Stack on mobile, side by side on tablet+ */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="flex-1">
                 <MultiSelect
                   options={formatOptions(divisionOptions)}
                   value={selectedDivision}
@@ -362,11 +245,8 @@ export default function PublicResultsPage() {
                   placeholder="Select Division"
                 />
               </div>
-            </div>
 
-            {/* Program Select */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex-1">
                 <MultiSelect
                   options={formatOptions(programOptions)}
                   value={selectedProgram}
@@ -375,29 +255,40 @@ export default function PublicResultsPage() {
                   placeholder="Select Program"
                 />
               </div>
+
+              {/* Result No. - Show on tablet+ */}
+              <div className="flex-1 hidden sm:block">
+                <Input
+                  type="number"
+                  placeholder="Result No."
+                  value={resultNo}
+                  onChange={(e) => setResultNo(e.target.value)}
+                  className="w-full h-11"
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 py-12">
+      {/* Main Content - Mobile Optimized */}
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-8 md:py-12">
         {/* Error State */}
         {error && (
-          <div className="text-center py-12">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
-              <p className="text-red-600 font-medium">⚠️ {error}</p>
-            </div>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 max-w-md mx-auto">
+            <p className="text-red-600 text-center text-sm sm:text-base">
+              ⚠️ {error}
+            </p>
           </div>
         )}
 
         {/* Loading State */}
         {loading && (
-          <div className="text-center py-16">
-            <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
-              <Loader2 className="animate-spin text-[#9e6237]" size={24} />
-              <span className="text-[#3f2720] font-medium">
-                Loading results...
+          <div className="text-center py-12 sm:py-16">
+            <div className="inline-flex items-center gap-2 sm:gap-3 bg-white rounded-full px-4 py-2 sm:px-6 sm:py-3 shadow-lg">
+              <Loader2 className="animate-spin text-gray-700" size={20} />
+              <span className="text-gray-700 font-medium text-sm sm:text-base">
+                Loading...
               </span>
             </div>
           </div>
@@ -405,19 +296,17 @@ export default function PublicResultsPage() {
 
         {/* Empty State - No Program Selected */}
         {!loading && !error && !selectedProgram && !results && (
-          <div className="text-center py-16">
-            <div className="max-w-md mx-auto">
-              <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-[#9e6237]/20 to-[#f0c76e]/20 rounded-full flex items-center justify-center">
-                <Trophy size={48} className="text-[#9e6237]" />
-              </div>
-              <h3 className="text-2xl font-bold text-[#3f2720] mb-4">
-                Ready to Reveal Champions
-              </h3>
-              <p className="text-[#4b4f57] leading-relaxed">
-                Select a division and program above to see the podium winners.
-                Results will be revealed soon for all declared competitions.
-              </p>
-            </div>
+          <div className="text-center py-12 sm:py-16 px-4">
+            <Trophy
+              size={48}
+              className="text-gray-400 mx-auto mb-3 sm:mb-4 sm:w-16 sm:h-16"
+            />
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-4">
+              Ready to Reveal Champions
+            </h3>
+            <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md mx-auto">
+              Select a division and program above to see the podium winners.
+            </p>
           </div>
         )}
 
@@ -427,54 +316,51 @@ export default function PublicResultsPage() {
           selectedProgram &&
           results &&
           results.length === 0 && (
-            <div className="text-center py-16">
-              <div className="max-w-md mx-auto">
-                <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-amber-100 to-amber-200 rounded-full flex items-center justify-center">
-                  <Trophy size={48} className="text-amber-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-[#3f2720] mb-4">
-                  Results Coming Soon
-                </h3>
-                <p className="text-[#4b4f57] leading-relaxed">
-                  The competition results for this program haven't been declared
-                  yet. Check back soon to see the winners!
-                </p>
-              </div>
+            <div className="text-center py-12 sm:py-16 px-4">
+              <Trophy
+                size={48}
+                className="text-amber-500 mx-auto mb-3 sm:mb-4 sm:w-16 sm:h-16"
+              />
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-4">
+                Results Coming Soon
+              </h3>
+              <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md mx-auto">
+                The competition results haven't been declared yet. Check back
+                soon!
+              </p>
             </div>
           )}
 
-        {/* Podium Section */}
+        {/* Winners Section */}
         {!loading && !error && results && results.length > 0 && (
-          <div className="space-y-12">
-            {/* Section header with geometric border */}
-            <div className="text-center relative">
-              <div className="h-px bg-gradient-to-r from-transparent via-[#9e6237] to-transparent mb-8"></div>
-              <h2 className="text-4xl font-black text-[#3f2720] mb-4">
+          <div className="space-y-8 sm:space-y-12">
+            {/* Section Header */}
+            <div className="text-center px-4">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 mb-1 sm:mb-2">
                 🏆 Champions Podium
               </h2>
-              <p className="text-[#4b4f57] text-lg">
+              <p className="text-sm sm:text-base text-gray-600">
                 Congratulations to our winners!
               </p>
             </div>
 
-            {/* Podium Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6">
-              {results.map((participant, index) =>
-                renderPodiumCard(participant, index)
-              )}
+            {/* Winners Grid - Responsive */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+              {results.map((participant) => renderWinnerCard(participant))}
             </div>
+
+            {/* Result Posters Section */}
             {resultData && settings && (
-              <ResultPostersSection
-                resultData={resultData}
-                settings={settings}
-              />
+              <div className="mt-8 sm:mt-12">
+                <ResultPostersSection
+                  resultData={resultData}
+                  settings={settings}
+                />
+              </div>
             )}
           </div>
         )}
       </div>
-
-      {/* Bottom spacing */}
-      <div className="h-16"></div>
     </div>
   );
 }

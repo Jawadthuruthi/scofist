@@ -25,19 +25,15 @@ import {
   Loader,
   AlertCircle,
   Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import ImageUploader from "@/components/ImageUploader";
 
 export default function PosterCustomizer({
-  poster,
-  onLayoutChange,
-  onBackgroundChange,
   onSave,
   isPreview = false,
   initialSettings = null,
-  tenantId = null,
-  user = null,
   isFullPage = false,
 }) {
   // State management
@@ -47,172 +43,67 @@ export default function PosterCustomizer({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedElement, setSelectedElement] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [containerSize, setContainerSize] = useState({
-    width: 300,
-    height: 300,
-  });
-  const [isMobile, setIsMobile] = useState(false);
-  const [showMobileControls, setShowMobileControls] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-
-  const presetTemplates = useState([
-    { name: "Centered Layout", value: "centered" },
-    { name: "Vertical Stack", value: "vertical" },
-    { name: "Traditional", value: "traditional" },
-  ]);
 
   const canvasRef = useRef(null);
-  const posterRef = useRef(null);
 
-  // Device detection
-  useEffect(() => {
-    const checkDevice = () => {
-      const width = window.innerWidth;
-      const mobile = width < 768;
-      setIsMobile(mobile);
-      setShowMobileControls(mobile);
-    };
-
-    checkDevice();
-    window.addEventListener("resize", checkDevice);
-    return () => window.removeEventListener("resize", checkDevice);
-  }, []);
-
-  // Initialize for full page mode
-  useEffect(() => {
-    if (
-      isFullPage &&
-      (!currentSettings?.resultPosters ||
-        currentSettings.resultPosters.length === 0)
-    ) {
-      setCurrentSettings((prev) => ({
-        ...prev,
-        resultPosters: [createDefaultPoster()],
-      }));
-    }
-  }, [isFullPage, currentSettings]);
-
-  // Enhanced default poster for square templates
+  // Enhanced default poster
   const createDefaultPoster = () => ({
     name: "Default Poster",
     backgroundImage: { url: "", publicId: "" },
     layout: {
       programInfo: {
         x: 50,
-        y: 5,
+        y: 8,
         visible: true,
-        fontSize: 14,
-        responsiveSize: true,
-        minFontSize: 18,
-        maxFontSize: 32,
+        fontSize: 20,
         color: "ffffff",
         fontWeight: "bold",
         textAlign: "center",
-        lineHeight: 1.1,
-        textShadow: false,
-        autoFit: true,
       },
       divisionInfo: {
         x: 50,
-        y: 25,
+        y: 15,
         visible: true,
-        fontSize: 10,
-        responsiveSize: true,
-        minFontSize: 14,
-        maxFontSize: 24,
+        fontSize: 16,
         color: "ffffff",
         fontWeight: "normal",
         textAlign: "center",
-        lineHeight: 1.2,
-        textShadow: false,
-        autoFit: true,
       },
       resultNumber: {
         x: 50,
-        y: 12,
+        y: 22,
         visible: true,
-        fontSize: 24,
-        responsiveSize: true,
-        minFontSize: 14,
-        maxFontSize: 28,
+        fontSize: 14,
         color: "ffffff",
         fontWeight: "bold",
-        textAlign: "left",
-        lineHeight: 1.1,
-        letterSpacing: 0,
-        textShadow: false,
-        prefix: "",
-        autoFit: true,
+        textAlign: "center",
       },
       firstPlace: {
         x: 50,
-        y: 35,
+        y: 40,
         visible: true,
-        fontSize: 12,
-        responsiveSize: true,
-        minFontSize: 8,
-        maxFontSize: 24,
+        fontSize: 18,
         color: "ffffff",
-        fontWeight: "normal",
-        textAlign: "left",
-        lineHeight: 1.2,
-        letterSpacing: 0,
-        nameSpacing: 8,
-        maxNameLength: 25,
-        textShadow: false,
-        showRank: false,
-        maxWinners: 1,
-        autoFit: true,
-        containerPadding: 15,
-        teamNameSpacing: 0,
-        showTeamName: true,
+        fontWeight: "bold",
+        textAlign: "center",
       },
       secondPlace: {
         x: 50,
         y: 60,
         visible: true,
-        fontSize: 12,
-        responsiveSize: true,
-        minFontSize: 8,
-        maxFontSize: 24,
+        fontSize: 16,
         color: "ffffff",
         fontWeight: "normal",
-        textAlign: "left",
-        lineHeight: 1.3,
-        letterSpacing: 0,
-        nameSpacing: 6,
-        maxNameLength: 20,
-        textShadow: false,
-        showRank: false,
-        maxWinners: 1,
-        autoFit: true,
-        containerPadding: 15,
-        teamNameSpacing: 0,
-        showTeamName: true,
+        textAlign: "center",
       },
       thirdPlace: {
         x: 50,
         y: 80,
         visible: true,
-        fontSize: 12,
-        responsiveSize: true,
-        minFontSize: 8,
-        maxFontSize: 24,
+        fontSize: 16,
         color: "ffffff",
         fontWeight: "normal",
-        textAlign: "left",
-        lineHeight: 1.3,
-        letterSpacing: 0,
-        nameSpacing: 6,
-        maxNameLength: 20,
-        textShadow: false,
-        showRank: false,
-        maxWinners: 1,
-        autoFit: true,
-        containerPadding: 15,
-        teamNameSpacing: 0,
-        showTeamName: true,
+        textAlign: "center",
       },
     },
   });
@@ -220,6 +111,7 @@ export default function PosterCustomizer({
   // Get current poster
   const currentPoster = useMemo(() => {
     return (
+      currentSettings?.festival?.resultPosters?.[selectedPosterIndex] ||
       currentSettings?.resultPosters?.[selectedPosterIndex] ||
       createDefaultPoster()
     );
@@ -239,18 +131,17 @@ export default function PosterCustomizer({
       const data = await response.json();
 
       if (data.settings) {
-        // If no resultPosters, create default
-        if (
-          !data.settings.festival?.resultPosters ||
-          data.settings.festival.resultPosters.length === 0
-        ) {
-          setCurrentSettings({
+        const festivalPosters = data.settings.festival?.resultPosters;
+
+        if (!festivalPosters || festivalPosters.length === 0) {
+          const updatedSettings = {
             ...data.settings,
             festival: {
               ...data.settings.festival,
               resultPosters: [createDefaultPoster()],
             },
-          });
+          };
+          setCurrentSettings(updatedSettings);
         } else {
           setCurrentSettings(data.settings);
         }
@@ -263,24 +154,13 @@ export default function PosterCustomizer({
     }
   };
 
-  // Update container size based on canvas
-  useEffect(() => {
-    const updateSize = () => {
-      if (canvasRef.current) {
-        const { width, height } = canvasRef.current.getBoundingClientRect();
-        setContainerSize({ width, height });
-      }
-    };
-
-    updateSize();
-    window.addEventListener("resize", updateSize);
-    return () => window.removeEventListener("resize", updateSize);
-  }, []);
-
   // Handle element position update
   const updateElementPosition = (elementKey, x, y) => {
     setCurrentSettings((prev) => {
-      const updatedPosters = [...(prev?.resultPosters || [])];
+      const posters =
+        prev?.festival?.resultPosters || prev?.resultPosters || [];
+      const updatedPosters = [...posters];
+
       if (!updatedPosters[selectedPosterIndex]) {
         updatedPosters[selectedPosterIndex] = createDefaultPoster();
       }
@@ -299,7 +179,10 @@ export default function PosterCustomizer({
 
       return {
         ...prev,
-        resultPosters: updatedPosters,
+        festival: {
+          ...prev.festival,
+          resultPosters: updatedPosters,
+        },
       };
     });
   };
@@ -307,7 +190,10 @@ export default function PosterCustomizer({
   // Handle element property update
   const updateElementProperty = (elementKey, property, value) => {
     setCurrentSettings((prev) => {
-      const updatedPosters = [...(prev?.resultPosters || [])];
+      const posters =
+        prev?.festival?.resultPosters || prev?.resultPosters || [];
+      const updatedPosters = [...posters];
+
       if (!updatedPosters[selectedPosterIndex]) {
         updatedPosters[selectedPosterIndex] = createDefaultPoster();
       }
@@ -325,7 +211,10 @@ export default function PosterCustomizer({
 
       return {
         ...prev,
-        resultPosters: updatedPosters,
+        festival: {
+          ...prev.festival,
+          resultPosters: updatedPosters,
+        },
       };
     });
   };
@@ -333,16 +222,9 @@ export default function PosterCustomizer({
   // Mouse drag handlers
   const handleMouseDown = (e, elementKey) => {
     if (isPreview) return;
-
     e.stopPropagation();
     setSelectedElement(elementKey);
     setIsDragging(true);
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    setDragStart({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
   };
 
   const handleMouseMove = useCallback(
@@ -375,26 +257,32 @@ export default function PosterCustomizer({
 
   // Add new poster
   const handleAddPoster = () => {
+    const posters = currentSettings?.festival?.resultPosters || [];
     setCurrentSettings((prev) => ({
       ...prev,
-      resultPosters: [...(prev?.resultPosters || []), createDefaultPoster()],
+      festival: {
+        ...prev.festival,
+        resultPosters: [...posters, createDefaultPoster()],
+      },
     }));
-    setSelectedPosterIndex((prev?.resultPosters || []).length);
+    setSelectedPosterIndex(posters.length);
     toast.success("New poster added!");
   };
 
   // Delete poster
   const handleDeletePoster = () => {
-    if ((currentSettings?.resultPosters || []).length <= 1) {
+    const posters = currentSettings?.festival?.resultPosters || [];
+    if (posters.length <= 1) {
       toast.error("Cannot delete the last poster");
       return;
     }
 
     setCurrentSettings((prev) => ({
       ...prev,
-      resultPosters: prev.resultPosters.filter(
-        (_, i) => i !== selectedPosterIndex
-      ),
+      festival: {
+        ...prev.festival,
+        resultPosters: posters.filter((_, i) => i !== selectedPosterIndex),
+      },
     }));
 
     setSelectedPosterIndex(Math.max(0, selectedPosterIndex - 1));
@@ -408,54 +296,56 @@ export default function PosterCustomizer({
         programInfo: { x: 50, y: 8 },
         divisionInfo: { x: 50, y: 15 },
         resultNumber: { x: 50, y: 22 },
-        firstPlace: { x: 50, y: 35 },
-        secondPlace: { x: 50, y: 55 },
-        thirdPlace: { x: 50, y: 75 },
+        firstPlace: { x: 50, y: 40 },
+        secondPlace: { x: 50, y: 60 },
+        thirdPlace: { x: 50, y: 80 },
       },
       vertical: {
         programInfo: { x: 50, y: 5 },
         divisionInfo: { x: 50, y: 12 },
         resultNumber: { x: 50, y: 18 },
-        firstPlace: { x: 50, y: 30 },
-        secondPlace: { x: 50, y: 50 },
-        thirdPlace: { x: 50, y: 70 },
+        firstPlace: { x: 50, y: 35 },
+        secondPlace: { x: 50, y: 55 },
+        thirdPlace: { x: 50, y: 75 },
       },
       traditional: {
         programInfo: { x: 50, y: 10 },
         divisionInfo: { x: 50, y: 20 },
         resultNumber: { x: 15, y: 15 },
-        firstPlace: { x: 50, y: 40 },
-        secondPlace: { x: 50, y: 60 },
-        thirdPlace: { x: 50, y: 80 },
+        firstPlace: { x: 50, y: 45 },
+        secondPlace: { x: 50, y: 65 },
+        thirdPlace: { x: 50, y: 85 },
       },
     };
 
     const selectedTemplate = templates[template];
     if (!selectedTemplate) return;
 
-    setCurrentSettings((prev) => {
-      const updatedPosters = [...(prev?.resultPosters || [])];
-      const currentLayout = updatedPosters[selectedPosterIndex]?.layout || {};
+    const posters = currentSettings?.festival?.resultPosters || [];
+    const updatedPosters = [...posters];
+    const currentLayout = updatedPosters[selectedPosterIndex]?.layout || {};
 
-      updatedPosters[selectedPosterIndex] = {
-        ...updatedPosters[selectedPosterIndex],
-        layout: {
-          ...currentLayout,
-          ...Object.entries(selectedTemplate).reduce((acc, [key, pos]) => {
-            acc[key] = {
-              ...currentLayout[key],
-              ...pos,
-            };
-            return acc;
-          }, {}),
-        },
-      };
+    updatedPosters[selectedPosterIndex] = {
+      ...updatedPosters[selectedPosterIndex],
+      layout: {
+        ...currentLayout,
+        ...Object.entries(selectedTemplate).reduce((acc, [key, pos]) => {
+          acc[key] = {
+            ...currentLayout[key],
+            ...pos,
+          };
+          return acc;
+        }, {}),
+      },
+    };
 
-      return {
-        ...prev,
+    setCurrentSettings((prev) => ({
+      ...prev,
+      festival: {
+        ...prev.festival,
         resultPosters: updatedPosters,
-      };
-    });
+      },
+    }));
 
     toast.success(`${template} template applied!`);
   };
@@ -471,7 +361,7 @@ export default function PosterCustomizer({
         body: JSON.stringify({
           festival: {
             ...currentSettings?.festival,
-            resultPosters: currentSettings?.resultPosters,
+            resultPosters: currentSettings?.festival?.resultPosters,
           },
         }),
       });
@@ -492,27 +382,36 @@ export default function PosterCustomizer({
     }
   };
 
-  // Handle background image upload
-  const handleBackgroundUpload = async (imageData) => {
-    setCurrentSettings((prev) => {
-      const updatedPosters = [...(prev?.resultPosters || [])];
-      updatedPosters[selectedPosterIndex] = {
-        ...updatedPosters[selectedPosterIndex],
-        backgroundImage: imageData,
-      };
+  // Handle background image upload - FIXED
+  const handleBackgroundUpload = (imageData) => {
+    console.log("Image uploaded:", imageData); // Debug log
 
-      return {
-        ...prev,
+    const posters = currentSettings?.festival?.resultPosters || [];
+    const updatedPosters = [...posters];
+
+    updatedPosters[selectedPosterIndex] = {
+      ...updatedPosters[selectedPosterIndex],
+      backgroundImage: {
+        url: imageData.url,
+        publicId: imageData.publicId,
+      },
+    };
+
+    setCurrentSettings((prev) => ({
+      ...prev,
+      festival: {
+        ...prev.festival,
         resultPosters: updatedPosters,
-      };
-    });
+      },
+    }));
 
     toast.success("Background image uploaded!");
   };
 
-  // Render element on canvas
+  // Render element on canvas - REMOVED GLASS EFFECT
   const renderElement = (elementKey, elementConfig) => {
-    const { x, y, visible, color, fontSize } = elementConfig;
+    const { x, y, visible, color, fontSize, fontWeight, textAlign } =
+      elementConfig;
 
     if (!visible) return null;
 
@@ -523,17 +422,24 @@ export default function PosterCustomizer({
       transform: "translate(-50%, -50%)",
       color: `#${color}`,
       fontSize: `${fontSize}px`,
+      fontWeight: fontWeight || "normal",
+      textAlign: textAlign || "center",
       cursor: isPreview ? "default" : "move",
       userSelect: "none",
-      padding: "8px",
+      padding: "8px 12px",
       border:
         selectedElement === elementKey
           ? "2px dashed #3b82f6"
-          : "2px dashed transparent",
-      borderRadius: "4px",
-      transition: selectedElement === elementKey ? "none" : "border 0.2s",
+          : "2px dashed rgba(59, 130, 246, 0.3)",
+      borderRadius: "6px",
+      background:
+        selectedElement === elementKey
+          ? "rgba(59, 130, 246, 0.1)"
+          : "rgba(0, 0, 0, 0.05)",
+      transition: selectedElement === elementKey ? "none" : "all 0.2s",
       whiteSpace: "nowrap",
       zIndex: selectedElement === elementKey ? 10 : 1,
+      // ✅ REMOVED backdrop-filter: "blur(2px)"
     };
 
     let content = "";
@@ -548,13 +454,13 @@ export default function PosterCustomizer({
         content = "Result #01";
         break;
       case "firstPlace":
-        content = "1st: Winner Name";
+        content = "🥇 Winner Name";
         break;
       case "secondPlace":
-        content = "2nd: Runner Up";
+        content = "🥈 Runner Up";
         break;
       case "thirdPlace":
-        content = "3rd: Third Place";
+        content = "🥉 Third Place";
         break;
       default:
         content = elementKey;
@@ -575,30 +481,47 @@ export default function PosterCustomizer({
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader className="h-8 w-8 animate-spin" />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
+  const posters = currentSettings?.festival?.resultPosters || [];
+
+  // ✅ FIXED: Get background image URL properly
+  const backgroundImageUrl = currentPoster?.backgroundImage?.url || "";
+
+  console.log("Current poster background:", {
+    url: backgroundImageUrl,
+    publicId: currentPoster?.backgroundImage?.publicId,
+  }); // Debug log
+
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
-                <Palette className="h-6 w-6 text-white" />
+    <div className="space-y-6 max-w-7xl mx-auto p-4">
+      {/* Header Card */}
+      <Card className="border-2 border-orange-200 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg">
+                <Palette className="h-8 w-8 text-white" />
               </div>
               <div>
-                <CardTitle className="text-2xl">Poster Customizer</CardTitle>
-                <p className="text-sm text-muted-foreground">
+                <CardTitle className="text-2xl text-orange-700">
+                  Poster Customizer
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
                   Design stunning result posters with drag-and-drop
                 </p>
               </div>
             </div>
-            <Button onClick={handleSave} disabled={isSaving}>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              size="lg"
+              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-300 hover:to-red-300"
+            >
               {isSaving ? (
                 <>
                   <Loader className="mr-2 h-4 w-4 animate-spin" />
@@ -615,41 +538,45 @@ export default function PosterCustomizer({
         </CardHeader>
       </Card>
 
-      {/* Poster Selector & Actions */}
+      {/* Poster Selector */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <Label>Select Poster</Label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div className="md:col-span-2">
+              <Label className="text-base font-semibold mb-2 block">
+                Select Poster
+              </Label>
               <Select
                 value={selectedPosterIndex.toString()}
                 onValueChange={(val) => setSelectedPosterIndex(parseInt(val))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-12">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(currentSettings?.resultPosters || []).map(
-                    (poster, index) => (
-                      <SelectItem key={index} value={index.toString()}>
-                        {poster.name || `Poster ${index + 1}`}
-                      </SelectItem>
-                    )
-                  )}
+                  {posters.map((poster, index) => (
+                    <SelectItem key={index} value={index.toString()}>
+                      {poster.name || `Poster ${index + 1}`}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleAddPoster} variant="outline" size="sm">
+              <Button
+                onClick={handleAddPoster}
+                variant="outline"
+                className="flex-1"
+              >
                 <Plus className="mr-2 h-4 w-4" />
-                Add Poster
+                Add
               </Button>
               <Button
                 onClick={handleDeletePoster}
                 variant="outline"
-                size="sm"
-                disabled={(currentSettings?.resultPosters || []).length <= 1}
+                className="flex-1"
+                disabled={posters.length <= 1}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
@@ -659,99 +586,146 @@ export default function PosterCustomizer({
 
           {/* Poster Name */}
           <div className="mt-4">
-            <Label>Poster Name</Label>
+            <Label className="text-base font-semibold">Poster Name</Label>
             <Input
               value={currentPoster.name || ""}
               onChange={(e) => {
-                setCurrentSettings((prev) => {
-                  const updatedPosters = [...(prev?.resultPosters || [])];
-                  updatedPosters[selectedPosterIndex] = {
-                    ...updatedPosters[selectedPosterIndex],
-                    name: e.target.value,
-                  };
-                  return { ...prev, resultPosters: updatedPosters };
-                });
+                const updatedPosters = [...posters];
+                updatedPosters[selectedPosterIndex] = {
+                  ...updatedPosters[selectedPosterIndex],
+                  name: e.target.value,
+                };
+                setCurrentSettings((prev) => ({
+                  ...prev,
+                  festival: {
+                    ...prev.festival,
+                    resultPosters: updatedPosters,
+                  },
+                }));
               }}
               placeholder="Enter poster name"
+              className="mt-2 h-12"
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Main Layout: Canvas + Controls */}
+      {/* Main Grid: Canvas + Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Canvas Preview */}
+        {/* Canvas Preview - Fixed Size */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Grid className="h-5 w-5" />
-              Canvas Preview
+              Canvas Preview (300x300px)
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Drag elements to reposition them
+              Click and drag elements to reposition them
             </p>
           </CardHeader>
           <CardContent>
-            <div
-              ref={canvasRef}
-              className="relative w-full bg-gray-100 rounded-lg overflow-hidden"
-              style={{
-                aspectRatio: "1/1",
-                backgroundImage: currentPoster.backgroundImage?.url
-                  ? `url(${currentPoster.backgroundImage.url})`
-                  : "none",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            >
-              {/* Render all elements */}
-              {Object.entries(currentPoster.layout || {}).map(([key, config]) =>
-                renderElement(key, config)
-              )}
+            {/* Fixed Size Canvas Container */}
+            <div className="flex justify-center">
+              <div
+                ref={canvasRef}
+                className="relative bg-gray-200 rounded-lg overflow-hidden shadow-lg"
+                style={{
+                  width: "300px",
+                  height: "300px",
+                  // ✅ FIXED: Properly display background image
+                  backgroundImage: backgroundImageUrl
+                    ? `url("${backgroundImageUrl}")`
+                    : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                }}
+              >
+                {/* Render all elements */}
+                {Object.entries(currentPoster.layout || {}).map(
+                  ([key, config]) => renderElement(key, config)
+                )}
 
-              {/* Grid overlay */}
-              <div className="absolute inset-0 pointer-events-none opacity-20">
-                <div className="grid grid-cols-10 grid-rows-10 h-full w-full">
-                  {Array.from({ length: 100 }).map((_, i) => (
-                    <div key={i} className="border border-gray-300" />
-                  ))}
+                {/* Grid overlay */}
+                <div className="absolute inset-0 pointer-events-none opacity-10">
+                  <svg width="100%" height="100%">
+                    <defs>
+                      <pattern
+                        id="grid"
+                        width="30"
+                        height="30"
+                        patternUnits="userSpaceOnUse"
+                      >
+                        <path
+                          d="M 30 0 L 0 0 0 30"
+                          fill="none"
+                          stroke="white"
+                          strokeWidth="1"
+                        />
+                      </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                  </svg>
                 </div>
+
+                {/* No background indicator */}
+                {!backgroundImageUrl && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-center text-white/70">
+                      <ImageIcon className="h-16 w-16 mx-auto mb-2" />
+                      <p className="text-sm font-medium">No Background Image</p>
+                      <p className="text-xs">Upload one below</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Background Upload */}
-            <div className="mt-4">
-              <Label>Background Image (1024x1024 recommended)</Label>
+            <div className="mt-6">
+              <Label className="text-base font-semibold block mb-2">
+                Background Image (1024x1024 recommended)
+              </Label>
               <ImageUploader
-                folder="posters"
-                onUploadSuccess={handleBackgroundUpload}
-                currentImage={currentPoster.backgroundImage}
-                aspectRatio="1:1"
+                value={currentPoster.backgroundImage}
+                onChange={handleBackgroundUpload}
                 maxFileSize={2 * 1024 * 1024}
-                allowedTypes={["image/svg+xml", "image/png", "image/jpeg"]}
+                allowedTypes={["image/png", "image/jpeg", "image/jpg"]}
+                aspectRatio="1:1"
+                minWidth={300}
+                minHeight={300}
               />
+              {backgroundImageUrl && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  ✓ Background image loaded successfully
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
 
         {/* Element Controls */}
-        <Card>
+        <Card className="lg:sticky lg:top-4 h-fit">
           <CardHeader>
             <CardTitle>Element Controls</CardTitle>
             <p className="text-sm text-muted-foreground">
               {selectedElement
-                ? `Editing: ${selectedElement}`
+                ? `Editing: ${selectedElement.replace(/([A-Z])/g, " $1").trim()}`
                 : "Select an element to customize"}
             </p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {selectedElement && currentPoster.layout?.[selectedElement] && (
+          <CardContent className="space-y-4 max-h-[300px] overflow-y-auto">
+            {selectedElement && currentPoster.layout?.[selectedElement] ? (
               <div className="space-y-4">
                 {/* Visibility Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label>Visible</Label>
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <Label className="font-semibold">Visible</Label>
                   <Button
-                    variant="outline"
+                    variant={
+                      currentPoster.layout[selectedElement].visible
+                        ? "default"
+                        : "outline"
+                    }
                     size="sm"
                     onClick={() =>
                       updateElementProperty(
@@ -771,9 +745,9 @@ export default function PosterCustomizer({
 
                 {/* Color Picker */}
                 <div>
-                  <Label>Text Color</Label>
-                  <div className="flex gap-2">
-                    <Input
+                  <Label className="font-semibold">Text Color</Label>
+                  <div className="flex gap-2 mt-2">
+                    <input
                       type="color"
                       value={`#${currentPoster.layout[selectedElement].color}`}
                       onChange={(e) =>
@@ -783,7 +757,7 @@ export default function PosterCustomizer({
                           e.target.value.replace("#", "")
                         )
                       }
-                      className="w-20 h-10"
+                      className="w-20 h-12 rounded cursor-pointer"
                     />
                     <Input
                       value={currentPoster.layout[selectedElement].color}
@@ -795,16 +769,20 @@ export default function PosterCustomizer({
                         )
                       }
                       placeholder="ffffff"
+                      maxLength={6}
+                      className="flex-1 h-12"
                     />
                   </div>
                 </div>
 
                 {/* Font Size */}
                 <div>
-                  <Label>
-                    Font Size: {currentPoster.layout[selectedElement].fontSize}
-                    px
-                  </Label>
+                  <div className="flex justify-between mb-2">
+                    <Label className="font-semibold">Font Size</Label>
+                    <span className="text-sm font-mono text-muted-foreground">
+                      {currentPoster.layout[selectedElement].fontSize}px
+                    </span>
+                  </div>
                   <Slider
                     value={[currentPoster.layout[selectedElement].fontSize]}
                     onValueChange={([value]) =>
@@ -813,15 +791,18 @@ export default function PosterCustomizer({
                     min={8}
                     max={48}
                     step={1}
+                    className="w-full"
                   />
                 </div>
 
                 {/* Position X */}
                 <div>
-                  <Label>
-                    Position X:{" "}
-                    {currentPoster.layout[selectedElement].x.toFixed(1)}%
-                  </Label>
+                  <div className="flex justify-between mb-2">
+                    <Label className="font-semibold">Position X</Label>
+                    <span className="text-sm font-mono text-muted-foreground">
+                      {currentPoster.layout[selectedElement].x.toFixed(1)}%
+                    </span>
+                  </div>
                   <Slider
                     value={[currentPoster.layout[selectedElement].x]}
                     onValueChange={([value]) =>
@@ -835,10 +816,12 @@ export default function PosterCustomizer({
 
                 {/* Position Y */}
                 <div>
-                  <Label>
-                    Position Y:{" "}
-                    {currentPoster.layout[selectedElement].y.toFixed(1)}%
-                  </Label>
+                  <div className="flex justify-between mb-2">
+                    <Label className="font-semibold">Position Y</Label>
+                    <span className="text-sm font-mono text-muted-foreground">
+                      {currentPoster.layout[selectedElement].y.toFixed(1)}%
+                    </span>
+                  </div>
                   <Slider
                     value={[currentPoster.layout[selectedElement].y]}
                     onValueChange={([value]) =>
@@ -852,7 +835,7 @@ export default function PosterCustomizer({
 
                 {/* Font Weight */}
                 <div>
-                  <Label>Font Weight</Label>
+                  <Label className="font-semibold">Font Weight</Label>
                   <Select
                     value={currentPoster.layout[selectedElement].fontWeight}
                     onValueChange={(value) =>
@@ -863,7 +846,7 @@ export default function PosterCustomizer({
                       )
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="mt-2 h-12">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -876,14 +859,14 @@ export default function PosterCustomizer({
 
                 {/* Text Align */}
                 <div>
-                  <Label>Text Align</Label>
+                  <Label className="font-semibold">Text Align</Label>
                   <Select
                     value={currentPoster.layout[selectedElement].textAlign}
                     onValueChange={(value) =>
                       updateElementProperty(selectedElement, "textAlign", value)
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="mt-2 h-12">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -894,12 +877,13 @@ export default function PosterCustomizer({
                   </Select>
                 </div>
               </div>
-            )}
-
-            {!selectedElement && (
+            ) : (
               <div className="text-center py-12">
-                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
+                <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+                <p className="text-muted-foreground font-medium mb-2">
+                  No Element Selected
+                </p>
+                <p className="text-sm text-muted-foreground">
                   Click on any element in the canvas to customize it
                 </p>
               </div>
@@ -918,21 +902,47 @@ export default function PosterCustomizer({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {presetTemplates[0].map((template) => (
-              <Button
-                key={template.value}
-                variant="outline"
-                onClick={() => applyTemplate(template.value)}
-                className="h-20"
-              >
-                <div className="text-center">
-                  <div className="font-semibold">{template.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    Quick layout preset
-                  </div>
+            <Button
+              variant="outline"
+              onClick={() => applyTemplate("centered")}
+              className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-all"
+            >
+              <div className="text-2xl">📐</div>
+              <div className="text-center">
+                <div className="font-semibold">Centered Layout</div>
+                <div className="text-xs text-muted-foreground">
+                  Balanced design
                 </div>
-              </Button>
-            ))}
+              </div>
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => applyTemplate("vertical")}
+              className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-green-50 hover:border-green-300 transition-all"
+            >
+              <div className="text-2xl">📊</div>
+              <div className="text-center">
+                <div className="font-semibold">Vertical Stack</div>
+                <div className="text-xs text-muted-foreground">
+                  Clean vertical
+                </div>
+              </div>
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => applyTemplate("traditional")}
+              className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-orange-50 hover:border-orange-300 transition-all"
+            >
+              <div className="text-2xl">🎨</div>
+              <div className="text-center">
+                <div className="font-semibold">Traditional</div>
+                <div className="text-xs text-muted-foreground">
+                  Classic style
+                </div>
+              </div>
+            </Button>
           </div>
         </CardContent>
       </Card>

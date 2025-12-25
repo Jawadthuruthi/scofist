@@ -327,7 +327,7 @@ const SettingsSchema = new Schema(
               y: { type: Number, default: 80 },
               visible: { type: Boolean, default: true },
               fontSize: { type: Number, default: 12 },
-              responsiveSize: { type: Boolean, default: 8 },
+              responsiveSize: { type: Boolean, default: true },
               minFontSize: { type: Number, default: 8 },
               maxFontSize: { type: Number, default: 24 },
               color: { type: String, default: "ffffff" },

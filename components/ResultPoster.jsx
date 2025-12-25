@@ -1,133 +1,126 @@
-// components/ResultPoster.jsx - Update to read from resultPosters array
+// components/ResultPoster.jsx
+"use client";
 
-export default function ResultPoster({ result, poster, settings }) {
-  // Get poster configuration from settings
-  const posterConfig =
-    settings?.festival?.resultPosters?.[poster - 1] ||
-    settings?.festival?.[`resultPoster${poster}`]; // Fallback to old format
-
+export default function ResultPoster({
+  result,
+  posterConfig,
+  posterNumber = 1,
+}) {
   if (!posterConfig) return null;
 
-  const { backgroundImage, layout } = posterConfig;
+  const { backgroundImage, layout, name } = posterConfig;
+
+  // Get winners
+  const winners = result?.winners || [];
+  const firstPlace = winners.find((w) => w.rank === 1);
+  const secondPlace = winners.find((w) => w.rank === 2);
+  const thirdPlace = winners.find((w) => w.rank === 3);
+
+  // Render text element with layout config
+  const renderElement = (elementKey, content, config) => {
+    if (!config?.visible || !content) return null;
+
+    const style = {
+      position: "absolute",
+      left: `${config.x}%`,
+      top: `${config.y}%`,
+      transform: "translate(-50%, -50%)",
+      color: `#${config.color}`,
+      fontSize: `${config.fontSize}px`,
+      fontWeight: config.fontWeight || "normal",
+      textAlign: config.textAlign || "center",
+      lineHeight: config.lineHeight || 1.2,
+      whiteSpace: "pre-wrap",
+      width: "90%",
+      maxWidth: "90%",
+      textShadow: config.textShadow ? "2px 2px 4px rgba(0,0,0,0.5)" : "none",
+    };
+
+    return (
+      <div key={elementKey} style={style}>
+        {content}
+      </div>
+    );
+  };
 
   return (
-    <div
-      className="relative w-full aspect-square bg-cover bg-center"
-      style={{
-        backgroundImage: backgroundImage?.url
-          ? `url(${backgroundImage.url})`
-          : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      }}
-    >
-      {/* Program Info */}
-      {layout?.programInfo?.visible && (
-        <div
-          style={{
-            position: "absolute",
-            left: `${layout.programInfo.x}%`,
-            top: `${layout.programInfo.y}%`,
-            transform: "translate(-50%, -50%)",
-            color: `#${layout.programInfo.color}`,
-            fontSize: `${layout.programInfo.fontSize}px`,
-            fontWeight: layout.programInfo.fontWeight,
-            textAlign: layout.programInfo.textAlign,
-            width: "90%",
-          }}
-        >
-          {result.programName}
-        </div>
-      )}
+    <div className="relative w-full aspect-square overflow-hidden rounded-lg shadow-xl">
+      {/* Background Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: backgroundImage?.url
+            ? `url("${backgroundImage.url}")`
+            : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        }}
+      />
 
-      {/* Division Info */}
-      {layout?.divisionInfo?.visible && (
-        <div
-          style={{
-            position: "absolute",
-            left: `${layout.divisionInfo.x}%`,
-            top: `${layout.divisionInfo.y}%`,
-            transform: "translate(-50%, -50%)",
-            color: `#${layout.divisionInfo.color}`,
-            fontSize: `${layout.divisionInfo.fontSize}px`,
-            fontWeight: layout.divisionInfo.fontWeight,
-            textAlign: layout.divisionInfo.textAlign,
-            width: "90%",
-          }}
-        >
-          {result.divisionName}
-        </div>
-      )}
+      {/* Overlay for better text visibility */}
+      <div className="absolute inset-0 bg-black/10" />
 
-      {/* First Place */}
-      {layout?.firstPlace?.visible && result.winners?.[0] && (
-        <div
-          style={{
-            position: "absolute",
-            left: `${layout.firstPlace.x}%`,
-            top: `${layout.firstPlace.y}%`,
-            transform: "translate(-50%, -50%)",
-            color: `#${layout.firstPlace.color}`,
-            fontSize: `${layout.firstPlace.fontSize}px`,
-            fontWeight: layout.firstPlace.fontWeight,
-            textAlign: layout.firstPlace.textAlign,
-            width: "85%",
-          }}
-        >
-          🥇 {result.winners[0].name}
-          {layout.firstPlace.showTeamName && (
-            <div className="text-sm mt-1 opacity-80">
-              {result.winners[0].teamName}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Text Elements */}
+      <div className="relative w-full h-full">
+        {/* Program Info */}
+        {renderElement("programInfo", result.programName, layout?.programInfo)}
 
-      {/* Second Place */}
-      {layout?.secondPlace?.visible && result.winners?.[1] && (
-        <div
-          style={{
-            position: "absolute",
-            left: `${layout.secondPlace.x}%`,
-            top: `${layout.secondPlace.y}%`,
-            transform: "translate(-50%, -50%)",
-            color: `#${layout.secondPlace.color}`,
-            fontSize: `${layout.secondPlace.fontSize}px`,
-            fontWeight: layout.secondPlace.fontWeight,
-            textAlign: layout.secondPlace.textAlign,
-            width: "85%",
-          }}
-        >
-          🥈 {result.winners[1].name}
-          {layout.secondPlace.showTeamName && (
-            <div className="text-sm mt-1 opacity-80">
-              {result.winners[1].teamName}
-            </div>
-          )}
-        </div>
-      )}
+        {/* Division Info */}
+        {renderElement(
+          "divisionInfo",
+          result.divisionName,
+          layout?.divisionInfo
+        )}
 
-      {/* Third Place */}
-      {layout?.thirdPlace?.visible && result.winners?.[2] && (
-        <div
-          style={{
-            position: "absolute",
-            left: `${layout.thirdPlace.x}%`,
-            top: `${layout.thirdPlace.y}%`,
-            transform: "translate(-50%, -50%)",
-            color: `#${layout.thirdPlace.color}`,
-            fontSize: `${layout.thirdPlace.fontSize}px`,
-            fontWeight: layout.thirdPlace.fontWeight,
-            textAlign: layout.thirdPlace.textAlign,
-            width: "85%",
-          }}
-        >
-          🥉 {result.winners[2].name}
-          {layout.thirdPlace.showTeamName && (
-            <div className="text-sm mt-1 opacity-80">
-              {result.winners[2].teamName}
-            </div>
-          )}
-        </div>
-      )}
+        {/* Result Number */}
+        {renderElement(
+          "resultNumber",
+          `Result #${String(result.resultNumber).padStart(2, "0")}`,
+          layout?.resultNumber
+        )}
+
+        {/* First Place */}
+        {renderElement(
+          "firstPlace",
+          firstPlace
+            ? `🥇 ${firstPlace.name}${
+                layout?.firstPlace?.showTeamName && firstPlace.teamName
+                  ? `\n${firstPlace.teamName}`
+                  : ""
+              }`
+            : null,
+          layout?.firstPlace
+        )}
+
+        {/* Second Place */}
+        {renderElement(
+          "secondPlace",
+          secondPlace
+            ? `🥈 ${secondPlace.name}${
+                layout?.secondPlace?.showTeamName && secondPlace.teamName
+                  ? `\n${secondPlace.teamName}`
+                  : ""
+              }`
+            : null,
+          layout?.secondPlace
+        )}
+
+        {/* Third Place */}
+        {renderElement(
+          "thirdPlace",
+          thirdPlace
+            ? `🥉 ${thirdPlace.name}${
+                layout?.thirdPlace?.showTeamName && thirdPlace.teamName
+                  ? `\n${thirdPlace.teamName}`
+                  : ""
+              }`
+            : null,
+          layout?.thirdPlace
+        )}
+      </div>
+
+      {/* Poster Label */}
+      <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-xs backdrop-blur-sm">
+        {name || `Poster ${posterNumber}`}
+      </div>
     </div>
   );
 }
