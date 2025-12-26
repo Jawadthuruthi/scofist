@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +10,7 @@ import { Input } from "@/components/ui/input";
 
 /* ---------------------- helper utils ---------------------- */
 async function fetchJSON(url) {
-  const res = await fetch(url, { cache: "no-store" }); // Changed from revalidate
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`Fetch failed: ${url}`);
   return res.json();
 }
@@ -21,8 +20,8 @@ export default function PublicResultsPage() {
   /* --------------- state --------------- */
   const [divisions, setDivisions] = useState([]);
   const [programs, setPrograms] = useState([]);
-  const [settings, setSettings] = useState(null); // Changed from {}
-  const [resultData, setResultData] = useState(null); // Changed from []
+  const [settings, setSettings] = useState(null);
+  const [resultData, setResultData] = useState(null);
   const [resultNo, setResultNo] = useState("");
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedProgram, setSelectedProgram] = useState("");
@@ -40,8 +39,8 @@ export default function PublicResultsPage() {
 
   /* --------------- fetch settings on mount --------------- */
   useEffect(() => {
-    fetchJSON("/api/settings?projection=festival.resultPosters") // Fixed projection
-      .then((data) => setSettings(data.settings?.[0] || null)) // Get first item
+    fetchJSON("/api/settings")
+      .then((data) => setSettings(data.settings || null))
       .catch(() => console.error("Unable to load settings"));
   }, []);
 
@@ -59,9 +58,8 @@ export default function PublicResultsPage() {
       .catch(() => setError("Unable to load programs"));
   }, [selectedDivision]);
 
-  /* --------------- fetch results - FIXED VALIDATION --------------- */
+  /* --------------- fetch results --------------- */
   useEffect(() => {
-    // Reset states
     setResults(null);
     setResultData(null);
     setShowResults(false);
@@ -78,13 +76,12 @@ export default function PublicResultsPage() {
     )
       .then((r) => {
         const result = r.results?.[0];
-
         if (!result) {
           setError("No results found");
           return;
         }
-
         setResultData(result);
+
         const top = (result.participants ?? [])
           .filter((p) => p.rank <= 3)
           .sort((a, b) => a.rank - b.rank);
@@ -107,7 +104,7 @@ export default function PublicResultsPage() {
     [programs]
   );
 
-  /* --------------- OPTIMIZED: medal config moved outside --------------- */
+  /* --------------- medal config --------------- */
   const getMedalConfig = useCallback((rank) => {
     if (rank === 1)
       return {
@@ -131,7 +128,7 @@ export default function PublicResultsPage() {
     };
   }, []);
 
-  /* --------------- OPTIMIZED: useCallback prevents re-renders --------------- */
+  /* --------------- render winner card --------------- */
   const renderWinnerCard = useCallback(
     (participant) => {
       const rank = participant.rank;
@@ -144,35 +141,33 @@ export default function PublicResultsPage() {
       const medal = getMedalConfig(rank);
 
       return (
-        <div
+        <Card
           key={participant._id}
-          className={`transition-all duration-500 ${
+          className={`${medal.bg} ${medal.border} border-2 transition-all duration-500 transform ${
             showResults
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-4"
-          }`}
+              ? "translate-y-0 opacity-100"
+              : "translate-y-10 opacity-0"
+          } hover:scale-105 hover:shadow-xl`}
+          style={{ transitionDelay: `${rank * 100}ms` }}
         >
-          <Card
-            className={`${medal.bg} border-2 ${medal.border} hover:shadow-lg transition-shadow`}
-          >
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-start justify-between mb-3 sm:mb-4">
-                <div className="text-4xl sm:text-5xl">{medal.emoji}</div>
-                <div
-                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full ${medal.border} border-2 flex items-center justify-center font-bold text-base sm:text-lg ${medal.text}`}
-                >
-                  {rank}
-                </div>
+          <CardContent className="p-6">
+            <div className="text-center space-y-3">
+              {/* Medal */}
+              <div className="text-5xl">{medal.emoji}</div>
+
+              {/* Rank */}
+              <div className={`text-xl font-bold ${medal.text}`}>
+                {rank === 1 ? "1st" : rank === 2 ? "2nd" : "3rd"} Place
               </div>
 
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 leading-tight">
-                {name}
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-600 font-medium mb-3 sm:mb-4">
-                {team}
-              </p>
+              {/* Name */}
+              <h3 className="text-lg font-semibold text-gray-800">{name}</h3>
 
-              <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              {/* Team */}
+              <p className="text-sm text-gray-600">{team}</p>
+
+              {/* Badges */}
+              <div className="flex flex-wrap gap-2 justify-center">
                 {chest && (
                   <Badge variant="outline" className="text-xs">
                     Chest #{chest}
@@ -184,141 +179,163 @@ export default function PublicResultsPage() {
                   </Badge>
                 )}
                 {points > 0 && (
-                  <Badge className="bg-green-600 text-white text-xs">
+                  <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs">
                     {points} pts
                   </Badge>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       );
     },
     [showResults, getMedalConfig]
   );
 
+  // 🆕 Extract festival info with defaults
+  const festivalInfo = settings?.festival?.festivalInfo || {};
+  const festivalName = festivalInfo.name || "esperanza";
+  const festivalTheme =
+    festivalInfo.theme || "Recall the legacy, Reignite the light";
+  const festivalYear = festivalInfo.year || new Date().getFullYear();
+  const festivalVenue = festivalInfo.venue || "Sa-adiya Da-awa College";
+  const startDate = festivalInfo.dates?.startDate;
+  const endDate = festivalInfo.dates?.endDate;
+
+  // 🆕 Format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      day: "2-digit",
+      month: "short",
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header Section - Mobile Optimized */}
-      <div className="bg-white border-b shadow-sm">
-        <div className="max-w-6xl mx-auto py-4 sm:py-6 md:py-8 px-3 sm:px-4 text-center">
-          <p className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2 font-medium tracking-wide">
-            Recall the legacy, Reignite the light
-          </p>
-          <h1 className="text-3xl sm:text-5xl md:text-7xl font-black mb-2 sm:mb-4">
-            <span className="text-gray-900">esperanza</span>
-            <sup className="text-lg sm:text-2xl md:text-3xl text-gray-600 ml-1 sm:ml-2">
-              '25
-            </sup>
-          </h1>
-          <p className="text-base sm:text-lg md:text-xl text-gray-700 mb-2 sm:mb-4 font-medium">
-            Sa-adiya Da-awa Fiesta
-          </p>
-          <div className="flex items-center justify-center gap-2 sm:gap-3">
-            <div className="bg-gray-800 px-3 py-1.5 sm:px-4 sm:py-2 rounded font-bold text-white text-sm sm:text-base">
-              31
-            </div>
-            <div className="bg-gray-700 px-3 py-1.5 sm:px-4 sm:py-2 rounded font-bold text-white text-sm sm:text-base">
-              01
-            </div>
-            <div className="bg-gray-700 px-3 py-1.5 sm:px-4 sm:py-2 rounded font-bold text-white text-sm sm:text-base">
-              02
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#fbfaf7] via-[#f5f3f0] to-[#e8e6e3]">
+      {/* 🆕 DYNAMIC HEADER */}
+      <div className="relative overflow-hidden bg-[#fbfaf7] border-b-2 border-[#9e623720]">
+        <div className="relative z-10 py-8 px-4">
+          <div className="max-w-6xl mx-auto text-center">
+            {/* Theme/Tagline */}
+            <p className="text-lg text-[#3f2720] mb-2 font-medium tracking-wide">
+              {festivalTheme}
+            </p>
+
+            {/* Festival Name with Year */}
+            <h1 className="text-6xl md:text-8xl font-black mb-4">
+              <span className="text-[#3f2720]">{festivalName}</span>
+              <sup className="text-3xl md:text-4xl text-[#9e6237] ml-2">
+                '{festivalYear.toString().slice(-2)}
+              </sup>
+            </h1>
+
+            {/* Venue/Subtitle */}
+            <p className="text-xl text-[#3f2720] mb-4 font-medium">
+              {festivalVenue}
+            </p>
+
+            {/* Dates */}
+            {startDate && (
+              <div className="flex items-center justify-center gap-4 text-[#fbfaf7]">
+                <div className="bg-[#3f2720] px-4 py-2 rounded font-bold text-lg">
+                  {formatDate(startDate)}
+                </div>
+                {endDate && (
+                  <>
+                    <div className="bg-[#9e6237] px-4 py-2 rounded font-bold text-lg">
+                      {formatDate(endDate)}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Fallback if no dates */}
+            {!startDate && (
+              <p className="text-sm text-[#4b4f57] mt-2">{festivalVenue}</p>
+            )}
           </div>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1.5 sm:mt-2">
-            Sa-adiya Da-awa College
-          </p>
         </div>
       </div>
 
-      {/* Filter Bar - Mobile Optimized */}
-      <div className="bg-white/90 backdrop-blur-sm sticky top-0 z-10 border-b shadow-sm">
-        <div className="max-w-6xl mx-auto p-3 sm:p-4">
-          <div className="flex flex-col gap-3 sm:gap-4 max-w-3xl mx-auto">
-            {/* Result No. - Full width on mobile */}
-            <div className="w-full sm:hidden">
+      {/* Filter Bar */}
+      <div className="bg-white/60 border-b border-white/20 sticky top-0 z-40 backdrop-blur-sm">
+        <div className="max-w-6xl mx-auto p-4 h-full flex items-center justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full max-w-2xl">
+            {/* Result No. */}
+            <div className="flex-1">
               <Input
                 type="number"
                 placeholder="Result No."
                 value={resultNo}
                 onChange={(e) => setResultNo(e.target.value)}
-                className="w-full h-11"
               />
             </div>
 
-            {/* Division and Program - Stack on mobile, side by side on tablet+ */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <div className="flex-1">
-                <MultiSelect
-                  options={formatOptions(divisionOptions)}
-                  value={selectedDivision}
-                  onValueChange={setSelectedDivision}
-                  multiSelect={false}
-                  placeholder="Select Division"
-                />
-              </div>
+            {/* Division */}
+            <div className="flex-1">
+              <MultiSelect
+                options={formatOptions(divisionOptions)}
+                value={selectedDivision}
+                onValueChange={setSelectedDivision}
+                multiSelect={false}
+                placeholder="Select Division"
+              />
+            </div>
 
-              <div className="flex-1">
-                <MultiSelect
-                  options={formatOptions(programOptions)}
-                  value={selectedProgram}
-                  onValueChange={setSelectedProgram}
-                  multiSelect={false}
-                  placeholder="Select Program"
-                />
-              </div>
-
-              {/* Result No. - Show on tablet+ */}
-              <div className="flex-1 hidden sm:block">
-                <Input
-                  type="number"
-                  placeholder="Result No."
-                  value={resultNo}
-                  onChange={(e) => setResultNo(e.target.value)}
-                  className="w-full h-11"
-                />
-              </div>
+            {/* Program */}
+            <div className="flex-1">
+              <MultiSelect
+                options={formatOptions(programOptions)}
+                value={selectedProgram}
+                onValueChange={setSelectedProgram}
+                multiSelect={false}
+                placeholder="Select Program"
+              />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content - Mobile Optimized */}
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-8 md:py-12">
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Error State */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 max-w-md mx-auto">
-            <p className="text-red-600 text-center text-sm sm:text-base">
-              ⚠️ {error}
-            </p>
+          <div className="text-center py-12">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+              <p className="text-red-600 font-medium">⚠️ {error}</p>
+            </div>
           </div>
         )}
 
         {/* Loading State */}
         {loading && (
-          <div className="text-center py-12 sm:py-16">
-            <div className="inline-flex items-center gap-2 sm:gap-3 bg-white rounded-full px-4 py-2 sm:px-6 sm:py-3 shadow-lg">
-              <Loader2 className="animate-spin text-gray-700" size={20} />
-              <span className="text-gray-700 font-medium text-sm sm:text-base">
-                Loading...
+          <div className="text-center py-16">
+            <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+              <Loader2 className="animate-spin text-[#9e6237]" size={24} />
+              <span className="text-[#3f2720] font-medium">
+                Loading results...
               </span>
             </div>
           </div>
         )}
 
-        {/* Empty State - No Program Selected */}
+        {/* Empty State - No Selection */}
         {!loading && !error && !selectedProgram && !results && (
-          <div className="text-center py-12 sm:py-16 px-4">
-            <Trophy
-              size={48}
-              className="text-gray-400 mx-auto mb-3 sm:mb-4 sm:w-16 sm:h-16"
-            />
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-4">
-              Ready to Reveal Champions
-            </h3>
-            <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md mx-auto">
-              Select a division and program above to see the podium winners.
-            </p>
+          <div className="text-center py-16">
+            <div className="max-w-md mx-auto">
+              <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-[#9e623720] to-[#f0c76e20] rounded-full flex items-center justify-center">
+                <Trophy size={48} className="text-[#9e6237]" />
+              </div>
+              <h3 className="text-2xl font-bold text-[#3f2720] mb-4">
+                Ready to Reveal Champions
+              </h3>
+              <p className="text-[#4b4f57] leading-relaxed">
+                Select a division and program above to see the podium winners.
+              </p>
+            </div>
           </div>
         )}
 
@@ -328,49 +345,42 @@ export default function PublicResultsPage() {
           selectedProgram &&
           results &&
           results.length === 0 && (
-            <div className="text-center py-12 sm:py-16 px-4">
-              <Trophy
-                size={48}
-                className="text-amber-500 mx-auto mb-3 sm:mb-4 sm:w-16 sm:h-16"
-              />
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-4">
-                Results Coming Soon
-              </h3>
-              <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-md mx-auto">
-                The competition results haven't been declared yet. Check back
-                soon!
-              </p>
+            <div className="text-center py-16">
+              <div className="max-w-md mx-auto">
+                <h3 className="text-2xl font-bold text-[#3f2720] mb-4">
+                  Results Coming Soon
+                </h3>
+                <p className="text-[#4b4f57] leading-relaxed">
+                  The competition results haven't been declared yet. Check back
+                  soon!
+                </p>
+              </div>
             </div>
           )}
 
-        {/* Winners Section */}
+        {/* Winners Display */}
         {!loading && !error && results && results.length > 0 && (
-          <div className="space-y-8 sm:space-y-12">
-            {/* Section Header */}
-            <div className="text-center px-4">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 mb-1 sm:mb-2">
+          <div className="space-y-12">
+            {/* Header */}
+            <div className="text-center">
+              <h2 className="text-4xl font-black text-[#3f2720] mb-4">
                 🏆 Champions Podium
               </h2>
-              <p className="text-sm sm:text-base text-gray-600">
+              <p className="text-[#4b4f57] text-lg">
                 Congratulations to our winners!
               </p>
             </div>
 
-            {/* Winners Grid - Responsive */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+            {/* Winner Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {results.map((participant) => renderWinnerCard(participant))}
             </div>
-
-            {/* Result Posters Section */}
-            {resultData && settings && (
-              <div className="mt-8 sm:mt-12">
-                <ResultPostersSection
-                  resultData={resultData}
-                  settings={settings}
-                />
-              </div>
-            )}
           </div>
+        )}
+
+        {/* Result Posters */}
+        {resultData && settings && (
+          <ResultPostersSection resultData={resultData} settings={settings} />
         )}
       </div>
     </div>

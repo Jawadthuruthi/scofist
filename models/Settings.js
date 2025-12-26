@@ -84,6 +84,35 @@ const SettingsSchema = new Schema(
       },
     },
     festival: {
+      festivalInfo: {
+        name: {
+          type: String,
+          trim: true,
+          default: "esperanza",
+        },
+        theme: {
+          type: String,
+          trim: true,
+          default: "Recall the legacy, Reignite the light",
+        },
+        year: {
+          type: Number,
+          default: new Date().getFullYear(),
+        },
+        dates: {
+          startDate: {
+            type: Date,
+          },
+          endDate: {
+            type: Date,
+          },
+        },
+        venue: {
+          type: String,
+          trim: true,
+          default: "Sa-adiya Da-awa College",
+        },
+      },
       printHeader: {
         url: {
           type: String,

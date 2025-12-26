@@ -1,15 +1,12 @@
 import _ from "lodash";
-
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import Settings from "@/models/Settings";
 import { NextResponse } from "next/server";
-import { removeEmptyValuesDeep } from "@/lib/utils";
 
 export async function GET(req, res) {
   try {
     await connectToDB();
-
     const settings = await Settings.findOne({});
 
     if (!settings) {
@@ -34,8 +31,8 @@ export async function GET(req, res) {
 export async function POST(req, res) {
   try {
     await connectToDB();
-
     const data = await req.json();
+
     // Fetch existing settings first
     const existingSettings = await Settings.findOne({});
 
@@ -86,6 +83,34 @@ export async function POST(req, res) {
         occasion: data.occasion ?? existingSettings?.general?.occasion,
       },
       festival: {
+        festivalInfo: {
+          name:
+            data.festivalInfo?.name ??
+            data.festival_name ??
+            existingSettings?.festival?.festivalInfo?.name,
+          theme:
+            data.festivalInfo?.theme ??
+            data.festival_theme ??
+            existingSettings?.festival?.festivalInfo?.theme,
+          year:
+            data.festivalInfo?.year ??
+            data.festival_year ??
+            existingSettings?.festival?.festivalInfo?.year,
+          dates: {
+            startDate:
+              data.festivalInfo?.dates?.startDate ??
+              data.festival_startDate ??
+              existingSettings?.festival?.festivalInfo?.dates?.startDate,
+            endDate:
+              data.festivalInfo?.dates?.endDate ??
+              data.festival_endDate ??
+              existingSettings?.festival?.festivalInfo?.dates?.endDate,
+          },
+          venue:
+            data.festivalInfo?.venue ??
+            data.festival_venue ??
+            existingSettings?.festival?.festivalInfo?.venue,
+        },
         printHeader:
           data.printHeader ?? existingSettings?.festival?.printHeader,
         registrationDeadline:
@@ -153,11 +178,11 @@ export async function POST(req, res) {
 export async function PUT(req, res) {
   try {
     await connectToDB();
-
     const data = await req.json();
 
     // Fetch existing settings first
-    const existingSettings = await Settings.findOne({});
+    const existingSettings = await Settings.findOne({}).lean(); // 🔧 ADD .lean() to get plain object
+
     if (!existingSettings) {
       return NextResponse.json(
         { message: "No settings found to update." },
@@ -165,9 +190,21 @@ export async function PUT(req, res) {
       );
     }
 
-    // Merge festival data safely
-    const formattedData = {
-      institution: {
+    // 🔧 Build update object WITHOUT referencing existingSettings in nested structures
+    const updateData = {};
+
+    // Institution
+    if (
+      data.name ||
+      data.tagline ||
+      data.logo ||
+      data.address ||
+      data.primaryPhone ||
+      data.secondaryPhone ||
+      data.email ||
+      data.website
+    ) {
+      updateData.institution = {
         name: data.name ?? existingSettings?.institution?.name,
         tagline: data.tagline ?? existingSettings?.institution?.tagline,
         logo: data.logo ?? existingSettings?.institution?.logo,
@@ -175,25 +212,74 @@ export async function PUT(req, res) {
         contact: {
           primaryPhone:
             data.primaryPhone ??
-            existingSettings?.institution?.contact.primaryPhone,
+            existingSettings?.institution?.contact?.primaryPhone,
           secondaryPhone:
             data.secondaryPhone ??
-            existingSettings?.institution?.contact.secondaryPhone,
-          email: data.email ?? existingSettings?.institution?.contact.email,
+            existingSettings?.institution?.contact?.secondaryPhone,
+          email: data.email ?? existingSettings?.institution?.contact?.email,
           website:
-            data.website ?? existingSettings?.institution?.contact.website,
+            data.website ?? existingSettings?.institution?.contact?.website,
         },
-      },
-      idCard: {
-        backgroundImage:
-          data.backgroundImage ?? existingSettings?.idCard?.backgroundImage,
-      },
-      general: {
+      };
+    }
+
+    // ID Card
+    if (data.backgroundImage) {
+      updateData.idCard = {
+        backgroundImage: data.backgroundImage,
+      };
+    }
+
+    // General
+    if (data.isWorkingDay !== undefined || data.occasion !== undefined) {
+      updateData.general = {
         isWorkingDay:
           data.isWorkingDay ?? existingSettings?.general?.isWorkingDay,
         occasion: data.occasion ?? existingSettings?.general?.occasion,
-      },
-      festival: {
+      };
+    }
+
+    // Festival - Build carefully
+    if (
+      data.festival_name ||
+      data.festival_theme ||
+      data.festival_year ||
+      data.festival_venue ||
+      data.festival_startDate ||
+      data.festival_endDate ||
+      data.printHeader ||
+      data.registrationDeadline ||
+      data.participantsCard ||
+      data.textColor ||
+      data.right !== undefined ||
+      data.bottom !== undefined ||
+      data.left !== undefined ||
+      data.instructions ||
+      data.festival?.resultPosters
+    ) {
+      updateData.festival = {
+        festivalInfo: {
+          name:
+            data.festival_name ??
+            existingSettings?.festival?.festivalInfo?.name,
+          theme:
+            data.festival_theme ??
+            existingSettings?.festival?.festivalInfo?.theme,
+          year:
+            data.festival_year ??
+            existingSettings?.festival?.festivalInfo?.year,
+          dates: {
+            startDate:
+              data.festival_startDate ??
+              existingSettings?.festival?.festivalInfo?.dates?.startDate,
+            endDate:
+              data.festival_endDate ??
+              existingSettings?.festival?.festivalInfo?.dates?.endDate,
+          },
+          venue:
+            data.festival_venue ??
+            existingSettings?.festival?.festivalInfo?.venue,
+        },
         printHeader:
           data.printHeader ?? existingSettings?.festival?.printHeader,
         registrationDeadline:
@@ -222,19 +308,16 @@ export async function PUT(req, res) {
         },
         instructions:
           data.instructions ?? existingSettings?.festival?.instructions,
-
         resultPosters:
           data.festival?.resultPosters ??
           existingSettings?.festival?.resultPosters ??
           [],
-      },
-    };
-
-    const cleanedData = removeEmptyValuesDeep(formattedData);
+      };
+    }
 
     const updatedSettings = await Settings.findByIdAndUpdate(
       existingSettings._id,
-      { $set: cleanedData },
+      { $set: updateData }, // Use updateData instead of cleanedData
       { new: true }
     );
 
@@ -243,6 +326,7 @@ export async function PUT(req, res) {
       { status: 200 }
     );
   } catch (error) {
+    console.error("Settings PUT error:", error);
     return apiResponse.error(error);
   }
 }

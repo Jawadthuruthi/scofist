@@ -100,6 +100,50 @@ const idCardFormField = [
 
 const festivalFormField = [
   {
+    name: "festival_name",
+    label: "Festival Name",
+    placeholder: "e.g., esperanza",
+    required: true,
+    className: "col-span-2 md:col-span-1",
+  },
+  {
+    name: "festival_theme",
+    label: "Festival Theme/Tagline",
+    placeholder: "e.g., Recall the legacy, Reignite the light",
+    className: "col-span-2 md:col-span-1",
+  },
+  {
+    name: "festival_year",
+    label: "Festival Year",
+    type: "number",
+    placeholder: new Date().getFullYear().toString(),
+    required: true,
+    validators: {
+      min: 2020,
+      max: 2100,
+    },
+    className: "col-span-2 md:col-span-1",
+  },
+  {
+    name: "festival_venue",
+    label: "Venue",
+    placeholder: "e.g., Sa-adiya Da-awa College",
+    className: "col-span-2 md:col-span-1",
+  },
+  {
+    name: "festival_startDate",
+    label: "Start Date",
+    type: "date",
+    className: "col-span-2 md:col-span-1",
+  },
+  {
+    name: "festival_endDate",
+    label: "End Date",
+    type: "date",
+    className: "col-span-2 md:col-span-1",
+  },
+
+  {
     name: "printHeader",
     label: "Print Header",
     inputType: "image",
@@ -188,7 +232,21 @@ export default async function SettingsPage() {
     };
 
     const festival = {
-      ...data.festival,
+      festival_name: data.festival?.festivalInfo?.name || "",
+      festival_theme: data.festival?.festivalInfo?.theme || "",
+      festival_year:
+        data.festival?.festivalInfo?.year || new Date().getFullYear(),
+      festival_venue: data.festival?.festivalInfo?.venue || "",
+      festival_startDate: data.festival?.festivalInfo?.dates?.startDate
+        ? new Date(data.festival.festivalInfo.dates.startDate)
+            .toISOString()
+            .split("T")[0]
+        : "",
+      festival_endDate: data.festival?.festivalInfo?.dates?.endDate
+        ? new Date(data.festival.festivalInfo.dates.endDate)
+            .toISOString()
+            .split("T")[0]
+        : "",
       participantsCard: data.festival.participantsCard.backgroundImage || {},
       textColor: data.festival.participantsCard.textColor || "#000000",
       right: data.festival.participantsCard.textPositions.right || 0,
