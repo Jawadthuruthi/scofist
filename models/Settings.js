@@ -152,75 +152,7 @@ const SettingsSchema = new Schema(
         type: String,
         trim: true,
       },
-      resultPoster1: {
-        url: {
-          type: String,
-          trim: true,
-          validate: {
-            validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
-            message: "Invalid URL format",
-          },
-        },
-        publicId: {
-          type: String,
-        },
-        textColor: {
-          type: String,
-          default: "#ffffff",
-          trim: true,
-          validate: {
-            validator: (v) =>
-              !v || /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v),
-            message: "Invalid hex color format",
-          },
-        },
-      },
-      resultPoster2: {
-        url: {
-          type: String,
-          trim: true,
-          validate: {
-            validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
-            message: "Invalid URL format",
-          },
-        },
-        publicId: {
-          type: String,
-        },
-        textColor: {
-          type: String,
-          default: "#ffffff",
-          trim: true,
-          validate: {
-            validator: (v) =>
-              !v || /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v),
-            message: "Invalid hex color format",
-          },
-        },
-      },
-      resultPoster3: {
-        url: {
-          type: String,
-          trim: true,
-          validate: {
-            validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
-            message: "Invalid URL format",
-          },
-        },
-        publicId: {
-          type: String,
-        },
-        textColor: {
-          type: String,
-          default: "#ffffff",
-          trim: true,
-          validate: {
-            validator: (v) =>
-              !v || /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v),
-            message: "Invalid hex color format",
-          },
-        },
-      },
+
       resultPosters: [
         {
           name: { type: String, default: "Default Poster" },

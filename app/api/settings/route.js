@@ -114,24 +114,10 @@ export async function POST(req, res) {
         },
         instructions:
           data.instructions ?? existingSettings?.festival?.instructions,
-        resultPoster1: {
-          ...data.resultPoster1,
-          textColor:
-            data.poster1TextColor ??
-            existingSettings?.festival?.resultPoster1?.textColor,
-        },
-        resultPoster2: {
-          ...data.resultPoster2,
-          textColor:
-            data.poster2TextColor ??
-            existingSettings?.festival?.resultPoster2?.textColor,
-        },
-        resultPoster3: {
-          ...data.resultPoster3,
-          textColor:
-            data.poster3TextColor ??
-            existingSettings?.festival?.resultPoster3?.textColor,
-        },
+        resultPosters:
+          data.festival?.resultPosters ??
+          existingSettings?.festival?.resultPosters ??
+          [],
       },
     };
 
@@ -236,24 +222,7 @@ export async function PUT(req, res) {
         },
         instructions:
           data.instructions ?? existingSettings?.festival?.instructions,
-        resultPoster1: {
-          ...data.resultPoster1,
-          textColor:
-            data.poster1TextColor ??
-            existingSettings?.festival?.resultPoster1?.textColor,
-        },
-        resultPoster2: {
-          ...data.resultPoster2,
-          textColor:
-            data.poster2TextColor ??
-            existingSettings?.festival?.resultPoster2?.textColor,
-        },
-        resultPoster3: {
-          ...data.resultPoster3,
-          textColor:
-            data.poster3TextColor ??
-            existingSettings?.festival?.resultPoster3?.textColor,
-        },
+
         resultPosters:
           data.festival?.resultPosters ??
           existingSettings?.festival?.resultPosters ??
