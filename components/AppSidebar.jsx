@@ -39,6 +39,7 @@ import {
   QrCode,
   AlertCircle,
   FileQuestion,
+  AlertTriangle,
 } from "lucide-react";
 
 import {
@@ -538,6 +539,12 @@ const items = [
     url: "/dashboard/no-role-users",
     icon: UserX,
     allowedRoles: ["College Admin"],
+  },
+  {
+    title: "Reset",
+    url: "/dashboard/program-management/reset",
+    icon: AlertTriangle,
+    allowedRoles: ["Program Committee"],
   },
 ];
 

@@ -414,6 +414,11 @@ const pages = [
     path: "/dashboard/poster-customizer",
     allowedRoles: ["Program Committee"],
   },
+  {
+    title: "Reset",
+    path: "/dashboard/program-management/reset",
+    allowedRoles: ["Program Committee"],
+  },
 ];
 
 export async function middleware(req) {
