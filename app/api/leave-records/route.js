@@ -181,7 +181,14 @@ export async function PUT(req, res) {
           throw new Error("Student not found");
         }
 
-        const batchId = student.studentSpecificField?.batchId;
+        // Check if batchId is populated object or string and extract ID safely
+        const rawBatchId = student.studentSpecificField?.batchId;
+        const batchId = rawBatchId && typeof rawBatchId === 'object' && rawBatchId._id
+          ? String(rawBatchId._id)
+          : rawBatchId && typeof rawBatchId === 'object' && rawBatchId.id
+            ? String(rawBatchId.id)
+            : String(rawBatchId || '');
+
         if (!batchId) {
           console.warn(`No batchId found for student ${studentId}`);
         }
