@@ -1,0 +1,2117 @@
+{
+  "timestamp": "2026-01-07T05:54:44.046Z",
+  "dryRun": false,
+  "summary": {
+    "duplicateGroups": 115,
+    "recordsToRemove": 124,
+    "recordsToKeep": 115
+  },
+  "details": [
+    {
+      "student": "791",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6d5",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5cd",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "792",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6d6",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5ce",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "793",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6d7",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5cf",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "794",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6d8",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5d0",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "795",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6d9",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5d1",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "795",
+      "date": "2025-12-13",
+      "class": "CLS-2",
+      "period": 4,
+      "subject": "SBJ-32",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "693cd0a316486e7e63be2d5e",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "693da282a174cc2d612eeaf6",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "795",
+      "date": "2025-12-13",
+      "class": "CLS-2",
+      "period": 5,
+      "subject": "SBJ-34",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "693cd0a316486e7e63be2d5f",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "693cf82e985313232d84bfee",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "795",
+      "date": "2025-12-13",
+      "class": "CLS-2",
+      "period": 6,
+      "subject": "SBJ-18",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "693cd0a316486e7e63be2d60",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "693d069c74ecfa486fed7bc6",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "795",
+      "date": "2025-12-13",
+      "class": "CLS-2",
+      "period": 7,
+      "subject": "SBJ-35",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "693cd0a316486e7e63be2d61",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "693d262d51e3cffc51c08b44",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "795",
+      "date": "2025-12-13",
+      "class": "CLS-2",
+      "period": 9,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "693cd0a316486e7e63be2d63",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "693d3b49cc956af7b67dbfc9",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "796",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6da",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5d2",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "797",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6db",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5d3",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "798",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6dc",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5d4",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "799",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6dd",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5d5",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "800",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6de",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5d6",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "801",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6df",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5d7",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "802",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6e0",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5d8",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "803",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6e1",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5d9",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "804",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6e2",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5da",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "806",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6e3",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5db",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "807",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6e4",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5dc",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "808",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6e5",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5dd",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "814",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6e9",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5e1",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "809",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6e6",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5de",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "811",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6e8",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5e0",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "810",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6e7",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5df",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "815",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6ea",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5e2",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "816",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6eb",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5e3",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "818",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6ed",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5e5",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "817",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6ec",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5e4",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "823",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6f1",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5e9",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "819",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6ee",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5e6",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "820",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6ef",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5e7",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "821",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6f0",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5e8",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "824",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6f2",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5ea",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "828",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6f5",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5ed",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "825",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6f3",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5eb",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "827",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6f4",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5ec",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "899",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6f9",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5f1",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "830",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6f7",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5ef",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "829",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6f6",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5ee",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "831",
+      "date": "2025-05-01",
+      "class": "CLS-2",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6812c7c25b7e09e7758ae6f8",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6812cb19e3e9722444fdd5f0",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "745",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a35",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a4034",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "747",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a36",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a4035",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "751",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a37",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a4036",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "752",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a38",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a4037",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "756",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680636bda338631fb68a4038",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680635d9a338631fb68a3a39",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "757",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a3a",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a4039",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "758",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a3b",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a403a",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "759",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a3c",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a403b",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "760",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680636bda338631fb68a403c",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680635d9a338631fb68a3a3d",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "762",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a3e",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a403d",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "763",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a3f",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a403e",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "764",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a40",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a403f",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "765",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a41",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a4040",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "768",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a42",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a4041",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "770",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a43",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a4042",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "771",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a44",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a4043",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "779",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a47",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a4046",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "775",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a46",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a4045",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "781",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a48",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a4047",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "772",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a45",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a4044",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "783",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680636bda338631fb68a4048",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680635d9a338631fb68a3a49",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "786",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680636bda338631fb68a4049",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680635d9a338631fb68a3a4a",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "787",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a4b",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a404a",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "788",
+      "date": "2025-04-21",
+      "class": "CLS-3",
+      "period": 4,
+      "subject": "SBJ-23",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "680635d9a338631fb68a3a4c",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680636bda338631fb68a404b",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "858",
+      "date": "2025-04-28",
+      "class": "CLS-9",
+      "period": 1,
+      "subject": "SBJ-01",
+      "totalRecords": 3,
+      "keeping": {
+        "id": "680ed37ccb5295d31c83fb15",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680eda69921c391cc913a81e",
+          "present": true
+        },
+        {
+          "id": "680ede9629220acc7e52515a",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "859",
+      "date": "2025-04-28",
+      "class": "CLS-9",
+      "period": 1,
+      "subject": "SBJ-01",
+      "totalRecords": 3,
+      "keeping": {
+        "id": "680ed37ccb5295d31c83fb16",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680eda69921c391cc913a81f",
+          "present": true
+        },
+        {
+          "id": "680ede9629220acc7e52515b",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "860",
+      "date": "2025-04-28",
+      "class": "CLS-9",
+      "period": 1,
+      "subject": "SBJ-01",
+      "totalRecords": 3,
+      "keeping": {
+        "id": "680ed37ccb5295d31c83fb17",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680eda69921c391cc913a820",
+          "present": true
+        },
+        {
+          "id": "680ede9629220acc7e52515c",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "863",
+      "date": "2025-04-28",
+      "class": "CLS-9",
+      "period": 1,
+      "subject": "SBJ-01",
+      "totalRecords": 3,
+      "keeping": {
+        "id": "680ed37ccb5295d31c83fb1a",
+        "present": false
+      },
+      "removing": [
+        {
+          "id": "680eda69921c391cc913a823",
+          "present": false
+        },
+        {
+          "id": "680ede9629220acc7e52515f",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "862",
+      "date": "2025-04-28",
+      "class": "CLS-9",
+      "period": 1,
+      "subject": "SBJ-01",
+      "totalRecords": 3,
+      "keeping": {
+        "id": "680ed37ccb5295d31c83fb19",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680eda69921c391cc913a822",
+          "present": true
+        },
+        {
+          "id": "680ede9629220acc7e52515e",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "864",
+      "date": "2025-04-28",
+      "class": "CLS-9",
+      "period": 1,
+      "subject": "SBJ-01",
+      "totalRecords": 3,
+      "keeping": {
+        "id": "680ed37ccb5295d31c83fb1b",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680eda69921c391cc913a824",
+          "present": true
+        },
+        {
+          "id": "680ede9629220acc7e525160",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "866",
+      "date": "2025-04-28",
+      "class": "CLS-9",
+      "period": 1,
+      "subject": "SBJ-01",
+      "totalRecords": 3,
+      "keeping": {
+        "id": "680ed37ccb5295d31c83fb1d",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680eda69921c391cc913a826",
+          "present": true
+        },
+        {
+          "id": "680ede9629220acc7e525162",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "861",
+      "date": "2025-04-28",
+      "class": "CLS-9",
+      "period": 1,
+      "subject": "SBJ-01",
+      "totalRecords": 3,
+      "keeping": {
+        "id": "680ed37ccb5295d31c83fb18",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680eda69921c391cc913a821",
+          "present": true
+        },
+        {
+          "id": "680ede9629220acc7e52515d",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "865",
+      "date": "2025-04-28",
+      "class": "CLS-9",
+      "period": 1,
+      "subject": "SBJ-01",
+      "totalRecords": 3,
+      "keeping": {
+        "id": "680ed37ccb5295d31c83fb1c",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "680eda69921c391cc913a825",
+          "present": true
+        },
+        {
+          "id": "680ede9629220acc7e525161",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "843",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7ec8",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f809d",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "844",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7ec9",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f809e",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "845",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7eca",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f809f",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "855",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7ed3",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f80a8",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "857",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e9171fd390ebc58f80aa",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e8ec1fd390ebc58f7ed5",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "853",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7ed1",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f80a6",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "847",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7ecc",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f80a1",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "856",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7ed4",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f80a9",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "850",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7ece",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f80a3",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "851",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7ecf",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f80a4",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "848",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7ecd",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f80a2",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "854",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7ed2",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f80a7",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "846",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e9171fd390ebc58f80a0",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e8ec1fd390ebc58f7ecb",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "852",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7ed0",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f80a5",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "867",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7ed6",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f80ab",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "869",
+      "date": "2025-04-30",
+      "class": "CLS-8",
+      "period": 8,
+      "subject": "SBJ-31",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6811e8ec1fd390ebc58f7ed7",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6811e9171fd390ebc58f80ac",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "884",
+      "date": "2025-12-23",
+      "class": "CLS-1",
+      "period": 8,
+      "subject": "SBJ-18",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "694a2b5a74fb0ee0903df678",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "694a6744f6547fb403e3e469",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "884",
+      "date": "2025-12-23",
+      "class": "CLS-1",
+      "period": 7,
+      "subject": "SBJ-34",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "694a2b5a74fb0ee0903df679",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "694a5c2af4006a4069c765d7",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "884",
+      "date": "2025-12-23",
+      "class": "CLS-1",
+      "period": 9,
+      "subject": "SBJ-77",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "694a2b5a74fb0ee0903df67a",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "694a649d605609bb7213fa63",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "933",
+      "date": "2025-12-20",
+      "class": "CLS-1",
+      "period": 1,
+      "subject": "SBJ-01",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6945f885868631fa86a052f6",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6945f979868631fa86a058b9",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "933",
+      "date": "2025-12-20",
+      "class": "CLS-1",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6945f885868631fa86a052f7",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "69465f83d8316647027c7837",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "933",
+      "date": "2025-12-20",
+      "class": "CLS-1",
+      "period": 5,
+      "subject": "SBJ-09",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6945f885868631fa86a052fa",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "69460e3a301059b8213b4cda",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "933",
+      "date": "2025-12-20",
+      "class": "CLS-1",
+      "period": 8,
+      "subject": "SBJ-08",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6945f885868631fa86a052fc",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6946a4b4c597c6e362b83a03",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "933",
+      "date": "2025-12-20",
+      "class": "CLS-1",
+      "period": 9,
+      "subject": "SBJ-35",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6945f885868631fa86a052fe",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "694672662444d51e5e66d70f",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "941",
+      "date": "2026-01-06",
+      "class": "CLS-1",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "695c9b3a9b59fdefe3f75c3d",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "695cd3cceebe70c5f03e2093",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "941",
+      "date": "2026-01-06",
+      "class": "CLS-1",
+      "period": 5,
+      "subject": "SBJ-09",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "695c9b3a9b59fdefe3f75c40",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "695c9e1f698bb368ad7b3e7b",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "941",
+      "date": "2026-01-06",
+      "class": "CLS-1",
+      "period": 9,
+      "subject": "SBJ-77",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "695c9b3a9b59fdefe3f75c44",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "695cd265eebe70c5f03e16ad",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "951",
+      "date": "2025-12-21",
+      "class": "CLS-1",
+      "period": 1,
+      "subject": "SBJ-01",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6945f7ff868631fa86a05281",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6947490acec160189faa36f5",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "951",
+      "date": "2025-12-21",
+      "class": "CLS-1",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6945f7ff868631fa86a05282",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6947c1d39eb86054896a2f53",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "951",
+      "date": "2025-12-21",
+      "class": "CLS-1",
+      "period": 4,
+      "subject": "SBJ-32",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6945f7ff868631fa86a05284",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "694793da2494838af85b0fec",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "951",
+      "date": "2025-12-21",
+      "class": "CLS-1",
+      "period": 5,
+      "subject": "SBJ-09",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6945f7ff868631fa86a05285",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6947801167fdaf5245db9151",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "951",
+      "date": "2025-12-21",
+      "class": "CLS-1",
+      "period": 6,
+      "subject": "SBJ-04",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6945f7ff868631fa86a05286",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "69478bb2fe1db1ed008293ad",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "951",
+      "date": "2025-12-21",
+      "class": "CLS-1",
+      "period": 8,
+      "subject": "SBJ-08",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6945f7ff868631fa86a05287",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6947ca221d1839d044562619",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "951",
+      "date": "2025-12-21",
+      "class": "CLS-1",
+      "period": 7,
+      "subject": "SBJ-33",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6945f7ff868631fa86a05288",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6947b1706d9af4983cc580fe",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "951",
+      "date": "2025-12-21",
+      "class": "CLS-1",
+      "period": 9,
+      "subject": "SBJ-77",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6945f7ff868631fa86a05289",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6947c1f22e3c1800388e539c",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "976",
+      "date": "2025-12-21",
+      "class": "CLS-1",
+      "period": 2,
+      "subject": "SBJ-05",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6947b07a6d9af4983cc57ae1",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6947c1d39eb86054896a2f58",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "976",
+      "date": "2025-12-21",
+      "class": "CLS-1",
+      "period": 8,
+      "subject": "SBJ-08",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6947b07a6d9af4983cc57ae6",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6947ca221d1839d04456261e",
+          "present": true
+        }
+      ]
+    },
+    {
+      "student": "976",
+      "date": "2025-12-21",
+      "class": "CLS-1",
+      "period": 7,
+      "subject": "SBJ-33",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6947b07a6d9af4983cc57ae7",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6947b1706d9af4983cc58103",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "976",
+      "date": "2025-12-21",
+      "class": "CLS-1",
+      "period": 9,
+      "subject": "SBJ-77",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "6947b07a6d9af4983cc57ae8",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6947c1f22e3c1800388e53a1",
+          "present": false
+        }
+      ]
+    },
+    {
+      "student": "978",
+      "date": "2025-12-31",
+      "class": "CLS-1",
+      "period": 8,
+      "subject": "SBJ-18",
+      "totalRecords": 2,
+      "keeping": {
+        "id": "69551fbba7c1c7a7ad88331f",
+        "present": true
+      },
+      "removing": [
+        {
+          "id": "6955200b252a661e1b27c123",
+          "present": true
+        }
+      ]
+    }
+  ]
+}

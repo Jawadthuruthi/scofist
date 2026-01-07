@@ -185,11 +185,9 @@ export async function GET(req, res) {
     return apiResponse.error(error);
   }
 }
-
 export async function POST(req, res) {
   try {
     await connectToDB();
-
     const body = await req.json();
 
     // Validate required fields
@@ -202,6 +200,7 @@ export async function POST(req, res) {
       "day",
       "date",
     ];
+
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
@@ -211,29 +210,77 @@ export async function POST(req, res) {
       }
     }
 
+    // 🔒 STEP 1: Check if attendance already exists at Attendance level
+    const existingAttendance = await Attendance.findOne({
+      classId: body.classId,
+      batchId: body.batchId,
+      subjectId: body.subjectId,
+      date: new Date(body.date),
+      periodNumber: body.periodNumber,
+    });
+
+    if (existingAttendance) {
+      return NextResponse.json(
+        {
+          error: "Attendance already recorded",
+          message:
+            "Attendance for this class, subject, period and date already exists.",
+        },
+        { status: 409 } // 409 Conflict
+      );
+    }
+
+    // Create new attendance record
     const newAttendance = await Attendance.create(body);
     await markTeacherAttendanceFromStudentAttendance(newAttendance);
-    const bulkOps = newAttendance.attendanceData.map((student) => {
-      return {
-        updateOne: {
-          filter: { studentId: student.studentId },
-          update: {
-            $push: {
-              attendanceRecords: {
-                classId: newAttendance.classId,
-                batchId: newAttendance.batchId,
-                subjectId: newAttendance.subjectId,
-                periodNumber: newAttendance.periodNumber,
-                day: newAttendance.day,
-                date: newAttendance.date,
-                present: student.present,
+
+    // 🔒 STEP 2: Safe update - check for duplicates before adding to student records
+    const bulkOps = [];
+    let skippedCount = 0;
+
+    for (const student of newAttendance.attendanceData) {
+      // Check if this exact attendance record already exists for this student
+      const existingRecord = await StudentAttendance.findOne({
+        studentId: student.studentId,
+        attendanceRecords: {
+          $elemMatch: {
+            date: new Date(newAttendance.date),
+            classId: newAttendance.classId,
+            periodNumber: newAttendance.periodNumber,
+            subjectId: newAttendance.subjectId,
+          },
+        },
+      });
+
+      if (!existingRecord) {
+        // Safe to add - no duplicate
+        bulkOps.push({
+          updateOne: {
+            filter: { studentId: student.studentId },
+            update: {
+              $push: {
+                attendanceRecords: {
+                  classId: newAttendance.classId,
+                  batchId: newAttendance.batchId,
+                  subjectId: newAttendance.subjectId,
+                  periodNumber: newAttendance.periodNumber,
+                  day: newAttendance.day,
+                  date: newAttendance.date,
+                  present: student.present,
+                },
               },
             },
+            upsert: true,
           },
-          upsert: true,
-        },
-      };
-    });
+        });
+      } else {
+        // Skip duplicate
+        skippedCount++;
+        console.warn(
+          `⚠️ Duplicate skipped: Student ${student.studentId} already has attendance for ${newAttendance.date}, period ${newAttendance.periodNumber}`
+        );
+      }
+    }
 
     // Execute the bulk operation if there are students
     if (bulkOps.length > 0) {
@@ -244,6 +291,10 @@ export async function POST(req, res) {
       {
         attendance: newAttendance,
         message: "Attendance created successfully!",
+        studentsUpdated: bulkOps.length,
+        ...(skippedCount > 0 && {
+          warning: `${skippedCount} students already had this attendance record`,
+        }),
       },
       { status: 201 }
     );
@@ -252,10 +303,10 @@ export async function POST(req, res) {
     if (error.code === 11000) {
       return NextResponse.json(
         {
-          error:
-            "Attendance record already exists for this class, subject, period and date",
+          error: "Attendance record already exists",
+          message: "This attendance has already been recorded.",
         },
-        { status: 400 }
+        { status: 409 }
       );
     }
     return apiResponse.error(error);

@@ -1,3 +1,4 @@
+// models/StudentAttendance.js
 import { model, models, Schema } from "mongoose";
 import User from "./User";
 import Class from "./Class";
@@ -48,15 +49,15 @@ const studentAttendanceSchema = new Schema(
       },
     ],
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
+// Add indexes
 studentAttendanceSchema.index({ "attendanceRecords.classId": 1 });
 studentAttendanceSchema.index({ "attendanceRecords.batchId": 1 });
 studentAttendanceSchema.index({ "attendanceRecords.date": 1 });
 
+// FIXED: Static method to get attendance toppers
 studentAttendanceSchema.statics.getAttendanceToppers = async function (
   filterOptions
 ) {
@@ -70,7 +71,7 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
     groupByClass = true,
   } = filterOptions;
 
-  // Build match conditions dynamically based on provided filters
+  // Build match conditions for AFTER $unwind
   const matchConditions = {};
 
   // Add filters only if they are provided
@@ -90,6 +91,7 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
     }
   }
 
+  // CRITICAL FIX: Date filtering for AFTER $unwind
   if (startDate && endDate) {
     matchConditions["attendanceRecords.date"] = {
       $gte: new Date(`${startDate}T00:00:00.000Z`),
@@ -107,16 +109,17 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
 
   // Create the aggregation pipeline to calculate attendance percentages
   let calculationPipeline = [
-    // Unwind the attendance records array
+    // STEP 1: Unwind the attendance records array FIRST
     { $unwind: "$attendanceRecords" },
 
-    // Match records based on filter criteria - only if we have any filters
+    // STEP 2: Match records based on filter criteria (AFTER unwind)
     ...(Object.keys(matchConditions).length > 0
       ? [{ $match: matchConditions }]
       : []),
+
+    // STEP 3: Group by student and classId if groupByClass is enabled
   ];
 
-  // Group by student and classId if groupByClass is enabled
   if (groupByClass) {
     calculationPipeline.push({
       $group: {
@@ -170,7 +173,9 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
   });
 
   // Sort by attendance percentage in descending order
-  calculationPipeline.push({ $sort: { attendancePercentage: -1 } });
+  calculationPipeline.push({
+    $sort: { attendancePercentage: -1 },
+  });
 
   // Execute the calculation pipeline
   const allStudents = await this.aggregate(calculationPipeline);
@@ -191,8 +196,6 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
 
   // Group results by classId
   const resultsByClass = {};
-
-  // Get highest percentage across all classes
 
   // Group students by classId and filter to get only the top performers in each class
   allStudents.forEach((student) => {
@@ -217,15 +220,17 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
   // Convert to array of class results
   let classResults = Object.values(resultsByClass);
 
-  // Get all class IDs from results (before pagination) to sort them by name
-  const allClassIds = classResults.map(r => r.classId);
-  console.log("Toppers Sorting - allClassIds:", allClassIds);
-
-  const allClasses = await Class.find({ _id: { $in: allClassIds } }, { name: 1 }).lean();
-  console.log("Toppers Sorting - Found Classes count:", allClasses.length);
+  // Get all class IDs from results before pagination to sort them by name
+  const allClassIds = classResults.map((r) => r.classId);
+  const allClasses = await Class.find(
+    { _id: { $in: allClassIds } },
+    { name: 1 }
+  ).lean();
 
   const allClassMap = {};
-  allClasses.forEach(c => allClassMap[String(c._id)] = c.name);
+  allClasses.forEach((c) => {
+    allClassMap[String(c._id)] = c.name;
+  });
 
   // Custom sort order
   const classOrder = [
@@ -240,30 +245,24 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
     "8TH STD",
     "9TH STD",
     "10TH STD",
-  ].map((name) => name.replace(/\s/g, "").toUpperCase());
+  ].map((name) => name.replace(/\s+/g, "").toUpperCase());
 
   classResults.sort((a, b) => {
-    const rawNameA = allClassMap[String(a.classId)] || "";
-    const rawNameB = allClassMap[String(b.classId)] || "";
-
-    const nameA = rawNameA.trim().toUpperCase().replace(/\s/g, "");
-    const nameB = rawNameB.trim().toUpperCase().replace(/\s/g, "");
+    const rawNameA = allClassMap[String(a.classId)];
+    const rawNameB = allClassMap[String(b.classId)];
+    const nameA = rawNameA.trim().toUpperCase().replace(/\s+/g, "");
+    const nameB = rawNameB.trim().toUpperCase().replace(/\s+/g, "");
 
     const indexA = classOrder.indexOf(nameA);
     const indexB = classOrder.indexOf(nameB);
-
-    // console.log(`Comparing ${rawNameA} (${indexA}) vs ${rawNameB} (${indexB})`);
 
     if (indexA !== -1 && indexB !== -1) {
       return indexA - indexB;
     }
     if (indexA !== -1) return -1;
     if (indexB !== -1) return 1;
-
     return nameA.localeCompare(nameB);
   });
-
-  console.log("Toppers Sorting - Sorted Classes:", classResults.map(r => allClassMap[String(r.classId)]));
 
   // Apply pagination to the sorted class results
   const total = classResults.length;
@@ -290,15 +289,11 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
     studentMap[student._id] = student.name;
   });
 
-  // Re-use the class map we already built (though it contains all classes, it has what we need)
-  const classMap = allClassMap;
-
   // Format the final result
   const toppers = paginatedClassResults.map((classResult) => {
     const studentDetails = classResult.students.map((student) => ({
       studentId: student.studentId,
-      studentName:
-        `${student.studentId} ${studentMap[student.studentId]}` || "Unknown",
+      studentName: studentMap[student.studentId] || "Unknown",
       totalClasses: student.totalClasses,
       presentCount: student.presentCount,
       attendancePercentage: student.attendancePercentage,
@@ -307,7 +302,7 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
 
     return {
       classId: classResult.classId,
-      className: classMap[classResult.classId] || "Unknown Class",
+      className: allClassMap[classResult.classId] || "Unknown Class",
       highestPercentage: classResult.highestPercentage,
       dateRange: {
         startDate: startDate || null,
@@ -326,7 +321,7 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
       page: parseInt(page),
       limit: parseInt(limit),
       total,
-      totalPages: Math.max(0, Math.ceil(total / parseInt(limit)) - 1),
+      totalPages: Math.max(0, Math.ceil(total / parseInt(limit) - 1)),
     },
   };
 };
@@ -334,4 +329,5 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
 const StudentAttendance =
   models.StudentAttendance ||
   model("StudentAttendance", studentAttendanceSchema);
+
 export default StudentAttendance;

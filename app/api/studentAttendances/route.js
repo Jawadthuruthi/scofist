@@ -100,46 +100,46 @@ export async function GET(req, res) {
                   // Filter by class if specified
                   ...(recordFilters.classId
                     ? [
-                      {
-                        $eq: ["$$record.classId", recordFilters.classId],
-                      },
-                    ]
+                        {
+                          $eq: ["$$record.classId", recordFilters.classId],
+                        },
+                      ]
                     : []),
 
                   // Filter by batch if specified
                   ...(recordFilters.batchId
                     ? [
-                      {
-                        $eq: ["$$record.batchId", recordFilters.batchId],
-                      },
-                    ]
+                        {
+                          $eq: ["$$record.batchId", recordFilters.batchId],
+                        },
+                      ]
                     : []),
 
                   // Filter by subject if specified
                   ...(recordFilters.subjectId
                     ? [
-                      {
-                        $eq: ["$$record.subjectId", recordFilters.subjectId],
-                      },
-                    ]
+                        {
+                          $eq: ["$$record.subjectId", recordFilters.subjectId],
+                        },
+                      ]
                     : []),
 
                   // Date filtering - start date if specified
                   ...(dateFilter?.start
                     ? [
-                      {
-                        $gte: ["$$record.date", dateFilter.start],
-                      },
-                    ]
+                        {
+                          $gte: ["$$record.date", dateFilter.start],
+                        },
+                      ]
                     : []),
 
                   // Date filtering - end date if specified
                   ...(dateFilter?.end
                     ? [
-                      {
-                        $lte: ["$$record.date", dateFilter.end],
-                      },
-                    ]
+                        {
+                          $lte: ["$$record.date", dateFilter.end],
+                        },
+                      ]
                     : []),
                 ],
               },
@@ -170,9 +170,8 @@ export async function GET(req, res) {
     ];
 
     // Execute the aggregation pipeline
-    const studentAttendances = await StudentAttendance.aggregate(
-      pipeline
-    ).exec();
+    const studentAttendances =
+      await StudentAttendance.aggregate(pipeline).exec();
 
     // Populate references
     const populatedAttendances = await StudentAttendance.populate(
@@ -214,42 +213,42 @@ export async function GET(req, res) {
                   // Same filters as main pipeline
                   ...(recordFilters.classId
                     ? [
-                      {
-                        $eq: ["$$record.classId", recordFilters.classId],
-                      },
-                    ]
+                        {
+                          $eq: ["$$record.classId", recordFilters.classId],
+                        },
+                      ]
                     : []),
 
                   ...(recordFilters.batchId
                     ? [
-                      {
-                        $eq: ["$$record.batchId", recordFilters.batchId],
-                      },
-                    ]
+                        {
+                          $eq: ["$$record.batchId", recordFilters.batchId],
+                        },
+                      ]
                     : []),
 
                   ...(recordFilters.subjectId
                     ? [
-                      {
-                        $eq: ["$$record.subjectId", recordFilters.subjectId],
-                      },
-                    ]
+                        {
+                          $eq: ["$$record.subjectId", recordFilters.subjectId],
+                        },
+                      ]
                     : []),
 
                   ...(dateFilter?.start
                     ? [
-                      {
-                        $gte: ["$$record.date", dateFilter.start],
-                      },
-                    ]
+                        {
+                          $gte: ["$$record.date", dateFilter.start],
+                        },
+                      ]
                     : []),
 
                   ...(dateFilter?.end
                     ? [
-                      {
-                        $lte: ["$$record.date", dateFilter.end],
-                      },
-                    ]
+                        {
+                          $lte: ["$$record.date", dateFilter.end],
+                        },
+                      ]
                     : []),
                 ],
               },
@@ -271,6 +270,8 @@ export async function GET(req, res) {
 
     const countResult = await StudentAttendance.aggregate(countPipeline).exec();
     const total = countResult.length > 0 ? countResult[0].total : 0;
+
+    console.log(formattedStudentAttendances?.map((sa) => sa.attendanceRecords));
 
     return NextResponse.json(
       {
