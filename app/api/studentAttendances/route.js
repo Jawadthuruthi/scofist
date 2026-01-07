@@ -271,8 +271,6 @@ export async function GET(req, res) {
     const countResult = await StudentAttendance.aggregate(countPipeline).exec();
     const total = countResult.length > 0 ? countResult[0].total : 0;
 
-    console.log(formattedStudentAttendances?.map((sa) => sa.attendanceRecords));
-
     return NextResponse.json(
       {
         studentAttendances: formattedStudentAttendances,

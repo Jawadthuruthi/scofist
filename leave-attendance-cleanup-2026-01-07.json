@@ -1,0 +1,1435 @@
+{
+  "timestamp": "2026-01-07T18:21:03.128Z",
+  "dryRun": true,
+  "summary": {
+    "affectedStudents": 109,
+    "recordsToRemove": 662
+  },
+  "details": [
+    {
+      "studentId": "933",
+      "arrivalDate": "2025-07-12",
+      "periodsCount": 5,
+      "recordIds": [
+        "6873138717a3cb01e2f80e11",
+        "6873251e0dd770b8f9a25377",
+        "68733c2491213c4a4b74d124",
+        "68737103644215e3caf48d28",
+        "68737c6a80ea8c6954147e51"
+      ]
+    },
+    {
+      "studentId": "715",
+      "arrivalDate": "2025-07-12",
+      "periodsCount": 5,
+      "recordIds": [
+        "6873111751fc340aba7690ee",
+        "68731ba79a3c39c029440a97",
+        "68731c78f0b297f7dcc1f02d",
+        "687349231c71523277f4bc1f",
+        "687370ad117d58d1b39df5eb"
+      ]
+    },
+    {
+      "studentId": "944",
+      "arrivalDate": "2025-07-13",
+      "periodsCount": 6,
+      "recordIds": [
+        "687464035c46ef32f39e397d",
+        "68746d73e82e0190ce9498cf",
+        "68748d9e0f95f157c8805cbd",
+        "68748faacd78b568e1cac6cf",
+        "6874a07d2374d1d8a534c430",
+        "6874ce950e04debc18a84626"
+      ]
+    },
+    {
+      "studentId": "971",
+      "arrivalDate": "2025-07-13",
+      "periodsCount": 6,
+      "recordIds": [
+        "687464035c46ef32f39e3988",
+        "68746d73e82e0190ce9498da",
+        "68748d9e0f95f157c8805cc8",
+        "68748faacd78b568e1cac6da",
+        "6874a07d2374d1d8a534c43b",
+        "6874ce950e04debc18a84631"
+      ]
+    },
+    {
+      "studentId": "712",
+      "arrivalDate": "2025-07-13",
+      "periodsCount": 2,
+      "recordIds": [
+        "68746cab3c1063613c505762",
+        "68746d0c092b9fc766f4d790"
+      ]
+    },
+    {
+      "studentId": "608",
+      "arrivalDate": "2025-07-16",
+      "periodsCount": 4,
+      "recordIds": [
+        "68784c2b13a799f4921477d6",
+        "687853db8222e183aefb9154",
+        "6878779570c7b12569dd7c2f",
+        "68787fae61d7e69050b4598c"
+      ]
+    },
+    {
+      "studentId": "703",
+      "arrivalDate": "2025-07-18",
+      "periodsCount": 5,
+      "recordIds": [
+        "687af8d7a3ead71b89d2ed0e",
+        "687b045c6a0122aa1699dcf0",
+        "687b1cefbf205c3846a8d5ff",
+        "687b28c7885a581acbe0e943",
+        "687b39c34044641fc4e96f19"
+      ]
+    },
+    {
+      "studentId": "710",
+      "arrivalDate": "2025-07-18",
+      "periodsCount": 5,
+      "recordIds": [
+        "687af8d7a3ead71b89d2ed0f",
+        "687b045c6a0122aa1699dcf1",
+        "687b1cefbf205c3846a8d600",
+        "687b28c7885a581acbe0e944",
+        "687b39c34044641fc4e96f1a"
+      ]
+    },
+    {
+      "studentId": "921",
+      "arrivalDate": "2025-07-18",
+      "periodsCount": 6,
+      "recordIds": [
+        "687b00eb4902924970f42b09",
+        "687b31cf9278cce4325c4247",
+        "687b3c9f9d45d5a96572f54a",
+        "687b69cd467e45b2295e9d09",
+        "687bab3cec779865e0f970e4",
+        "687bc21b73d053a21eff81a7"
+      ]
+    },
+    {
+      "studentId": "882",
+      "arrivalDate": "2025-07-30",
+      "periodsCount": 1,
+      "recordIds": [
+        "688acb15662aa322717d8b2c"
+      ]
+    },
+    {
+      "studentId": "883",
+      "arrivalDate": "2025-07-30",
+      "periodsCount": 1,
+      "recordIds": [
+        "688acb15662aa322717d8b2d"
+      ]
+    },
+    {
+      "studentId": "973",
+      "arrivalDate": "2025-07-26",
+      "periodsCount": 3,
+      "recordIds": [
+        "6885865ac5ec131fe1a47429",
+        "68858cb1eccd011272d885cd",
+        "6885eb250ce51e39c0ed185d"
+      ]
+    },
+    {
+      "studentId": "803",
+      "arrivalDate": "2025-08-04",
+      "periodsCount": 8,
+      "recordIds": [
+        "689159bcf68ce7cf387c0e2a",
+        "68916347a09584e234acd792",
+        "6891704658e3d291c35203dc",
+        "689189f27f9b827a29bc9355",
+        "68919c4ad00e8c184b09c9d8",
+        "6891c5f1b19ec5e5dbda942d",
+        "6891ceac0282a195f666863c",
+        "6891d521d4c9de377fc97289"
+      ]
+    },
+    {
+      "studentId": "863",
+      "arrivalDate": "2025-07-30",
+      "periodsCount": 2,
+      "recordIds": [
+        "688aea62a72664a3113db8c8",
+        "688b5a1ba89573c4d3583c5e"
+      ]
+    },
+    {
+      "studentId": "901",
+      "arrivalDate": "2025-08-01",
+      "periodsCount": 7,
+      "recordIds": [
+        "688d72d6b181ca18195e7303",
+        "688d7fe8b181ca18195e8554",
+        "688d93ce7de20f55b9b09ba2",
+        "688d9c202e9985c5365bc41e",
+        "688da52b389892feed7ebbd1",
+        "688dcee6ebc173d0d08ebae6",
+        "688dda2e43a687619c7ac9e2"
+      ]
+    },
+    {
+      "studentId": "842",
+      "arrivalDate": "2025-08-03",
+      "periodsCount": 6,
+      "recordIds": [
+        "68901142bd17c87b582ef15c",
+        "68901dee912d71869bf6c72a",
+        "6890329bff147bca67758a24",
+        "68903a5de0d3b61ff2b9eb0b",
+        "6890726dd003aac80fe4ce14",
+        "68907fa94e507b2d4e02367c"
+      ]
+    },
+    {
+      "studentId": "839",
+      "arrivalDate": "2025-08-08",
+      "periodsCount": 5,
+      "recordIds": [
+        "68969ffe30f0e6663b11cae3",
+        "6896a9b7d9e054376898b50a",
+        "6896cd34571ba8db78626d8f",
+        "689708bfe16d93ce0f51014c",
+        "6897196763509a37314953bf"
+      ]
+    },
+    {
+      "studentId": "971",
+      "arrivalDate": "2025-08-15",
+      "periodsCount": 5,
+      "recordIds": [
+        "68a01435c972d43153d378ad",
+        "68a044818bc5b61b8d089b74",
+        "68a0494f2dadbddfa1bf41b3",
+        "68a049f22c4c7f7374653bfa",
+        "68a076c9f65ee641f9fdaa4e"
+      ]
+    },
+    {
+      "studentId": "764",
+      "arrivalDate": "2025-08-10",
+      "periodsCount": 6,
+      "recordIds": [
+        "689942820d886ece58887d0c",
+        "6899584be459b4660d9193f8",
+        "689958fdeb6b468f380ad005",
+        "68996f6f5cf2a04733e94520",
+        "68997bb7fd5a2cada183b329",
+        "6899bfdf7f3736c0672f95f0"
+      ]
+    },
+    {
+      "studentId": "951",
+      "arrivalDate": "2025-08-15",
+      "periodsCount": 7,
+      "recordIds": [
+        "689fe7ebb175a986e56d73c5",
+        "689ff8c882e26f49026aa661",
+        "68a0042df11fec0a69aa570c",
+        "68a0131de9efd1f36465cdad",
+        "68a04f905051d9afaf05b1ce",
+        "68a04fa48a78a41d5218bb34",
+        "68a050a68a78a41d5218bdfb"
+      ]
+    },
+    {
+      "studentId": "762",
+      "arrivalDate": "2025-08-25",
+      "periodsCount": 4,
+      "recordIds": [
+        "68ad08b9a559d49718c29ca9",
+        "68ad126c8f84bf1c701e4170",
+        "68ad215534cf21bca7893149",
+        "68ad3617e5daac647041f629"
+      ]
+    },
+    {
+      "studentId": "982",
+      "arrivalDate": "2025-09-13",
+      "periodsCount": 5,
+      "recordIds": [
+        "68c61e6a02eecc3dacdb63fd",
+        "68c62b0dfa55de4d3a8f75dc",
+        "68c62b4a5174a54358d887f4",
+        "68c6586ffee6c08c988c6ace",
+        "68c6611ca0c013b3e52181d5"
+      ]
+    },
+    {
+      "studentId": "852",
+      "arrivalDate": "2025-09-21",
+      "periodsCount": 1,
+      "recordIds": [
+        "68d0aa6566a6457c6e0fb362"
+      ]
+    },
+    {
+      "studentId": "692",
+      "arrivalDate": "2025-09-26",
+      "periodsCount": 6,
+      "recordIds": [
+        "68d734d1bba3359a3ea763c0",
+        "68d74abbf8861073d417ce5a",
+        "68d74db0f8861073d417d58a",
+        "68d7a8b7d18a68f8b11221b7",
+        "68d7b669e10bb7d6b701b879",
+        "68d7b679e10bb7d6b701bc2f"
+      ]
+    },
+    {
+      "studentId": "851",
+      "arrivalDate": "2025-10-25",
+      "periodsCount": 2,
+      "recordIds": [
+        "68fd7ca48b8c372adcc8a198",
+        "68fd8ea19dc747afed095dbd"
+      ]
+    },
+    {
+      "studentId": "932",
+      "arrivalDate": "2025-10-03",
+      "periodsCount": 5,
+      "recordIds": [
+        "68e07a97faf5f04241570637",
+        "68e07e73306d6d74bb4b8c4b",
+        "68e09118c6a468ee19ccd3dd",
+        "68e0a323565b16dd785ef51a",
+        "68e0ea0b4e220a310d0cb9ab"
+      ]
+    },
+    {
+      "studentId": "917",
+      "arrivalDate": "2025-10-07",
+      "periodsCount": 1,
+      "recordIds": [
+        "68e5bbe5484ae13b1678a8f9"
+      ]
+    },
+    {
+      "studentId": "951",
+      "arrivalDate": "2025-10-05",
+      "periodsCount": 8,
+      "recordIds": [
+        "68e318fa6d9ce6a4e2dc01d7",
+        "68e325106d786940d66c693a",
+        "68e32c6022fbb3e25d7ff3aa",
+        "68e35102643e5afdf5a74b15",
+        "68e3586cdb063c74c3c02139",
+        "68e38aebd1c0be3885787cdc",
+        "68e38c44865e799ebafb9c4f",
+        "68e3945e76ff54efac719b2d"
+      ]
+    },
+    {
+      "studentId": "775",
+      "arrivalDate": "2025-10-12",
+      "periodsCount": 6,
+      "recordIds": [
+        "68ec54cd4010d933b0454d62",
+        "68ec67e2d4ee298564820a55",
+        "68ec686e11336f04b591333d",
+        "68ec7ca85fdd1c48cb0d4afc",
+        "68ec8d3d205128082038088b",
+        "68ecbe93de0baafa36a6d993"
+      ]
+    },
+    {
+      "studentId": "902",
+      "arrivalDate": "2025-10-10",
+      "periodsCount": 2,
+      "recordIds": [
+        "68e9b027faf3a1a9cd008a7e",
+        "68e9cb222df3f952422cf458"
+      ]
+    },
+    {
+      "studentId": "770",
+      "arrivalDate": "2025-10-19",
+      "periodsCount": 1,
+      "recordIds": [
+        "68f59fe21df1b262b4bdf441"
+      ]
+    },
+    {
+      "studentId": "915",
+      "arrivalDate": "2025-10-18",
+      "periodsCount": 3,
+      "recordIds": [
+        "68f4525eb8cea5bd993f707f",
+        "68f4748b133603eb0aeda4bf",
+        "68f4db126d87089b8a6555c5"
+      ]
+    },
+    {
+      "studentId": "925",
+      "arrivalDate": "2025-10-18",
+      "periodsCount": 3,
+      "recordIds": [
+        "68f4525eb8cea5bd993f7086",
+        "68f4748b133603eb0aeda4c6",
+        "68f4db126d87089b8a6555cc"
+      ]
+    },
+    {
+      "studentId": "984",
+      "arrivalDate": "2025-10-24",
+      "periodsCount": 2,
+      "recordIds": [
+        "68fc267bb29ec3b24653c7b8",
+        "68fc6109d8e35da7d43f925f"
+      ]
+    },
+    {
+      "studentId": "971",
+      "arrivalDate": "2025-11-07",
+      "periodsCount": 5,
+      "recordIds": [
+        "690ede60af8527aba9188580",
+        "690f00cfda3576ce0e97c88a",
+        "690f10817fa005b3f885f5c8",
+        "690f720dbc240a169e540f86",
+        "690f757de2e95e0bde847f75"
+      ]
+    },
+    {
+      "studentId": "925",
+      "arrivalDate": "2025-10-28",
+      "periodsCount": 1,
+      "recordIds": [
+        "69016a025eb135ba1348b123"
+      ]
+    },
+    {
+      "studentId": "888",
+      "arrivalDate": "2025-11-03",
+      "periodsCount": 1,
+      "recordIds": [
+        "69095c40e0516101d8a296c4"
+      ]
+    },
+    {
+      "studentId": "795",
+      "arrivalDate": "2025-11-03",
+      "periodsCount": 7,
+      "recordIds": [
+        "6909516e42afed412bfe40f5",
+        "690968afc240845793bb54d0",
+        "69098da88fa8466ad6f2b5e6",
+        "69099f97780664e864e6e30b",
+        "69099fa8e7879694ffb3e6c1",
+        "6909c70a8ebde1b89831c923",
+        "690a0bd71fe954fc17ff25a9"
+      ]
+    },
+    {
+      "studentId": "832",
+      "arrivalDate": "2025-11-02",
+      "periodsCount": 4,
+      "recordIds": [
+        "690802f93b93499e71111bea",
+        "69080a01ac3fb6047304c72a",
+        "690837cfe2f94890cc17f289",
+        "6908d4f59b90c129e5e2fd30"
+      ]
+    },
+    {
+      "studentId": "833",
+      "arrivalDate": "2025-11-02",
+      "periodsCount": 4,
+      "recordIds": [
+        "690802f93b93499e71111beb",
+        "69080a01ac3fb6047304c72b",
+        "690837cfe2f94890cc17f28a",
+        "6908d4f59b90c129e5e2fd31"
+      ]
+    },
+    {
+      "studentId": "834",
+      "arrivalDate": "2025-11-02",
+      "periodsCount": 4,
+      "recordIds": [
+        "690802f93b93499e71111bec",
+        "69080a01ac3fb6047304c72c",
+        "690837cfe2f94890cc17f28b",
+        "6908d4f59b90c129e5e2fd32"
+      ]
+    },
+    {
+      "studentId": "904",
+      "arrivalDate": "2025-11-04",
+      "periodsCount": 1,
+      "recordIds": [
+        "690aaf26b39d273bd5c98d6b"
+      ]
+    },
+    {
+      "studentId": "951",
+      "arrivalDate": "2025-11-05",
+      "periodsCount": 2,
+      "recordIds": [
+        "690bfff3820669e1656d12d6",
+        "690c284b605a065899478633"
+      ]
+    },
+    {
+      "studentId": "888",
+      "arrivalDate": "2025-11-12",
+      "periodsCount": 1,
+      "recordIds": [
+        "691538fef244d60725b5fea4"
+      ]
+    },
+    {
+      "studentId": "915",
+      "arrivalDate": "2025-11-10",
+      "periodsCount": 1,
+      "recordIds": [
+        "69129517b24def7d292540cd"
+      ]
+    },
+    {
+      "studentId": "886",
+      "arrivalDate": "2025-11-17",
+      "periodsCount": 1,
+      "recordIds": [
+        "691bda290f643de1f0f74f2a"
+      ]
+    },
+    {
+      "studentId": "888",
+      "arrivalDate": "2025-12-01",
+      "periodsCount": 2,
+      "recordIds": [
+        "692e4969d14ee47e5b105545",
+        "692ec9764d29ec229dd93d10"
+      ]
+    },
+    {
+      "studentId": "906",
+      "arrivalDate": "2025-12-01",
+      "periodsCount": 2,
+      "recordIds": [
+        "692e4969d14ee47e5b10554f",
+        "692ec9764d29ec229dd93d1a"
+      ]
+    },
+    {
+      "studentId": "973",
+      "arrivalDate": "2025-12-02",
+      "periodsCount": 1,
+      "recordIds": [
+        "692fb334b97ea8c932c58582"
+      ]
+    },
+    {
+      "studentId": "816",
+      "arrivalDate": "2025-12-06",
+      "periodsCount": 9,
+      "recordIds": [
+        "69378a453b80de09c54ce227",
+        "69378a453b80de09c54ce228",
+        "69378a453b80de09c54ce229",
+        "69378a453b80de09c54ce22a",
+        "69378a453b80de09c54ce22b",
+        "69378a453b80de09c54ce22c",
+        "69378a453b80de09c54ce22d",
+        "69378a453b80de09c54ce22e",
+        "69378a453b80de09c54ce22f"
+      ]
+    },
+    {
+      "studentId": "917",
+      "arrivalDate": "2025-12-06",
+      "periodsCount": 9,
+      "recordIds": [
+        "6938cac74dfeec51f3195873",
+        "6938cac74dfeec51f3195874",
+        "6938cac74dfeec51f3195875",
+        "6938cac74dfeec51f3195876",
+        "6938cac74dfeec51f3195877",
+        "6938cac74dfeec51f3195878",
+        "6938cac74dfeec51f3195879",
+        "6938cac74dfeec51f319587a",
+        "6938cac74dfeec51f319587b"
+      ]
+    },
+    {
+      "studentId": "844",
+      "arrivalDate": "2025-12-05",
+      "periodsCount": 2,
+      "recordIds": [
+        "69338baeca3e246e952b9438",
+        "693390ff1e2f2e4236a2ec50"
+      ]
+    },
+    {
+      "studentId": "821",
+      "arrivalDate": "2025-12-06",
+      "periodsCount": 2,
+      "recordIds": [
+        "6934d25318d60ed421b10026",
+        "6934e7afeb576eb57e2f8cbf"
+      ]
+    },
+    {
+      "studentId": "968",
+      "arrivalDate": "2025-12-09",
+      "periodsCount": 5,
+      "recordIds": [
+        "6939b947ff8422760791e716",
+        "6939b947ff8422760791e717",
+        "6939b947ff8422760791e718",
+        "6939b947ff8422760791e719",
+        "6939b947ff8422760791e71a"
+      ]
+    },
+    {
+      "studentId": "942",
+      "arrivalDate": "2025-12-07",
+      "periodsCount": 9,
+      "recordIds": [
+        "69371a09d120b4b889e83430",
+        "69371a09d120b4b889e83431",
+        "69371a09d120b4b889e83432",
+        "69371a09d120b4b889e83433",
+        "69371a09d120b4b889e83434",
+        "69371a09d120b4b889e83435",
+        "69371a09d120b4b889e83436",
+        "69371a09d120b4b889e83437",
+        "69371a09d120b4b889e83438"
+      ]
+    },
+    {
+      "studentId": "851",
+      "arrivalDate": "2025-12-10",
+      "periodsCount": 4,
+      "recordIds": [
+        "693e95aba3e47e341c9a5c01",
+        "693e95aba3e47e341c9a5c02",
+        "693e95aba3e47e341c9a5c03",
+        "693e95aba3e47e341c9a5c04"
+      ]
+    },
+    {
+      "studentId": "795",
+      "arrivalDate": "2025-12-12",
+      "periodsCount": 9,
+      "recordIds": [
+        "693cd0a316486e7e63be2d5b",
+        "693cd0a316486e7e63be2d5c",
+        "693cd0a316486e7e63be2d5d",
+        "693cd0a316486e7e63be2d5e",
+        "693cd0a316486e7e63be2d5f",
+        "693cd0a316486e7e63be2d60",
+        "693cd0a316486e7e63be2d61",
+        "693cd0a316486e7e63be2d62",
+        "693cd0a316486e7e63be2d63"
+      ]
+    },
+    {
+      "studentId": "824",
+      "arrivalDate": "2025-12-12",
+      "periodsCount": 9,
+      "recordIds": [
+        "693e225596a94d77e6ff51a8",
+        "693e225596a94d77e6ff51a9",
+        "693e225596a94d77e6ff51aa",
+        "693e225596a94d77e6ff51ab",
+        "693e225596a94d77e6ff51ac",
+        "693e225596a94d77e6ff51ad",
+        "693e225596a94d77e6ff51ae",
+        "693e225596a94d77e6ff51af",
+        "693e225596a94d77e6ff51b0"
+      ]
+    },
+    {
+      "studentId": "831",
+      "arrivalDate": "2025-12-15",
+      "periodsCount": 9,
+      "recordIds": [
+        "69413f9b708359dd05ad0fae",
+        "69413f9b708359dd05ad0faf",
+        "69413f9b708359dd05ad0fb0",
+        "69413f9b708359dd05ad0fb1",
+        "69413f9b708359dd05ad0fb2",
+        "69413f9b708359dd05ad0fb3",
+        "69413f9b708359dd05ad0fb4",
+        "69413f9b708359dd05ad0fb5",
+        "69413f9b708359dd05ad0fb6"
+      ]
+    },
+    {
+      "studentId": "970",
+      "arrivalDate": "2025-12-12",
+      "periodsCount": 9,
+      "recordIds": [
+        "693d5b942d420e91eb6eaf07",
+        "693d5b942d420e91eb6eaf08",
+        "693d5b942d420e91eb6eaf09",
+        "693d5b942d420e91eb6eaf0a",
+        "693d5b942d420e91eb6eaf0b",
+        "693d5b942d420e91eb6eaf0c",
+        "693d5b942d420e91eb6eaf0d",
+        "693d5b942d420e91eb6eaf0e",
+        "693d5b942d420e91eb6eaf0f"
+      ]
+    },
+    {
+      "studentId": "872",
+      "arrivalDate": "2025-12-13",
+      "periodsCount": 7,
+      "recordIds": [
+        "693e958ddfa98a0b7f8ecc2a",
+        "693e958ddfa98a0b7f8ecc2b",
+        "693e958ddfa98a0b7f8ecc2c",
+        "693e958ddfa98a0b7f8ecc2d",
+        "693e958ddfa98a0b7f8ecc2e",
+        "693e958ddfa98a0b7f8ecc2f",
+        "693e958ddfa98a0b7f8ecc30"
+      ]
+    },
+    {
+      "studentId": "692",
+      "arrivalDate": "2025-12-16",
+      "periodsCount": 9,
+      "recordIds": [
+        "69439744ffb062803aadf6c5",
+        "69439744ffb062803aadf6c6",
+        "69439744ffb062803aadf6c7",
+        "69439744ffb062803aadf6c8",
+        "69439744ffb062803aadf6c9",
+        "69439744ffb062803aadf6ca",
+        "69439744ffb062803aadf6cb",
+        "69439744ffb062803aadf6cc",
+        "69439744ffb062803aadf6cd"
+      ]
+    },
+    {
+      "studentId": "817",
+      "arrivalDate": "2025-12-15",
+      "periodsCount": 9,
+      "recordIds": [
+        "69413f91708359dd05ad0f56",
+        "69413f91708359dd05ad0f57",
+        "69413f91708359dd05ad0f58",
+        "69413f91708359dd05ad0f59",
+        "69413f91708359dd05ad0f5a",
+        "69413f91708359dd05ad0f5b",
+        "69413f91708359dd05ad0f5c",
+        "69413f91708359dd05ad0f5d",
+        "69413f91708359dd05ad0f5e"
+      ]
+    },
+    {
+      "studentId": "819",
+      "arrivalDate": "2025-12-14",
+      "periodsCount": 9,
+      "recordIds": [
+        "6940c47339d24bbb5b2800b1",
+        "6940c47339d24bbb5b2800b2",
+        "6940c47339d24bbb5b2800b3",
+        "6940c47339d24bbb5b2800b4",
+        "6940c47339d24bbb5b2800b5",
+        "6940c47339d24bbb5b2800b6",
+        "6940c47339d24bbb5b2800b7",
+        "6940c47339d24bbb5b2800b8",
+        "6940c47339d24bbb5b2800b9"
+      ]
+    },
+    {
+      "studentId": "820",
+      "arrivalDate": "2025-12-14",
+      "periodsCount": 9,
+      "recordIds": [
+        "6940c47c39d24bbb5b280106",
+        "6940c47c39d24bbb5b280107",
+        "6940c47c39d24bbb5b280108",
+        "6940c47c39d24bbb5b280109",
+        "6940c47c39d24bbb5b28010a",
+        "6940c47c39d24bbb5b28010b",
+        "6940c47c39d24bbb5b28010c",
+        "6940c47c39d24bbb5b28010d",
+        "6940c47c39d24bbb5b28010e"
+      ]
+    },
+    {
+      "studentId": "821",
+      "arrivalDate": "2025-12-15",
+      "periodsCount": 9,
+      "recordIds": [
+        "69439359b9effd00ba5a0458",
+        "69439359b9effd00ba5a0459",
+        "69439359b9effd00ba5a045a",
+        "69439359b9effd00ba5a045b",
+        "69439359b9effd00ba5a045c",
+        "69439359b9effd00ba5a045d",
+        "69439359b9effd00ba5a045e",
+        "69439359b9effd00ba5a045f",
+        "69439359b9effd00ba5a0460"
+      ]
+    },
+    {
+      "studentId": "973",
+      "arrivalDate": "2025-12-14",
+      "periodsCount": 4,
+      "recordIds": [
+        "69417ef311a4ae6074d3fc88",
+        "69417ef311a4ae6074d3fc89",
+        "69417ef311a4ae6074d3fc8a",
+        "69417ef311a4ae6074d3fc8b"
+      ]
+    },
+    {
+      "studentId": "872",
+      "arrivalDate": "2025-12-13",
+      "periodsCount": 7,
+      "recordIds": [
+        "693e958ddfa98a0b7f8ecc2a",
+        "693e958ddfa98a0b7f8ecc2b",
+        "693e958ddfa98a0b7f8ecc2c",
+        "693e958ddfa98a0b7f8ecc2d",
+        "693e958ddfa98a0b7f8ecc2e",
+        "693e958ddfa98a0b7f8ecc2f",
+        "693e958ddfa98a0b7f8ecc30"
+      ]
+    },
+    {
+      "studentId": "951",
+      "arrivalDate": "2025-12-20",
+      "periodsCount": 9,
+      "recordIds": [
+        "6945f7ff868631fa86a05281",
+        "6945f7ff868631fa86a05282",
+        "6945f7ff868631fa86a05283",
+        "6945f7ff868631fa86a05284",
+        "6945f7ff868631fa86a05285",
+        "6945f7ff868631fa86a05286",
+        "6945f7ff868631fa86a05287",
+        "6945f7ff868631fa86a05288",
+        "6945f7ff868631fa86a05289"
+      ]
+    },
+    {
+      "studentId": "833",
+      "arrivalDate": "2025-12-19",
+      "periodsCount": 9,
+      "recordIds": [
+        "69476a54ba1e28040193ebe9",
+        "69476a54ba1e28040193ebea",
+        "69476a54ba1e28040193ebeb",
+        "69476a54ba1e28040193ebec",
+        "69476a54ba1e28040193ebed",
+        "69476a54ba1e28040193ebee",
+        "69476a54ba1e28040193ebef",
+        "69476a54ba1e28040193ebf0",
+        "69476a54ba1e28040193ebf1"
+      ]
+    },
+    {
+      "studentId": "841",
+      "arrivalDate": "2025-12-27",
+      "periodsCount": 9,
+      "recordIds": [
+        "69514c41ca3da662185f2de7",
+        "69514c41ca3da662185f2de8",
+        "69514c41ca3da662185f2de9",
+        "69514c41ca3da662185f2dea",
+        "69514c41ca3da662185f2deb",
+        "69514c41ca3da662185f2dec",
+        "69514c41ca3da662185f2ded",
+        "69514c41ca3da662185f2dee",
+        "69514c41ca3da662185f2def"
+      ]
+    },
+    {
+      "studentId": "933",
+      "arrivalDate": "2025-12-19",
+      "periodsCount": 9,
+      "recordIds": [
+        "6945f885868631fa86a052f6",
+        "6945f885868631fa86a052f7",
+        "6945f885868631fa86a052f8",
+        "6945f885868631fa86a052f9",
+        "6945f885868631fa86a052fa",
+        "6945f885868631fa86a052fb",
+        "6945f885868631fa86a052fc",
+        "6945f885868631fa86a052fd",
+        "6945f885868631fa86a052fe"
+      ]
+    },
+    {
+      "studentId": "976",
+      "arrivalDate": "2025-12-20",
+      "periodsCount": 9,
+      "recordIds": [
+        "6947b07a6d9af4983cc57ae0",
+        "6947b07a6d9af4983cc57ae1",
+        "6947b07a6d9af4983cc57ae2",
+        "6947b07a6d9af4983cc57ae3",
+        "6947b07a6d9af4983cc57ae4",
+        "6947b07a6d9af4983cc57ae5",
+        "6947b07a6d9af4983cc57ae6",
+        "6947b07a6d9af4983cc57ae7",
+        "6947b07a6d9af4983cc57ae8"
+      ]
+    },
+    {
+      "studentId": "916",
+      "arrivalDate": "2026-01-04",
+      "periodsCount": 5,
+      "recordIds": [
+        "695b6a84fe24f634e2a745f9",
+        "695b6a84fe24f634e2a745fa",
+        "695b6a84fe24f634e2a745fb",
+        "695b6a84fe24f634e2a745fc",
+        "695b6a84fe24f634e2a745fd"
+      ]
+    },
+    {
+      "studentId": "890",
+      "arrivalDate": "2025-12-19",
+      "periodsCount": 9,
+      "recordIds": [
+        "694748f3beef1bd3338e3f58",
+        "694748f3beef1bd3338e3f59",
+        "694748f3beef1bd3338e3f5a",
+        "694748f3beef1bd3338e3f5b",
+        "694748f3beef1bd3338e3f5c",
+        "694748f3beef1bd3338e3f5d",
+        "694748f3beef1bd3338e3f5e",
+        "694748f3beef1bd3338e3f5f",
+        "694748f3beef1bd3338e3f60"
+      ]
+    },
+    {
+      "studentId": "885",
+      "arrivalDate": "2025-12-21",
+      "periodsCount": 9,
+      "recordIds": [
+        "69495bd634617378e6632414",
+        "69495bd634617378e6632415",
+        "69495bd634617378e6632416",
+        "69495bd634617378e6632417",
+        "69495bd634617378e6632418",
+        "69495bd634617378e6632419",
+        "69495bd634617378e663241a",
+        "69495bd634617378e663241b",
+        "69495bd634617378e663241c"
+      ]
+    },
+    {
+      "studentId": "829",
+      "arrivalDate": "2025-12-21",
+      "periodsCount": 9,
+      "recordIds": [
+        "69495ebe706562179a5b800b",
+        "69495ebe706562179a5b800c",
+        "69495ebe706562179a5b800d",
+        "69495ebe706562179a5b800e",
+        "69495ebe706562179a5b800f",
+        "69495ebe706562179a5b8010",
+        "69495ebe706562179a5b8011",
+        "69495ebe706562179a5b8012",
+        "69495ebe706562179a5b8013"
+      ]
+    },
+    {
+      "studentId": "795",
+      "arrivalDate": "2025-12-19",
+      "periodsCount": 9,
+      "recordIds": [
+        "6947f0a150034ea4926cc97a",
+        "6947f0a150034ea4926cc97b",
+        "6947f0a150034ea4926cc97c",
+        "6947f0a150034ea4926cc97d",
+        "6947f0a150034ea4926cc97e",
+        "6947f0a150034ea4926cc97f",
+        "6947f0a150034ea4926cc980",
+        "6947f0a150034ea4926cc981",
+        "6947f0a150034ea4926cc982"
+      ]
+    },
+    {
+      "studentId": "905",
+      "arrivalDate": "2025-12-21",
+      "periodsCount": 9,
+      "recordIds": [
+        "69494c79555f6083cd093137",
+        "69494c79555f6083cd093138",
+        "69494c79555f6083cd093139",
+        "69494c79555f6083cd09313a",
+        "69494c79555f6083cd09313b",
+        "69494c79555f6083cd09313c",
+        "69494c79555f6083cd09313d",
+        "69494c79555f6083cd09313e",
+        "69494c79555f6083cd09313f"
+      ]
+    },
+    {
+      "studentId": "884",
+      "arrivalDate": "2025-12-22",
+      "periodsCount": 9,
+      "recordIds": [
+        "694a2b5a74fb0ee0903df672",
+        "694a2b5a74fb0ee0903df673",
+        "694a2b5a74fb0ee0903df674",
+        "694a2b5a74fb0ee0903df675",
+        "694a2b5a74fb0ee0903df676",
+        "694a2b5a74fb0ee0903df677",
+        "694a2b5a74fb0ee0903df678",
+        "694a2b5a74fb0ee0903df679",
+        "694a2b5a74fb0ee0903df67a"
+      ]
+    },
+    {
+      "studentId": "692",
+      "arrivalDate": "2025-12-22",
+      "periodsCount": 9,
+      "recordIds": [
+        "694cbf21816903a649f8c2af",
+        "694cbf21816903a649f8c2b0",
+        "694cbf21816903a649f8c2b1",
+        "694cbf21816903a649f8c2b2",
+        "694cbf21816903a649f8c2b3",
+        "694cbf21816903a649f8c2b4",
+        "694cbf21816903a649f8c2b5",
+        "694cbf21816903a649f8c2b6",
+        "694cbf21816903a649f8c2b7"
+      ]
+    },
+    {
+      "studentId": "760",
+      "arrivalDate": "2025-12-29",
+      "periodsCount": 9,
+      "recordIds": [
+        "69548161ee4b15ed5a10ccfc",
+        "69548161ee4b15ed5a10ccfd",
+        "69548161ee4b15ed5a10ccfe",
+        "69548161ee4b15ed5a10ccff",
+        "69548161ee4b15ed5a10cd00",
+        "69548161ee4b15ed5a10cd01",
+        "69548161ee4b15ed5a10cd02",
+        "69548161ee4b15ed5a10cd03",
+        "69548161ee4b15ed5a10cd04"
+      ]
+    },
+    {
+      "studentId": "978",
+      "arrivalDate": "2025-12-30",
+      "periodsCount": 9,
+      "recordIds": [
+        "69551fbba7c1c7a7ad883319",
+        "69551fbba7c1c7a7ad88331a",
+        "69551fbba7c1c7a7ad88331b",
+        "69551fbba7c1c7a7ad88331c",
+        "69551fbba7c1c7a7ad88331d",
+        "69551fbba7c1c7a7ad88331e",
+        "69551fbba7c1c7a7ad88331f",
+        "69551fbba7c1c7a7ad883320",
+        "69551fbba7c1c7a7ad883321"
+      ]
+    },
+    {
+      "studentId": "827",
+      "arrivalDate": "2025-12-27",
+      "periodsCount": 9,
+      "recordIds": [
+        "6952b060b92f3f961ede1786",
+        "6952b060b92f3f961ede1787",
+        "6952b060b92f3f961ede1788",
+        "6952b060b92f3f961ede1789",
+        "6952b060b92f3f961ede178a",
+        "6952b060b92f3f961ede178b",
+        "6952b060b92f3f961ede178c",
+        "6952b060b92f3f961ede178d",
+        "6952b060b92f3f961ede178e"
+      ]
+    },
+    {
+      "studentId": "830",
+      "arrivalDate": "2025-12-27",
+      "periodsCount": 9,
+      "recordIds": [
+        "6952b0402725a95ebc3498c7",
+        "6952b0402725a95ebc3498c8",
+        "6952b0402725a95ebc3498c9",
+        "6952b0402725a95ebc3498ca",
+        "6952b0402725a95ebc3498cb",
+        "6952b0402725a95ebc3498cc",
+        "6952b0402725a95ebc3498cd",
+        "6952b0402725a95ebc3498ce",
+        "6952b0402725a95ebc3498cf"
+      ]
+    },
+    {
+      "studentId": "917",
+      "arrivalDate": "2026-01-04",
+      "periodsCount": 5,
+      "recordIds": [
+        "695b6a8f969512e410abeabc",
+        "695b6a8f969512e410abeabd",
+        "695b6a8f969512e410abeabe",
+        "695b6a8f969512e410abeabf",
+        "695b6a8f969512e410abeac0"
+      ]
+    },
+    {
+      "studentId": "924",
+      "arrivalDate": "2026-01-04",
+      "periodsCount": 5,
+      "recordIds": [
+        "695b6a9f969512e410abeaf8",
+        "695b6a9f969512e410abeaf9",
+        "695b6a9f969512e410abeafa",
+        "695b6a9f969512e410abeafb",
+        "695b6a9f969512e410abeafc"
+      ]
+    },
+    {
+      "studentId": "967",
+      "arrivalDate": "2025-12-27",
+      "periodsCount": 9,
+      "recordIds": [
+        "69516123a578f3638cd933da",
+        "69516123a578f3638cd933db",
+        "69516123a578f3638cd933dc",
+        "69516123a578f3638cd933dd",
+        "69516123a578f3638cd933de",
+        "69516123a578f3638cd933df",
+        "69516123a578f3638cd933e0",
+        "69516123a578f3638cd933e1",
+        "69516123a578f3638cd933e2"
+      ]
+    },
+    {
+      "studentId": "985",
+      "arrivalDate": "2025-12-26",
+      "periodsCount": 9,
+      "recordIds": [
+        "694ffbc596b13ee8692797b3",
+        "694ffbc596b13ee8692797b4",
+        "694ffbc596b13ee8692797b5",
+        "694ffbc596b13ee8692797b6",
+        "694ffbc596b13ee8692797b7",
+        "694ffbc596b13ee8692797b8",
+        "694ffbc596b13ee8692797b9",
+        "694ffbc596b13ee8692797ba",
+        "694ffbc596b13ee8692797bb"
+      ]
+    },
+    {
+      "studentId": "898",
+      "arrivalDate": "2025-12-26",
+      "periodsCount": 9,
+      "recordIds": [
+        "694fbf5a6fce8ca62e83f11b",
+        "694fbf5a6fce8ca62e83f11c",
+        "694fbf5a6fce8ca62e83f11d",
+        "694fbf5a6fce8ca62e83f11e",
+        "694fbf5a6fce8ca62e83f11f",
+        "694fbf5a6fce8ca62e83f120",
+        "694fbf5a6fce8ca62e83f121",
+        "694fbf5a6fce8ca62e83f122",
+        "694fbf5a6fce8ca62e83f123"
+      ]
+    },
+    {
+      "studentId": "913",
+      "arrivalDate": "2025-12-27",
+      "periodsCount": 9,
+      "recordIds": [
+        "6951d4267074536280d2195d",
+        "6951d4267074536280d2195e",
+        "6951d4267074536280d2195f",
+        "6951d4267074536280d21960",
+        "6951d4267074536280d21961",
+        "6951d4267074536280d21962",
+        "6951d4267074536280d21963",
+        "6951d4267074536280d21964",
+        "6951d4267074536280d21965"
+      ]
+    },
+    {
+      "studentId": "914",
+      "arrivalDate": "2025-12-29",
+      "periodsCount": 9,
+      "recordIds": [
+        "69547ff4ee4b15ed5a10c3b6",
+        "69547ff4ee4b15ed5a10c3b7",
+        "69547ff4ee4b15ed5a10c3b8",
+        "69547ff4ee4b15ed5a10c3b9",
+        "69547ff4ee4b15ed5a10c3ba",
+        "69547ff4ee4b15ed5a10c3bb",
+        "69547ff4ee4b15ed5a10c3bc",
+        "69547ff4ee4b15ed5a10c3bd",
+        "69547ff4ee4b15ed5a10c3be"
+      ]
+    },
+    {
+      "studentId": "969",
+      "arrivalDate": "2025-12-28",
+      "periodsCount": 9,
+      "recordIds": [
+        "69532585d971f469449f0da4",
+        "69532585d971f469449f0da5",
+        "69532585d971f469449f0da6",
+        "69532585d971f469449f0da7",
+        "69532585d971f469449f0da8",
+        "69532585d971f469449f0da9",
+        "69532585d971f469449f0daa",
+        "69532585d971f469449f0dab",
+        "69532585d971f469449f0dac"
+      ]
+    },
+    {
+      "studentId": "801",
+      "arrivalDate": "2025-12-28",
+      "periodsCount": 9,
+      "recordIds": [
+        "6952b0532725a95ebc349921",
+        "6952b0532725a95ebc349922",
+        "6952b0532725a95ebc349923",
+        "6952b0532725a95ebc349924",
+        "6952b0532725a95ebc349925",
+        "6952b0532725a95ebc349926",
+        "6952b0532725a95ebc349927",
+        "6952b0532725a95ebc349928",
+        "6952b0532725a95ebc349929"
+      ]
+    },
+    {
+      "studentId": "986",
+      "arrivalDate": "2025-12-31",
+      "periodsCount": 9,
+      "recordIds": [
+        "695882740bc351ec15d0a942",
+        "695882740bc351ec15d0a943",
+        "695882740bc351ec15d0a944",
+        "695882740bc351ec15d0a945",
+        "695882740bc351ec15d0a946",
+        "695882740bc351ec15d0a947",
+        "695882740bc351ec15d0a948",
+        "695882740bc351ec15d0a949",
+        "695882740bc351ec15d0a94a"
+      ]
+    },
+    {
+      "studentId": "677",
+      "arrivalDate": "2026-01-05",
+      "periodsCount": 9,
+      "recordIds": [
+        "695e21548d1a7e2342420528",
+        "695e21548d1a7e2342420529",
+        "695e21548d1a7e234242052a",
+        "695e21548d1a7e234242052b",
+        "695e21548d1a7e234242052c",
+        "695e21548d1a7e234242052d",
+        "695e21548d1a7e234242052e",
+        "695e21548d1a7e234242052f",
+        "695e21548d1a7e2342420530"
+      ]
+    },
+    {
+      "studentId": "808",
+      "arrivalDate": "2025-12-29",
+      "periodsCount": 9,
+      "recordIds": [
+        "6953d17bb576696252a8a28c",
+        "6953d17bb576696252a8a28d",
+        "6953d17bb576696252a8a28e",
+        "6953d17bb576696252a8a28f",
+        "6953d17bb576696252a8a290",
+        "6953d17bb576696252a8a291",
+        "6953d17bb576696252a8a292",
+        "6953d17bb576696252a8a293",
+        "6953d17bb576696252a8a294"
+      ]
+    },
+    {
+      "studentId": "921",
+      "arrivalDate": "2026-01-04",
+      "periodsCount": 9,
+      "recordIds": [
+        "695bd7c3957859eb6cd791e8",
+        "695bd7c3957859eb6cd791e9",
+        "695bd7c3957859eb6cd791ea",
+        "695bd7c3957859eb6cd791eb",
+        "695bd7c3957859eb6cd791ec",
+        "695bd7c3957859eb6cd791ed",
+        "695bd7c3957859eb6cd791ee",
+        "695bd7c3957859eb6cd791ef",
+        "695bd7c3957859eb6cd791f0"
+      ]
+    },
+    {
+      "studentId": "793",
+      "arrivalDate": "2026-01-02",
+      "periodsCount": 9,
+      "recordIds": [
+        "69593a5cfbdd2883a10249bc",
+        "69593a5cfbdd2883a10249bd",
+        "69593a5cfbdd2883a10249be",
+        "69593a5cfbdd2883a10249bf",
+        "69593a5cfbdd2883a10249c0",
+        "69593a5cfbdd2883a10249c1",
+        "69593a5cfbdd2883a10249c2",
+        "69593a5cfbdd2883a10249c3",
+        "69593a5cfbdd2883a10249c4"
+      ]
+    },
+    {
+      "studentId": "795",
+      "arrivalDate": "2026-01-03",
+      "periodsCount": 9,
+      "recordIds": [
+        "695b22a827063828858c19d8",
+        "695b22a827063828858c19d9",
+        "695b22a827063828858c19da",
+        "695b22a827063828858c19db",
+        "695b22a827063828858c19dc",
+        "695b22a827063828858c19dd",
+        "695b22a827063828858c19de",
+        "695b22a827063828858c19df",
+        "695b22a827063828858c19e0"
+      ]
+    },
+    {
+      "studentId": "987",
+      "arrivalDate": "2026-01-02",
+      "periodsCount": 9,
+      "recordIds": [
+        "695a354da4cf81d518265375",
+        "695a354da4cf81d518265376",
+        "695a354da4cf81d518265377",
+        "695a354da4cf81d518265378",
+        "695a354da4cf81d518265379",
+        "695a354da4cf81d51826537a",
+        "695a354da4cf81d51826537b",
+        "695a354da4cf81d51826537c",
+        "695a354da4cf81d51826537d"
+      ]
+    },
+    {
+      "studentId": "923",
+      "arrivalDate": "2026-01-05",
+      "periodsCount": 9,
+      "recordIds": [
+        "695d365ebc025304d09485ba",
+        "695d365ebc025304d09485bb",
+        "695d365ebc025304d09485bc",
+        "695d365ebc025304d09485bd",
+        "695d365ebc025304d09485be",
+        "695d365ebc025304d09485bf",
+        "695d365ebc025304d09485c0",
+        "695d365ebc025304d09485c1",
+        "695d365ebc025304d09485c2"
+      ]
+    },
+    {
+      "studentId": "954",
+      "arrivalDate": "2026-01-04",
+      "periodsCount": 9,
+      "recordIds": [
+        "695bb8935018acd54c75084d",
+        "695bb8935018acd54c75084e",
+        "695bb8935018acd54c75084f",
+        "695bb8935018acd54c750850",
+        "695bb8935018acd54c750851",
+        "695bb8935018acd54c750852",
+        "695bb8935018acd54c750853",
+        "695bb8935018acd54c750854",
+        "695bb8935018acd54c750855"
+      ]
+    },
+    {
+      "studentId": "974",
+      "arrivalDate": "2026-01-03",
+      "periodsCount": 9,
+      "recordIds": [
+        "695a8bcd9d4f06223b915eaf",
+        "695a8bcd9d4f06223b915eb0",
+        "695a8bcd9d4f06223b915eb1",
+        "695a8bcd9d4f06223b915eb2",
+        "695a8bcd9d4f06223b915eb3",
+        "695a8bcd9d4f06223b915eb4",
+        "695a8bcd9d4f06223b915eb5",
+        "695a8bcd9d4f06223b915eb6",
+        "695a8bcd9d4f06223b915eb7"
+      ]
+    },
+    {
+      "studentId": "824",
+      "arrivalDate": "2026-01-05",
+      "periodsCount": 9,
+      "recordIds": [
+        "695d0bf03e5c807400732a16",
+        "695d0bf03e5c807400732a17",
+        "695d0bf03e5c807400732a18",
+        "695d0bf03e5c807400732a19",
+        "695d0bf03e5c807400732a1a",
+        "695d0bf03e5c807400732a1b",
+        "695d0bf03e5c807400732a1c",
+        "695d0bf03e5c807400732a1d",
+        "695d0bf03e5c807400732a1e"
+      ]
+    },
+    {
+      "studentId": "941",
+      "arrivalDate": "2026-01-05",
+      "periodsCount": 9,
+      "recordIds": [
+        "695c9b3a9b59fdefe3f75c3c",
+        "695c9b3a9b59fdefe3f75c3d",
+        "695c9b3a9b59fdefe3f75c3e",
+        "695c9b3a9b59fdefe3f75c3f",
+        "695c9b3a9b59fdefe3f75c40",
+        "695c9b3a9b59fdefe3f75c41",
+        "695c9b3a9b59fdefe3f75c42",
+        "695c9b3a9b59fdefe3f75c43",
+        "695c9b3a9b59fdefe3f75c44"
+      ]
+    },
+    {
+      "studentId": "855",
+      "arrivalDate": "2026-01-05",
+      "periodsCount": 4,
+      "recordIds": [
+        "695dc169f35a6260414189c1",
+        "695dc169f35a6260414189c2",
+        "695dc169f35a6260414189c3",
+        "695dc169f35a6260414189c4"
+      ]
+    },
+    {
+      "studentId": "856",
+      "arrivalDate": "2026-01-05",
+      "periodsCount": 4,
+      "recordIds": [
+        "695dc1dc9b8d73767a1ca9aa",
+        "695dc1dc9b8d73767a1ca9ab",
+        "695dc1dc9b8d73767a1ca9ac",
+        "695dc1dc9b8d73767a1ca9ad"
+      ]
+    },
+    {
+      "studentId": "877",
+      "arrivalDate": "2026-01-06",
+      "periodsCount": 4,
+      "recordIds": [
+        "695e0ea1ee0deab6bd821d74",
+        "695e0ea1ee0deab6bd821d75",
+        "695e0ea1ee0deab6bd821d76",
+        "695e0ea1ee0deab6bd821d77"
+      ]
+    }
+  ]
+}
