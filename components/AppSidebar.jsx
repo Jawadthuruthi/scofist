@@ -133,7 +133,7 @@ const items = [
   {
     title: "Students Fund",
     url: "/dashboard/students-fund",
-    allowedRoles: ["College Admin", "Teacher"],
+    allowedRoles: ["College Admin", "Teacher", "IT Lab", "Stationary"],
     icon: CreditCard,
   },
   {
@@ -666,8 +666,8 @@ export function AppSidebar({ roles, activeRole, user }) {
         ...item,
         subItems: item.subItems
           ? item.subItems.filter((subItem) =>
-              subItem.allowedRoles?.includes(role)
-            )
+            subItem.allowedRoles?.includes(role)
+          )
           : undefined,
       }))
       .filter((item) => {
