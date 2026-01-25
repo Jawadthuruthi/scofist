@@ -52,6 +52,13 @@ export async function GET(req) {
             );
         }
 
+        // Sort by Student ID Ascending
+        filteredCoupons.sort((a, b) => {
+            const idA = a.studentId?._id || "";
+            const idB = b.studentId?._id || "";
+            return idA.localeCompare(idB);
+        });
+
         // Calculate Summary Stats
         const stats = {
             totalCouponAmount: 0,
