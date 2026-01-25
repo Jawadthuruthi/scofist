@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dialog";
 import { ComboBox } from "@/components/ui/combobox";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { Checkbox } from "@/components/ui/checkbox";
 import ConfirmationPopup from "@/components/ConfirmationPopup";
 
 import useCrud from "@/hooks/use-crud";
@@ -59,6 +60,7 @@ export default function StudentCouponClient({ apiKey }) {
     const [isSavingPayment, setIsSavingPayment] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedYearFilter, setSelectedYearFilter] = useState("all");
+    const [selectedCouponIds, setSelectedCouponIds] = useState([]);
 
     // Data Fetching
     const { useFetchItems, useAddItem, useDeleteItem } = useCrud("student-coupons", apiKey);
@@ -349,6 +351,22 @@ export default function StudentCouponClient({ apiKey }) {
             refetchCoupons();
         } catch (error) {
             toast.error(error?.message || "Failed to delete coupon");
+        }
+    };
+
+    const handleSelectAll = (checked) => {
+        if (checked) {
+            setSelectedCouponIds(coupons.map(c => c._id));
+        } else {
+            setSelectedCouponIds([]);
+        }
+    };
+
+    const handleSelectRow = (id, checked) => {
+        if (checked) {
+            setSelectedCouponIds(prev => [...prev, id]);
+        } else {
+            setSelectedCouponIds(prev => prev.filter(item => item !== id));
         }
     };
 
@@ -709,6 +727,13 @@ export default function StudentCouponClient({ apiKey }) {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead className="w-[50px]">
+                                <Checkbox
+                                    checked={coupons.length > 0 && selectedCouponIds.length === coupons.length}
+                                    onCheckedChange={handleSelectAll}
+                                />
+                            </TableHead>
+                            <TableHead>Sl No</TableHead>
                             <TableHead>Student</TableHead>
                             <TableHead>ID</TableHead>
                             <TableHead>Year</TableHead>
@@ -722,12 +747,19 @@ export default function StudentCouponClient({ apiKey }) {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            <TableRow><TableCell colSpan={9} className="text-center h-24"><Loader className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                            <TableRow><TableCell colSpan={11} className="text-center h-24"><Loader className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
                         ) : coupons.length === 0 ? (
-                            <TableRow><TableCell colSpan={9} className="text-center h-24 text-muted-foreground">No records found</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={11} className="text-center h-24 text-muted-foreground">No records found</TableCell></TableRow>
                         ) : (
-                            coupons.map((coupon) => (
+                            coupons.map((coupon, index) => (
                                 <TableRow key={coupon._id}>
+                                    <TableCell>
+                                        <Checkbox
+                                            checked={selectedCouponIds.includes(coupon._id)}
+                                            onCheckedChange={(checked) => handleSelectRow(coupon._id, checked)}
+                                        />
+                                    </TableCell>
+                                    <TableCell>{index + 1}</TableCell>
                                     <TableCell className="font-medium">{coupon.studentId?.name}</TableCell>
                                     <TableCell>{coupon.studentId?._id}</TableCell>
                                     <TableCell>{coupon.academicYear}</TableCell>
