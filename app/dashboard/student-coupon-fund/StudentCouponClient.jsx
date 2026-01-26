@@ -600,7 +600,9 @@ export default function StudentCouponClient({ apiKey }) {
     return (
         <div className="px-2 md:px-6 pb-6 pt-2 space-y-6">
             <div className="flex flex-col gap-1">
-                <h1 className="text-2xl font-bold uppercase tracking-wide">STUDENT COUPON FUND MANAGEMENT</h1>
+                <h1 className="text-2xl font-bold uppercase tracking-wide">
+                    STUDENT COUPON FUND <span className="hidden md:inline">MANAGEMENT</span>
+                </h1>
                 <p className="text-muted-foreground">Manage student coupons, track payments, and generate reports.</p>
             </div>
 
@@ -641,25 +643,25 @@ export default function StudentCouponClient({ apiKey }) {
             {/* Summary Cards */}
             <Card>
                 <CardContent className="pt-6">
-                    <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start gap-2 md:gap-6">
                         {/* LEFT: Date Inputs */}
-                        <div className="flex flex-wrap gap-4 items-end">
-                            <div className="grid gap-1.5">
+                        <div className="flex flex-row flex-nowrap gap-2 items-end w-full md:w-auto overflow-x-auto">
+                            <div className="grid gap-1.5 flex-1 min-w-[120px]">
                                 <Label htmlFor="fromDate" className="text-xs text-muted-foreground">From Date</Label>
                                 <Input
                                     id="fromDate"
                                     type="date"
-                                    className="h-9 w-40"
+                                    className="h-9 w-full"
                                     value={filters.startDate}
                                     onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
                                 />
                             </div>
-                            <div className="grid gap-1.5">
+                            <div className="grid gap-1.5 flex-1 min-w-[120px]">
                                 <Label htmlFor="toDate" className="text-xs text-muted-foreground">To Date</Label>
                                 <Input
                                     id="toDate"
                                     type="date"
-                                    className="h-9 w-40"
+                                    className="h-9 w-full"
                                     value={filters.endDate}
                                     onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
                                 />
@@ -677,7 +679,7 @@ export default function StudentCouponClient({ apiKey }) {
                         </div>
 
                         {/* RIGHT: Heading and Amount */}
-                        <div className="flex flex-col items-end space-y-1">
+                        <div className="flex flex-col items-center md:items-end space-y-1 w-full md:w-auto mt-2 md:mt-0">
                             <div className="flex items-center gap-2 text-muted-foreground">
                                 <span className="text-sm font-medium uppercase tracking-wider">Total Collected</span>
                             </div>
@@ -773,15 +775,15 @@ export default function StudentCouponClient({ apiKey }) {
             <div className="space-y-6">
 
                 {/* CARD 1: COUPON DETAILS - BULK ENTRY */}
-                <Card className="border-0 shadow-none bg-transparent md:border md:shadow-sm md:bg-card">
-                    <CardHeader className="px-0 pt-0 md:px-6 md:pt-6 md:pb-2">
+                <Card className="border shadow-sm bg-card">
+                    <CardHeader className="px-3 pt-3 pb-2 md:px-6 md:pt-6 md:pb-2">
                         <CardTitle>Coupon Details (Bulk Entry)</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0 md:px-6 md:pb-6 md:pt-0">
+                    <CardContent className="p-3 md:px-6 md:pb-6 md:pt-0">
                         <form onSubmit={handleSubmitDetails(onSaveDetails)}>
-                            <div className="space-y-6">
+                            <div className="space-y-3 md:space-y-6">
                                 {/* Filters Row */}
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
                                     <div className="space-y-2">
                                         <Label>Academic Year</Label>
                                         <Select
@@ -904,13 +906,13 @@ export default function StudentCouponClient({ apiKey }) {
                 </Card>
 
                 {/* CARD 2: PAYMENT DETAILS */}
-                <Card id="payment-card" className="border-0 shadow-none bg-transparent md:border md:shadow-sm md:bg-card transition-all duration-300">
-                    <CardHeader className="px-0 pt-0 md:px-6 md:pt-6 md:pb-2">
+                <Card id="payment-card" className="border shadow-sm bg-card transition-all duration-300">
+                    <CardHeader className="px-3 pt-3 pb-2 md:px-6 md:pt-6 md:pb-2">
                         <CardTitle>Payment Details</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0 md:px-6 md:pb-6 md:pt-0">
+                    <CardContent className="p-3 md:px-6 md:pb-6 md:pt-0">
                         <form onSubmit={handleSubmitPayment(onSavePayment)}>
-                            <div className="space-y-4">
+                            <div className="space-y-3 md:space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label>Payment Date</Label>
@@ -1175,7 +1177,7 @@ export default function StudentCouponClient({ apiKey }) {
                                     />
                                 </div>
                             </div>
-                            <DialogFooter className="flex sm:justify-between items-center pt-2">
+                            <DialogFooter className="flex flex-row justify-between items-center pt-2 gap-2">
                                 <Button variant="ghost" className="text-muted-foreground" onClick={clearFilters}>
                                     Clear Filters
                                 </Button>
@@ -1194,9 +1196,9 @@ export default function StudentCouponClient({ apiKey }) {
                         onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                     />
                 </div>
-                <Button variant="outline" onClick={exportToExcel}><FileSpreadsheet className="mr-2 h-4 w-4" /> Excel</Button>
-                <Button variant="outline" onClick={exportToPDF}><Download className="mr-2 h-4 w-4" /> PDF</Button>
-                <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4" /> Print</Button>
+                <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10" onClick={exportToExcel}><FileSpreadsheet className="h-4 w-4 md:mr-2" /> <span className="hidden md:inline">Excel</span></Button>
+                <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10" onClick={exportToPDF}><Download className="h-4 w-4 md:mr-2" /> <span className="hidden md:inline">PDF</span></Button>
+                <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10" onClick={() => window.print()}><Printer className="h-4 w-4 md:mr-2" /> <span className="hidden md:inline">Print</span></Button>
             </div>
 
             {/* Bulk Actions Bar */}
@@ -1230,7 +1232,7 @@ export default function StudentCouponClient({ apiKey }) {
                 </div>
             )}
 
-            <div id="printable-table" className="rounded-md border bg-white">
+            <div id="printable-table" className="rounded-md border bg-white overflow-x-auto">
                 <div className="hidden print:block text-center mb-6 pt-4">
                     <h2 className="text-2xl font-bold">STUDENT COUPON FUND MANAGEMENT</h2>
                 </div>
