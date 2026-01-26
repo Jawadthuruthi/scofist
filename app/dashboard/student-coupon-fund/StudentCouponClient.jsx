@@ -76,6 +76,19 @@ import Cookies from "js-cookie";
 import * as XLSX from "xlsx-js-style";
 
 
+
+// Helper to generate dynamic academic years
+const getAcademicYears = () => {
+    const currentYear = new Date().getFullYear();
+    const startYear = 2020;
+    const endYear = currentYear + 1; // Includes next year
+    const years = [];
+    for (let y = endYear; y >= startYear; y--) {
+        years.push(String(y));
+    }
+    return years;
+};
+
 export default function StudentCouponClient({ apiKey }) {
     const [isSavingDetails, setIsSavingDetails] = useState(false);
     const [isSavingPayment, setIsSavingPayment] = useState(false);
@@ -460,6 +473,22 @@ export default function StudentCouponClient({ apiKey }) {
         setIsEditOpen(true);
     };
 
+    const handlePayBalance = (coupon) => {
+        // Pre-fill Payment Form
+        setPaymentBatchId("all"); // Reset batch to all to ensure student is found (or ideally specific batch if known)
+        setPaymentClassId([]); // Reset class
+        setPaymentStudentId([coupon.studentId?._id]);
+
+        // Scroll to Payment Card
+        const element = document.getElementById("payment-card");
+        if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+            // Highlight effect?
+            element.classList.add("ring-2", "ring-primary");
+            setTimeout(() => element.classList.remove("ring-2", "ring-primary"), 2000);
+        }
+    };
+
     const onSaveEdit = async (data) => {
         try {
             await updateItem.mutateAsync({
@@ -609,35 +638,54 @@ export default function StudentCouponClient({ apiKey }) {
 
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Coupon Amount</CardTitle>
-                        <Banknote className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">₹{stats.totalCouponAmount.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-green-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-600">₹{stats.totalCollected.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
-                        <AlertCircle className="h-4 w-4 text-red-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-red-600">₹{stats.totalPending.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-            </div>
+            {/* Summary Cards */}
+            <Card>
+                <CardContent className="pt-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+                        {/* LEFT: Date Inputs */}
+                        <div className="flex flex-wrap gap-4 items-end">
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="fromDate" className="text-xs text-muted-foreground">From Date</Label>
+                                <Input
+                                    id="fromDate"
+                                    type="date"
+                                    className="h-9 w-40"
+                                    value={filters.startDate}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                                />
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="toDate" className="text-xs text-muted-foreground">To Date</Label>
+                                <Input
+                                    id="toDate"
+                                    type="date"
+                                    className="h-9 w-40"
+                                    value={filters.endDate}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                                />
+                            </div>
+                            {(filters.startDate || filters.endDate) && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setFilters(prev => ({ ...prev, startDate: "", endDate: "" }))}
+                                    className="h-9 px-2 text-muted-foreground hover:text-foreground"
+                                >
+                                    Clear
+                                </Button>
+                            )}
+                        </div>
+
+                        {/* RIGHT: Heading and Amount */}
+                        <div className="flex flex-col items-end space-y-1">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <span className="text-sm font-medium uppercase tracking-wider">Total Collected</span>
+                            </div>
+                            <div className="text-4xl font-bold text-green-600">₹{stats.totalCollected.toLocaleString()}</div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Edit Coupon Dialog */}
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
@@ -747,8 +795,8 @@ export default function StudentCouponClient({ apiKey }) {
                                         >
                                             <SelectTrigger><SelectValue placeholder="Select Year" /></SelectTrigger>
                                             <SelectContent>
-                                                {[2025, 2024, 2023, 2022, 2021, 2020].map((year) => (
-                                                    <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                                                {getAcademicYears().map((year) => (
+                                                    <SelectItem key={year} value={year}>{year}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -856,7 +904,7 @@ export default function StudentCouponClient({ apiKey }) {
                 </Card>
 
                 {/* CARD 2: PAYMENT DETAILS */}
-                <Card className="border-0 shadow-none bg-transparent md:border md:shadow-sm md:bg-card">
+                <Card id="payment-card" className="border-0 shadow-none bg-transparent md:border md:shadow-sm md:bg-card transition-all duration-300">
                     <CardHeader className="px-0 pt-0 md:px-6 md:pt-6 md:pb-2">
                         <CardTitle>Payment Details</CardTitle>
                     </CardHeader>
@@ -881,8 +929,8 @@ export default function StudentCouponClient({ apiKey }) {
                                                 <SelectValue placeholder="Select Year" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {[2025, 2024, 2023, 2022, 2021, 2020].map((year) => (
-                                                    <SelectItem key={year} value={String(year)}>
+                                                {getAcademicYears().map((year) => (
+                                                    <SelectItem key={year} value={year}>
                                                         {year}
                                                     </SelectItem>
                                                 ))}
@@ -1061,8 +1109,8 @@ export default function StudentCouponClient({ apiKey }) {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">All Years</SelectItem>
-                                            {[2025, 2024, 2023, 2022].map((y) => (
-                                                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                                            {getAcademicYears().map((y) => (
+                                                <SelectItem key={y} value={y}>{y}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -1234,7 +1282,14 @@ export default function StudentCouponClient({ apiKey }) {
                                             ₹{coupon.totalPaid}
                                         </TableCell>
                                     )}
-                                    {visibleColumns.balance && <TableCell className="text-red-600 font-semibold">₹{coupon.balance}</TableCell>}
+                                    {visibleColumns.balance && (
+                                        <TableCell
+                                            className="text-red-600 font-semibold cursor-pointer hover:underline"
+                                            onClick={() => handlePayBalance(coupon)}
+                                        >
+                                            ₹{coupon.balance}
+                                        </TableCell>
+                                    )}
                                     {visibleColumns.status && <TableCell>
                                         <Badge variant={coupon.status === "Paid" ? "success" : coupon.status === "Partial" ? "warning" : "destructive"}>
                                             {coupon.status}

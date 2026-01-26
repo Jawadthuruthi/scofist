@@ -23,15 +23,18 @@ export async function GET(req) {
         if (academicYear) filter.academicYear = academicYear;
         if (status && status !== "all") filter.status = status;
 
-        // Date Range Filter
+        // Date Range Filter (Applied to Payments)
+        let dateFilter = null;
         if (startDate || endDate) {
-            filter.createdAt = {};
-            if (startDate) filter.createdAt.$gte = new Date(startDate);
+            dateFilter = {};
+            if (startDate) dateFilter.$gte = new Date(startDate);
             if (endDate) {
                 const end = new Date(endDate);
                 end.setHours(23, 59, 59, 999);
-                filter.createdAt.$lte = end;
+                dateFilter.$lte = end;
             }
+            // Filter coupons that have AT LEAST one payment in this range
+            filter["payments.date"] = dateFilter;
         }
 
         if (search) {
@@ -93,9 +96,35 @@ export async function GET(req) {
 
         filteredCoupons.forEach(coupon => {
             stats.totalCouponAmount += (coupon.couponAmount || 0);
-            stats.totalCollected += (coupon.payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0);
+
+            // Calculate extracted payments based on Date Range
+            const relevantPayments = coupon.payments?.filter(p => {
+                if (!dateFilter) return true;
+                const pDate = new Date(p.date);
+                if (dateFilter.$gte && pDate < dateFilter.$gte) return false;
+                if (dateFilter.$lte && pDate > dateFilter.$lte) return false;
+                return true;
+            }) || [];
+
+            stats.totalCollected += relevantPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
         });
-        stats.totalPending = stats.totalCouponAmount - stats.totalCollected;
+
+        // Total Pending logic:
+        // If viewing specific date range, "Pending" is ambiguous. 
+        // Do we show current actual pending? Or "What wasn't paid in this period"? 
+        // Usually current actual pending is most useful.
+        // Current logic: stats.totalPending = stats.totalCouponAmount - stats.totalCollected; 
+        // THIS IS WRONG if totalCollected is partial period.
+        // Let's use the coupon's actual balance for pending.
+
+        stats.totalPending = 0;
+        filteredCoupons.forEach(c => {
+            // Use virtual/calculated balance derived from ALL payments, regardless of filter
+            // We need to recalculate full paid for balance
+            const fullPaid = c.payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+            const balance = (c.couponAmount || 0) - fullPaid;
+            stats.totalPending += balance;
+        });
 
         return NextResponse.json({
             coupons: filteredCoupons,
