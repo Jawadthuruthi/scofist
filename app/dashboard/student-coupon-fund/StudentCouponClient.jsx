@@ -478,6 +478,7 @@ export default function StudentCouponClient({ apiKey }) {
         setPaymentBatchId("all"); // Reset batch to all to ensure student is found (or ideally specific batch if known)
         setPaymentClassId([]); // Reset class
         setPaymentStudentId([coupon.studentId?._id]);
+        setValuePayment("academicYear", coupon.academicYear);
 
         // Scroll to Payment Card
         const element = document.getElementById("payment-card");

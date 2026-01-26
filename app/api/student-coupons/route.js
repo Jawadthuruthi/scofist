@@ -232,7 +232,7 @@ export async function POST(req) {
                 studentId,
                 academicYear,
                 couponNumber, // can be undefined
-                couponAmount,
+                couponAmount: couponAmount || 0,
                 payments: payment && payment.amount > 0 ? [payment] : []
             });
             await coupon.save();
