@@ -11,7 +11,7 @@ export async function GET(req) {
         // Middleware handles auth
 
 
-        const rentals = await Rental.find().populate("bookId").sort({ createdAt: -1 });
+        const rentals = await Rental.find().populate("bookId").populate("studentId", "name _id").sort({ createdAt: -1 });
 
         return NextResponse.json({ success: true, msg: "Rentals fetched successfully", data: rentals }, { status: 200 });
     } catch (error) {
@@ -26,6 +26,49 @@ export async function POST(req) {
 
 
         const body = await req.json();
+
+        // If bookId is provided, check if it's a direct ID or a Book Number (from manual input)
+        if (body.bookId) {
+            // First try to find by number
+            let book = await LibraryBook.findOne({ number: body.bookId });
+
+            // If not found by number, and it looks like an ObjectId, try finding by ID (fallback)
+            if (!book && mongoose.Types.ObjectId.isValid(body.bookId)) {
+                book = await LibraryBook.findById(body.bookId);
+            }
+
+            if (!book) {
+                return NextResponse.json({ success: false, msg: "Book not found", data: {} }, { status: 404 });
+            }
+
+            // Replace the input number with the actual Object ID
+            body.bookId = book._id;
+        }
+
+        // Validate Student ID
+        if (body.studentId) {
+            // studentId is the _id string in User model
+            // We need to `import User from "@/models/User";` at the top if not imported, 
+            // but let's check imports first. Wait, I didn't verify imports in route.js view.
+            // I'll assume I need to import User or use mongoose.models.User if lazy.
+            // Better to check imports first or just add it if I am sure. 
+            // Actually, let's just use `import User from "@/models/User";` in the imports section first 
+            // OR use mongoose.model("User") if I want to be safe without top-level import modification right here.
+            // But let's look at the file content I have from previous turns... 
+            // `import LibraryBook` was there. `import User` was NOT.
+            // I will add the import in a separate edit or use `mongoose.models.User`.
+            // Let's use `mongoose.models.User` to avoid import issues for now, or add import safely.
+            const User = mongoose.models.User || mongoose.model("User");
+            const student = await User.findById(body.studentId);
+            if (!student) {
+                return NextResponse.json({ success: false, msg: "Student not found", data: {} }, { status: 404 });
+            }
+            // Optional: Populate studentName if needed, but schema has it. 
+            // If the form doesn't send studentName, we can set it here.
+            if (!body.studentName) {
+                body.studentName = student.name;
+            }
+        }
 
         // Create rental
         const newRental = await Rental.create(body);

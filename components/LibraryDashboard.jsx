@@ -23,9 +23,9 @@ export default function LibraryDashboard({
     const [loading, setLoading] = useState(false);
     const [rowSelection, setRowSelection] = useState({});
 
-    const selectedBookIds = Object.keys(rowSelection);
-    const selectedBook = selectedBookIds.length === 1
-        ? initialBooks.find(b => b._id === selectedBookIds[0])
+    const selectedIds = Object.keys(rowSelection);
+    const selectedBook = view === "books" && selectedIds.length === 1
+        ? initialBooks.find(b => b._id === selectedIds[0])
         : null;
 
     // --- Configurations ---
@@ -82,34 +82,32 @@ export default function LibraryDashboard({
     const rentalFields = [
         {
             name: "bookId",
-            label: "Book",
+            label: "Book ID",
             inputType: "select",
-            resource: "library/books?status=Available", // Fetch available books
+            resource: "library/books?status=Available",
+            labelKey: ["number", "name"],
+            valueKey: "_id",
             required: true,
-            section: "Rental Info",
         },
         {
             name: "studentId",
-            label: "Student",
-            inputType: "select",
-            resource: "users?roles=Student", // Fetch students
+            label: "Student ID",
+            inputType: "text",
             required: true,
-            section: "Rental Info",
         },
         {
             name: "rentedDate",
             label: "Rented Date",
             inputType: "date",
+            type: "date",
             required: true,
             defaultValue: new Date().toISOString().split("T")[0],
-            section: "Dates",
         },
         {
             name: "receivedDate",
             label: "Received Date",
             inputType: "date",
-            section: "Dates",
-            hideOnCreate: true, // Only show when editing/returning
+            type: "date",
         },
     ];
 
@@ -133,8 +131,8 @@ export default function LibraryDashboard({
             enableSorting: false,
             enableHiding: false,
             meta: {
-                width: "20px",
-                minWidth: "20px",
+                width: "1%",
+                minWidth: "auto",
                 padding: "0px 0px", // Extremely tight
             },
         },
@@ -143,8 +141,9 @@ export default function LibraryDashboard({
             header: "Sl No",
             cell: ({ row }) => row.index + 1,
             meta: {
-                width: "25px",
-                minWidth: "25px",
+                width: "1%",
+                minWidth: "auto",
+                whiteSpace: "nowrap",
                 padding: "0px 0px", // Extremely tight
             },
         },
@@ -152,22 +151,58 @@ export default function LibraryDashboard({
             accessorKey: "number",
             header: "Book ID",
             meta: {
-                width: "60px",
-                minWidth: "60px",
-                padding: "4px 4px", // Standard vertical, tight horizontal
+                width: "1%",
+                minWidth: "auto",
+                whiteSpace: "nowrap",
+                padding: "4px 4px",
             }
         },
-        { accessorKey: "name", header: "Book Name" },
-        { accessorKey: "author", header: "Author" },
-        { accessorKey: "language", header: "Language" },
-        { accessorKey: "category", header: "Category" },
-        { accessorKey: "publication", header: "Publication" },
+        {
+            accessorKey: "name",
+            header: "Book Name",
+            meta: {
+                width: "1%",
+                whiteSpace: "nowrap"
+            }
+        },
+        {
+            accessorKey: "author",
+            header: "Author",
+            meta: {
+                width: "1%",
+                whiteSpace: "nowrap"
+            }
+        },
+        {
+            accessorKey: "language",
+            header: "Language",
+            meta: {
+                width: "1%",
+                whiteSpace: "nowrap"
+            }
+        },
+        {
+            accessorKey: "category",
+            header: "Category",
+            meta: {
+                width: "1%",
+                whiteSpace: "nowrap"
+            }
+        },
+        {
+            accessorKey: "publication",
+            header: "Publication",
+            meta: {
+                width: "1%",
+                whiteSpace: "nowrap"
+            }
+        },
         {
             accessorKey: "price",
             header: "Price",
             meta: {
-                width: "60px",
-                minWidth: "60px",
+                width: "1%",
+                whiteSpace: "nowrap",
                 padding: "4px 4px",
             }
         },
@@ -180,49 +215,122 @@ export default function LibraryDashboard({
 
     const rentalColumns = [
         {
-            accessorKey: "bookId.name",
-            header: "Book",
-            cell: ({ row }) => row.original.bookId?.name || "Unknown Book"
+            id: "select",
+            header: ({ table }) => (
+                <Checkbox
+                    checked={table.getIsAllPageRowsSelected()}
+                    onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                    aria-label="Select all"
+                />
+            ),
+            cell: ({ row }) => (
+                <Checkbox
+                    checked={row.getIsSelected()}
+                    onCheckedChange={(value) => row.toggleSelected(!!value)}
+                    aria-label="Select row"
+                />
+            ),
+            enableSorting: false,
+            enableHiding: false,
+            meta: {
+                width: "1%",
+                minWidth: "auto",
+                padding: "0px 0px",
+            },
         },
-        { accessorKey: "studentName", header: "Student Name" }, // If stored, or fetch via ID? Schema has studentName.
-        // Ideally populate studentId to get name if not stored, but schema has studentName. Form should populate it.
+        {
+            id: "serial",
+            header: "Sl No",
+            cell: ({ row }) => row.index + 1,
+            meta: {
+                width: "1%",
+                minWidth: "auto",
+                whiteSpace: "nowrap",
+                padding: "0px 0px",
+            },
+        },
+        {
+            accessorKey: "bookId.number",
+            header: "Book ID",
+            meta: {
+                width: "1%",
+                minWidth: "auto",
+                whiteSpace: "nowrap",
+                padding: "4px 4px",
+            }
+        },
+        {
+            accessorKey: "bookId.name",
+            header: "Book Name",
+            cell: ({ row }) => row.original.bookId?.name || "Unknown Book",
+            meta: {
+                width: "1%",
+                whiteSpace: "nowrap"
+            }
+        },
+        {
+            accessorKey: "studentId", // Accessing object populated by backend
+            header: "Student Name (ID)",
+            cell: ({ row }) => {
+                // If studentId is populated (which it should be now), show Name (ID)
+                // Fallback to name if it's just an ID string or simple object field if not populated correctly for some reason?
+                // Backend sends object { _id: "...", name: "..." }
+                const student = row.original.studentId;
+                if (student && typeof student === 'object') {
+                    return `${student.name || "Unknown"} (${student._id || "?"})`;
+                }
+                // Fallback for logic if not populated or old data
+                return row.original.studentName || row.original.studentId || "Unknown";
+            },
+            meta: {
+                width: "1%",
+                whiteSpace: "nowrap"
+            }
+        },
         {
             accessorKey: "rentedDate",
             header: "Rented On",
-            cell: ({ row }) => row.original.rentedDate ? format(new Date(row.original.rentedDate), "PPP") : "-"
+            cell: ({ row }) => row.original.rentedDate ? format(new Date(row.original.rentedDate), "PPP") : "-",
+            meta: {
+                width: "1%",
+                whiteSpace: "nowrap"
+            }
         },
         {
             accessorKey: "receivedDate",
             header: "Returned On",
-            cell: ({ row }) => row.original.receivedDate ? format(new Date(row.original.receivedDate), "PPP") : "Pending"
-        },
-        {
-            accessorKey: "actions",
-            header: "Actions",
-            cell: ({ row }) => (
-                <div className="flex gap-2">
-                    {!row.original.receivedDate && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleReturnBook(row.original)}
-                        >
-                            Return
-                        </Button>
-                    )}
-
-                    <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteRental(row.original._id)}
-                    >
-                        Delete
-                    </Button>
-                </div>
-            ),
+            cell: ({ row }) => row.original.receivedDate ? format(new Date(row.original.receivedDate), "PPP") : "Pending",
+            meta: {
+                width: "1%",
+                whiteSpace: "nowrap"
+            }
         },
     ];
 
+
+    const filterConfig = [
+        {
+            id: "language",
+            label: "Language",
+            inputType: "select",
+            options: (languages || []).map((l) => ({ value: l, label: l })),
+        },
+        {
+            id: "category",
+            label: "Category",
+            inputType: "select",
+            options: (categories || []).map((c) => ({ value: c, label: c })),
+        },
+        {
+            id: "status",
+            label: "Status",
+            inputType: "select",
+            options: [
+                { value: "Available", label: "Available" },
+                { value: "Rented", label: "Rented" },
+            ],
+        },
+    ];
 
     // --- Handlers ---
 
@@ -282,13 +390,51 @@ export default function LibraryDashboard({
     };
 
     const handleBulkDelete = async () => {
-        if (!confirm(`Delete ${selectedBookIds.length} books?`)) return;
+        if (!confirm(`Delete ${selectedIds.length} books?`)) return;
         setLoading(true);
         try {
             // Sequential delete for multiple items since backend bulk delete is not implemented
-            for (const id of selectedBookIds) {
+            for (const id of selectedIds) {
                 await fetch(`/api/library/books?id=${id}`, {
                     method: "DELETE",
+                });
+            }
+            router.refresh();
+            setRowSelection({});
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleBulkDeleteRental = async () => {
+        if (!confirm(`Delete ${selectedIds.length} rentals?`)) return;
+        setLoading(true);
+        try {
+            for (const id of selectedIds) {
+                await fetch(`/api/rental?id=${id}`, {
+                    method: "DELETE",
+                });
+            }
+            router.refresh();
+            setRowSelection({});
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleBulkReturn = async () => {
+        if (!confirm(`Return ${selectedIds.length} items?`)) return;
+        setLoading(true);
+        try {
+            for (const id of selectedIds) {
+                await fetch("/api/rental", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ _id: id, receivedDate: new Date() }),
                 });
             }
             router.refresh();
@@ -437,16 +583,24 @@ export default function LibraryDashboard({
                 <Header
                     title="BOOKS MANAGEMENT"
                     subTitle="Manage library books inventory"
-                    rightAction={
+                />
+                <TableComponent
+                    data={initialBooks}
+                    columnsConfig={bookColumns}
+                    rowSelection={rowSelection}
+                    onRowSelectionChange={setRowSelection}
+                    getRowId={(originalRow) => originalRow._id}
+                    filterConfig={filterConfig}
+                    actionButtons={
                         <div className="flex gap-2">
-                            {selectedBookIds.length > 0 && (
+                            {selectedIds.length > 0 && (
                                 <Button
                                     variant="destructive"
                                     size="sm"
                                     onClick={handleBulkDelete}
                                 >
                                     <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete ({selectedBookIds.length})
+                                    Delete ({selectedIds.length})
                                 </Button>
                             )}
                             {selectedBook && (
@@ -467,13 +621,6 @@ export default function LibraryDashboard({
                         </div>
                     }
                 />
-                <TableComponent
-                    data={initialBooks}
-                    columnsConfig={bookColumns}
-                    rowSelection={rowSelection}
-                    onRowSelectionChange={setRowSelection}
-                    getRowId={(originalRow) => originalRow._id}
-                />
             </div>
         );
     }
@@ -484,18 +631,41 @@ export default function LibraryDashboard({
                 <Header
                     title="RENTALS MANAGEMENT"
                     subTitle="Track book rentals"
-                    rightAction={
-                        <PopupForm
-                            title="New Rental"
-                            formFields={rentalFields}
-                            onSubmit={handleCreateRental}
-                            loading={loading}
-                        />
-                    }
                 />
                 <TableComponent
                     data={initialRentals}
                     columnsConfig={rentalColumns}
+                    rowSelection={rowSelection}
+                    onRowSelectionChange={setRowSelection}
+                    getRowId={(originalRow) => originalRow._id}
+                    actionButtons={
+                        <div className="flex gap-2">
+                            {selectedIds.length > 0 && (
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleBulkReturn}
+                                    >
+                                        Return ({selectedIds.length})
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={handleBulkDeleteRental}
+                                    >
+                                        Delete ({selectedIds.length})
+                                    </Button>
+                                </>
+                            )}
+                            <PopupForm
+                                title="New Rental"
+                                formFields={rentalFields}
+                                onSubmit={handleCreateRental}
+                                loading={loading}
+                            />
+                        </div>
+                    }
                 />
             </div>
         );

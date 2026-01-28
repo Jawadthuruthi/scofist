@@ -26,15 +26,18 @@ import { useMemo, useRef, useState } from "react";
 import { useReactToPrint } from "react-to-print";
 import useTableColumns from "@/hooks/use-table-columns";
 import PrintHeader from "./PrintHeader";
-import { SlidersHorizontal, Filter } from "lucide-react";
+import { SlidersHorizontal, Filter, Search } from "lucide-react";
+
+import PopupFilter from "./PopupFilter";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const getCellStyles = (meta) => ({
   width: meta?.width || "auto",
-  minWidth: meta?.minWidth || "50px", // Reduced default from 100px
+  minWidth: meta?.minWidth || "auto", // Default to auto for better fit
   maxWidth: meta?.maxWidth || "300px",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  overflow: meta?.overflow || "hidden",
+  textOverflow: meta?.textOverflow || "ellipsis",
+  whiteSpace: meta?.whiteSpace || "nowrap",
   padding: meta?.padding, // Allow overriding padding
 });
 
@@ -49,10 +52,13 @@ const TableComponent = ({
   rowSelection = {},
   onRowSelectionChange,
   getRowId,
+  actionButtons,
+  filterConfig = [],
 }) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState([]); // Advanced filters
   const [showFilterInput, setShowFilterInput] = useState(false);
 
   const tableRef = useRef(null);
@@ -74,6 +80,7 @@ const TableComponent = ({
     onRowSelectionChange: onRowSelectionChange,
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters, // Sync column filters
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     enableRowSelection: true,
@@ -82,6 +89,7 @@ const TableComponent = ({
       rowSelection,
       columnVisibility,
       globalFilter,
+      columnFilters,
     },
   });
   return (
@@ -89,31 +97,31 @@ const TableComponent = ({
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 lg:flex"
-            onClick={() => setShowFilterInput(!showFilterInput)}
-          >
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
-          {showFilterInput && (
-            <Input
-              placeholder="Filter..."
-              value={globalFilter ?? ""}
-              onChange={(event) => setGlobalFilter(event.target.value)}
-              className="h-8 w-[150px] lg:w-[250px]"
-            />
-          )}
+          {/* Column Management - First */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 lg:flex">
-                <SlidersHorizontal className="mr-2 h-4 w-4" />
-                Columns
+                <SlidersHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[150px]">
+            <DropdownMenuContent align="start" className="w-[200px] max-h-[300px] overflow-y-auto">
+              <div className="p-2 border-b">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="select-all-columns"
+                    checked={table.getIsAllColumnsVisible()}
+                    onCheckedChange={(value) =>
+                      table.toggleAllColumnsVisible(!!value)
+                    }
+                  />
+                  <label
+                    htmlFor="select-all-columns"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    Select All
+                  </label>
+                </div>
+              </div>
               {table
                 .getAllColumns()
                 .filter(
@@ -122,18 +130,70 @@ const TableComponent = ({
                 )
                 .map((column) => {
                   return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                    >
-                      {column.columnDef.header}
-                    </DropdownMenuCheckboxItem>
+                    <div key={column.id} className="flex items-center space-x-2 p-2">
+                      <Checkbox
+                        id={`col-${column.id}`}
+                        checked={column.getIsVisible()}
+                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                      />
+                      <label
+                        htmlFor={`col-${column.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer capitalize"
+                      >
+                        {column.columnDef.header}
+                      </label>
+                    </div>
                   );
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {filterConfig.length > 0 && (
+            <PopupFilter
+              filterConfig={filterConfig}
+              filters={columnFilters.reduce((acc, filter) => {
+                acc[filter.id] = filter.value;
+                return acc;
+              }, {})}
+              setFilter={(id, value) => {
+                setColumnFilters((prev) => {
+                  const existing = prev.find((f) => f.id === id);
+                  if (existing) {
+                    return prev.map((f) => (f.id === id ? { ...f, value } : f));
+                  }
+                  return [...prev, { id, value }];
+                });
+              }}
+              removeFilter={(id) => {
+                setColumnFilters((prev) => prev.filter((f) => f.id !== id));
+              }}
+              clearFilters={() => setColumnFilters([])}
+              hasFilters={columnFilters.length > 0}
+            />
+          )}
+
+          {/* Global Search Button/Input - Always visible */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 lg:flex"
+            onClick={() => setShowFilterInput(!showFilterInput)}
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+          {showFilterInput && (
+            <Input
+              placeholder="Search..."
+              value={globalFilter ?? ""}
+              onChange={(event) => setGlobalFilter(event.target.value)}
+              className="h-8 w-[150px] lg:w-[250px]"
+            />
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Action Buttons - Third/Last */}
+          {actionButtons}
         </div>
       </div>
 
@@ -152,30 +212,30 @@ const TableComponent = ({
           />
         )}
         <div className="print-table-wrapper">
-          {table.getRowModel().rows.length > 0 ? (
-            <Table>
-              <TableHeader className="sticky top-0 bg-background z-10">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        style={getCellStyles(header.column.columnDef.meta)}
-                        className={header.id === "select" ? "print:hidden" : ""}
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map((row) => (
+          <Table>
+            <TableHeader className="sticky top-0 bg-background z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      style={getCellStyles(header.column.columnDef.meta)}
+                      className={header.id === "select" ? "print:hidden" : ""}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.length > 0 ? (
+                table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() ? "selected" : undefined}
@@ -196,14 +256,19 @@ const TableComponent = ({
                       </TableCell>
                     ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="flex items-center justify-center h-full p-4 text-gray-500">
-              No data available
-            </div>
-          )}
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center text-gray-500"
+                  >
+                    No data available
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       </div>
       {!hidePrintBtn && (

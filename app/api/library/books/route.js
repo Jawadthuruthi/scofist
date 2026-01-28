@@ -1,32 +1,13 @@
+
 import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import LibraryBook from "@/models/LibraryBook";
 
-
-
 export async function GET(req) {
     try {
         await connectToDB();
-        // Middleware handles auth
 
-
-        const url = new URL(req.url);
-        const category = url.searchParams.get("category");
-        const language = url.searchParams.get("language");
-        const search = url.searchParams.get("search");
-
-        const query = {};
-        if (category) query.category = category;
-        if (language) query.language = language;
-        if (search) {
-            query.$or = [
-                { name: { $regex: search, $options: "i" } },
-                { author: { $regex: search, $options: "i" } },
-                { id: { $regex: search, $options: "i" } }
-            ];
-        }
-
-        const books = await LibraryBook.find(query).sort({ createdAt: -1 });
+        const books = await LibraryBook.find().sort({ createdAt: -1 });
 
         return NextResponse.json({ success: true, msg: "Books fetched successfully", data: books }, { status: 200 });
     } catch (error) {
@@ -37,13 +18,18 @@ export async function GET(req) {
 export async function POST(req) {
     try {
         await connectToDB();
-        // Middleware handles auth
-
 
         const body = await req.json();
+
+        // Validate required fields (optional but good practice)
+        // const { number, name, author, category, language } = body;
+        // if (!number || !name || !author || !category || !language) { 
+        //    return NextResponse.json({ success: false, msg: "Missing required fields", data: {} }, { status: 400 });
+        // }
+
         const newBook = await LibraryBook.create(body);
 
-        return NextResponse.json({ success: true, msg: "Book added successfully", data: newBook }, { status: 201 });
+        return NextResponse.json({ success: true, msg: "Book created successfully", data: newBook }, { status: 201 });
     } catch (error) {
         return NextResponse.json({ success: false, msg: error.message, data: {} }, { status: 500 });
     }
@@ -52,8 +38,6 @@ export async function POST(req) {
 export async function PATCH(req) {
     try {
         await connectToDB();
-        // Middleware handles auth
-
 
         const body = await req.json();
         const { _id, ...updateData } = body;
@@ -77,8 +61,6 @@ export async function PATCH(req) {
 export async function DELETE(req) {
     try {
         await connectToDB();
-        // Middleware handles auth
-
 
         const url = new URL(req.url);
         const id = url.searchParams.get("id");
