@@ -234,6 +234,21 @@ const pages = [
     allowedRoles: ["Org Admin"],
   },
   {
+    title: "Library Dashboard",
+    path: "/dashboard/library-dashboard",
+    allowedRoles: ["Org Admin"],
+  },
+  {
+    title: "Books",
+    path: "/dashboard/books",
+    allowedRoles: ["Org Admin"],
+  },
+  {
+    title: "Rentals",
+    path: "/dashboard/rentals",
+    allowedRoles: ["Org Admin"],
+  },
+  {
     title: "Downloads",
     path: "/dashboard/downloads",
     allowedRoles: ["College Admin", "Student", "Teacher"],

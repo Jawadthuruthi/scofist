@@ -60,9 +60,7 @@ const PopulatedField = ({ field, form, apiKey, data }) => {
     ? useWatch({ control: form.control, name: field.filter.dependentField })
     : null;
 
-  const populatedField = field.resource
-    ? usePopulateFormField(field, apiKey, dependentValue)
-    : field;
+  const populatedField = usePopulateFormField(field, apiKey, dependentValue);
 
   return <FieldRenderer field={populatedField} form={form} apiKey={apiKey} data={data} />;
 };

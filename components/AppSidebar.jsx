@@ -168,6 +168,32 @@ const items = [
   },
 
   {
+    title: "Library",
+    icon: Book,
+    allowedRoles: ["Org Admin"],
+    subItems: [
+      {
+        title: "Dashboard",
+        url: "/dashboard/library-dashboard",
+        icon: LayoutGrid,
+        allowedRoles: ["Org Admin"],
+      },
+      {
+        title: "Books",
+        url: "/dashboard/books",
+        icon: BookOpen,
+        allowedRoles: ["Org Admin"],
+      },
+      {
+        title: "Rentals",
+        url: "/dashboard/rentals",
+        icon: Users,
+        allowedRoles: ["Org Admin"],
+      },
+    ],
+  },
+
+  {
     title: "Downloads",
     icon: Download,
     allowedRoles: ["College Admin", "Student", "Teacher"],
