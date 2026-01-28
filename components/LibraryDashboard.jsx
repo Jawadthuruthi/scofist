@@ -133,9 +133,9 @@ export default function LibraryDashboard({
             enableSorting: false,
             enableHiding: false,
             meta: {
-                width: "30px",
-                minWidth: "30px",
-                padding: "0px 2px", // Tight padding
+                width: "20px",
+                minWidth: "20px",
+                padding: "0px 0px", // Extremely tight
             },
         },
         {
@@ -143,9 +143,9 @@ export default function LibraryDashboard({
             header: "Sl No",
             cell: ({ row }) => row.index + 1,
             meta: {
-                width: "40px",
-                minWidth: "40px",
-                padding: "0px 4px", // Tight padding
+                width: "25px",
+                minWidth: "25px",
+                padding: "0px 0px", // Extremely tight
             },
         },
         {
