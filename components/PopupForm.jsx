@@ -59,7 +59,7 @@ const AsyncInput = ({
           url += `&projection=${displayKey}`;
         }
 
-        const res = await fetch(url, fetchOptions);
+        const res = await fetch(url, { ...fetchOptions, credentials: "include" });
         if (res.ok) {
           const json = await res.json();
           // Try to find the list in responseKey or known fallbacks

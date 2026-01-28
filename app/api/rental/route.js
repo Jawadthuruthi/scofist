@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import Rental from "@/models/Rental";
 import LibraryBook from "@/models/LibraryBook";
+import User from "@/models/User";
+import mongoose from "mongoose";
 
 
 
@@ -29,8 +31,11 @@ export async function POST(req) {
 
         // If bookId is provided, check if it's a direct ID or a Book Number (from manual input)
         if (body.bookId) {
-            // First try to find by number
-            let book = await LibraryBook.findOne({ number: body.bookId });
+            // First try to find by number (only if it looks like a number)
+            let book = null;
+            if (!isNaN(body.bookId)) {
+                book = await LibraryBook.findOne({ number: body.bookId });
+            }
 
             // If not found by number, and it looks like an ObjectId, try finding by ID (fallback)
             if (!book && mongoose.Types.ObjectId.isValid(body.bookId)) {

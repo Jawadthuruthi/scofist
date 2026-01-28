@@ -28,6 +28,10 @@ export default function LibraryDashboard({
         ? initialBooks.find(b => b._id === selectedIds[0])
         : null;
 
+    const selectedRental = view === "rentals" && selectedIds.length === 1
+        ? initialRentals.find(r => r._id === selectedIds[0])
+        : null;
+
     // --- Configurations ---
 
     const bookFields = [
@@ -500,6 +504,26 @@ export default function LibraryDashboard({
         }
     }
 
+    const handleUpdateRental = async (data) => {
+        setLoading(true);
+        try {
+            const res = await fetch("/api/rental", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ _id: selectedRental._id, ...data }),
+            });
+            if (res.ok) {
+                router.refresh();
+                setRowSelection({}); // Clear selection after update
+                return true;
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleDeleteRental = async (id) => {
         if (!confirm("Are you sure?")) return;
         setLoading(true);
@@ -648,6 +672,19 @@ export default function LibraryDashboard({
                         <div className="flex gap-2">
                             {selectedIds.length > 0 && (
                                 <>
+                                    {selectedRental && (
+                                        <PopupForm
+                                            title="Edit Rental"
+                                            formFields={rentalFields}
+                                            data={{
+                                                ...selectedRental,
+                                                bookId: selectedRental.bookId?._id || selectedRental.bookId,
+                                                studentId: selectedRental.studentId?._id || selectedRental.studentId,
+                                            }}
+                                            onSubmit={handleUpdateRental}
+                                            loading={loading}
+                                        />
+                                    )}
                                     <Button
                                         variant="outline"
                                         size="sm"
