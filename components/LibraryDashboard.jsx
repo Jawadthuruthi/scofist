@@ -84,7 +84,7 @@ export default function LibraryDashboard({
             name: "bookId",
             label: "Book ID",
             inputType: "select",
-            resource: "library/books?status=Available",
+            resource: "library/books",
             labelKey: ["number", "name"],
             valueKey: "_id",
             required: true,
@@ -92,7 +92,13 @@ export default function LibraryDashboard({
         {
             name: "studentId",
             label: "Student ID",
-            inputType: "text",
+            inputType: "async-text",
+            asyncProps: {
+                endpoint: "/api/users",
+                queryKey: "_id",
+                displayKey: "name",
+                responseKey: "users"
+            },
             required: true,
         },
         {

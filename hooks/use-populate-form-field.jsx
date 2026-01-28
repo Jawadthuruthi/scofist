@@ -16,7 +16,7 @@ const usePopulateFormField = (field, apiKey, dependentValue) => {
     enabled: shouldFetch,
   });
 
-  const items = fetched?.[field.resource] || [];
+  const items = fetched?.[field.resource] || fetched?.data || [];
   const options = formatOptions(items, field.labelKey, field.valueKey);
 
   // If no resource, we likely don't want to override options unless we handle mixed cases, 

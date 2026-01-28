@@ -29,6 +29,82 @@ import { Progress } from "@/components/ui/progress";
 import RangeInput from "./RangeInput";
 import usePopulateFormField from "@/hooks/use-populate-form-field";
 
+/* ---------- AsyncInput Component ---------- */
+const AsyncInput = ({
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  readOnly,
+  asyncProps = {},
+  ...props
+}) => {
+  const [preview, setPreview] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    const timer = setTimeout(async () => {
+      // Basic validation to avoid spamming
+      if (!value || String(value).length < 2) {
+        setPreview(null);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const { endpoint, queryKey = "_id", displayKey = "name", responseKey = "data", ...fetchOptions } = asyncProps;
+        // Construct query correctly
+        let url = `${endpoint}?${queryKey}=${encodeURIComponent(value)}`;
+        if (displayKey) {
+          url += `&projection=${displayKey}`;
+        }
+
+        const res = await fetch(url, fetchOptions);
+        if (res.ok) {
+          const json = await res.json();
+          // Try to find the list in responseKey or known fallbacks
+          const list = json[responseKey] || json.data || json.users || [];
+          const item = Array.isArray(list) && list.length > 0 ? list[0] : null;
+
+          if (item) {
+            setPreview(item[displayKey] || "Unknown");
+          } else {
+            setPreview("Not found");
+          }
+        } else {
+          setPreview("Error fetching data");
+        }
+      } catch (err) {
+        console.error(err);
+        setPreview("Error");
+      } finally {
+        setLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [value, asyncProps]);
+
+  return (
+    <div className="space-y-1">
+      <Input
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={disabled}
+        readOnly={readOnly}
+        {...props}
+      />
+      {loading && <div className="text-xs text-muted-foreground animate-pulse">Checking...</div>}
+      {!loading && preview && (
+        <div className={`text-xs ${preview === "Not found" || preview.startsWith("Error") ? "text-destructive" : "text-green-600 font-medium"}`}>
+          {preview}
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ---------- SectionNavigation (unchanged) ---------- */
 const SectionNavigation = ({
   ref,
@@ -219,6 +295,16 @@ function FieldRenderer({ field, form, apiKey, data }) {
                 className={fieldToRender.className}
                 readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
                 {...fieldToRender.props}
+              />
+            ) : fieldToRender.inputType === "async-text" ? (
+              <AsyncInput
+                value={formField.value}
+                onChange={formField.onChange}
+                placeholder={fieldToRender.placeholder}
+                disabled={fieldToRender.disabled}
+                readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                asyncProps={fieldToRender.asyncProps}
+                {...formField}
               />
             ) : (
               <Input
