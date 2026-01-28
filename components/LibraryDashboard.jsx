@@ -4,6 +4,8 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import TableComponent from "@/components/TableComponent";
 import PopupForm from "@/components/PopupForm";
+import BestReaderCard from "./BestReaderCard";
+import MostReadBookCard from "./MostReadBookCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Book, Users, BookOpen, AlertCircle, Trash2 } from "lucide-react";
@@ -579,29 +581,28 @@ export default function LibraryDashboard({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Categories</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Unique Categories</CardTitle>
+                            <BookOpen className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="flex flex-wrap gap-2">
-                                {categories?.length > 0 ? categories.map(c => (
-                                    <div key={c} className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-sm">{c}</div>
-                                )) : "No categories found"}
-                            </div>
+                            <div className="text-2xl font-bold">{categories?.length || 0}</div>
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Languages</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Languages</CardTitle>
+                            <BookOpen className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="flex flex-wrap gap-2">
-                                {languages?.length > 0 ? languages.map(l => (
-                                    <div key={l} className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-sm">{l}</div>
-                                )) : "No languages found"}
-                            </div>
+                            <div className="text-2xl font-bold">{languages?.length || 0}</div>
                         </CardContent>
                     </Card>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <BestReaderCard />
+                    <MostReadBookCard />
                 </div>
             </div>
         );
