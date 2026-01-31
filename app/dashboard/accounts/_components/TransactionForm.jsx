@@ -25,6 +25,7 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
         date: new Date().toISOString().split("T")[0],
         type: "Income",
         invoiceNo: "",
+        item: "",
         category: "",
         amount: "",
         mode: "Cash", // Default as per requirements
@@ -63,6 +64,7 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
                 date: new Date().toISOString().split("T")[0],
                 type: "Income",
                 invoiceNo: "",
+                item: "",
                 category: "",
                 amount: "",
                 mode: "Cash",
@@ -119,6 +121,16 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
                             value={formData.invoiceNo}
                             onChange={handleChange}
                             required
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="item">Item</Label>
+                        <Input
+                            id="item"
+                            name="item"
+                            placeholder="Enter Item Description"
+                            value={formData.item}
+                            onChange={handleChange}
                         />
                     </div>
                 </div>

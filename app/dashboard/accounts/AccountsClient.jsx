@@ -107,6 +107,10 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
             header: "Invoice/Receipt",
         },
         {
+            accessorKey: "item",
+            header: "Item",
+        },
+        {
             accessorKey: "category",
             header: "Category",
         },
@@ -137,6 +141,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
             required: true,
         },
         { name: "invoiceNo", label: "Invoice/Receipt No", type: "text", required: true },
+        { name: "item", label: "Item", type: "text", required: false },
         {
             name: "category",
             label: "Category",

@@ -15,6 +15,10 @@ const financeSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    item: {
+      type: String,
+      required: false,
+    },
     category: {
       type: String,
       required: true,
