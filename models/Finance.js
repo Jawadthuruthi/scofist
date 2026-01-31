@@ -19,6 +19,10 @@ const financeSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    recipient: {
+      type: String,
+      required: false,
+    },
     category: {
       type: String,
       required: true,

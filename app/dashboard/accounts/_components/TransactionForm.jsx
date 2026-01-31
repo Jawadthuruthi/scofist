@@ -26,6 +26,7 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
         type: "Income",
         invoiceNo: "",
         item: "",
+        recipient: "",
         category: "",
         amount: "",
         mode: "Cash", // Default as per requirements
@@ -65,6 +66,7 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
                 type: "Income",
                 invoiceNo: "",
                 item: "",
+                recipient: "",
                 category: "",
                 amount: "",
                 mode: "Cash",
@@ -130,6 +132,16 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
                             name="item"
                             placeholder="Enter Item Description"
                             value={formData.item}
+                            onChange={handleChange}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="recipient">Recipient</Label>
+                        <Input
+                            id="recipient"
+                            name="recipient"
+                            placeholder="Enter Recipient"
+                            value={formData.recipient}
                             onChange={handleChange}
                         />
                     </div>

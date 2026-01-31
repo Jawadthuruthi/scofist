@@ -71,7 +71,8 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
             accessorKey: "select",
             header: "Select",
             type: "checkbox",
-            meta: { width: "50px", minWidth: "50px" },
+            width: "50px",
+            minWidth: "50px",
         },
         {
             id: "slNo",
@@ -109,6 +110,14 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         {
             accessorKey: "item",
             header: "Item",
+            minWidth: "150px",
+            cell: ({ row }) => row.original.item || "-",
+        },
+        {
+            accessorKey: "recipient",
+            header: "Recipient",
+            minWidth: "150px",
+            cell: ({ row }) => row.original.recipient || "-",
         },
         {
             accessorKey: "category",
@@ -142,6 +151,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         },
         { name: "invoiceNo", label: "Invoice/Receipt No", type: "text", required: true },
         { name: "item", label: "Item", type: "text", required: false },
+        { name: "recipient", label: "Recipient", type: "text", required: false },
         {
             name: "category",
             label: "Category",

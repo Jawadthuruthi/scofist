@@ -15,7 +15,13 @@ export default async function AccountsPage() {
         accountType = "Org";
     }
 
-    const summary = await getFinanceSummary(accountType);
+    let summary = null;
+    try {
+        summary = await getFinanceSummary(accountType);
+    } catch (error) {
+        console.error("Error fetching finance summary:", error);
+        // Fallback or handle error gracefully so page doesn't crash
+    }
     // Prioritize API_KEY since we are on the server, ensuring we match what middleware expects
     const apiKey = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY;
 

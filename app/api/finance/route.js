@@ -28,7 +28,8 @@ export async function GET(req) {
     }
 
     if (category && category !== "all") {
-      query.category = { $regex: category, $options: "i" }; // Case-insensitive partial match for robust filtering
+      const escapedCategory = category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query.category = { $regex: escapedCategory, $options: "i" };
     }
 
     if (mode && mode !== "all") {
@@ -43,6 +44,14 @@ export async function GET(req) {
       .sort({ date: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit);
+
+    if (transactions.length > 0) {
+      console.log("Sample fetched transaction:", {
+        id: transactions[0]._id,
+        item: transactions[0].item,
+        recipient: transactions[0].recipient
+      });
+    }
 
     const total = await Finance.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
@@ -74,9 +83,14 @@ export async function POST(req) {
   try {
     await connectToDB();
     const body = await req.json();
-    console.log("Finance API POST Body:", body);
+    console.log("Finance API POST Body:", {
+      ...body,
+      item: body.item,
+      recipient: body.recipient
+    });
 
     const newTransaction = await Finance.create(body);
+    console.log("Created Transaction:", newTransaction);
 
     return NextResponse.json({ success: true, data: newTransaction }, { status: 201 });
   } catch (error) {
