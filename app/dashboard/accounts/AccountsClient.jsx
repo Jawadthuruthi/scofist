@@ -71,6 +71,18 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
             accessorKey: "select",
             header: "Select",
             type: "checkbox",
+            meta: { width: "50px", minWidth: "50px" },
+        },
+        {
+            id: "slNo",
+            header: "Sl No",
+            cell: ({ row, table }) => {
+                const pageIndex = table.getState().pagination.pageIndex;
+                const pageSize = table.getState().pagination.pageSize;
+                return pageIndex * pageSize + row.index + 1;
+            },
+            enableSorting: false,
+            enableHiding: false,
         },
         {
             accessorKey: "date",

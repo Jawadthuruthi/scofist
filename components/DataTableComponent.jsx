@@ -32,38 +32,16 @@ import { applyPrintStyles, removePrintStyles, formatDateForDisplay } from "@/lib
 import PrintHeader from "@/components/PrintHeader";
 import DateRangeFilter from "@/components/DateRangeFilter";
 
-const PopupFilter = dynamic(() => import("./PopupFilter"), {
-  ssr: false,
-  loading: () => (
-    <Button variant="outline" disabled>
-      <Loader />
-    </Button>
-  ),
-});
-const ColumnCustomization = dynamic(() => import("./ColumnCustomization"), {
-  ssr: false,
-  loading: () => (
-    <Button variant="outline" disabled>
-      <Loader />
-    </Button>
-  ),
-});
-const ConfirmationPopup = dynamic(() => import("./ConfirmationPopup"), {
-  ssr: false,
-  loading: () => (
-    <Button variant="outline" disabled>
-      <Loader />
-    </Button>
-  ),
-});
-const PopupForm = dynamic(() => import("./PopupForm"), {
-  ssr: false,
-  loading: () => (
-    <Button variant="outline" disabled>
-      <Loader />
-    </Button>
-  ),
-});
+import ColumnCustomization from "./ColumnCustomization";
+import PopupFilter from "./PopupFilter";
+import ConfirmationPopup from "./ConfirmationPopup";
+import PopupForm from "./PopupForm";
+
+// Dynamic imports removed to fix ChunkLoadError
+// const PopupFilter = ...
+// const ColumnCustomization = ... (already removed)
+// const ConfirmationPopup = ...
+// const PopupForm = ...
 
 const getCellStyles = (meta) => ({
   width: meta?.width || "auto",
