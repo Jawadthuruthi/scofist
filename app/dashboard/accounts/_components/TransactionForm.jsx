@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,10 +16,16 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import useCrud from "@/hooks/use-crud";
 
-export default function TransactionForm({ apiKey, onSuccess, accountType = "College" }) {
+export default function TransactionForm({ apiKey, onSuccess, accountType = "College", existingCategories = [] }) {
     const [loading, setLoading] = useState(false);
     const { useAddItem } = useCrud("finance", apiKey || process.env.NEXT_PUBLIC_API_KEY);
     const addItem = useAddItem();
+
+    const categoryOptions = useMemo(() => {
+        const defaults = ["Stationary", "IT Lab", "Donation"];
+        const allCategories = Array.from(new Set([...defaults, ...existingCategories]));
+        return allCategories.map(cat => ({ value: cat, label: cat }));
+    }, [existingCategories]);
 
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split("T")[0],
@@ -145,17 +151,10 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
                             onChange={handleChange}
                         />
                     </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="category">Category</Label>
                         <MultiSelect
-                            options={[
-                                { value: "Stationary", label: "Stationary" },
-                                { value: "IT Lab", label: "IT Lab" },
-                                { value: "Donation", label: "Donation" },
-                            ]}
+                            options={categoryOptions}
                             value={formData.category}
                             onValueChange={(val) => handleSelectChange("category", val)}
                             placeholder="Select or type category"
@@ -166,6 +165,10 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
                             freeSolo={true}
                         />
                     </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
 
                     <div className="space-y-2">
                         <Label htmlFor="mode">Mode</Label>
@@ -195,13 +198,13 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
                             required
                         />
                     </div>
-                </div>
 
-                <div className="flex justify-end pt-2">
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]" disabled={loading}>
-                        {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                        Save Entry
-                    </Button>
+                    <div className="flex items-end">
+                        <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white w-full" disabled={loading}>
+                            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            Save Entry
+                        </Button>
+                    </div>
                 </div>
             </form>
         </div>

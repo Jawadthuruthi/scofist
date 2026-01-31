@@ -183,7 +183,12 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         <div className="space-y-6">
             <FinanceStats summary={summary} />
 
-            <TransactionForm apiKey={apiKey} onSuccess={handleSuccess} accountType={accountType} />
+            <TransactionForm
+                apiKey={apiKey}
+                onSuccess={handleSuccess}
+                accountType={accountType}
+                existingCategories={summary?.categories?.map(c => c.category) || []}
+            />
 
             <DataTableComponent
                 key={refreshKey}
