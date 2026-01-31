@@ -53,11 +53,25 @@ const getCellStyles = (meta) => ({
 });
 
 const handleError = (error) => {
-  console.error(error.message);
-  if (!error.details?.errors) {
-    toast.error(
-      error.message || "Something went wrong. Please try again later."
-    );
+  // Safely handle error logging
+  let message = "An error occurred";
+
+  try {
+    if (error && typeof error.message === 'string') {
+      message = error.message;
+    } else if (typeof error === 'string') {
+      message = error;
+    }
+  } catch (e) {
+    // Fallback if accessing property fails
+    message = "Unknown error";
+  }
+
+  // Use console.log to avoid potential serialization issues in some environments
+  console.log("Error handled:", message);
+
+  if (!error?.details?.errors) {
+    toast.error(message);
   } else {
     toast.error("Validation error. Check your input.");
   }
@@ -526,6 +540,13 @@ const DataTableComponent = ({
     [table, rowSelection]
   );
 
+  // Helper to remove UI components from API payload
+  const getApiProps = (props) => {
+    if (!props) return {};
+    const { customActions, customToolbar, ...apiProps } = props;
+    return apiProps;
+  };
+
   // FIXED: Form submission handler with proper state management
   const handleSubmit = async (values) => {
     try {
@@ -534,7 +555,7 @@ const DataTableComponent = ({
         Object.entries(values).filter(([_, value]) => Boolean(value))
       );
 
-      await addData.mutateAsync({ ...filteredValues, ...additionalProps });
+      await addData.mutateAsync({ ...filteredValues, ...getApiProps(additionalProps) });
       table.resetRowSelection();
 
       // FIXED: Proper data refresh
@@ -561,7 +582,7 @@ const DataTableComponent = ({
         data: {
           ids: selectedData?.map((item) => item?._id),
           ...values,
-          ...additionalProps,
+          ...getApiProps(additionalProps),
         },
       });
       table.resetRowSelection();
@@ -590,7 +611,7 @@ const DataTableComponent = ({
       await deleteData.mutateAsync({
         data: {
           ids: selectedData?.map((item) => item?._id),
-          ...additionalProps,
+          ...getApiProps(additionalProps),
         },
       });
       table.resetRowSelection();
