@@ -15,8 +15,9 @@ export async function GET(req) {
     const accountType = searchParams.get("accountType") || "College"; // Default to College
     console.log("Finance API GET:", { accountType, allParams: Object.fromEntries(searchParams) });
     const page = parseInt(searchParams.get("page")) || 1;
-    const limit = parseInt(searchParams.get("limit")) || 20;
-    const skip = (page - 1) * limit;
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam === "0" ? 0 : (parseInt(limitParam) || 20);
+    const skip = limit === 0 ? 0 : (page - 1) * limit;
 
     let query = {};
 

@@ -211,8 +211,10 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                     accountType // Keep accountType here if needed by other logic, though usually mostly for toolbar
                 }}
                 filterConfig={filterConfig}
+                filterConfig={filterConfig}
                 printInReverse={true}
                 printTitle="Accounts"
+                limit={0}
             />
 
 
