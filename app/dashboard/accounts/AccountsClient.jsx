@@ -88,7 +88,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         {
             accessorKey: "date",
             header: "Date",
-            cell: ({ row }) => new Date(row.original.date).toLocaleDateString(),
+            cell: ({ row }) => new Date(row.original.date).toLocaleDateString("en-GB"),
         },
         {
             accessorKey: "type",
