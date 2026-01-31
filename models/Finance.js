@@ -47,8 +47,8 @@ const financeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Add compound unique index
-financeSchema.index({ invoiceNo: 1, type: 1 }, { unique: true });
+// Index removed to allow duplicate invoice numbers as per user request
+// financeSchema.index({ invoiceNo: 1, type: 1 }, { unique: true });
 
 const Finance =
   mongoose.models.Finance || mongoose.model("Finance", financeSchema);

@@ -127,9 +127,12 @@ export async function PUT(req) {
 
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
-    console.error("Error updating transaction:", error);
+    console.error("PUT Transaction Error:", error);
+    // Determine the error message robustly
+    const errorMessage = error?.message || (typeof error === 'string' ? error : "Unknown server error");
+
     return NextResponse.json(
-      { success: false, error: "Failed to update transaction" },
+      { success: false, error: `UPDATE FAILED: ${errorMessage}` },
       { status: 500 }
     );
   }
