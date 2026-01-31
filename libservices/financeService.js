@@ -8,11 +8,23 @@ export async function getFinanceSummary(accountType = "College") {
     // Aggregation for summary
     const matchStage = { accountType }; // Filter by accountType provided
 
+    // Main Stats Aggregation
     const stats = await Finance.aggregate([
         { $match: matchStage },
         {
             $group: {
                 _id: { mode: "$mode", type: "$type" },
+                total: { $sum: "$amount" }
+            }
+        }
+    ]);
+
+    // Category-wise Aggregation
+    const categoryStats = await Finance.aggregate([
+        { $match: matchStage },
+        {
+            $group: {
+                _id: { category: "$category", type: "$type" },
                 total: { $sum: "$amount" }
             }
         }
@@ -33,9 +45,32 @@ export async function getFinanceSummary(accountType = "College") {
         }
     });
 
+    // Process category stats
+    const categoriesMap = {};
+
+    categoryStats.forEach(stat => {
+        const category = stat._id.category;
+        const type = stat._id.type;
+        const total = stat.total;
+
+        if (!categoriesMap[category]) {
+            categoriesMap[category] = { category, income: 0, expense: 0, balance: 0 };
+        }
+
+        if (type === "Income") categoriesMap[category].income = total;
+        if (type === "Expense") categoriesMap[category].expense = total;
+    });
+
+    // Calculate balances and convert to array
+    const categories = Object.values(categoriesMap).map(cat => ({
+        ...cat,
+        balance: cat.income - cat.expense
+    })).sort((a, b) => b.balance - a.balance); // Sort by balance descending
+
     return {
         cashBalance: cashIncome - cashExpense,
         bankBalance: bankIncome - bankExpense,
         totalBalance: (cashIncome - cashExpense) + (bankIncome - bankExpense),
+        categories // Add categories to the return object
     };
 }

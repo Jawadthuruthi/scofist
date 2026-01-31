@@ -9,6 +9,8 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+import CategoryBalanceDialog from "./_components/CategoryBalanceDialog";
+
 export default function AccountsClient({ initialSummary, apiKey, accountType = "College" }) {
     const [summary, setSummary] = useState(initialSummary);
     const router = useRouter();
@@ -156,8 +158,6 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
 
             <TransactionForm apiKey={apiKey} onSuccess={handleSuccess} accountType={accountType} />
 
-
-
             <DataTableComponent
                 key={refreshKey}
                 resource="finance"
@@ -172,6 +172,12 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 editFormTitle="Edit Transaction"
                 apiFilters={{ accountType }} // Pass accountType for filtering
                 additionalFormParams={{ accountType }} // Pass accountType for creation
+                additionalProps={{
+                    customActions: summary?.categories && (
+                        <CategoryBalanceDialog categories={summary.categories} totalBalance={summary.totalBalance} />
+                    ),
+                    accountType // Keep accountType here if needed by other logic, though usually mostly for toolbar
+                }}
                 filterConfig={filterConfig}
                 printInReverse={true}
                 printTitle="Accounts"

@@ -684,7 +684,10 @@ const DataTableComponent = ({
             filterType={filterType}
           />
         </div >
-        <div className="space-x-2">
+        <div className="space-x-2 flex items-center">
+          {additionalProps?.customActions && (
+            <div>{additionalProps.customActions}</div>
+          )}
           {!!selectedData?.length && (!readOnly || enableDelete) && (
             <ConfirmationPopup
               onClick={handleDelete}
