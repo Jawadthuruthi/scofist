@@ -31,11 +31,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
             id: "category",
             label: "Category",
             inputType: "select",
-            options: [
-                { value: "Stationary", label: "Stationary" },
-                { value: "IT Lab", label: "IT Lab" },
-                { value: "Donation", label: "Donation" },
-            ]
+            options: summary?.categories?.map(c => ({ value: c.category, label: c.category })) || []
         },
         {
             id: "type",
@@ -84,6 +80,8 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
             },
             enableSorting: false,
             enableHiding: false,
+            width: "50px",
+            minWidth: "50px",
         },
         {
             accessorKey: "date",
@@ -157,11 +155,8 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
             label: "Category",
             type: "text",
             inputType: "select",
-            options: [
-                { value: "Stationary", label: "Stationary" },
-                { value: "IT Lab", label: "IT Lab" },
-                { value: "Donation", label: "Donation" },
-            ],
+            options: summary?.categories?.map(c => ({ value: c.category, label: c.category })) || [],
+
             required: true,
             freeSolo: true
         },
@@ -192,6 +187,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
 
             <DataTableComponent
                 key={refreshKey}
+                tableHeight="calc(100vh - 140px)"
                 resource="finance"
                 apiEndpoint="finance"
                 columnsConfig={columnsConfig}
@@ -210,7 +206,6 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                     ),
                     accountType // Keep accountType here if needed by other logic, though usually mostly for toolbar
                 }}
-                filterConfig={filterConfig}
                 filterConfig={filterConfig}
                 printInReverse={true}
                 printTitle="Accounts"

@@ -67,10 +67,15 @@ export async function getFinanceSummary(accountType = "College") {
         balance: cat.income - cat.expense
     })).sort((a, b) => b.balance - a.balance); // Sort by balance descending
 
+    const totalIncome = cashIncome + bankIncome;
+    const totalExpense = cashExpense + bankExpense;
+
     return {
         cashBalance: cashIncome - cashExpense,
         bankBalance: bankIncome - bankExpense,
         totalBalance: (cashIncome - cashExpense) + (bankIncome - bankExpense),
+        totalIncome,
+        totalExpense,
         categories // Add categories to the return object
     };
 }

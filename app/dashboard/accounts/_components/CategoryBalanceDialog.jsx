@@ -58,8 +58,8 @@ export default function CategoryBalanceDialog({ categories, totalBalance }) {
         <Dialog>
             <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="ml-2">
-                    <ScrollText className="mr-2 h-4 w-4" />
-                    Balance Summary
+                    <ScrollText className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">Balance Summary</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">

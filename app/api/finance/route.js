@@ -12,6 +12,7 @@ export async function GET(req) {
     const endDate = searchParams.get("endDate");
     const category = searchParams.get("category");
     const mode = searchParams.get("mode");
+    const type = searchParams.get("type");
     const accountType = searchParams.get("accountType") || "College"; // Default to College
     console.log("Finance API GET:", { accountType, allParams: Object.fromEntries(searchParams) });
     const page = parseInt(searchParams.get("page")) || 1;
@@ -22,9 +23,11 @@ export async function GET(req) {
     let query = {};
 
     if (startDate && endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
       query.date = {
         $gte: new Date(startDate),
-        $lte: new Date(endDate),
+        $lte: end,
       };
     }
 
@@ -35,6 +38,10 @@ export async function GET(req) {
 
     if (mode && mode !== "all") {
       query.mode = mode;
+    }
+
+    if (type && type !== "all") {
+      query.type = type;
     }
 
     if (accountType) {
