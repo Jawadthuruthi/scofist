@@ -139,6 +139,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         printTitle={pageTitle || "Students"}
         filterType="api"
         readOnly={activeRole !== "College Admin" || isReadOnly}
+        tableHeight="calc(100vh - 200px)"
       />
 
       <StudentProfileDialog
