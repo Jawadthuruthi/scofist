@@ -234,7 +234,7 @@ const items = [
     title: "Remarks",
     url: "/dashboard/remarks",
     icon: MessageSquare,
-    allowedRoles: ["College Admin"],
+    allowedRoles: ["College Admin", "Teacher"],
   },
   {
     title: "Finance",

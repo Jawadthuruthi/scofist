@@ -137,7 +137,7 @@ const pages = [
   {
     path: "/dashboard/remarks",
     pattern: /^\/dashboard\/remarks(?:\/[^/]+)?$/,
-    allowedRoles: ["College Admin"],
+    allowedRoles: ["College Admin", "Teacher"],
   },
 
   {
