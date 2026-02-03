@@ -142,6 +142,7 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
             },
             apiFilters: {
                 roles: "Student",
+                status: "Active",
             },
         },
         {

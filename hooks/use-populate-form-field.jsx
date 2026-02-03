@@ -4,7 +4,7 @@ import { formatOptions } from "@/lib/utils";
 
 const usePopulateFormField = (field, apiKey, dependentValue) => {
   const { useFetchItems } = useCrud(field.resource, apiKey);
-  const filters = {};
+  const filters = field.apiFilters ? { ...field.apiFilters } : {};
   if (field.filter && dependentValue) {
     filters[field.filter.key] = dependentValue;
   }
