@@ -1,6 +1,6 @@
 import { jwtVerify } from "jose";
 import { NextResponse } from "next/server";
-import { baseURL } from "./lib/utils";
+
 
 // Pre-encode the secret key
 const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
@@ -586,7 +586,7 @@ async function handleAuthRequest(req) {
 
     try {
       // Try to fetch user with increased timeout
-      const user = await fetchUserProfile(userId, process.env.API_KEY);
+      const user = await fetchUserProfile(userId, process.env.API_KEY, req.nextUrl.origin);
 
       if (user) {
         storeUserInCache(userId, user);
@@ -655,12 +655,13 @@ function storeUserInCache(userId, user, customTtl = CACHE_TTL) {
   });
 }
 
-async function fetchUserProfile(userId, apiKey) {
+async function fetchUserProfile(userId, apiKey, origin) {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // Extend to 5 seconds
 
-    const response = await fetch(`${baseURL}/api/users/profile`, {
+    // Use origin passed from handleAuthRequest
+    const response = await fetch(`${origin}/api/users/profile`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
