@@ -17,8 +17,8 @@ export default async function RemarksPage() {
 
     // Fetch teachers for dropdown
     const teachersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/users?roles=Teacher&limit=1000`, {
-      headers: { "x-api-key": apiKey },
-      cache: "no-store"
+      headers: { "api-key": apiKey || "" },
+      cache: "no-store",
     });
     let teachers = [];
     if (teachersResponse.ok) {
@@ -36,7 +36,8 @@ export default async function RemarksPage() {
       />
     );
   } catch (error) {
-    console.error("Error loading remarks page:", error.message);
+    console.error("Critical error in RemarksPage:", error);
+    if (error.cause) console.error("Caused by:", error.cause);
     return (
       <ErrorPage
         statusCode={500}
