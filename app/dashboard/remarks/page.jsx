@@ -3,7 +3,17 @@ import ErrorPage from "@/components/ErrorPage";
 import { fetchData, formatOptions, parseUser } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
 
+import fs from 'fs';
+import path from 'path';
+
 export default async function RemarksPage() {
+  const logFile = path.join(process.cwd(), 'debug_log.txt');
+  const log = (msg) => {
+    try {
+      fs.appendFileSync(logFile, new Date().toISOString() + ': ' + msg + '\n');
+    } catch (e) { }
+  };
+  log("RemarksPage started");
   try {
     const headerStore = await headers();
     const cookiesStore = await cookies();
@@ -21,6 +31,7 @@ export default async function RemarksPage() {
     let classes = [];
     try {
       const classesData = await fetchData("classes", "projection=_id,name", 0);
+      console.log("Classes Data:", JSON.stringify(classesData, null, 2));
       classes = formatOptions(classesData);
     } catch (e) {
       console.error("Error fetching classes:", e);
@@ -29,15 +40,13 @@ export default async function RemarksPage() {
     // Fetch teachers for dropdown
     let teachers = [];
     try {
-      const teachersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/users?roles=Teacher&limit=1000`, {
-        headers: { "api-key": apiKey || "" },
-        cache: "no-store",
-      });
-      if (teachersResponse.ok) {
-        const data = await teachersResponse.json();
-        teachers = formatOptions(data.users || []);
-      }
+      log("Fetching teachers...");
+      const teachersData = await fetchData("users", "roles=Teacher&limit=1000", 0, "users");
+      log(`Teachers Data Raw: ${JSON.stringify(teachersData).slice(0, 100)}...`);
+      teachers = formatOptions(teachersData);
+      log(`Teachers Formatted Count: ${teachers.length}`);
     } catch (e) {
+      log(`Error fetching teachers: ${e.message}`);
       console.error("Error fetching teachers:", e);
     }
 
