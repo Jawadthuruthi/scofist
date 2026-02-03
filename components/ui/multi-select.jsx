@@ -113,10 +113,10 @@ export const MultiSelect = React.forwardRef(
       );
       const existsInSelected = multiSelect
         ? selectedValues.some((value) =>
-            caseSensitive
-              ? value === trimmedQuery
-              : value.toLowerCase() === compareValue
-          )
+          caseSensitive
+            ? value === trimmedQuery
+            : value.toLowerCase() === compareValue
+        )
         : caseSensitive
           ? selectedValues === trimmedQuery
           : selectedValues.toLowerCase() === compareValue;
@@ -173,10 +173,10 @@ export const MultiSelect = React.forwardRef(
       );
       const existsInSelected = multiSelect
         ? selectedValues.some((value) =>
-            caseSensitive
-              ? value === trimmedInput
-              : value.toLowerCase() === compareValue
-          )
+          caseSensitive
+            ? value === trimmedInput
+            : value.toLowerCase() === compareValue
+        )
         : caseSensitive
           ? selectedValues === trimmedInput
           : selectedValues.toLowerCase() === compareValue;
@@ -321,9 +321,9 @@ export const MultiSelect = React.forwardRef(
             )}
           >
             {selectedValues &&
-            (multiSelect
-              ? selectedValues.length > 0
-              : selectedValues !== "" &&
+              (multiSelect
+                ? selectedValues.length > 0
+                : selectedValues !== "" &&
                 selectedValues !== null &&
                 selectedValues !== undefined) ? (
               <div className="flex justify-between items-center w-full">
@@ -397,7 +397,12 @@ export const MultiSelect = React.forwardRef(
                           {IconComponent && (
                             <IconComponent className="h-4 w-4 mr-2" />
                           )}
-                          {option?.label || selectedValues}
+                          {option?.label ||
+                            (typeof selectedValues === "object"
+                              ? selectedValues?.label ||
+                              selectedValues?.name ||
+                              JSON.stringify(selectedValues)
+                              : selectedValues)}
                           <XCircle
                             className="ml-2 h-4 w-4 cursor-pointer"
                             onClick={(event) => {
@@ -554,7 +559,7 @@ export const MultiSelect = React.forwardRef(
                       className={cn(
                         "flex items-center rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground",
                         option.isCustom &&
-                          "bg-primary/5 border-l-2 border-primary/20"
+                        "bg-primary/5 border-l-2 border-primary/20"
                       )}
                       onClick={() => {
                         if (!readOnly) toggleOption(option.value);

@@ -5,7 +5,7 @@ import Class from "@/models/Class";
 import User from "@/models/User";
 import { apiResponse } from "@/lib/apiResponse";
 import { parseUser } from "@/lib/utils";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 
 // @desc GET all remarks
 // @route GET /api/remarks
@@ -25,8 +25,9 @@ export async function GET(req) {
     }
 
     const headerStore = headers();
+    const cookieStore = cookies();
     const user = parseUser(headerStore);
-    const activeRole = headerStore.get("active-role");
+    const activeRole = cookieStore.get("active-role")?.value || headerStore.get("active-role");
 
     let query = {};
 
@@ -82,26 +83,29 @@ export async function GET(req) {
     const total = await Remark.countDocuments(query);
 
     const formattedRemarks = remarks.map((remark) => ({
-        ...remark.toObject(),
-        studentName: remark.studentId?.name,
-        className: remark.classId?.name,
-        teacherName: remark.teacherId?.name,
-      }));
+      ...remark.toObject(),
+      studentId: remark.studentId?._id?.toString(),
+      classId: remark.classId?._id?.toString(),
+      teacherId: remark.teacherId?._id?.toString(),
+      studentName: remark.studentId?.name,
+      className: remark.classId?.name,
+      teacherName: remark.teacherId?.name,
+    }));
 
     return NextResponse.json(
-        {
-          remarks: formattedRemarks,
-          pagination: {
-            page,
-            limit,
-            total,
-            totalPages:
-              limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
-          },
-          message: "Remarks fetched successfully!",
+      {
+        remarks: formattedRemarks,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages:
+            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
         },
-        { status: 200 }
-      );
+        message: "Remarks fetched successfully!",
+      },
+      { status: 200 }
+    );
   } catch (error) {
     return apiResponse.error(error.message, 500);
   }
@@ -110,95 +114,105 @@ export async function GET(req) {
 // @desc POST a new remark
 // @route POST /api/remarks
 export async function POST(req) {
-    try {
-      await connectToDB();
+  try {
+    await connectToDB();
 
-      const headerStore = headers();
-      const user = parseUser(headerStore);
+    const headerStore = headers();
+    const user = parseUser(headerStore);
 
-      const { studentId, classId, date, comments, status } = await req.json();
+    const { studentId, classId, date, comments, status, teacherId } = await req.json();
 
-      const newRemark = new Remark({
-        studentId,
-        classId,
-        teacherId: user.userId,
-        date,
-        comments,
-        status,
-      });
+    let assignedTeacherId = user.userId;
+    const cookieStore = cookies();
+    const activeRole = cookieStore.get("active-role")?.value || headerStore.get("active-role");
 
-      await newRemark.save();
-
-      return NextResponse.json({ remark: newRemark, message: "Remark created successfully!" }, { status: 201 });
-    } catch (error) {
-      return apiResponse.error(error.message, 500);
+    if (activeRole === "College Admin" && teacherId) {
+      assignedTeacherId = teacherId;
     }
+
+    const newRemark = new Remark({
+      studentId,
+      classId,
+      teacherId: assignedTeacherId,
+      date,
+      comments,
+      status,
+    });
+
+    await newRemark.save();
+
+    return NextResponse.json({ remark: newRemark, message: "Remark created successfully!" }, { status: 201 });
+  } catch (error) {
+    return apiResponse.error(error.message, 500);
+  }
 }
 
 
 // @desc PUT (update) a remark
 // @route PUT /api/remarks
 export async function PUT(req) {
-    try {
-      await connectToDB();
+  try {
+    await connectToDB();
 
-      const headerStore = headers();
-      const user = parseUser(headerStore);
-      const activeRole = headerStore.get("active-role");
+    const headerStore = headers();
+    const cookieStore = cookies();
+    const user = parseUser(headerStore);
+    const activeRole = cookieStore.get("active-role")?.value || headerStore.get("active-role");
 
-      const { ids, date, comments, status } = await req.json();
+    const { ids, date, comments, status } = await req.json();
 
-      const remarks = await Remark.find({_id: { $in: ids }});
+    const remarks = await Remark.find({ _id: { $in: ids } });
 
-      if(!remarks || remarks.length === 0){
-        return apiResponse.error("No remarks found.", 404);
-      }
-
-      for (const remark of remarks) {
-        if (remark.teacherId.toString() !== user.userId && activeRole !== "College Admin") {
-            return apiResponse.error(`You are not authorized to edit remark ${remark._id}.`, 403);
-        }
-      }
-
-      const updatedRemarks = await Remark.updateMany(
-        { _id: { $in: ids } },
-        { $set: { date, comments, status } }
-      );
-
-      return NextResponse.json({ updatedRemarks, message: "Remarks updated successfully!" }, { status: 200 });
-    } catch (error) {
-      return apiResponse.error(error.message, 500);
+    if (!remarks || remarks.length === 0) {
+      return apiResponse.error("No remarks found.", 404);
     }
+
+    for (const remark of remarks) {
+      if (remark.teacherId.toString() !== user.userId && activeRole !== "College Admin") {
+        return apiResponse.error(`You are not authorized to edit remark ${remark._id}.`, 403);
+      }
+    }
+
+    const updatedRemarks = await Remark.updateMany(
+      { _id: { $in: ids } },
+      { $set: { date, comments, status } }
+    );
+
+    return NextResponse.json({ updatedRemarks, message: "Remarks updated successfully!" }, { status: 200 });
+  } catch (error) {
+    return apiResponse.error(error.message, 500);
+  }
 }
 
 // @desc DELETE a remark
 // @route DELETE /api/remarks
 export async function DELETE(req) {
-    try {
-        await connectToDB();
+  try {
+    await connectToDB();
 
-        const headerStore = headers();
-        const user = parseUser(headerStore);
-        const activeRole = headerStore.get("active-role");
+    const headerStore = headers();
+    const cookieStore = cookies();
+    const user = parseUser(headerStore);
+    const activeRole = cookieStore.get("active-role")?.value || headerStore.get("active-role");
 
-        const { ids } = await req.json();
+    const { ids } = await req.json();
 
-        const remarks = await Remark.find({_id: { $in: ids }});
+    const remarks = await Remark.find({ _id: { $in: ids } });
 
-        if(!remarks || remarks.length === 0){
-            return apiResponse.error("No remarks found.", 404);
-        }
-
-        for (const remark of remarks) {
-            if (remark.teacherId.toString() !== user.userId && activeRole !== "College Admin") {
-                return apiResponse.error(`You are not authorized to delete remark ${remark._id}.`, 403);
-            }
-        }
-
-        await Remark.deleteMany({_id: { $in: ids }});
-
-        return NextResponse.json({ message: "Remarks deleted successfully." }, { status: 200 });
-    } catch (error) {
-        return apiResponse.error(error.message, 500);
+    if (!remarks || remarks.length === 0) {
+      return apiResponse.error("No remarks found.", 404);
     }
+
+    for (const remark of remarks) {
+      if (remark.teacherId.toString() !== user.userId && activeRole !== "College Admin") {
+        return apiResponse.error(`You are not authorized to delete remark ${remark._id}.`, 403);
+      }
+    }
+
+    await Remark.deleteMany({ _id: { $in: ids } });
+
+    return NextResponse.json({ message: "Remarks deleted successfully." }, { status: 200 });
+  } catch (error) {
+    return apiResponse.error(error.message, 500);
+  }
 }

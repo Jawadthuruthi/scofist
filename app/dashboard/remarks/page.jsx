@@ -1,21 +1,38 @@
+import RemarksClient from "./RemarksClient";
 import ErrorPage from "@/components/ErrorPage";
-import Remarks from "@/components/Remarks";
-import { parseUser } from "@/lib/utils";
+import { fetchData, formatOptions, parseUser } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
 
 export default async function RemarksPage() {
   try {
-    const apiKey = process.env.API_KEY;
     const headerStore = await headers();
     const cookiesStore = await cookies();
-    const user = parseUser(headerStore);
     const activeRole = cookiesStore.get("active-role")?.value;
+    const apiKey = process.env.API_KEY;
+    const user = parseUser(headerStore);
+
+    // Fetch classes for dropdown
+    const classesData = await fetchData("classes", "projection=_id,name", 0);
+    const classes = formatOptions(classesData);
+
+    // Fetch teachers for dropdown
+    const teachersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/users?roles=Teacher&limit=1000`, {
+      headers: { "x-api-key": apiKey },
+      cache: "no-store"
+    });
+    let teachers = [];
+    if (teachersResponse.ok) {
+      const data = await teachersResponse.json();
+      teachers = formatOptions(data.users || []);
+    }
 
     return (
-      <Remarks
+      <RemarksClient
         apiKey={apiKey}
-        role={activeRole}
-        teacherId={user?.userId}
+        activeRole={activeRole}
+        user={user}
+        classes={classes}
+        teachers={teachers}
       />
     );
   } catch (error) {

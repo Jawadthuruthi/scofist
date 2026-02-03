@@ -46,8 +46,8 @@ const ColumnCustomization = ({ table, columnsConfig }) => {
 
           const column = table.getColumn(columnId);
 
-          // Skip if column doesn't exist in the table
-          if (!column) return null;
+          // Skip if column doesn't exist in the table or cannot be hidden
+          if (!column || !column.getCanHide()) return null;
 
           return (
             <DropdownMenuItem

@@ -510,9 +510,18 @@ async function handleApiRequest(req) {
   // Allow authenticated users (with valid JWT) to access API without API key
   if (authToken) {
     try {
-      await jwtVerify(authToken, SECRET_KEY);
-      // Token is valid, allow the request
-      return NextResponse.next();
+      const { payload } = await jwtVerify(authToken, SECRET_KEY);
+
+      const user = {
+        _id: payload.userId,
+        roles: payload.roles || ["User"],
+        name: payload.name || "User",
+        userId: payload.userId,
+      };
+
+      const res = NextResponse.next();
+      res.headers.set("x-user", JSON.stringify(user));
+      return res;
     } catch (error) {
       // Token is invalid, continue to check API key
       console.error("Invalid auth token in API request:", error.message);

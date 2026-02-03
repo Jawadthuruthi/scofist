@@ -16,9 +16,9 @@ const remarkSchema = new Schema(
       required: true,
     },
     teacherId: {
-        type: String,
-        ref: "User",
-        required: true,
+      type: String,
+      ref: "User",
+      required: true,
     },
     date: {
       type: Date,
@@ -30,14 +30,17 @@ const remarkSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["good", "bad", "pending"],
+      enum: ["very good", "good", "acceptable", "bad", "very bad", "pending"],
       default: "pending"
     }
   },
   { timestamps: true }
 );
 
-const Remark =
-  models?.Remark || model("Remark", remarkSchema);
+if (process.env.NODE_ENV === "development") {
+  delete models.Remark;
+}
+
+const Remark = models?.Remark || model("Remark", remarkSchema);
 
 export default Remark;
