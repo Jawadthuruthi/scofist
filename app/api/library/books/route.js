@@ -2,12 +2,22 @@
 import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import LibraryBook from "@/models/LibraryBook";
+import Rental from "@/models/Rental";
 
 export async function GET(req) {
     try {
         await connectToDB();
 
-        const books = await LibraryBook.find().sort({ createdAt: -1 });
+        const books = await LibraryBook.find().sort({ createdAt: -1 }).lean();
+        const activeRentals = await Rental.find({ receivedDate: null }).select("bookId");
+
+        const rentedBookIds = new Set(activeRentals.map(r => r.bookId?.toString()));
+
+        books.forEach(book => {
+            if (rentedBookIds.has(book._id.toString())) {
+                book.status = "Rented";
+            }
+        });
 
         return NextResponse.json({ success: true, msg: "Books fetched successfully", data: books }, { status: 200 });
     } catch (error) {

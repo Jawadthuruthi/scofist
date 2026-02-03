@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import LibraryBook from "@/models/LibraryBook";
+import Rental from "@/models/Rental";
 
 const validateApiKey = (req) => {
     const url = new URL(req.url);
@@ -16,13 +17,19 @@ export async function GET(req) {
         }
 
         const totalBooks = await LibraryBook.countDocuments();
-        const availableBooks = await LibraryBook.countDocuments({ status: "Available" });
         const rentedBooks = await LibraryBook.countDocuments({ status: "Rented" });
+
+        const returnedRentals = await Rental.countDocuments({ receivedDate: { $ne: null } });
+        const pendingRentals = await Rental.countDocuments({ receivedDate: null });
+
+        const availableBooks = totalBooks - pendingRentals;
 
         const data = {
             total: totalBooks,
             available: availableBooks,
-            rented: rentedBooks
+            rented: rentedBooks,
+            returnedRentals,
+            pendingRentals
         };
 
         return NextResponse.json({ success: true, msg: "Book counts fetched successfully", data: data }, { status: 200 });

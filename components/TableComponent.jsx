@@ -26,7 +26,7 @@ import { useMemo, useRef, useState } from "react";
 import { useReactToPrint } from "react-to-print";
 import useTableColumns from "@/hooks/use-table-columns";
 import PrintHeader from "./PrintHeader";
-import { SlidersHorizontal, Filter, Search } from "lucide-react";
+import { SlidersHorizontal, Filter, Search, LayoutGrid, List } from "lucide-react";
 
 import PopupFilter from "./PopupFilter";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -54,12 +54,15 @@ const TableComponent = ({
   getRowId,
   actionButtons,
   filterConfig = [],
+  enableGrid = false,
+  renderGridItem,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState([]); // Advanced filters
   const [showFilterInput, setShowFilterInput] = useState(false);
+  const [viewMode, setViewMode] = useState("list"); // list or grid
 
   const tableRef = useRef(null);
 
@@ -94,7 +97,6 @@ const TableComponent = ({
   });
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {/* Column Management - First */}
@@ -148,6 +150,29 @@ const TableComponent = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {enableGrid && (
+            <div className="flex items-center border rounded-md overflow-hidden">
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 px-0 rounded-none border-r"
+                onClick={() => setViewMode("list")}
+                title="List View"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "grid" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 px-0 rounded-none"
+                onClick={() => setViewMode("grid")}
+                title="Grid View"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
           {filterConfig.length > 0 && (
             <PopupFilter
               filterConfig={filterConfig}
@@ -197,80 +222,96 @@ const TableComponent = ({
         </div>
       </div>
 
-      <div
-        ref={tableRef}
-        className="rounded-md border overflow-auto shadow-sm table-print relative  "
-        style={{
-          maxHeight: tableHeight,
-        }}
-      >
-        {!hidePrintBtn && (
-          <PrintHeader
-            apiKey={apiKey}
-            title={printTitle}
-            hidePrintLogo={hidePrintLogo}
-          />
-        )}
-        <div className="print-table-wrapper">
-          <Table>
-            <TableHeader className="sticky top-0 bg-background z-10">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      style={getCellStyles(header.column.columnDef.meta)}
-                      className={header.id === "select" ? "print:hidden" : ""}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.length > 0 ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() ? "selected" : undefined}
-                    className="break-inside-avoid"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        style={getCellStyles(cell.column.columnDef.meta)}
-                        key={cell.id}
-                        className={
-                          cell.column.id === "select" ? "print:hidden" : ""
-                        }
+      {viewMode === "grid" && renderGridItem ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {table.getRowModel().rows.length > 0 ? (
+            table.getRowModel().rows.map((row) => (
+              <div key={row.id}>
+                {renderGridItem(row)}
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full h-24 flex items-center justify-center text-gray-500 border rounded-md">
+              No data available
+            </div>
+          )}
+        </div>
+      ) : (
+        <div
+          ref={tableRef}
+          className="rounded-md border overflow-auto shadow-sm table-print relative  "
+          style={{
+            maxHeight: tableHeight,
+          }}
+        >
+          {!hidePrintBtn && (
+            <PrintHeader
+              apiKey={apiKey}
+              title={printTitle}
+              hidePrintLogo={hidePrintLogo}
+            />
+          )}
+          <div className="print-table-wrapper">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background z-10">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead
+                        key={header.id}
+                        style={getCellStyles(header.column.columnDef.meta)}
+                        className={header.id === "select" ? "print:hidden" : ""}
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center text-gray-500"
-                  >
-                    No data available
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.length > 0 ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() ? "selected" : undefined}
+                      className="break-inside-avoid"
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          style={getCellStyles(cell.column.columnDef.meta)}
+                          key={cell.id}
+                          className={
+                            cell.column.id === "select" ? "print:hidden" : ""
+                          }
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center text-gray-500"
+                    >
+                      No data available
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
-      </div>
+      )}
       {!hidePrintBtn && (
         <div className="w-full flex justify-end">
           <Button onClick={handlePrint}>Print</Button>

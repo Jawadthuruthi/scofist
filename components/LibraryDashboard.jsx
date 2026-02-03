@@ -221,6 +221,12 @@ export default function LibraryDashboard({
         {
             accessorKey: "status",
             header: "Status",
+            cell: ({ row }) => {
+                const status = row.getValue("status");
+                const displayStatus = (status === "Pending" || status === "Rented") ? "Rented" : (status || "Unknown");
+                const color = displayStatus === "Available" ? "text-green-600" : "text-red-600";
+                return <span className={`font-medium ${color}`}>{displayStatus}</span>;
+            },
             meta: { padding: "4px 4px" }
         },
     ];
@@ -570,11 +576,12 @@ export default function LibraryDashboard({
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Rented</CardTitle>
+                            <CardTitle className="text-sm font-medium">Rentals</CardTitle>
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{counts?.rented || 0}</div>
+                            <div className="text-2xl font-bold">{counts?.pendingRentals || 0}</div>
+                            <p className="text-xs text-muted-foreground mt-1">Pending</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -622,6 +629,35 @@ export default function LibraryDashboard({
                     onRowSelectionChange={setRowSelection}
                     getRowId={(originalRow) => originalRow._id}
                     filterConfig={filterConfig}
+                    enableGrid={true}
+                    renderGridItem={(row) => {
+                        const book = row.original;
+                        return (
+                            <Card className="h-full hover:shadow-md transition-shadow overflow-hidden">
+                                <CardContent className="p-4 flex gap-4 items-start">
+                                    <div className="flex-shrink-0 flex flex-col items-center gap-2">
+                                        <div className="bg-primary/10 p-4 rounded-md flex items-center justify-center h-24 w-24">
+                                            <BookOpen className="h-10 w-10 text-primary" />
+                                        </div>
+                                        <div className="text-center w-full">
+                                            <div className="font-semibold text-sm">₹{book.price?.toFixed(2) || "0.00"}</div>
+                                            <div className={`text-xs font-bold ${book.status === 'Available' ? "text-green-600" : "text-red-600"}`}>
+                                                {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 space-y-1 min-w-0 py-1">
+                                        <div className="text-xs text-muted-foreground uppercase tracking-wide">ID: {book.number}</div>
+                                        <h3 className="font-bold text-lg leading-tight break-words" title={book.name}>{book.name}</h3>
+                                        <div className="text-sm text-muted-foreground break-words" title={book.author}>Author: <span className="text-foreground font-medium">{book.author}</span></div>
+                                        {book.publication && <div className="text-sm text-muted-foreground break-words" title={book.publication}>Publication: <span className="text-foreground">{book.publication}</span></div>}
+                                        <div className="text-sm text-muted-foreground">Language: <span className="text-foreground">{book.language}</span></div>
+                                        <div className="text-sm text-muted-foreground">Category: <span className="text-foreground">{book.category}</span></div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        );
+                    }}
                     actionButtons={
                         <div className="flex gap-2">
                             {selectedIds.length > 0 && (
