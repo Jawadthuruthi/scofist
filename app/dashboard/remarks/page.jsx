@@ -9,21 +9,36 @@ export default async function RemarksPage() {
     const cookiesStore = await cookies();
     const activeRole = cookiesStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
-    const user = parseUser(headerStore);
+
+    let user = {};
+    try {
+      user = parseUser(headerStore);
+    } catch (e) {
+      console.error("Error parsing user:", e);
+    }
 
     // Fetch classes for dropdown
-    const classesData = await fetchData("classes", "projection=_id,name", 0);
-    const classes = formatOptions(classesData);
+    let classes = [];
+    try {
+      const classesData = await fetchData("classes", "projection=_id,name", 0);
+      classes = formatOptions(classesData);
+    } catch (e) {
+      console.error("Error fetching classes:", e);
+    }
 
     // Fetch teachers for dropdown
-    const teachersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/users?roles=Teacher&limit=1000`, {
-      headers: { "api-key": apiKey || "" },
-      cache: "no-store",
-    });
     let teachers = [];
-    if (teachersResponse.ok) {
-      const data = await teachersResponse.json();
-      teachers = formatOptions(data.users || []);
+    try {
+      const teachersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/users?roles=Teacher&limit=1000`, {
+        headers: { "api-key": apiKey || "" },
+        cache: "no-store",
+      });
+      if (teachersResponse.ok) {
+        const data = await teachersResponse.json();
+        teachers = formatOptions(data.users || []);
+      }
+    } catch (e) {
+      console.error("Error fetching teachers:", e);
     }
 
     return (
