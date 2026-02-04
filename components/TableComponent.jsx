@@ -201,7 +201,7 @@ const TableComponent = ({
           <Button
             variant="outline"
             size="sm"
-            className="h-8 lg:flex"
+            className="h-8 hidden lg:flex"
             onClick={() => setShowFilterInput(!showFilterInput)}
           >
             <Search className="h-4 w-4" />
@@ -211,30 +211,68 @@ const TableComponent = ({
               placeholder="Search..."
               value={globalFilter ?? ""}
               onChange={(event) => setGlobalFilter(event.target.value)}
-              className="h-8 w-[150px] lg:w-[250px]"
+              className="h-8 w-[150px] lg:w-[250px] hidden lg:block"
             />
           )}
+
         </div>
 
         <div className="flex items-center gap-2">
           {/* Action Buttons - Third/Last */}
           {actionButtons}
+          {!hidePrintBtn && (
+            <Button
+              size="sm"
+              onClick={handlePrint}
+              className="h-8 lg:flex"
+            >
+              Print
+            </Button>
+          )}
         </div>
       </div>
 
+      <div className="lg:hidden flex items-center gap-2 mt-2 w-full">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 shrink-0"
+          onClick={() => setShowFilterInput(!showFilterInput)}
+        >
+          <Search className="h-4 w-4" />
+        </Button>
+        {showFilterInput && (
+          <Input
+            placeholder="Search..."
+            value={globalFilter ?? ""}
+            onChange={(event) => setGlobalFilter(event.target.value)}
+            className="h-8 flex-1"
+          />
+        )}
+      </div>
+
       {viewMode === "grid" && renderGridItem ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {table.getRowModel().rows.length > 0 ? (
-            table.getRowModel().rows.map((row) => (
-              <div key={row.id}>
-                {renderGridItem(row)}
-              </div>
-            ))
-          ) : (
-            <div className="col-span-full h-24 flex items-center justify-center text-gray-500 border rounded-md">
-              No data available
-            </div>
+        <div ref={tableRef}>
+          {!hidePrintBtn && (
+            <PrintHeader
+              apiKey={apiKey}
+              title={printTitle}
+              hidePrintLogo={hidePrintLogo}
+            />
           )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {table.getRowModel().rows.length > 0 ? (
+              table.getRowModel().rows.map((row) => (
+                <div key={row.id}>
+                  {renderGridItem(row)}
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full h-24 flex items-center justify-center text-gray-500 border rounded-md">
+                No data available
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div
@@ -310,11 +348,6 @@ const TableComponent = ({
               </TableBody>
             </Table>
           </div>
-        </div>
-      )}
-      {!hidePrintBtn && (
-        <div className="w-full flex justify-end">
-          <Button onClick={handlePrint}>Print</Button>
         </div>
       )}
     </div>
