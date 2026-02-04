@@ -21,28 +21,6 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
     const [availableAccountNames, setAvailableAccountNames] = useState([]);
     const [openAccountCombobox, setOpenAccountCombobox] = useState(false);
 
-    useEffect(() => {
-        setSummary(initialSummary);
-    }, [initialSummary]);
-
-    useEffect(() => {
-        setAccountName(initialAccountName || "");
-    }, [initialAccountName]);
-
-    // Fetch available account names for Org
-    useEffect(() => {
-        if (accountType === "Org") {
-            fetch(`/api/finance/account-names?accountType=Org`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        setAvailableAccountNames(data.accountNames);
-                    }
-                })
-                .catch(err => console.error("Failed to fetch account names", err));
-        }
-    }, [accountType]);
-
     const handleAccountNameChange = (newName) => {
         setAccountName(newName);
 
@@ -60,6 +38,32 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         }
         router.push(`?${params.toString()}`);
     };
+
+    useEffect(() => {
+        setSummary(initialSummary);
+    }, [initialSummary]);
+
+    useEffect(() => {
+        setAccountName(initialAccountName || "");
+    }, [initialAccountName]);
+
+    // Fetch available account names for Org
+    useEffect(() => {
+        if (accountType === "Org") {
+            fetch(`/api/finance/account-names?accountType=Org`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setAvailableAccountNames(data.accountNames);
+                        // Default to first account if none selected
+                        if (!accountName && !initialAccountName && data.accountNames.length > 0) {
+                            handleAccountNameChange(data.accountNames[0]);
+                        }
+                    }
+                })
+                .catch(err => console.error("Failed to fetch account names", err));
+        }
+    }, [accountType]);
 
     const [isEditingName, setIsEditingName] = useState(false);
     const [isCreatingName, setIsCreatingName] = useState(false);
@@ -381,112 +385,133 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
     return (
         <div className="space-y-6">
             {accountType === "Org" && (
-                <div className="flex items-center space-x-2 bg-white p-4 rounded-lg shadow-sm border">
-                    <Button variant="outline" size="icon" onClick={() => handleNextPrevAccount("prev")}>
+                <div className="flex flex-wrap md:flex-nowrap items-center gap-2 bg-white p-4 rounded-lg shadow-sm border">
+
+                    {/* Prev Button - Order 1 */}
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleNextPrevAccount("prev")}
+                        className="order-1 shrink-0"
+                    >
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
 
-                    <div className="flex-1 flex items-center gap-2">
+                    {/* Input Area - Order 2 on Mobile/Desktop */}
+                    <div className="order-2 flex-1 min-w-[200px]">
                         {isEditingName || isCreatingName ? (
-                            <div className="flex-1 flex items-center gap-2">
-                                <Input
-                                    ref={editInputRef}
-                                    value={editingAccountName}
-                                    onChange={(e) => setEditingAccountName(e.target.value)}
-                                    placeholder={isCreatingName ? "Enter new account name" : "Rename account"}
-                                    className="flex-1"
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") handleRenameAccount();
-                                    }}
-                                />
+                            <Input
+                                ref={editInputRef}
+                                value={editingAccountName}
+                                onChange={(e) => setEditingAccountName(e.target.value)}
+                                placeholder={isCreatingName ? "Enter new account name" : "Rename account"}
+                                className="w-full"
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleRenameAccount();
+                                }}
+                            />
+                        ) : (
+                            <Popover open={openAccountCombobox} onOpenChange={setOpenAccountCombobox}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={openAccountCombobox}
+                                        className="w-full justify-between"
+                                    >
+                                        {accountName || "Select or Type Account Name..."}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[300px] p-0">
+                                    <Command>
+                                        <CommandInput
+                                            placeholder="Search or add account..."
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    handleAccountNameChange(e.currentTarget.value);
+                                                    setOpenAccountCombobox(false);
+                                                }
+                                            }}
+                                        />
+                                        <CommandList>
+                                            <CommandEmpty>Press Enter to add "{accountName}"</CommandEmpty>
+                                            <CommandGroup>
+                                                {availableAccountNames.map((name) => (
+                                                    <CommandItem
+                                                        key={name}
+                                                        value={name}
+                                                        onSelect={(currentValue) => {
+                                                            handleAccountNameChange(currentValue === accountName ? "" : currentValue);
+                                                            setOpenAccountCombobox(false);
+                                                        }}
+                                                    >
+                                                        <Check
+                                                            className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                accountName === name ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                        />
+                                                        {name}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                        )}
+                    </div>
+
+                    {/* Next Button - Order 3 on Mobile, Order 4 on Desktop */}
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleNextPrevAccount("next")}
+                        className="order-3 md:order-4 shrink-0"
+                    >
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+
+                    {/* Action Buttons - Order 4 on Mobile (New Row), Order 3 on Desktop (Inline) */}
+                    <div className="order-4 md:order-3 w-full md:w-auto flex items-center justify-center md:justify-start gap-2 mt-2 md:mt-0">
+                        {isEditingName || isCreatingName ? (
+                            <>
                                 <Button size="sm" onClick={handleRenameAccount} disabled={renaming}>
                                     {renaming ? "Saving..." : "Save"}
                                 </Button>
-                                <Button size="sm" variant="ghost" onClick={() => {
+                                <Button size="sm" variant="outline" onClick={() => {
                                     setIsEditingName(false);
                                     setIsCreatingName(false);
                                 }}>
                                     Cancel
                                 </Button>
-                                {!isCreatingName && (
-                                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={handleDeleteAccount} title="Delete Account">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                )}
-                            </div>
+                            </>
                         ) : (
                             <>
-                                <Popover open={openAccountCombobox} onOpenChange={setOpenAccountCombobox}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={openAccountCombobox}
-                                            className="w-full justify-between"
-                                        >
-                                            {accountName || "Select or Type Account Name..."}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[300px] p-0">
-                                        <Command>
-                                            <CommandInput
-                                                placeholder="Search or add account..."
-                                                onValueChange={(val) => {
-                                                    // Optional: Real-time update for typing? 
-                                                }}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        handleAccountNameChange(e.currentTarget.value);
-                                                        setOpenAccountCombobox(false);
-                                                    }
-                                                }}
-                                            />
-                                            <CommandList>
-                                                <CommandEmpty>Press Enter to add "{accountName}"</CommandEmpty>
-                                                <CommandGroup>
-                                                    {availableAccountNames.map((name) => (
-                                                        <CommandItem
-                                                            key={name}
-                                                            value={name}
-                                                            onSelect={(currentValue) => {
-                                                                handleAccountNameChange(currentValue === accountName ? "" : currentValue);
-                                                                setOpenAccountCombobox(false);
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    accountName === name ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />
-                                                            {name}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                                <Button variant="ghost" size="icon" onClick={() => {
-                                    setEditingAccountName(accountName || "");
-                                    setIsEditingName(true);
-                                }} title="Rename Account">
-                                    <Pencil className="h-4 w-4 text-muted-foreground" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => {
+                                <Button variant="outline" size="sm" onClick={() => {
                                     setEditingAccountName("");
                                     setIsCreatingName(true);
                                 }} title="Add New Account">
                                     <Plus className="h-4 w-4 text-muted-foreground" />
+                                    <span className="md:hidden ml-2">Add</span>
                                 </Button>
+                                <Button variant="outline" size="sm" onClick={() => {
+                                    setEditingAccountName(accountName || "");
+                                    setIsEditingName(true);
+                                }} title="Rename Account">
+                                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                                    <span className="md:hidden ml-2">Edit</span>
+                                </Button>
+                                {accountName && (
+                                    <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={handleDeleteAccount} title="Delete Account">
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="md:hidden ml-2">Delete</span>
+                                    </Button>
+                                )}
                             </>
                         )}
                     </div>
-
-                    <Button variant="outline" size="icon" onClick={() => handleNextPrevAccount("next")}>
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
                 </div>
             )}
 
