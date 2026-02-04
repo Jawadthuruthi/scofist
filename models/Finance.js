@@ -41,6 +41,12 @@ const financeSchema = new mongoose.Schema(
       enum: ["College", "Org", "Spark"],
       default: "College",
       required: true,
+      required: true,
+      index: true,
+    },
+    accountName: {
+      type: String,
+      required: false,
       index: true,
     },
   },

@@ -1,23 +1,208 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import FinanceStats from "@/app/dashboard/finance/_components/FinanceStats";
 import DataTableComponent from "@/components/DataTableComponent";
 import TransactionForm from "./_components/TransactionForm";
-import { IndianRupee, Printer } from "lucide-react";
+import { IndianRupee, Printer, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 import CategoryBalanceDialog from "./_components/CategoryBalanceDialog";
 
-export default function AccountsClient({ initialSummary, apiKey, accountType = "College" }) {
+export default function AccountsClient({ initialSummary, apiKey, accountType = "College", accountName: initialAccountName = "" }) {
     const [summary, setSummary] = useState(initialSummary);
     const router = useRouter();
+    const [accountName, setAccountName] = useState(initialAccountName || "");
+    const [availableAccountNames, setAvailableAccountNames] = useState([]);
+    const [openAccountCombobox, setOpenAccountCombobox] = useState(false);
 
     useEffect(() => {
         setSummary(initialSummary);
     }, [initialSummary]);
+
+    useEffect(() => {
+        setAccountName(initialAccountName || "");
+    }, [initialAccountName]);
+
+    // Fetch available account names for Org
+    useEffect(() => {
+        if (accountType === "Org") {
+            fetch(`/api/finance/account-names?accountType=Org`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setAvailableAccountNames(data.accountNames);
+                    }
+                })
+                .catch(err => console.error("Failed to fetch account names", err));
+        }
+    }, [accountType]);
+
+    const handleAccountNameChange = (newName) => {
+        setAccountName(newName);
+
+        // If it's a new name not in the list (and not empty), add it locally so it shows in dropdown/navigation
+        if (newName && !availableAccountNames.includes(newName)) {
+            setAvailableAccountNames(prev => Array.from(new Set([...prev, newName])).sort());
+        }
+
+        // Persist to URL
+        const params = new URLSearchParams(window.location.search);
+        if (newName) {
+            params.set("accountName", newName);
+        } else {
+            params.delete("accountName");
+        }
+        router.push(`?${params.toString()}`);
+    };
+
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [isCreatingName, setIsCreatingName] = useState(false);
+    const [editingAccountName, setEditingAccountName] = useState("");
+    const [renaming, setRenaming] = useState(false);
+    const editInputRef = useRef(null);
+
+    useEffect(() => {
+        if (isEditingName || isCreatingName) {
+            // Small timeout to ensure render
+            setTimeout(() => editInputRef.current?.focus(), 50);
+        }
+    }, [isEditingName, isCreatingName]);
+
+    const handleRenameAccount = async () => {
+        if (!editingAccountName || !editingAccountName.trim()) {
+            setIsEditingName(false);
+            setIsCreatingName(false);
+            return;
+        }
+
+        if (isCreatingName) {
+            setRenaming(true);
+            try {
+                // Create new account name via API
+                const res = await fetch("/api/finance/account-names", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: editingAccountName, accountType })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    // Update state
+                    handleAccountNameChange(editingAccountName, true);
+                    setAvailableAccountNames(prev => {
+                        const merged = [...prev];
+                        if (!merged.includes(editingAccountName)) {
+                            merged.push(editingAccountName);
+                        }
+                        return merged.sort();
+                    });
+                    setIsCreatingName(false);
+                    setEditingAccountName("");
+                } else {
+                    console.error("Failed to create:", data.error);
+                }
+            } catch (err) {
+                console.error("Error creating account:", err);
+            } finally {
+                setRenaming(false);
+            }
+            return;
+        }
+
+        if (editingAccountName === accountName) {
+            setIsEditingName(false);
+            return;
+        }
+
+        setRenaming(true);
+        try {
+            const res = await fetch("/api/finance/account-names/rename", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    oldName: accountName,
+                    newName: editingAccountName,
+                    accountType
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                // Update URL to new name
+                handleAccountNameChange(editingAccountName, true); // true arg to indicate replaced name
+
+                // Update local list immediately to reflect rename in dropdown
+                setAvailableAccountNames(prev => {
+                    const updated = prev.map(n => n === accountName ? editingAccountName : n);
+                    return Array.from(new Set(updated)).sort();
+                });
+
+                setIsEditingName(false);
+                // Refresh list
+                fetch(`/api/finance/account-names?accountType=Org`)
+                    .then(res => res.json())
+                    .then(d => {
+                        if (d.success) {
+                            // Ensure the renamed name is present in the fetched list
+                            setAvailableAccountNames(fetchedList => {
+                                // fetchedList argument here is ignored as we use d.accountNames, 
+                                // but we want to merge d.accountNames with existing editingAccountName
+                                const merged = [...d.accountNames];
+                                if (!merged.includes(editingAccountName)) {
+                                    merged.push(editingAccountName);
+                                }
+                                return merged.sort();
+                            });
+                        }
+                    });
+            } else {
+                console.error("Failed to rename:", data.error);
+                // Optionally show error toast
+            }
+        } catch (error) {
+            console.error("Error renaming:", error);
+        } finally {
+            setRenaming(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        if (!confirm(`Are you sure you want to delete "${accountName}"? Transactions will remain but be unnamed/hidden.`)) return;
+
+        try {
+            const res = await fetch(`/api/finance/account-names?name=${encodeURIComponent(accountName)}&accountType=${accountType}`, {
+                method: "DELETE"
+            });
+            const data = await res.json();
+            if (data.success) {
+                // Update local list
+                setAvailableAccountNames(prev => prev.filter(n => n !== accountName));
+                handleAccountNameChange(""); // Deselect
+                setIsEditingName(false);
+            } else {
+                alert("Failed to delete: " + data.error);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleNextPrevAccount = (direction) => {
+        if (!availableAccountNames.length) return;
+        const currentIndex = availableAccountNames.indexOf(accountName);
+        let nextIndex;
+        if (direction === "next") {
+            nextIndex = (currentIndex + 1) % availableAccountNames.length;
+        } else {
+            nextIndex = (currentIndex - 1 + availableAccountNames.length) % availableAccountNames.length;
+        }
+        handleAccountNameChange(availableAccountNames[nextIndex]);
+    };
 
     // Custom Filter States
     // Filter Config for PopupFilter
@@ -57,7 +242,17 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         router.refresh();
         // Force DataTable refresh by updating key
         setRefreshKey(prev => prev + 1);
-    }, [router]);
+        // Re-fetch account names in case a new one was added
+        if (accountType === "Org") {
+            fetch(`/api/finance/account-names?accountType=Org`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setAvailableAccountNames(data.accountNames);
+                    }
+                });
+        }
+    }, [router, accountType]);
 
     const [refreshKey, setRefreshKey] = useState(0);
 
@@ -100,6 +295,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         {
             accessorKey: "mode",
             header: "Mode",
+            cell: ({ row }) => row.original.mode,
         },
         {
             accessorKey: "invoiceNo",
@@ -131,6 +327,8 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 </div>
             )
         },
+        // We might want to show accountName column if in Org view and no specific account selected?
+        // But the requirement is to filter. Let's keep it simple.
     ];
 
     // We still provide formFields for Edit actions, as we want the PopupForm for editing.
@@ -172,10 +370,126 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
             required: true,
         },
         { name: "amount", label: "Amount", type: "number", required: true },
+        // Edit form needs to know about accountName? 
+        // Typically edits happen in the context of the current view.
+        // If we want to allow editing accountName, we'd add it here.
+        // For now, let's assume transactions stay in their account.
+        // But if creating via popup (which is disabled here, we use TransactionForm), it would need it.
+        // Since enableCreate={false}, this formFields is mostly for Edit.
     ];
 
     return (
         <div className="space-y-6">
+            {accountType === "Org" && (
+                <div className="flex items-center space-x-2 bg-white p-4 rounded-lg shadow-sm border">
+                    <Button variant="outline" size="icon" onClick={() => handleNextPrevAccount("prev")}>
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+
+                    <div className="flex-1 flex items-center gap-2">
+                        {isEditingName || isCreatingName ? (
+                            <div className="flex-1 flex items-center gap-2">
+                                <Input
+                                    ref={editInputRef}
+                                    value={editingAccountName}
+                                    onChange={(e) => setEditingAccountName(e.target.value)}
+                                    placeholder={isCreatingName ? "Enter new account name" : "Rename account"}
+                                    className="flex-1"
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleRenameAccount();
+                                    }}
+                                />
+                                <Button size="sm" onClick={handleRenameAccount} disabled={renaming}>
+                                    {renaming ? "Saving..." : "Save"}
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => {
+                                    setIsEditingName(false);
+                                    setIsCreatingName(false);
+                                }}>
+                                    Cancel
+                                </Button>
+                                {!isCreatingName && (
+                                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={handleDeleteAccount} title="Delete Account">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
+                        ) : (
+                            <>
+                                <Popover open={openAccountCombobox} onOpenChange={setOpenAccountCombobox}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={openAccountCombobox}
+                                            className="w-full justify-between"
+                                        >
+                                            {accountName || "Select or Type Account Name..."}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0">
+                                        <Command>
+                                            <CommandInput
+                                                placeholder="Search or add account..."
+                                                onValueChange={(val) => {
+                                                    // Optional: Real-time update for typing? 
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        handleAccountNameChange(e.currentTarget.value);
+                                                        setOpenAccountCombobox(false);
+                                                    }
+                                                }}
+                                            />
+                                            <CommandList>
+                                                <CommandEmpty>Press Enter to add "{accountName}"</CommandEmpty>
+                                                <CommandGroup>
+                                                    {availableAccountNames.map((name) => (
+                                                        <CommandItem
+                                                            key={name}
+                                                            value={name}
+                                                            onSelect={(currentValue) => {
+                                                                handleAccountNameChange(currentValue === accountName ? "" : currentValue);
+                                                                setOpenAccountCombobox(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    accountName === name ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <Button variant="ghost" size="icon" onClick={() => {
+                                    setEditingAccountName(accountName || "");
+                                    setIsEditingName(true);
+                                }} title="Rename Account">
+                                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => {
+                                    setEditingAccountName("");
+                                    setIsCreatingName(true);
+                                }} title="Add New Account">
+                                    <Plus className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                            </>
+                        )}
+                    </div>
+
+                    <Button variant="outline" size="icon" onClick={() => handleNextPrevAccount("next")}>
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+            )}
+
             <FinanceStats summary={summary} />
 
             <TransactionForm
@@ -183,6 +497,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 onSuccess={handleSuccess}
                 accountType={accountType}
                 existingCategories={summary?.categories?.map(c => c.category) || []}
+                accountName={accountName}
             />
 
             <DataTableComponent
@@ -198,21 +513,19 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 enableCreate={false} // Disable built-in add button
                 createFormTitle="Add Transaction"
                 editFormTitle="Edit Transaction"
-                apiFilters={{ accountType }} // Pass accountType for filtering
-                additionalFormParams={{ accountType }} // Pass accountType for creation
+                apiFilters={{ accountType, accountName }} // Pass accountType and accountName for filtering
+                additionalFormParams={{ accountType, accountName }} // For creation if we enabled it here
                 additionalProps={{
                     customActions: summary?.categories && (
                         <CategoryBalanceDialog categories={summary.categories} totalBalance={summary.totalBalance} />
                     ),
-                    accountType // Keep accountType here if needed by other logic, though usually mostly for toolbar
+                    accountType // Keep accountType here if needed by other logic
                 }}
                 filterConfig={filterConfig}
                 printInReverse={true}
-                printTitle="Accounts"
+                printTitle={`Accounts ${accountName ? `- ${accountName}` : ""}`}
                 limit={0}
             />
-
-
         </div>
     );
 }

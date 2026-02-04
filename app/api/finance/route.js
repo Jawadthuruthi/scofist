@@ -14,7 +14,8 @@ export async function GET(req) {
     const mode = searchParams.get("mode");
     const type = searchParams.get("type");
     const accountType = searchParams.get("accountType") || "College"; // Default to College
-    console.log("Finance API GET:", { accountType, allParams: Object.fromEntries(searchParams) });
+    const accountName = searchParams.get("accountName"); // Get accountName
+    console.log("Finance API GET:", { accountType, accountName, allParams: Object.fromEntries(searchParams) });
     const page = parseInt(searchParams.get("page")) || 1;
     const limitParam = searchParams.get("limit");
     const limit = limitParam === "0" ? 0 : (parseInt(limitParam) || 20);
@@ -48,6 +49,11 @@ export async function GET(req) {
       query.accountType = accountType;
     }
 
+    // Add accountName filter
+    if (accountName) {
+      query.accountName = accountName;
+    }
+
     const transactions = await Finance.find(query)
       .sort({ date: -1, createdAt: -1 })
       .skip(skip)
@@ -65,7 +71,7 @@ export async function GET(req) {
     const totalPages = Math.ceil(total / limit);
 
     // Calculate Summary (Global Balance)
-    const summary = await getFinanceSummary(accountType);
+    const summary = await getFinanceSummary(accountType, accountName);
 
     return NextResponse.json({
       success: true,

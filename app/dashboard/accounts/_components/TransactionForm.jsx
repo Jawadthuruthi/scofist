@@ -16,7 +16,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import useCrud from "@/hooks/use-crud";
 
-export default function TransactionForm({ apiKey, onSuccess, accountType = "College", existingCategories = [] }) {
+export default function TransactionForm({ apiKey, onSuccess, accountType = "College", existingCategories = [], accountName = null }) {
     const [loading, setLoading] = useState(false);
     const { useAddItem } = useCrud("finance", apiKey || process.env.NEXT_PUBLIC_API_KEY);
     const addItem = useAddItem();
@@ -55,12 +55,18 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
             return;
         }
 
+        // Ensure accountName is present for Org accounts (if enforced)
+        // But for now we just pass it if it exists. 
+        // If user hasn't selected an account name, it will be null, and that's technically valid (global org account?).
+        // However, requirements imply separation. We'll proceed with passing it.
+
         try {
             setLoading(true);
             const payload = {
                 ...formData,
                 amount: Number(formData.amount),
                 accountType,
+                accountName, // Include accountName
             };
 
             await addItem.mutateAsync(payload);

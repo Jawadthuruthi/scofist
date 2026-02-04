@@ -6,9 +6,10 @@ export const dynamic = "force-dynamic"; // Ensure real-time updates
 
 import { cookies } from "next/headers";
 
-export default async function AccountsPage() {
+export default async function AccountsPage({ searchParams }) {
     const cookieStore = await cookies();
     const activeRole = cookieStore.get("active-role")?.value;
+    const { accountName } = await searchParams;
 
     let accountType = "College";
     if (activeRole === "Org Admin") {
@@ -17,7 +18,7 @@ export default async function AccountsPage() {
 
     let summary = null;
     try {
-        summary = await getFinanceSummary(accountType);
+        summary = await getFinanceSummary(accountType, accountName);
     } catch (error) {
         console.error("Error fetching finance summary:", error);
         // Fallback or handle error gracefully so page doesn't crash
@@ -31,7 +32,7 @@ export default async function AccountsPage() {
                 <h1 className="font-bold text-xl md:text-2xl tracking-tight uppercase">ACCOUNTS {accountType !== "College" ? `(${accountType})` : ""}</h1>
                 <p className="text-muted-foreground">Manage your financial transactions</p>
             </div>
-            <AccountsClient initialSummary={summary} apiKey={apiKey} accountType={accountType} />
+            <AccountsClient initialSummary={summary} apiKey={apiKey} accountType={accountType} accountName={accountName} />
         </div>
     );
 }

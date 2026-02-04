@@ -2,11 +2,14 @@
 import connectToDB from "@/lib/db";
 import Finance from "@/models/Finance";
 
-export async function getFinanceSummary(accountType = "College") {
+export async function getFinanceSummary(accountType = "College", accountName = null) {
     await connectToDB();
 
     // Aggregation for summary
     const matchStage = { accountType }; // Filter by accountType provided
+    if (accountName) {
+        matchStage.accountName = accountName;
+    }
 
     // Main Stats Aggregation
     const stats = await Finance.aggregate([
