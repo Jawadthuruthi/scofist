@@ -161,7 +161,7 @@ export async function PUT(req) {
     try {
         await connectToDB();
         const body = await req.json();
-        const { id, couponNumber, couponAmount, totalPaid } = body;
+        const { id, couponNumber, couponAmount, totalPaid, paymentDate } = body;
 
         if (!id) {
             return apiResponse.error("Coupon ID is required", 400);
@@ -176,17 +176,24 @@ export async function PUT(req) {
         if (couponNumber !== undefined) coupon.couponNumber = couponNumber;
         if (couponAmount !== undefined) coupon.couponAmount = Number(couponAmount);
 
-        // Update Paid Amount (Reset payments if changed)
-        if (totalPaid !== undefined) {
+        // Update Payments (Full Array Replace)
+        if (body.payments && Array.isArray(body.payments)) {
+            coupon.payments = body.payments.map(p => ({
+                amount: Number(p.amount),
+                date: new Date(p.date),
+                note: p.note || "Edited via Table",
+                recordedBy: "Admin"
+            }));
+        }
+        // Fallback: Update Paid Amount (Reset payments if changed or date updated)
+        else if (totalPaid !== undefined) {
             const newTotalPaid = Number(totalPaid);
-            // Verify if current total matches new total to avoid unnecessary wipes
             const currentTotal = coupon.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
-            if (currentTotal !== newTotalPaid) {
-                // Replace payments with a single correction entry
+            if (currentTotal !== newTotalPaid || paymentDate) {
                 coupon.payments = [{
                     amount: newTotalPaid,
-                    date: new Date(),
+                    date: paymentDate ? new Date(paymentDate) : new Date(),
                     note: "Manual Correction via Edit",
                     recordedBy: "Admin"
                 }];
@@ -214,7 +221,7 @@ export async function POST(req) {
             // Update existing coupon
 
             // If couponNumber is provided, update it (allow overwriting or setting if was empty)
-            if (couponNumber) {
+            if (couponNumber !== undefined) {
                 coupon.couponNumber = couponNumber;
             }
 
@@ -223,7 +230,7 @@ export async function POST(req) {
                 coupon.payments.push(payment);
             }
             // Update coupon amount if changed
-            if (couponAmount) coupon.couponAmount = couponAmount;
+            if (couponAmount !== undefined) coupon.couponAmount = couponAmount;
 
             await coupon.save();
         } else {

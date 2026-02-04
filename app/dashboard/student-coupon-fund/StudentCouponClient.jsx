@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { format } from "date-fns";
 import {
     Loader,
@@ -92,6 +92,8 @@ const getAcademicYears = () => {
 export default function StudentCouponClient({ apiKey }) {
     const [isSavingDetails, setIsSavingDetails] = useState(false);
     const [isSavingPayment, setIsSavingPayment] = useState(false);
+
+    const [isPaymentPopupOpen, setIsPaymentPopupOpen] = useState(false);
 
     // Filter State
     const [filters, setFilters] = useState({
@@ -300,15 +302,15 @@ export default function StudentCouponClient({ apiKey }) {
         setIsSavingDetails(true);
         try {
             const promises = bulkStudents.map((student) => {
-                const cNumber = couponNumbers[student._id] || undefined;
+                const cNumber = couponNumbers[student._id] || "";
+                // If coupon number exists (and is not just whitespace), use global amount. Otherwise 0.
+                const finalAmount = cNumber.trim() ? data.couponAmount : 0;
 
-                // Only send payload if we have an amount or a coupon number to save
-                // Actually always save to ensure student is initialized
                 const payload = {
                     studentId: student._id,
                     academicYear: data.academicYear,
-                    couponAmount: data.couponAmount,
-                    couponNumber: cNumber // Optional now
+                    couponAmount: finalAmount,
+                    couponNumber: cNumber.trim() || ""
                 };
                 return addItem.mutateAsync(payload);
             });
@@ -458,8 +460,14 @@ export default function StudentCouponClient({ apiKey }) {
         handleSubmit: handleSubmitEdit,
         setValue: setValueEdit,
         reset: resetEdit,
-        watch: watchEdit
+        watch: watchEdit,
+        control: controlEdit
     } = useForm();
+
+    const { fields: paymentFields, append: appendPayment, remove: removePayment } = useFieldArray({
+        control: controlEdit,
+        name: "payments"
+    });
 
     const handleEdit = () => {
         if (selectedCouponIds.length !== 1) return;
@@ -467,9 +475,21 @@ export default function StudentCouponClient({ apiKey }) {
         if (!coupon) return;
 
         setEditingCoupon(coupon);
-        setValueEdit("couponNumber", coupon.couponNumber || "");
-        setValueEdit("couponAmount", coupon.couponAmount || 0);
-        setValueEdit("totalPaid", coupon.totalPaid || 0);
+
+        // Populate payments
+        const initialPayments = (coupon.payments && coupon.payments.length > 0)
+            ? coupon.payments.map(p => ({
+                amount: p.amount,
+                date: new Date(p.date).toISOString().split('T')[0]
+            }))
+            : [{ amount: 0, date: new Date().toISOString().split('T')[0] }];
+
+        resetEdit({
+            couponNumber: coupon.couponNumber || "",
+            couponAmount: coupon.couponAmount || 0,
+            payments: initialPayments
+        });
+
         setIsEditOpen(true);
     };
 
@@ -480,24 +500,21 @@ export default function StudentCouponClient({ apiKey }) {
         setPaymentStudentId([coupon.studentId?._id]);
         setValuePayment("academicYear", coupon.academicYear);
 
-        // Scroll to Payment Card
-        const element = document.getElementById("payment-card");
-        if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
-            // Highlight effect?
-            element.classList.add("ring-2", "ring-primary");
-            setTimeout(() => element.classList.remove("ring-2", "ring-primary"), 2000);
-        }
+        // Open Popup
+        setIsPaymentPopupOpen(true);
     };
 
     const onSaveEdit = async (data) => {
         try {
+            const hasCouponNumber = data.couponNumber && data.couponNumber.trim().length > 0;
+            const finalAmount = hasCouponNumber ? Number(data.couponAmount) : 0;
+
             await updateItem.mutateAsync({
                 data: {
                     id: editingCoupon._id,
                     couponNumber: data.couponNumber,
-                    couponAmount: Number(data.couponAmount),
-                    totalPaid: Number(data.totalPaid)
+                    couponAmount: finalAmount,
+                    payments: data.payments // Send the array
                 }
             });
 
@@ -710,12 +727,55 @@ export default function StudentCouponClient({ apiKey }) {
                                 <Label>Total Amount</Label>
                                 <Input type="number" {...registerEdit("couponAmount")} placeholder="Total Amount" />
                             </div>
-                            <div className="space-y-2">
-                                <Label>Total Paid</Label>
-                                <div className="bg-yellow-50 p-2 text-xs text-yellow-800 rounded mb-1">
-                                    Warning: Changing this will reset payment history for this coupon.
+                            <div className="space-y-4">
+                                <Label>Payments History</Label>
+                                <div className="space-y-2 max-h-[200px] overflow-y-auto border p-2 rounded">
+                                    {paymentFields.map((field, index) => (
+                                        <div key={field.id} className="flex gap-2 items-center">
+                                            <div className="grid gap-1 flex-1">
+                                                <Label className="text-xs text-muted-foreground">Amount</Label>
+                                                <Input
+                                                    type="number"
+                                                    {...registerEdit(`payments.${index}.amount`)}
+                                                    placeholder="Amount"
+                                                />
+                                            </div>
+                                            <div className="grid gap-1 flex-1">
+                                                <Label className="text-xs text-muted-foreground">Date</Label>
+                                                <Input
+                                                    type="date"
+                                                    {...registerEdit(`payments.${index}.date`)}
+                                                />
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="mt-4 text-red-500 hover:text-red-700"
+                                                onClick={() => removePayment(index)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
                                 </div>
-                                <Input type="number" {...registerEdit("totalPaid")} placeholder="Paid Amount" />
+                                <div className="flex justify-between items-center">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => appendPayment({ amount: 0, date: new Date().toISOString().split('T')[0] })}
+                                    >
+                                        <Plus className="h-3 w-3 mr-1" /> Add Payment
+                                    </Button>
+
+                                    {/* Calculated Total Display */}
+                                    <div className="text-sm">
+                                        Total Paid: <span className="font-bold text-green-600">
+                                            ₹{(watchEdit("payments") || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0)}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                             <div className="flex justify-end pt-4">
                                 <Button type="submit" disabled={updateItem.isPending}>
@@ -1014,192 +1074,206 @@ export default function StudentCouponClient({ apiKey }) {
             </div>
 
             {/* Filters & Table */}
-            <div className="flex gap-2 items-center">
-                {/* Advanced Filter Popover */}
-                {/* Advanced Filter Modal */}
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon">
-                            <Columns className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" sideOffset={8} className="w-44">
-                        <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <div className="p-2">
-                            <div className="flex items-center space-x-2 mb-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => {
-                                const allChecked = Object.values(visibleColumns).every(Boolean);
-                                const newVal = !allChecked;
-                                setVisibleColumns(prev => {
-                                    const next = { ...prev };
-                                    Object.keys(next).forEach(k => next[k] = newVal);
-                                    return next;
-                                });
-                            }}>
-                                <Checkbox
-                                    checked={Object.values(visibleColumns).every(Boolean)}
-                                    id="select-all"
-                                />
-                                <label htmlFor="select-all" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer pointer-events-none">
-                                    Select All
-                                </label>
-                            </div>
+            <div className="flex flex-col md:flex-row gap-2 md:items-center">
+                <div className="flex gap-2 items-center w-full md:flex-1">
+                    {/* Advanced Filter Popover */}
+                    {/* Advanced Filter Modal */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon">
+                                <Columns className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" sideOffset={8} className="w-44">
+                            <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <div className="grid gap-2 mt-2">
-                                <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, slNo: !prev.slNo }))}>
-                                    <Checkbox checked={visibleColumns.slNo} id="col-sl" />
-                                    <label htmlFor="col-sl" className="text-sm cursor-pointer pointer-events-none">Sl No</label>
+                            <div className="p-2">
+                                <div className="flex items-center space-x-2 mb-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => {
+                                    const allChecked = Object.values(visibleColumns).every(Boolean);
+                                    const newVal = !allChecked;
+                                    setVisibleColumns(prev => {
+                                        const next = { ...prev };
+                                        Object.keys(next).forEach(k => next[k] = newVal);
+                                        return next;
+                                    });
+                                }}>
+                                    <Checkbox
+                                        checked={Object.values(visibleColumns).every(Boolean)}
+                                        id="select-all"
+                                    />
+                                    <label htmlFor="select-all" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer pointer-events-none">
+                                        Select All
+                                    </label>
                                 </div>
-                                <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, id: !prev.id }))}>
-                                    <Checkbox checked={visibleColumns.id} id="col-id" />
-                                    <label htmlFor="col-id" className="text-sm cursor-pointer pointer-events-none">ID</label>
-                                </div>
-                                <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, studentName: !prev.studentName }))}>
-                                    <Checkbox checked={visibleColumns.studentName} id="col-name" />
-                                    <label htmlFor="col-name" className="text-sm cursor-pointer pointer-events-none">Student Name</label>
-                                </div>
-                                <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, year: !prev.year }))}>
-                                    <Checkbox checked={visibleColumns.year} id="col-year" />
-                                    <label htmlFor="col-year" className="text-sm cursor-pointer pointer-events-none">Year</label>
-                                </div>
-                                <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, couponNo: !prev.couponNo }))}>
-                                    <Checkbox checked={visibleColumns.couponNo} id="col-coupon" />
-                                    <label htmlFor="col-coupon" className="text-sm cursor-pointer pointer-events-none">Coupon No</label>
-                                </div>
-                                <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, totalAmount: !prev.totalAmount }))}>
-                                    <Checkbox checked={visibleColumns.totalAmount} id="col-amount" />
-                                    <label htmlFor="col-amount" className="text-sm cursor-pointer pointer-events-none">Total Amount</label>
-                                </div>
-                                <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, paid: !prev.paid }))}>
-                                    <Checkbox checked={visibleColumns.paid} id="col-paid" />
-                                    <label htmlFor="col-paid" className="text-sm cursor-pointer pointer-events-none">Paid</label>
-                                </div>
-                                <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, balance: !prev.balance }))}>
-                                    <Checkbox checked={visibleColumns.balance} id="col-balance" />
-                                    <label htmlFor="col-balance" className="text-sm cursor-pointer pointer-events-none">Balance</label>
-                                </div>
-                                <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, status: !prev.status }))}>
-                                    <Checkbox checked={visibleColumns.status} id="col-status" />
-                                    <label htmlFor="col-status" className="text-sm cursor-pointer pointer-events-none">Status</label>
+                                <DropdownMenuSeparator />
+                                <div className="grid gap-2 mt-2">
+                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, slNo: !prev.slNo }))}>
+                                        <Checkbox checked={visibleColumns.slNo} id="col-sl" />
+                                        <label htmlFor="col-sl" className="text-sm cursor-pointer pointer-events-none">Sl No</label>
+                                    </div>
+                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, id: !prev.id }))}>
+                                        <Checkbox checked={visibleColumns.id} id="col-id" />
+                                        <label htmlFor="col-id" className="text-sm cursor-pointer pointer-events-none">ID</label>
+                                    </div>
+                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, studentName: !prev.studentName }))}>
+                                        <Checkbox checked={visibleColumns.studentName} id="col-name" />
+                                        <label htmlFor="col-name" className="text-sm cursor-pointer pointer-events-none">Student Name</label>
+                                    </div>
+                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, year: !prev.year }))}>
+                                        <Checkbox checked={visibleColumns.year} id="col-year" />
+                                        <label htmlFor="col-year" className="text-sm cursor-pointer pointer-events-none">Year</label>
+                                    </div>
+                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, couponNo: !prev.couponNo }))}>
+                                        <Checkbox checked={visibleColumns.couponNo} id="col-coupon" />
+                                        <label htmlFor="col-coupon" className="text-sm cursor-pointer pointer-events-none">Coupon No</label>
+                                    </div>
+                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, totalAmount: !prev.totalAmount }))}>
+                                        <Checkbox checked={visibleColumns.totalAmount} id="col-amount" />
+                                        <label htmlFor="col-amount" className="text-sm cursor-pointer pointer-events-none">Total Amount</label>
+                                    </div>
+                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, paid: !prev.paid }))}>
+                                        <Checkbox checked={visibleColumns.paid} id="col-paid" />
+                                        <label htmlFor="col-paid" className="text-sm cursor-pointer pointer-events-none">Paid</label>
+                                    </div>
+                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, balance: !prev.balance }))}>
+                                        <Checkbox checked={visibleColumns.balance} id="col-balance" />
+                                        <label htmlFor="col-balance" className="text-sm cursor-pointer pointer-events-none">Balance</label>
+                                    </div>
+                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, status: !prev.status }))}>
+                                        <Checkbox checked={visibleColumns.status} id="col-status" />
+                                        <label htmlFor="col-status" className="text-sm cursor-pointer pointer-events-none">Status</label>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
 
-                {/* Advanced Filter Modal */}
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button variant="outline" size="icon" className="relative">
-                            <Filter className="h-4 w-4" />
-                            {/* Dot indicator if active filters */}
-                            {(filters.batchId !== "all" || filters.year !== "all" || filters.status !== "all" || filters.startDate) &&
-                                <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary" />
-                            }
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle>Advanced Filters</DialogTitle>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <Label>Academic Year</Label>
-                                    <Select value={filters.year} onValueChange={(val) => setFilters(prev => ({ ...prev, year: val }))}>
-                                        <SelectTrigger className="h-9">
-                                            <SelectValue placeholder="Year" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Years</SelectItem>
-                                            {getAcademicYears().map((y) => (
-                                                <SelectItem key={y} value={y}>{y}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                    {/* Advanced Filter Modal */}
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" size="icon" className="relative">
+                                <Filter className="h-4 w-4" />
+                                {/* Dot indicator if active filters */}
+                                {(filters.batchId !== "all" || filters.year !== "all" || filters.status !== "all" || filters.startDate) &&
+                                    <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary" />
+                                }
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle>Advanced Filters</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <Label>Academic Year</Label>
+                                        <Select value={filters.year} onValueChange={(val) => setFilters(prev => ({ ...prev, year: val }))}>
+                                            <SelectTrigger className="h-9">
+                                                <SelectValue placeholder="Year" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Years</SelectItem>
+                                                {getAcademicYears().map((y) => (
+                                                    <SelectItem key={y} value={y}>{y}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label>Batch</Label>
+                                        <Select value={filters.batchId} onValueChange={(val) => setFilters(prev => ({ ...prev, batchId: val }))}>
+                                            <SelectTrigger className="h-9">
+                                                <SelectValue placeholder="All Batches" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Batches</SelectItem>
+                                                {batches.map((b) => (
+                                                    <SelectItem key={b._id} value={b._id}>{b.name} ({b.endYear})</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label>Class</Label>
+                                        <MultiSelect
+                                            options={filterClasses.map(c => ({ label: c.name, value: c._id }))}
+                                            onValueChange={(val) => setFilters(prev => ({ ...prev, classId: val }))}
+                                            value={filters.classId}
+                                            placeholder="Select Classes"
+                                            variant="default"
+                                            className="h-9"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label>Status</Label>
+                                        <Select value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
+                                            <SelectTrigger className="h-9">
+                                                <SelectValue placeholder="All Status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Status</SelectItem>
+                                                <SelectItem value="Paid">Paid</SelectItem>
+                                                <SelectItem value="Partial">Partial</SelectItem>
+                                                <SelectItem value="Pending">Pending</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
-                                <div className="space-y-1">
-                                    <Label>Batch</Label>
-                                    <Select value={filters.batchId} onValueChange={(val) => setFilters(prev => ({ ...prev, batchId: val }))}>
-                                        <SelectTrigger className="h-9">
-                                            <SelectValue placeholder="All Batches" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Batches</SelectItem>
-                                            {batches.map((b) => (
-                                                <SelectItem key={b._id} value={b._id}>{b.name} ({b.endYear})</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                        <Label>Start Date</Label>
+                                        <Input
+                                            type="date"
+                                            className="h-9"
+                                            value={filters.startDate}
+                                            onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label>End Date</Label>
+                                        <Input
+                                            type="date"
+                                            className="h-9"
+                                            value={filters.endDate}
+                                            onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="space-y-1">
-                                    <Label>Class</Label>
-                                    <MultiSelect
-                                        options={filterClasses.map(c => ({ label: c.name, value: c._id }))}
-                                        onValueChange={(val) => setFilters(prev => ({ ...prev, classId: val }))}
-                                        value={filters.classId}
-                                        placeholder="Select Classes"
-                                        variant="default"
-                                        className="h-9"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <Label>Status</Label>
-                                    <Select value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
-                                        <SelectTrigger className="h-9">
-                                            <SelectValue placeholder="All Status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Status</SelectItem>
-                                            <SelectItem value="Paid">Paid</SelectItem>
-                                            <SelectItem value="Partial">Partial</SelectItem>
-                                            <SelectItem value="Pending">Pending</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <DialogFooter className="flex flex-row justify-between items-center pt-2 gap-2">
+                                    <Button variant="ghost" className="text-muted-foreground" onClick={clearFilters}>
+                                        Clear Filters
+                                    </Button>
+                                    <DialogClose asChild>
+                                        <Button type="button">Apply</Button>
+                                    </DialogClose>
+                                </DialogFooter>
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                    <Label>Start Date</Label>
-                                    <Input
-                                        type="date"
-                                        className="h-9"
-                                        value={filters.startDate}
-                                        onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <Label>End Date</Label>
-                                    <Input
-                                        type="date"
-                                        className="h-9"
-                                        value={filters.endDate}
-                                        onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                                    />
-                                </div>
-                            </div>
-                            <DialogFooter className="flex flex-row justify-between items-center pt-2 gap-2">
-                                <Button variant="ghost" className="text-muted-foreground" onClick={clearFilters}>
-                                    Clear Filters
-                                </Button>
-                                <DialogClose asChild>
-                                    <Button type="button">Apply</Button>
-                                </DialogClose>
-                            </DialogFooter>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                        </DialogContent>
+                    </Dialog>
 
-                <div className="flex-1">
-                    <Input
-                        placeholder="Search by Student Name, ID or Coupon..."
-                        value={filters.search}
-                        onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                    />
+                    <div className="flex-1">
+                        <Input
+                            placeholder="Search by Student Name, ID or Coupon..."
+                            value={filters.search}
+                            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                        />
+                    </div>
                 </div>
-                <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10" onClick={exportToExcel}><FileSpreadsheet className="h-4 w-4 md:mr-2" /> <span className="hidden md:inline">Excel</span></Button>
-                <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10" onClick={exportToPDF}><Download className="h-4 w-4 md:mr-2" /> <span className="hidden md:inline">PDF</span></Button>
-                <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10" onClick={() => window.print()}><Printer className="h-4 w-4 md:mr-2" /> <span className="hidden md:inline">Print</span></Button>
+
+                <div className="grid grid-cols-3 gap-2 md:flex md:gap-2">
+                    <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 w-full md:w-auto" onClick={exportToExcel}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        <span>Excel</span>
+                    </Button>
+                    <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 w-full md:w-auto" onClick={exportToPDF}>
+                        <Download className="h-4 w-4 mr-2" />
+                        <span>PDF</span>
+                    </Button>
+                    <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 w-full md:w-auto" onClick={() => window.print()}>
+                        <Printer className="h-4 w-4 mr-2" />
+                        <span>Print</span>
+                    </Button>
+                </div>
             </div>
 
             {/* Bulk Actions Bar */}
@@ -1303,6 +1377,113 @@ export default function StudentCouponClient({ apiKey }) {
                         )}
                     </TableBody>
                 </Table>
+                {/* Payment Details Popup */}
+                <Dialog open={isPaymentPopupOpen} onOpenChange={setIsPaymentPopupOpen}>
+                    <DialogContent className="sm:max-w-[700px]">
+                        <DialogHeader>
+                            <DialogTitle>Payment Details</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <form onSubmit={handleSubmitPayment(onSavePayment)}>
+                                <div className="space-y-3 md:space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Payment Date</Label>
+                                            <Input type="date" {...registerPayment("date", { required: true })} />
+                                        </div>
+
+                                        {/* Academic Year for Payment to Identify Coupon */}
+                                        <div className="space-y-2">
+                                            <Label>Academic Year</Label>
+                                            <Select
+                                                onValueChange={(val) => setValuePayment("academicYear", val)}
+                                                defaultValue="2025"
+                                                value={watchPayment("academicYear")}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select Year" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {getAcademicYears().map((year) => (
+                                                        <SelectItem key={year} value={year}>
+                                                            {year}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        {/* Batch Selection */}
+                                        <div className="space-y-2">
+                                            <Label>Select Batch</Label>
+                                            <Select
+                                                value={paymentBatchId}
+                                                onValueChange={(val) => {
+                                                    setPaymentBatchId(val);
+                                                    setPaymentClassId([]);
+                                                    setPaymentStudentId([]);
+                                                }}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select Batch" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">Select Batch</SelectItem>
+                                                    {batches.map((batch) => (
+                                                        <SelectItem key={batch._id} value={batch._id}>
+                                                            {batch.name} ({batch.endYear})
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        {/* Class Selection */}
+                                        <div className="space-y-2">
+                                            <Label>Select Class</Label>
+                                            <MultiSelect
+                                                options={paymentClasses.map(c => ({ label: c.name, value: c._id }))}
+                                                onValueChange={setPaymentClassId}
+                                                value={paymentClassId}
+                                                placeholder="Select Classes"
+                                                variant="default"
+                                            />
+                                        </div>
+
+                                        {/* Student Selection */}
+                                        <div className="space-y-2">
+                                            <Label>Student Name</Label>
+                                            <MultiSelect
+                                                options={paymentStudents.map(s => ({ label: s.name, value: s._id }))}
+                                                onValueChange={setPaymentStudentId}
+                                                value={paymentStudentId}
+                                                placeholder="Select Students"
+                                                variant="default"
+                                            />
+                                            {paymentStudentId.length > 0 && (
+                                                <p className="text-xs text-muted-foreground">{paymentStudentId.length} student(s) selected</p>
+                                            )}
+                                        </div>
+
+
+                                        <div className="space-y-2">
+                                            <Label>Paid Amount</Label>
+                                            <Input type="number" {...registerPayment("amount", { required: true, min: 0 })} placeholder="Enter Amount" />
+                                        </div>
+                                    </div>
+
+                                    <DialogFooter>
+                                        <Button type="button" variant="outline" onClick={() => setIsPaymentPopupOpen(false)}>Cancel</Button>
+                                        <Button type="submit" disabled={isSavingPayment}>
+                                            {isSavingPayment ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                                            Save Payment
+                                        </Button>
+                                    </DialogFooter>
+                                </div>
+                            </form>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     );
