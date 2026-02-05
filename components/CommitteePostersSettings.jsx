@@ -60,9 +60,40 @@ export default function CommitteePostersSettings({
         toast.success("Poster added to list (unsaved)");
     };
 
-    const handleDeletePoster = (yearToDelete) => {
-        setPosters((prev) => prev.filter((p) => p.year !== yearToDelete));
-        toast.success("Poster removed from list (unsaved)");
+    const handleDeletePoster = async (yearToDelete) => {
+        // Optimistically update UI
+        const updatedPosters = posters.filter((p) => p.year !== yearToDelete);
+        setPosters(updatedPosters);
+
+        try {
+            // No global loading spinner to avoid blocking "Add" UI, but we could add one if desired.
+            // Using toast promises or just awaiting silently with error handling.
+
+            const response = await fetch("/api/settings", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "api-key": apiKey,
+                },
+                body: JSON.stringify({
+                    committeePosters: updatedPosters,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || "Failed to delete poster");
+            }
+
+            toast.success("Poster deleted permanently");
+            router.refresh();
+        } catch (error) {
+            console.error("Error deleting poster:", error);
+            toast.error("Failed to delete poster");
+            // Revert state on error (simple reload or re-fetch would be better, but for now reverting via props or just leaving it)
+            // Ideally we'd keep the previous state to revert to.
+            setPosters(posters); // Reset to state before deletion attempt (closure captures 'posters')
+        }
     };
 
     const handleSave = async () => {

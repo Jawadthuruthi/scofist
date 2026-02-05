@@ -301,6 +301,38 @@ export async function PUT(req, res) {
       updateData["org.committeePosters"] = data.committeePosters;
     }
 
+    // Spark
+    if (
+      data.spark_name ||
+      data.spark_fullName ||
+      data.spark_tagline ||
+      data.spark_logo ||
+      data.spark_address ||
+      data.spark_primaryPhone ||
+      data.spark_secondaryPhone ||
+      data.spark_email ||
+      data.spark_website
+    ) {
+      updateData.spark = {
+        name: data.spark_name ?? existingSettings?.spark?.name,
+        fullName: data.spark_fullName ?? existingSettings?.spark?.fullName,
+        tagline: data.spark_tagline ?? existingSettings?.spark?.tagline,
+        logo: data.spark_logo ?? existingSettings?.spark?.logo,
+        address: data.spark_address ?? existingSettings?.spark?.address,
+        contact: {
+          primaryPhone:
+            data.spark_primaryPhone ??
+            existingSettings?.spark?.contact?.primaryPhone,
+          secondaryPhone:
+            data.spark_secondaryPhone ??
+            existingSettings?.spark?.contact?.secondaryPhone,
+          email: data.spark_email ?? existingSettings?.spark?.contact?.email,
+          website:
+            data.spark_website ?? existingSettings?.spark?.contact?.website,
+        },
+      };
+    }
+
     // General
     if (data.isWorkingDay !== undefined || data.occasion !== undefined) {
       updateData.general = {

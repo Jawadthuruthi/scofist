@@ -1,6 +1,7 @@
 import SparkDashboardClient from "./SparkDashboardClient";
 import User from "@/models/User";
 import Batch from "@/models/Batch";
+import Settings from "@/models/Settings";
 import connectToDB from "@/lib/db";
 import ErrorPage from "@/components/ErrorPage";
 
@@ -12,6 +13,9 @@ async function getSparkStats() {
         roles: "Student",
         "studentSpecificField.status": "Dropped Out",
     });
+
+    const settings = await Settings.findOne({});
+    const sparkLogo = settings?.spark?.logo?.url || "/images/spark-logo.jpg";
 
     // 2. Total GB Members (Active + Graduated)
     const totalGBMembers = await User.countDocuments({
@@ -84,6 +88,7 @@ async function getSparkStats() {
         totalGBMembers,
         batchDistribution, // GB Members
         alumniBatchDistribution, // Alumni Members
+        sparkLogo,
     };
 }
 

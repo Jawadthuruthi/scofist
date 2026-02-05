@@ -118,16 +118,18 @@ export default function SparkDashboardClient({
     totalGBMembers,
     batchDistribution,
     alumniBatchDistribution,
+    sparkLogo,
 }) {
     return (
         <div className="flex flex-col space-y-6">
+            <Header title="DASHBOARD" subTitle="Welcome to Spark Admin Dashboard." />
 
             {/* Spark Branding */}
             <div className="flex flex-col items-center justify-center space-y-2 py-4">
                 <div className="flex items-center gap-4">
                     <div className="relative h-16 w-16">
                         <Image
-                            src="/images/spark-logo.jpg"
+                            src={sparkLogo}
                             alt="Spark Logo"
                             fill
                             className="object-contain"

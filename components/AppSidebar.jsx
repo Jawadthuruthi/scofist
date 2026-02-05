@@ -91,7 +91,6 @@ const items = [
       "Literary Leader",
       "Stationary",
       "IT Lab",
-      "Spark Admin",
     ],
   },
   {
@@ -140,7 +139,13 @@ const items = [
     title: "Spark",
     url: "/dashboard/spark",
     icon: Briefcase,
-    allowedRoles: ["Student", "Spark Admin"],
+    allowedRoles: ["Student"],
+  },
+  {
+    title: "Dashboard",
+    url: "/dashboard/spark",
+    icon: Home,
+    allowedRoles: ["Spark Admin"],
   },
   {
     title: "Finance",
