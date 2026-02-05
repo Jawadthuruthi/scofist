@@ -75,7 +75,7 @@ const StudentsFund = ({
   teacherId,
   department,
 }) => {
-  const [selectedStudent, setSelectedStudent] = useState("");
+  const [selectedStudents, setSelectedStudents] = useState([]);
   const [selectedBatch, setSelectedBatch] = useState("");
   const [studentBalance, setStudentBalance] = useState(0);
   const [transactionType, setTransactionType] = useState("");
@@ -93,13 +93,7 @@ const StudentsFund = ({
   const confirmButtonRef = useRef(null);
   const finalConfirmButtonRef = useRef(null);
 
-  // Bulk Transaction States
-  const [showBulkDialog, setShowBulkDialog] = useState(false);
-  const [bulkSelectedStudents, setBulkSelectedStudents] = useState([]);
-  const [bulkTransactionType, setBulkTransactionType] = useState("Deposit");
-  const [bulkAmount, setBulkAmount] = useState("");
-  const [bulkNote, setBulkNote] = useState("");
-  const [bulkLoading, setBulkLoading] = useState(false);
+
 
   const printRef = useRef();
   const allStudentsFundRef = useRef();
@@ -115,13 +109,16 @@ const StudentsFund = ({
     null,
     null,
     {
-      studentId: selectedStudent,
+      studentId: selectedStudents.length === 1 ? selectedStudents[0] : undefined,
       teacherId: department ? undefined : teacherId,
       department,
       batchId: selectedBatch,
     },
     {
-      enabled: !!(teacherId || department) && !!selectedBatch,
+      enabled:
+        !!(teacherId || department) &&
+        !!selectedBatch &&
+        selectedStudents.length <= 1,
     }
   );
 
@@ -141,10 +138,10 @@ const StudentsFund = ({
 
   const studentFund = useMemo(() => {
     return fetchStudentFundQuery.data?.studentFund || {};
-  }, [fetchStudentFundQuery.data, selectedStudent, selectedBatch]);
+  }, [fetchStudentFundQuery.data, selectedStudents, selectedBatch]);
 
   useEffect(() => {
-    if (fetchStudentFundQuery.data && studentFund) {
+    if (fetchStudentFundQuery.data && studentFund && selectedStudents.length <= 1) {
       const balance = studentFund.balance;
       setStudentBalance(balance || 0);
       setTransactions(
@@ -152,8 +149,11 @@ const StudentsFund = ({
           (a, b) => new Date(b.date) - new Date(a.date)
         ) || []
       );
+    } else {
+      setStudentBalance(0);
+      setTransactions([]);
     }
-  }, [studentFund, selectedStudent]);
+  }, [studentFund, selectedStudents]);
 
   useEffect(() => {
     if (transactionType && amountInputRef.current) {
@@ -163,7 +163,7 @@ const StudentsFund = ({
     }
   }, [transactionType]);
   useEffect(() => {
-    setSelectedStudent("");
+    setSelectedStudents([]);
   }, [selectedBatch]);
 
   useEffect(() => {
@@ -178,6 +178,27 @@ const StudentsFund = ({
   const availableStudents = useMemo(() => {
     return students.filter((student) => student.batchId === selectedBatch);
   }, [selectedBatch]);
+
+  const transactionsWithBalance = useMemo(() => {
+    let currentBalance = studentBalance;
+    // Ensure transactions are sorted by date descending (newest first)
+    const sortedTransactions = [...transactions].sort(
+      (a, b) => new Date(b.date) - new Date(a.date)
+    );
+
+    return sortedTransactions.map((transaction) => {
+      const balanceAfter = currentBalance;
+      // Calculate balance before this transaction for the next iteration
+      // If was Deposit, balance BEFORE was balanceAfter - amount
+      // If was Withdrawal, balance BEFORE was balanceAfter + amount
+      if (transaction.type === "Deposit") {
+        currentBalance -= transaction.amount;
+      } else {
+        currentBalance += transaction.amount;
+      }
+      return { ...transaction, balanceAfter };
+    });
+  }, [transactions, studentBalance]);
 
   const selectedBatchData = useMemo(() => {
     return batches.find((batch) => batch._id === selectedBatch) || {};
@@ -205,72 +226,116 @@ const StudentsFund = ({
   const confirmTransaction = async () => {
     setLoading(true);
 
-    const isBatchTransaction = !selectedStudent;
+    if (selectedStudents.length > 1) {
+      // Bulk Transaction Logic
+      try {
+        const response = await fetch("/api/studentsFund/bulk", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "api-key": apiKey,
+          },
+          body: JSON.stringify({
+            batchId: selectedBatch,
+            studentIds: selectedStudents,
+            transaction: {
+              type: transactionType,
+              amount: parseFloat(amount),
+              note,
+            },
+            teacherId: department ? undefined : teacherId,
+            department,
+            fundType: department ? "Department" : "Individual",
+          }),
+        });
 
-    const originalBalance = studentBalance;
-    const newBalance =
-      (transactionType === "Deposit"
-        ? originalBalance + parseFloat(amount)
-        : originalBalance - parseFloat(amount)) || 0;
+        if (!response.ok) throw new Error("Bulk transaction failed");
 
-    const transaction = {
-      type: transactionType,
-      amount: parseFloat(amount),
-      note,
-    };
-
-    // Optimistically update UI
-    const newTransaction = {
-      ...transaction,
-      _id: `temp-${Date.now()}`,
-      date: new Date().toISOString(),
-    };
-    const previousTransactions = transactions;
-
-    setStudentBalance(newBalance);
-    setTransactions((prev) => [newTransaction, ...prev]);
-    setShowConfirmDialog(false);
-    setAmount("");
-    setNote("");
-
-    addStudentFund.mutate(
-      {
-        studentId: isBatchTransaction ? undefined : selectedStudent,
-        teacherId: department ? undefined : teacherId,
-        department,
-        fundType: department ? "Department" : "Individual",
-        batchId: selectedBatch,
-        transaction: {
-          ...transaction,
-          performedBy: teacherId,
-        },
-        balance: newBalance,
-      },
-      {
-        onSuccess: () => {
-          fetchStudentFundQuery.refetch();
-        },
-        onError: (error) => {
-          console.error(
-            "Transaction failed, reverting optimistic update:",
-            error
-          );
-          setStudentBalance(originalBalance);
-          setTransactions(previousTransactions);
-        },
-        onSettled: () => {
-          setLoading(false);
-          setTransactionType("");
-        },
+        toast.success("Bulk transaction processed successfully");
+        setShowConfirmDialog(false);
+        setAmount("");
+        setNote("");
+        fetchStudentFundQuery.refetch();
+        setTransactionType("");
+      } catch (error) {
+        console.error("Bulk transaction error:", error);
+        toast.error("Failed to process bulk transaction");
+      } finally {
+        setLoading(false);
       }
-    );
+    } else {
+      // Single Transaction Logic
+      const isBatchTransaction = selectedStudents.length === 0;
+      const currentStudentId = isBatchTransaction
+        ? undefined
+        : selectedStudents[0];
+
+      const originalBalance = studentBalance;
+      const newBalance =
+        (transactionType === "Deposit"
+          ? originalBalance + parseFloat(amount)
+          : originalBalance - parseFloat(amount)) || 0;
+
+      const transaction = {
+        type: transactionType,
+        amount: parseFloat(amount),
+        note,
+      };
+
+      // Optimistically update UI
+      const newTransaction = {
+        ...transaction,
+        _id: `temp-${Date.now()}`,
+        date: new Date().toISOString(),
+      };
+      const previousTransactions = transactions;
+
+      setStudentBalance(newBalance);
+      setTransactions((prev) => [newTransaction, ...prev]);
+      setShowConfirmDialog(false);
+      setAmount("");
+      setNote("");
+
+      addStudentFund.mutate(
+        {
+          studentId: currentStudentId,
+          teacherId: department ? undefined : teacherId,
+          department,
+          fundType: department ? "Department" : "Individual",
+          batchId: selectedBatch,
+          transaction: {
+            ...transaction,
+            performedBy: teacherId,
+          },
+          balance: newBalance,
+        },
+        {
+          onSuccess: () => {
+            fetchStudentFundQuery.refetch();
+          },
+          onError: (error) => {
+            console.error(
+              "Transaction failed, reverting optimistic update:",
+              error
+            );
+            setStudentBalance(originalBalance);
+            setTransactions(previousTransactions);
+          },
+          onSettled: () => {
+            setLoading(false);
+            setTransactionType("");
+          },
+        }
+      );
+    }
   };
 
   const handleClearHistory = async () => {
     try {
       await updateStudentFund.mutateAsync({
         data: {
-          studentId: selectedStudent,
+          studentId:
+            selectedStudents.length === 1 ? selectedStudents[0] : undefined,
           teacherId: department ? undefined : teacherId,
           department,
           fundType: department ? "Department" : "Individual",
@@ -295,7 +360,10 @@ const StudentsFund = ({
     });
   };
 
-  const selectedStudentData = students.find((s) => s._id === selectedStudent);
+  const selectedStudentData =
+    selectedStudents.length === 1
+      ? students.find((s) => s._id === selectedStudents[0])
+      : null;
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -333,63 +401,7 @@ const StudentsFund = ({
     html2pdf().set(opt).from(element).save();
   };
 
-  // Bulk Transaction Handlers
-  const toggleBulkStudent = (studentId) => {
-    setBulkSelectedStudents((prev) =>
-      prev.includes(studentId)
-        ? prev.filter((id) => id !== studentId)
-        : [...prev, studentId]
-    );
-  };
 
-  const toggleAllBulkStudents = () => {
-    if (bulkSelectedStudents.length === availableStudents.length) {
-      setBulkSelectedStudents([]);
-    } else {
-      setBulkSelectedStudents(availableStudents.map((s) => s._id));
-    }
-  };
-
-  const handleBulkTransaction = async () => {
-    if (!bulkAmount || bulkSelectedStudents.length === 0) return;
-
-    setBulkLoading(true);
-    try {
-      const response = await fetch("/api/studentsFund/bulk", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "api-key": apiKey,
-        },
-        body: JSON.stringify({
-          batchId: selectedBatch,
-          studentIds: bulkSelectedStudents,
-          transaction: {
-            type: bulkTransactionType,
-            amount: parseFloat(bulkAmount),
-            note: bulkNote,
-          },
-          teacherId: department ? undefined : teacherId,
-          department,
-          fundType: department ? "Department" : "Individual",
-        }),
-      });
-
-      if (!response.ok) throw new Error("Bulk transaction failed");
-
-      toast.success("Bulk transaction processed successfully");
-      setShowBulkDialog(false);
-      setBulkAmount("");
-      setBulkNote("");
-      setBulkSelectedStudents([]);
-      fetchStudentFundQuery.refetch();
-    } catch (error) {
-      console.error("Bulk transaction error:", error);
-      toast.error("Failed to process bulk transaction");
-    } finally {
-      setBulkLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen">
@@ -427,159 +439,25 @@ const StudentsFund = ({
                     </Select>
                   </div>
                   {selectedBatch && (
-                    <Dialog
-                      open={showBulkDialog}
-                      onOpenChange={setShowBulkDialog}
-                    >
-                      <DialogTrigger asChild>
-                        <Button variant="outline" className="gap-2 w-full sm:w-auto">
-                          <Users className="h-4 w-4" />
-                          Bulk Transaction
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col w-[95vw] sm:w-full">
-                        <DialogHeader>
-                          <DialogTitle>Bulk Transaction</DialogTitle>
-                          <DialogDescription>
-                            Apply a transaction to multiple students at once.
-                          </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="flex-1 overflow-y-auto py-4 space-y-4">
-                          <div className="flex items-center justify-between px-1">
-                            <Label className="text-sm font-medium">
-                              Select Students ({bulkSelectedStudents.length})
-                            </Label>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={toggleAllBulkStudents}
-                              className="h-8 text-xs"
-                            >
-                              {bulkSelectedStudents.length ===
-                                availableStudents.length
-                                ? "Deselect All"
-                                : "Select All"}
-                            </Button>
-                          </div>
-
-                          <div className="border rounded-md p-2 max-h-[40vh] sm:max-h-60 overflow-y-auto space-y-1">
-                            {availableStudents.map((student) => (
-                              <div
-                                key={student._id}
-                                className="flex items-center space-x-2 p-2 hover:bg-accent rounded-sm cursor-pointer"
-                                onClick={() => toggleBulkStudent(student._id)}
-                              >
-                                <Checkbox
-                                  checked={bulkSelectedStudents.includes(
-                                    student._id
-                                  )}
-                                  // Remove onCheckedChange to prevent double toggle, let parent div handle it
-                                  className="pointer-events-none"
-                                />
-                                <span className="text-sm">{student.name}</span>
-                              </div>
-                            ))}
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <Button
-                              variant={
-                                bulkTransactionType === "Deposit"
-                                  ? "default"
-                                  : "outline"
-                              }
-                              onClick={() => setBulkTransactionType("Deposit")}
-                              className="flex gap-2"
-                            >
-                              <Plus className="h-4 w-4" /> Deposit
-                            </Button>
-                            <Button
-                              variant={
-                                bulkTransactionType === "Withdrawal"
-                                  ? "default"
-                                  : "outline"
-                              }
-                              onClick={() =>
-                                setBulkTransactionType("Withdrawal")
-                              }
-                              className={`flex gap-2 ${bulkTransactionType === "Withdrawal"
-                                ? "!bg-destructive !text-destructive-foreground"
-                                : ""
-                                }`}
-                            >
-                              <Minus className="h-4 w-4" /> Withdrawal
-                            </Button>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label>Amount (₹)</Label>
-                            <Input
-                              type="number"
-                              placeholder="Enter amount"
-                              value={bulkAmount}
-                              onChange={(e) => setBulkAmount(e.target.value)}
-                              min="1"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label>Note</Label>
-                            <Input
-                              placeholder="Transaction note"
-                              value={bulkNote}
-                              onChange={(e) => setBulkNote(e.target.value)}
-                            />
-                          </div>
-                        </div>
-
-                        <DialogFooter>
-                          <Button
-                            variant="outline"
-                            onClick={() => setShowBulkDialog(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={handleBulkTransaction}
-                            disabled={
-                              !bulkAmount ||
-                              bulkSelectedStudents.length === 0 ||
-                              bulkLoading
-                            }
-                          >
-                            {bulkLoading ? (
-                              <>
-                                <Loader className="mr-2 h-4 w-4 animate-spin" />
-                                Processing...
-                              </>
-                            ) : (
-                              "Confirm Bulk Transaction"
-                            )}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
+                    <div className="space-y-2 flex-1 w-full">
+                      <MultiSelect
+                        options={dropdownOptions}
+                        onValueChange={setSelectedStudents}
+                        value={selectedStudents}
+                        placeholder="Select students"
+                        multiSelect={true}
+                      />
+                    </div>
                   )}
                 </div>
 
-                {selectedBatch && (
-                  <div className="space-y-2">
-                    <MultiSelect
-                      options={dropdownOptions}
-                      onValueChange={setSelectedStudent}
-                      value={selectedStudent}
-                      placeholder="Select a student"
-                      multiSelect={false}
-                    />
-                  </div>
-                )}
+
               </>
             </CardContent>
           </Card>
 
           {/* Student Balance & Transaction Form */}
-          {(selectedStudent || selectedBatch) && (
+          {(selectedStudents.length > 0 || selectedBatch) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -602,8 +480,14 @@ const StudentsFund = ({
                   {/* Student Info & Balance */}
                   <div className="flex items-center justify-between p-4 bg-accent rounded-lg border">
                     <div className="flex items-center gap-3">
-                      {selectedStudent &&
-                        selectedStudent !== selectedBatchData?._id ? (
+                      {selectedStudents.length > 1 ? (
+                        <div>
+                          <h3 className="font-semibold text-sm md:text-base text-foreground">
+                            {selectedStudents.length} Students Selected
+                          </h3>
+                        </div>
+                      ) : selectedStudents.length === 1 &&
+                        selectedStudents[0] !== selectedBatchData?._id ? (
                         <>
                           <Avatar className="h-7 md:h-12 w-7 md:w-12">
                             <AvatarImage
@@ -620,7 +504,7 @@ const StudentsFund = ({
                               {selectedStudentData?.name}
                             </h3>
                             <p className="text-xs md:text-sm text-accent-foreground">
-                              Student ID: {selectedStudent}
+                              Student ID: {selectedStudents[0]}
                             </p>
                           </div>
                         </>
@@ -632,21 +516,23 @@ const StudentsFund = ({
                         </div>
                       )}
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs md:text-sm text-accent-foreground">
-                        Current Balance
-                      </p>
-                      <p
-                        className={`text-lg md:text-2xl font-bold ${studentBalance < 0
-                          ? "text-destructive"
-                          : "text-green-600"
-                          }`}
-                      >
-                        {studentBalance
-                          ? `₹ ${studentBalance?.toFixed(2)}`
-                          : "₹ 0.00"}
-                      </p>
-                    </div>
+                    {selectedStudents.length <= 1 && (
+                      <div className="text-right">
+                        <p className="text-xs md:text-sm text-accent-foreground">
+                          Current Balance
+                        </p>
+                        <p
+                          className={`text-lg md:text-2xl font-bold ${studentBalance < 0
+                            ? "text-destructive"
+                            : "text-green-600"
+                            }`}
+                        >
+                          {studentBalance
+                            ? `₹ ${studentBalance?.toFixed(2)}`
+                            : "₹ 0.00"}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <Separator />
@@ -755,11 +641,11 @@ const StudentsFund = ({
               <CardDescription>Recent fund activities</CardDescription>
             </CardHeader>
             <CardContent>
-              {selectedStudent ? (
+              {selectedStudents.length <= 1 ? (
                 <div className="space-y-4">
                   <div className="max-h-[320px] overflow-y-auto hide-scrollbar">
-                    {transactions?.length > 0 ? (
-                      transactions?.slice(0, 5).map((transaction) => (
+                    {transactionsWithBalance?.length > 0 ? (
+                      transactionsWithBalance?.slice(0, 5).map((transaction) => (
                         <div
                           key={transaction._id}
                           className="border-b pb-4 mb-4 last:border-b-0"
@@ -778,10 +664,20 @@ const StudentsFund = ({
                               {formatDate(transaction.date)}
                             </span>
                           </div>
-                          <p className="font-semibold text-lg">
-                            {transaction.type === "Deposit" ? "+" : "-"}₹
-                            {transaction.amount.toLocaleString()}
-                          </p>
+                          <div className="flex justify-between items-center">
+                            <p className="font-semibold text-lg">
+                              {transaction.type === "Deposit" ? "+" : "-"}₹
+                              {transaction.amount.toLocaleString()}
+                            </p>
+                            <p
+                              className={`font-bold text-base ${transaction.balanceAfter < 0
+                                ? "text-destructive"
+                                : "text-green-600"
+                                }`}
+                            >
+                              Bal: ₹{transaction.balanceAfter.toLocaleString()}
+                            </p>
+                          </div>
                           <p className="text-sm text-accent-foreground mb-1">
                             {transaction.note}
                           </p>
@@ -816,13 +712,13 @@ const StudentsFund = ({
                           </DialogTitle>
                           <DialogDescription>
                             All transactions for{" "}
-                            {selectedStudent !== selectedBatchData?._id
-                              ? selectedStudentData?.name
+                            {selectedStudentData
+                              ? selectedStudentData.name
                               : selectedBatchData?.name}
                           </DialogDescription>
                         </DialogHeader>
 
-                        {transactions?.map((transaction) => (
+                        {transactionsWithBalance?.map((transaction) => (
                           <div
                             key={transaction._id}
                             className="border rounded-lg p-4 break-inside-avoid"
@@ -849,6 +745,19 @@ const StudentsFund = ({
                                   {transaction.amount.toLocaleString()}
                                 </p>
                               </div>
+                              <div className="text-right">
+                                <span className="text-sm text-muted-foreground mr-2">
+                                  Balance:
+                                </span>
+                                <span
+                                  className={`font-bold text-lg ${transaction.balanceAfter < 0
+                                    ? "text-destructive"
+                                    : "text-green-600"
+                                    }`}
+                                >
+                                  ₹{transaction.balanceAfter.toLocaleString()}
+                                </span>
+                              </div>
                             </div>
                             <div>
                               <p className="text-gray-800">
@@ -872,7 +781,7 @@ const StudentsFund = ({
                               Print
                             </Button>
                           )}
-                          {selectedStudent !== selectedBatchData?._id && (
+                          {selectedStudentData && (
                             <Button variant="destructive">
                               <Dialog
                                 open={showClearHistoryDialogue}
@@ -1081,15 +990,22 @@ const StudentsFund = ({
       </div>
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            finalConfirmButtonRef.current?.focus();
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Transaction</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to {transactionType.toLowerCase()} ₹{amount}{" "}
               {transactionType === "Deposit" ? "to" : "from"}{" "}
-              {selectedStudent !== selectedBatchData?._id
-                ? selectedStudentData?.name
-                : selectedBatchData?.name}
+              {selectedStudents.length > 1
+                ? `${selectedStudents.length} selected students`
+                : selectedStudentData
+                  ? selectedStudentData.name
+                  : selectedBatchData?.name}
               's account?
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1109,7 +1025,7 @@ const StudentsFund = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </div >
   );
 };
 

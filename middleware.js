@@ -7,7 +7,7 @@ const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
 
 // Cache configuration
 const userCache = new Map();
-const CACHE_TTL = 30 * 60 * 1000; // 30 minutes for user cache
+const CACHE_TTL = 30 * 1000; // 30 seconds for user cache
 
 // Pages
 const pages = [
@@ -429,6 +429,18 @@ const pages = [
     title: "Reset",
     path: "/dashboard/program-management/reset",
     allowedRoles: ["Program Committee"],
+  },
+  {
+    title: "Stationary",
+    path: "/dashboard/stationary",
+    pattern: /^\/dashboard\/stationary(?:\/[^/]+)?$/,
+    allowedRoles: ["Stationary"],
+  },
+  {
+    title: "IT Lab",
+    path: "/dashboard/it-lab",
+    pattern: /^\/dashboard\/it-lab(?:\/[^/]+)?$/,
+    allowedRoles: ["IT Lab"],
   },
 ];
 
