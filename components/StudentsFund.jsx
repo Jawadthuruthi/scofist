@@ -871,7 +871,10 @@ const StudentsFund = ({
                                   key={student._id}
                                   className="break-inside-avoid"
                                 >
-                                  <TableCell>{student.studentId?.name}</TableCell>
+                                  <TableCell>
+                                    {student.studentId?.name ||
+                                      selectedBatchData?.name}
+                                  </TableCell>
                                   <TableCell>
                                     {student.balance?.toFixed(2)}
                                   </TableCell>
@@ -951,7 +954,8 @@ const StudentsFund = ({
                                     className="break-inside-avoid"
                                   >
                                     <TableCell>
-                                      {student.studentId?.name}
+                                      {student.studentId?.name ||
+                                        selectedBatchData?.name}
                                     </TableCell>
                                     <TableCell>
                                       {student.balance?.toFixed(2)}
