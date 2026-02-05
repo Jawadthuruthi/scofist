@@ -4,6 +4,7 @@ import FormComponent from "@/components/FormComponent";
 import { fetchData } from "@/lib/utils";
 import { cookies } from "next/headers";
 import { validators } from "tailwind-merge";
+import CommitteePostersSettings from "@/components/CommitteePostersSettings";
 
 const generalFormField = [
   {
@@ -280,6 +281,7 @@ export default async function SettingsPage() {
       org_email: data.org?.contact?.email,
       org_website: data.org?.contact?.website,
       org_logo: data.org?.logo || {},
+      committeePosters: data.org?.committeePosters || [],
     };
 
     const sparkFormField = [
@@ -447,14 +449,22 @@ export default async function SettingsPage() {
             />
           )}
           {activeRole === "Org Admin" && (
-            <FormComponent
-              formFields={orgFormField}
-              apiKey={apiKey}
-              data={org}
-              resource="settings"
-              title="Institution Profile"
-              description="Configure Your Institution Details"
-            />
+            <>
+              <FormComponent
+                formFields={orgFormField}
+                apiKey={apiKey}
+                data={org}
+                resource="settings"
+                title="Institution Profile"
+                description="Configure Your Institution Details"
+              />
+              <div className="mt-8">
+                <CommitteePostersSettings
+                  initialPosters={org.committeePosters}
+                  apiKey={apiKey}
+                />
+              </div>
+            </>
           )}
         </div>
       </>

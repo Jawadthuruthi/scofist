@@ -66,7 +66,7 @@ const ImageUploader = ({
     if (value?.url && value?.url !== preview) {
       setPreview(value?.url);
       setPublicId(
-        value?.publicId ? valid?.publicId : getPublicIdFromUrl(value?.url)
+        value?.publicId ? value?.publicId : getPublicIdFromUrl(value?.url)
       );
     }
   }, [value?.url]);
@@ -207,7 +207,8 @@ const ImageUploader = ({
 
       return data;
     } catch (error) {
-      toast.error(error.message || "Error uploading image");
+      toast.error(`Upload failed: ${error.message}`);
+      console.error("Upload error details:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -397,9 +398,8 @@ const ImageUploader = ({
       />
 
       <div
-        className={`w-full h-48 border-2 border-dashed rounded-md flex flex-col items-center justify-center relative ${
-          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-        } transition-colors`}
+        className={`w-full h-48 border-2 border-dashed rounded-md flex flex-col items-center justify-center relative ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+          } transition-colors`}
       >
         {loading && (
           <div className="absolute inset-0 backdrop-blur-md bg-white/50 border border-white/30 shadow-lg flex flex-col items-center justify-center z-10">

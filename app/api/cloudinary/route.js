@@ -5,6 +5,8 @@ export async function POST(req) {
   try {
     const { image } = await req.json();
 
+
+
     if (!image) {
       return NextResponse.json(
         { message: "No image provided" },
@@ -29,7 +31,7 @@ export async function POST(req) {
   } catch (error) {
     console.error("Error uploading to Cloudinary:", error.message);
     return NextResponse.json(
-      { message: "Error uploading image" },
+      { message: `Error uploading image: ${error.message}` },
       { status: 500 }
     );
   }

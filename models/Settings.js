@@ -92,6 +92,23 @@ const SettingsSchema = new Schema(
           type: String,
         },
       },
+      committeePosters: [
+        {
+          year: {
+            type: String,
+            required: true,
+          },
+          poster: {
+            url: {
+              type: String,
+              required: true,
+            },
+            publicId: {
+              type: String,
+            },
+          },
+        },
+      ],
     },
     idCard: {
       backgroundImage: {

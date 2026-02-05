@@ -26,6 +26,8 @@ import {
   AlertCircle,
   BarChart,
   Loader,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,6 +59,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ===== CUSTOM HOOKS =====
 const useIsClient = () => {
@@ -729,6 +739,98 @@ export default function Dashboard({
         />
       </div>
     );
+  }
+
+  // Check for Org Admin Committee Poster
+  // Check for Org Admin Committee Poster
+  if (activeRole === "Org Admin") {
+    const committeePosters = settings?.org?.committeePosters || [];
+    // Sort by year descending
+    const sortedPosters = useMemo(() => {
+      return [...committeePosters].sort((a, b) => b.year.toString().localeCompare(a.year.toString()));
+    }, [committeePosters]);
+
+    const [posterIndex, setPosterIndex] = useState(0);
+
+    const currentPoster = sortedPosters[posterIndex];
+
+    const handleNext = () => {
+      if (posterIndex > 0) {
+        setPosterIndex(prev => prev - 1);
+      }
+    };
+
+    const handlePrev = () => {
+      if (posterIndex < sortedPosters.length - 1) {
+        setPosterIndex(prev => prev + 1);
+      }
+    };
+
+    if (currentPoster) {
+      return (
+        <div className="flex flex-col space-y-4">
+          <Header
+            title="DASHBOARD"
+            subTitle={currentDate}
+            icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
+          />
+
+          <div className="flex items-center justify-center space-x-4">
+            <div className="w-[180px]">
+              <Select
+                value={posterIndex.toString()}
+                onValueChange={(value) => setPosterIndex(parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sortedPosters.map((poster, index) => (
+                    <SelectItem key={poster.year} value={index.toString()}>
+                      Year {poster.year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="w-full flex items-center justify-center relative rounded-lg overflow-hidden h-[60vh] md:h-[85vh]">
+            <div className="relative w-full h-full">
+              <Image
+                src={currentPoster.poster.url}
+                alt={`Committee Poster ${currentPoster.year}`}
+                fill
+                style={{ objectFit: 'contain' }}
+                priority
+              />
+            </div>
+          </div>
+
+
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex flex-col space-y-6">
+          <Header
+            title="DASHBOARD"
+            subTitle={currentDate}
+            icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
+          />
+          <div className="flex flex-col h-[calc(100vh-8rem)] items-center justify-center p-4 text-center space-y-4">
+            <div className="bg-muted p-6 rounded-full">
+              <Calendar className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <h2 className="text-2xl font-bold">No Committee Poster Found</h2>
+            <p className="text-muted-foreground max-w-md">
+              Please go to Settings to upload a committee poster for the current
+              year. The latest poster will be displayed here.
+            </p>
+          </div>
+        </div>
+      );
+    }
   }
 
   const showTimeTable =

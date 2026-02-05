@@ -90,6 +90,8 @@ export async function POST(req, res) {
           website:
             data.org_website ?? existingSettings?.org?.contact?.website,
         },
+        committeePosters:
+          data.committeePosters ?? existingSettings?.org?.committeePosters ?? [],
       },
       idCard: {
         backgroundImage:
@@ -197,6 +199,7 @@ export async function PUT(req, res) {
   try {
     await connectToDB();
     const data = await req.json();
+    console.log("Settings PUT received data:", JSON.stringify(data, null, 2));
 
     // Fetch existing settings first
     const existingSettings = await Settings.findOne({}).lean(); // 🔧 ADD .lean() to get plain object
@@ -210,6 +213,21 @@ export async function PUT(req, res) {
 
     // 🔧 Build update object WITHOUT referencing existingSettings in nested structures
     const updateData = {};
+
+    // Special handling for Committee Posters (Org Admin)
+    if (data.committeePosters) {
+      console.log("Prioritized Update: Saving committee posters:", JSON.stringify(data.committeePosters));
+      // If JUST updating posters, do it directly and return
+      const updatedSettings = await Settings.findByIdAndUpdate(
+        existingSettings._id,
+        { $set: { "org.committeePosters": data.committeePosters } },
+        { new: true, runValidators: true }
+      );
+      return NextResponse.json(
+        { settings: updatedSettings, message: "Committee posters saved successfully!" },
+        { status: 200 }
+      );
+    }
 
     // Institution
     if (
@@ -274,7 +292,13 @@ export async function PUT(req, res) {
           email: data.org_email ?? existingSettings?.org?.contact?.email,
           website: data.org_website ?? existingSettings?.org?.contact?.website,
         },
+        committeePosters:
+          data.committeePosters ?? existingSettings?.org?.committeePosters ?? [],
       };
+    }
+
+    if (data.committeePosters) {
+      updateData["org.committeePosters"] = data.committeePosters;
     }
 
     // General
@@ -365,8 +389,9 @@ export async function PUT(req, res) {
     const updatedSettings = await Settings.findByIdAndUpdate(
       existingSettings._id,
       { $set: updateData }, // Use updateData instead of cleanedData
-      { new: true }
+      { new: true, runValidators: true }
     );
+    console.log("Settings updated. Org Posters count:", updatedSettings?.org?.committeePosters?.length);
 
     return NextResponse.json(
       { settings: updatedSettings, message: "Settings updated successfully!" },

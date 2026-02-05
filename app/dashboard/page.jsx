@@ -32,6 +32,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "settings",
+    revalidate: 0,
   },
   {
     pathname: "leave-records",
