@@ -143,7 +143,7 @@ const items = [
   },
   {
     title: "Dashboard",
-    url: "/dashboard/spark",
+    url: "/dashboard",
     icon: Home,
     allowedRoles: ["Spark Admin"],
   },

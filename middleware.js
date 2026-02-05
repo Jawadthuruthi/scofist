@@ -53,12 +53,7 @@ const pages = [
     path: "/dashboard/batches",
     allowedRoles: ["College Admin"],
   },
-  {
-    title: "Spark",
-    path: "/dashboard/spark",
-    allowedRoles: ["Student", "Spark Admin"],
-    matchPattern: /^\/dashboard\/spark.*$/,
-  },
+
   {
     title: "Spark Finance",
     path: "/dashboard/spark/finance",

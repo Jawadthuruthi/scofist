@@ -1,11 +1,10 @@
-import SparkDashboardClient from "./SparkDashboardClient";
+
 import User from "@/models/User";
 import Batch from "@/models/Batch";
 import Settings from "@/models/Settings";
 import connectToDB from "@/lib/db";
-import ErrorPage from "@/components/ErrorPage";
 
-async function getSparkStats() {
+export async function getSparkStats() {
     await connectToDB();
 
     // 1. Total Alumnies (Dropped Out)
@@ -91,24 +90,3 @@ async function getSparkStats() {
         sparkLogo,
     };
 }
-
-
-
-export default async function SparkPage() {
-    try {
-        const stats = await getSparkStats();
-
-        return <SparkDashboardClient {...stats} />;
-    } catch (error) {
-        console.error("Error loading spark data:", error);
-        return (
-            <ErrorPage
-                statusCode={500}
-                title="Internal Server Error"
-                description="Failed to load spark data."
-            />
-        );
-    }
-}
-
-export const revalidate = 60;

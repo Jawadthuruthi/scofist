@@ -4,6 +4,8 @@ import StudentDashboard from "@/components/StudentDashboard";
 import { fetchData, WEEKDAYS } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
 import FestDashboard from "@/components/FestDashboard";
+import SparkDashboardClient from "./spark/SparkDashboardClient";
+import { getSparkStats } from "@/libservices/spark-services";
 
 const today = new Date();
 const istTime = new Date(today.getTime() + 5.5 * 60 * 60 * 1000);
@@ -54,6 +56,17 @@ export default async function DashboardPage() {
 
     if (["Program Committee", "Program Leader"].includes(activeRole)) {
       return <FestDashboard />;
+    }
+
+    if (activeRole === "Spark Admin") {
+      try {
+        const stats = await getSparkStats();
+        return <SparkDashboardClient {...stats} />;
+      } catch (error) {
+        console.error("Error loading spark stats:", error);
+        // Fallback or better error handling if needed, 
+        // but error boundary should catch it.
+      }
     }
 
     const [
