@@ -351,7 +351,10 @@ export default function StudentCouponClient({ apiKey }) {
     const paymentStudentFilters = {
         roles: ["Student"],
         batchId: paymentBatchId !== "all" ? paymentBatchId : visibleBatchIds,
-        ...(paymentClassId.length > 0 && { classId: paymentClassId.join(",") })
+        ...(paymentClassId.length > 0 && {
+            classId: paymentClassId.join(","),
+            status: "Active"
+        })
     };
     const { data: paymentUsersData } = useFetchUsers(0, 1000, paymentStudentFilters, { enabled: !!apiKey });
     const paymentStudents = paymentUsersData?.users || [];
@@ -1038,8 +1041,8 @@ export default function StudentCouponClient({ apiKey }) {
                                         />
                                     </div>
 
-                                    {/* Student Selection */}
-                                    <div className="space-y-2">
+                                    {/* Student Selection - Full Width on Mobile */}
+                                    <div className="space-y-2 col-span-2 md:col-span-1">
                                         <Label>Student Name</Label>
                                         <MultiSelect
                                             options={paymentStudents.map(s => ({ label: s.name, value: s._id }))}
@@ -1053,15 +1056,25 @@ export default function StudentCouponClient({ apiKey }) {
                                         )}
                                     </div>
 
-
-
-                                    <div className="space-y-2">
+                                    {/* Paid Amount & Mobile Save Button - Side by Side on Mobile */}
+                                    <div className="space-y-2 col-span-2 md:col-span-1">
                                         <Label>Paid Amount</Label>
-                                        <Input type="number" {...registerPayment("amount", { required: true, min: 0 })} placeholder="Enter Amount" />
+                                        <div className="flex gap-2">
+                                            <Input
+                                                type="number"
+                                                {...registerPayment("amount", { required: true, min: 0 })}
+                                                placeholder="Enter Amount"
+                                                className="flex-1"
+                                            />
+                                            <Button type="submit" disabled={isSavingPayment} className="md:hidden flex-1">
+                                                {isSavingPayment ? <Loader className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                                                <span className="ml-2">Save</span>
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="flex justify-end">
+                                <div className="hidden md:flex justify-end">
                                     <Button type="submit" disabled={isSavingPayment} className="w-full md:w-auto">
                                         {isSavingPayment ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                                         Save Payment
@@ -1073,11 +1086,12 @@ export default function StudentCouponClient({ apiKey }) {
                 </Card>
             </div>
 
-            {/* Filters & Table */}
-            <div className="flex flex-col md:flex-row gap-2 md:items-center">
-                <div className="flex gap-2 items-center w-full md:flex-1">
-                    {/* Advanced Filter Popover */}
-                    {/* Advanced Filter Modal */}
+            {/* Filters & Table Controls */}
+            <div className="flex flex-wrap md:flex-nowrap gap-2 items-center">
+
+                {/* GROUP 1: Column & Filter Buttons */}
+                <div className="flex gap-2 order-1 md:order-1">
+                    {/* Advanced Filter Popover (Columns) */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="icon">
@@ -1250,29 +1264,31 @@ export default function StudentCouponClient({ apiKey }) {
                             </div>
                         </DialogContent>
                     </Dialog>
-
-                    <div className="flex-1">
-                        <Input
-                            placeholder="Search by Student Name, ID or Coupon..."
-                            value={filters.search}
-                            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                        />
-                    </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 md:flex md:gap-2">
-                    <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 w-full md:w-auto" onClick={exportToExcel}>
+                {/* GROUP 2: Export Buttons */}
+                <div className="flex flex-1 md:flex-none gap-2 order-2 md:order-3 overflow-x-auto">
+                    <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 flex-1 md:flex-none" onClick={exportToExcel}>
                         <FileSpreadsheet className="h-4 w-4 mr-2" />
                         <span>Excel</span>
                     </Button>
-                    <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 w-full md:w-auto" onClick={exportToPDF}>
+                    <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 flex-1 md:flex-none" onClick={exportToPDF}>
                         <Download className="h-4 w-4 mr-2" />
                         <span>PDF</span>
                     </Button>
-                    <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 w-full md:w-auto" onClick={() => window.print()}>
+                    <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 flex-1 md:flex-none" onClick={() => window.print()}>
                         <Printer className="h-4 w-4 mr-2" />
                         <span>Print</span>
                     </Button>
+                </div>
+
+                {/* GROUP 3: Search Bar */}
+                <div className="w-full md:flex-1 order-3 md:order-2">
+                    <Input
+                        placeholder="Search by Student Name, ID or Coupon..."
+                        value={filters.search}
+                        onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                    />
                 </div>
             </div>
 
@@ -1450,8 +1466,8 @@ export default function StudentCouponClient({ apiKey }) {
                                             />
                                         </div>
 
-                                        {/* Student Selection */}
-                                        <div className="space-y-2">
+                                        {/* Student Selection - Full Width on Mobile */}
+                                        <div className="space-y-2 col-span-2 md:col-span-1">
                                             <Label>Student Name</Label>
                                             <MultiSelect
                                                 options={paymentStudents.map(s => ({ label: s.name, value: s._id }))}
@@ -1465,16 +1481,27 @@ export default function StudentCouponClient({ apiKey }) {
                                             )}
                                         </div>
 
-
-                                        <div className="space-y-2">
+                                        {/* Paid Amount & Mobile Save Button - Side by Side on Mobile */}
+                                        <div className="space-y-2 col-span-2 md:col-span-1">
                                             <Label>Paid Amount</Label>
-                                            <Input type="number" {...registerPayment("amount", { required: true, min: 0 })} placeholder="Enter Amount" />
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    type="number"
+                                                    {...registerPayment("amount", { required: true, min: 0 })}
+                                                    placeholder="Enter Amount"
+                                                    className="flex-1"
+                                                />
+                                                <Button type="submit" disabled={isSavingPayment} className="md:hidden flex-1">
+                                                    {isSavingPayment ? <Loader className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                                                    <span className="ml-2">Save</span>
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
 
                                     <DialogFooter>
                                         <Button type="button" variant="outline" onClick={() => setIsPaymentPopupOpen(false)}>Cancel</Button>
-                                        <Button type="submit" disabled={isSavingPayment}>
+                                        <Button type="submit" disabled={isSavingPayment} className="hidden md:inline-flex">
                                             {isSavingPayment ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                                             Save Payment
                                         </Button>
