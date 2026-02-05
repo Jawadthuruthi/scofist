@@ -381,7 +381,8 @@ const pages = [
   {
     title: "Settings",
     path: "/dashboard/settings",
-    allowedRoles: ["College Admin", "Program Committee", "Spark Admin"],
+    pattern: /^\/dashboard\/settings(?:\/[^/]+)?$/,
+    allowedRoles: ["College Admin", "Program Committee", "Spark Admin", "Org Admin"],
   },
   {
     title: "Masjid Attendance",

@@ -68,6 +68,31 @@ const SettingsSchema = new Schema(
         },
       },
     },
+    org: {
+      name: { type: String, trim: true },
+      fullName: { type: String, trim: true },
+      tagline: { type: String, trim: true },
+      address: { type: String, trim: true },
+      contact: {
+        primaryPhone: { type: String, trim: true },
+        secondaryPhone: { type: String, trim: true },
+        email: { type: String, trim: true, lowercase: true },
+        website: { type: String, trim: true },
+      },
+      logo: {
+        url: {
+          type: String,
+          trim: true,
+          validate: {
+            validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+            message: "Invalid URL format",
+          },
+        },
+        publicId: {
+          type: String,
+        },
+      },
+    },
     idCard: {
       backgroundImage: {
         url: {

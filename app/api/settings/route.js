@@ -73,6 +73,24 @@ export async function POST(req, res) {
             data.spark_website ?? existingSettings?.spark?.contact?.website,
         },
       },
+      org: {
+        name: data.org_name ?? existingSettings?.org?.name,
+        fullName: data.org_fullName ?? existingSettings?.org?.fullName,
+        tagline: data.org_tagline ?? existingSettings?.org?.tagline,
+        logo: data.org_logo ?? existingSettings?.org?.logo,
+        address: data.org_address ?? existingSettings?.org?.address,
+        contact: {
+          primaryPhone:
+            data.org_primaryPhone ??
+            existingSettings?.org?.contact?.primaryPhone,
+          secondaryPhone:
+            data.org_secondaryPhone ??
+            existingSettings?.org?.contact?.secondaryPhone,
+          email: data.org_email ?? existingSettings?.org?.contact?.email,
+          website:
+            data.org_website ?? existingSettings?.org?.contact?.website,
+        },
+      },
       idCard: {
         backgroundImage:
           data.backgroundImage ?? existingSettings?.idCard?.backgroundImage,
@@ -227,6 +245,35 @@ export async function PUT(req, res) {
     if (data.backgroundImage) {
       updateData.idCard = {
         backgroundImage: data.backgroundImage,
+      };
+    }
+
+    // Org - (Added for separate Org Admin profile)
+    if (
+      data.org_name ||
+      data.org_fullName ||
+      data.org_tagline ||
+      data.org_logo ||
+      data.org_address ||
+      data.org_primaryPhone ||
+      data.org_secondaryPhone ||
+      data.org_email ||
+      data.org_website
+    ) {
+      updateData.org = {
+        name: data.org_name ?? existingSettings?.org?.name,
+        fullName: data.org_fullName ?? existingSettings?.org?.fullName,
+        tagline: data.org_tagline ?? existingSettings?.org?.tagline,
+        logo: data.org_logo ?? existingSettings?.org?.logo,
+        address: data.org_address ?? existingSettings?.org?.address,
+        contact: {
+          primaryPhone:
+            data.org_primaryPhone ?? existingSettings?.org?.contact?.primaryPhone,
+          secondaryPhone:
+            data.org_secondaryPhone ?? existingSettings?.org?.contact?.secondaryPhone,
+          email: data.org_email ?? existingSettings?.org?.contact?.email,
+          website: data.org_website ?? existingSettings?.org?.contact?.website,
+        },
       };
     }
 
