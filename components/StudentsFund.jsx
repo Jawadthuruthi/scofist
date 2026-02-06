@@ -87,11 +87,15 @@ const StudentsFund = ({
   const [showClearHistoryDialogue, setShowClearHistoryDialogue] =
     useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentDate, setCurrentDate] = useState("");
   const [transactions, setTransactions] = useState([]);
   const amountInputRef = useRef(null);
   const noteInputRef = useRef(null);
   const confirmButtonRef = useRef(null);
   const finalConfirmButtonRef = useRef(null);
+  const [showQuickPaymentDialog, setShowQuickPaymentDialog] = useState(false);
+  const [quickPaymentData, setQuickPaymentData] = useState(null);
+  const [quickPaymentAmount, setQuickPaymentAmount] = useState("");
 
 
 
@@ -99,6 +103,19 @@ const StudentsFund = ({
   const allStudentsFundRef = useRef();
 
   const isMobile = useIsMobile();
+
+  const transactionLabels = useMemo(() => {
+    if (department) {
+      return {
+        deposit: "Received",
+        withdrawal: "Receivable",
+      };
+    }
+    return {
+      deposit: "Deposit",
+      withdrawal: "Withdrawal",
+    };
+  }, [department]);
 
   const { useFetchItems, useAddItem, useUpdateItem } = useCrud(
     "studentsFund",
@@ -156,6 +173,10 @@ const StudentsFund = ({
   }, [studentFund, selectedStudents]);
 
   useEffect(() => {
+    setCurrentDate(new Date().toLocaleDateString());
+  }, []);
+
+  useEffect(() => {
     if (transactionType && amountInputRef.current) {
       setTimeout(() => {
         amountInputRef.current.focus();
@@ -200,6 +221,25 @@ const StudentsFund = ({
     });
   }, [transactions, studentBalance]);
 
+  const globalTransactions = useMemo(() => {
+    if (!department || !allStudentsFund) return [];
+
+    const allTx = [];
+    allStudentsFund.forEach(student => {
+      if (student.transactions) {
+        student.transactions.forEach(tx => {
+          allTx.push({
+            ...tx,
+            studentName: student.studentId?.name || "Unknown",
+            studentId: student.studentId?._id
+          });
+        });
+      }
+    });
+
+    return allTx.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [allStudentsFund, department]);
+
   const selectedBatchData = useMemo(() => {
     return batches.find((batch) => batch._id === selectedBatch) || {};
   }, [selectedBatch]);
@@ -225,10 +265,18 @@ const StudentsFund = ({
 
   const confirmTransaction = async () => {
     setLoading(true);
+    console.log("Confirming Transaction. Selected Students Count:", selectedStudents.length);
+    console.log("Selected Students IDs:", selectedStudents);
 
     if (selectedStudents.length > 1) {
       // Bulk Transaction Logic
       try {
+        console.log("Sending Bulk Transaction:", {
+          batchId: selectedBatch,
+          studentIds: selectedStudents,
+          department,
+          fundType: department ? "Department" : "Individual",
+        });
         const response = await fetch("/api/studentsFund/bulk", {
           method: "POST",
           headers: {
@@ -332,6 +380,13 @@ const StudentsFund = ({
 
   const handleClearHistory = async () => {
     try {
+      console.log("Clearing history for:", {
+        studentId: selectedStudents.length === 1 ? selectedStudents[0] : undefined,
+        department,
+        fundType: department ? "Department" : "Individual",
+        batchId: selectedBatch,
+      });
+
       await updateStudentFund.mutateAsync({
         data: {
           studentId:
@@ -342,11 +397,56 @@ const StudentsFund = ({
           batchId: selectedBatch,
         },
       });
+      console.log("History cleared successfully");
       await fetchStudentFundQuery.refetch();
       setShowHistoryDialog(false);
       setShowClearHistoryDialogue(false);
     } catch (error) {
       console.error("Failed to clear history:", error);
+    }
+  };
+
+  const initiateQuickPayment = (student) => {
+    setQuickPaymentData({
+      id: student.studentId?._id,
+      name: student.studentId?.name || "Unknown",
+      currentBalance: student.balance || 0,
+    });
+    setQuickPaymentAmount("");
+    setShowQuickPaymentDialog(true);
+  };
+
+  const handleQuickPayment = async () => {
+    if (!quickPaymentAmount || !quickPaymentData) return;
+
+    setLoading(true);
+    try {
+      const amount = parseFloat(quickPaymentAmount);
+      const newBalance = (quickPaymentData.currentBalance || 0) + amount; // Deposit increases balance
+
+      await addStudentFund.mutateAsync({
+        studentId: quickPaymentData.id,
+        teacherId: department ? undefined : teacherId,
+        department,
+        fundType: department ? "Department" : "Individual",
+        batchId: selectedBatch,
+        transaction: {
+          type: "Deposit", // Mapped to "Received"
+          amount: amount,
+          note: "Quick Payment via Balance List",
+          performedBy: teacherId,
+        },
+        balance: newBalance,
+      });
+
+      toast.success("Payment received successfully");
+      setShowQuickPaymentDialog(false);
+      fetchStudentFundQuery.refetch();
+    } catch (error) {
+      console.error("Quick payment failed:", error);
+      toast.error("Failed to process payment");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -547,7 +647,7 @@ const StudentsFund = ({
                       className="h-16 flex-col gap-2"
                     >
                       <Plus className="h-5 w-5" />
-                      Deposit
+                      {transactionLabels.deposit}
                     </Button>
                     <Button
                       variant={
@@ -560,7 +660,7 @@ const StudentsFund = ({
                         }`}
                     >
                       <Minus className="h-5 w-5" />
-                      Withdrawal
+                      {transactionLabels.withdrawal}
                     </Button>
                   </div>
 
@@ -621,11 +721,72 @@ const StudentsFund = ({
                       className="w-full"
                       size="lg"
                     >
-                      {loading ? "Processing..." : `Confirm ${transactionType}`}
+                      {loading ? "Processing..." : `Confirm ${transactionType === "Deposit" ? transactionLabels.deposit : transactionLabels.withdrawal}`}
                     </Button>
                   )}
                 </CardContent>
               )}
+            </Card>
+          )}
+
+          {/* All Students Balance Table for Department Funds */}
+          {department && selectedBatch && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  All Students Balance
+                </CardTitle>
+                <CardDescription>
+                  Balance history for all students in {selectedBatchData?.name}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[80px]">Sl No</TableHead>
+                        <TableHead>Student ID</TableHead>
+                        <TableHead>Student Name</TableHead>
+                        <TableHead className="text-right">Balance</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allStudentsFund.map((student, index) => (
+                        <TableRow key={student._id}>
+                          <TableCell>{index + 1}</TableCell>
+                          <TableCell>
+                            {student.studentId?.studentSpecificField?.admissionNumber ||
+                              student.studentId?.username ||
+                              "-"}
+                          </TableCell>
+                          <TableCell>{student.studentId?.name || "Unknown"}</TableCell>
+                          <TableCell
+                            className={`text-right font-medium ${(student.balance || 0) < 0
+                              ? "text-destructive"
+                              : "text-green-600"
+                              } ${department ? "cursor-pointer hover:underline" : ""}`}
+                            onClick={() => department && initiateQuickPayment(student)}
+                          >
+                            ₹ {(student.balance || 0).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {allStudentsFund.length === 0 && (
+                        <TableRow>
+                          <TableCell
+                            colSpan={4}
+                            className="text-center text-muted-foreground h-24"
+                          >
+                            No students found with balance history.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
             </Card>
           )}
         </div>
@@ -641,7 +802,7 @@ const StudentsFund = ({
               <CardDescription>Recent fund activities</CardDescription>
             </CardHeader>
             <CardContent>
-              {selectedStudents.length <= 1 ? (
+              {selectedStudents.length <= 1 && !department ? (
                 <div className="space-y-4">
                   <div className="max-h-[320px] overflow-y-auto hide-scrollbar">
                     {transactionsWithBalance?.length > 0 ? (
@@ -658,7 +819,7 @@ const StudentsFund = ({
                                   : "destructive"
                               }
                             >
-                              {transaction.type}
+                              {transaction.type === "Deposit" ? transactionLabels.deposit : transactionLabels.withdrawal}
                             </Badge>
                             <span className="text-sm text-accent-foreground">
                               {formatDate(transaction.date)}
@@ -704,7 +865,6 @@ const StudentsFund = ({
                     <DialogContent className="max-w-4xl h-[80vh]">
                       <div
                         className="space-y-4 max-h-full overflow-y-auto hide-scrollbar  "
-                        ref={printRef}
                       >
                         <DialogHeader>
                           <DialogTitle>
@@ -731,7 +891,7 @@ const StudentsFund = ({
                                     : "destructive"
                                 }
                               >
-                                {transaction.type}
+                                {transaction.type === "Deposit" ? transactionLabels.deposit : transactionLabels.withdrawal}
                               </Badge>
                               <div className="flex items-center gap-2 text-sm text-accent-foreground">
                                 <Calendar className="h-4 w-4" />
@@ -769,60 +929,20 @@ const StudentsFund = ({
                       </div>
                       <DialogFooter>
                         <div className="flex items-center justify-between w-full gap-2">
-                          {isMobile ? (
-                            <Button
-                              variant="default"
-                              onClick={handleDownloadPDF}
-                            >
-                              Download
-                            </Button>
-                          ) : (
-                            <Button variant="default" onClick={handlePrint}>
-                              Print
-                            </Button>
-                          )}
-                          {selectedStudentData && (
-                            <Button variant="destructive">
-                              <Dialog
-                                open={showClearHistoryDialogue}
-                                onOpenChange={setShowClearHistoryDialogue}
-                              >
-                                <DialogTrigger asChild>
-                                  <span className="flex items-center gap-2">
-                                    <Trash2 className="h-4 w-4" />
-                                    Clear History
-                                  </span>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Clear History</DialogTitle>
-                                    <DialogDescription>
-                                      Are you sure you want to clear the history
-                                      for {selectedStudentData?.name}?
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <DialogFooter className="gap-2">
-                                    <Button
-                                      variant="outline"
-                                      onClick={() => {
-                                        setShowClearHistoryDialogue(false);
-                                        setShowHistoryDialog(false);
-                                      }}
-                                    >
-                                      Cancel
-                                    </Button>
-                                    <Button
-                                      className="!bg-destructive !text-destructive-foreground"
-                                      onClick={handleClearHistory}
-                                      disabled={updateStudentFund.isPending}
-                                    >
-                                      Clear
-                                    </Button>
-                                  </DialogFooter>
-                                </DialogContent>
-                              </Dialog>
-                            </Button>
-                          )}
+                          <Button
+                            variant="default"
+                            onClick={handleDownloadPDF}
+                            className="md:hidden"
+                          >
+                            Download
+                          </Button>
+                          <Button
+                            variant="default"
+                            onClick={handlePrint}
+                            className="hidden md:flex"
+                          >
+                            Print
+                          </Button>
                         </div>
                       </DialogFooter>
                     </DialogContent>
@@ -832,10 +952,12 @@ const StudentsFund = ({
                     onOpenChange={setShowBalanceDialog}
                   >
                     <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full">
-                        <FileText className="h-4 w-4 mr-2" />
-                        View All Students Balance
-                      </Button>
+                      {!department && (
+                        <Button variant="outline" className="w-full">
+                          <FileText className="h-4 w-4 mr-2" />
+                          View All Students Balance
+                        </Button>
+                      )}
                     </DialogTrigger>
                     <DialogContent className="max-w-4xl h-[80vh]">
                       <div
@@ -885,40 +1007,119 @@ const StudentsFund = ({
                         </div>
                       </div>
                       <DialogFooter>
-                        {isMobile ? (
-                          <Button
-                            variant="default"
-                            onClick={handleAllStudentsFundDownloadPDF}
-                          >
-                            Download
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="default"
-                            onClick={handleAllStudentsFundPrint}
-                          >
-                            Print
-                          </Button>
-                        )}
+                        <Button
+                          variant="default"
+                          onClick={handleAllStudentsFundDownloadPDF}
+                          className="md:hidden"
+                        >
+                          Download
+                        </Button>
+                        <Button
+                          variant="default"
+                          onClick={handleAllStudentsFundPrint}
+                          className="hidden md:flex"
+                        >
+                          Print
+                        </Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </div>
               ) : (
-                <div className="text-center text-accent-foreground py-8 space-y-4">
-                  <History className="h-12 w-12 mx-auto opacity-50" />
-                  <p>Select a student to view transaction history</p>
+                <div className="space-y-4">
+                  {!department && selectedStudents.length !== 1 && (
+                    <div className="text-center text-accent-foreground py-8 space-y-4">
+                      <History className="h-12 w-12 mx-auto opacity-50" />
+                      <p>Select a student to view transaction history</p>
+                    </div>
+                  )}
+
+                  {selectedStudents.length === 1 && department && (
+                    <div className="space-y-4">
+                      <div className="max-h-[320px] overflow-y-auto hide-scrollbar">
+                        {transactionsWithBalance?.length > 0 ? (
+                          transactionsWithBalance?.slice(0, 5).map((transaction) => (
+                            <div
+                              key={transaction._id}
+                              className="border-b pb-4 mb-4 last:border-b-0"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <Badge
+                                  variant={
+                                    transaction.type === "Deposit"
+                                      ? "default"
+                                      : "destructive"
+                                  }
+                                >
+                                  {transaction.type === "Deposit" ? transactionLabels.deposit : transactionLabels.withdrawal}
+                                </Badge>
+                                <span className="text-sm text-accent-foreground">
+                                  {formatDate(transaction.date)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <p className="font-semibold text-lg">
+                                  {transaction.type === "Deposit" ? "+" : "-"}₹
+                                  {transaction.amount.toLocaleString()}
+                                </p>
+                                <p
+                                  className={`font-bold text-base ${transaction.balanceAfter < 0
+                                    ? "text-destructive"
+                                    : "text-green-600"
+                                    }`}
+                                >
+                                  Bal: ₹{transaction.balanceAfter.toLocaleString()}
+                                </p>
+                              </div>
+                              <p className="text-sm text-accent-foreground mb-1">
+                                {transaction.note}
+                              </p>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center text-accent-foreground py-8">
+                            <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No transactions found</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={handlePrint}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Print
+                        </Button>
+                        {selectedStudentData && (
+                          <Button
+                            variant="outline"
+                            className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
+                            onClick={() => setShowClearHistoryDialogue(true)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Clear
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {selectedBatch && (
                     <Dialog
                       open={showBalanceDialog}
                       onOpenChange={setShowBalanceDialog}
                     >
                       <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full">
-                          <FileText className="h-4 w-4 mr-2" />
-                          View All Students Balance
-                        </Button>
+                        {!department && (
+                          <Button variant="outline" className="w-full">
+                            <FileText className="h-4 w-4 mr-2" />
+                            View All Students Balance
+                          </Button>
+                        )}
                       </DialogTrigger>
+                      {/* ... rest of balance dialog ... */}
                       <DialogContent className="max-w-4xl h-[80vh]">
                         <div
                           className="max-h-full overflow-y-auto hide-scrollbar "
@@ -967,21 +1168,20 @@ const StudentsFund = ({
                           </div>
                         </div>
                         <DialogFooter>
-                          {isMobile ? (
-                            <Button
-                              variant="default"
-                              onClick={handleAllStudentsFundDownloadPDF}
-                            >
-                              Download
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="default"
-                              onClick={handleAllStudentsFundPrint}
-                            >
-                              Print
-                            </Button>
-                          )}
+                          <Button
+                            variant="default"
+                            onClick={handleAllStudentsFundDownloadPDF}
+                            className="md:hidden"
+                          >
+                            Download
+                          </Button>
+                          <Button
+                            variant="default"
+                            onClick={handleAllStudentsFundPrint}
+                            className="hidden md:flex"
+                          >
+                            Print
+                          </Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
@@ -1029,6 +1229,156 @@ const StudentsFund = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Hidden Print Content */}
+      <div className="hidden">
+        <div ref={printRef} className="p-8 space-y-4">
+          <div className="flex flex-col gap-2 mb-6">
+            <h1 className="text-2xl font-bold">Transaction History</h1>
+            <p className="text-muted-foreground">
+              {selectedStudentData
+                ? `Student: ${selectedStudentData.name}`
+                : `Batch: ${selectedBatchData?.name}`}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Report Generated on {currentDate}
+            </p>
+          </div>
+
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Balance</TableHead>
+                  <TableHead>Note</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactionsWithBalance?.map((transaction) => (
+                  <TableRow key={transaction._id}>
+                    <TableCell>{formatDate(transaction.date)}</TableCell>
+                    <TableCell>
+                      {transaction.type === "Deposit" ? transactionLabels.deposit : transactionLabels.withdrawal}
+                    </TableCell>
+                    <TableCell>
+                      {transaction.type === "Deposit" ? "+" : "-"}₹
+                      {transaction.amount.toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      ₹{transaction.balanceAfter.toLocaleString()}
+                    </TableCell>
+                    <TableCell>{transaction.note}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </div>
+
+      {/* Clear History Confirmation Dialog */}
+      <Dialog
+        open={showClearHistoryDialogue}
+        onOpenChange={setShowClearHistoryDialogue}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clear History</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to clear the history
+              for {selectedStudentData?.name}?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowClearHistoryDialogue(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="!bg-destructive !text-destructive-foreground"
+              onClick={handleClearHistory}
+              disabled={updateStudentFund.isPending}
+            >
+              Clear
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Quick Payment Dialog */}
+      <Dialog
+        open={showQuickPaymentDialog}
+        onOpenChange={setShowQuickPaymentDialog}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Receive Payment</DialogTitle>
+            <DialogDescription>
+              Record a payment received from {quickPaymentData?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Current Balance:</span>
+              <span
+                className={`font-bold ${quickPaymentData?.currentBalance < 0
+                  ? "text-destructive"
+                  : "text-green-600"
+                  }`}
+              >
+                ₹ {quickPaymentData?.currentBalance?.toFixed(2)}
+              </span>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quick-amount">Amount Received (₹)</Label>
+              <Input
+                id="quick-amount"
+                type="number"
+                placeholder="Enter amount"
+                value={quickPaymentAmount}
+                onChange={(e) => setQuickPaymentAmount(e.target.value)}
+                min="1"
+                step="0.01"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleQuickPayment();
+                  }
+                }}
+              />
+            </div>
+            {quickPaymentAmount && (
+              <div className="flex justify-between items-center text-sm border-t pt-2">
+                <span className="font-medium">New Balance Preview:</span>
+                <span className="font-bold">
+                  ₹{" "}
+                  {(
+                    (quickPaymentData?.currentBalance || 0) +
+                    parseFloat(quickPaymentAmount || 0)
+                  ).toFixed(2)}
+                </span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowQuickPaymentDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleQuickPayment}
+              disabled={!quickPaymentAmount || loading}
+            >
+              {loading ? "Processing..." : "Confirm Received"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div >
   );
 };

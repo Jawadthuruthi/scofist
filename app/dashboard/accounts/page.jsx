@@ -14,6 +14,10 @@ export default async function AccountsPage({ searchParams }) {
     let accountType = "College";
     if (activeRole === "Org Admin") {
         accountType = "Org";
+    } else if (activeRole === "Stationary") {
+        accountType = "Stationary";
+    } else if (activeRole === "IT Lab") {
+        accountType = "IT Lab";
     }
 
     let summary = null;

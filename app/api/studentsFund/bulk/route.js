@@ -15,6 +15,13 @@ export async function POST(req) {
             fundType = "Individual",
         } = await req.json();
 
+        console.log("Bulk Transaction Payload:", {
+            batchId,
+            studentIdsCount: studentIds?.length,
+            fundType,
+            department
+        });
+
         if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
             return NextResponse.json(
                 { message: "No students selected" },
@@ -38,14 +45,8 @@ export async function POST(req) {
 
                 if (fundType === "Department" && department) {
                     query.department = department;
-                    query.fundType = "Department";
                 } else {
                     query.teacherId = teacherId;
-                    // Allow legacy docs (missing fundType) or new docs (fundType="Individual")
-                    query.$or = [
-                        { fundType: "Individual" },
-                        { fundType: { $exists: false } },
-                    ];
                 }
 
                 let studentFund = await StudentsFund.findOne(query);

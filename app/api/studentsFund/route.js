@@ -81,11 +81,8 @@ export async function POST(req, res) {
 
     if (fundType === "Department" && department) {
       query.department = department;
-      query.fundType = "Department";
     } else {
       query.teacherId = teacherId;
-      // Allow legacy docs (missing fundType) or new docs (fundType="Individual")
-      query.$or = [{ fundType: "Individual" }, { fundType: { $exists: false } }];
     }
 
     if (studentId) {
@@ -150,14 +147,14 @@ export async function PUT(req, res) {
 
     if (studentId) {
       query.studentId = studentId;
+    } else {
+      query.studentId = { $exists: false };
     }
 
     if (fundType === "Department" && department) {
       query.department = department;
-      query.fundType = "Department";
     } else {
       query.teacherId = teacherId;
-      query.$or = [{ fundType: "Individual" }, { fundType: { $exists: false } }];
     }
 
     const studentFund = await StudentsFund.findOneAndUpdate(
