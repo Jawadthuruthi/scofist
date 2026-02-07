@@ -69,14 +69,30 @@ export async function POST(req, res) {
       studentId,
       teacherId,
       batchId,
-      balance,
       transaction,
       department,
       fundType = "Individual",
     } = await req.json();
 
+    if (fundType === "Department") {
+      if (!department) {
+        return NextResponse.json(
+          { message: "Department is required for Department funds" },
+          { status: 400 }
+        );
+      }
+    } else {
+      if (!teacherId) {
+        return NextResponse.json(
+          { message: "Teacher ID is required for Individual funds" },
+          { status: 400 }
+        );
+      }
+    }
+
     const query = {
       batchId,
+      fundType, // Include fundType to ensure partialFilterExpression of unique index is met
     };
 
     if (fundType === "Department" && department) {
@@ -91,38 +107,27 @@ export async function POST(req, res) {
       query.studentId = { $exists: false };
     }
 
-    let studentFund = await StudentsFund.findOne(query);
+    const amountChange =
+      transaction.type === "Deposit"
+        ? transaction.amount
+        : -transaction.amount;
 
-    if (!studentFund) {
-      const newStudentsFundData = {
-        ...query,
-        balance,
-        transactions: [{ ...transaction, date: new Date() }],
-        fundType, // Ensure fundType is set for new docs
-      };
-      // Clean up query artifacts from newStudentsFundData if necessary
-      delete newStudentsFundData.$or;
+    // Define the update operation
+    const update = {
+      $inc: { balance: amountChange },
+      $push: { transactions: { ...transaction, date: new Date() } },
+      $setOnInsert: {
+        // fundType, // Already in query
+        // ...query, // Already in query
+      },
+    };
 
-      if (studentId) {
-        newStudentsFundData.studentId = studentId;
-      }
-      // Explicitly set teacherId if it's an Individual fund (it might be in query, but good to be safe)
-      if (fundType === "Individual") {
-        newStudentsFundData.teacherId = teacherId;
-      }
-
-      studentFund = new StudentsFund(newStudentsFundData);
-    } else {
-      studentFund.balance = balance;
-      studentFund.transactions.push({ ...transaction, date: new Date() });
-
-      // Migration: Ensure fundType is set if it was missing
-      if (!studentFund.fundType) {
-        studentFund.fundType = "Individual";
-      }
-    }
-
-    await studentFund.save();
+    // Use findOneAndUpdate with upsert: true
+    const studentFund = await StudentsFund.findOneAndUpdate(query, update, {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true,
+    });
 
     return NextResponse.json({ newStudentsFund: studentFund }, { status: 200 });
   } catch (error) {

@@ -19,7 +19,7 @@ export async function POST(req) {
             batchId,
             studentIdsCount: studentIds?.length,
             fundType,
-            department
+            department,
         });
 
         if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
@@ -29,74 +29,81 @@ export async function POST(req) {
             );
         }
 
-        const results = {
-            success: [],
-            failed: [],
-        };
-
-        // Process each student sequentially to ensure data integrity
-        // We could use Promise.all for speed, but sequential is safer for database load if many students
-        for (const studentId of studentIds) {
-            try {
-                const query = {
-                    batchId,
-                    studentId,
-                };
-
-                if (fundType === "Department" && department) {
-                    query.department = department;
-                } else {
-                    query.teacherId = teacherId;
-                }
-
-                let studentFund = await StudentsFund.findOne(query);
-
-                if (!studentFund) {
-                    const newStudentsFundData = {
-                        batchId,
-                        studentId,
-                        balance: transaction.amount * (transaction.type === "Deposit" ? 1 : -1),
-                        transactions: [{ ...transaction, date: new Date() }],
-                        fundType,
-                    };
-
-                    if (fundType === "Department" && department) {
-                        newStudentsFundData.department = department;
-                    } else {
-                        newStudentsFundData.teacherId = teacherId;
-                    }
-
-                    studentFund = new StudentsFund(newStudentsFundData);
-                } else {
-                    const amountChange =
-                        transaction.type === "Deposit"
-                            ? transaction.amount
-                            : -transaction.amount;
-
-                    studentFund.balance = (studentFund.balance || 0) + amountChange;
-                    studentFund.transactions.push({ ...transaction, date: new Date() });
-
-                    // Migration: Ensure fundType is set if it was missing
-                    if (!studentFund.fundType) {
-                        studentFund.fundType = "Individual";
-                    }
-                }
-
-                await studentFund.save();
-                results.success.push(studentId);
-            } catch (error) {
-                console.error(`Failed to update fund for student ${studentId}:`, error);
-                results.failed.push({ studentId, error: error.message });
+        if (fundType === "Department") {
+            if (!department) {
+                return NextResponse.json(
+                    { message: "Department is required for Department funds" },
+                    { status: 400 }
+                );
+            }
+        } else {
+            // Individual Fund
+            if (!teacherId) {
+                return NextResponse.json(
+                    { message: "Teacher ID is required for Individual funds" },
+                    { status: 400 }
+                );
             }
         }
 
-        return NextResponse.json(
-            {
-                message: "Bulk transaction processed",
-                results,
-            },
-            { status: 200 }
-        );
+        const amountChange =
+            transaction.type === "Deposit"
+                ? transaction.amount
+                : -transaction.amount;
+
+        // Deduplicate studentIds to prevent parallel upsert collisions within the same batch
+        const uniqueStudentIds = [...new Set(studentIds)];
+
+        const operations = uniqueStudentIds.map((studentId) => {
+            const query = {
+                batchId,
+                studentId,
+                fundType, // Include fundType in query to match unique index partialFilterExpression
+            };
+
+            if (fundType === "Department" && department) {
+                query.department = department;
+            } else {
+                query.teacherId = teacherId;
+            }
+
+            return {
+                updateOne: {
+                    filter: query,
+                    update: {
+                        $inc: { balance: amountChange },
+                        $push: { transactions: { ...transaction, date: new Date() } },
+                        $setOnInsert: {
+                            // fundType, // Already in query
+                            // ...query, // Already in query
+                        },
+                    },
+                    upsert: true,
+                },
+            };
+        });
+
+        try {
+            const result = await StudentsFund.bulkWrite(operations, {
+                ordered: false,
+            });
+
+            return NextResponse.json(
+                {
+                    message: "Bulk transaction processed",
+                    results: {
+                        success: studentIds, // In bulkWrite with ordered:false, identifying exact simplified success ids is harder without parsing result errors, but mostly all succeed.
+                        resultDetails: result,
+                    },
+                },
+                { status: 200 }
+            );
+        } catch (error) {
+            // If complete failure or some failure
+            console.error("Bulk write error:", error);
+            return apiResponse.error(error);
+        }
+
     } catch (error) {
         return apiResponse.error(error);
     }

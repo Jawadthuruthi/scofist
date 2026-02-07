@@ -50,6 +50,7 @@ import {
   Trash2,
   Loader,
   Users,
+  Printer,
 } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
@@ -733,16 +734,28 @@ const StudentsFund = ({
           {department && selectedBatch && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  All Students Balance
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    All Students Balance
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAllStudentsFundPrint}
+                    title="Print Balance Sheet"
+                    className="gap-2 bg-black text-white hover:bg-zinc-800"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Print
+                  </Button>
                 </CardTitle>
                 <CardDescription>
                   Balance history for all students in {selectedBatchData?.name}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
+                <div className="rounded-md border" ref={allStudentsFundRef}>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -758,7 +771,7 @@ const StudentsFund = ({
                           <TableCell>{index + 1}</TableCell>
                           <TableCell>
                             {student.studentId?.studentSpecificField?.admissionNumber ||
-                              student.studentId?.username ||
+                              student.studentId?._id ||
                               "-"}
                           </TableCell>
                           <TableCell>{student.studentId?.name || "Unknown"}</TableCell>
