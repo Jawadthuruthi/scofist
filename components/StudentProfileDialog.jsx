@@ -29,15 +29,16 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
     const DetailRow = ({ label, value }) => {
         if (!value || value === "N/A") return null;
         return (
-            <div className="flex justify-between py-1 text-sm break-inside-avoid font-montserrat">
-                <span className="text-muted-foreground font-medium">{label}:</span>
-                <span className="font-semibold text-right">{value}</span>
+            <div className="grid grid-cols-[160px_10px_1fr] pl-12 py-1 text-sm break-inside-avoid font-montserrat items-start">
+                <span className="text-muted-foreground font-medium">{label}</span>
+                <span className="text-muted-foreground font-medium text-center">:</span>
+                <span className="font-semibold text-left">{value}</span>
             </div>
         );
     };
 
     const SectionHeader = ({ title }) => (
-        <h3 className="text-lg font-bold text-gray-800 mt-4 mb-2 break-after-avoid font-montserrat">{title}</h3>
+        <h3 className="text-lg font-bold text-gray-800 mt-4 mb-2 pl-6 break-after-avoid font-montserrat">{title}</h3>
     );
 
     return (
@@ -105,9 +106,10 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
                             value={student.studentSpecificField?.guardianAlternativeNumber || student.guardianAlternativeNumber}
                         />
                         {student.address && (
-                            <div className="flex justify-between py-1 text-sm">
-                                <span className="text-muted-foreground font-medium w-1/3">Address:</span>
-                                <div className="text-right w-2/3 font-semibold">
+                            <div className="grid grid-cols-[160px_10px_1fr] pl-12 py-1 text-sm break-inside-avoid font-montserrat items-start">
+                                <span className="text-muted-foreground font-medium">Address</span>
+                                <span className="text-muted-foreground font-medium text-center">:</span>
+                                <div className="font-semibold text-left">
                                     {student.address.houseName && <div>{student.address.houseName}</div>}
                                     {student.address.place && <div>{student.address.place}</div>}
                                     {student.address.postOffice && <div>{student.address.postOffice}</div>}
