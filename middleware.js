@@ -23,8 +23,6 @@ const pages = [
       "Program Leader",
       "Finance",
       "Literary Leader",
-      "Stationary",
-      "IT Lab",
       "Spark Admin",
     ],
   },
@@ -478,6 +476,12 @@ async function handleLoginPageRequest(req) {
       return NextResponse.redirect(new URL("/dashboard/my-periods", req.url));
     }
 
+    if (activeRole === "Stationary" || activeRole === "IT Lab") {
+      return NextResponse.redirect(
+        new URL("/dashboard/students-fund", req.url)
+      );
+    }
+
     return NextResponse.redirect(new URL("/dashboard", req.url));
   } catch (error) {
     // Token is invalid, allow access to login page
@@ -740,6 +744,14 @@ function prepareResponse(req, token, user) {
 
   // Now validate access
   if (!isUserAllowed(activeRole, req.nextUrl.pathname)) {
+    if (
+      (activeRole === "Stationary" || activeRole === "IT Lab") &&
+      req.nextUrl.pathname === "/dashboard"
+    ) {
+      return NextResponse.redirect(
+        new URL("/dashboard/students-fund", req.url)
+      );
+    }
     return redirectTo404(req);
   }
 

@@ -2,6 +2,7 @@ import { apiResponse } from "@/lib/apiResponse";
 import cloudinary from "@/lib/cloudinary";
 import connectToDB from "@/lib/db";
 import User from "@/models/User";
+import "@/models/StudentCoupon"; // Ensure schema is registered
 import { NextResponse } from "next/server";
 
 export async function GET(req, res) {
@@ -128,7 +129,7 @@ export async function GET(req, res) {
       .collation({ locale: "en_US", numericOrdering: true });
 
     if (url.searchParams.get("populate") === "funds") {
-      usersQuery = usersQuery.populate("funds");
+      usersQuery = usersQuery.populate("funds").populate("coupons");
     }
 
     const users = await usersQuery;
@@ -208,6 +209,7 @@ export async function GET(req, res) {
           ? studentSpecificField.status
           : teacherSpecificField.status,
         funds: user.funds,
+        coupons: user.coupons,
       };
     });
 

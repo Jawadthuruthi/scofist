@@ -89,8 +89,6 @@ const items = [
       "Program Leader",
       "Finance",
       "Literary Leader",
-      "Stationary",
-      "IT Lab",
     ],
   },
   {
@@ -620,7 +618,11 @@ function ComboBox({ roles, role }) {
                       console.error("Error setting cookie:", error);
                     }
                     window.location.reload();
-                    window.location.href = "/dashboard";
+                    if (currentValue === "Stationary" || currentValue === "IT Lab") {
+                      window.location.href = "/dashboard/students-fund";
+                    } else {
+                      window.location.href = "/dashboard";
+                    }
                   }}
                 >
                   <Check

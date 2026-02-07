@@ -199,10 +199,68 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColu
         {
             id: "liabilities",
             header: "Liabilities",
-            cell: ({ row }) => (
-                <span className="text-muted-foreground">-</span>
-            ),
+            cell: ({ row }) => {
+                const funds = row.original.funds || [];
+                const coupons = row.original.coupons || [];
+
+                const itLabFund = funds.find(f => f.department === "IT Lab");
+                const stationaryFund = funds.find(f => f.department === "Stationary");
+
+                // Calculate coupon liability (Total Coupon Amount - Total Paid)
+                const couponLiability = coupons.reduce((sum, coupon) => {
+                    // Use virtual balance if available, otherwise calculate manually
+                    if (typeof coupon.balance === 'number') return sum + coupon.balance;
+
+                    const totalPaid = coupon.payments?.reduce((pSum, p) => pSum + (p.amount || 0), 0) || 0;
+                    return sum + ((coupon.couponAmount || 0) - totalPaid);
+                }, 0);
+
+                const items = [];
+
+                // Show balances if they are not 0
+                if (itLabFund && itLabFund.balance !== 0) {
+                    items.push({
+                        label: "IT Lab",
+                        amount: itLabFund.balance,
+                        // Red for minus (debt/due), Green for plus (surplus/credit) - based on user request
+                        color: itLabFund.balance < 0 ? "text-red-600" : "text-green-600"
+                    });
+                }
+
+                if (stationaryFund && stationaryFund.balance !== 0) {
+                    items.push({
+                        label: "Stationary",
+                        amount: stationaryFund.balance,
+                        color: stationaryFund.balance < 0 ? "text-red-600" : "text-green-600"
+                    });
+                }
+
+                // Coupon is always red as per request
+                if (couponLiability !== 0) {
+                    items.push({
+                        label: "Coupon",
+                        amount: couponLiability,
+                        color: "text-red-600"
+                    });
+                }
+
+                if (items.length === 0) return <span className="text-muted-foreground">-</span>;
+
+                return (
+                    <div className="flex flex-col text-xs gap-1">
+                        {items.map((item, index) => (
+                            <div key={index} className="flex justify-between items-center gap-2">
+                                <span className="text-muted-foreground">{item.label}:</span>
+                                <span className={`font-medium ${item.color}`}>
+                                    {item.amount > 0 ? "+" : ""}{item.amount}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                );
+            },
         },
+
         {
             id: "remarks",
             header: "Remarks",
