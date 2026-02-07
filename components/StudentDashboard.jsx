@@ -33,18 +33,17 @@ import {
 import { Button } from "./ui/button";
 import { Printer } from "lucide-react";
 import dynamic from "next/dynamic";
-import { getStudentFormFields } from "@/lib/studentFormConfig";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
-const PopupForm = dynamic(() => import("./PopupForm"), {
-  ssr: false,
-});
 
-const ProfileField = ({ label, value, isBold }) =>
-  value || value === 0 ? (
+
+
+const ProfileField = ({ label, subLabel, value, isBold }) =>
+  (value || value === 0 || typeof value === 'string') ? (
     <div className="flex justify-between py-2 border-b border-border">
-      <span className={`text-sm font-medium ${isBold ? 'font-bold' : 'text-muted-foreground'}`}>{label}</span>
+      <div className="flex flex-col">
+        <span className={`text-sm font-medium ${isBold ? 'font-bold' : 'text-muted-foreground'}`}>{label}</span>
+        {subLabel && <span className="text-xs text-muted-foreground">{subLabel}</span>}
+      </div>
       <span className={`text-sm ${isBold ? 'font-bold' : 'text-foreground'}`}>{value}</span>
     </div>
   ) : null;
@@ -77,64 +76,9 @@ export default function StudentDashboard({
   const attendanceData = initialData || fetchedData;
   const [expandedMonth, setExpandedMonth] = useState(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [pendingFunds, setPendingFunds] = useState(null);
+  const [pendingFunds, setPendingFunds] = useState([]); // Array of fund objects
   const [fundsLoading, setFundsLoading] = useState(true);
-  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
-  const { useUpdateItem } = useCrud("users", apiKey);
-  const updateProfile = useUpdateItem();
-  const router = useRouter();
-
-  const handleProfileUpdate = async (values) => {
-    try {
-      const response = await updateProfile.mutateAsync({
-        data: {
-          ids: [currentUser._id],
-          ...values,
-          isVerified: true,
-          verifiedAt: new Date(),
-        },
-      });
-      setCurrentUser(response.updatedUser);
-      toast.success("Profile updated successfully!");
-      router.refresh();
-      return true;
-    } catch (error) {
-      console.error("Profile update failed:", error);
-      toast.error(error.message || "Failed to update profile");
-      throw error;
-    }
-  };
-
-  const formFields = useMemo(() => {
-    const fields = getStudentFormFields(batches, classes);
-    const readOnlyFields = [
-      "roles",
-      "batchId",
-      "classId",
-      "admissionClassId",
-      "status",
-      "admissionDate",
-      "graduatedYear",
-    ];
-    return fields.map((field) => ({
-      ...field,
-      readOnly: readOnlyFields.includes(field.name) ? true : field.readOnly,
-    }));
-  }, [batches, classes]);
-
-  const flatUser = useMemo(() => {
-    if (!currentUser) return null;
-    return {
-      ...currentUser,
-      ...(currentUser.address || {}),
-      ...(currentUser.studentSpecificField || {}),
-      // Ensure we have the IDs if the fields are populated objects
-      batchId: currentUser.studentSpecificField?.batchId?._id || currentUser.studentSpecificField?.batchId,
-      classId: currentUser.studentSpecificField?.classId?._id || currentUser.studentSpecificField?.classId,
-      admissionClassId: currentUser.studentSpecificField?.admissionClassId?._id || currentUser.studentSpecificField?.admissionClassId,
-    };
-  }, [currentUser]);
 
   const className = classes.find(
     (c) => c._id === currentUser?.studentSpecificField?.classId
@@ -151,47 +95,90 @@ export default function StudentDashboard({
   useEffect(() => {
     const fetchFunds = async () => {
       setFundsLoading(true);
-      const fundsToFetch = [
-        { name: "IT Lab Fund", teacherId: "655c48737c229973bf1f4648" },
-        { name: "Stationary Fund", teacherId: "655c487f7c229973bf1f464a" },
-        { name: "Coupon Fund", teacherId: "655c488a7c229973bf1f464c" },
-      ];
-
-      const classInfo = classes.find(
-        (c) => c._id === currentUser?.studentSpecificField?.classId
-      );
-      if (classInfo?.teacherId) {
-        fundsToFetch.push({ name: "Others", teacherId: classInfo.teacherId });
-      }
+      const fundsList = [];
 
       try {
-        const fundPromises = fundsToFetch.map(({ teacherId }) =>
-          fetch(`/api/studentsFund?studentId=${currentUser._id}&teacherId=${teacherId}&batchId=${currentUser.studentSpecificField.batchId}`, {
-            headers: {
-              "Content-Type": "application/json",
-              "api-key": apiKey,
-            },
-          }).then(res => {
-            if (!res.ok) {
-              console.error(`Error fetching fund for teacher ${teacherId}: ${res.statusText}`);
-              return { studentFund: { balance: 0 } };
+        // 1. Fetch All Student Funds (Department + Individual)
+        // Removed batchId to fetch all history for aggregation
+        const allFundsPromise = fetch(`/api/studentsFund?studentId=${currentUser._id}&getAll=true`, {
+          headers: { "Content-Type": "application/json", "api-key": apiKey }
+        }).then(res => res.ok ? res.json() : { studentFunds: [] });
+
+        // 2. Fetch Coupon Fund (Search by Student ID)
+        const couponPromise = fetch(`/api/student-coupons?search=${currentUser._id}`, {
+          headers: { "Content-Type": "application/json", "api-key": apiKey }
+        }).then(res => res.ok ? res.json() : { stats: { totalPending: 0 } });
+
+        // 3. Fetch User Details for Library Rentals
+        const userPromise = fetch(`/api/users?_id=${currentUser._id}&populate=funds`, {
+          headers: { "Content-Type": "application/json", "api-key": apiKey }
+        }).then(res => res.json());
+
+        const [fundsResult, couponResult, userResult] = await Promise.all([
+          allFundsPromise,
+          couponPromise,
+          userPromise
+        ]);
+
+        // Process Standard Funds with Aggregation
+        const fundsMap = new Map();
+
+        (fundsResult.studentFunds || []).forEach(fund => {
+          if (fund.fundType === 'Department') {
+            const key = `Dept-${fund.department}`;
+            if (fundsMap.has(key)) {
+              fundsMap.get(key).value += fund.balance;
+            } else {
+              fundsMap.set(key, {
+                label: `${fund.department} Fund`,
+                value: fund.balance
+              });
             }
-            return res.json();
-          })
-        );
+          } else {
+            // Individual Fund
+            const teacherName = fund.teacherId?.name || "Class Teacher";
+            const key = `Indiv-${teacherName}`;
+            if (fundsMap.has(key)) {
+              fundsMap.get(key).value += fund.balance;
+            } else {
+              fundsMap.set(key, {
+                label: "Students Fund",
+                subLabel: teacherName,
+                value: fund.balance
+              });
+            }
+          }
+        });
 
-        const results = await Promise.all(fundPromises);
+        // Convert map values to list
+        fundsMap.forEach(item => fundsList.push(item));
 
-        const funds = results.reduce((acc, result, index) => {
-          const fundName = fundsToFetch[index].name;
-          acc[fundName] = result.studentFund?.balance || 0;
-          return acc;
-        }, {});
+        // Process Coupon Fund
+        fundsList.push({
+          label: "Coupon Fund",
+          value: couponResult.stats?.totalPending || 0
+        });
 
-        setPendingFunds(funds);
+        // Process Library Rentals
+        const rentals = userResult.users?.[0]?.pendingRentals || [];
+        rentals.forEach((rental, index) => {
+          const bookId = rental.bookId?.id ||
+            (rental.bookId?.prefix ? `${rental.bookId.prefix}-${rental.bookId.number}` : rental.bookId?.number) ||
+            "N/A";
+
+          const label = rentals.length > 1 ? `Library Book ${index + 1}` : "Library Book";
+          // Convert to string to avoid toFixed(2) formatting in render
+          fundsList.push({
+            label: label,
+            value: String(bookId),
+            isBold: true
+          });
+        });
+
+        setPendingFunds(fundsList);
       } catch (error) {
         console.error("Error fetching pending funds:", error);
-        setPendingFunds({});
+        setPendingFunds([]);
       } finally {
         setFundsLoading(false);
       }
@@ -274,7 +261,12 @@ export default function StudentDashboard({
 
   const totalPending = useMemo(() => {
     if (!pendingFunds) return 0;
-    return Object.values(pendingFunds).reduce((acc, balance) => acc + balance, 0);
+    return pendingFunds.reduce((acc, item) => {
+      if (typeof item.value === 'number') {
+        return acc + item.value;
+      }
+      return acc;
+    }, 0);
   }, [pendingFunds]);
 
 
@@ -310,20 +302,10 @@ export default function StudentDashboard({
                   {currentUser?.studentSpecificField?.status}
                 </span>
               </p>
-              <Button
-                onClick={() => setIsEditProfileOpen(true)}
-                className="mt-2 md:hidden w-fit"
-              >
-                Verify Profile
-              </Button>
+
             </div>
           </div>
-          <Button
-            onClick={() => setIsEditProfileOpen(true)}
-            className="hidden md:inline-flex"
-          >
-            Verify Profile
-          </Button>
+
         </CardContent>
       </Card>
 
@@ -446,16 +428,22 @@ export default function StudentDashboard({
           <CardContent>
             {fundsLoading ? (
               <p>Loading funds...</p>
-            ) : pendingFunds ? (
+            ) : pendingFunds && pendingFunds.length > 0 ? (
               <>
-                {Object.entries(pendingFunds).map(([fund, balance]) => (
-                  <ProfileField key={fund} label={fund} value={balance.toFixed(2)} />
+                {pendingFunds.map((item, index) => (
+                  <ProfileField
+                    key={index}
+                    label={item.label}
+                    subLabel={item.subLabel}
+                    value={typeof item.value === 'number' ? item.value.toFixed(2) : item.value}
+                    isBold={item.isBold}
+                  />
                 ))}
                 <ProfileField label="Total Pending" value={totalPending.toFixed(2)} isBold={true} />
 
               </>
             ) : (
-              <p>Could not load pending funds.</p>
+              <p>No pending transactions.</p>
             )}
           </CardContent>
         </Card>
@@ -563,18 +551,7 @@ export default function StudentDashboard({
         </Button>
       </div>
 
-      {isEditProfileOpen && (
-        <PopupForm
-          data={flatUser}
-          formFields={formFields}
-          onSubmit={handleProfileUpdate}
-          title="Edit Profile"
-          apiKey={apiKey}
-          hideButton={true} // Since we trigger it manually
-          open={isEditProfileOpen}
-          onOpenChange={setIsEditProfileOpen}
-        />
-      )}
+
     </div>
   );
 }

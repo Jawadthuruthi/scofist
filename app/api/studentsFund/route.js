@@ -12,6 +12,18 @@ export async function GET(req, res) {
       searchParams[key] = value;
     }
 
+    // IF getAll is present, fetch ALL funds for this student
+    if (searchParams.getAll && searchParams.studentId) {
+      const query = { studentId: searchParams.studentId };
+      if (searchParams.batchId) {
+        query.batchId = searchParams.batchId;
+      }
+
+      const studentFunds = await StudentsFund.find(query).populate("teacherId", "name"); // Get teacher name for label
+
+      return NextResponse.json({ studentFunds }, { status: 200 });
+    }
+
     const query = {};
     if (searchParams.studentId) {
       query.studentId = searchParams.studentId;
