@@ -129,7 +129,15 @@ export async function GET(req, res) {
       .collation({ locale: "en_US", numericOrdering: true });
 
     if (url.searchParams.get("populate") === "funds") {
-      usersQuery = usersQuery.populate("funds").populate("coupons");
+      usersQuery = usersQuery
+        .populate("funds")
+        .populate("coupons")
+        .populate({
+          path: "rentals",
+          match: { receivedDate: null },
+          select: "bookId",
+          populate: { path: "bookId", select: "id name prefix number" } // Populate correct book fields
+        });
     }
 
     const users = await usersQuery;
@@ -210,6 +218,7 @@ export async function GET(req, res) {
           : teacherSpecificField.status,
         funds: user.funds,
         coupons: user.coupons,
+        pendingRentals: user.rentals,
       };
     });
 

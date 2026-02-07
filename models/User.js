@@ -1,6 +1,8 @@
 import { Schema, model, models, mongoose } from "mongoose";
 import "./StudentsFund.js"; // Import to ensure schema is registered
 import "./StudentCoupon.js"; // Import to ensure schema is registered
+import "./Rental.js"; // Import to ensure schema is registered
+import "./LibraryBook.js"; // Import to ensure schema is registered
 import Batch from "./Batch";
 import Class from "./Class";
 
@@ -274,6 +276,13 @@ userSchema.virtual('funds', {
 // Virtual for student's coupons
 userSchema.virtual('coupons', {
   ref: 'StudentCoupon',
+  localField: '_id',
+  foreignField: 'studentId'
+});
+
+// Virtual for student's rentals
+userSchema.virtual('rentals', {
+  ref: 'Rental',
   localField: '_id',
   foreignField: 'studentId'
 });

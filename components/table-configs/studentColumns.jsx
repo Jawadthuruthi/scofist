@@ -202,6 +202,7 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColu
             cell: ({ row }) => {
                 const funds = row.original.funds || [];
                 const coupons = row.original.coupons || [];
+                const pendingRentals = row.original.pendingRentals || [];
 
                 const itLabFund = funds.find(f => f.department === "IT Lab");
                 const stationaryFund = funds.find(f => f.department === "Stationary");
@@ -244,6 +245,21 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColu
                     });
                 }
 
+                // Add Pending Rentals to items
+                if (pendingRentals.length > 0) {
+                    pendingRentals.forEach(rental => {
+                        const bookId = rental.bookId?.id ||
+                            (rental.bookId?.prefix ? `${rental.bookId.prefix}-${rental.bookId.number}` : rental.bookId?.number) ||
+                            "N/A";
+                        items.push({
+                            label: "Library",
+                            value: `(${bookId})`,
+                            color: "text-red-600",
+                            isText: true // Flag to render as text value
+                        });
+                    });
+                }
+
                 if (items.length === 0) return <span className="text-muted-foreground">-</span>;
 
                 return (
@@ -251,9 +267,15 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColu
                         {items.map((item, index) => (
                             <div key={index} className="flex justify-between items-center gap-2">
                                 <span className="text-muted-foreground">{item.label}:</span>
-                                <span className={`font-medium ${item.color}`}>
-                                    {item.amount > 0 ? "+" : ""}{item.amount}
-                                </span>
+                                {item.isText ? (
+                                    <span className={`font-medium ${item.color}`}>
+                                        {item.value}
+                                    </span>
+                                ) : (
+                                    <span className={`font-medium ${item.color}`}>
+                                        {item.amount > 0 ? "+" : ""}{item.amount}
+                                    </span>
+                                )}
                             </div>
                         ))}
                     </div>
