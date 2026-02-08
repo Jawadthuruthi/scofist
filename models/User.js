@@ -21,6 +21,7 @@ const ROLES = [
   "Stationary",
   "IT Lab",
   "Spark Admin",
+  "Librarian",
 ];
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];

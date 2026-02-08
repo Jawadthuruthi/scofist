@@ -19,7 +19,6 @@ import {
   Calendar,
   ChevronsUpDown,
   X,
-  Check,
   CreditCard,
   BookOpen,
   Timer,
@@ -171,29 +170,22 @@ const items = [
   },
 
   {
-    title: "Library",
-    icon: Book,
-    allowedRoles: ["Org Admin"],
-    subItems: [
-      {
-        title: "Dashboard",
-        url: "/dashboard/library-dashboard",
-        icon: LayoutGrid,
-        allowedRoles: ["Org Admin"],
-      },
-      {
-        title: "Books",
-        url: "/dashboard/books",
-        icon: BookOpen,
-        allowedRoles: ["Org Admin"],
-      },
-      {
-        title: "Rentals",
-        url: "/dashboard/rentals",
-        icon: Users,
-        allowedRoles: ["Org Admin"],
-      },
-    ],
+    title: "Dashboard",
+    url: "/dashboard/library-dashboard",
+    icon: LayoutGrid,
+    allowedRoles: ["Librarian"],
+  },
+  {
+    title: "Books",
+    url: "/dashboard/books",
+    icon: BookOpen,
+    allowedRoles: ["Librarian"],
+  },
+  {
+    title: "Rentals",
+    url: "/dashboard/rentals",
+    icon: Users,
+    allowedRoles: ["Librarian"],
   },
 
   {
@@ -606,6 +598,7 @@ function ComboBox({ roles, role }) {
                 <CommandItem
                   key={role}
                   value={role}
+                  className={cn(value === role && "bg-accent text-accent-foreground")}
                   onSelect={(currentValue) => {
                     setValue(currentValue === value ? "" : currentValue);
                     setOpen(false);
@@ -620,17 +613,13 @@ function ComboBox({ roles, role }) {
                     window.location.reload();
                     if (currentValue === "Stationary" || currentValue === "IT Lab") {
                       window.location.href = "/dashboard/students-fund";
+                    } else if (currentValue === "Librarian") {
+                      window.location.href = "/dashboard/library-dashboard";
                     } else {
                       window.location.href = "/dashboard";
                     }
                   }}
                 >
-                  <Check
-                    className={cn(
-                      "mr-1 h-4 w-4",
-                      value === role ? "opacity-100" : "opacity-0"
-                    )}
-                  />
                   {role}
                 </CommandItem>
               ))}

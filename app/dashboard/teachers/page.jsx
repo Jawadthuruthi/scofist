@@ -143,6 +143,7 @@ const formFields = [
       { label: "Spark Admin", value: "Spark Admin" },
       { label: "Stationary", value: "Stationary" },
       { label: "IT Lab", value: "IT Lab" },
+      { label: "Librarian", value: "Librarian" },
     ],
     validators: {
       minLength: 1,
@@ -226,7 +227,7 @@ const statusMessages = {
 };
 
 const apiFilters = {
-  roles: ["Teacher", "College Admin", "Org Admin", "Stationary", "IT Lab"],
+  roles: ["Teacher", "College Admin", "Org Admin", "Stationary", "IT Lab", "Librarian"],
 };
 
 export default async function BatchesPage() {

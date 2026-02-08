@@ -229,17 +229,17 @@ const pages = [
   {
     title: "Library Dashboard",
     path: "/dashboard/library-dashboard",
-    allowedRoles: ["Org Admin"],
+    allowedRoles: ["Librarian"],
   },
   {
     title: "Books",
     path: "/dashboard/books",
-    allowedRoles: ["Org Admin"],
+    allowedRoles: ["Librarian"],
   },
   {
     title: "Rentals",
     path: "/dashboard/rentals",
-    allowedRoles: ["Org Admin"],
+    allowedRoles: ["Librarian"],
   },
   {
     title: "Downloads",
@@ -479,6 +479,12 @@ async function handleLoginPageRequest(req) {
     if (activeRole === "Stationary" || activeRole === "IT Lab") {
       return NextResponse.redirect(
         new URL("/dashboard/students-fund", req.url)
+      );
+    }
+
+    if (activeRole === "Librarian") {
+      return NextResponse.redirect(
+        new URL("/dashboard/library-dashboard", req.url)
       );
     }
 
@@ -750,6 +756,11 @@ function prepareResponse(req, token, user) {
     ) {
       return NextResponse.redirect(
         new URL("/dashboard/students-fund", req.url)
+      );
+    }
+    if (activeRole === "Librarian" && req.nextUrl.pathname === "/dashboard") {
+      return NextResponse.redirect(
+        new URL("/dashboard/library-dashboard", req.url)
       );
     }
     return redirectTo404(req);

@@ -4,6 +4,7 @@ import connectToDB from "@/lib/db";
 import User from "@/models/User";
 import "@/models/StudentCoupon"; // Ensure schema is registered
 import { NextResponse } from "next/server";
+import fs from 'fs';
 
 export async function GET(req, res) {
   try {
@@ -375,6 +376,12 @@ export async function POST(req, res) {
     }
 
     console.error("Error creating user:", error);
+    try {
+      fs.appendFileSync('d:\\Projects\\scofist\\error_log.txt', new Date().toISOString() + ' - BODY: ' + JSON.stringify(body) + '\n');
+      fs.appendFileSync('d:\\Projects\\scofist\\error_log.txt', new Date().toISOString() + ' - ERROR: ' + (error.stack || error) + '\n');
+    } catch (logError) {
+      console.error("Error writing to log file:", logError);
+    }
     return apiResponse.error(error);
   }
 }

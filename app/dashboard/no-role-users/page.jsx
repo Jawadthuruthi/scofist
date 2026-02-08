@@ -39,6 +39,7 @@ const AVAILABLE_ROLES = [
   "IT Lab",
   "Spark Admin",
   "Library Manager",
+  "Librarian",
 ];
 
 export default function NoRoleUsersPage() {
@@ -51,42 +52,42 @@ export default function NoRoleUsersPage() {
   const [submitting, setSubmitting] = useState(false);
 
   // Fetch users excluding ONLY Teachers and Students
-const fetchFilteredUsers = async () => {
-  try {
-    setLoading(true);
-    const response = await fetch("/api/users?limit=1000");
+  const fetchFilteredUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/users?limit=1000");
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch users");
-    }
-
-    const data = await response.json();
-
-    // Filter users:
-    // 1. Users with no roles at all
-    // 2. Users who DON'T have Teacher or Student roles AT ALL
-    const filteredUsers = (data.users || []).filter((user) => {
-      // Include users with no roles
-      if (!user.roles || user.roles.length === 0) {
-        return true;
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
       }
 
-      // Exclude users who have Teacher OR Student role (even with other roles)
-      const hasTeacherOrStudent = user.roles.some(
-        (role) => role === "Teacher" || role === "Student"
-      );
+      const data = await response.json();
 
-      return !hasTeacherOrStudent;
-    });
+      // Filter users:
+      // 1. Users with no roles at all
+      // 2. Users who DON'T have Teacher or Student roles AT ALL
+      const filteredUsers = (data.users || []).filter((user) => {
+        // Include users with no roles
+        if (!user.roles || user.roles.length === 0) {
+          return true;
+        }
 
-    setUsers(filteredUsers);
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    toast.error("Failed to fetch users");
-  } finally {
-    setLoading(false);
-  }
-};
+        // Exclude users who have Teacher OR Student role (even with other roles)
+        const hasTeacherOrStudent = user.roles.some(
+          (role) => role === "Teacher" || role === "Student"
+        );
+
+        return !hasTeacherOrStudent;
+      });
+
+      setUsers(filteredUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to fetch users");
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   useEffect(() => {
@@ -373,19 +374,17 @@ const fetchFilteredUsers = async () => {
                 {AVAILABLE_ROLES.map((role) => (
                   <div
                     key={role}
-                    className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedRoles.includes(role)
+                    className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-colors ${selectedRoles.includes(role)
                         ? "bg-primary/10 border-primary"
                         : "hover:bg-accent"
-                    }`}
+                      }`}
                     onClick={() => toggleRole(role)}
                   >
                     <div
-                      className={`h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                        selectedRoles.includes(role)
+                      className={`h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 ${selectedRoles.includes(role)
                           ? "bg-primary border-primary"
                           : "border-input"
-                      }`}
+                        }`}
                     >
                       {selectedRoles.includes(role) && (
                         <UserCheck className="h-3 w-3 text-primary-foreground" />
