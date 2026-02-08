@@ -67,6 +67,23 @@ const SettingsSchema = new Schema(
           type: String,
         },
       },
+      committeePosters: [
+        {
+          year: {
+            type: String,
+            required: true,
+          },
+          poster: {
+            url: {
+              type: String,
+              required: true,
+            },
+            publicId: {
+              type: String,
+            },
+          },
+        },
+      ],
     },
     org: {
       name: { type: String, trim: true },
@@ -358,6 +375,12 @@ const SettingsSchema = new Schema(
 
 // Ensure only one settings document exists
 SettingsSchema.index({}, { unique: true });
+
+// Check if model exists but is missing the new field (Hot Reload fix)
+if (models.Settings && !models.Settings.schema.path("spark.committeePosters")) {
+  console.log("Detecting outdated Settings model. Refreshing...");
+  delete models.Settings;
+}
 
 const Settings = models.Settings || model("Settings", SettingsSchema);
 

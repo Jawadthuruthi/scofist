@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 export default function CommitteePostersSettings({
     initialPosters = [],
     apiKey,
+    type = "org", // org | spark
 }) {
     const [posters, setPosters] = React.useState(initialPosters);
     const [year, setYear] = React.useState(`${new Date().getFullYear()}-${(new Date().getFullYear() + 1).toString().slice(-2)}`);
@@ -77,12 +78,21 @@ export default function CommitteePostersSettings({
                 },
                 body: JSON.stringify({
                     committeePosters: updatedPosters,
+                    type: type,
                 }),
             });
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(errorText || "Failed to delete poster");
+                console.error("Delete Poster Error Response:", errorText);
+                let errorMessage;
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorMessage = errorJson.message || errorJson.error || "Unknown server error";
+                } catch {
+                    errorMessage = errorText || `Server returned ${response.status}`;
+                }
+                throw new Error(errorMessage);
             }
 
             toast.success("Poster deleted permanently");
@@ -125,7 +135,11 @@ export default function CommitteePostersSettings({
         }
 
         try {
-            setLoading(true);
+            console.log("Saving Committee Posters Payload:", {
+                committeePosters: finalPosters,
+                type: type,
+            });
+
             const response = await fetch("/api/settings", {
                 method: "PUT",
                 headers: {
@@ -134,19 +148,21 @@ export default function CommitteePostersSettings({
                 },
                 body: JSON.stringify({
                     committeePosters: finalPosters,
+                    type: type,
                 }),
             });
 
             if (!response.ok) {
                 const errorText = await response.text();
+                console.error("Server Error Response:", errorText);
                 let errorMessage;
                 try {
                     const errorJson = JSON.parse(errorText);
-                    errorMessage = errorJson.message;
+                    errorMessage = errorJson.message || errorJson.error || "Unknown server error";
                 } catch {
                     errorMessage = errorText || `Server returned ${response.status}`;
                 }
-                throw new Error(errorMessage || "Failed to save settings");
+                throw new Error(errorMessage);
             }
 
             setPosters(finalPosters);

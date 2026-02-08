@@ -222,6 +222,8 @@ export default async function SettingsPage() {
     const apiKey = process.env.API_KEY;
 
     const data = await fetchData("settings", "", 0);
+    console.log("Settings Page Data - Spark Posters:", data.spark?.committeePosters?.length);
+    console.log("Settings Page Data - Org Posters:", data.org?.committeePosters?.length);
 
     const general = {
       ...data.general,
@@ -269,6 +271,7 @@ export default async function SettingsPage() {
       spark_email: data.spark?.contact?.email,
       spark_website: data.spark?.contact?.website,
       spark_logo: data.spark?.logo || {},
+      committeePosters: data.spark?.committeePosters || [],
     };
 
     const org = {
@@ -439,14 +442,24 @@ export default async function SettingsPage() {
             />
           )}
           {activeRole === "Spark Admin" && (
-            <FormComponent
-              formFields={sparkFormField}
-              apiKey={apiKey}
-              data={spark}
-              resource="settings"
-              title="Institution Profile"
-              description="Configure Your Institution Details"
-            />
+            <>
+              <FormComponent
+                data={spark}
+                formFields={sparkFormField}
+                title="Organisation Profile"
+                description="Manage your organisation details"
+                loading={false}
+                apiKey={apiKey}
+                resource="settings"
+              />
+              <div className="mt-8">
+                <CommitteePostersSettings
+                  initialPosters={spark.committeePosters}
+                  apiKey={apiKey}
+                  type="spark"
+                />
+              </div>
+            </>
           )}
           {activeRole === "Org Admin" && (
             <>

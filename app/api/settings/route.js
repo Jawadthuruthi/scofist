@@ -16,6 +16,9 @@ export async function GET(req, res) {
       );
     }
 
+    console.log("GET Settings - Spark Posters count:", settings.spark?.committeePosters?.length);
+    console.log("GET Settings - Org Posters count:", settings.org?.committeePosters?.length);
+
     return NextResponse.json(
       {
         settings,
@@ -214,19 +217,40 @@ export async function PUT(req, res) {
     // 🔧 Build update object WITHOUT referencing existingSettings in nested structures
     const updateData = {};
 
-    // Special handling for Committee Posters (Org Admin)
+    // Special handling for Committee Posters (Org Admin & Spark Admin)
     if (data.committeePosters) {
-      console.log("Prioritized Update: Saving committee posters:", JSON.stringify(data.committeePosters));
-      // If JUST updating posters, do it directly and return
-      const updatedSettings = await Settings.findByIdAndUpdate(
-        existingSettings._id,
-        { $set: { "org.committeePosters": data.committeePosters } },
-        { new: true, runValidators: true }
+      console.log(
+        "Prioritized Update: Saving committee posters:",
+        JSON.stringify(data.committeePosters)
       );
-      return NextResponse.json(
-        { settings: updatedSettings, message: "Committee posters saved successfully!" },
-        { status: 200 }
-      );
+
+      const type = data.type || "org"; // Default to 'org' for backward compatibility
+      const updateField = type === "spark" ? "spark.committeePosters" : "org.committeePosters";
+
+      console.log("Processing Committee Posters Update");
+      console.log("Type:", type);
+      console.log("Update Field:", updateField);
+
+      try {
+        // If JUST updating posters, do it directly and return
+        const updatedSettings = await Settings.findByIdAndUpdate(
+          existingSettings._id,
+          { $set: { [updateField]: data.committeePosters } },
+          { new: true, runValidators: true }
+        );
+        console.log("Update success. Count:", updatedSettings?.spark?.committeePosters?.length);
+
+        return NextResponse.json(
+          {
+            settings: updatedSettings,
+            message: "Committee posters saved successfully!",
+          },
+          { status: 200 }
+        );
+      } catch (err) {
+        console.error("Error updating committee posters:", err);
+        return NextResponse.json({ message: err.message }, { status: 500 });
+      }
     }
 
     // Institution

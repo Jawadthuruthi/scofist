@@ -150,12 +150,7 @@ const items = [
     icon: CreditCard,
     allowedRoles: ["Spark Admin"],
   },
-  {
-    title: "Committee",
-    url: "/dashboard/spark/committee",
-    icon: Users,
-    allowedRoles: ["Spark Admin"],
-  },
+
   {
     title: "Verification",
     url: "/dashboard/spark/verification",
