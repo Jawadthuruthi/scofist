@@ -452,13 +452,19 @@ const StudentsFund = ({
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Invalid Date";
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      return "Invalid Date";
+    }
   };
 
   const selectedStudentData =
@@ -839,7 +845,7 @@ const StudentsFund = ({
                           <div className="flex justify-between items-center">
                             <p className="font-semibold text-lg">
                               {transaction.type === "Deposit" ? "+" : "-"}₹
-                              {transaction.amount.toLocaleString()}
+                              {(transaction.amount || 0).toLocaleString()}
                             </p>
                             <p
                               className={`font-bold text-base ${transaction.balanceAfter < 0
@@ -913,7 +919,7 @@ const StudentsFund = ({
                               <div>
                                 <p className="font-bold text-lg">
                                   {transaction.type === "Deposit" ? "+" : "-"}₹
-                                  {transaction.amount.toLocaleString()}
+                                  {(transaction.amount || 0).toLocaleString()}
                                 </p>
                               </div>
                               <div className="text-right">
@@ -1070,7 +1076,7 @@ const StudentsFund = ({
                               <div className="flex justify-between items-center">
                                 <p className="font-semibold text-lg">
                                   {transaction.type === "Deposit" ? "+" : "-"}₹
-                                  {transaction.amount.toLocaleString()}
+                                  {(transaction.amount || 0).toLocaleString()}
                                 </p>
                                 <p
                                   className={`font-bold text-base ${transaction.balanceAfter < 0
@@ -1273,7 +1279,7 @@ const StudentsFund = ({
                     </TableCell>
                     <TableCell>
                       {transaction.type === "Deposit" ? "+" : "-"}₹
-                      {transaction.amount.toLocaleString()}
+                      {(transaction.amount || 0).toLocaleString()}
                     </TableCell>
                     <TableCell>
                       ₹{transaction.balanceAfter.toLocaleString()}
