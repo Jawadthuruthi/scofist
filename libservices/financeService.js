@@ -9,6 +9,17 @@ export async function getFinanceSummary(accountType = "College", accountName = n
     const matchStage = { accountType }; // Filter by accountType provided
     if (accountName) {
         matchStage.accountName = accountName;
+    } else if (accountType === "Org") {
+        // STRICT ISOLATION: If Org and no accountName, return simplified zero stats
+        // This prevents showing "all" org data mixed together
+        return {
+            cashBalance: 0,
+            bankBalance: 0,
+            totalBalance: 0,
+            totalIncome: 0,
+            totalExpense: 0,
+            categories: []
+        };
     }
 
     // Main Stats Aggregation

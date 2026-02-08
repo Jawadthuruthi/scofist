@@ -52,6 +52,27 @@ export async function GET(req) {
     // Add accountName filter
     if (accountName) {
       query.accountName = accountName;
+    } else if (accountType === "Org") {
+      // STRICT ISOLATION: If Org and no accountName, return empty results
+      // This prevents showing "all" org data mixed together
+      return NextResponse.json({
+        success: true,
+        finance: [],
+        pagination: {
+          total: 0,
+          page,
+          limit,
+          totalPages: 0
+        },
+        summary: {
+          cashBalance: 0,
+          bankBalance: 0,
+          totalBalance: 0,
+          totalIncome: 0,
+          totalExpense: 0,
+          categories: []
+        }
+      });
     }
 
     const transactions = await Finance.find(query)

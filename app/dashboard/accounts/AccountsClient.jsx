@@ -11,6 +11,15 @@ import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 
 import CategoryBalanceDialog from "./_components/CategoryBalanceDialog";
 
@@ -175,9 +184,19 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         }
     };
 
-    const handleDeleteAccount = async () => {
-        if (!confirm(`Are you sure you want to delete "${accountName}"? Transactions will remain but be unnamed/hidden.`)) return;
+    const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+    const [deleteConfirmationInput, setDeleteConfirmationInput] = useState("");
+    const [isDeleting, setIsDeleting] = useState(false);
 
+    const handleDeleteAccount = () => {
+        setDeleteConfirmationInput("");
+        setDeleteConfirmationOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (deleteConfirmationInput !== "DELETE") return;
+
+        setIsDeleting(true);
         try {
             const res = await fetch(`/api/finance/account-names?name=${encodeURIComponent(accountName)}&accountType=${accountType}`, {
                 method: "DELETE"
@@ -188,11 +207,14 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 setAvailableAccountNames(prev => prev.filter(n => n !== accountName));
                 handleAccountNameChange(""); // Deselect
                 setIsEditingName(false);
+                setDeleteConfirmationOpen(false);
             } else {
                 alert("Failed to delete: " + data.error);
             }
         } catch (err) {
             console.error(err);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -551,6 +573,42 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 printTitle={`Accounts ${accountName ? `- ${accountName}` : ""}`}
                 limit={0}
             />
+
+            <Dialog open={deleteConfirmationOpen} onOpenChange={setDeleteConfirmationOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Account Year</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete <strong>{accountName}</strong>? All transactions associated with this account year will be hidden/unnamed. This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="confirm-delete" className="col-span-4 text-sm font-medium text-gray-700">
+                                Type <strong>DELETE</strong> to confirm:
+                            </label>
+                            <Input
+                                id="confirm-delete"
+                                value={deleteConfirmationInput}
+                                onChange={(e) => setDeleteConfirmationInput(e.target.value)}
+                                className="col-span-4"
+                                placeholder="DELETE"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteConfirmationOpen(false)}>Cancel</Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={deleteConfirmationInput !== "DELETE" || isDeleting}
+                        >
+                            {isDeleting ? "Deleting..." : "Delete Account"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+
