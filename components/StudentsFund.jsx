@@ -740,11 +740,9 @@ const StudentsFund = ({
                     All Students Balance
                   </div>
                   <Button
-                    variant="outline"
-                    size="sm"
                     onClick={handleAllStudentsFundPrint}
                     title="Print Balance Sheet"
-                    className="gap-2 bg-black text-white hover:bg-zinc-800"
+                    className="gap-2 btn-print"
                   >
                     <Printer className="h-4 w-4" />
                     Print
@@ -950,9 +948,8 @@ const StudentsFund = ({
                             Download
                           </Button>
                           <Button
-                            variant="default"
                             onClick={handlePrint}
-                            className="hidden md:flex"
+                            className="hidden md:flex btn-print"
                           >
                             Print
                           </Button>
@@ -1098,8 +1095,7 @@ const StudentsFund = ({
                       </div>
                       <div className="flex gap-2">
                         <Button
-                          variant="outline"
-                          className="flex-1"
+                          className="flex-1 btn-print"
                           onClick={handlePrint}
                         >
                           <FileText className="h-4 w-4 mr-2" />
@@ -1189,9 +1185,8 @@ const StudentsFund = ({
                             Download
                           </Button>
                           <Button
-                            variant="default"
                             onClick={handleAllStudentsFundPrint}
-                            className="hidden md:flex"
+                            className="hidden md:flex btn-print"
                           >
                             Print
                           </Button>

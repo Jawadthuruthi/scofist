@@ -1165,7 +1165,7 @@ const TimeTablesManagements = ({
             icon="Reset"
           />
         )}
-        <Button onClick={handlePrint}>Print</Button>
+        <Button onClick={handlePrint} className="btn-print">Print</Button>
       </div>
 
       {/* Absentees Dialog */}

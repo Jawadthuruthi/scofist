@@ -1276,7 +1276,7 @@ export default function StudentCouponClient({ apiKey }) {
                         <Download className="h-4 w-4 mr-2" />
                         <span>PDF</span>
                     </Button>
-                    <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 flex-1 md:flex-none" onClick={() => window.print()}>
+                    <Button size="sm" className="px-2 md:px-4 md:h-10 flex-1 md:flex-none btn-print" onClick={() => window.print()}>
                         <Printer className="h-4 w-4 mr-2" />
                         <span>Print</span>
                     </Button>

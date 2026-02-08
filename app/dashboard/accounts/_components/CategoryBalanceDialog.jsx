@@ -79,7 +79,7 @@ export default function CategoryBalanceDialog({ categories, totalBalance }) {
                         </SelectContent>
                     </Select>
 
-                    <Button onClick={handlePrint} variant="outline">
+                    <Button onClick={handlePrint} className="btn-print">
                         <Printer className="mr-2 h-4 w-4" />
                         Print
                     </Button>

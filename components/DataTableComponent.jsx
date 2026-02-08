@@ -729,7 +729,7 @@ const DataTableComponent = ({
                   Download PDF
                 </Button>
               ) : (
-                <Button onClick={handlePrint} className="bg-black text-white hover:bg-gray-800">Print</Button>
+                <Button onClick={handlePrint} className="btn-print">Print</Button>
               )}
             </>
           )}
