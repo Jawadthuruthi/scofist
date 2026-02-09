@@ -174,15 +174,31 @@ export default function StudentCouponClient({ apiKey }) {
     // Setup for Bulk Student List
     const [bulkStudents, setBulkStudents] = useState([]);
     const [isLoadingBulkStudents, setIsLoadingBulkStudents] = useState(false);
+    const [isPrintingSheet, setIsPrintingSheet] = useState(false);
     // State to hold individual coupon numbers: { [studentId]: "A001" }
     const [couponNumbers, setCouponNumbers] = useState({});
+
+    const handlePrintSheet = () => {
+        setIsPrintingSheet(true);
+        // Wait for render
+        setTimeout(() => {
+            window.print();
+            // Reset after print dialog closes (or user cancels)
+            // Browsers pause JS execution during print dialog usually, so this runs after.
+            // But to be safe, we can leave it or use a small timeout.
+            setTimeout(() => setIsPrintingSheet(false), 500);
+        }, 100);
+    };
 
     // Fetch Students Query (On demand logic mostly, but we use the hook to sync)
     // We will trigger this manually via refetch or enabling it when "Get Students" clicked
     const detailsStudentFilters = {
         roles: ["Student"],
         batchId: detailsBatchId !== "all" ? detailsBatchId : visibleBatchIds,
-        ...(detailsClassId.length > 0 && { classId: detailsClassId.join(",") })
+        ...(detailsClassId.length > 0 && {
+            classId: detailsClassId.join(","),
+            status: "Active" // Only active students if Class is selected
+        })
     };
 
     // We use enabled: false to manually trigger fetch
@@ -619,7 +635,7 @@ export default function StudentCouponClient({ apiKey }) {
     };
 
     return (
-        <div className="px-2 md:px-6 pb-6 pt-2 space-y-6">
+        <div className={`px-2 md:px-6 pb-6 pt-2 space-y-6 ${isPrintingSheet ? "print-sheet-active" : ""}`}>
             <div className="flex flex-col gap-1">
                 <h1 className="text-2xl font-bold uppercase tracking-wide">
                     STUDENT COUPON FUND <span className="hidden md:inline">MANAGEMENT</span>
@@ -641,11 +657,45 @@ export default function StudentCouponClient({ apiKey }) {
                         top: 0;
                         width: 100%;
                     }
+                    /* Custom Print Sheet Styles */
+                    #printable-sheet {
+                        display: none;
+                    }
+                    .print-sheet-active #printable-sheet {
+                        display: block;
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                        background: white;
+                        z-index: 9999;
+                    }
+
+                    .print-sheet-active #printable-sheet,
+                    .print-sheet-active #printable-sheet * {
+                        visibility: visible;
+                    }
+                    .print-sheet-active #printable-table {
+                        display: none;
+                    }
+                    @page {
+                        size: landscape;
+                        margin: 5mm; /* Minimal margin for printer */
+                    }
+                    .print-sheet-active #printable-sheet {
+                        padding: 0; /* Remove internal padding */
+                    }
                     #printable-table thead tr th {
                         background-color: #e5e7eb !important;
                         -webkit-print-color-adjust: exact;
                         print-color-adjust: exact;
                         color: black !important;
+                    }
+                    /* Reduce padding for print sheet table cells */
+                    .print-sheet-active td, .print-sheet-active th {
+                        padding: 4px 8px !important;
+                        height: 30px !important;
+                        font-size: 12px !important;
                     }
                 }
             `}</style>
@@ -896,7 +946,7 @@ export default function StudentCouponClient({ apiKey }) {
                                             variant="default"
                                         />
                                     </div>
-                                    <div>
+                                    <div className="flex flex-col md:flex-col-reverse gap-2">
                                         <Button
                                             type="button"
                                             variant="secondary"
@@ -907,6 +957,17 @@ export default function StudentCouponClient({ apiKey }) {
                                             {isLoadingBulkStudents ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
                                             Get Students
                                         </Button>
+
+                                        {bulkStudents.length > 0 && (
+                                            <Button
+                                                type="button"
+                                                className="w-full bg-black hover:bg-gray-800 text-white"
+                                                onClick={handlePrintSheet}
+                                            >
+                                                <Printer className="mr-2 h-4 w-4" />
+                                                Print Sheet
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1511,6 +1572,52 @@ export default function StudentCouponClient({ apiKey }) {
                         </div>
                     </DialogContent>
                 </Dialog>
+            </div>
+            {/* Hidden Print Sheet Table */}
+            <div id="printable-sheet" className={isPrintingSheet ? "block" : "hidden"}>
+                <div className="text-center mb-4 pt-0">
+                    <h2 className="text-xl font-bold uppercase">Student Coupon Collection Sheet - {currentYear || "2025"}</h2>
+                    <p className="text-md">
+                        Batch: {batches.find(b => b._id === detailsBatchId)?.name || "All"} |
+                        Class: {detailsClasses.filter(c => detailsClassId.includes(c._id)).map(c => c.name).join(", ") || "All"}
+                    </p>
+                </div>
+                <div className="border rounded-md">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[50px] border">Sl No</TableHead>
+                                <TableHead className="border">Student ID</TableHead>
+                                <TableHead className="border">Student Name</TableHead>
+                                <TableHead className="border">Coupon Number</TableHead>
+                                <TableHead className="border w-[80px]">Paid</TableHead>
+                                <TableHead className="border w-[100px]">Date</TableHead>
+                                <TableHead className="border w-[80px]">Paid</TableHead>
+                                <TableHead className="border w-[100px]">Amount</TableHead>
+                                <TableHead className="border w-[80px]">Paid</TableHead>
+                                <TableHead className="border w-[100px]">Amount</TableHead>
+                                <TableHead className="border w-[100px]">Total</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {bulkStudents.map((student, index) => (
+                                <TableRow key={student._id}>
+                                    <TableCell className="border text-center">{index + 1}</TableCell>
+                                    <TableCell className="border">{student._id}</TableCell>
+                                    <TableCell className="border font-medium">{student.name}</TableCell>
+                                    <TableCell className="border text-center">{couponNumbers[student._id] || ""}</TableCell>
+                                    <TableCell className="border h-12"></TableCell>
+                                    <TableCell className="border"></TableCell>
+                                    <TableCell className="border"></TableCell>
+                                    <TableCell className="border"></TableCell>
+                                    <TableCell className="border"></TableCell>
+                                    <TableCell className="border"></TableCell>
+                                    <TableCell className="border"></TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
         </div>
     );
