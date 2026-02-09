@@ -195,7 +195,7 @@ const LiteraryAttendance = ({
       </div>
       <Tabs value={activeTab} defaultValue="all" onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-2 w-full">
-          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="all">General</TabsTrigger>
           <TabsTrigger value="group">Group</TabsTrigger>
         </TabsList>
         <TabsContent value="all">
@@ -222,7 +222,7 @@ const LiteraryAttendance = ({
                     </TableCell>
                     <TableCell className="text-right">
                       {classBasedAbsentees[cls._id] &&
-                      classBasedAbsentees[cls._id].length > 0 ? (
+                        classBasedAbsentees[cls._id].length > 0 ? (
                         <div
                           className={`flex items-center ml-auto max-w-fit gap-2 rounded-full px-2 py-1 border cursor-pointer`}
                           onClick={() => {
@@ -288,7 +288,7 @@ const LiteraryAttendance = ({
                     </TableCell>
                     <TableCell className="text-right">
                       {groupBasedAbsentees[group._id] &&
-                      groupBasedAbsentees[group._id].length > 0 ? (
+                        groupBasedAbsentees[group._id].length > 0 ? (
                         <div
                           className={`flex items-center ml-auto max-w-fit gap-2 rounded-full px-2 py-1 border cursor-pointer`}
                           onClick={() => {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowUpDown, ExternalLink, Pencil, Trash, User } from "lucide-react";
 import Link from "next/link";
+import { CLASS_ORDER } from "@/lib/utils";
 
 const useTableColumns = (columnConfig) => {
   return columnConfig.map((col) => {
@@ -265,6 +266,80 @@ const useTableColumns = (columnConfig) => {
       };
     }
 
+    if (col.type?.includes("groupedList")) {
+      columnDefinition.cell = ({ row }) => {
+        const items = row.getValue(col.accessorKey);
+        if (!Array.isArray(items) || items.length === 0) return "-";
+
+        const grouped = items.reduce((acc, item) => {
+          const key = item.className || "Unknown Class";
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(item);
+          return acc;
+        }, {});
+
+        return (
+          <div className="text-left space-y-2 max-h-60 overflow-y-auto print:max-h-none print:overflow-visible min-w-[200px]">
+            <div className="hidden print:block text-xs mb-2 space-y-1 border-b pb-2">
+              <div>
+                <span className="font-semibold">Leader:</span>{" "}
+                {row.original.leaderName || "-"}
+              </div>
+              <div>
+                <span className="font-semibold">Assist. Leader:</span>{" "}
+                {row.original.assistantLeaderName || "-"}
+              </div>
+            </div>
+            <div className="font-bold text-xs text-muted-foreground uppercase mb-2 print:hidden">
+              Total Students: {items.length}
+            </div>
+            {Object.entries(grouped)
+              .sort(([classA], [classB]) => {
+                const normalize = (name) => name.replace(/\s/g, "").toUpperCase();
+                const normalizedOrder = CLASS_ORDER.map(normalize);
+
+                const indexA = normalizedOrder.indexOf(normalize(classA));
+                const indexB = normalizedOrder.indexOf(normalize(classB));
+
+                if (indexA !== -1 && indexB !== -1) return indexB - indexA;
+
+                if (indexA !== -1) return -1;
+                if (indexB !== -1) return 1;
+                return classA.localeCompare(classB);
+              })
+              .map(([className, students]) => (
+                <div key={className}>
+                  <div className="font-bold text-xs text-muted-foreground uppercase mb-1">
+                    {className}
+                  </div>
+                  <div className="text-sm space-y-1">
+                    {students
+                      .sort((a, b) =>
+                        String(a._id || "").localeCompare(
+                          String(b._id || ""),
+                          undefined,
+                          { numeric: true }
+                        )
+                      )
+                      .map((student, idx) => (
+                        <div key={student._id}>
+                          <span className="text-muted-foreground mr-1">
+                            {idx + 1}.
+                          </span>
+                          {student.name}
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({student._id})
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ))}
+          </div>
+        );
+      };
+    }
+
     // Apply actions if type includes "actions"
     if (col.type?.includes("actions")) {
       columnDefinition.cell = ({ row }) => (
@@ -280,6 +355,7 @@ const useTableColumns = (columnConfig) => {
     }
 
     columnDefinition.meta = {
+      ...columnDefinition.meta,
       width: col.width || "auto", // Default: auto
       minWidth: col.minWidth || "100px", // Default min-width
       maxWidth: col.maxWidth || "auto", // Default max-width

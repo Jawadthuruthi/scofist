@@ -35,21 +35,23 @@ const columnsConfig = [
     maxWidth: 60,
     minWidth: 60,
   },
-  { accessorKey: "_id", header: "Group ID" },
+  { accessorKey: "_id", header: "Group ID", meta: { className: "print:hidden" } },
   { accessorKey: "name", header: "Name" },
   {
     accessorKey: "leaderName",
     header: "Leader",
+    meta: { className: "print:hidden" },
   },
   {
     accessorKey: "assistantLeaderName",
     header: "Assist. Leader",
+    meta: { className: "print:hidden" },
   },
 
   {
-    accessorKey: "studentsName",
+    accessorKey: "studentsDetails",
     header: "Students",
-    type: ["array", "vertical"],
+    type: ["groupedList"],
   },
 ];
 

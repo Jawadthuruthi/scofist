@@ -790,7 +790,8 @@ const DataTableComponent = ({
                   <TableHead
                     key={header.id}
                     style={getCellStyles(header.column.columnDef.meta)}
-                    className={header.id === "select" ? "print:hidden" : ""}
+                    className={`${header.id === "select" ? "print:hidden" : ""} ${header.column.columnDef.meta?.className || ""
+                      }`}
                   >
                     {header.isPlaceholder
                       ? null
@@ -825,9 +826,8 @@ const DataTableComponent = ({
                     <TableCell
                       style={getCellStyles(cell.column.columnDef.meta)}
                       key={cell.id}
-                      className={
-                        cell.column.id === "select" ? "print:hidden" : ""
-                      }
+                      className={`${cell.column.id === "select" ? "print:hidden" : ""} ${cell.column.columnDef.meta?.className || ""
+                        }`}
                     >
                       {flexRender(
                         cell.column.columnDef.cell,

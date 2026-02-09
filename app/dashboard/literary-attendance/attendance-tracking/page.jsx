@@ -32,7 +32,7 @@ const AttendanceTrackingPage = async () => {
 
     const tabsConfig = [
       {
-        label: "ALL",
+        label: "GENERAL",
         value: "all",
         resource: "attendanceRecords",
         apiEndpoint: "literary/attendance-records",
@@ -194,7 +194,7 @@ const AttendanceTrackingPage = async () => {
             type: "text",
             inputType: "select",
             options: [
-              { label: "All", value: "ALL" },
+              { label: "General", value: "ALL" },
               { label: "Group", value: "GROUP" },
             ],
           },

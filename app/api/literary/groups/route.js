@@ -63,21 +63,29 @@ export async function GET(req, res) {
     const total = await LiteraryGroup.countDocuments(query);
 
     const formattedGroups = groups.map((group) => {
+      // Filter out nulls and inactive students
+      const activeStudents = group.studentsId.filter(
+        (student) =>
+          student && student.studentSpecificField?.status === "Active"
+      );
+
       return {
         ...group.toObject(),
         leaderId: group.leaderId ? group.leaderId._id : "",
-        leaderName: group.leaderId ? group.leaderId.name : "",
+        leaderName: group.leaderId
+          ? `${group.leaderId.name} (${group.leaderId._id})`
+          : "",
         assistantLeaderId: group.assistantLeaderId
           ? group.assistantLeaderId._id
           : "",
         assistantLeaderName: group.assistantLeaderId
-          ? group.assistantLeaderId.name
+          ? `${group.assistantLeaderId.name} (${group.assistantLeaderId._id})`
           : "",
-        studentsId: group.studentsId.map((student) => student._id),
-        studentsName: group.studentsId
+        studentsId: activeStudents.map((student) => student._id),
+        studentsName: activeStudents
           .sort((a, b) => a._id - b._id)
           .map((student) => `${student._id} ${student.name}`),
-        studentsDetails: group.studentsId.map((student) => ({
+        studentsDetails: activeStudents.map((student) => ({
           ...student.toObject(),
           classId: student.studentSpecificField?.classId?._id,
           className: student.studentSpecificField?.classId?.name || "",
