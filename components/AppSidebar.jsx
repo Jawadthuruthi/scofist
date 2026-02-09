@@ -124,12 +124,12 @@ const items = [
     title: "Students Contacts",
     url: "/dashboard/students-contacts",
     icon: BookUser,
-    allowedRoles: ["Teacher", "College Admin"],
+    allowedRoles: ["Teacher"],
   },
   {
     title: "Students Fund",
     url: "/dashboard/students-fund",
-    allowedRoles: ["College Admin", "Teacher", "IT Lab", "Stationary"],
+    allowedRoles: ["Teacher", "IT Lab", "Stationary"],
     icon: CreditCard,
   },
   {
@@ -218,13 +218,13 @@ const items = [
     title: "Marks",
     url: "/dashboard/marks",
     icon: FileSpreadsheet,
-    allowedRoles: ["College Admin", "Teacher"],
+    allowedRoles: ["Teacher"],
   },
   {
     title: "Remarks",
     url: "/dashboard/remarks",
     icon: MessageSquare,
-    allowedRoles: ["College Admin", "Teacher"],
+    allowedRoles: ["Teacher"],
   },
   {
     title: "Finance",
@@ -249,7 +249,7 @@ const items = [
     title: "Masjid Attendance",
     url: "/dashboard/masjid-attendance",
     icon: ClipboardList,
-    allowedRoles: ["College Admin", "Teacher"],
+    allowedRoles: ["Teacher"],
   },
   {
     title: "Applications",

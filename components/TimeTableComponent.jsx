@@ -304,8 +304,9 @@ const TimeTableComponent = ({
                         key={period?._id}
                         className={`${isAttendanceMarked
                           ? "bg-green-300/50 print:bg-inherit"
-                          : ""
-                          } ${leaveRecord ? "bg-red-100/50 print:bg-inherit" : ""
+                          : leaveRecord
+                            ? "bg-red-100/50 print:bg-inherit"
+                            : ""
                           } border text-center  cursor-pointer print:max-w-32`}
                       >
                         {cellData ? (
@@ -410,8 +411,9 @@ const TimeTableComponent = ({
                         key={period?._id}
                         className={`${isAttendanceMarked
                           ? "bg-green-300/50 print:bg-inherit"
-                          : ""
-                          } ${leaveRecord ? "bg-red-100/50 print:bg-inherit" : ""
+                          : leaveRecord
+                            ? "bg-red-100/50 print:bg-inherit"
+                            : ""
                           } border text-center  cursor-pointer print:max-w-32`}
                       >
                         {!!cellData ? (

@@ -137,9 +137,13 @@ const TimetableSlot = ({
 
   return (
     <TableCell
-      className={`${isAttendanceMarked ? "bg-green-300/50 print:bg-inherit" : ""
-        } ${isPendingChange ? "bg-blue-300/50 print:bg-inherit" : ""
-        } ${leaveReason ? "bg-red-100/50 print:bg-inherit" : ""
+      className={`${isAttendanceMarked
+        ? "bg-green-300/50 print:bg-inherit"
+        : isPendingChange
+          ? "bg-blue-300/50 print:bg-inherit"
+          : leaveReason
+            ? "bg-red-100/50 print:bg-inherit"
+            : ""
         } border text-center cursor-pointer transition-colors whitespace-nowrap print:whitespace-normal print:max-w-32 print:p-1`}
       onClick={() => {
         onCellClick(periodNumber, day);
@@ -158,7 +162,7 @@ const TimetableSlot = ({
               ? cellData.teacherId?.name || ""
               : cellData.classId?.name || ""}
           </p>
-          {leaveReason && (
+          {leaveReason && !isAttendanceMarked && (
             <div className="flex items-center gap-1 text-xxs text-muted-foreground justify-center mt-1">
               <AlertCircle className="text-red-500 h-3 w-3" />
               <span>{leaveReason}</span>

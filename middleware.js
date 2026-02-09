@@ -115,7 +115,7 @@ const pages = [
   {
     title: "Marks",
     path: "/dashboard/marks",
-    allowedRoles: ["College Admin", "Teacher"],
+    allowedRoles: ["Teacher"],
   },
   {
     title: "Leave Register",
@@ -130,7 +130,7 @@ const pages = [
   {
     path: "/dashboard/remarks",
     pattern: /^\/dashboard\/remarks(?:\/[^/]+)?$/,
-    allowedRoles: ["College Admin", "Teacher"],
+    allowedRoles: ["Teacher"],
   },
 
   {
@@ -150,7 +150,7 @@ const pages = [
     title: "Students Contacts",
     path: "/dashboard/students-contacts",
     pattern: /^\/dashboard\/students-contacts(?:\/[^/]+)?$/,
-    allowedRoles: ["Teacher", "College Admin"],
+    allowedRoles: ["Teacher"],
   },
 
   {
@@ -219,7 +219,7 @@ const pages = [
   {
     title: "Students Fund",
     path: "/dashboard/students-fund",
-    allowedRoles: ["College Admin", "Teacher", "Stationary", "IT Lab"],
+    allowedRoles: ["Teacher", "Stationary", "IT Lab"],
   },
   {
     title: "Student Coupon Fund",
@@ -380,18 +380,18 @@ const pages = [
   {
     title: "Masjid Attendance",
     path: "/dashboard/masjid-attendance",
-    allowedRoles: ["College Admin", "Org Admin", "Teacher"],
+    allowedRoles: ["Org Admin", "Teacher"],
   },
   {
     title: "Masjid Attendance Mark",
     path: "/dashboard/masjid-attendance/mark",
     pattern: /^\/dashboard\/masjid-attendance\/mark(?:\/[^/]+)?$/,
-    allowedRoles: ["College Admin", "Org Admin", "Teacher"],
+    allowedRoles: ["Org Admin", "Teacher"],
   },
   {
     title: "Masjid Attendance History",
     path: "/dashboard/masjid-attendance/history",
-    allowedRoles: ["College Admin", "Org Admin", "Teacher"],
+    allowedRoles: ["Org Admin", "Teacher"],
   },
   {
     title: "No Role Users",
