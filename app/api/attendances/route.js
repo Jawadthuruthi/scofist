@@ -4,6 +4,7 @@ import { markTeacherAttendanceFromStudentAttendance } from "@/lib/teacherAttenda
 import Attendance from "@/models/Attendance";
 import StudentAttendance from "@/models/StudentAttendance";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 export async function GET(req, res) {
   try {
@@ -287,6 +288,11 @@ export async function POST(req, res) {
       await StudentAttendance.bulkWrite(bulkOps);
     }
 
+    // Revalidate paths
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/time-tables");
+    revalidatePath("/dashboard/my-time-table");
+
     return NextResponse.json(
       {
         attendance: newAttendance,
@@ -349,6 +355,11 @@ export async function PUT(req, res) {
         await StudentAttendance.bulkWrite(bulkOps);
       }
     }
+    // Revalidate paths
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/time-tables");
+    revalidatePath("/dashboard/my-time-table");
+
     return NextResponse.json(
       { updatedAttendance, message: "Attendance record updated successfully!" },
       { status: 200 }
@@ -398,6 +409,11 @@ export async function DELETE(req, res) {
     if (ids.length > 1) {
       const result = await Attendance.deleteMany({ _id: { $in: ids } });
 
+      // Revalidate paths
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/time-tables");
+      revalidatePath("/dashboard/my-time-table");
+
       return NextResponse.json(
         {
           result,
@@ -407,6 +423,12 @@ export async function DELETE(req, res) {
       );
     }
     const deletedAttendance = await Attendance.findByIdAndDelete(_id);
+
+    // Revalidate paths
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/time-tables");
+    revalidatePath("/dashboard/my-time-table");
+
     return NextResponse.json(
       { deletedAttendance, message: "Attendance record deleted successfully!" },
       { status: 200 }
