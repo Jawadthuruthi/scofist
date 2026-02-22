@@ -35,9 +35,9 @@ export function useDynamicFormSchema(formFields = null) {
         case "number":
           fieldSchema = required
             ? z.coerce.number({
-                required_error: `${displayName} is required`,
-                invalid_type_error: `${displayName} must be a number`,
-              })
+              required_error: `${displayName} is required`,
+              invalid_type_error: `${displayName} must be a number`,
+            })
             : z.coerce.number().optional();
 
           // Apply min validation
@@ -68,54 +68,54 @@ export function useDynamicFormSchema(formFields = null) {
         case "email":
           fieldSchema = required
             ? z
-                .string({
-                  required_error: `${displayName} is required`,
-                })
-                .min(1, `${displayName} is required`)
-                .email(validators.emailMessage || "Invalid email address")
+              .string({
+                required_error: `${displayName} is required`,
+              })
+              .min(1, `${displayName} is required`)
+              .email(validators.emailMessage || "Invalid email address")
             : z
-                .string()
-                .email(validators.emailMessage || "Invalid email address")
-                .optional();
+              .string()
+              .email(validators.emailMessage || "Invalid email address")
+              .optional();
           break;
 
         case "boolean":
           fieldSchema = required
             ? z
-                .boolean({
-                  required_error: `${displayName} is required`,
-                })
-                .refine((val) => typeof val === "boolean", {
-                  message: `${displayName} must be a boolean value`,
-                })
+              .boolean({
+                required_error: `${displayName} is required`,
+              })
+              .refine((val) => typeof val === "boolean", {
+                message: `${displayName} must be a boolean value`,
+              })
             : z
-                .boolean()
-                .refine((val) => typeof val === "boolean", {
-                  message: `${displayName} must be a boolean value`,
-                })
-                .optional();
+              .boolean()
+              .refine((val) => typeof val === "boolean", {
+                message: `${displayName} must be a boolean value`,
+              })
+              .optional();
           break;
 
         case "url":
           fieldSchema = required
             ? z
-                .string({
-                  required_error: `${displayName} is required`,
-                })
-                .min(1, `${displayName} is required`)
-                .url(validators.urlMessage || "Invalid URL")
+              .string({
+                required_error: `${displayName} is required`,
+              })
+              .min(1, `${displayName} is required`)
+              .url(validators.urlMessage || "Invalid URL")
             : z
-                .string()
-                .url(validators.urlMessage || "Invalid URL")
-                .optional();
+              .string()
+              .url(validators.urlMessage || "Invalid URL")
+              .optional();
           break;
 
         case "date":
           fieldSchema = required
             ? z.union([z.date(), z.string()], {
-                required_error: `${displayName} is required`,
-                invalid_type_error: `${displayName} must be a valid date`,
-              })
+              required_error: `${displayName} is required`,
+              invalid_type_error: `${displayName} must be a valid date`,
+            })
             : z.union([z.date(), z.string()]).optional();
 
           if (validators.minDate) {
@@ -158,22 +158,22 @@ export function useDynamicFormSchema(formFields = null) {
             const values = options.map((option) => option.value);
             fieldSchema = required
               ? z
-                  .string({
-                    required_error: `${displayName} is required`,
-                  })
-                  .min(1, `${displayName} is required`)
-                  .refine((value) => freeSolo || values.includes(value), {
-                    message: `Please select a valid option for ${displayName}`,
-                  })
+                .string({
+                  required_error: `${displayName} is required`,
+                })
+                .min(1, `${displayName} is required`)
+                .refine((value) => freeSolo || values.includes(value), {
+                  message: `Please select a valid option for ${displayName}`,
+                })
               : z
-                  .string()
-                  .optional()
-                  .refine(
-                    (value) => !value || freeSolo || values.includes(value),
-                    {
-                      message: `Please select a valid option for ${displayName}`,
-                    }
-                  );
+                .string()
+                .optional()
+                .refine(
+                  (value) => !value || freeSolo || values.includes(value),
+                  {
+                    message: `Please select a valid option for ${displayName}`,
+                  }
+                );
           } else if (inputType === "multiSelect" && options) {
             const values = options.map((option) => option.value);
             let arraySchema = z.array(z.string());
@@ -213,12 +213,12 @@ export function useDynamicFormSchema(formFields = null) {
           } else {
             // Regular text input
             fieldSchema = required
-              ? z
-                  .string({
-                    required_error: `${displayName} is required`,
-                  })
-                  .min(1, `${displayName} is required`)
-              : z.string().optional();
+              ? z.coerce
+                .string({
+                  required_error: `${displayName} is required`,
+                })
+                .min(1, `${displayName} is required`)
+              : z.coerce.string().optional();
 
             if (validators.minLength !== undefined) {
               fieldSchema = fieldSchema.refine(

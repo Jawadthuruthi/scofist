@@ -22,7 +22,7 @@ if (!MONGODB_URI) {
 const libraryBookSchema = new mongoose.Schema({
     id: String,
     prefix: String,
-    number: Number,
+    number: String,
     name: String,
     author: String,
     category: String,

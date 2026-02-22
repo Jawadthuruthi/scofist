@@ -12,6 +12,11 @@ import { Book, Users, BookOpen, AlertCircle, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import { toast } from "sonner";
+import Barcode from "react-barcode";
+import { Search, Scan } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useEffect, useRef, useMemo } from "react";
 
 export default function LibraryDashboard({
     view,
@@ -24,6 +29,9 @@ export default function LibraryDashboard({
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [rowSelection, setRowSelection] = useState({});
+    const [scannerValue, setScannerValue] = useState("");
+    const [editPopupOpen, setEditPopupOpen] = useState(false);
+    const scannerInputRef = useRef(null);
 
     const selectedIds = Object.keys(rowSelection);
     const selectedBook = view === "books" && selectedIds.length === 1
@@ -34,14 +42,27 @@ export default function LibraryDashboard({
         ? initialRentals.find(r => r._id === selectedIds[0])
         : null;
 
+    // --- Dynamic Options ---
+    const dynamicLanguages = useMemo(() => {
+        const fromBooks = initialBooks.map(b => b.language).filter(Boolean);
+        const all = new Set([...(languages || []), ...fromBooks]);
+        return Array.from(all).sort();
+    }, [languages, initialBooks]);
+
+    const dynamicCategories = useMemo(() => {
+        const fromBooks = initialBooks.map(b => b.category).filter(Boolean);
+        const all = new Set([...(categories || []), ...fromBooks]);
+        return Array.from(all).sort();
+    }, [categories, initialBooks]);
+
     // --- Configurations ---
 
     const bookFields = [
         {
             name: "number",
             label: "Book ID",
-            inputType: "number",
-            type: "number",
+            inputType: "text",
+            type: "text",
             required: true,
         },
         {
@@ -60,7 +81,7 @@ export default function LibraryDashboard({
             name: "language",
             label: "Language",
             inputType: "select",
-            options: (languages || []).map((l) => ({ value: l, label: l })),
+            options: dynamicLanguages.map((l) => ({ value: l, label: l })),
             freeSolo: true,
             required: true,
         },
@@ -68,7 +89,7 @@ export default function LibraryDashboard({
             name: "category",
             label: "Category",
             inputType: "select",
-            options: (categories || []).map((c) => ({ value: c, label: c })),
+            options: dynamicCategories.map((c) => ({ value: c, label: c })),
             freeSolo: true,
             required: true,
         },
@@ -143,9 +164,10 @@ export default function LibraryDashboard({
             enableSorting: false,
             enableHiding: false,
             meta: {
-                width: "1%",
-                minWidth: "auto",
-                padding: "0px 0px", // Extremely tight
+                width: "1px",
+                padding: "0px 4px",
+                textAlign: "center",
+                className: "tight-column",
             },
         },
         {
@@ -153,27 +175,51 @@ export default function LibraryDashboard({
             header: "Sl No",
             cell: ({ row }) => row.index + 1,
             meta: {
-                width: "1%",
-                minWidth: "auto",
+                width: "1px",
                 whiteSpace: "nowrap",
-                padding: "0px 0px", // Extremely tight
+                padding: "0px 8px",
+                textAlign: "center",
+                className: "tight-column",
             },
         },
         {
             accessorKey: "number",
             header: "Book ID",
             meta: {
-                width: "1%",
-                minWidth: "auto",
+                width: "100px",
                 whiteSpace: "nowrap",
-                padding: "4px 4px",
+                padding: "0px 8px",
+            }
+        },
+        {
+            id: "barcode",
+            header: "Barcode",
+            cell: ({ row }) => {
+                const number = row.getValue("number");
+                if (!number) return "-";
+                return (
+                    <div className="flex justify-center items-center w-[120px] h-[45px] overflow-hidden bg-white rounded p-1">
+                        <Barcode
+                            value={String(number)}
+                            width={1}
+                            height={30}
+                            fontSize={0}
+                            margin={0}
+                            displayValue={false}
+                            background="transparent"
+                        />
+                    </div>
+                );
+            },
+            meta: {
+                width: "130px",
+                padding: "2px",
             }
         },
         {
             accessorKey: "name",
             header: "Book Name",
             meta: {
-                width: "1%",
                 whiteSpace: "nowrap"
             }
         },
@@ -251,9 +297,10 @@ export default function LibraryDashboard({
             enableSorting: false,
             enableHiding: false,
             meta: {
-                width: "1%",
-                minWidth: "auto",
-                padding: "0px 0px",
+                width: "1px",
+                padding: "0px 8px",
+                textAlign: "center",
+                className: "tight-column",
             },
         },
         {
@@ -261,10 +308,11 @@ export default function LibraryDashboard({
             header: "Sl No",
             cell: ({ row }) => row.index + 1,
             meta: {
-                width: "1%",
-                minWidth: "auto",
+                width: "1px",
                 whiteSpace: "nowrap",
-                padding: "0px 0px",
+                padding: "0px 8px",
+                textAlign: "center",
+                className: "tight-column",
             },
         },
         {
@@ -274,7 +322,7 @@ export default function LibraryDashboard({
                 width: "1%",
                 minWidth: "auto",
                 whiteSpace: "nowrap",
-                padding: "4px 4px",
+                padding: "0px 8px",
             }
         },
         {
@@ -282,7 +330,6 @@ export default function LibraryDashboard({
             header: "Book Name",
             cell: ({ row }) => row.original.bookId?.name || "Unknown Book",
             meta: {
-                width: "1%",
                 whiteSpace: "nowrap"
             }
         },
@@ -331,13 +378,13 @@ export default function LibraryDashboard({
             id: "language",
             label: "Language",
             inputType: "select",
-            options: (languages || []).map((l) => ({ value: l, label: l })),
+            options: dynamicLanguages.map((l) => ({ value: l, label: l })),
         },
         {
             id: "category",
             label: "Category",
             inputType: "select",
-            options: (categories || []).map((c) => ({ value: c, label: c })),
+            options: dynamicCategories.map((c) => ({ value: c, label: c })),
         },
         {
             id: "status",
@@ -350,6 +397,40 @@ export default function LibraryDashboard({
         },
     ];
 
+
+    // --- Scanner Logic ---
+    useEffect(() => {
+        if (!scannerValue) return;
+
+        // Try to find book by ID
+        const matchedBook = initialBooks.find(b =>
+            String(b.number).toLowerCase() === scannerValue.toLowerCase()
+        );
+
+        if (matchedBook) {
+            setRowSelection({ [matchedBook._id]: true });
+            setEditPopupOpen(true);
+            toast.success(`Book Found: ${matchedBook.name}`);
+            setScannerValue(""); // Clear scanner
+        }
+    }, [scannerValue, initialBooks]);
+
+    // Auto-focus scanner on view change or mount
+    useEffect(() => {
+        if (view === "books" && scannerInputRef.current) {
+            scannerInputRef.current.focus();
+        }
+    }, [view]);
+
+    const handleScannerKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            // Scanner usually sends Enter at the end
+            // The useEffect will handle the value change, 
+            // but we can also handle manual focus here if needed.
+        }
+    };
+
+
     // --- Handlers ---
 
     const handleCreateBook = async (data) => {
@@ -361,11 +442,16 @@ export default function LibraryDashboard({
                 body: JSON.stringify(data),
             });
             if (res.ok) {
+                toast.success("Book created successfully");
                 router.refresh();
                 return true;
+            } else {
+                const errorData = await res.json();
+                toast.error(errorData.msg || "Failed to create book");
             }
         } catch (error) {
             console.error(error);
+            toast.error("An error occurred while creating the book");
         } finally {
             setLoading(false);
         }
@@ -380,11 +466,16 @@ export default function LibraryDashboard({
                 body: JSON.stringify({ _id: id, ...data }),
             });
             if (res.ok) {
+                toast.success("Book updated successfully");
                 router.refresh();
                 return true;
+            } else {
+                const errorData = await res.json();
+                toast.error(errorData.msg || "Failed to update book");
             }
         } catch (error) {
             console.error(error);
+            toast.error("An error occurred while updating the book");
         } finally {
             setLoading(false);
         }
@@ -618,10 +709,26 @@ export default function LibraryDashboard({
     if (view === "books") {
         return (
             <div className="space-y-6">
-                <Header
-                    title="BOOKS MANAGEMENT"
-                    subTitle="Manage library books inventory"
-                />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <Header
+                        title="BOOKS MANAGEMENT"
+                        subTitle="Manage library books inventory"
+                    />
+                    <div className="relative w-full md:w-64">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Scan className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <Input
+                            ref={scannerInputRef}
+                            type="text"
+                            placeholder="Scan Barcode / Enter ID..."
+                            className="pl-10 h-10 w-full bg-background"
+                            value={scannerValue}
+                            onChange={(e) => setScannerValue(e.target.value)}
+                            onKeyDown={handleScannerKeyDown}
+                        />
+                    </div>
+                </div>
                 <TableComponent
                     data={initialBooks}
                     columnsConfig={bookColumns}
@@ -635,24 +742,40 @@ export default function LibraryDashboard({
                         return (
                             <Card className="h-full hover:shadow-md transition-shadow overflow-hidden">
                                 <CardContent className="p-4 flex gap-4 items-start">
-                                    <div className="flex-shrink-0 flex flex-col items-center gap-2">
-                                        <div className="bg-primary/10 p-4 rounded-md flex items-center justify-center h-24 w-24">
+                                    <div className="flex-shrink-0 flex flex-col items-center gap-2 w-28">
+                                        <div className="bg-primary/10 p-3 rounded-md flex items-center justify-center h-24 w-24">
                                             <BookOpen className="h-10 w-10 text-primary" />
                                         </div>
-                                        <div className="text-center w-full">
-                                            <div className="font-semibold text-sm">₹{book.price?.toFixed(2) || "0.00"}</div>
-                                            <div className={`text-xs font-bold ${book.status === 'Available' ? "text-green-600" : "text-red-600"}`}>
-                                                {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
+                                        <div className="text-center w-full space-y-1">
+                                            <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/50 py-0.5 rounded">ID: {book.number}</div>
+                                            <div className="flex justify-center items-center w-full h-[38px] overflow-hidden bg-white rounded p-1 border border-border/50 shadow-sm">
+                                                <Barcode
+                                                    value={String(book.number)}
+                                                    width={0.8}
+                                                    height={22}
+                                                    fontSize={0}
+                                                    margin={0}
+                                                    displayValue={false}
+                                                    background="transparent"
+                                                />
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex-1 space-y-1 min-w-0 py-1">
-                                        <div className="text-xs text-muted-foreground uppercase tracking-wide">ID: {book.number}</div>
-                                        <h3 className="font-bold text-lg leading-tight break-words" title={book.name}>{book.name}</h3>
-                                        <div className="text-sm text-muted-foreground break-words" title={book.author}>Author: <span className="text-foreground font-medium">{book.author}</span></div>
-                                        {book.publication && <div className="text-sm text-muted-foreground break-words" title={book.publication}>Publication: <span className="text-foreground">{book.publication}</span></div>}
-                                        <div className="text-sm text-muted-foreground">Language: <span className="text-foreground">{book.language}</span></div>
-                                        <div className="text-sm text-muted-foreground">Category: <span className="text-foreground">{book.category}</span></div>
+                                    <div className="flex-1 space-y-1 min-w-0 py-1 flex flex-col h-full">
+                                        <div className="flex-1">
+                                            <h3 className="font-bold text-lg leading-tight break-words mb-1" title={book.name}>{book.name}</h3>
+                                            <div className="text-sm text-muted-foreground break-words" title={book.author}>Author: <span className="text-foreground font-medium">{book.author}</span></div>
+                                            {book.publication && <div className="text-sm text-muted-foreground break-words" title={book.publication}>Publication: <span className="text-foreground">{book.publication}</span></div>}
+                                            <div className="text-sm text-muted-foreground">Language: <span className="text-foreground">{book.language}</span></div>
+                                            <div className="text-sm text-muted-foreground">Category: <span className="text-foreground">{book.category}</span></div>
+                                        </div>
+
+                                        <div className="pt-1 flex flex-col items-start gap-1 mt-auto">
+                                            <div className="font-bold text-sm text-primary">₹{book.price?.toFixed(2) || "0.00"}</div>
+                                            <div className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                                                {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
+                                            </div>
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -677,6 +800,8 @@ export default function LibraryDashboard({
                                     data={selectedBook}
                                     onSubmit={(data) => handleUpdateBook(selectedBook._id, data)}
                                     loading={loading}
+                                    open={editPopupOpen}
+                                    onOpenChange={setEditPopupOpen}
                                 />
                             )}
                             <PopupForm

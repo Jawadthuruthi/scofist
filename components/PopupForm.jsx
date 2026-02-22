@@ -28,6 +28,7 @@ import ImageUploader from "./ImageUploader";
 import { Progress } from "@/components/ui/progress";
 import RangeInput from "./RangeInput";
 import usePopulateFormField from "@/hooks/use-populate-form-field";
+import { toast } from "sonner";
 
 /* ---------- AsyncInput Component ---------- */
 const AsyncInput = ({
@@ -370,7 +371,10 @@ const FormContent = ({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(handleSubmit)}
+        onSubmit={form.handleSubmit(handleSubmit, (errors) => {
+          console.error("Validation errors:", errors);
+          toast.error("Please fill all required fields correctly.");
+        })}
         className="max-w-full overflow-hidden"
       >
         {totalSections > 1 && (

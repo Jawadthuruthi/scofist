@@ -28,6 +28,7 @@ import useTableColumns from "@/hooks/use-table-columns";
 import PrintHeader from "./PrintHeader";
 import { SlidersHorizontal, Filter, Search, LayoutGrid, List } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import PopupFilter from "./PopupFilter";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -39,6 +40,7 @@ const getCellStyles = (meta) => ({
   textOverflow: meta?.textOverflow || "ellipsis",
   whiteSpace: meta?.whiteSpace || "nowrap",
   padding: meta?.padding, // Allow overriding padding
+  textAlign: meta?.textAlign || "left",
 });
 
 const TableComponent = ({
@@ -298,7 +300,10 @@ const TableComponent = ({
                       <TableHead
                         key={header.id}
                         style={getCellStyles(header.column.columnDef.meta)}
-                        className={header.id === "select" ? "print:hidden" : ""}
+                        className={cn(
+                          header.id === "select" ? "print:hidden" : "",
+                          header.column.columnDef.meta?.className
+                        )}
                       >
                         {header.isPlaceholder
                           ? null
@@ -323,9 +328,10 @@ const TableComponent = ({
                         <TableCell
                           style={getCellStyles(cell.column.columnDef.meta)}
                           key={cell.id}
-                          className={
-                            cell.column.id === "select" ? "print:hidden" : ""
-                          }
+                          className={cn(
+                            cell.column.id === "select" ? "print:hidden" : "",
+                            cell.column.columnDef.meta?.className
+                          )}
                         >
                           {flexRender(
                             cell.column.columnDef.cell,
