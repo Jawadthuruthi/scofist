@@ -14,9 +14,24 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import Barcode from "react-barcode";
-import { Search, Scan } from "lucide-react";
+import { Search, Scan, IdCard, Book as BookIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useEffect, useRef, useMemo } from "react";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function LibraryDashboard({
     view,
@@ -32,6 +47,17 @@ export default function LibraryDashboard({
     const [scannerValue, setScannerValue] = useState("");
     const [editPopupOpen, setEditPopupOpen] = useState(false);
     const scannerInputRef = useRef(null);
+
+    // --- Lookup State ---
+    const [studentSearchId, setStudentSearchId] = useState("");
+    const [bookSearchId, setBookSearchId] = useState("");
+    const [lookupStudent, setLookupStudent] = useState(null);
+    const [lookupBook, setLookupBook] = useState(null);
+    const [studentHistory, setStudentHistory] = useState([]);
+    const [bookHistory, setBookHistory] = useState([]);
+    const [studentPopupOpen, setStudentPopupOpen] = useState(false);
+    const [bookPopupOpen, setBookPopupOpen] = useState(false);
+    const [lookupLoading, setLookupLoading] = useState(false);
 
     const selectedIds = Object.keys(rowSelection);
     const selectedBook = view === "books" && selectedIds.length === 1
@@ -300,6 +326,7 @@ export default function LibraryDashboard({
                 width: "1px",
                 padding: "0px 8px",
                 textAlign: "center",
+                verticalAlign: "middle",
                 className: "tight-column",
             },
         },
@@ -312,6 +339,7 @@ export default function LibraryDashboard({
                 whiteSpace: "nowrap",
                 padding: "0px 8px",
                 textAlign: "center",
+                verticalAlign: "middle",
                 className: "tight-column",
             },
         },
@@ -323,6 +351,7 @@ export default function LibraryDashboard({
                 minWidth: "auto",
                 whiteSpace: "nowrap",
                 padding: "0px 8px",
+                verticalAlign: "middle",
             }
         },
         {
@@ -574,11 +603,16 @@ export default function LibraryDashboard({
                 body: JSON.stringify(data),
             });
             if (res.ok) {
+                toast.success("Rental created successfully");
                 router.refresh();
                 return true;
+            } else {
+                const errorData = await res.json();
+                toast.error(errorData.msg || "Failed to create rental");
             }
         } catch (error) {
             console.error(error);
+            toast.error("An error occurred while creating the rental");
         } finally {
             setLoading(false);
         }
@@ -640,12 +674,136 @@ export default function LibraryDashboard({
         }
     };
 
+    // --- Lookup Handlers ---
+
+    const handleStudentLookup = async (e) => {
+        if (e && e.key !== 'Enter') return;
+        if (!studentSearchId) return;
+
+        setLookupLoading(true);
+        try {
+            // First fetch student details
+            const userRes = await fetch(`/api/users?_id=${studentSearchId}`);
+            const userData = await userRes.json();
+
+            if (userData.users && userData.users.length > 0) {
+                const student = userData.users[0];
+                setLookupStudent(student);
+
+                // Then fetch rental history
+                const rentalRes = await fetch(`/api/rental?studentId=${student._id}`);
+                const rentalData = await rentalRes.json();
+                setStudentHistory(rentalData.data || []);
+
+                setStudentPopupOpen(true);
+                setStudentSearchId(""); // Clear input
+            } else {
+                toast.error("Student not found");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to fetch student data");
+        } finally {
+            setLookupLoading(false);
+        }
+    };
+
+    const handleBookLookup = async (e) => {
+        if (e && e.key !== 'Enter') return;
+        if (!bookSearchId) return;
+
+        setLookupLoading(true);
+        try {
+            // Find book by number
+            const bookRes = await fetch("/api/library/books");
+            const bookData = await bookRes.json();
+            const book = bookData.data.find(b => String(b.number).toLowerCase() === bookSearchId.toLowerCase());
+
+            if (book) {
+                setLookupBook(book);
+
+                // Fetch rental history for this book
+                const rentalRes = await fetch(`/api/rental?bookId=${book._id}`);
+                const rentalData = await rentalRes.json();
+                setBookHistory(rentalData.data || []);
+
+                setBookPopupOpen(true);
+                setBookSearchId(""); // Clear input
+            } else {
+                toast.error("Book not found");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to fetch book data");
+        } finally {
+            setLookupLoading(false);
+        }
+    };
+
     // --- Views ---
 
     if (view === "dashboard") {
         return (
             <div className="space-y-6">
                 <Header title="LIBRARY DASHBOARD" subTitle="Overview of library stats" />
+
+                {/* Lookup Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card className="border-primary/20 shadow-sm hover:shadow-md transition-all">
+                        <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+                            <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                <IdCard className="h-4 w-4 text-primary" />
+                                STUDENT LOOKUP
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Enter Student ID..."
+                                        className="pl-10"
+                                        value={studentSearchId}
+                                        onChange={(e) => setStudentSearchId(e.target.value)}
+                                        onKeyDown={handleStudentLookup}
+                                        disabled={lookupLoading}
+                                    />
+                                </div>
+                                <Button size="icon" onClick={() => handleStudentLookup()} disabled={lookupLoading}>
+                                    <Search className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-primary/20 shadow-sm hover:shadow-md transition-all">
+                        <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+                            <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                <BookIcon className="h-4 w-4 text-primary" />
+                                BOOK LOOKUP
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Enter Book ID..."
+                                        className="pl-10"
+                                        value={bookSearchId}
+                                        onChange={(e) => setBookSearchId(e.target.value)}
+                                        onKeyDown={handleBookLookup}
+                                        disabled={lookupLoading}
+                                    />
+                                </div>
+                                <Button size="icon" onClick={() => handleBookLookup()} disabled={lookupLoading}>
+                                    <Search className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -702,6 +860,158 @@ export default function LibraryDashboard({
                     <BestReaderCard />
                     <MostReadBookCard />
                 </div>
+
+                {/* Student Popup */}
+                <Dialog open={studentPopupOpen} onOpenChange={setStudentPopupOpen}>
+                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>Student Library Profile</DialogTitle>
+                        </DialogHeader>
+                        {lookupStudent && (
+                            <div className="space-y-6 py-4">
+                                <div className="flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left">
+                                    <Avatar className="h-32 w-32 border-4 border-primary/10">
+                                        <AvatarImage src={lookupStudent.profilePic?.url} />
+                                        <AvatarFallback className="text-2xl">{lookupStudent.name?.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="space-y-2 flex-1">
+                                        <h2 className="text-2xl font-bold text-primary">{lookupStudent.name}</h2>
+                                        <div className="flex flex-col gap-1">
+                                            <div className="text-sm font-medium">Student ID: <span className="text-muted-foreground">{lookupStudent._id}</span></div>
+                                            {lookupStudent.className && (
+                                                <div className="text-sm font-medium">Class: <span className="text-muted-foreground">{lookupStudent.className}</span></div>
+                                            )}
+                                            <div className="text-sm font-medium">Batch: <span className="text-muted-foreground">{lookupStudent.batchName || "N/A"}</span></div>
+                                            <div className="text-sm font-medium">Status: <span className={`font-bold ${lookupStudent.studentStatus === 'Active' ? 'text-green-600' : 'text-red-600'}`}>{lookupStudent.studentStatus || "N/A"}</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                        <BookOpen className="h-5 w-5 text-primary" />
+                                        Rental History
+                                    </h3>
+                                    <div className="rounded-md border overflow-hidden">
+                                        <Table>
+                                            <TableHeader className="bg-muted/50">
+                                                <TableRow>
+                                                    <TableHead>Book ID</TableHead>
+                                                    <TableHead>Book Name</TableHead>
+                                                    <TableHead>Rented Date</TableHead>
+                                                    <TableHead>Returned Date</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {studentHistory.length > 0 ? (
+                                                    studentHistory.map((rental) => (
+                                                        <TableRow key={rental._id}>
+                                                            <TableCell className="font-medium">{rental.bookId?.number}</TableCell>
+                                                            <TableCell>{rental.bookId?.name}</TableCell>
+                                                            <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
+                                                            <TableCell>
+                                                                {rental.receivedDate ? (
+                                                                    <span className="text-green-600 font-medium">
+                                                                        {format(new Date(rental.receivedDate), "PP")}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-red-500 font-bold">Pending</span>
+                                                                )}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                ) : (
+                                                    <TableRow>
+                                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                                            No rental history found
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
+
+                {/* Book Popup */}
+                <Dialog open={bookPopupOpen} onOpenChange={setBookPopupOpen}>
+                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>Book Details & History</DialogTitle>
+                        </DialogHeader>
+                        {lookupBook && (
+                            <div className="space-y-6 py-4">
+                                <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
+                                    <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 flex items-center justify-center">
+                                        <BookIcon className="h-24 w-24 text-primary" />
+                                    </div>
+                                    <div className="space-y-1 flex-1 text-center md:text-left">
+                                        <h2 className="text-2xl font-bold text-primary">{lookupBook.name}</h2>
+                                        <div className="flex flex-col gap-1">
+                                            <div className="text-sm font-medium">Book ID: <span className="text-muted-foreground font-bold">{lookupBook.number}</span></div>
+                                            <div className="text-sm font-medium">Author: <span className="text-muted-foreground uppercase">{lookupBook.author}</span></div>
+                                            <div className="text-sm font-medium">Category: <span className="text-muted-foreground">{lookupBook.category}</span></div>
+                                            <div className="text-sm font-medium">Language: <span className="text-muted-foreground">{lookupBook.language}</span></div>
+                                            <div className="text-sm font-medium">Status:
+                                                <span className={`ml-1 font-bold ${lookupBook.status === 'Available' ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {lookupBook.status || 'Available'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                        <Users className="h-5 w-5 text-primary" />
+                                        Rental History (Students)
+                                    </h3>
+                                    <div className="rounded-md border overflow-hidden">
+                                        <Table>
+                                            <TableHeader className="bg-muted/50">
+                                                <TableRow>
+                                                    <TableHead>Student ID</TableHead>
+                                                    <TableHead>Student Name</TableHead>
+                                                    <TableHead>Rented Date</TableHead>
+                                                    <TableHead>Returned Date</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {bookHistory.length > 0 ? (
+                                                    bookHistory.map((rental) => (
+                                                        <TableRow key={rental._id}>
+                                                            <TableCell className="font-medium">{rental.studentId?._id || rental.studentId}</TableCell>
+                                                            <TableCell>{rental.studentId?.name || rental.studentName || "Unknown"}</TableCell>
+                                                            <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
+                                                            <TableCell>
+                                                                {rental.receivedDate ? (
+                                                                    <span className="text-green-600 font-medium">
+                                                                        {format(new Date(rental.receivedDate), "PP")}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-red-500 font-bold">Pending</span>
+                                                                )}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                ) : (
+                                                    <TableRow>
+                                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                                            No rental history found for this book
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
             </div>
         );
     }

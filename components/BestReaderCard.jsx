@@ -106,13 +106,13 @@ export default function BestReaderCard() {
                         </div>
                         <div className="space-y-1">
                             <p className="text-sm font-medium leading-none">{data.student?.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                                {data.student?.studentSpecificField?.classId?.name || "Unknown Class"}
+                            </p>
                             <div className="flex items-center pt-1 text-xs text-muted-foreground">
                                 <BookOpen className="mr-1 h-3 w-3" />
                                 {data.count} Books
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                {data.student?.studentSpecificField?.classId?.name || "Unknown Class"}
-                            </p>
                         </div>
                     </div>
                 ) : (

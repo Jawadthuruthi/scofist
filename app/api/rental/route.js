@@ -12,8 +12,18 @@ export async function GET(req) {
         await connectToDB();
         // Middleware handles auth
 
+        const url = new URL(req.url);
+        const studentId = url.searchParams.get("studentId");
+        const bookId = url.searchParams.get("bookId");
 
-        const rentals = await Rental.find().populate("bookId").populate("studentId", "name _id").sort({ createdAt: -1 });
+        const query = {};
+        if (studentId) query.studentId = studentId;
+        if (bookId) query.bookId = bookId;
+
+        const rentals = await Rental.find(query)
+            .populate("bookId")
+            .populate("studentId", "name _id profilePic studentSpecificField")
+            .sort({ createdAt: -1 });
 
         return NextResponse.json({ success: true, msg: "Rentals fetched successfully", data: rentals }, { status: 200 });
     } catch (error) {
@@ -48,6 +58,16 @@ export async function POST(req) {
 
             // Replace the input number with the actual Object ID
             body.bookId = book._id;
+
+            // --- VALIDATION: Check if book is already rented ---
+            const existingRental = await Rental.findOne({ bookId: book._id, receivedDate: null });
+            if (existingRental) {
+                return NextResponse.json({
+                    success: false,
+                    msg: `Book '${book.name}' is already rented to ${existingRental.studentName || 'another student'} and not yet returned.`,
+                    data: {}
+                }, { status: 400 });
+            }
         }
 
         // Validate Student ID

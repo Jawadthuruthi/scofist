@@ -91,13 +91,13 @@ export default function MostReadBookCard() {
                         </div>
                         <div className="space-y-1">
                             <p className="text-sm font-medium leading-none line-clamp-1" title={data.book?.name}>{data.book?.name}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-1">
+                                {data.book?.author || "Unknown Author"}
+                            </p>
                             <div className="flex items-center pt-1 text-xs text-muted-foreground">
                                 <Star className="mr-1 h-3 w-3 text-yellow-500 fill-yellow-500" />
                                 {data.count} Rentals
                             </div>
-                            <p className="text-xs text-muted-foreground line-clamp-1">
-                                {data.book?.author || "Unknown Author"}
-                            </p>
                         </div>
                     </div>
                 ) : (
