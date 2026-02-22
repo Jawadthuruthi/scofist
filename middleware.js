@@ -440,6 +440,11 @@ const pages = [
     pattern: /^\/dashboard\/it-lab(?:\/[^/]+)?$/,
     allowedRoles: ["IT Lab"],
   },
+  {
+    title: "Academic Calendar",
+    path: "/dashboard/academic-calendar",
+    allowedRoles: ["College Admin"],
+  },
 ];
 
 export async function middleware(req) {

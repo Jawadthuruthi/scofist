@@ -91,6 +91,12 @@ const items = [
     ],
   },
   {
+    title: "Academic Calendar",
+    url: "/dashboard/academic-calendar",
+    icon: Calendar,
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "My Periods",
     url: "/dashboard/my-periods",
     icon: Book,

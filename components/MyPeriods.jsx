@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Loader, CheckCircle2, FileText, AlertCircle, Check, ChevronsUpDown } from "lucide-react";
+import { Loader, CheckCircle2, FileText, AlertCircle, Check, ChevronsUpDown, CalendarDays } from "lucide-react";
 
 // UI Components
 import {
@@ -144,6 +144,19 @@ const MyPeriods = ({ apiKey, teacherId }) => {
     }
   );
   const settings = settingsQuery.data?.settings;
+  const { useFetchItems: useFetchCalendarEvents } = useCrud("academic-calendar", apiKey);
+
+  const calendarEventsQuery = useFetchCalendarEvents(
+    0, 0,
+    { date: formattedDate },
+    { staleTime: 1000 * 60 * 30, refetchOnWindowFocus: false }
+  );
+
+  const todayCalendarEvents = useMemo(
+    () => calendarEventsQuery.data?.["academic-calendar"] || [],
+    [calendarEventsQuery.data]
+  );
+
 
   const dateISO = useMemo(() => new Date().toISOString(), []);
 
@@ -284,6 +297,34 @@ const MyPeriods = ({ apiKey, teacherId }) => {
           <div className="mb-6 py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
             {date}
           </div>
+
+          {/* ── Academic Calendar Special Day Banner ── */}
+          {todayCalendarEvents.length > 0 && (
+            <div className="mb-6 overflow-hidden rounded-lg border">
+              {todayCalendarEvents.map((ev) => (
+                <div
+                  key={ev._id}
+                  className="flex items-center gap-3 px-4 py-3 border-l-4 border-primary bg-primary/10 text-primary font-medium"
+                >
+                  <CalendarDays className="h-5 w-5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold">{ev.title}</span>
+                      {ev.time && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 font-bold">
+                          {ev.time}
+                        </span>
+                      )}
+                    </div>
+                    {ev.description && (
+                      <p className="text-xs opacity-80 mt-0.5">{ev.description}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* ─────────────────────────────────────────── */}
 
           {/* Periods Table */}
           {loading ? (
