@@ -172,17 +172,71 @@ export default function AcademicCalendarManager({ apiKey }) {
         <head>
           <title>Special Days ${year}</title>
           <style>
-            body { font-family: sans-serif; padding: 20px; }
-            h1 { text-align: center; font-size: 20px; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-            th { background-color: #f4f4f4; font-size: 14px; }
-            td { font-size: 13px; }
-            .footer { margin-top: 30px; text-align: right; font-size: 11px; color: #666; }
+            @media print {
+              @page { margin: 15mm; }
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+            body { 
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+              color: #1e293b;
+              margin: 0;
+              padding: 20px;
+            }
+            .header-container {
+              text-align: center;
+              margin-bottom: 30px;
+              padding-bottom: 15px;
+              border-bottom: 2px solid #e2e8f0;
+            }
+            h1 { 
+              font-size: 24px; 
+              margin: 0 0 8px 0;
+              color: #0f172a;
+            }
+            .subtitle {
+              color: #64748b;
+              font-size: 14px;
+              margin: 0;
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+            }
+            th, td { 
+              padding: 12px 16px; 
+              text-align: left; 
+              border-bottom: 1px solid #e2e8f0;
+            }
+            th { 
+              background-color: #f8fafc; 
+              font-size: 13px; 
+              font-weight: 600;
+              color: #475569;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            }
+            .month-row td {
+              background-color: #f1f5f9;
+              font-weight: 600;
+              color: #334155;
+              text-align: center;
+              padding: 10px;
+              font-size: 14px;
+            }
+            .event-title {
+              font-weight: 500;
+              color: #0f172a;
+            }
+            .time-cell {
+              color: #64748b;
+            }
           </style>
         </head>
         <body>
-          <h1>Academic Calendar Special Days - ${year}</h1>
+          <div class="header-container">
+            <h1>Academic Calendar Special Days</h1>
+            <p class="subtitle">Year ${year}</p>
+          </div>
           <table>
             <thead>
               <tr>
@@ -192,13 +246,25 @@ export default function AcademicCalendarManager({ apiKey }) {
               </tr>
             </thead>
             <tbody>
-              ${sortedEvents.map(ev => `
-                <tr>
-                  <td>${fmtDisplay(ev.date)}</td>
-                  <td>${ev.time || "--"}</td>
-                  <td><strong>${ev.title}</strong></td>
-                </tr>
-              `).join("")}
+              ${Object.entries(
+            sortedEvents.reduce((acc, ev) => {
+                const m = new Date(ev.date).getMonth();
+                if (!acc[m]) acc[m] = [];
+                acc[m].push(ev);
+                return acc;
+            }, {})
+        ).flatMap(([monthIndex, monthEvents]) => [
+            `<tr class="month-row">
+                   <td colspan="3">${MONTHS[monthIndex]}</td>
+                 </tr>`,
+            ...monthEvents.map(ev => `
+                  <tr>
+                    <td>${fmtDisplay(ev.date)}</td>
+                    <td class="time-cell">${ev.time || "--"}</td>
+                    <td class="event-title">${ev.title}</td>
+                  </tr>
+                `)
+        ]).join("")}
             </tbody>
           </table>
           <div class="footer">Generated on ${new Date().toLocaleString()}</div>
@@ -276,30 +342,44 @@ export default function AcademicCalendarManager({ apiKey }) {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {sortedEvents.map(ev => (
-                                                <TableRow key={ev._id}>
-                                                    <TableCell className="text-xs whitespace-nowrap">
-                                                        <div>{fmtDisplay(ev.date)}</div>
-                                                        {ev.time && <div className="text-muted-foreground mt-0.5">{ev.time}</div>}
+                                            {Object.entries(
+                                                sortedEvents.reduce((acc, ev) => {
+                                                    const m = new Date(ev.date).getMonth();
+                                                    if (!acc[m]) acc[m] = [];
+                                                    acc[m].push(ev);
+                                                    return acc;
+                                                }, {})
+                                            ).flatMap(([monthIndex, monthEvents]) => [
+                                                <TableRow key={`m-${monthIndex}`} className="bg-muted/50 hover:bg-muted/50">
+                                                    <TableCell colSpan={3} className="font-semibold text-center py-1.5 h-auto text-xs">
+                                                        {MONTHS[monthIndex]}
                                                     </TableCell>
-                                                    <TableCell>
-                                                        <p className="text-xs font-medium">{ev.title}</p>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex gap-1">
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7"
-                                                                onClick={() => openEditDialog(ev)}>
-                                                                <Pencil className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                            <Button variant="ghost" size="icon"
-                                                                className="h-7 w-7 text-destructive hover:text-destructive"
-                                                                onClick={() => handleDelete(ev._id)}>
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
+                                                </TableRow>,
+                                                ...monthEvents.map(ev => (
+                                                    <TableRow key={ev._id}>
+                                                        <TableCell className="text-xs whitespace-nowrap">
+                                                            <div>{fmtDisplay(ev.date)}</div>
+                                                            <div className="text-muted-foreground mt-0.5">{ev.time || "--"}</div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <p className="text-xs font-medium">{ev.title}</p>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex gap-1">
+                                                                <Button variant="ghost" size="icon" className="h-7 w-7"
+                                                                    onClick={() => openEditDialog(ev)}>
+                                                                    <Pencil className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                                <Button variant="ghost" size="icon"
+                                                                    className="h-7 w-7 text-destructive hover:text-destructive"
+                                                                    onClick={() => handleDelete(ev._id)}>
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            ])}
                                         </TableBody>
                                     </Table>
                                 )}
@@ -337,7 +417,7 @@ export default function AcademicCalendarManager({ apiKey }) {
                                 <div className="flex items-start justify-between gap-2">
                                     <div>
                                         <p className="font-semibold text-sm">{ev.title}</p>
-                                        <p className="text-[10px] text-muted-foreground">{ev.time}</p>
+                                        <p className="text-[10px] text-muted-foreground">{ev.time || "--"}</p>
                                         {ev.description && <p className="text-xs mt-1 opacity-80">{ev.description}</p>}
                                     </div>
                                     <div className="flex gap-1 shrink-0">
