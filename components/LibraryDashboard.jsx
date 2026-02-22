@@ -14,6 +14,8 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import Barcode from "react-barcode";
+import { useReactToPrint } from "react-to-print";
+import BarcodeSheet from "./BarcodeSheet";
 import { Search, Scan, IdCard, Book as BookIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useEffect, useRef, useMemo } from "react";
@@ -44,9 +46,8 @@ export default function LibraryDashboard({
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [rowSelection, setRowSelection] = useState({});
-    const [scannerValue, setScannerValue] = useState("");
     const [editPopupOpen, setEditPopupOpen] = useState(false);
-    const scannerInputRef = useRef(null);
+    const barcodeSheetRef = useRef(null);
 
     // --- Lookup State ---
     const [studentSearchId, setStudentSearchId] = useState("");
@@ -427,37 +428,11 @@ export default function LibraryDashboard({
     ];
 
 
-    // --- Scanner Logic ---
-    useEffect(() => {
-        if (!scannerValue) return;
-
-        // Try to find book by ID
-        const matchedBook = initialBooks.find(b =>
-            String(b.number).toLowerCase() === scannerValue.toLowerCase()
-        );
-
-        if (matchedBook) {
-            setRowSelection({ [matchedBook._id]: true });
-            setEditPopupOpen(true);
-            toast.success(`Book Found: ${matchedBook.name}`);
-            setScannerValue(""); // Clear scanner
-        }
-    }, [scannerValue, initialBooks]);
-
-    // Auto-focus scanner on view change or mount
-    useEffect(() => {
-        if (view === "books" && scannerInputRef.current) {
-            scannerInputRef.current.focus();
-        }
-    }, [view]);
-
-    const handleScannerKeyDown = (e) => {
-        if (e.key === 'Enter') {
-            // Scanner usually sends Enter at the end
-            // The useEffect will handle the value change, 
-            // but we can also handle manual focus here if needed.
-        }
-    };
+    // --- Print Logic ---
+    const handlePrintBarcodes = useReactToPrint({
+        contentRef: barcodeSheetRef,
+        documentTitle: "Book Barcodes",
+    });
 
 
     // --- Handlers ---
@@ -1024,20 +999,13 @@ export default function LibraryDashboard({
                         title="BOOKS MANAGEMENT"
                         subTitle="Manage library books inventory"
                     />
-                    <div className="relative w-full md:w-64">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Scan className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <Input
-                            ref={scannerInputRef}
-                            type="text"
-                            placeholder="Scan Barcode / Enter ID..."
-                            className="pl-10 h-10 w-full bg-background"
-                            value={scannerValue}
-                            onChange={(e) => setScannerValue(e.target.value)}
-                            onKeyDown={handleScannerKeyDown}
-                        />
-                    </div>
+                    <Button
+                        onClick={() => handlePrintBarcodes()}
+                        className="flex items-center gap-2"
+                    >
+                        <Scan className="h-4 w-4" />
+                        Print All Barcodes
+                    </Button>
                 </div>
                 <TableComponent
                     data={initialBooks}
@@ -1123,6 +1091,7 @@ export default function LibraryDashboard({
                         </div>
                     }
                 />
+                <BarcodeSheet ref={barcodeSheetRef} books={initialBooks} />
             </div>
         );
     }
