@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { Printer, User, Shield } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
+import Barcode from "react-barcode";
 import Header from "./Header";
 import {
   Select,
@@ -180,25 +181,25 @@ const IdentityCards = ({
       <div className="grid grid-cols-12 gap-4 print:hidden">
         {selectionType === "Student ID"
           ? filteredStudents.map((student) => (
-              <IdCard
-                key={student._id}
-                person={student}
-                institution={institution}
-                academicYear={academicYear}
-                idCardBackgroundImageUrl={idCardBackgroundImageUrl}
-                isStudent={true}
-              />
-            ))
+            <IdCard
+              key={student._id}
+              person={student}
+              institution={institution}
+              academicYear={academicYear}
+              idCardBackgroundImageUrl={idCardBackgroundImageUrl}
+              isStudent={true}
+            />
+          ))
           : filteredTeachers.map((teacher) => (
-              <IdCard
-                key={teacher._id}
-                person={teacher}
-                institution={institution}
-                academicYear={academicYear}
-                idCardBackgroundImageUrl={idCardBackgroundImageUrl}
-                isStudent={false}
-              />
-            ))}
+            <IdCard
+              key={teacher._id}
+              person={teacher}
+              institution={institution}
+              academicYear={academicYear}
+              idCardBackgroundImageUrl={idCardBackgroundImageUrl}
+              isStudent={false}
+            />
+          ))}
       </div>
 
       {/* Print Layout - A4 Landscape with Front-Back-Front-Back pattern */}
@@ -373,6 +374,20 @@ const IdCard = ({
                 ? "OFFICIAL STUDENT IDENTIFICATION"
                 : "OFFICIAL TEACHER IDENTIFICATION"}
             </div>
+            {isStudent && (
+              <div className="flex justify-center mt-1 p-1 bg-white rounded shadow-sm overflow-hidden h-14">
+                <Barcode
+                  value={person._id?.substring(0, 8).toUpperCase()}
+                  width={1.5}
+                  height={45}
+                  format="CODE128"
+                  displayValue={false}
+                  background="#ffffff"
+                  renderer="svg"
+                  margin={0}
+                />
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -595,8 +610,22 @@ const PrintableIdCard = ({
             </div>
           </div>
 
-          <div className="bg-white/10 text-xs font-bold text-center mt-1 p-0.5 rounded">
-            {isStudent ? "OFFICIAL STUDENT ID" : "OFFICIAL TEACHER ID"}
+          <div className="bg-white text-xs font-bold text-center mt-1 p-0.5 rounded flex flex-col items-center">
+            <span className="mb-0.5">{isStudent ? "OFFICIAL STUDENT ID" : "OFFICIAL TEACHER ID"}</span>
+            {isStudent && (
+              <div className="mt-0.5 p-1 bg-white rounded overflow-hidden h-14 flex items-center">
+                <Barcode
+                  value={person._id?.substring(0, 8).toUpperCase()}
+                  width={1.5}
+                  height={45}
+                  format="CODE128"
+                  displayValue={false}
+                  background="#ffffff"
+                  renderer="svg"
+                  margin={0}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
