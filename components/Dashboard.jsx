@@ -721,7 +721,7 @@ export default function Dashboard({
 
   if (activeRole === "Literary Leader") {
     return (
-      <div className="flex flex-col space-y-6">
+      <div className="flex flex-col space-y-2">
         <Header
           title="DASHBOARD"
           subTitle={currentDate}
