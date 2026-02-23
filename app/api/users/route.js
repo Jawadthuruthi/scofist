@@ -94,6 +94,7 @@ export async function GET(req, res) {
     if (globalSearch) {
       // Create an $or query to search across multiple fields
       const searchFields = [
+        "_id",
         "name",
         "email",
         "contactNumber",

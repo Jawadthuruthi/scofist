@@ -23,12 +23,14 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import useDataFilter from "@/hooks/use-data-filter";
 import dynamic from "next/dynamic";
-import { Loader } from "lucide-react";
+import { Loader, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
 import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { applyPrintStyles, removePrintStyles, formatDateForDisplay } from "@/lib/utils";
+import * as XLSX from "xlsx";
 import PrintHeader from "@/components/PrintHeader";
 import DateRangeFilter from "@/components/DateRangeFilter";
 
@@ -110,6 +112,7 @@ const DataTableComponent = ({
   isFestival = false,
   multiEditFormFields = DEFAULT_ARRAY,
   enableCreate = true,
+  enableSearch = false,
   printInReverse = false,
 }) => {
   const [sorting, setSorting] = useState([]);
@@ -502,6 +505,68 @@ const DataTableComponent = ({
     removePrintStyles();
   };
 
+  const handleExportExcel = () => {
+    const exportData = table.getFilteredRowModel().rows.map(row => row.original);
+
+    const excelData = exportData.map((row, index) => {
+      const rowData = {};
+
+      columnsConfig.forEach((col) => {
+        if (col.id === "select" || col.type?.includes("checkbox") || col.type?.includes("avatar") || col.type?.includes("image") || col.id === "actions") {
+          return;
+        }
+
+        const header = col.header || col.accessorKey || col.id;
+
+        if (col.type?.includes("serialNo") || col.accessorKey === "serialNo") {
+          rowData[header] = index + 1;
+          return;
+        }
+
+        if (col.accessorKey) {
+          const keys = col.accessorKey.split(".");
+          let value = row;
+          for (const key of keys) {
+            if (value === null || value === undefined) break;
+            value = value[key];
+          }
+
+          let valueStr = "";
+          if (value !== null && value !== undefined) {
+            if (col.type?.includes("date")) {
+              valueStr = formatDateForDisplay(value);
+            } else if (col.type?.includes("array") || Array.isArray(value)) {
+              valueStr = Array.isArray(value) ? value.join(", ") : value;
+            } else if (col.type?.includes("nestedObject") || typeof value === "object") {
+              if (value.name) {
+                valueStr = value.name;
+              } else if (value.label) {
+                valueStr = value.label;
+              } else {
+                const objVals = [];
+                for (const key in value) {
+                  if (typeof value[key] === "string" || typeof value[key] === "number") {
+                    objVals.push(value[key]);
+                  }
+                }
+                valueStr = objVals.join(", ");
+              }
+            } else {
+              valueStr = value;
+            }
+          }
+          rowData[header] = valueStr;
+        }
+      });
+      return rowData;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, printTitle || resource || "Sheet1");
+    XLSX.writeFile(workbook, `${printTitle ? printTitle : resource}.xlsx`);
+  };
+
   // Table columns
   const columns = useMemo(() => {
     return useTableColumns(columnsConfig);
@@ -670,6 +735,18 @@ const DataTableComponent = ({
             />
           )}
 
+          {enableSearch && (
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by ID or Name..."
+                value={globalFilter ?? ""}
+                onChange={(e) => handleSetGlobalFilter(e.target.value)}
+                className="h-9 w-[180px] lg:w-[250px] pl-9"
+              />
+            </div>
+          )}
+
           <PopupFilter
             filterConfig={isMobile ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
             filters={filters}
@@ -724,6 +801,9 @@ const DataTableComponent = ({
           )}
           {table.getRowModel().rows?.length > 0 && (
             <>
+              <Button onClick={handleExportExcel} className="print:hidden bg-[#1D6F42] text-white hover:bg-[#1D6F42]/90">
+                Excel
+              </Button>
               {isMobile ? (
                 <Button onClick={handleDownloadPDF} className="print:hidden bg-black text-white hover:bg-gray-800">
                   Download PDF

@@ -137,6 +137,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         apiFilters={apiFilters}
         filterTitle={filterTitle || "Students"}
         printTitle={pageTitle || "Students"}
+        enableSearch={true}
         filterType="api"
         readOnly={activeRole !== "College Admin" || isReadOnly}
         tableHeight="calc(100vh - 200px)"
