@@ -46,11 +46,10 @@ const SectionNavigation = ({
         ref={(el) => (ref.current[index] = el)}
         key={section}
         type="button"
-        className={`px-4 py-2 text-sm text-nowrap ${
-          activeIndex === index
+        className={`px-4 py-2 text-sm text-nowrap ${activeIndex === index
             ? "border-b-2 border-primary text-primary"
             : "text-muted-foreground"
-        }`}
+          }`}
         onClick={() => setActiveIndex(index)}
       >
         {section}
@@ -199,9 +198,8 @@ const FormContent = ({
           {sectionOrder.map((section, index) => (
             <div
               key={section}
-              className={`grid grid-cols-2 gap-4 ${
-                activeSectionIndex === index ? "block" : "hidden"
-              }`}
+              className={`grid grid-cols-2 gap-4 ${activeSectionIndex === index ? "block" : "hidden"
+                }`}
             >
               {section !== "undefined" && (
                 <h2 className="text-lg font-bold col-span-2">{section}</h2>
@@ -307,7 +305,7 @@ export default function FormComponent({
       console.error("Form submission failed:", error.message);
       toast.error(
         error?.message ||
-          "Failed to save data. Please check the form and try again."
+        "Failed to save data. Please check the form and try again."
       );
       if (error.details?.errors) {
         error.details.errors.forEach(({ field, message }) => {
@@ -337,7 +335,7 @@ export default function FormComponent({
           (!field.conditionalRender ||
             (field.conditionalRender.expectedValue
               ? field.conditionalRender.expectedValue ===
-                formValues[field.conditionalRender.dependentField]
+              formValues[field.conditionalRender.dependentField]
               : !!formValues[field.conditionalRender.dependentField]))
       )
     );
@@ -345,7 +343,7 @@ export default function FormComponent({
 
   return (
     <Card>
-      <CardHeader className={title || description ? "p-6" : "p-2"}>
+      <CardHeader className={title || description ? "p-6 pb-0" : "p-2"}>
         <div className="space-y-1.5">
           {title && (
             <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>

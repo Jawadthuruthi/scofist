@@ -468,8 +468,8 @@ export default async function SettingsPage() {
                 apiKey={apiKey}
                 data={org}
                 resource="settings"
-                title="Institution Profile"
-                description="Configure Your Institution Details"
+                title="Organisation Profile"
+                description="Configure Your Organisation Details"
               />
               <div className="mt-8">
                 <CommitteePostersSettings

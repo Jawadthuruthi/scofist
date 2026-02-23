@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, Plus, Save, Loader } from "lucide-react";
+import { Trash2, Plus, Save, Loader, Edit } from "lucide-react";
 import { toast } from "sonner";
 import ImageUploader from "./ImageUploader";
 import PosterImageUploader from "./PosterImageUploader";
@@ -25,6 +25,7 @@ export default function CommitteePostersSettings({
     const [year, setYear] = React.useState(`${new Date().getFullYear()}-${(new Date().getFullYear() + 1).toString().slice(-2)}`);
     const [newPosterImage, setNewPosterImage] = React.useState({});
     const [loading, setLoading] = React.useState(false);
+    const [editingYear, setEditingYear] = React.useState(null);
     const router = useRouter();
 
     // Sort posters by year descending for display (string comparison)
@@ -61,7 +62,14 @@ export default function CommitteePostersSettings({
         toast.success("Poster added to list (unsaved)");
     };
 
+    const handleEditPoster = (poster) => {
+        setYear(poster.year);
+        setNewPosterImage(poster.poster);
+        setEditingYear(poster.year);
+    };
+
     const handleDeletePoster = async (yearToDelete) => {
+        if (!window.confirm("Are you sure you want to delete this poster?")) return;
         // Optimistically update UI
         const updatedPosters = posters.filter((p) => p.year !== yearToDelete);
         setPosters(updatedPosters);
@@ -108,19 +116,28 @@ export default function CommitteePostersSettings({
 
     const handleSave = async () => {
         let finalPosters = [...posters];
-        let addedNew = false;
+        let resetForm = false;
 
         // If inputs are present, try to include them
         if (year && newPosterImage?.url) {
-            if (posters.some((p) => p.year === year)) {
-                toast.error(`A poster for year ${year} already exists`);
-                return;
+            if (editingYear) {
+                if (year !== editingYear && posters.some((p) => p.year === year)) {
+                    toast.error(`A poster for year ${year} already exists`);
+                    return;
+                }
+                finalPosters = finalPosters.map((p) => (p.year === editingYear ? { year, poster: newPosterImage } : p));
+                resetForm = true;
+            } else {
+                if (posters.some((p) => p.year === year)) {
+                    toast.error(`A poster for year ${year} already exists`);
+                    return;
+                }
+                finalPosters.push({
+                    year: year,
+                    poster: newPosterImage,
+                });
+                resetForm = true;
             }
-            finalPosters.push({
-                year: year,
-                poster: newPosterImage,
-            });
-            addedNew = true;
         } else if (year || newPosterImage?.url) {
             // Optional: warn if partially filled. 
             // For now let's strict validate only if they clicked save and something is there.
@@ -166,9 +183,10 @@ export default function CommitteePostersSettings({
             }
 
             setPosters(finalPosters);
-            if (addedNew) {
+            if (resetForm) {
                 setNewPosterImage({});
                 setYear(`${new Date().getFullYear()}-${(new Date().getFullYear() + 1).toString().slice(-2)}`);
+                setEditingYear(null);
             }
             toast.success("Committee posters saved successfully!");
             router.refresh();
@@ -219,9 +237,23 @@ export default function CommitteePostersSettings({
                                         placeholder="Enter Year"
                                     />
                                 </div>
+                                {editingYear && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setEditingYear(null);
+                                            setYear(`${new Date().getFullYear()}-${(new Date().getFullYear() + 1).toString().slice(-2)}`);
+                                            setNewPosterImage({});
+                                        }}
+                                        disabled={loading}
+                                        type="button"
+                                    >
+                                        Cancel
+                                    </Button>
+                                )}
                                 <Button onClick={handleSave} disabled={loading} type="button">
                                     {loading ? <Loader className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
-                                    Save
+                                    {editingYear ? "Update" : "Save"}
                                 </Button>
                             </div>
                         </div>
@@ -251,7 +283,15 @@ export default function CommitteePostersSettings({
                                                 alt={`Committee Poster ${item.year}`}
                                                 className="object-cover w-full h-full"
                                             />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                <Button
+                                                    variant="secondary"
+                                                    size="icon"
+                                                    className="h-6 w-6"
+                                                    onClick={() => handleEditPoster(item)}
+                                                >
+                                                    <Edit className="h-3 w-3" />
+                                                </Button>
                                                 <Button
                                                     variant="destructive"
                                                     size="icon"
