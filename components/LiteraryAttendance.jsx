@@ -185,12 +185,12 @@ const LiteraryAttendance = ({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <Header
         title="LITERARY ATTENDANCE"
         subTitle="Manage Literary Attendance"
       />
-      <div className="mb-6 py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
+      <div className="mb-4 py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
         {date}
       </div>
       <Tabs value={activeTab} defaultValue="all" onValueChange={setActiveTab}>
@@ -205,16 +205,19 @@ const LiteraryAttendance = ({
                 <TableRow>
                   <TableHead>Class</TableHead>
                   <TableHead className="text-right">Absentees</TableHead>
-                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {classes.map((cls) => (
-                  <TableRow key={cls._id} className="hover:bg-accent/50">
+                  <TableRow
+                    key={cls._id}
+                    className="hover:bg-accent/50 cursor-pointer"
+                    onClick={() => router.push(`/dashboard/literary-attendance/mark-attendance?classId=${cls?._id}&className=${cls?.name}&category=ALL&apiKey=${apiKey}&date=${formattedDate}&day=${today}&batchId=${cls.batchId}`)}
+                  >
                     <TableCell className="whitespace-nowrap">
                       <div className="text-xs md:text-base">{cls?.name}</div>
                       {isAttendanceMarked(cls._id) && (
-                        <div className="flex items-center gap-1 text-xxs text-muted-foreground">
+                        <div className="flex items-center gap-1 text-xxs text-muted-foreground mt-0.5">
                           <CheckCircle2 className="text-green-500 h-3 w-3" />
                           <span>Attendance Marked</span>
                         </div>
@@ -224,8 +227,9 @@ const LiteraryAttendance = ({
                       {classBasedAbsentees[cls._id] &&
                         classBasedAbsentees[cls._id].length > 0 ? (
                         <div
-                          className={`flex items-center ml-auto max-w-fit gap-2 rounded-full px-2 py-1 border cursor-pointer`}
-                          onClick={() => {
+                          className={`flex items-center ml-auto max-w-fit gap-2 rounded-full px-2 py-1 border hover:bg-muted transition-colors`}
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setAbsenteesDialogOpen(true);
                             setSelectedClassId(cls._id);
                           }}
@@ -239,24 +243,10 @@ const LiteraryAttendance = ({
                           </Badge>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground">
-                          {isAttendanceMarked(cls._id) ? "No Absentees" : ""}
+                        <span className="text-muted-foreground text-sm">
+                          {isAttendanceMarked(cls._id) ? "0" : "-"}
                         </span>
                       )}
-                    </TableCell>
-
-                    <TableCell align="right">
-                      <Link
-                        href={`/dashboard/literary-attendance/mark-attendance?classId=${cls?._id}&className=${cls?.name}&category=ALL&apiKey=${apiKey}&date=${formattedDate}&day=${today}&batchId=${cls.batchId}`}
-                        prefetch={false}
-                      >
-                        <ExternalLink className="text-muted-foreground h-5 w-5 md:hidden" />
-                        <Button size="sm" className="hidden md:inline-flex">
-                          {isAttendanceMarked(cls._id)
-                            ? "Update Attendance"
-                            : "Take Attendance"}
-                        </Button>
-                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -271,16 +261,19 @@ const LiteraryAttendance = ({
                 <TableRow>
                   <TableHead>Group</TableHead>
                   <TableHead className="text-right">Absentees</TableHead>
-                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {groups.map((group) => (
-                  <TableRow key={group._id} className="hover:bg-accent/50">
+                  <TableRow
+                    key={group._id}
+                    className="hover:bg-accent/50 cursor-pointer"
+                    onClick={() => router.push(`/dashboard/literary-attendance/mark-attendance?groupId=${group?._id}&groupName=${group?.name}&category=GROUP&apiKey=${apiKey}&date=${formattedDate}&day=${today}`)}
+                  >
                     <TableCell className="whitespace-nowrap">
                       <div className="text-xs md:text-base">{group?.name}</div>
                       {isAttendanceMarked(group._id) && (
-                        <div className="flex items-center gap-1 text-xxs text-muted-foreground">
+                        <div className="flex items-center gap-1 text-xxs text-muted-foreground mt-0.5">
                           <CheckCircle2 className="text-green-500 h-3 w-3" />
                           <span>Attendance Marked</span>
                         </div>
@@ -290,8 +283,9 @@ const LiteraryAttendance = ({
                       {groupBasedAbsentees[group._id] &&
                         groupBasedAbsentees[group._id].length > 0 ? (
                         <div
-                          className={`flex items-center ml-auto max-w-fit gap-2 rounded-full px-2 py-1 border cursor-pointer`}
-                          onClick={() => {
+                          className={`flex items-center ml-auto max-w-fit gap-2 rounded-full px-2 py-1 border hover:bg-muted transition-colors`}
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setAbsenteesDialogOpen(true);
                             setSelectedGroupId(group._id);
                           }}
@@ -305,24 +299,10 @@ const LiteraryAttendance = ({
                           </Badge>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground">
-                          {isAttendanceMarked(group._id) ? "No Absentees" : ""}
+                        <span className="text-muted-foreground text-sm">
+                          {isAttendanceMarked(group._id) ? "0" : "-"}
                         </span>
                       )}
-                    </TableCell>
-
-                    <TableCell align="right">
-                      <Link
-                        href={`/dashboard/literary-attendance/mark-attendance?groupId=${group?._id}&groupName=${group?.name}&category=GROUP&apiKey=${apiKey}&date=${formattedDate}&day=${today}`}
-                        prefetch={false}
-                      >
-                        <ExternalLink className="text-muted-foreground h-5 w-5 md:hidden" />
-                        <Button size="sm" className="hidden md:inline-flex">
-                          {isAttendanceMarked(group._id)
-                            ? "Update Attendance"
-                            : "Take Attendance"}
-                        </Button>
-                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}

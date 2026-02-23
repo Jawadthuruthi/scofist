@@ -181,6 +181,15 @@ const AttendanceTrackingPage = async () => {
           },
           { header: "Date", accessorKey: "dateForDisplay" },
           {
+            header: "Category",
+            accessorKey: "category",
+            type: ["mappedValue"],
+            valueMap: {
+              "ALL": "General",
+              "GROUP": "Group"
+            }
+          },
+          {
             header: "Absentees",
             accessorKey: "absentees",
             valueKey: "absentees",

@@ -101,54 +101,54 @@ export async function GET(req, res) {
                   // Filter by class if specified
                   ...(recordFilters.classId
                     ? [
-                        {
-                          $eq: ["$$record.classId", recordFilters.classId],
-                        },
-                      ]
+                      {
+                        $eq: ["$$record.classId", recordFilters.classId],
+                      },
+                    ]
                     : []),
 
                   // Filter by batch if specified
                   ...(recordFilters.batchId
                     ? [
-                        {
-                          $eq: ["$$record.batchId", recordFilters.batchId],
-                        },
-                      ]
+                      {
+                        $eq: ["$$record.batchId", recordFilters.batchId],
+                      },
+                    ]
                     : []),
 
                   // Filter by group if specified
                   ...(recordFilters.groupId
                     ? [
-                        {
-                          $eq: ["$$record.groupId", recordFilters.groupId],
-                        },
-                      ]
+                      {
+                        $eq: ["$$record.groupId", recordFilters.groupId],
+                      },
+                    ]
                     : []),
                   // Filter by category if specified
                   ...(recordFilters.category
                     ? [
-                        {
-                          $eq: ["$$record.category", recordFilters.category],
-                        },
-                      ]
+                      {
+                        $eq: ["$$record.category", recordFilters.category],
+                      },
+                    ]
                     : []),
 
                   // Date filtering - start date if specified
                   ...(dateFilter?.start
                     ? [
-                        {
-                          $gte: ["$$record.date", dateFilter.start],
-                        },
-                      ]
+                      {
+                        $gte: ["$$record.date", dateFilter.start],
+                      },
+                    ]
                     : []),
 
                   // Date filtering - end date if specified
                   ...(dateFilter?.end
                     ? [
-                        {
-                          $lte: ["$$record.date", dateFilter.end],
-                        },
-                      ]
+                      {
+                        $lte: ["$$record.date", dateFilter.end],
+                      },
+                    ]
                     : []),
                 ],
               },
@@ -222,42 +222,51 @@ export async function GET(req, res) {
                   // Same filters as main pipeline
                   ...(recordFilters.classId
                     ? [
-                        {
-                          $eq: ["$$record.classId", recordFilters.classId],
-                        },
-                      ]
+                      {
+                        $eq: ["$$record.classId", recordFilters.classId],
+                      },
+                    ]
                     : []),
 
                   ...(recordFilters.batchId
                     ? [
-                        {
-                          $eq: ["$$record.batchId", recordFilters.batchId],
-                        },
-                      ]
+                      {
+                        $eq: ["$$record.batchId", recordFilters.batchId],
+                      },
+                    ]
                     : []),
 
                   ...(recordFilters.groupId
                     ? [
-                        {
-                          $eq: ["$$record.groupId", recordFilters.groupId],
-                        },
-                      ]
+                      {
+                        $eq: ["$$record.groupId", recordFilters.groupId],
+                      },
+                    ]
                     : []),
 
                   ...(dateFilter?.start
                     ? [
-                        {
-                          $gte: ["$$record.date", dateFilter.start],
-                        },
-                      ]
+                      {
+                        $gte: ["$$record.date", dateFilter.start],
+                      },
+                    ]
                     : []),
 
                   ...(dateFilter?.end
                     ? [
-                        {
-                          $lte: ["$$record.date", dateFilter.end],
-                        },
-                      ]
+                      {
+                        $lte: ["$$record.date", dateFilter.end],
+                      },
+                    ]
+                    : []),
+
+                  // Filter by category if specified (missing from original countPipeline)
+                  ...(recordFilters.category
+                    ? [
+                      {
+                        $eq: ["$$record.category", recordFilters.category],
+                      },
+                    ]
                     : []),
                 ],
               },

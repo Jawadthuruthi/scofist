@@ -354,6 +354,14 @@ const useTableColumns = (columnConfig) => {
       );
     }
 
+    // Apply mapped string render if type includes "mappedValue"
+    if (col.type?.includes("mappedValue") && col.valueMap) {
+      columnDefinition.cell = ({ row }) => {
+        const value = row.getValue(col.accessorKey);
+        return <div>{col.valueMap[value] || value}</div>;
+      };
+    }
+
     columnDefinition.meta = {
       ...columnDefinition.meta,
       width: col.width || "auto", // Default: auto

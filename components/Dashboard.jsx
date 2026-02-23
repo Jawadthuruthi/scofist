@@ -51,6 +51,7 @@ import { useRouter } from "next/navigation";
 import useCrud from "@/hooks/use-crud";
 import Header from "@/components/Header";
 import TimeTableComponent from "@/components/TimeTableComponent";
+import LiteraryStudentLookup from "./LiteraryStudentLookup";
 import { formatDateForDisplay } from "@/lib/utils";
 import {
   Dialog,
@@ -726,6 +727,7 @@ export default function Dashboard({
           subTitle={currentDate}
           icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
         />
+        <LiteraryStudentLookup apiKey={apiKey} />
       </div>
     );
   }

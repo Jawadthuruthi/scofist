@@ -321,7 +321,7 @@ const LiteraryAttendance = () => {
   }, [attendanceData]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <Header title="ATTENDANCE" subTitle="Mark Literary Attendance" />
       {loading ? (
         <div className="flex items-center justify-center h-64">
@@ -329,42 +329,53 @@ const LiteraryAttendance = () => {
         </div>
       ) : (
         <>
-          <div className="mb-6 py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
-            {formattedDate}
-          </div>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between border border-border p-4 rounded-lg">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+          {/* Header & Metadata */}
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 mb-4">
+            <div className="flex items-center gap-4 text-muted-foreground px-3 md:px-0">
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">
-                  Day: {queryParams.day}
-                </span>
+                <Calendar className="h-4 w-4" />
+                <span className="text-sm font-medium">{formattedDate}</span>
               </div>
+              <div className="h-4 w-px bg-border"></div>
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <Clock className="h-4 w-4" />
                 <span className="text-sm font-medium">
                   {queryParams.category === "ALL"
                     ? `Class: ${queryParams.className}`
                     : `Group: ${queryParams.groupName}`}
                 </span>
               </div>
-              <div className="flex items-center gap-4">
-                <Badge
-                  variant={
-                    stats.presentPercentage > 80 ? "success" : "destructive"
-                  }
-                >
-                  {stats.present}/{stats.total} Present (
-                  {stats.presentPercentage}%)
-                </Badge>
-                <Badge
-                  variant={
-                    stats.absentPercentage < 20 ? "success" : "destructive"
-                  }
-                >
-                  {stats.absent}/{stats.total} Absent ({stats.absentPercentage}
-                  %)
-                </Badge>
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="border border-border rounded-lg p-2 md:p-4 bg-card/30 mb-4">
+            <div className="grid grid-cols-3 gap-2 md:gap-4 text-center">
+              <div className="flex flex-col items-center gap-1 md:gap-2">
+                <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+                  Total
+                </span>
+                <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+                  {stats.total}
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-1 md:gap-2">
+                <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+                  Present
+                </span>
+                <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center text-green-600 dark:text-green-400">
+                  {stats.present}
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-1 md:gap-2">
+                <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+                  Absent
+                </span>
+                <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg bg-red-500 text-white text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+                  {stats.absent}
+                </div>
               </div>
             </div>
           </div>
