@@ -59,10 +59,10 @@ const formSchema = z.object({
   guardianName: z.string().min(2, "Guardian name is required"),
   guardianContactNumber: z
     .string()
-    .regex(/^\d{10,15}$/, "Invalid contact number"),
+    .regex(/^\+?\d{10,15}$/, "Invalid contact number"),
   guardianAlternativeNumber: z
     .string()
-    .regex(/^\d{10,15}$/, "Invalid contact number")
+    .regex(/^\+?\d{10,15}$/, "Invalid contact number")
     .optional()
     .or(z.literal("")),
   relationship: z.string().min(2, "Relationship is required"),
@@ -277,11 +277,10 @@ export default function ApplicationForm({ trigger }) {
                 <FormLabel>Profile Picture</FormLabel>
                 <div
                   {...getRootProps()}
-                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                    isDragActive
+                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragActive
                       ? "border-primary bg-primary/5"
                       : "border-muted-foreground/25"
-                  }`}
+                    }`}
                 >
                   <input {...getInputProps()} />
                   {file ? (

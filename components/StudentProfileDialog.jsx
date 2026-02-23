@@ -183,10 +183,22 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
 
                             {/* Status Specific Details */}
                             {currentStatus === "Dropped Out" && (
-                                <DetailRow
-                                    label="Status Details"
-                                    value={`Dropout Class: ${classes?.find(c => c._id === student.droppedOutClass)?.name || student.droppedOutClass || "N/A"} | Date: ${student.droppedOutDate ? new Date(student.droppedOutDate).toLocaleDateString() : "N/A"} ${student.droppedOutReason && student.droppedOutReason.toLowerCase() !== 'unknown' ? `| Reason: ${student.droppedOutReason}` : ''}`}
-                                />
+                                <>
+                                    <DetailRow
+                                        label="Dropout Class"
+                                        value={classes?.find(c => c._id === student.droppedOutClass)?.name || student.droppedOutClass || "N/A"}
+                                    />
+                                    <DetailRow
+                                        label="Dropout Date"
+                                        value={student.droppedOutDate ? new Date(student.droppedOutDate).toLocaleDateString() : "N/A"}
+                                    />
+                                    {student.droppedOutReason && student.droppedOutReason.toLowerCase() !== 'unknown' && (
+                                        <DetailRow
+                                            label="Dropout Reason"
+                                            value={student.droppedOutReason}
+                                        />
+                                    )}
+                                </>
                             )}
 
                             {currentStatus === "Graduated" && (
