@@ -43,7 +43,7 @@ export default function LiteraryStudentLookup({ apiKey }) {
     // Use the hook for fetching students
     const usersQuery = useFetchUsers(
         0,
-        1,
+        50, // Increase limit to find exact matches
         {
             global: searchTerm,
             roles: ["Student"], // "Student" to get students only
@@ -93,10 +93,18 @@ export default function LiteraryStudentLookup({ apiKey }) {
         try {
             const result = await usersQuery.refetch();
             if (result.isSuccess && result.data?.users?.length > 0) {
-                const foundStudent = result.data.users[0];
+                // Prioritize exact match for ID or Name to prevent incorrect selection
+                const searchLower = searchTerm.toLowerCase();
+                const exactMatch = result.data.users.find(
+                    (u) =>
+                        String(u._id).toLowerCase() === searchLower ||
+                        String(u.name).toLowerCase() === searchLower
+                );
+
+                const foundStudent = exactMatch || result.data.users[0];
+
                 setStudent(foundStudent);
                 setCurrentStudentId(foundStudent._id);
-                // Attendance query will automatically run since currentStudentId is set
             } else {
                 toast.error("No student found with that ID or Name.");
             }
