@@ -58,8 +58,16 @@ export async function GET(req) {
         // Filter by Batch and/or Class
         if (classId || batchId) {
             const studentQuery = {};
-            if (classId) studentQuery["studentSpecificField.classId"] = classId;
-            if (batchId) studentQuery["studentSpecificField.batchId"] = batchId;
+            if (classId) {
+                studentQuery["studentSpecificField.classId"] = {
+                    $in: classId.split(",").map((id) => id.trim()),
+                };
+            }
+            if (batchId) {
+                studentQuery["studentSpecificField.batchId"] = {
+                    $in: batchId.split(",").map((id) => id.trim()),
+                };
+            }
 
             const studentsInScope = await User.find(studentQuery).select("_id");
             filter.studentId = { $in: studentsInScope.map(s => s._id) };

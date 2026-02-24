@@ -96,6 +96,7 @@ export default function StudentCouponClient({ apiKey }) {
 
     const [isPaymentPopupOpen, setIsPaymentPopupOpen] = useState(false);
     const [isSimplePayment, setIsSimplePayment] = useState(false);
+    const [simplePaymentStudentName, setSimplePaymentStudentName] = useState("");
 
     // Student Lookup State
     const [lookupSearchTerm, setLookupSearchTerm] = useState("");
@@ -620,6 +621,7 @@ export default function StudentCouponClient({ apiKey }) {
         setPaymentBatchId("all"); // Reset batch to all to ensure student is found (or ideally specific batch if known)
         setPaymentClassId([]); // Reset class
         setPaymentStudentId([coupon.studentId?._id]);
+        setSimplePaymentStudentName(coupon.studentId?.name || "");
 
         // Use Global Filter for academic year as Payment Form doesn't have it anymore
         setFilters(prev => ({ ...prev, year: coupon.academicYear }));
@@ -1615,117 +1617,132 @@ export default function StudentCouponClient({ apiKey }) {
                             setIsPaymentPopupOpen(open);
                             if (!open) setIsSimplePayment(false);
                         }}>
-                            <DialogContent className="sm:max-w-[700px]">
+                            <DialogContent className={isSimplePayment ? "sm:max-w-[425px]" : "sm:max-w-[700px]"}>
                                 <DialogHeader>
                                     <DialogTitle>Payment Details</DialogTitle>
                                 </DialogHeader>
                                 <div className="py-4">
                                     <form onSubmit={handleSubmitPayment(onSavePayment)}>
-                                        <div className="space-y-3 md:space-y-4">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <Label>Payment Date</Label>
-                                                    <Input type="date" {...registerPayment("date", { required: true })} />
-                                                </div>
+                                        <div className="space-y-4">
+                                            {isSimplePayment ? (
+                                                <div className="flex flex-col space-y-4">
+                                                    <div className="flex flex-col">
+                                                        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1 font-semibold">Student Name:</div>
+                                                        <div className="text-xl font-bold text-primary">{simplePaymentStudentName}</div>
+                                                    </div>
 
-                                                {!isSimplePayment && (
-                                                    <>
-                                                        {/* Academic Year for Payment to Identify Coupon */}
-                                                        <div className="space-y-2">
-                                                            <Label>Academic Year</Label>
-                                                            <Select
-                                                                onValueChange={(val) => setValuePayment("academicYear", val)}
-                                                                defaultValue={String(new Date().getFullYear())}
-                                                                value={watchPayment("academicYear")}
-                                                            >
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Select Year" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    {getAcademicYears().map((year) => (
-                                                                        <SelectItem key={year} value={year}>
-                                                                            {year}
-                                                                        </SelectItem>
-                                                                    ))}
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Payment Date</Label>
+                                                        <Input type="date" {...registerPayment("date", { required: true })} />
+                                                    </div>
 
-                                                        {/* Batch Selection */}
-                                                        <div className="space-y-2">
-                                                            <Label>Select Batch</Label>
-                                                            <Select
-                                                                value={paymentBatchId}
-                                                                onValueChange={(val) => {
-                                                                    setPaymentBatchId(val);
-                                                                    setPaymentClassId([]);
-                                                                    setPaymentStudentId([]);
-                                                                }}
-                                                            >
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Select Batch" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="all">Select Batch</SelectItem>
-                                                                    {batches.map((batch) => (
-                                                                        <SelectItem key={batch._id} value={batch._id}>
-                                                                            {batch.name} ({batch.endYear})
-                                                                        </SelectItem>
-                                                                    ))}
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </div>
-
-                                                        {/* Class Selection */}
-                                                        <div className="space-y-2">
-                                                            <Label>Select Class</Label>
-                                                            <MultiSelect
-                                                                options={paymentClasses.map(c => ({ label: c.name, value: c._id }))}
-                                                                onValueChange={setPaymentClassId}
-                                                                value={paymentClassId}
-                                                                placeholder="Select Classes"
-                                                                variant="default"
-                                                            />
-                                                        </div>
-                                                    </>
-                                                )}
-
-                                                {/* Student Selection - Full Width on Mobile */}
-                                                <div className="space-y-2 col-span-2 md:col-span-1">
-                                                    <Label>Student Name</Label>
-                                                    <MultiSelect
-                                                        options={paymentStudents.map(s => ({ label: s.name, value: s._id }))}
-                                                        onValueChange={setPaymentStudentId}
-                                                        value={paymentStudentId}
-                                                        placeholder="Select Students"
-                                                        variant="default"
-                                                    />
-                                                    {paymentStudentId.length > 0 && (
-                                                        <p className="text-xs text-muted-foreground">{paymentStudentId.length} student(s) selected</p>
-                                                    )}
-                                                </div>
-
-                                                {/* Paid Amount & Mobile Save Button - Side by Side on Mobile */}
-                                                <div className="space-y-2 col-span-2 md:col-span-1">
-                                                    <Label>Paid Amount</Label>
-                                                    <div className="flex gap-2">
+                                                    <div className="space-y-2">
+                                                        <Label>Paid Amount</Label>
                                                         <Input
                                                             type="number"
                                                             {...registerPayment("amount", { required: true, min: 0 })}
                                                             placeholder="Enter Amount"
-                                                            className="flex-1"
+                                                            className="w-full"
                                                         />
-                                                        <Button type="submit" disabled={isSavingPayment} className="md:hidden flex-1">
-                                                            {isSavingPayment ? <Loader className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                                                            <span className="ml-2">Save</span>
-                                                        </Button>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            ) : (
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label>Payment Date</Label>
+                                                        <Input type="date" {...registerPayment("date", { required: true })} />
+                                                    </div>
 
-                                            <DialogFooter>
-                                                <Button type="button" variant="outline" onClick={() => setIsPaymentPopupOpen(false)}>Cancel</Button>
-                                                <Button type="submit" disabled={isSavingPayment} className="hidden md:inline-flex">
+                                                    <div className="space-y-2">
+                                                        <Label>Academic Year</Label>
+                                                        <Select
+                                                            onValueChange={(val) => setValuePayment("academicYear", val)}
+                                                            defaultValue={String(new Date().getFullYear())}
+                                                            value={watchPayment("academicYear")}
+                                                        >
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select Year" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {getAcademicYears().map((year) => (
+                                                                    <SelectItem key={year} value={year}>
+                                                                        {year}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <Label>Select Batch</Label>
+                                                        <Select
+                                                            value={paymentBatchId}
+                                                            onValueChange={(val) => {
+                                                                setPaymentBatchId(val);
+                                                                setPaymentClassId([]);
+                                                                setPaymentStudentId([]);
+                                                            }}
+                                                        >
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select Batch" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="all">Select Batch</SelectItem>
+                                                                {batches.map((batch) => (
+                                                                    <SelectItem key={batch._id} value={batch._id}>
+                                                                        {batch.name} ({batch.endYear})
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <Label>Select Class</Label>
+                                                        <MultiSelect
+                                                            options={paymentClasses.map(c => ({ label: c.name, value: c._id }))}
+                                                            onValueChange={setPaymentClassId}
+                                                            value={paymentClassId}
+                                                            placeholder="Select Classes"
+                                                            variant="default"
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2 col-span-2 md:col-span-1">
+                                                        <Label>Student Name</Label>
+                                                        <MultiSelect
+                                                            options={paymentStudents.map(s => ({ label: s.name, value: s._id }))}
+                                                            onValueChange={setPaymentStudentId}
+                                                            value={paymentStudentId}
+                                                            placeholder="Select Students"
+                                                            variant="default"
+                                                        />
+                                                        {paymentStudentId.length > 0 && (
+                                                            <p className="text-xs text-muted-foreground">{paymentStudentId.length} student(s) selected</p>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="space-y-2 col-span-2 md:col-span-1">
+                                                        <Label>Paid Amount</Label>
+                                                        <div className="flex gap-2">
+                                                            <Input
+                                                                type="number"
+                                                                {...registerPayment("amount", { required: true, min: 0 })}
+                                                                placeholder="Enter Amount"
+                                                                className="flex-1"
+                                                            />
+                                                            <Button type="submit" disabled={isSavingPayment} className="md:hidden flex-1">
+                                                                {isSavingPayment ? <Loader className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                                                                <span className="ml-2">Save</span>
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <DialogFooter className="flex flex-row justify-end space-x-2 pt-4 border-t mt-4">
+                                                <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setIsPaymentPopupOpen(false)}>Cancel</Button>
+                                                <Button type="submit" disabled={isSavingPayment} className={isSimplePayment ? "w-full sm:w-auto" : "hidden md:inline-flex w-full sm:w-auto"}>
                                                     {isSavingPayment ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                                                     Save Payment
                                                 </Button>
