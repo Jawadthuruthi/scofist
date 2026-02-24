@@ -16,12 +16,14 @@ export async function GET(req) {
         const startDate = url.searchParams.get("startDate");
         const endDate = url.searchParams.get("endDate");
         const search = url.searchParams.get("search");
+        const studentId = url.searchParams.get("studentId");
         const role = req.headers.get("active-role");
 
         // Build filter
         const filter = {};
         if (academicYear) filter.academicYear = academicYear;
         if (status && status !== "all") filter.status = status;
+        if (studentId) filter.studentId = studentId;
 
         // Date Range Filter (Applied to Payments)
         let dateFilter = null;

@@ -95,6 +95,7 @@ export default function StudentCouponClient({ apiKey }) {
     const [isSavingPayment, setIsSavingPayment] = useState(false);
 
     const [isPaymentPopupOpen, setIsPaymentPopupOpen] = useState(false);
+    const [isSimplePayment, setIsSimplePayment] = useState(false);
 
     // Student Lookup State
     const [lookupSearchTerm, setLookupSearchTerm] = useState("");
@@ -106,12 +107,8 @@ export default function StudentCouponClient({ apiKey }) {
     // Filter State
     const [filters, setFilters] = useState({
         search: "", // Combined Name/ID search from main bar or popover
-        batchId: "all",
-        classId: [],
         year: String(new Date().getFullYear()),
         status: "all",
-        startDate: "",
-        endDate: "",
         // Separate input fields in popover for specific queries IF we want them distinct?
         // User asked for "filters of student id, name...".
         // The main search bar covers Name/ID/CouponNo.
@@ -258,6 +255,14 @@ export default function StudentCouponClient({ apiKey }) {
     const [couponNumbers, setCouponNumbers] = useState({});
 
     const handlePrintSheet = () => {
+        if (detailsBatchId === "all" && detailsClassId.length === 0) {
+            toast.warning("Please select a Batch or Class first to print the sheet.");
+            return;
+        }
+        if (bulkStudents.length === 0) {
+            toast.warning("Please load students using 'Coupon Entry' before printing.");
+            return;
+        }
         setIsPrintingSheet(true);
         // Wait for render
         setTimeout(() => {
@@ -298,12 +303,11 @@ export default function StudentCouponClient({ apiKey }) {
         getValues: getValuesDetails
     } = useForm({
         defaultValues: {
-            academicYear: String(new Date().getFullYear()),
             couponAmount: ""
         }
     });
 
-    const currentYear = watchDetails("academicYear");
+    const currentYear = filters.year;
 
     // Fetch classes for dropdown
     const { data: detailsClassesData } = useFetchClasses(0, 1000, {
@@ -313,6 +317,10 @@ export default function StudentCouponClient({ apiKey }) {
 
 
     const handleGetStudents = async () => {
+        if (detailsBatchId === "all" && detailsClassId.length === 0) {
+            toast.warning("Please select a Batch or Class to load students.");
+            return;
+        }
         setIsLoadingBulkStudents(true);
         try {
             // 1. Fetch Students
@@ -388,7 +396,12 @@ export default function StudentCouponClient({ apiKey }) {
 
     const onSaveDetails = async (data) => {
         if (bulkStudents.length === 0) {
-            toast.error("No students loaded. Click 'Get Students' first.");
+            toast.error("No students loaded. Click 'Coupon Entry' first.");
+            return;
+        }
+
+        if (filters.year === "all") {
+            toast.error("Please select a specific Academic Year from the Total Collected Card to save details.");
             return;
         }
 
@@ -401,7 +414,7 @@ export default function StudentCouponClient({ apiKey }) {
 
                 const payload = {
                     studentId: student._id,
-                    academicYear: data.academicYear,
+                    academicYear: filters.year,
                     couponAmount: finalAmount,
                     couponNumber: cNumber.trim() || ""
                 };
@@ -471,12 +484,18 @@ export default function StudentCouponClient({ apiKey }) {
             toast.error("Please select at least one student for Payment");
             return;
         }
+
+        if (filters.year === "all") {
+            toast.error("Please select a specific Academic Year from the Total Collected Card to save payment.");
+            return;
+        }
+
         setIsSavingPayment(true);
         try {
             const promises = paymentStudentId.map((studentId) => {
                 const payload = {
                     studentId: studentId,
-                    academicYear: data.academicYear,
+                    academicYear: filters.year,
                     payment: {
                         amount: Number(data.amount) || 0,
                         date: new Date(data.date),
@@ -489,7 +508,6 @@ export default function StudentCouponClient({ apiKey }) {
             toast.success(`Payment saved for ${paymentStudentId.length} students`);
 
             resetPayment({
-                academicYear: data.academicYear,
                 date: new Date().toISOString().split('T')[0],
                 amount: ""
             });
@@ -511,17 +529,24 @@ export default function StudentCouponClient({ apiKey }) {
     // =================================================================================================
     // Data Fetching for Coupons
     // Construct query filters
-    const queryFilters = useMemo(() => ({
-        academicYear: filters.year !== "all" ? filters.year : undefined,
-        batchId: filters.batchId !== "all" ? filters.batchId : undefined,
-        status: filters.status !== "all" ? filters.status : undefined,
-        startDate: filters.startDate || undefined,
-        endDate: filters.endDate || undefined,
-        classId: filters.classId.length > 0 ? filters.classId.join(",") : undefined,
-        search: filters.search
-    }), [filters]);
+    const queryFilters = useMemo(() => {
+        if (hasLookedUp && lookupStudent) {
+            return {
+                academicYear: filters.year !== "all" ? filters.year : undefined,
+                studentId: lookupStudent._id
+            };
+        }
+        return {
+            academicYear: filters.year !== "all" ? filters.year : undefined,
+            batchId: detailsBatchId !== "all" ? detailsBatchId : undefined,
+            status: filters.status !== "all" ? filters.status : undefined,
+            classId: detailsClassId.length > 0 ? detailsClassId.join(",") : undefined,
+            search: filters.search
+        };
+    }, [filters.year, filters.status, filters.search, detailsBatchId, detailsClassId, hasLookedUp, lookupStudent]);
 
-    const { data: couponsData, isLoading, refetch: refetchCoupons } = useFetchItems(0, 0, queryFilters, { enabled: !!apiKey });
+    const shouldFetchCoupons = !!apiKey && (hasLookedUp || detailsBatchId !== "all" || detailsClassId.length > 0);
+    const { data: couponsData, isLoading, refetch: refetchCoupons } = useFetchItems(0, 0, queryFilters, { enabled: shouldFetchCoupons });
 
     const coupons = couponsData?.coupons || [];
     const stats = couponsData?.stats || { totalCouponAmount: 0, totalCollected: 0, totalPending: 0 };
@@ -595,9 +620,12 @@ export default function StudentCouponClient({ apiKey }) {
         setPaymentBatchId("all"); // Reset batch to all to ensure student is found (or ideally specific batch if known)
         setPaymentClassId([]); // Reset class
         setPaymentStudentId([coupon.studentId?._id]);
-        setValuePayment("academicYear", coupon.academicYear);
+
+        // Use Global Filter for academic year as Payment Form doesn't have it anymore
+        setFilters(prev => ({ ...prev, year: coupon.academicYear }));
 
         // Open Popup
+        setIsSimplePayment(true);
         setIsPaymentPopupOpen(true);
     };
 
@@ -778,228 +806,278 @@ export default function StudentCouponClient({ apiKey }) {
                 }
             `}</style>
 
-            {/* Student Lookup Card */}
-            <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-                <CardHeader className="bg-muted/10 pb-4 pt-4 border-b">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <Search className="w-5 h-5 text-primary" />
-                        Student Lookup
-                    </CardTitle>
-                    <CardDescription>
-                        Search for a student to view coupon history
-                    </CardDescription>
-                    <div className="flex gap-2 mt-4 max-w-md">
-                        <Input
-                            placeholder="Search by Student ID or Name..."
-                            value={lookupSearchTerm}
-                            onChange={(e) => setLookupSearchTerm(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") handleLookupSearch();
-                            }}
-                            className="flex-1"
-                        />
-                        <Button onClick={handleLookupSearch} disabled={isLookingUp}>
-                            {isLookingUp ? (
-                                <Loader className="h-4 w-4 animate-spin sm:mr-2" />
-                            ) : (
-                                <Search className="h-4 w-4 sm:mr-2" />
-                            )}
-                            <span className="hidden sm:inline">Search</span>
-                        </Button>
-                    </div>
-                </CardHeader>
-
-                <CardContent className="pt-6">
-                    {!hasLookedUp ? (
-                        <div className="text-center py-6 text-muted-foreground">
-                            <Users className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                        </div>
-                    ) : isLookingUp ? (
-                        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                            <Loader className="h-8 w-8 animate-spin mb-4" />
-                            <p className="text-sm">Looking up student...</p>
-                        </div>
-                    ) : lookupStudent ? (
-                        <div className="space-y-6">
-                            {/* Profile Section */}
-                            <div className="flex flex-col sm:flex-row items-center sm:items-start md:items-center gap-4 bg-muted/20 p-4 rounded-lg border">
-                                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border shadow-sm flex-shrink-0">
-                                    <AvatarImage src={lookupStudent.profilePic?.url} />
-                                    <AvatarFallback className="text-lg font-medium text-primary bg-primary/10">
-                                        {lookupStudent.name?.charAt(0)}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 space-y-1 text-center sm:text-left">
-                                    <h3 className="text-xl font-bold tracking-tight">{lookupStudent.name}</h3>
-                                    <div className="text-sm text-muted-foreground flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1">
-                                        <div><span className="font-medium mr-1">ID:</span> {lookupStudent._id}</div>
-                                        {lookupStudent.className && <div><span className="font-medium mr-1">Class:</span> {lookupStudent.className}</div>}
-                                        {lookupStudent.batchName && <div><span className="font-medium mr-1">Batch:</span> {lookupStudent.batchName}</div>}
-                                    </div>
-                                </div>
-                                <div className="hidden sm:block text-right self-start md:self-center">
-                                    <Badge variant={lookupStudent.status === "Active" ? "outline" : "secondary"} className={lookupStudent.status === "Active" ? "bg-green-50 text-green-700 border-green-200" : ""}>
-                                        {lookupStudent.status || "Unknown"}
-                                    </Badge>
-                                </div>
+            {/* Top Cards: Lookup Search & Summary side-by-side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Student Lookup Card */}
+                <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+                    <CardHeader className="bg-muted/10 pb-4 pt-4 border-b">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <Search className="w-5 h-5 text-primary" />
+                            Student Lookup
+                        </CardTitle>
+                        <CardDescription>
+                            Search for a student to view coupon history
+                        </CardDescription>
+                        <div className="flex gap-2 mt-4 w-full">
+                            <div className="relative flex-1">
+                                <Input
+                                    placeholder="Search by Student ID or Name..."
+                                    value={lookupSearchTerm}
+                                    onChange={(e) => setLookupSearchTerm(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleLookupSearch();
+                                    }}
+                                    className="w-full pr-10"
+                                />
+                                {(hasLookedUp || lookupSearchTerm) && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-transparent"
+                                        onClick={() => {
+                                            setLookupSearchTerm("");
+                                            setHasLookedUp(false);
+                                            setLookupStudent(null);
+                                            setLookupSelectedCouponIds([]);
+                                        }}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                )}
                             </div>
+                            <Button onClick={handleLookupSearch} disabled={isLookingUp}>
+                                {isLookingUp ? (
+                                    <Loader className="h-4 w-4 animate-spin sm:mr-2" />
+                                ) : (
+                                    <Search className="h-4 w-4 sm:mr-2" />
+                                )}
+                                <span className="hidden sm:inline">Search</span>
+                            </Button>
+                        </div>
+                    </CardHeader>
+                </Card>
 
-                            {/* Lookup Table Actions */}
-                            {lookupSelectedCouponIds.length > 0 && (
-                                <div className="flex items-center justify-between p-2 bg-muted/30 border rounded-md">
-                                    <span className="text-sm text-muted-foreground ml-2">
-                                        {lookupSelectedCouponIds.length} selected
-                                    </span>
-                                    <div className="flex gap-2">
+                {/* Summary Cards */}
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex flex-col md:flex-row justify-between items-start gap-2 md:gap-6">
+                            {/* LEFT: Date Inputs & Academic Year */}
+                            <div className="flex flex-col gap-3 w-full md:w-auto">
+                                <div className="grid gap-1.5 w-full">
+                                    <Label className="text-xs text-muted-foreground">Academic Year</Label>
+                                    <Select
+                                        value={filters.year}
+                                        onValueChange={(val) => setFilters(prev => ({ ...prev, year: val }))}
+                                    >
+                                        <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Select Year" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Years</SelectItem>
+                                            {getAcademicYears().map((year) => (
+                                                <SelectItem key={year} value={year}>{year}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="flex flex-row flex-nowrap gap-2 items-end w-full overflow-x-auto">
+                                    <div className="grid gap-1.5 flex-1 min-w-[120px]">
+                                        <Label htmlFor="fromDate" className="text-xs text-muted-foreground">From Date</Label>
+                                        <Input
+                                            id="fromDate"
+                                            type="date"
+                                            className="h-9 w-full"
+                                            value={filters.startDate}
+                                            onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                                        />
+                                    </div>
+                                    <div className="grid gap-1.5 flex-1 min-w-[120px]">
+                                        <Label htmlFor="toDate" className="text-xs text-muted-foreground">To Date</Label>
+                                        <Input
+                                            id="toDate"
+                                            type="date"
+                                            className="h-9 w-full"
+                                            value={filters.endDate}
+                                            onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                                        />
+                                    </div>
+                                    {(filters.startDate || filters.endDate) && (
                                         <Button
-                                            variant="outline"
+                                            variant="ghost"
                                             size="sm"
-                                            onClick={() => {
-                                                const coupon = lookupCouponsQuery.data?.coupons?.find(c => c._id === lookupSelectedCouponIds[0]);
-                                                if (coupon) {
-                                                    setSelectedCouponIds([coupon._id]);
-                                                    handleEdit();
-                                                }
-                                            }}
-                                            disabled={lookupSelectedCouponIds.length !== 1}
+                                            onClick={() => setFilters(prev => ({ ...prev, startDate: "", endDate: "" }))}
+                                            className="h-9 px-2 text-muted-foreground hover:text-foreground"
                                         >
-                                            <Edit className="mr-2 h-4 w-4" />
-                                            Edit
+                                            Clear
                                         </Button>
-                                        <ConfirmationPopup
-                                            action="delete"
-                                            title={`Delete ${lookupSelectedCouponIds.length} Coupons?`}
-                                            description="This action cannot be undone."
-                                            onClick={handleLookupBulkDelete}
-                                        >
-                                            <Button variant="destructive" size="sm">
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Delete
-                                            </Button>
-                                        </ConfirmationPopup>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* RIGHT: Heading and Amount */}
+                            <div className="flex flex-col items-center md:items-end space-y-1 w-full md:w-auto mt-2 md:mt-0">
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                    <span className="text-sm font-medium uppercase tracking-wider">Total Collected</span>
+                                </div>
+                                <div className="text-4xl font-bold text-green-600">₹{stats.totalCollected.toLocaleString()}</div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {hasLookedUp && (
+                <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden bg-card">
+                    <CardContent className="pt-6">
+                        {isLookingUp ? (
+                            <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                                <Loader className="h-8 w-8 animate-spin mb-4" />
+                                <p className="text-sm">Looking up student...</p>
+                            </div>
+                        ) : lookupStudent ? (
+                            <div className="space-y-6">
+                                {/* Profile Section */}
+                                <div className="flex flex-col sm:flex-row items-center sm:items-start md:items-center gap-4 bg-muted/20 p-4 rounded-lg border">
+                                    <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border shadow-sm flex-shrink-0">
+                                        <AvatarImage src={lookupStudent.profilePic?.url} />
+                                        <AvatarFallback className="text-lg font-medium text-primary bg-primary/10">
+                                            {lookupStudent.name?.charAt(0)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 space-y-1 text-center sm:text-left">
+                                        <h3 className="text-xl font-bold tracking-tight">{lookupStudent.name}</h3>
+                                        <div className="text-sm text-muted-foreground flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1">
+                                            <div><span className="font-medium mr-1">ID:</span> {lookupStudent._id}</div>
+                                            {lookupStudent.className && <div><span className="font-medium mr-1">Class:</span> {lookupStudent.className}</div>}
+                                            {lookupStudent.batchName && <div><span className="font-medium mr-1">Batch:</span> {lookupStudent.batchName}</div>}
+                                        </div>
+                                    </div>
+                                    <div className="hidden sm:block text-right self-start md:self-center">
+                                        <Badge variant={lookupStudent.status === "Active" ? "outline" : "secondary"} className={lookupStudent.status === "Active" ? "bg-green-50 text-green-700 border-green-200" : ""}>
+                                            {lookupStudent.status || "Unknown"}
+                                        </Badge>
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Lookup Table */}
-                            <div className="border rounded-md overflow-x-auto">
-                                <Table>
-                                    <TableHeader className="bg-muted/50">
-                                        <TableRow>
-                                            <TableHead className="w-[50px]">
-                                                <Checkbox
-                                                    checked={lookupCouponsQuery.data?.coupons?.length > 0 && lookupSelectedCouponIds.length === lookupCouponsQuery.data?.coupons?.length}
-                                                    onCheckedChange={(checked) => handleLookupSelectAll(checked, lookupCouponsQuery.data?.coupons || [])}
-                                                />
-                                            </TableHead>
-                                            <TableHead>Sl No</TableHead>
-                                            <TableHead>Year</TableHead>
-                                            <TableHead>Coupon No</TableHead>
-                                            <TableHead>Total Amount</TableHead>
-                                            <TableHead>Paid</TableHead>
-                                            <TableHead>Balance</TableHead>
-                                            <TableHead>Status</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {lookupCouponsQuery.isLoading || lookupCouponsQuery.isFetching ? (
-                                            <TableRow><TableCell colSpan={8} className="text-center h-24"><Loader className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
-                                        ) : !lookupCouponsQuery.data?.coupons || lookupCouponsQuery.data?.coupons.length === 0 ? (
-                                            <TableRow><TableCell colSpan={8} className="text-center h-24 text-muted-foreground">No coupon records found for this student.</TableCell></TableRow>
-                                        ) : (
-                                            lookupCouponsQuery.data.coupons.map((coupon, index) => (
-                                                <TableRow key={coupon._id}>
-                                                    <TableCell>
-                                                        <Checkbox
-                                                            checked={lookupSelectedCouponIds.includes(coupon._id)}
-                                                            onCheckedChange={(checked) => handleLookupSelectRow(coupon._id, checked)}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell>{index + 1}</TableCell>
-                                                    <TableCell className="font-medium">{coupon.academicYear}</TableCell>
-                                                    <TableCell>{coupon.couponNumber || "-"}</TableCell>
-                                                    <TableCell>₹{coupon.couponAmount}</TableCell>
-                                                    <TableCell
-                                                        className="text-green-600 font-semibold cursor-pointer hover:underline"
-                                                        onClick={() => setViewHistoryCoupon(coupon)}
-                                                    >
-                                                        ₹{coupon.totalPaid}
-                                                    </TableCell>
-                                                    <TableCell
-                                                        className="text-red-600 font-semibold cursor-pointer hover:underline"
-                                                        onClick={() => handlePayBalance(coupon)}
-                                                    >
-                                                        ₹{coupon.balance}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={coupon.status === "Paid" ? "success" : coupon.status === "Partial" ? "warning" : "destructive"}>
-                                                            {coupon.status}
-                                                        </Badge>
-                                                    </TableCell>
+                                {/* Lookup Table Actions */}
+                                {lookupSelectedCouponIds.length > 0 && (
+                                    <div className="flex items-center justify-between p-2 bg-muted/30 border rounded-md">
+                                        <span className="text-sm text-muted-foreground ml-2">
+                                            {lookupSelectedCouponIds.length} selected
+                                        </span>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    const coupon = lookupCouponsQuery.data?.coupons?.find(c => c._id === lookupSelectedCouponIds[0]);
+                                                    if (coupon) {
+                                                        setSelectedCouponIds([coupon._id]);
+                                                        handleEdit();
+                                                    }
+                                                }}
+                                                disabled={lookupSelectedCouponIds.length !== 1}
+                                            >
+                                                <Edit className="mr-2 h-4 w-4" />
+                                                Edit
+                                            </Button>
+                                            <ConfirmationPopup
+                                                action="delete"
+                                                title={`Delete ${lookupSelectedCouponIds.length} Coupons?`}
+                                                description="This action cannot be undone."
+                                                onClick={handleLookupBulkDelete}
+                                            >
+                                                <Button variant="destructive" size="sm">
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Delete
+                                                </Button>
+                                            </ConfirmationPopup>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Lookup Table */}
+                                <div className="border rounded-md overflow-x-auto">
+                                    <Table>
+                                        <TableHeader className="bg-muted/50">
+                                            <TableRow>
+                                                <TableHead className="w-[50px]">
+                                                    <Checkbox
+                                                        checked={lookupCouponsQuery.data?.coupons?.length > 0 && lookupSelectedCouponIds.length === lookupCouponsQuery.data?.coupons?.length}
+                                                        onCheckedChange={(checked) => handleLookupSelectAll(checked, lookupCouponsQuery.data?.coupons || [])}
+                                                    />
+                                                </TableHead>
+                                                <TableHead>Sl No</TableHead>
+                                                <TableHead>Year</TableHead>
+                                                <TableHead>Coupon No</TableHead>
+                                                <TableHead>Total Amount</TableHead>
+                                                <TableHead>Paid</TableHead>
+                                                <TableHead>Balance</TableHead>
+                                                <TableHead>Status</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {lookupCouponsQuery.isLoading || lookupCouponsQuery.isFetching ? (
+                                                <TableRow><TableCell colSpan={8} className="text-center h-24"><Loader className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                            ) : !lookupCouponsQuery.data?.coupons || lookupCouponsQuery.data?.coupons.length === 0 ? (
+                                                <TableRow><TableCell colSpan={8} className="text-center h-24 text-muted-foreground">No coupon records found for this student.</TableCell></TableRow>
+                                            ) : (
+                                                lookupCouponsQuery.data.coupons.map((coupon, index) => (
+                                                    <TableRow key={coupon._id}>
+                                                        <TableCell>
+                                                            <Checkbox
+                                                                checked={lookupSelectedCouponIds.includes(coupon._id)}
+                                                                onCheckedChange={(checked) => handleLookupSelectRow(coupon._id, checked)}
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell>{index + 1}</TableCell>
+                                                        <TableCell className="font-medium">{coupon.academicYear}</TableCell>
+                                                        <TableCell>{coupon.couponNumber || "-"}</TableCell>
+                                                        <TableCell>₹{coupon.couponAmount}</TableCell>
+                                                        <TableCell
+                                                            className="text-green-600 font-semibold cursor-pointer hover:underline"
+                                                            onClick={() => setViewHistoryCoupon(coupon)}
+                                                        >
+                                                            ₹{coupon.totalPaid}
+                                                        </TableCell>
+                                                        <TableCell
+                                                            className="text-red-600 font-semibold cursor-pointer hover:underline"
+                                                            onClick={() => handlePayBalance(coupon)}
+                                                        >
+                                                            ₹{coupon.balance}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={coupon.status === "Paid" ? "success" : coupon.status === "Partial" ? "warning" : "destructive"}>
+                                                                {coupon.status}
+                                                            </Badge>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            )}
+                                            {lookupCouponsQuery.data?.coupons?.length > 0 && (
+                                                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                                    <TableCell></TableCell>
+                                                    <TableCell></TableCell>
+                                                    <TableCell></TableCell>
+                                                    <TableCell className="text-right font-bold uppercase">Total:</TableCell>
+                                                    <TableCell className="font-bold">₹{lookupCouponsQuery.data.stats?.totalCouponAmount || 0}</TableCell>
+                                                    <TableCell className="font-bold text-green-700">₹{lookupCouponsQuery.data.stats?.totalCollected || 0}</TableCell>
+                                                    <TableCell className="font-bold text-red-700">₹{lookupCouponsQuery.data.stats?.totalPending || 0}</TableCell>
+                                                    <TableCell></TableCell>
                                                 </TableRow>
-                                            ))
-                                        )}
-                                    </TableBody>
-                                </Table>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                             </div>
-                        </div>
-                    ) : (
-                        <div className="text-center py-6 text-muted-foreground">
-                            No student found. Please try a different ID or name.
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                        ) : (
+                            <div className="text-center py-6 text-muted-foreground">
+                                No student found. Please try a different ID or name.
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
-            {/* Summary Cards */}
-            <Card>
-                <CardContent className="pt-6">
-                    <div className="flex flex-col md:flex-row justify-between items-start gap-2 md:gap-6">
-                        {/* LEFT: Date Inputs */}
-                        <div className="flex flex-row flex-nowrap gap-2 items-end w-full md:w-auto overflow-x-auto">
-                            <div className="grid gap-1.5 flex-1 min-w-[120px]">
-                                <Label htmlFor="fromDate" className="text-xs text-muted-foreground">From Date</Label>
-                                <Input
-                                    id="fromDate"
-                                    type="date"
-                                    className="h-9 w-full"
-                                    value={filters.startDate}
-                                    onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                                />
-                            </div>
-                            <div className="grid gap-1.5 flex-1 min-w-[120px]">
-                                <Label htmlFor="toDate" className="text-xs text-muted-foreground">To Date</Label>
-                                <Input
-                                    id="toDate"
-                                    type="date"
-                                    className="h-9 w-full"
-                                    value={filters.endDate}
-                                    onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                                />
-                            </div>
-                            {(filters.startDate || filters.endDate) && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setFilters(prev => ({ ...prev, startDate: "", endDate: "" }))}
-                                    className="h-9 px-2 text-muted-foreground hover:text-foreground"
-                                >
-                                    Clear
-                                </Button>
-                            )}
-                        </div>
-
-                        {/* RIGHT: Heading and Amount */}
-                        <div className="flex flex-col items-center md:items-end space-y-1 w-full md:w-auto mt-2 md:mt-0">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                                <span className="text-sm font-medium uppercase tracking-wider">Total Collected</span>
-                            </div>
-                            <div className="text-4xl font-bold text-green-600">₹{stats.totalCollected.toLocaleString()}</div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
 
             {/* Edit Coupon Dialog */}
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
@@ -1127,712 +1205,540 @@ export default function StudentCouponClient({ apiKey }) {
             </Dialog>
 
             {/* FORMS CONTAINER */}
-            <div className="space-y-6">
+            {!hasLookedUp && (
+                <>
+                    <div className="space-y-6">
 
-                {/* CARD 1: COUPON DETAILS - BULK ENTRY */}
-                <Card className="border shadow-sm bg-card">
-                    <CardHeader className="px-3 pt-3 pb-2 md:px-6 md:pt-6 md:pb-2">
-                        <CardTitle>Coupon Details (Bulk Entry)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 md:px-6 md:pb-6 md:pt-0">
-                        <form onSubmit={handleSubmitDetails(onSaveDetails)}>
-                            <div className="space-y-3 md:space-y-6">
-                                {/* Filters Row */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                                    <div className="space-y-2">
-                                        <Label>Academic Year</Label>
-                                        <Select
-                                            onValueChange={(val) => {
-                                                setValueDetails("academicYear", val);
-                                                // Clear students on year change to avoid confusion?
-                                                setBulkStudents([]);
-                                            }}
-                                            defaultValue="2025"
-                                            value={watchDetails("academicYear")}
-                                        >
-                                            <SelectTrigger><SelectValue placeholder="Select Year" /></SelectTrigger>
-                                            <SelectContent>
-                                                {getAcademicYears().map((year) => (
-                                                    <SelectItem key={year} value={year}>{year}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Select Batch</Label>
-                                        <Select
-                                            value={detailsBatchId}
-                                            onValueChange={(val) => {
-                                                setDetailsBatchId(val);
-                                                setDetailsClassId([]);
-                                                setBulkStudents([]); // Reset list
-                                            }}
-                                        >
-                                            <SelectTrigger><SelectValue placeholder="Select Batch" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">Select Batch</SelectItem>
-                                                {batches.map((batch) => (
-                                                    <SelectItem key={batch._id} value={batch._id}>{batch.name} ({batch.endYear})</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Select Class</Label>
-                                        <MultiSelect
-                                            options={detailsClasses.map(c => ({ label: c.name, value: c._id }))}
-                                            onValueChange={setDetailsClassId}
-                                            value={detailsClassId}
-                                            placeholder="Select Classes"
-                                            variant="default"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col md:flex-col-reverse gap-2">
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            className="w-full"
-                                            onClick={handleGetStudents}
-                                            disabled={isLoadingBulkStudents}
-                                        >
-                                            {isLoadingBulkStudents ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
-                                            Get Students
-                                        </Button>
-
-                                        {bulkStudents.length > 0 && (
+                        {/* CARD 1: COUPON DETAILS - BULK ENTRY */}
+                        <Card className="border shadow-sm bg-card">
+                            <CardHeader className="px-3 pt-3 pb-2 md:px-6 md:pt-6 md:pb-2">
+                                <CardTitle>Coupon Details (Bulk Entry)</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-3 md:px-6 md:pb-6 md:pt-0">
+                                <form onSubmit={handleSubmitDetails(onSaveDetails)}>
+                                    <div className="space-y-3 md:space-y-6">
+                                        {/* Filters Row */}
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                                            <div className="space-y-2">
+                                                <Label>Select Batch</Label>
+                                                <Select
+                                                    value={detailsBatchId}
+                                                    onValueChange={(val) => {
+                                                        setDetailsBatchId(val);
+                                                        setDetailsClassId([]);
+                                                        setBulkStudents([]); // Reset list
+                                                    }}
+                                                >
+                                                    <SelectTrigger><SelectValue placeholder="Select Batch" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">Select Batch</SelectItem>
+                                                        {batches.map((batch) => (
+                                                            <SelectItem key={batch._id} value={batch._id}>{batch.name} ({batch.endYear})</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Select Class</Label>
+                                                <MultiSelect
+                                                    options={detailsClasses.map(c => ({ label: c.name, value: c._id }))}
+                                                    onValueChange={setDetailsClassId}
+                                                    value={detailsClassId}
+                                                    placeholder="Select Classes"
+                                                    variant="default"
+                                                />
+                                            </div>
                                             <Button
                                                 type="button"
-                                                className="w-full bg-black hover:bg-gray-800 text-white"
+                                                variant="secondary"
+                                                className="w-full h-10"
+                                                onClick={handleGetStudents}
+                                                disabled={isLoadingBulkStudents}
+                                            >
+                                                {isLoadingBulkStudents ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
+                                                Coupon Entry
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                className="w-full h-10 bg-black hover:bg-gray-800 text-white"
                                                 onClick={handlePrintSheet}
                                             >
                                                 <Printer className="mr-2 h-4 w-4" />
                                                 Print Sheet
                                             </Button>
+                                        </div>
+
+                                        {/* Bulk Student List */}
+                                        {bulkStudents.length > 0 && (
+                                            <div className="space-y-4 border rounded-md p-4 bg-muted/10">
+                                                <div className="flex items-center justify-between">
+                                                    <h3 className="font-semibold text-lg">{bulkStudents.length} Students Found</h3>
+                                                    <div className="flex gap-2 items-center">
+                                                        <Label className="whitespace-nowrap">Global Amount:</Label>
+                                                        <Input
+                                                            type="number"
+                                                            {...registerDetails("couponAmount", { required: true })}
+                                                            className="w-32"
+                                                            placeholder="Amount"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="max-h-[400px] overflow-y-auto">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead className="w-[50px]">No.</TableHead>
+                                                                <TableHead>ID</TableHead>
+                                                                <TableHead>Student Name</TableHead>
+                                                                <TableHead>Coupon Number</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {bulkStudents.map((student, index) => (
+                                                                <TableRow key={student._id}>
+                                                                    <TableCell>{index + 1}</TableCell>
+                                                                    <TableCell>{student._id}</TableCell>
+                                                                    <TableCell className="font-medium">{student.name}</TableCell>
+                                                                    <TableCell>
+                                                                        <Input
+                                                                            id={`coupon-input-${index}`}
+                                                                            className="h-8 w-48"
+                                                                            placeholder="Coupon No"
+                                                                            value={couponNumbers[student._id] || ""}
+                                                                            onChange={(e) => handleCouponNumberChange(student._id, e.target.value)}
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === "Enter") {
+                                                                                    e.preventDefault();
+                                                                                    if (index < bulkStudents.length - 1) {
+                                                                                        const nextInput = document.getElementById(`coupon-input-${index + 1}`);
+                                                                                        if (nextInput) nextInput.focus();
+                                                                                    } else {
+                                                                                        handleSubmitDetails(onSaveDetails)();
+                                                                                    }
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+
+                                                <div className="flex justify-end pt-2 gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        disabled={isSavingDetails}
+                                                        onClick={() => {
+                                                            setBulkStudents([]);
+                                                            setCouponNumbers({});
+                                                            setDetailsBatchId("all");
+                                                            setDetailsClassId([]);
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button type="submit" disabled={isSavingDetails}>
+                                                        {isSavingDetails ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                                                        Save All Details
+                                                    </Button>
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
-                                </div>
+                                </form>
+                            </CardContent>
+                        </Card>
 
-                                {/* Bulk Student List */}
-                                {bulkStudents.length > 0 && (
-                                    <div className="space-y-4 border rounded-md p-4 bg-muted/10">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="font-semibold text-lg">{bulkStudents.length} Students Found</h3>
-                                            <div className="flex gap-2 items-center">
-                                                <Label className="whitespace-nowrap">Global Amount:</Label>
-                                                <Input
-                                                    type="number"
-                                                    {...registerDetails("couponAmount", { required: true })}
-                                                    className="w-32"
-                                                    placeholder="Amount"
-                                                />
+
+                    </div>
+
+                    {/* Filters & Table Controls */}
+                    <div className="flex flex-wrap md:flex-nowrap gap-2 items-center">
+
+                        {/* GROUP 1: Column & Filter Buttons */}
+                        <div className="flex gap-2 order-1 md:order-1">
+                            {/* Advanced Filter Popover (Columns) */}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="icon">
+                                        <Columns className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" sideOffset={8} className="w-44">
+                                    <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <div className="p-2">
+                                        <div className="flex items-center space-x-2 mb-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => {
+                                            const allChecked = Object.values(visibleColumns).every(Boolean);
+                                            const newVal = !allChecked;
+                                            setVisibleColumns(prev => {
+                                                const next = { ...prev };
+                                                Object.keys(next).forEach(k => next[k] = newVal);
+                                                return next;
+                                            });
+                                        }}>
+                                            <Checkbox
+                                                checked={Object.values(visibleColumns).every(Boolean)}
+                                                id="select-all"
+                                            />
+                                            <label htmlFor="select-all" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer pointer-events-none">
+                                                Select All
+                                            </label>
+                                        </div>
+                                        <DropdownMenuSeparator />
+                                        <div className="grid gap-2 mt-2">
+                                            <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, slNo: !prev.slNo }))}>
+                                                <Checkbox checked={visibleColumns.slNo} id="col-sl" />
+                                                <label htmlFor="col-sl" className="text-sm cursor-pointer pointer-events-none">Sl No</label>
+                                            </div>
+                                            <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, id: !prev.id }))}>
+                                                <Checkbox checked={visibleColumns.id} id="col-id" />
+                                                <label htmlFor="col-id" className="text-sm cursor-pointer pointer-events-none">ID</label>
+                                            </div>
+                                            <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, studentName: !prev.studentName }))}>
+                                                <Checkbox checked={visibleColumns.studentName} id="col-name" />
+                                                <label htmlFor="col-name" className="text-sm cursor-pointer pointer-events-none">Student Name</label>
+                                            </div>
+                                            <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, year: !prev.year }))}>
+                                                <Checkbox checked={visibleColumns.year} id="col-year" />
+                                                <label htmlFor="col-year" className="text-sm cursor-pointer pointer-events-none">Year</label>
+                                            </div>
+                                            <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, couponNo: !prev.couponNo }))}>
+                                                <Checkbox checked={visibleColumns.couponNo} id="col-coupon" />
+                                                <label htmlFor="col-coupon" className="text-sm cursor-pointer pointer-events-none">Coupon No</label>
+                                            </div>
+                                            <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, totalAmount: !prev.totalAmount }))}>
+                                                <Checkbox checked={visibleColumns.totalAmount} id="col-amount" />
+                                                <label htmlFor="col-amount" className="text-sm cursor-pointer pointer-events-none">Total Amount</label>
+                                            </div>
+                                            <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, paid: !prev.paid }))}>
+                                                <Checkbox checked={visibleColumns.paid} id="col-paid" />
+                                                <label htmlFor="col-paid" className="text-sm cursor-pointer pointer-events-none">Paid</label>
+                                            </div>
+                                            <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, balance: !prev.balance }))}>
+                                                <Checkbox checked={visibleColumns.balance} id="col-balance" />
+                                                <label htmlFor="col-balance" className="text-sm cursor-pointer pointer-events-none">Balance</label>
+                                            </div>
+                                            <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, status: !prev.status }))}>
+                                                <Checkbox checked={visibleColumns.status} id="col-status" />
+                                                <label htmlFor="col-status" className="text-sm cursor-pointer pointer-events-none">Status</label>
                                             </div>
                                         </div>
-
-                                        <div className="max-h-[400px] overflow-y-auto">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead className="w-[50px]">No.</TableHead>
-                                                        <TableHead>ID</TableHead>
-                                                        <TableHead>Student Name</TableHead>
-                                                        <TableHead>Coupon Number</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {bulkStudents.map((student, index) => (
-                                                        <TableRow key={student._id}>
-                                                            <TableCell>{index + 1}</TableCell>
-                                                            <TableCell>{student._id}</TableCell>
-                                                            <TableCell className="font-medium">{student.name}</TableCell>
-                                                            <TableCell>
-                                                                <Input
-                                                                    id={`coupon-input-${index}`}
-                                                                    className="h-8 w-48"
-                                                                    placeholder="Coupon No"
-                                                                    value={couponNumbers[student._id] || ""}
-                                                                    onChange={(e) => handleCouponNumberChange(student._id, e.target.value)}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === "Enter") {
-                                                                            e.preventDefault();
-                                                                            if (index < bulkStudents.length - 1) {
-                                                                                const nextInput = document.getElementById(`coupon-input-${index + 1}`);
-                                                                                if (nextInput) nextInput.focus();
-                                                                            } else {
-                                                                                handleSubmitDetails(onSaveDetails)();
-                                                                            }
-                                                                        }
-                                                                    }}
-                                                                />
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-
-                                        <div className="flex justify-end pt-2">
-                                            <Button type="submit" disabled={isSavingDetails}>
-                                                {isSavingDetails ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                                                Save All Details
-                                            </Button>
-                                        </div>
                                     </div>
-                                )}
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
 
-                {/* CARD 2: PAYMENT DETAILS */}
-                <Card id="payment-card" className="border shadow-sm bg-card transition-all duration-300">
-                    <CardHeader className="px-3 pt-3 pb-2 md:px-6 md:pt-6 md:pb-2">
-                        <CardTitle>Payment Details</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 md:px-6 md:pb-6 md:pt-0">
-                        <form onSubmit={handleSubmitPayment(onSavePayment)}>
-                            <div className="space-y-3 md:space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Payment Date</Label>
-                                        <Input type="date" {...registerPayment("date", { required: true })} />
-                                    </div>
-
-                                    {/* Academic Year for Payment to Identify Coupon */}
-                                    <div className="space-y-2">
-                                        <Label>Academic Year</Label>
-                                        <Select
-                                            onValueChange={(val) => setValuePayment("academicYear", val)}
-                                            defaultValue={String(new Date().getFullYear())}
-                                            value={watchPayment("academicYear")}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select Year" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {getAcademicYears().map((year) => (
-                                                    <SelectItem key={year} value={year}>
-                                                        {year}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    {/* Batch Selection */}
-                                    <div className="space-y-2">
-                                        <Label>Select Batch</Label>
-                                        <Select
-                                            value={paymentBatchId}
-                                            onValueChange={(val) => {
-                                                setPaymentBatchId(val);
-                                                setPaymentClassId([]);
-                                                setPaymentStudentId([]);
-                                            }}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select Batch" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">Select Batch</SelectItem>
-                                                {batches.map((batch) => (
-                                                    <SelectItem key={batch._id} value={batch._id}>
-                                                        {batch.name} ({batch.endYear})
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    {/* Class Selection */}
-                                    <div className="space-y-2">
-                                        <Label>Select Class</Label>
-                                        <MultiSelect
-                                            options={paymentClasses.map(c => ({ label: c.name, value: c._id }))}
-                                            onValueChange={setPaymentClassId}
-                                            value={paymentClassId}
-                                            placeholder="Select Classes"
-                                            variant="default"
-                                        />
-                                    </div>
-
-                                    {/* Student Selection - Full Width on Mobile */}
-                                    <div className="space-y-2 col-span-2 md:col-span-1">
-                                        <Label>Student Name</Label>
-                                        <MultiSelect
-                                            options={paymentStudents.map(s => ({ label: s.name, value: s._id }))}
-                                            onValueChange={setPaymentStudentId}
-                                            value={paymentStudentId}
-                                            placeholder="Select Students"
-                                            variant="default"
-                                        />
-                                        {paymentStudentId.length > 0 && (
-                                            <p className="text-xs text-muted-foreground">{paymentStudentId.length} student(s) selected</p>
-                                        )}
-                                    </div>
-
-                                    {/* Paid Amount & Mobile Save Button - Side by Side on Mobile */}
-                                    <div className="space-y-2 col-span-2 md:col-span-1">
-                                        <Label>Paid Amount</Label>
-                                        <div className="flex gap-2">
-                                            <Input
-                                                type="number"
-                                                {...registerPayment("amount", { required: true, min: 0 })}
-                                                placeholder="Enter Amount"
-                                                className="flex-1"
-                                            />
-                                            <Button type="submit" disabled={isSavingPayment} className="md:hidden flex-1">
-                                                {isSavingPayment ? <Loader className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                                                <span className="ml-2">Save</span>
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="hidden md:flex justify-end">
-                                    <Button type="submit" disabled={isSavingPayment} className="w-full md:w-auto">
-                                        {isSavingPayment ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                                        Save Payment
+                            {/* Advanced Filter Modal */}
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="icon" className="relative">
+                                        <Filter className="h-4 w-4" />
+                                        {/* Dot indicator if active filters */}
+                                        {(filters.year !== "all" || filters.status !== "all") &&
+                                            <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary" />
+                                        }
                                     </Button>
-                                </div>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-            </div>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[425px]">
+                                    <DialogHeader>
+                                        <DialogTitle>Advanced Filters</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                        <div className="space-y-1">
+                                            <Label>Status</Label>
+                                            <Select value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
+                                                <SelectTrigger className="h-9">
+                                                    <SelectValue placeholder="All Status" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All Status</SelectItem>
+                                                    <SelectItem value="Paid">Paid</SelectItem>
+                                                    <SelectItem value="Partial">Partial</SelectItem>
+                                                    <SelectItem value="Pending">Pending</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <DialogFooter className="flex flex-row justify-between items-center pt-2 gap-2">
+                                            <Button variant="ghost" className="text-muted-foreground" onClick={() => setFilters(prev => ({ ...prev, status: "all" }))}>
+                                                Clear Filters
+                                            </Button>
+                                            <DialogClose asChild>
+                                                <Button type="button">Apply</Button>
+                                            </DialogClose>
+                                        </DialogFooter>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
 
-            {/* Filters & Table Controls */}
-            <div className="flex flex-wrap md:flex-nowrap gap-2 items-center">
-
-                {/* GROUP 1: Column & Filter Buttons */}
-                <div className="flex gap-2 order-1 md:order-1">
-                    {/* Advanced Filter Popover (Columns) */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="icon">
-                                <Columns className="h-4 w-4" />
+                        {/* GROUP 2: Export Buttons */}
+                        <div className="flex flex-1 md:flex-none gap-2 order-2 md:order-3 overflow-x-auto">
+                            <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 flex-1 md:flex-none" onClick={exportToExcel}>
+                                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                <span>Excel</span>
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" sideOffset={8} className="w-44">
-                            <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <div className="p-2">
-                                <div className="flex items-center space-x-2 mb-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => {
-                                    const allChecked = Object.values(visibleColumns).every(Boolean);
-                                    const newVal = !allChecked;
-                                    setVisibleColumns(prev => {
-                                        const next = { ...prev };
-                                        Object.keys(next).forEach(k => next[k] = newVal);
-                                        return next;
-                                    });
-                                }}>
-                                    <Checkbox
-                                        checked={Object.values(visibleColumns).every(Boolean)}
-                                        id="select-all"
-                                    />
-                                    <label htmlFor="select-all" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer pointer-events-none">
-                                        Select All
-                                    </label>
-                                </div>
-                                <DropdownMenuSeparator />
-                                <div className="grid gap-2 mt-2">
-                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, slNo: !prev.slNo }))}>
-                                        <Checkbox checked={visibleColumns.slNo} id="col-sl" />
-                                        <label htmlFor="col-sl" className="text-sm cursor-pointer pointer-events-none">Sl No</label>
-                                    </div>
-                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, id: !prev.id }))}>
-                                        <Checkbox checked={visibleColumns.id} id="col-id" />
-                                        <label htmlFor="col-id" className="text-sm cursor-pointer pointer-events-none">ID</label>
-                                    </div>
-                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, studentName: !prev.studentName }))}>
-                                        <Checkbox checked={visibleColumns.studentName} id="col-name" />
-                                        <label htmlFor="col-name" className="text-sm cursor-pointer pointer-events-none">Student Name</label>
-                                    </div>
-                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, year: !prev.year }))}>
-                                        <Checkbox checked={visibleColumns.year} id="col-year" />
-                                        <label htmlFor="col-year" className="text-sm cursor-pointer pointer-events-none">Year</label>
-                                    </div>
-                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, couponNo: !prev.couponNo }))}>
-                                        <Checkbox checked={visibleColumns.couponNo} id="col-coupon" />
-                                        <label htmlFor="col-coupon" className="text-sm cursor-pointer pointer-events-none">Coupon No</label>
-                                    </div>
-                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, totalAmount: !prev.totalAmount }))}>
-                                        <Checkbox checked={visibleColumns.totalAmount} id="col-amount" />
-                                        <label htmlFor="col-amount" className="text-sm cursor-pointer pointer-events-none">Total Amount</label>
-                                    </div>
-                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, paid: !prev.paid }))}>
-                                        <Checkbox checked={visibleColumns.paid} id="col-paid" />
-                                        <label htmlFor="col-paid" className="text-sm cursor-pointer pointer-events-none">Paid</label>
-                                    </div>
-                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, balance: !prev.balance }))}>
-                                        <Checkbox checked={visibleColumns.balance} id="col-balance" />
-                                        <label htmlFor="col-balance" className="text-sm cursor-pointer pointer-events-none">Balance</label>
-                                    </div>
-                                    <div className="flex items-center space-x-2 p-1 hover:bg-accent rounded-sm cursor-pointer" onClick={() => setVisibleColumns(prev => ({ ...prev, status: !prev.status }))}>
-                                        <Checkbox checked={visibleColumns.status} id="col-status" />
-                                        <label htmlFor="col-status" className="text-sm cursor-pointer pointer-events-none">Status</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    {/* Advanced Filter Modal */}
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" size="icon" className="relative">
-                                <Filter className="h-4 w-4" />
-                                {/* Dot indicator if active filters */}
-                                {(filters.batchId !== "all" || filters.year !== "all" || filters.status !== "all" || filters.startDate) &&
-                                    <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary" />
-                                }
+                            <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 flex-1 md:flex-none" onClick={exportToPDF}>
+                                <Download className="h-4 w-4 mr-2" />
+                                <span>PDF</span>
                             </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle>Advanced Filters</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <Label>Academic Year</Label>
-                                        <Select value={filters.year} onValueChange={(val) => setFilters(prev => ({ ...prev, year: val }))}>
-                                            <SelectTrigger className="h-9">
-                                                <SelectValue placeholder="Year" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Years</SelectItem>
-                                                {getAcademicYears().map((y) => (
-                                                    <SelectItem key={y} value={y}>{y}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label>Batch</Label>
-                                        <Select value={filters.batchId} onValueChange={(val) => setFilters(prev => ({ ...prev, batchId: val }))}>
-                                            <SelectTrigger className="h-9">
-                                                <SelectValue placeholder="All Batches" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Batches</SelectItem>
-                                                {batches.map((b) => (
-                                                    <SelectItem key={b._id} value={b._id}>{b.name} ({b.endYear})</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label>Class</Label>
-                                        <MultiSelect
-                                            options={filterClasses.map(c => ({ label: c.name, value: c._id }))}
-                                            onValueChange={(val) => setFilters(prev => ({ ...prev, classId: val }))}
-                                            value={filters.classId}
-                                            placeholder="Select Classes"
-                                            variant="default"
-                                            className="h-9"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label>Status</Label>
-                                        <Select value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
-                                            <SelectTrigger className="h-9">
-                                                <SelectValue placeholder="All Status" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Status</SelectItem>
-                                                <SelectItem value="Paid">Paid</SelectItem>
-                                                <SelectItem value="Partial">Partial</SelectItem>
-                                                <SelectItem value="Pending">Pending</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-1">
-                                        <Label>Start Date</Label>
-                                        <Input
-                                            type="date"
-                                            className="h-9"
-                                            value={filters.startDate}
-                                            onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label>End Date</Label>
-                                        <Input
-                                            type="date"
-                                            className="h-9"
-                                            value={filters.endDate}
-                                            onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                                        />
-                                    </div>
-                                </div>
-                                <DialogFooter className="flex flex-row justify-between items-center pt-2 gap-2">
-                                    <Button variant="ghost" className="text-muted-foreground" onClick={clearFilters}>
-                                        Clear Filters
-                                    </Button>
-                                    <DialogClose asChild>
-                                        <Button type="button">Apply</Button>
-                                    </DialogClose>
-                                </DialogFooter>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                </div>
-
-                {/* GROUP 2: Export Buttons */}
-                <div className="flex flex-1 md:flex-none gap-2 order-2 md:order-3 overflow-x-auto">
-                    <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 flex-1 md:flex-none" onClick={exportToExcel}>
-                        <FileSpreadsheet className="h-4 w-4 mr-2" />
-                        <span>Excel</span>
-                    </Button>
-                    <Button variant="outline" size="sm" className="px-2 md:px-4 md:h-10 flex-1 md:flex-none" onClick={exportToPDF}>
-                        <Download className="h-4 w-4 mr-2" />
-                        <span>PDF</span>
-                    </Button>
-                    <Button size="sm" className="px-2 md:px-4 md:h-10 flex-1 md:flex-none btn-print" onClick={() => window.print()}>
-                        <Printer className="h-4 w-4 mr-2" />
-                        <span>Print</span>
-                    </Button>
-                </div>
-
-                {/* GROUP 3: Search Bar */}
-                <div className="w-full md:flex-1 order-3 md:order-2">
-                    <Input
-                        placeholder="Search by Student Name, ID or Coupon..."
-                        value={filters.search}
-                        onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                    />
-                </div>
-            </div>
-
-            {/* Bulk Actions Bar */}
-            {selectedCouponIds.length > 0 && (
-                <div className="flex items-center justify-between p-2 bg-muted/30 border rounded-md">
-                    <span className="text-sm text-muted-foreground ml-2">
-                        {selectedCouponIds.length} selected
-                    </span>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleEdit}
-                            disabled={selectedCouponIds.length !== 1}
-                        >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                        </Button>
-                        <ConfirmationPopup
-                            action="delete"
-                            title={`Delete ${selectedCouponIds.length} Coupons?`}
-                            description="This action cannot be undone."
-                            onClick={handleBulkDelete}
-                        >
-                            <Button variant="destructive" size="sm">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                            <Button size="sm" className="px-2 md:px-4 md:h-10 flex-1 md:flex-none btn-print" onClick={() => window.print()}>
+                                <Printer className="h-4 w-4 mr-2" />
+                                <span>Print</span>
                             </Button>
-                        </ConfirmationPopup>
+                        </div>
+
+                        {/* GROUP 3: Search Bar */}
+                        <div className="w-full md:flex-1 order-3 md:order-2">
+                            <Input
+                                placeholder="Search by Student Name, ID or Coupon..."
+                                value={filters.search}
+                                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                            />
+                        </div>
                     </div>
-                </div>
+
+                    {/* Bulk Actions Bar */}
+                    {selectedCouponIds.length > 0 && (
+                        <div className="flex items-center justify-between p-2 bg-muted/30 border rounded-md">
+                            <span className="text-sm text-muted-foreground ml-2">
+                                {selectedCouponIds.length} selected
+                            </span>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleEdit}
+                                    disabled={selectedCouponIds.length !== 1}
+                                >
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit
+                                </Button>
+                                <ConfirmationPopup
+                                    action="delete"
+                                    title={`Delete ${selectedCouponIds.length} Coupons?`}
+                                    description="This action cannot be undone."
+                                    onClick={handleBulkDelete}
+                                >
+                                    <Button variant="destructive" size="sm">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                    </Button>
+                                </ConfirmationPopup>
+                            </div>
+                        </div>
+                    )}
+
+                    <div id="printable-table" className="rounded-md border bg-white overflow-x-auto">
+                        <div className="hidden print:block text-center mb-6 pt-4">
+                            <h2 className="text-2xl font-bold">STUDENT COUPON FUND MANAGEMENT</h2>
+                        </div>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[50px]">
+                                        <Checkbox
+                                            checked={coupons.length > 0 && selectedCouponIds.length === coupons.length}
+                                            onCheckedChange={handleSelectAll}
+                                        />
+                                    </TableHead>
+                                    {visibleColumns.slNo && <TableHead>Sl No</TableHead>}
+                                    {visibleColumns.id && <TableHead>ID</TableHead>}
+                                    {visibleColumns.studentName && <TableHead>Student</TableHead>}
+                                    {visibleColumns.year && <TableHead>Year</TableHead>}
+                                    {visibleColumns.couponNo && <TableHead>Coupon No</TableHead>}
+                                    {visibleColumns.totalAmount && <TableHead>Total Amount</TableHead>}
+                                    {visibleColumns.paid && <TableHead>Paid</TableHead>}
+                                    {visibleColumns.balance && <TableHead>Balance</TableHead>}
+                                    {visibleColumns.status && <TableHead>Status</TableHead>}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {!shouldFetchCoupons ? (
+                                    <TableRow><TableCell colSpan={10} className="text-center h-24 text-muted-foreground">Please select a Batch or Class in the Coupon Details card to view records.</TableCell></TableRow>
+                                ) : isLoading ? (
+                                    <TableRow><TableCell colSpan={10} className="text-center h-24"><Loader className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                ) : coupons.length === 0 ? (
+                                    <TableRow><TableCell colSpan={10} className="text-center h-24 text-muted-foreground">No records found</TableCell></TableRow>
+                                ) : (
+                                    coupons.map((coupon, index) => (
+                                        <TableRow key={coupon._id}>
+                                            <TableCell>
+                                                <Checkbox
+                                                    checked={selectedCouponIds.includes(coupon._id)}
+                                                    onCheckedChange={(checked) => handleSelectRow(coupon._id, checked)}
+                                                />
+                                            </TableCell>
+                                            {visibleColumns.slNo && <TableCell>{index + 1}</TableCell>}
+                                            {visibleColumns.id && <TableCell>{coupon.studentId?._id}</TableCell>}
+                                            {visibleColumns.studentName && (
+                                                <TableCell
+                                                    className="font-medium cursor-pointer hover:underline text-primary"
+                                                    onClick={() => handlePayBalance(coupon)}
+                                                >
+                                                    {coupon.studentId?.name}
+                                                </TableCell>
+                                            )}
+                                            {visibleColumns.year && <TableCell>{coupon.academicYear}</TableCell>}
+                                            {visibleColumns.couponNo && <TableCell>{coupon.couponNumber || "-"}</TableCell>}
+                                            {visibleColumns.totalAmount && <TableCell>₹{coupon.couponAmount}</TableCell>}
+                                            {visibleColumns.paid && (
+                                                <TableCell
+                                                    className="text-green-600 font-semibold cursor-pointer hover:underline"
+                                                    onClick={() => setViewHistoryCoupon(coupon)}
+                                                >
+                                                    ₹{coupon.totalPaid}
+                                                </TableCell>
+                                            )}
+                                            {visibleColumns.balance && (
+                                                <TableCell
+                                                    className="text-red-600 font-semibold cursor-pointer hover:underline"
+                                                    onClick={() => handlePayBalance(coupon)}
+                                                >
+                                                    ₹{coupon.balance}
+                                                </TableCell>
+                                            )}
+                                            {visibleColumns.status && <TableCell>
+                                                <Badge variant={coupon.status === "Paid" ? "success" : coupon.status === "Partial" ? "warning" : "destructive"}>
+                                                    {coupon.status}
+                                                </Badge>
+                                            </TableCell>}
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                        {/* Payment Details Popup */}
+                        <Dialog open={isPaymentPopupOpen} onOpenChange={(open) => {
+                            setIsPaymentPopupOpen(open);
+                            if (!open) setIsSimplePayment(false);
+                        }}>
+                            <DialogContent className="sm:max-w-[700px]">
+                                <DialogHeader>
+                                    <DialogTitle>Payment Details</DialogTitle>
+                                </DialogHeader>
+                                <div className="py-4">
+                                    <form onSubmit={handleSubmitPayment(onSavePayment)}>
+                                        <div className="space-y-3 md:space-y-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label>Payment Date</Label>
+                                                    <Input type="date" {...registerPayment("date", { required: true })} />
+                                                </div>
+
+                                                {!isSimplePayment && (
+                                                    <>
+                                                        {/* Academic Year for Payment to Identify Coupon */}
+                                                        <div className="space-y-2">
+                                                            <Label>Academic Year</Label>
+                                                            <Select
+                                                                onValueChange={(val) => setValuePayment("academicYear", val)}
+                                                                defaultValue={String(new Date().getFullYear())}
+                                                                value={watchPayment("academicYear")}
+                                                            >
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Select Year" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {getAcademicYears().map((year) => (
+                                                                        <SelectItem key={year} value={year}>
+                                                                            {year}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+
+                                                        {/* Batch Selection */}
+                                                        <div className="space-y-2">
+                                                            <Label>Select Batch</Label>
+                                                            <Select
+                                                                value={paymentBatchId}
+                                                                onValueChange={(val) => {
+                                                                    setPaymentBatchId(val);
+                                                                    setPaymentClassId([]);
+                                                                    setPaymentStudentId([]);
+                                                                }}
+                                                            >
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Select Batch" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="all">Select Batch</SelectItem>
+                                                                    {batches.map((batch) => (
+                                                                        <SelectItem key={batch._id} value={batch._id}>
+                                                                            {batch.name} ({batch.endYear})
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+
+                                                        {/* Class Selection */}
+                                                        <div className="space-y-2">
+                                                            <Label>Select Class</Label>
+                                                            <MultiSelect
+                                                                options={paymentClasses.map(c => ({ label: c.name, value: c._id }))}
+                                                                onValueChange={setPaymentClassId}
+                                                                value={paymentClassId}
+                                                                placeholder="Select Classes"
+                                                                variant="default"
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )}
+
+                                                {/* Student Selection - Full Width on Mobile */}
+                                                <div className="space-y-2 col-span-2 md:col-span-1">
+                                                    <Label>Student Name</Label>
+                                                    <MultiSelect
+                                                        options={paymentStudents.map(s => ({ label: s.name, value: s._id }))}
+                                                        onValueChange={setPaymentStudentId}
+                                                        value={paymentStudentId}
+                                                        placeholder="Select Students"
+                                                        variant="default"
+                                                    />
+                                                    {paymentStudentId.length > 0 && (
+                                                        <p className="text-xs text-muted-foreground">{paymentStudentId.length} student(s) selected</p>
+                                                    )}
+                                                </div>
+
+                                                {/* Paid Amount & Mobile Save Button - Side by Side on Mobile */}
+                                                <div className="space-y-2 col-span-2 md:col-span-1">
+                                                    <Label>Paid Amount</Label>
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            type="number"
+                                                            {...registerPayment("amount", { required: true, min: 0 })}
+                                                            placeholder="Enter Amount"
+                                                            className="flex-1"
+                                                        />
+                                                        <Button type="submit" disabled={isSavingPayment} className="md:hidden flex-1">
+                                                            {isSavingPayment ? <Loader className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                                                            <span className="ml-2">Save</span>
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <DialogFooter>
+                                                <Button type="button" variant="outline" onClick={() => setIsPaymentPopupOpen(false)}>Cancel</Button>
+                                                <Button type="submit" disabled={isSavingPayment} className="hidden md:inline-flex">
+                                                    {isSavingPayment ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                                                    Save Payment
+                                                </Button>
+                                            </DialogFooter>
+                                        </div>
+                                    </form>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                </>
             )}
 
-            <div id="printable-table" className="rounded-md border bg-white overflow-x-auto">
-                <div className="hidden print:block text-center mb-6 pt-4">
-                    <h2 className="text-2xl font-bold">STUDENT COUPON FUND MANAGEMENT</h2>
-                </div>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[50px]">
-                                <Checkbox
-                                    checked={coupons.length > 0 && selectedCouponIds.length === coupons.length}
-                                    onCheckedChange={handleSelectAll}
-                                />
-                            </TableHead>
-                            {visibleColumns.slNo && <TableHead>Sl No</TableHead>}
-                            {visibleColumns.id && <TableHead>ID</TableHead>}
-                            {visibleColumns.studentName && <TableHead>Student</TableHead>}
-                            {visibleColumns.year && <TableHead>Year</TableHead>}
-                            {visibleColumns.couponNo && <TableHead>Coupon No</TableHead>}
-                            {visibleColumns.totalAmount && <TableHead>Total Amount</TableHead>}
-                            {visibleColumns.paid && <TableHead>Paid</TableHead>}
-                            {visibleColumns.balance && <TableHead>Balance</TableHead>}
-                            {visibleColumns.status && <TableHead>Status</TableHead>}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
-                            <TableRow><TableCell colSpan={10} className="text-center h-24"><Loader className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
-                        ) : coupons.length === 0 ? (
-                            <TableRow><TableCell colSpan={10} className="text-center h-24 text-muted-foreground">No records found</TableCell></TableRow>
-                        ) : (
-                            coupons.map((coupon, index) => (
-                                <TableRow key={coupon._id}>
-                                    <TableCell>
-                                        <Checkbox
-                                            checked={selectedCouponIds.includes(coupon._id)}
-                                            onCheckedChange={(checked) => handleSelectRow(coupon._id, checked)}
-                                        />
-                                    </TableCell>
-                                    {visibleColumns.slNo && <TableCell>{index + 1}</TableCell>}
-                                    {visibleColumns.id && <TableCell>{coupon.studentId?._id}</TableCell>}
-                                    {visibleColumns.studentName && (
-                                        <TableCell
-                                            className="font-medium cursor-pointer hover:underline text-primary"
-                                            onClick={() => handlePayBalance(coupon)}
-                                        >
-                                            {coupon.studentId?.name}
-                                        </TableCell>
-                                    )}
-                                    {visibleColumns.year && <TableCell>{coupon.academicYear}</TableCell>}
-                                    {visibleColumns.couponNo && <TableCell>{coupon.couponNumber || "-"}</TableCell>}
-                                    {visibleColumns.totalAmount && <TableCell>₹{coupon.couponAmount}</TableCell>}
-                                    {visibleColumns.paid && (
-                                        <TableCell
-                                            className="text-green-600 font-semibold cursor-pointer hover:underline"
-                                            onClick={() => setViewHistoryCoupon(coupon)}
-                                        >
-                                            ₹{coupon.totalPaid}
-                                        </TableCell>
-                                    )}
-                                    {visibleColumns.balance && (
-                                        <TableCell
-                                            className="text-red-600 font-semibold cursor-pointer hover:underline"
-                                            onClick={() => handlePayBalance(coupon)}
-                                        >
-                                            ₹{coupon.balance}
-                                        </TableCell>
-                                    )}
-                                    {visibleColumns.status && <TableCell>
-                                        <Badge variant={coupon.status === "Paid" ? "success" : coupon.status === "Partial" ? "warning" : "destructive"}>
-                                            {coupon.status}
-                                        </Badge>
-                                    </TableCell>}
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-                {/* Payment Details Popup */}
-                <Dialog open={isPaymentPopupOpen} onOpenChange={setIsPaymentPopupOpen}>
-                    <DialogContent className="sm:max-w-[700px]">
-                        <DialogHeader>
-                            <DialogTitle>Payment Details</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-4">
-                            <form onSubmit={handleSubmitPayment(onSavePayment)}>
-                                <div className="space-y-3 md:space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label>Payment Date</Label>
-                                            <Input type="date" {...registerPayment("date", { required: true })} />
-                                        </div>
-
-                                        {/* Academic Year for Payment to Identify Coupon */}
-                                        <div className="space-y-2">
-                                            <Label>Academic Year</Label>
-                                            <Select
-                                                onValueChange={(val) => setValuePayment("academicYear", val)}
-                                                defaultValue={String(new Date().getFullYear())}
-                                                value={watchPayment("academicYear")}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select Year" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {getAcademicYears().map((year) => (
-                                                        <SelectItem key={year} value={year}>
-                                                            {year}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        {/* Batch Selection */}
-                                        <div className="space-y-2">
-                                            <Label>Select Batch</Label>
-                                            <Select
-                                                value={paymentBatchId}
-                                                onValueChange={(val) => {
-                                                    setPaymentBatchId(val);
-                                                    setPaymentClassId([]);
-                                                    setPaymentStudentId([]);
-                                                }}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select Batch" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="all">Select Batch</SelectItem>
-                                                    {batches.map((batch) => (
-                                                        <SelectItem key={batch._id} value={batch._id}>
-                                                            {batch.name} ({batch.endYear})
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        {/* Class Selection */}
-                                        <div className="space-y-2">
-                                            <Label>Select Class</Label>
-                                            <MultiSelect
-                                                options={paymentClasses.map(c => ({ label: c.name, value: c._id }))}
-                                                onValueChange={setPaymentClassId}
-                                                value={paymentClassId}
-                                                placeholder="Select Classes"
-                                                variant="default"
-                                            />
-                                        </div>
-
-                                        {/* Student Selection - Full Width on Mobile */}
-                                        <div className="space-y-2 col-span-2 md:col-span-1">
-                                            <Label>Student Name</Label>
-                                            <MultiSelect
-                                                options={paymentStudents.map(s => ({ label: s.name, value: s._id }))}
-                                                onValueChange={setPaymentStudentId}
-                                                value={paymentStudentId}
-                                                placeholder="Select Students"
-                                                variant="default"
-                                            />
-                                            {paymentStudentId.length > 0 && (
-                                                <p className="text-xs text-muted-foreground">{paymentStudentId.length} student(s) selected</p>
-                                            )}
-                                        </div>
-
-                                        {/* Paid Amount & Mobile Save Button - Side by Side on Mobile */}
-                                        <div className="space-y-2 col-span-2 md:col-span-1">
-                                            <Label>Paid Amount</Label>
-                                            <div className="flex gap-2">
-                                                <Input
-                                                    type="number"
-                                                    {...registerPayment("amount", { required: true, min: 0 })}
-                                                    placeholder="Enter Amount"
-                                                    className="flex-1"
-                                                />
-                                                <Button type="submit" disabled={isSavingPayment} className="md:hidden flex-1">
-                                                    {isSavingPayment ? <Loader className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                                                    <span className="ml-2">Save</span>
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <DialogFooter>
-                                        <Button type="button" variant="outline" onClick={() => setIsPaymentPopupOpen(false)}>Cancel</Button>
-                                        <Button type="submit" disabled={isSavingPayment} className="hidden md:inline-flex">
-                                            {isSavingPayment ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                                            Save Payment
-                                        </Button>
-                                    </DialogFooter>
-                                </div>
-                            </form>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            </div>
             {/* Hidden Print Sheet Table */}
             <div id="printable-sheet" className={isPrintingSheet ? "block" : "hidden"}>
                 <div className="text-center mb-4 pt-0">
