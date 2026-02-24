@@ -46,7 +46,8 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     Table,
     TableBody,
@@ -95,12 +96,19 @@ export default function StudentCouponClient({ apiKey }) {
 
     const [isPaymentPopupOpen, setIsPaymentPopupOpen] = useState(false);
 
+    // Student Lookup State
+    const [lookupSearchTerm, setLookupSearchTerm] = useState("");
+    const [lookupStudent, setLookupStudent] = useState(null);
+    const [isLookingUp, setIsLookingUp] = useState(false);
+    const [hasLookedUp, setHasLookedUp] = useState(false);
+    const [lookupSelectedCouponIds, setLookupSelectedCouponIds] = useState([]);
+
     // Filter State
     const [filters, setFilters] = useState({
         search: "", // Combined Name/ID search from main bar or popover
         batchId: "all",
         classId: [],
-        year: "all",
+        year: String(new Date().getFullYear()),
         status: "all",
         startDate: "",
         endDate: "",
@@ -150,6 +158,77 @@ export default function StudentCouponClient({ apiKey }) {
     const addItem = useAddItem();
     const deleteItem = useDeleteItem();
     const updateItem = useCrud("student-coupons", apiKey).useUpdateItem();
+
+    // Data Fetching for Student Lookup
+    const lookupUsersQuery = useFetchUsers(0, 50, {
+        global: lookupSearchTerm,
+        roles: ["Student"]
+    }, { enabled: false });
+
+    const lookupCouponsQuery = useFetchItems(0, 0, {
+        studentId: lookupStudent?._id
+    }, { enabled: !!lookupStudent?._id });
+
+    const handleLookupSearch = async () => {
+        if (!lookupSearchTerm.trim()) {
+            toast.error("Please enter a student ID or Name to search.");
+            return;
+        }
+        setHasLookedUp(true);
+        setIsLookingUp(true);
+        setLookupStudent(null);
+        setLookupSelectedCouponIds([]);
+
+        try {
+            const result = await lookupUsersQuery.refetch();
+            if (result.isSuccess && result.data?.users?.length > 0) {
+                const searchLower = lookupSearchTerm.toLowerCase();
+                const exactMatch = result.data.users.find(u =>
+                    String(u._id).toLowerCase() === searchLower ||
+                    String(u.name).toLowerCase() === searchLower
+                );
+                const foundStudent = exactMatch || result.data.users[0];
+                setLookupStudent(foundStudent);
+            } else {
+                toast.error("No student found with that ID or Name.");
+            }
+        } catch (error) {
+            toast.error("Failed to search student.");
+            console.error(error);
+        } finally {
+            setIsLookingUp(false);
+        }
+    };
+
+    const handleLookupSelectAll = (checked, coupons) => {
+        if (checked) {
+            setLookupSelectedCouponIds(coupons.map(c => c._id));
+        } else {
+            setLookupSelectedCouponIds([]);
+        }
+    };
+
+    const handleLookupSelectRow = (id, checked) => {
+        if (checked) {
+            setLookupSelectedCouponIds(prev => [...prev, id]);
+        } else {
+            setLookupSelectedCouponIds(prev => prev.filter(item => item !== id));
+        }
+    };
+
+    const handleLookupBulkDelete = async () => {
+        try {
+            const promises = lookupSelectedCouponIds.map(id => deleteItem.mutateAsync({ data: { id } }));
+            await Promise.all(promises);
+            toast.success(`Successfully deleted ${lookupSelectedCouponIds.length} coupons`);
+            setLookupSelectedCouponIds([]);
+            lookupCouponsQuery.refetch();
+            refetchCoupons(); // Also refetch main table
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to delete some coupons");
+        }
+    };
 
     // Fetch Batches (Shared)
     const { data: batchesData } = useFetchBatches(0, 1000, {}, { enabled: !!apiKey });
@@ -205,10 +284,8 @@ export default function StudentCouponClient({ apiKey }) {
     const { data: detailsUsersData, refetch: refetchDetailsUsers, isFetching: isFetchingUsers } = useFetchUsers(0, 1000, detailsStudentFilters, { enabled: false });
 
     // Fetch Coupons for Pre-filling
-    // We need to fetch coupons for the selected Year + Batch/Class to prefill
-    // We will just fetch ALL coupons for the selected year and filter in memory since we don't have a complex backend filter yet
     const { data: allCouponsForYearData, refetch: refetchAllCoupons } = useFetchItems(0, 0, {
-        academicYear: "2025" // Default, will update dynamically
+        academicYear: String(new Date().getFullYear()) // Default, will update dynamically
     }, { enabled: false });
 
 
@@ -221,7 +298,7 @@ export default function StudentCouponClient({ apiKey }) {
         getValues: getValuesDetails
     } = useForm({
         defaultValues: {
-            academicYear: "2025",
+            academicYear: String(new Date().getFullYear()),
             couponAmount: ""
         }
     });
@@ -383,7 +460,7 @@ export default function StudentCouponClient({ apiKey }) {
         watch: watchPayment
     } = useForm({
         defaultValues: {
-            academicYear: "2025",
+            academicYear: String(new Date().getFullYear()),
             date: new Date().toISOString().split('T')[0],
             amount: ""
         }
@@ -417,6 +494,7 @@ export default function StudentCouponClient({ apiKey }) {
                 amount: ""
             });
             setPaymentStudentId([]);
+            setIsPaymentPopupOpen(false);
             refetchCoupons();
         } catch (error) {
             console.error(error);
@@ -625,7 +703,7 @@ export default function StudentCouponClient({ apiKey }) {
             search: "",
             batchId: "all",
             classId: [],
-            year: "all",
+            year: String(new Date().getFullYear()),
             status: "all",
             startDate: "",
             endDate: "",
@@ -640,7 +718,7 @@ export default function StudentCouponClient({ apiKey }) {
                 <h1 className="text-2xl font-bold uppercase tracking-wide">
                     STUDENT COUPON FUND <span className="hidden md:inline">MANAGEMENT</span>
                 </h1>
-                <p className="text-muted-foreground">Manage student coupons, track payments, and generate reports.</p>
+                <p className="text-muted-foreground">Manage student coupons</p>
             </div>
 
             <style jsx global>{`
@@ -700,17 +778,180 @@ export default function StudentCouponClient({ apiKey }) {
                 }
             `}</style>
 
-            {/* ... Summary Cards (unchanged) ... */}
+            {/* Student Lookup Card */}
+            <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+                <CardHeader className="bg-muted/10 pb-4 pt-4 border-b">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <Search className="w-5 h-5 text-primary" />
+                        Student Lookup
+                    </CardTitle>
+                    <CardDescription>
+                        Search for a student to view coupon history
+                    </CardDescription>
+                    <div className="flex gap-2 mt-4 max-w-md">
+                        <Input
+                            placeholder="Search by Student ID or Name..."
+                            value={lookupSearchTerm}
+                            onChange={(e) => setLookupSearchTerm(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") handleLookupSearch();
+                            }}
+                            className="flex-1"
+                        />
+                        <Button onClick={handleLookupSearch} disabled={isLookingUp}>
+                            {isLookingUp ? (
+                                <Loader className="h-4 w-4 animate-spin sm:mr-2" />
+                            ) : (
+                                <Search className="h-4 w-4 sm:mr-2" />
+                            )}
+                            <span className="hidden sm:inline">Search</span>
+                        </Button>
+                    </div>
+                </CardHeader>
 
-            {/* Same Summary Cards code, skipping to Table section in this replace block? 
-               No, I need to match the actual file content seamlessly. 
-               The previous block ended at 346. 
-               I will assume the summary cards are between 483-519 and un-managed by this chunk.
-               I need to target the Filter Bar section around line 800.
-            */}
+                <CardContent className="pt-6">
+                    {!hasLookedUp ? (
+                        <div className="text-center py-6 text-muted-foreground">
+                            <Users className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                        </div>
+                    ) : isLookingUp ? (
+                        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                            <Loader className="h-8 w-8 animate-spin mb-4" />
+                            <p className="text-sm">Looking up student...</p>
+                        </div>
+                    ) : lookupStudent ? (
+                        <div className="space-y-6">
+                            {/* Profile Section */}
+                            <div className="flex flex-col sm:flex-row items-center sm:items-start md:items-center gap-4 bg-muted/20 p-4 rounded-lg border">
+                                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border shadow-sm flex-shrink-0">
+                                    <AvatarImage src={lookupStudent.profilePic?.url} />
+                                    <AvatarFallback className="text-lg font-medium text-primary bg-primary/10">
+                                        {lookupStudent.name?.charAt(0)}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 space-y-1 text-center sm:text-left">
+                                    <h3 className="text-xl font-bold tracking-tight">{lookupStudent.name}</h3>
+                                    <div className="text-sm text-muted-foreground flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1">
+                                        <div><span className="font-medium mr-1">ID:</span> {lookupStudent._id}</div>
+                                        {lookupStudent.className && <div><span className="font-medium mr-1">Class:</span> {lookupStudent.className}</div>}
+                                        {lookupStudent.batchName && <div><span className="font-medium mr-1">Batch:</span> {lookupStudent.batchName}</div>}
+                                    </div>
+                                </div>
+                                <div className="hidden sm:block text-right self-start md:self-center">
+                                    <Badge variant={lookupStudent.status === "Active" ? "outline" : "secondary"} className={lookupStudent.status === "Active" ? "bg-green-50 text-green-700 border-green-200" : ""}>
+                                        {lookupStudent.status || "Unknown"}
+                                    </Badge>
+                                </div>
+                            </div>
 
+                            {/* Lookup Table Actions */}
+                            {lookupSelectedCouponIds.length > 0 && (
+                                <div className="flex items-center justify-between p-2 bg-muted/30 border rounded-md">
+                                    <span className="text-sm text-muted-foreground ml-2">
+                                        {lookupSelectedCouponIds.length} selected
+                                    </span>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                const coupon = lookupCouponsQuery.data?.coupons?.find(c => c._id === lookupSelectedCouponIds[0]);
+                                                if (coupon) {
+                                                    setSelectedCouponIds([coupon._id]);
+                                                    handleEdit();
+                                                }
+                                            }}
+                                            disabled={lookupSelectedCouponIds.length !== 1}
+                                        >
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            Edit
+                                        </Button>
+                                        <ConfirmationPopup
+                                            action="delete"
+                                            title={`Delete ${lookupSelectedCouponIds.length} Coupons?`}
+                                            description="This action cannot be undone."
+                                            onClick={handleLookupBulkDelete}
+                                        >
+                                            <Button variant="destructive" size="sm">
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Delete
+                                            </Button>
+                                        </ConfirmationPopup>
+                                    </div>
+                                </div>
+                            )}
 
-            {/* Summary Cards */}
+                            {/* Lookup Table */}
+                            <div className="border rounded-md overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-muted/50">
+                                        <TableRow>
+                                            <TableHead className="w-[50px]">
+                                                <Checkbox
+                                                    checked={lookupCouponsQuery.data?.coupons?.length > 0 && lookupSelectedCouponIds.length === lookupCouponsQuery.data?.coupons?.length}
+                                                    onCheckedChange={(checked) => handleLookupSelectAll(checked, lookupCouponsQuery.data?.coupons || [])}
+                                                />
+                                            </TableHead>
+                                            <TableHead>Sl No</TableHead>
+                                            <TableHead>Year</TableHead>
+                                            <TableHead>Coupon No</TableHead>
+                                            <TableHead>Total Amount</TableHead>
+                                            <TableHead>Paid</TableHead>
+                                            <TableHead>Balance</TableHead>
+                                            <TableHead>Status</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {lookupCouponsQuery.isLoading || lookupCouponsQuery.isFetching ? (
+                                            <TableRow><TableCell colSpan={8} className="text-center h-24"><Loader className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                        ) : !lookupCouponsQuery.data?.coupons || lookupCouponsQuery.data?.coupons.length === 0 ? (
+                                            <TableRow><TableCell colSpan={8} className="text-center h-24 text-muted-foreground">No coupon records found for this student.</TableCell></TableRow>
+                                        ) : (
+                                            lookupCouponsQuery.data.coupons.map((coupon, index) => (
+                                                <TableRow key={coupon._id}>
+                                                    <TableCell>
+                                                        <Checkbox
+                                                            checked={lookupSelectedCouponIds.includes(coupon._id)}
+                                                            onCheckedChange={(checked) => handleLookupSelectRow(coupon._id, checked)}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>{index + 1}</TableCell>
+                                                    <TableCell className="font-medium">{coupon.academicYear}</TableCell>
+                                                    <TableCell>{coupon.couponNumber || "-"}</TableCell>
+                                                    <TableCell>₹{coupon.couponAmount}</TableCell>
+                                                    <TableCell
+                                                        className="text-green-600 font-semibold cursor-pointer hover:underline"
+                                                        onClick={() => setViewHistoryCoupon(coupon)}
+                                                    >
+                                                        ₹{coupon.totalPaid}
+                                                    </TableCell>
+                                                    <TableCell
+                                                        className="text-red-600 font-semibold cursor-pointer hover:underline"
+                                                        onClick={() => handlePayBalance(coupon)}
+                                                    >
+                                                        ₹{coupon.balance}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={coupon.status === "Paid" ? "success" : coupon.status === "Partial" ? "warning" : "destructive"}>
+                                                            {coupon.status}
+                                                        </Badge>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-6 text-muted-foreground">
+                            No student found. Please try a different ID or name.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
             {/* Summary Cards */}
             <Card>
                 <CardContent className="pt-6">
@@ -1005,10 +1246,22 @@ export default function StudentCouponClient({ apiKey }) {
                                                             <TableCell className="font-medium">{student.name}</TableCell>
                                                             <TableCell>
                                                                 <Input
+                                                                    id={`coupon-input-${index}`}
                                                                     className="h-8 w-48"
                                                                     placeholder="Coupon No"
                                                                     value={couponNumbers[student._id] || ""}
                                                                     onChange={(e) => handleCouponNumberChange(student._id, e.target.value)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === "Enter") {
+                                                                            e.preventDefault();
+                                                                            if (index < bulkStudents.length - 1) {
+                                                                                const nextInput = document.getElementById(`coupon-input-${index + 1}`);
+                                                                                if (nextInput) nextInput.focus();
+                                                                            } else {
+                                                                                handleSubmitDetails(onSaveDetails)();
+                                                                            }
+                                                                        }
+                                                                    }}
                                                                 />
                                                             </TableCell>
                                                         </TableRow>
@@ -1049,7 +1302,7 @@ export default function StudentCouponClient({ apiKey }) {
                                         <Label>Academic Year</Label>
                                         <Select
                                             onValueChange={(val) => setValuePayment("academicYear", val)}
-                                            defaultValue="2025"
+                                            defaultValue={String(new Date().getFullYear())}
                                             value={watchPayment("academicYear")}
                                         >
                                             <SelectTrigger>
@@ -1424,7 +1677,14 @@ export default function StudentCouponClient({ apiKey }) {
                                     </TableCell>
                                     {visibleColumns.slNo && <TableCell>{index + 1}</TableCell>}
                                     {visibleColumns.id && <TableCell>{coupon.studentId?._id}</TableCell>}
-                                    {visibleColumns.studentName && <TableCell className="font-medium">{coupon.studentId?.name}</TableCell>}
+                                    {visibleColumns.studentName && (
+                                        <TableCell
+                                            className="font-medium cursor-pointer hover:underline text-primary"
+                                            onClick={() => handlePayBalance(coupon)}
+                                        >
+                                            {coupon.studentId?.name}
+                                        </TableCell>
+                                    )}
                                     {visibleColumns.year && <TableCell>{coupon.academicYear}</TableCell>}
                                     {visibleColumns.couponNo && <TableCell>{coupon.couponNumber || "-"}</TableCell>}
                                     {visibleColumns.totalAmount && <TableCell>₹{coupon.couponAmount}</TableCell>}
@@ -1474,7 +1734,7 @@ export default function StudentCouponClient({ apiKey }) {
                                             <Label>Academic Year</Label>
                                             <Select
                                                 onValueChange={(val) => setValuePayment("academicYear", val)}
-                                                defaultValue="2025"
+                                                defaultValue={String(new Date().getFullYear())}
                                                 value={watchPayment("academicYear")}
                                             >
                                                 <SelectTrigger>
