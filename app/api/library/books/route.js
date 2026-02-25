@@ -16,7 +16,7 @@ export async function GET(req) {
             query.number = { $regex: new RegExp(`^${number}$`, 'i') }; // Exact match, case insensitive
         }
 
-        const books = await LibraryBook.find(query).sort({ number: 1 }).lean();
+        const books = await LibraryBook.find(query).sort({ number: 1 }).collation({ locale: "en", numericOrdering: true }).lean();
         const activeRentals = await Rental.find({ receivedDate: null }).select("bookId");
 
         const rentedBookIds = new Set(activeRentals.map(r => r.bookId?.toString()));

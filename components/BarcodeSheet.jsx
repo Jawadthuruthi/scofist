@@ -5,12 +5,12 @@ import Barcode from "react-barcode";
 
 const BarcodeSheet = forwardRef(({ books = [] }, ref) => {
     return (
-        <div ref={ref} className="p-8 bg-white text-black hidden print:block">
-            <div className="grid grid-cols-4 gap-6">
+        <div ref={ref} className="p-4 bg-white text-black hidden print:block">
+            <div className="grid grid-cols-4 gap-1">
                 {books.map((book) => (
                     <div
                         key={book._id}
-                        className="border p-4 flex flex-col items-center justify-center space-y-2 break-inside-avoid"
+                        className="border p-1.5 flex flex-col items-center justify-center space-y-1 break-inside-avoid"
                     >
                         <div className="text-sm font-bold uppercase tracking-wider">
                             {book.number}
