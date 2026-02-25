@@ -51,6 +51,8 @@ import {
   Loader,
   Users,
   Printer,
+  Search,
+  X,
 } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
@@ -97,8 +99,9 @@ const StudentsFund = ({
   const [showQuickPaymentDialog, setShowQuickPaymentDialog] = useState(false);
   const [quickPaymentData, setQuickPaymentData] = useState(null);
   const [quickPaymentAmount, setQuickPaymentAmount] = useState("");
-
-
+  const [lookupSearchTerm, setLookupSearchTerm] = useState("");
+  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [clearOnNextInput, setClearOnNextInput] = useState(false);
 
   const printRef = useRef();
   const allStudentsFundRef = useRef();
@@ -184,9 +187,6 @@ const StudentsFund = ({
       }, 0);
     }
   }, [transactionType]);
-  useEffect(() => {
-    setSelectedStudents([]);
-  }, [selectedBatch]);
 
   useEffect(() => {
     if (showConfirmDialog && finalConfirmButtonRef.current) {
@@ -508,6 +508,44 @@ const StudentsFund = ({
     html2pdf().set(opt).from(element).save();
   };
 
+  const handleStudentLookup = () => {
+    if (!lookupSearchTerm.trim()) {
+      toast.error("Please enter a student ID or name to search.");
+      return;
+    }
+
+    setIsLookingUp(true);
+
+    const searchLower = lookupSearchTerm.toLowerCase();
+
+    // Find the student in the loaded students array
+    const foundStudent = (students || []).find(s =>
+      String(s._id).toLowerCase() === searchLower ||
+      String(s.name).toLowerCase() === searchLower ||
+      String(s.studentSpecificField?.admissionNumber).toLowerCase() === searchLower
+    );
+
+    if (foundStudent) {
+      if (foundStudent.batchId) {
+        setSelectedBatch(foundStudent.batchId);
+        setSelectedStudents([foundStudent._id]);
+        toast.success(`Found student: ${foundStudent.name}`);
+        setClearOnNextInput(true);
+      } else {
+        toast.error("Student found, but they are not assigned to a batch.");
+        setSelectedStudents([]);
+        setSelectedBatch("");
+      }
+    } else {
+      toast.error("Student not found. Ensure the student is loaded in this view.");
+      setSelectedStudents([]);
+      setSelectedBatch("");
+    }
+
+    setIsLookingUp(false);
+  };
+
+
 
 
   return (
@@ -524,6 +562,71 @@ const StudentsFund = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
+          {department === "Stationary" && (
+            <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden bg-card">
+              <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+              <CardHeader className="bg-muted/10 pb-4 pt-4 border-b">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Search className="w-5 h-5 text-primary" />
+                  Student Lookup
+                </CardTitle>
+                <CardDescription>
+                  Search for a student by ID or Name
+                </CardDescription>
+                <div className="flex gap-2 mt-4 w-full">
+                  <div className="relative flex-1">
+                    <Input
+                      autoFocus
+                      placeholder="Search by Student ID or Name..."
+                      value={lookupSearchTerm}
+                      onChange={(e) => {
+                        if (clearOnNextInput) {
+                          const oldVal = lookupSearchTerm;
+                          const newVal = e.target.value;
+                          let typed = newVal;
+                          if (newVal.length > oldVal.length && newVal.startsWith(oldVal)) {
+                            typed = newVal.slice(oldVal.length);
+                          }
+                          setLookupSearchTerm(typed);
+                          setClearOnNextInput(false);
+                        } else {
+                          setLookupSearchTerm(e.target.value);
+                        }
+                      }}
+                      onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleStudentLookup();
+                      }}
+                      className="w-full pr-10"
+                    />
+                    {lookupSearchTerm && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-transparent"
+                        onClick={() => {
+                          setLookupSearchTerm("");
+                          setSelectedStudents([]);
+                          setSelectedBatch("");
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <Button onClick={handleStudentLookup} disabled={isLookingUp}>
+                    {isLookingUp ? (
+                      <Loader className="h-4 w-4 animate-spin sm:mr-2" />
+                    ) : (
+                      <Search className="h-4 w-4 sm:mr-2" />
+                    )}
+                    <span className="hidden sm:inline">Search</span>
+                  </Button>
+                </div>
+              </CardHeader>
+            </Card>
+          )}
+
           <Card>
             <CardContent className="p-6 space-y-6">
               <>
@@ -531,7 +634,10 @@ const StudentsFund = ({
                   <div className="flex-1 w-full">
                     <Select
                       value={selectedBatch}
-                      onValueChange={setSelectedBatch}
+                      onValueChange={(val) => {
+                        setSelectedBatch(val);
+                        setSelectedStudents([]);
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a batch" />
