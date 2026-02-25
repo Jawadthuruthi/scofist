@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Printer, User, Shield } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import Barcode from "react-barcode";
-import Header from "./Header";
+import Header from "@/components/Header";
 import { formatDateForDisplay } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
