@@ -29,7 +29,7 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
 
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split("T")[0],
-        type: "Income",
+        type: "Expense",
         invoiceNo: "",
         item: "",
         recipient: "",
@@ -75,7 +75,7 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
             // Reset form
             setFormData({
                 date: new Date().toISOString().split("T")[0],
-                type: "Income",
+                type: "Expense",
                 invoiceNo: "",
                 item: "",
                 recipient: "",
@@ -211,7 +211,7 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
                                 onValueChange={(val) => handleSelectChange("category", val)}
                                 placeholder="Select or type category"
                                 variant="default"
-                                animation={2}
+                                animation={0}
                                 maxCount={1}
                                 multiSelect={false}
                                 freeSolo={true}

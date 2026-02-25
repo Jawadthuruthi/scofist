@@ -23,7 +23,7 @@ import {
 
 import CategoryBalanceDialog from "./_components/CategoryBalanceDialog";
 
-export default function AccountsClient({ initialSummary, apiKey, accountType = "College", accountName: initialAccountName = "" }) {
+export default function AccountsClient({ initialSummary, apiKey, accountType = "College", accountName: initialAccountName = "", allCategories = [] }) {
     const [summary, setSummary] = useState(initialSummary);
     const router = useRouter();
     const [accountName, setAccountName] = useState(initialAccountName || "");
@@ -56,6 +56,17 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         setAccountName(initialAccountName || "");
     }, [initialAccountName]);
 
+    const getCurrentFinYear = () => {
+        const today = new Date();
+        const month = today.getMonth(); // 0-indexed
+        const year = today.getFullYear();
+        if (month >= 3) {
+            return `${year}-${year + 1}`;
+        } else {
+            return `${year - 1}-${year}`;
+        }
+    };
+
     // Fetch available account names for Org
     useEffect(() => {
         if (accountType === "Org") {
@@ -64,15 +75,27 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 .then(data => {
                     if (data.success) {
                         setAvailableAccountNames(data.accountNames);
-                        // Default to first account if none selected
+                        // Default to current year if none selected
                         if (!accountName && !initialAccountName && data.accountNames.length > 0) {
-                            handleAccountNameChange(data.accountNames[0]);
+                            const currentFinYear = getCurrentFinYear();
+                            const exactMatch = data.accountNames.find(name => name.includes(currentFinYear));
+                            const currentYearNumMatch = data.accountNames.find(name => name.includes(new Date().getFullYear().toString()));
+
+                            if (exactMatch) {
+                                handleAccountNameChange(exactMatch);
+                            } else if (currentYearNumMatch) {
+                                handleAccountNameChange(currentYearNumMatch);
+                            } else {
+                                // Default to the latest year (last one alphabetically) if current year mismatch
+                                handleAccountNameChange(data.accountNames[data.accountNames.length - 1]);
+                            }
                         }
                     }
                 })
                 .catch(err => console.error("Failed to fetch account names", err));
         }
-    }, [accountType]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [accountType, initialAccountName]);
 
     const [isEditingName, setIsEditingName] = useState(false);
     const [isCreatingName, setIsCreatingName] = useState(false);
@@ -379,7 +402,9 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
             label: "Category",
             type: "text",
             inputType: "select",
-            options: summary?.categories?.map(c => ({ value: c.category, label: c.category })) || [],
+            options: allCategories?.length > 0
+                ? allCategories.map(c => ({ value: c, label: c }))
+                : summary?.categories?.map(c => ({ value: c.category, label: c.category })) || [],
 
             required: true,
             freeSolo: true
@@ -485,18 +510,18 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                         )}
                     </div>
 
-                    {/* Next Button - Order 3 on Mobile, Order 4 on Desktop */}
+                    {/* Next Button - Order 3 */}
                     <Button
                         variant="outline"
                         size="icon"
                         onClick={() => handleNextPrevAccount("next")}
-                        className="order-3 md:order-4 shrink-0"
+                        className="order-3 shrink-0"
                     >
                         <ChevronRight className="h-4 w-4" />
                     </Button>
 
-                    {/* Action Buttons - Order 4 on Mobile (New Row), Order 3 on Desktop (Inline) */}
-                    <div className="order-4 md:order-3 w-full md:w-auto flex items-center justify-center md:justify-start gap-2 mt-2 md:mt-0">
+                    {/* Action Buttons - Order 4 */}
+                    <div className="order-4 w-full md:w-auto flex items-center justify-center md:justify-start gap-2 mt-2 md:mt-0">
                         {isEditingName || isCreatingName ? (
                             <>
                                 <Button size="sm" onClick={handleRenameAccount} disabled={renaming}>
@@ -543,7 +568,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 apiKey={apiKey}
                 onSuccess={handleSuccess}
                 accountType={accountType}
-                existingCategories={summary?.categories?.map(c => c.category) || []}
+                existingCategories={allCategories?.length > 0 ? allCategories : summary?.categories?.map(c => c.category) || []}
                 accountName={accountName}
             />
 

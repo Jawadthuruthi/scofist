@@ -1,4 +1,6 @@
 
+import connectToDB from "@/lib/db";
+import Finance from "@/models/Finance";
 import { getFinanceSummary } from "@/libservices/financeService";
 import AccountsClient from "./AccountsClient";
 
@@ -21,8 +23,14 @@ export default async function AccountsPage({ searchParams }) {
     }
 
     let summary = null;
+    let allCategories = [];
     try {
         summary = await getFinanceSummary(accountType, accountName);
+
+        // Fetch all categories globally for this accountType across all years
+        await connectToDB();
+        allCategories = await Finance.distinct("category", { accountType });
+        allCategories = allCategories.filter(Boolean); // Remove empty/null categories
     } catch (error) {
         console.error("Error fetching finance summary:", error);
         // Fallback or handle error gracefully so page doesn't crash
@@ -36,7 +44,7 @@ export default async function AccountsPage({ searchParams }) {
                 <h1 className="font-bold text-xl md:text-2xl tracking-tight uppercase">ACCOUNTS {accountType !== "College" ? `(${accountType})` : ""}</h1>
                 <p className="text-muted-foreground">Manage your financial transactions</p>
             </div>
-            <AccountsClient initialSummary={summary} apiKey={apiKey} accountType={accountType} accountName={accountName} />
+            <AccountsClient initialSummary={summary} apiKey={apiKey} accountType={accountType} accountName={accountName} allCategories={allCategories} />
         </div>
     );
 }
