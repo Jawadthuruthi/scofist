@@ -562,70 +562,68 @@ const StudentsFund = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {department === "Stationary" && (
-            <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden bg-card">
-              <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-              <CardHeader className="bg-muted/10 pb-4 pt-4 border-b">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Search className="w-5 h-5 text-primary" />
-                  Student Lookup
-                </CardTitle>
-                <CardDescription>
-                  Search for a student by ID or Name
-                </CardDescription>
-                <div className="flex gap-2 mt-4 w-full">
-                  <div className="relative flex-1">
-                    <Input
-                      autoFocus
-                      placeholder="Search by Student ID or Name..."
-                      value={lookupSearchTerm}
-                      onChange={(e) => {
-                        if (clearOnNextInput) {
-                          const oldVal = lookupSearchTerm;
-                          const newVal = e.target.value;
-                          let typed = newVal;
-                          if (newVal.length > oldVal.length && newVal.startsWith(oldVal)) {
-                            typed = newVal.slice(oldVal.length);
-                          }
-                          setLookupSearchTerm(typed);
-                          setClearOnNextInput(false);
-                        } else {
-                          setLookupSearchTerm(e.target.value);
+          <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden bg-card">
+            <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+            <CardHeader className="bg-muted/10 pb-4 pt-4 border-b">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Search className="w-5 h-5 text-primary" />
+                Student Lookup
+              </CardTitle>
+              <CardDescription>
+                Search for a student by ID or Name
+              </CardDescription>
+              <div className="flex gap-2 mt-4 w-full">
+                <div className="relative flex-1">
+                  <Input
+                    autoFocus
+                    placeholder="Search by Student ID or Name..."
+                    value={lookupSearchTerm}
+                    onChange={(e) => {
+                      if (clearOnNextInput) {
+                        const oldVal = lookupSearchTerm;
+                        const newVal = e.target.value;
+                        let typed = newVal;
+                        if (newVal.length > oldVal.length && newVal.startsWith(oldVal)) {
+                          typed = newVal.slice(oldVal.length);
                         }
+                        setLookupSearchTerm(typed);
+                        setClearOnNextInput(false);
+                      } else {
+                        setLookupSearchTerm(e.target.value);
+                      }
+                    }}
+                    onFocus={(e) => e.target.select()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleStudentLookup();
+                    }}
+                    className="w-full pr-10"
+                  />
+                  {lookupSearchTerm && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-transparent"
+                      onClick={() => {
+                        setLookupSearchTerm("");
+                        setSelectedStudents([]);
+                        setSelectedBatch("");
                       }}
-                      onFocus={(e) => e.target.select()}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleStudentLookup();
-                      }}
-                      className="w-full pr-10"
-                    />
-                    {lookupSearchTerm && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-transparent"
-                        onClick={() => {
-                          setLookupSearchTerm("");
-                          setSelectedStudents([]);
-                          setSelectedBatch("");
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  <Button onClick={handleStudentLookup} disabled={isLookingUp}>
-                    {isLookingUp ? (
-                      <Loader className="h-4 w-4 animate-spin sm:mr-2" />
-                    ) : (
-                      <Search className="h-4 w-4 sm:mr-2" />
-                    )}
-                    <span className="hidden sm:inline">Search</span>
-                  </Button>
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-              </CardHeader>
-            </Card>
-          )}
+                <Button onClick={handleStudentLookup} disabled={isLookingUp}>
+                  {isLookingUp ? (
+                    <Loader className="h-4 w-4 animate-spin sm:mr-2" />
+                  ) : (
+                    <Search className="h-4 w-4 sm:mr-2" />
+                  )}
+                  <span className="hidden sm:inline">Search</span>
+                </Button>
+              </div>
+            </CardHeader>
+          </Card>
 
           <Card>
             <CardContent className="p-6 space-y-6">
