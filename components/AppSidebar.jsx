@@ -214,9 +214,9 @@ const items = [
       },
       {
         title: "Identity Cards",
-        url: "/dashboard/identity-cards",
+        url: "/dashboard/downloads/id-card",
         icon: IdCard,
-        allowedRoles: ["College Admin"],
+        allowedRoles: ["College Admin", "Student"],
       },
     ],
   },
