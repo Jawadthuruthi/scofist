@@ -22,10 +22,12 @@ const StudentIdCardPage = async () => {
     }
 
     try {
-        const [settings, studentData] = await Promise.all([
+        const [settings, usersData] = await Promise.all([
             fetchData("settings"),
-            fetchData(`users/${user._id}`),
+            fetchData("users", `_id=${user._id}`),
         ]);
+
+        const studentData = usersData?.[0];
 
         if (!studentData) {
             throw new Error("Student data not found");
