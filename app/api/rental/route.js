@@ -41,11 +41,8 @@ export async function POST(req) {
 
         // If bookId is provided, check if it's a direct ID or a Book Number (from manual input)
         if (body.bookId) {
-            // First try to find by number (only if it looks like a number)
-            let book = null;
-            if (!isNaN(body.bookId)) {
-                book = await LibraryBook.findOne({ number: body.bookId });
-            }
+            // First try to find by number (Book ID can be alphanumeric)
+            let book = await LibraryBook.findOne({ number: body.bookId });
 
             // If not found by number, and it looks like an ObjectId, try finding by ID (fallback)
             if (!book && mongoose.Types.ObjectId.isValid(body.bookId)) {

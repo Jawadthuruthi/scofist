@@ -8,7 +8,15 @@ export async function GET(req) {
     try {
         await connectToDB();
 
-        const books = await LibraryBook.find().sort({ number: 1 }).lean();
+        const url = new URL(req.url);
+        const number = url.searchParams.get("number");
+
+        const query = {};
+        if (number) {
+            query.number = { $regex: new RegExp(`^${number}$`, 'i') }; // Exact match, case insensitive
+        }
+
+        const books = await LibraryBook.find(query).sort({ number: 1 }).lean();
         const activeRentals = await Rental.find({ receivedDate: null }).select("bookId");
 
         const rentedBookIds = new Set(activeRentals.map(r => r.bookId?.toString()));

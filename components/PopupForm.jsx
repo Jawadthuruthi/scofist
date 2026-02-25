@@ -37,6 +37,7 @@ const AsyncInput = ({
   placeholder,
   disabled,
   readOnly,
+  autoFocus,
   asyncProps = {},
   ...props
 }) => {
@@ -94,6 +95,7 @@ const AsyncInput = ({
         placeholder={placeholder}
         disabled={disabled}
         readOnly={readOnly}
+        autoFocus={autoFocus}
         {...props}
       />
       {loading && <div className="text-xs text-muted-foreground animate-pulse">Checking...</div>}
@@ -305,6 +307,7 @@ function FieldRenderer({ field, form, apiKey, data }) {
                 disabled={fieldToRender.disabled}
                 readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
                 asyncProps={fieldToRender.asyncProps}
+                autoFocus={fieldToRender.autoFocus}
                 {...formField}
               />
             ) : (
@@ -312,6 +315,7 @@ function FieldRenderer({ field, form, apiKey, data }) {
                 type={fieldToRender.type || "text"}
                 placeholder={fieldToRender.placeholder}
                 readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                autoFocus={fieldToRender.autoFocus}
                 {...formField}
               />
             )}
@@ -342,6 +346,7 @@ const FormContent = ({
   data,
   loading,
   apiKey,
+  submitButtonClass,
 }) => {
   const sectionRefs = React.useRef([]);
 
@@ -372,7 +377,12 @@ const FormContent = ({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(handleSubmit, (errors) => {
-          console.error("Validation errors:", errors);
+          // Format errors to be easily readable in console
+          const formattedErrors = Object.entries(errors).reduce((acc, [key, err]) => {
+            acc[key] = err?.message || err;
+            return acc;
+          }, {});
+          console.error("Validation errors:", formattedErrors);
           toast.error("Please fill all required fields correctly.");
         })}
         className="max-w-full overflow-hidden"
@@ -426,7 +436,7 @@ const FormContent = ({
           )}
           {activeSectionIndex === totalSections - 1 ? (
             <Button
-              className="w-full"
+              className={submitButtonClass || "w-full"}
               type="submit"
               disabled={loading}
             >
@@ -456,93 +466,125 @@ const FormContent = ({
 
 /* ---------- PopupForm (main) ---------- */
 export default function PopupForm({
-  data = null,
-  formFields = [],
-  onSubmit,
-  title = "",
+  title = "Form",
   description = "",
-  loading = false,
-  apiKey,
+  formFields,
+  data = null,
+  onSubmit, // Expected to be an async function returning true on success
   hideButton = false,
-  open: controlledOpen,
-  onOpenChange: controlledOnOpenChange,
+  apiKey = null,
+  loading: externalLoading = false,
+  trigger = null,
+  open: externalOpen,
+  onOpenChange,
+  className,
+  submitButtonClass,
 }) {
-  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
+  // Use either external state (if provided) or internal state
+  const isControlled = externalOpen !== undefined;
+  const [internalOpen, setInternalOpen] = React.useState(false);
 
-  // Determine if component is controlled
-  const isControlled = controlledOpen !== undefined;
-
-  // Use controlled state if available, otherwise local state
-  const open = isControlled ? controlledOpen : uncontrolledOpen;
-  const setOpen = isControlled ? controlledOnOpenChange : setUncontrolledOpen;
-
+  const open = isControlled ? externalOpen : internalOpen;
   const handleOpenChange = (newOpen) => {
-    // If not controlled, update local state
-    if (!isControlled) {
-      setUncontrolledOpen(newOpen);
-    }
-    // Always call the onChange handler if provided (for both controlled and uncontrolled scenarios to sync if needed)
-    if (controlledOnOpenChange) {
-      controlledOnOpenChange(newOpen);
+    if (isControlled && onOpenChange) {
+      onOpenChange(newOpen);
+    } else {
+      setInternalOpen(newOpen);
     }
   };
 
+  const [loading, setLoading] = React.useState(false);
 
+  // Custom form fields to handle object nesting
   const customFormFields = React.useMemo(() => {
+    if (!formFields) return [];
+
+    // Convert object values into appropriate structures for inputs
     if (data) {
-      return formFields.filter((field) => !field.hideOnEdit);
-    } else {
-      return formFields;
+      return formFields.map(field => {
+        // Find if this field exists in the data as an object
+        const value = data[field.name];
+
+        let newField = { ...field };
+
+        // If data is populated (object) but we need an ID (like select/async)
+        if (value && typeof value === 'object' && !Array.isArray(value) &&
+          ['select', 'async-text'].includes(field.inputType)) {
+
+          // Use the _id if available, otherwise keep original
+          newField.defaultValue = value._id || value.id || value;
+        } else if (value !== undefined) {
+          newField.defaultValue = value;
+        }
+
+        return newField;
+      });
     }
-  }, [data, formFields]);
+    return formFields;
+  }, [formFields, data]);
 
   const { schema } = useDynamicFormSchema(customFormFields);
 
-  const defaultValues = React.useMemo(() => {
-    return getDefaultValues(data, customFormFields);
-  }, [data, customFormFields]);
-
   const form = useForm({
     resolver: zodResolver(schema),
-    defaultValues,
-    mode: "all",
+    defaultValues: data || getDefaultValues(data, customFormFields),
   });
+
+  // Reset form when form is opened/closed or data changes
+  React.useEffect(() => {
+    if (open) {
+      // Re-initialize with data or defaults when opened
+      form.reset(data || getDefaultValues(data, customFormFields));
+    } else {
+      // Reset to defaults when closed
+      form.reset(getDefaultValues(data, customFormFields));
+    }
+  }, [open, data, customFormFields, form]);
 
   const handleSubmit = React.useCallback(async () => {
     try {
+      setLoading(true);
       const values = form.getValues();
       const success = await onSubmit(values);
-      if (success) {
-        setOpen(false);
-        form.reset();
+
+      if (success !== false) {
+        // Wait for the dialog animation to complete before resetting and closing
+        handleOpenChange(false);
+        setTimeout(() => {
+          form.reset(getDefaultValues(data, customFormFields));
+        }, 150);
       }
     } catch (error) {
       console.error("Form submission failed:", error.message);
+
+      // Attempt to set form errors if the error response provides field-level details
       if (error.details?.errors) {
-        error.details.errors.forEach(({ field, message }) => {
-          const fieldLabel =
-            customFormFields?.find((f) => f.name === field)?.label ||
-            "This value";
+        Object.entries(error.details.errors).forEach(([field, message]) => {
+          // Find the label for the field to provide a more readable error
+          const fieldLabel = customFormFields.find(f => f.name === field)?.label || field;
+
           form.setError(field, {
             type: "manual",
             message: `${fieldLabel} ${message}`,
           });
         });
       }
+    } finally {
+      setLoading(false);
     }
-  }, [form, customFormFields, onSubmit, setOpen]);
+  }, [form, customFormFields, onSubmit, handleOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        {!hideButton && (
+        {trigger ? trigger : (!hideButton && (
           <Button variant="outline">
             {data ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           </Button>
-        )}
+        ))}
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent className={className}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
@@ -556,6 +598,7 @@ export default function PopupForm({
           data={data}
           loading={loading}
           apiKey={apiKey}
+          submitButtonClass={submitButtonClass}
         />
       </DialogContent>
     </Dialog>

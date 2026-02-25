@@ -137,10 +137,14 @@ export default function LibraryDashboard({
         {
             name: "bookId",
             label: "Book ID",
-            inputType: "select",
-            resource: "library/books",
-            labelKey: ["number", "name"],
-            valueKey: "_id",
+            inputType: "async-text",
+            asyncProps: {
+                endpoint: "/api/library/books",
+                queryKey: "number",
+                displayKey: "name",
+                responseKey: "data"
+            },
+            autoFocus: true,
             required: true,
         },
         {
@@ -169,6 +173,18 @@ export default function LibraryDashboard({
             inputType: "date",
             type: "date",
         },
+    ];
+
+    const returnFormFields = [
+        {
+            name: "receivedDate",
+            label: "Returned Date",
+            type: "date",
+            inputType: "date",
+            required: true,
+            defaultValue: new Date().toISOString().split("T")[0],
+            className: "md:col-span-2",
+        }
     ];
 
     const bookColumns = [
@@ -612,6 +628,31 @@ export default function LibraryDashboard({
         }
     }
 
+    const handleSaveReturnBook = async (rentalId, data) => {
+        setLoading(true);
+        try {
+            const res = await fetch("/api/rental", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ _id: rentalId, receivedDate: data.receivedDate }),
+            });
+            if (res.ok) {
+                toast.success("Book returned successfully");
+                setStudentHistory(prev => prev.map(r => r._id === rentalId ? { ...r, receivedDate: data.receivedDate } : r));
+                setBookHistory(prev => prev.map(r => r._id === rentalId ? { ...r, receivedDate: data.receivedDate } : r));
+                router.refresh();
+                return true;
+            } else {
+                toast.error("Failed to return book");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Error returning book");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleUpdateRental = async (data) => {
         setLoading(true);
         try {
@@ -742,6 +783,7 @@ export default function LibraryDashboard({
                                         onChange={(e) => setStudentSearchId(e.target.value)}
                                         onKeyDown={handleStudentLookup}
                                         disabled={lookupLoading}
+                                        autoFocus
                                     />
                                 </div>
                                 <Button size="icon" onClick={() => handleStudentLookup()} disabled={lookupLoading}>
@@ -890,7 +932,15 @@ export default function LibraryDashboard({
                                                                         {format(new Date(rental.receivedDate), "PP")}
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="text-red-500 font-bold">Pending</span>
+                                                                    <PopupForm
+                                                                        title="Return Book"
+                                                                        description="Select the returned date"
+                                                                        formFields={returnFormFields}
+                                                                        onSubmit={(data) => handleSaveReturnBook(rental._id, data)}
+                                                                        trigger={<span className="text-red-500 font-bold hover:underline cursor-pointer">Pending</span>}
+                                                                        className="sm:max-w-[250px]"
+                                                                        submitButtonClass="w-full"
+                                                                    />
                                                                 )}
                                                             </TableCell>
                                                         </TableRow>
@@ -967,7 +1017,15 @@ export default function LibraryDashboard({
                                                                         {format(new Date(rental.receivedDate), "PP")}
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="text-red-500 font-bold">Pending</span>
+                                                                    <PopupForm
+                                                                        title="Return Book"
+                                                                        description="Select the returned date"
+                                                                        formFields={returnFormFields}
+                                                                        onSubmit={(data) => handleSaveReturnBook(rental._id, data)}
+                                                                        trigger={<span className="text-red-500 font-bold hover:underline cursor-pointer">Pending</span>}
+                                                                        className="sm:max-w-[250px]"
+                                                                        submitButtonClass="w-full"
+                                                                    />
                                                                 )}
                                                             </TableCell>
                                                         </TableRow>
