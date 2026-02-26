@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import ErrorPage from "@/components/ErrorPage";
 import { parseUser, fetchData } from "@/lib/utils";
 import StudentIdentityCard from "@/components/StudentIdentityCard";
+import { redirect } from "next/navigation";
 
 export const revalidate = 60;
 
@@ -10,6 +11,11 @@ const StudentIdCardPage = async () => {
     const cookiesStore = await cookies();
     const user = parseUser(headerStore);
     const activeRole = cookiesStore.get("active-role")?.value;
+
+    // College Admin should use the full identity cards management page
+    if (activeRole === "College Admin") {
+        redirect("/dashboard/identity-cards");
+    }
 
     if (activeRole !== "Student") {
         return (
