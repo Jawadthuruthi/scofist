@@ -224,7 +224,7 @@ const items = [
     title: "Marks",
     url: "/dashboard/marks",
     icon: FileSpreadsheet,
-    allowedRoles: ["Teacher"],
+    allowedRoles: ["College Admin", "Teacher"],
   },
   {
     title: "Remarks",

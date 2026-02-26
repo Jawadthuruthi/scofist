@@ -115,7 +115,7 @@ const pages = [
   {
     title: "Marks",
     path: "/dashboard/marks",
-    allowedRoles: ["Teacher"],
+    allowedRoles: ["Teacher", "College Admin"],
   },
   {
     title: "Leave Register",
