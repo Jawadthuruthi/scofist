@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Loader, CheckCircle2, FileText, AlertCircle, Check, ChevronsUpDown, CalendarDays } from "lucide-react";
+import { Loader, CheckCircle2, FileText, AlertCircle, Check, ChevronsUpDown, CalendarDays, ChevronRight } from "lucide-react";
 
 // UI Components
 import {
@@ -25,6 +25,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
+  DialogHeader,
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { toast } from "sonner";
@@ -57,6 +58,7 @@ const leaveReasons = [
 const MyPeriods = ({ apiKey, teacherId }) => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [comboboxOpen, setComboboxOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [classId, setClassId] = useState("");
@@ -327,10 +329,12 @@ const MyPeriods = ({ apiKey, teacherId }) => {
 
           {/* ── Upcoming Special Day Banner ── */}
           {upcomingEvent && (
-            <div className="mb-4 overflow-hidden rounded-lg border">
-              <div
-                className="flex items-center gap-3 px-4 py-3 border-l-4 border-yellow-400 bg-yellow-50 text-yellow-900 font-medium"
-              >
+            <button
+              type="button"
+              onClick={() => setCalendarOpen(true)}
+              className="mb-4 w-full overflow-hidden rounded-lg border hover:opacity-90 transition-opacity text-left cursor-pointer"
+            >
+              <div className="flex items-center gap-3 px-4 py-3 border-l-4 border-yellow-400 bg-yellow-50 text-yellow-900 font-medium">
                 <CalendarDays className="h-5 w-5 shrink-0 text-yellow-600" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3">
@@ -344,8 +348,9 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                     <p className="text-xs opacity-80 mt-0.5">{upcomingEvent.description}</p>
                   )}
                 </div>
+                <ChevronRight className="h-4 w-4 text-yellow-600 shrink-0" />
               </div>
-            </div>
+            </button>
           )}
           {/* ─────────────────────────────────────────── */}
 
@@ -451,6 +456,76 @@ const MyPeriods = ({ apiKey, teacherId }) => {
             </div>
           )}
         </div>
+        {/* ── Academic Calendar Events Popup ── */}
+        <Dialog open={calendarOpen} onOpenChange={setCalendarOpen}>
+          <DialogContent className="max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CalendarDays className="h-5 w-5 text-yellow-600" />
+                Academic Calendar — {currentYear}
+              </DialogTitle>
+              <DialogDescription>
+                Special days and events for the current year.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="overflow-y-auto max-h-[60vh] -mx-6 px-6">
+              {calendarEventsQuery.isLoading ? (
+                <div className="flex justify-center items-center h-32">
+                  <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (() => {
+                const allEvents = calendarEventsQuery.data?.["academic-calendar"] || [];
+                const sorted = [...allEvents].sort((a, b) => new Date(a.date) - new Date(b.date));
+                if (sorted.length === 0) {
+                  return (
+                    <p className="text-center text-sm text-muted-foreground py-8">
+                      No special days marked for {currentYear}.
+                    </p>
+                  );
+                }
+                const grouped = sorted.reduce((acc, ev) => {
+                  const m = new Date(ev.date).getMonth();
+                  if (!acc[m]) acc[m] = [];
+                  acc[m].push(ev);
+                  return acc;
+                }, {});
+                const MONTHS_LIST = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                return (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Date &amp; Time</TableHead>
+                        <TableHead className="text-xs">Event</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Object.entries(grouped).flatMap(([monthIdx, evs]) => [
+                        <TableRow key={`m-${monthIdx}`} className="bg-muted/50 hover:bg-muted/50">
+                          <TableCell colSpan={2} className="font-semibold py-1.5 h-auto text-xs text-center">
+                            {MONTHS_LIST[parseInt(monthIdx)]}
+                          </TableCell>
+                        </TableRow>,
+                        ...evs.map(ev => (
+                          <TableRow key={ev._id}>
+                            <TableCell className="text-xs whitespace-nowrap">
+                              <div>{new Date(ev.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+                              {ev.time && <div className="text-muted-foreground mt-0.5">{ev.time}</div>}
+                            </TableCell>
+                            <TableCell>
+                              <p className="text-xs font-medium">{ev.title}</p>
+                              {ev.description && <p className="text-xs text-muted-foreground mt-0.5">{ev.description}</p>}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ])}
+                    </TableBody>
+                  </Table>
+                );
+              })()}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent>
             <DialogTitle>Leave Reason</DialogTitle>
