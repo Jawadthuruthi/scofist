@@ -10,7 +10,7 @@ export async function GET(req) {
         const filter = classId ? { classId } : {};
         const marks = await Mark.find(filter)
             .populate("classId", "name")
-            .populate("students.studentId", "name");
+            .populate("students.studentId", "name _id");
         return NextResponse.json({ success: true, data: marks });
     } catch (error) {
         console.error("GET /api/marks error:", error);

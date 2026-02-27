@@ -10,34 +10,45 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Save, Plus, Printer, Trophy } from "lucide-react";
+import { Trash2, Save, Plus, Printer, Trophy, Edit } from "lucide-react";
 import { toast } from "sonner";
+import Cookies from "js-cookie";
+import { useReactToPrint } from "react-to-print";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function MarksManager() {
     const [classes, setClasses] = useState([]);
     const [selectedClass, setSelectedClass] = useState("");
     const [selectedClassName, setSelectedClassName] = useState("");
     const [examName, setExamName] = useState("");
-    // subjects = array of subject names; starts with one blank column
     const [subjects, setSubjects] = useState([""]);
     const [students, setStudents] = useState([]);
-    const [marksData, setMarksData] = useState({}); // { studentId: { subjectIndex: mark } }
+    const [marksData, setMarksData] = useState({});
     const [savedExams, setSavedExams] = useState([]);
     const [selectedExam, setSelectedExam] = useState(null);
     const [examReady, setExamReady] = useState(false);
     const [savingMarks, setSavingMarks] = useState(false);
     const [showResult, setShowResult] = useState(false);
-    const [resultExam, setResultExam] = useState(null); // exam shown in Results view
+    const [resultExam, setResultExam] = useState(null);
     const printRef = useRef(null);
+    const activeRole = Cookies.get("active-role");
 
-    // ── Fetch classes on mount
     useEffect(() => {
         fetch("/api/classes")
             .then((r) => r.json())
             .then((d) => setClasses(d.classes || []));
     }, []);
 
-    // ── When class changes, load students + existing exams
     useEffect(() => {
         if (!selectedClass) return;
         fetch(`/api/users?roles=Student&classId=${selectedClass}&status=Active`)
@@ -55,13 +66,12 @@ export default function MarksManager() {
             .then((d) => setSavedExams(d.data || []));
 
         setSelectedExam(null);
+        setResultExam(null);
         setExamName("");
         setSubjects([""]);
         setExamReady(false);
-        setShowResult(false);
     }, [selectedClass]);
 
-    // ── Load an existing exam
     const loadExam = (exam) => {
         setSelectedExam(exam);
         setExamName(exam.examName);
@@ -70,14 +80,12 @@ export default function MarksManager() {
         const md = {};
         exam.students.forEach((entry) => {
             const sid = entry.studentId?._id || entry.studentId;
-            // entry.marks can be a Mongoose Map, a plain object, or null
             let marksObj = {};
             if (entry.marks instanceof Map) {
                 marksObj = Object.fromEntries(entry.marks);
             } else if (entry.marks && typeof entry.marks === "object") {
-                marksObj = entry.marks; // already plain object from JSON
+                marksObj = entry.marks;
             }
-            // Re-index from subject-name keys → column-index keys
             md[sid] = {};
             examSubjects.forEach((subj, i) => {
                 const key = subj || `col${i}`;
@@ -89,7 +97,6 @@ export default function MarksManager() {
         setShowResult(false);
     };
 
-    // ── Open table
     const handleOpenTable = () => {
         if (!selectedClass || !examName.trim()) {
             alert("Please select a class and enter an exam name.");
@@ -99,7 +106,25 @@ export default function MarksManager() {
         setShowResult(false);
     };
 
-    // ── Rename a subject column header
+    const handleDeleteExam = async (examId) => {
+        try {
+            const res = await fetch(`/api/marks/${examId}`, { method: "DELETE" });
+            const data = await res.json();
+            if (data.success) {
+                toast.success("Exam deleted successfully!");
+                setResultExam(null);
+                fetch(`/api/marks?classId=${selectedClass}`)
+                    .then((r) => r.json())
+                    .then((d) => setSavedExams(d.data || []));
+            } else {
+                toast.error(data.message || "Failed to delete exam");
+            }
+        } catch (error) {
+            console.error("Delete error:", error);
+            toast.error("An error occurred while deleting");
+        }
+    };
+
     const renameSubject = (index, value) => {
         setSubjects((prev) => {
             const updated = [...prev];
@@ -108,12 +133,10 @@ export default function MarksManager() {
         });
     };
 
-    // ── Add a new (blank) subject column
     const addSubjectColumn = () => {
         setSubjects((prev) => [...prev, ""]);
     };
 
-    // ── Remove a subject column by index
     const removeSubjectColumn = (index) => {
         const removedKey = subjects[index];
         setSubjects((prev) => prev.filter((_, i) => i !== index));
@@ -124,7 +147,6 @@ export default function MarksManager() {
         }
     };
 
-    // ── Handle mark input (keyed by column index as string)
     const handleMarkChange = (studentId, index, value) => {
         setMarksData((prev) => ({
             ...prev,
@@ -132,7 +154,6 @@ export default function MarksManager() {
         }));
     };
 
-    // ── Compute total, percentage, rank (by index)
     const computeStats = () => {
         const totals = students.map((st) => {
             const total = subjects.reduce(
@@ -153,7 +174,6 @@ export default function MarksManager() {
 
     const stats = computeStats();
 
-    // ── Save marks
     const saveMarks = async () => {
         setSavingMarks(true);
         const payload = {
@@ -162,7 +182,6 @@ export default function MarksManager() {
             subjects,
             students: students.map((st) => ({
                 studentId: st._id,
-                // convert index-keyed marks to subject-name keyed
                 marks: subjects.reduce((acc, subj, i) => {
                     const val = marksData[st._id]?.[i];
                     if (val !== undefined) acc[subj || `col${i}`] = val;
@@ -188,7 +207,6 @@ export default function MarksManager() {
                 .then((d) => {
                     const exams = d.data || [];
                     setSavedExams(exams);
-                    // Auto-select this exam in the Results view
                     const thisExam = exams.find((e) => e._id === savedId);
                     if (thisExam) setResultExam(thisExam);
                 });
@@ -197,32 +215,11 @@ export default function MarksManager() {
         setSavingMarks(false);
     };
 
-    // ── Print
-    const handlePrint = () => {
-        const content = printRef.current;
-        if (!content) return;
-        const win = window.open("", "_blank");
-        win.document.write(`
-            <html><head><title>${examName} - ${selectedClassName}</title>
-            <style>
-                body { font-family: Arial, sans-serif; font-size: 12px; padding: 20px; }
-                h2 { text-align: center; margin-bottom: 4px; }
-                p { text-align: center; color: #555; margin-bottom: 16px; }
-                table { width: 100%; border-collapse: collapse; }
-                th, td { border: 1px solid #999; padding: 6px 10px; text-align: center; }
-                th { background: #f0f0f0; font-weight: bold; }
-                td:nth-child(3) { text-align: left; }
-            </style></head><body>
-            <h2>${examName}</h2>
-            <p>${selectedClassName}</p>
-            ${content.innerHTML}
-            </body></html>
-        `);
-        win.document.close();
-        win.print();
-    };
+    const handlePrint = useReactToPrint({
+        contentRef: printRef,
+        documentTitle: `${examName} - ${selectedClassName}`,
+    });
 
-    // ── Stats for result view (from resultExam, not entry form)
     const computeResultStats = (exam) => {
         if (!exam) return [];
         const examStudents = exam.students || [];
@@ -234,155 +231,289 @@ export default function MarksManager() {
             } else if (entry.marks && typeof entry.marks === "object") {
                 marksMap = entry.marks;
             }
-            // Use same key fallback as saveMarks: subj || `col${i}`
-            const total = examSubjects.reduce((sum, subj, i) => sum + (marksMap[subj || `col${i}`] || 0), 0);
+            const total = examSubjects.reduce(
+                (sum, subj, i) => sum + (marksMap[subj || `col${i}`] || 0),
+                0
+            );
             const maxTotal = examSubjects.length * 100;
-            const percentage = maxTotal > 0 ? ((total / maxTotal) * 100).toFixed(1) : "0.0";
-            return { studentId: entry.studentId?._id, studentName: entry.studentId?.name, total, percentage, marksMap };
+            const percentage =
+                maxTotal > 0 ? ((total / maxTotal) * 100).toFixed(1) : "0.0";
+            return {
+                studentId: entry.studentId?._id,
+                studentName: entry.studentId?.name,
+                total,
+                percentage,
+                marksMap,
+            };
         });
         const sorted = [...totals].sort((a, b) => b.total - a.total);
-        return totals.map((t) => ({
-            ...t,
-            rank: sorted.findIndex((s) => s.studentId === t.studentId) + 1,
-        })).sort((a, b) => a.rank - b.rank);
+        return totals
+            .map((t) => ({
+                ...t,
+                rank: sorted.findIndex((s) => s.studentId === t.studentId) + 1,
+            }))
+            .sort((a, b) => a.rank - b.rank);
     };
 
-    const resultStats = computeStats();
     const resultViewStats = computeResultStats(resultExam);
 
     return (
         <div className="space-y-6">
-            {/* ── Select Class + Exam Name */}
-            <div className="flex gap-4 flex-wrap items-end justify-between">
-                <div className="flex gap-4 flex-wrap items-end">
-                    <div className="w-56">
-                        <label className="text-sm font-medium mb-1 block">Select Class</label>
+            {/* ── All controls in one row */}
+            <div className="flex gap-4 flex-wrap items-end">
+                {/* Mode */}
+                <div className="w-40">
+                    <label className="text-sm font-medium mb-1 block">Mode</label>
+                    <Select
+                        value={showResult ? "result" : "entry"}
+                        onValueChange={(val) => setShowResult(val === "result")}
+                    >
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="entry">Marks Entry</SelectItem>
+                            <SelectItem value="result">Result View</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Select Class */}
+                <div className="w-48">
+                    <label className="text-sm font-medium mb-1 block">Select Class</label>
+                    <Select
+                        onValueChange={(val) => {
+                            setSelectedClass(val);
+                            const cls = classes.find((c) => c._id === val);
+                            setSelectedClassName(cls?.name || "");
+                        }}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Choose class..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {classes.map((cls) => (
+                                <SelectItem key={cls._id} value={cls._id}>
+                                    {cls.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Exam Name */}
+                <div className="w-48">
+                    <label className="text-sm font-medium mb-1 block">Exam Name</label>
+                    {showResult ? (
                         <Select
+                            value={resultExam?._id || ""}
                             onValueChange={(val) => {
-                                setSelectedClass(val);
-                                const cls = classes.find((c) => c._id === val);
-                                setSelectedClassName(cls?.name || "");
+                                const exam = savedExams.find((e) => e._id === val);
+                                setResultExam(exam || null);
                             }}
                         >
                             <SelectTrigger>
-                                <SelectValue placeholder="Choose class..." />
+                                <SelectValue placeholder="Select exam..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {classes.map((cls) => (
-                                    <SelectItem key={cls._id} value={cls._id}>
-                                        {cls.name}
+                                {savedExams.map((exam) => (
+                                    <SelectItem key={exam._id} value={exam._id}>
+                                        {exam.examName}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
-                    </div>
-
-                    <div className="w-56">
-                        <label className="text-sm font-medium mb-1 block">Exam Name</label>
-                        {showResult ? (
-                            <Select
-                                value={resultExam?._id || ""}
-                                onValueChange={(val) => {
-                                    const exam = savedExams.find((e) => e._id === val);
-                                    setResultExam(exam || null);
-                                }}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select exam..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {savedExams.map((exam) => (
-                                        <SelectItem key={exam._id} value={exam._id}>
-                                            {exam.examName}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        ) : (
-                            <Input
-                                placeholder="e.g. First Term Exam"
-                                value={examName}
-                                onChange={(e) => setExamName(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && !examReady && handleOpenTable()}
-                            />
-                        )}
-                    </div>
-
-                    {!examReady && (
-                        <Button onClick={handleOpenTable} disabled={!selectedClass || !examName.trim()}>
-                            <Save className="w-4 h-4 mr-2" />
-                            Open Table
-                        </Button>
+                    ) : (
+                        <Input
+                            placeholder="e.g. First Term Exam"
+                            value={examName}
+                            onChange={(e) => setExamName(e.target.value)}
+                            onKeyDown={(e) =>
+                                e.key === "Enter" && !examReady && handleOpenTable()
+                            }
+                        />
                     )}
                 </div>
 
-                {/* Print + Result */}
-                {examReady && (
-                    <div className="flex gap-2">
-                        <Button variant="default" onClick={handlePrint}>
-                            <Printer className="w-4 h-4 mr-2" />
-                            Print
-                        </Button>
-                        <Button
-                            variant={showResult ? "default" : "outline"}
-                            onClick={() => setShowResult((v) => !v)}
-                        >
-                            <Trophy className="w-4 h-4 mr-2" />
-                            {showResult ? "Hide Results" : "Results"}
-                        </Button>
-                    </div>
+                {/* Marks Entry button */}
+                {!showResult && !examReady && (
+                    <Button
+                        className="self-end"
+                        onClick={handleOpenTable}
+                        disabled={!selectedClass || !examName.trim()}
+                    >
+                        <Save className="w-4 h-4 mr-2" />
+                        Marks Entry
+                    </Button>
                 )}
             </div>
 
-
-
             {/* ── Results View */}
-            {examReady && showResult && (
+            {showResult && (
                 <div className="rounded border overflow-x-auto">
-                    {/* Results header — simple */}
-                    <div className="bg-muted px-4 py-3 flex items-center gap-2">
-                        <Trophy className="w-4 h-4 text-yellow-500" />
-                        <span className="font-semibold text-sm">Results</span>
+                    <div className="bg-muted px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Trophy className="w-4 h-4 text-yellow-500" />
+                            <span className="font-semibold text-sm">Results</span>
+                        </div>
+                        {resultExam && (
+                            <div className="flex gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 py-0"
+                                    onClick={handlePrint}
+                                >
+                                    <Printer className="w-3.5 h-3.5 mr-1.5" />
+                                    Print
+                                </Button>
+                                {activeRole === "College Admin" && (
+                                    <>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 py-0"
+                                            onClick={() => loadExam(resultExam)}
+                                        >
+                                            <Edit className="w-3.5 h-3.5 mr-1.5" />
+                                            Edit
+                                        </Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-8 py-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                                    Delete
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently delete the
+                                                        exam <strong>{resultExam.examName}</strong> and all its marks.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={() => handleDeleteExam(resultExam._id)}
+                                                        className="bg-red-500 hover:bg-red-600"
+                                                    >
+                                                        Delete Permanent
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
-                    {/* Table — only shown when an exam is selected */}
                     {resultExam ? (
-                        <div ref={printRef}>
-                            <table className="w-full text-sm">
-                                <thead className="bg-muted/60">
+                        <div ref={printRef} className="p-0 sm:p-4 bg-white dark:bg-transparent">
+                            {/* PDF/Print Header (Visible only in print) */}
+                            <div className="hidden print:block text-center mb-6">
+                                <h1 className="text-2xl font-bold uppercase mb-1">{resultExam.examName}</h1>
+                                <p className="text-gray-600 text-lg">{selectedClassName}</p>
+                                <div className="mt-2 border-b-2 border-black w-32 mx-auto"></div>
+                            </div>
+
+                            <table className="w-full text-sm border-collapse">
+                                <thead className="bg-muted/60 print:bg-gray-100">
                                     <tr>
-                                        <th className="p-3 text-center border-b">Rank</th>
-                                        <th className="p-3 text-left border-b">Student</th>
+                                        <th className="p-3 text-center border font-bold">Rank</th>
+                                        <th className="p-3 text-left border font-bold w-28">Adm. No</th>
+                                        <th className="p-3 text-left border font-bold">Student</th>
                                         {(resultExam.subjects || []).map((s, i) => (
-                                            <th key={i} className="p-3 text-center border-b">{s || `Col ${i + 1}`}</th>
+                                            <th key={i} className="p-3 text-center border font-bold">
+                                                {s || `Col ${i + 1}`}
+                                            </th>
                                         ))}
-                                        <th className="p-3 text-center border-b bg-blue-50 dark:bg-blue-950">Total</th>
-                                        <th className="p-3 text-center border-b bg-green-50 dark:bg-green-950">%</th>
+                                        <th className="p-3 text-center border font-bold bg-blue-50 dark:bg-blue-950 text-blue-900 print:text-black">
+                                            Total
+                                        </th>
+                                        <th className="p-3 text-center border font-bold bg-green-50 dark:bg-green-950 text-green-900 print:text-black">
+                                            %
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {resultViewStats.map((stat) => (
                                         <tr
                                             key={stat.studentId}
-                                            className={`border-b ${stat.rank === 1 ? "bg-yellow-50 dark:bg-yellow-950/30" : stat.rank === 2 ? "bg-slate-50 dark:bg-slate-800/30" : stat.rank === 3 ? "bg-orange-50 dark:bg-orange-950/30" : "hover:bg-muted/30"}`}
+                                            className={`border ${stat.rank === 1
+                                                ? "bg-yellow-50 dark:bg-yellow-950/30"
+                                                : stat.rank === 2
+                                                    ? "bg-slate-50 dark:bg-slate-800/30"
+                                                    : stat.rank === 3
+                                                        ? "bg-orange-50 dark:bg-orange-950/30"
+                                                        : "hover:bg-muted/30"
+                                                }`}
                                         >
-                                            <td className="p-2 text-center font-bold text-lg">
-                                                {stat.rank === 1 ? "🥇" : stat.rank === 2 ? "🥈" : stat.rank === 3 ? "🥉" : stat.rank}
+                                            <td className="p-2 text-center font-bold text-lg border">
+                                                {stat.rank === 1
+                                                    ? "🥇"
+                                                    : stat.rank === 2
+                                                        ? "🥈"
+                                                        : stat.rank === 3
+                                                            ? "🥉"
+                                                            : stat.rank}
                                             </td>
-                                            <td className="p-2 font-medium">{stat.studentName}</td>
+                                            <td className="p-2 font-medium border">{stat.studentId}</td>
+                                            <td className="p-2 font-medium border">{stat.studentName}</td>
                                             {(resultExam.subjects || []).map((subj, i) => (
-                                                <td key={i} className="p-2 text-center">
+                                                <td key={i} className="p-2 text-center border">
                                                     {stat.marksMap[subj || `col${i}`] ?? "-"}
                                                 </td>
                                             ))}
-                                            <td className="p-2 text-center font-semibold text-blue-700 dark:text-blue-300">{stat.total}</td>
-                                            <td className="p-2 text-center font-semibold text-green-700 dark:text-green-300">{stat.percentage}%</td>
+                                            <td className="p-2 text-center font-bold border text-blue-700 dark:text-blue-300 print:text-black">
+                                                {stat.total}
+                                            </td>
+                                            <td className="p-2 text-center font-bold border text-green-700 dark:text-green-300 print:text-black">
+                                                {stat.percentage}%
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
+
+                            <style jsx global>{`
+                                @media print {
+                                    @page {
+                                        size: auto;
+                                        margin: 10mm;
+                                    }
+                                    body {
+                                        background: white !important;
+                                        padding: 0 !important;
+                                    }
+                                    table {
+                                        border-collapse: separate !important;
+                                        border-spacing: 2px !important;
+                                        border: none !important;
+                                    }
+                                    th, td {
+                                        border: 0.5pt solid black !important;
+                                        padding: 4px 8px !important;
+                                        line-height: 1.1 !important;
+                                        background-color: transparent !important;
+                                        -webkit-print-color-adjust: exact;
+                                        print-color-adjust: exact;
+                                    }
+                                    tr {
+                                        break-inside: avoid;
+                                    }
+                                }
+                            `}</style>
                         </div>
                     ) : (
-                        <div className="p-6 text-center text-sm text-muted-foreground">Select an exam above to view results.</div>
+                        <div className="p-6 text-center text-sm text-muted-foreground">
+                            Select an exam above to view results.
+                        </div>
                     )}
                 </div>
             )}
@@ -415,7 +546,6 @@ export default function MarksManager() {
                                             </div>
                                         </th>
                                     ))}
-                                    {/* Add column button in header */}
                                     <th className="p-2 border-b w-10">
                                         <Button
                                             size="icon"
@@ -427,10 +557,15 @@ export default function MarksManager() {
                                             <Plus className="w-4 h-4 text-primary" />
                                         </Button>
                                     </th>
-                                    {/* Stats columns */}
-                                    <th className="p-3 text-center border-b bg-blue-50 dark:bg-blue-950 min-w-[60px]">Total</th>
-                                    <th className="p-3 text-center border-b bg-green-50 dark:bg-green-950 min-w-[60px]">%</th>
-                                    <th className="p-3 text-center border-b bg-yellow-50 dark:bg-yellow-950 min-w-[60px]">Rank</th>
+                                    <th className="p-3 text-center border-b bg-blue-50 dark:bg-blue-950 min-w-[60px]">
+                                        Total
+                                    </th>
+                                    <th className="p-3 text-center border-b bg-green-50 dark:bg-green-950 min-w-[60px]">
+                                        %
+                                    </th>
+                                    <th className="p-3 text-center border-b bg-yellow-50 dark:bg-yellow-950 min-w-[60px]">
+                                        Rank
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -438,8 +573,12 @@ export default function MarksManager() {
                                     const stat = stats.find((s) => s.studentId === st._id);
                                     return (
                                         <tr key={st._id} className="hover:bg-muted/30 border-b">
-                                            <td className="p-2 text-center text-muted-foreground">{idx + 1}</td>
-                                            <td className="p-1 text-muted-foreground truncate max-w-[50px]">{st._id}</td>
+                                            <td className="p-2 text-center text-muted-foreground">
+                                                {idx + 1}
+                                            </td>
+                                            <td className="p-1 text-muted-foreground truncate max-w-[50px]">
+                                                {st._id}
+                                            </td>
                                             <td className="p-1 font-medium">{st.name}</td>
                                             {subjects.map((_, i) => (
                                                 <td key={i} className="p-1 text-center">
@@ -456,13 +595,15 @@ export default function MarksManager() {
                                                         onKeyDown={(e) => {
                                                             if (e.key === "Enter") {
                                                                 e.preventDefault();
-                                                                // Next subject in same row
-                                                                const nextCol = document.getElementById(`mark-${idx}-${i + 1}`);
+                                                                const nextCol = document.getElementById(
+                                                                    `mark-${idx}-${i + 1}`
+                                                                );
                                                                 if (nextCol) {
                                                                     nextCol.focus();
                                                                 } else {
-                                                                    // First subject of next row
-                                                                    const nextRow = document.getElementById(`mark-${idx + 1}-0`);
+                                                                    const nextRow = document.getElementById(
+                                                                        `mark-${idx + 1}-0`
+                                                                    );
                                                                     if (nextRow) nextRow.focus();
                                                                 }
                                                             }
@@ -470,7 +611,6 @@ export default function MarksManager() {
                                                     />
                                                 </td>
                                             ))}
-                                            {/* Empty cell under Add button */}
                                             <td />
                                             <td className="p-2 text-center font-semibold text-blue-700 dark:text-blue-300">
                                                 {stat?.total ?? 0}
