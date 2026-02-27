@@ -472,48 +472,46 @@ export default function MarksManager() {
                                     <Printer className="w-3.5 h-3.5 mr-1.5" />
                                     Print
                                 </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 py-0"
+                                    onClick={() => loadExam(resultExam)}
+                                >
+                                    <Edit className="w-3.5 h-3.5 mr-1.5" />
+                                    Edit
+                                </Button>
                                 {activeRole === "College Admin" && (
-                                    <>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 py-0"
-                                            onClick={() => loadExam(resultExam)}
-                                        >
-                                            <Edit className="w-3.5 h-3.5 mr-1.5" />
-                                            Edit
-                                        </Button>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="h-8 py-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 py-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                                Delete
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This action cannot be undone. This will permanently delete the
+                                                    exam <strong>{resultExam.examName}</strong> and all its marks.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    onClick={() => handleDeleteExam(resultExam._id)}
+                                                    className="bg-red-500 hover:bg-red-600"
                                                 >
-                                                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                                                    Delete
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        This action cannot be undone. This will permanently delete the
-                                                        exam <strong>{resultExam.examName}</strong> and all its marks.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction
-                                                        onClick={() => handleDeleteExam(resultExam._id)}
-                                                        className="bg-red-500 hover:bg-red-600"
-                                                    >
-                                                        Delete Permanent
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </>
+                                                    Delete Permanent
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                 )}
                             </div>
                         )}
@@ -647,23 +645,25 @@ export default function MarksManager() {
                                                     <span className="text-xs font-semibold truncate max-w-[80px]">
                                                         {subj.name || `Sub ${i + 1}`}
                                                     </span>
-                                                    <div className="flex items-center gap-1">
-                                                        <Edit
-                                                            className="w-3 h-3 cursor-pointer text-muted-foreground hover:text-primary transition-colors"
-                                                            onClick={() => openSubjectDialog(i)}
-                                                        />
-                                                        <Trash2
-                                                            className="w-3 h-3 cursor-pointer text-red-500 hover:text-red-700 transition-colors"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                if (subjects.length <= 1) {
-                                                                    toast.error("At least one subject is required.");
-                                                                    return;
-                                                                }
-                                                                setSubjectToDeleteIndex(i);
-                                                            }}
-                                                        />
-                                                    </div>
+                                                    {activeRole !== "Teacher" && (
+                                                        <div className="flex items-center gap-1">
+                                                            <Edit
+                                                                className="w-3 h-3 cursor-pointer text-muted-foreground hover:text-primary transition-colors"
+                                                                onClick={() => openSubjectDialog(i)}
+                                                            />
+                                                            <Trash2
+                                                                className="w-3 h-3 cursor-pointer text-red-500 hover:text-red-700 transition-colors"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (subjects.length <= 1) {
+                                                                        toast.error("At least one subject is required.");
+                                                                        return;
+                                                                    }
+                                                                    setSubjectToDeleteIndex(i);
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="text-[9px] text-muted-foreground leading-none">
                                                     ({subj.passMark}/{subj.maxMark})
@@ -671,17 +671,19 @@ export default function MarksManager() {
                                             </div>
                                         </th>
                                     ))}
-                                    <th className="p-2 border-b w-10">
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-7 w-7"
-                                            onClick={() => openSubjectDialog()}
-                                            title="Add subject column"
-                                        >
-                                            <Plus className="w-4 h-4 text-primary" />
-                                        </Button>
-                                    </th>
+                                    {activeRole !== "Teacher" && (
+                                        <th className="p-2 border-b w-10">
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-7 w-7"
+                                                onClick={() => openSubjectDialog()}
+                                                title="Add subject column"
+                                            >
+                                                <Plus className="w-4 h-4 text-primary" />
+                                            </Button>
+                                        </th>
+                                    )}
                                     <th className="p-3 text-center border-b bg-blue-50 dark:bg-blue-950 min-w-[60px]">
                                         Total
                                     </th>
@@ -692,13 +694,15 @@ export default function MarksManager() {
                                         Rank
                                     </th>
                                     <th
-                                        className="p-3 text-center border-b bg-slate-50 dark:bg-slate-900 min-w-[70px] cursor-pointer hover:bg-slate-100 transition-colors group"
-                                        onClick={() => setIsGradingDialogOpen(true)}
-                                        title="Click to change grading/remark settings"
+                                        className={`p-3 text-center border-b bg-slate-50 dark:bg-slate-900 min-w-[70px] ${activeRole !== "Teacher" ? "cursor-pointer hover:bg-slate-100 transition-colors group" : ""}`}
+                                        onClick={() => activeRole !== "Teacher" && setIsGradingDialogOpen(true)}
+                                        title={activeRole !== "Teacher" ? "Click to change remark settings" : ""}
                                     >
                                         <div className="flex items-center justify-center gap-1">
                                             Remark
-                                            <Settings className="w-3 h-3 text-muted-foreground group-hover:text-primary" />
+                                            {activeRole !== "Teacher" && (
+                                                <Settings className="w-3 h-3 text-muted-foreground group-hover:text-primary" />
+                                            )}
                                         </div>
                                     </th>
                                 </tr>
@@ -746,7 +750,7 @@ export default function MarksManager() {
                                                     />
                                                 </td>
                                             ))}
-                                            <td />
+                                            {activeRole !== "Teacher" && <td />}
                                             <td className="p-2 text-center font-semibold text-blue-700 dark:text-blue-300">
                                                 {stat?.total ?? 0}
                                             </td>

@@ -8,12 +8,13 @@ export default async function MarksPage() {
     const cookieStore = await cookies();
     const activeRole = cookieStore.get("active-role")?.value;
 
-    if (activeRole !== "College Admin")
+    const allowedRoles = ["College Admin", "Teacher"];
+    if (!allowedRoles.includes(activeRole))
         return (
             <ErrorPage
                 statusCode={403}
                 title="Access Denied"
-                description="Only College Admins can manage Marks."
+                description="Only College Admins and Teachers can access Marks."
             />
         );
 
