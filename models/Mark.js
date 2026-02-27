@@ -4,15 +4,32 @@ const MarkSchema = new mongoose.Schema(
     {
         examName: { type: String, required: true },
         classId: { type: String, ref: "Class", required: true }, // String, matches User/Class _id type
-        subjects: [{ type: String }],
+        subjects: [
+            {
+                name: { type: String, required: true },
+                maxMark: { type: Number, default: 100 },
+                passMark: { type: Number, default: 40 },
+            },
+        ],
         students: [
             {
                 studentId: { type: String, ref: "User" }, // String, matches User _id type
                 marks: { type: Map, of: Number },
             },
         ],
+        gradingScale: [
+            {
+                min: { type: Number, required: true },
+                max: { type: Number, required: true },
+                remark: { type: String, required: true },
+            },
+        ],
     },
     { timestamps: true }
 );
 
-export default mongoose.models.Mark || mongoose.model("Mark", MarkSchema);
+if (mongoose.models.Mark) {
+    delete mongoose.models.Mark;
+}
+
+export default mongoose.model("Mark", MarkSchema);
