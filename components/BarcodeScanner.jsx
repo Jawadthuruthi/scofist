@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import React, { useEffect, useRef, useState, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Camera, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -13,13 +12,20 @@ const BarcodeScanner = ({ onScan, onClose }) => {
     const [isSecureContext, setIsSecureContext] = useState(true);
     const [isLocalhost, setIsLocalhost] = useState(false);
     const scannerRef = useRef(null);
+    const readerId = useId().replace(/:/g, ""); // Ensure ID is safe for DOM
 
     const startScanner = async () => {
         setErrorMsg("");
         setHasCamera(true);
 
         try {
-            const scanner = new Html5Qrcode("reader");
+            // Dynamically import the library only when needed on the client
+            const { Html5Qrcode } = await import("html5-qrcode");
+
+            // Check if element exists before starting
+            if (!document.getElementById(readerId)) return;
+
+            const scanner = new Html5Qrcode(readerId);
             scannerRef.current = scanner;
 
             const config = {
@@ -90,7 +96,7 @@ const BarcodeScanner = ({ onScan, onClose }) => {
     return (
         <div className="flex flex-col items-center gap-4 py-4">
             <div
-                id="reader"
+                id={readerId}
                 className="relative w-full max-w-[300px] aspect-square rounded-lg border-2 border-primary/20 overflow-hidden bg-black flex items-center justify-center text-center p-4"
             >
                 {!isScanning && (
