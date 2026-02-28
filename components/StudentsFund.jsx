@@ -52,10 +52,12 @@ import {
   Users,
   Printer,
   Search,
+  ScanBarcode,
   X,
 } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
+import BarcodeScanner from "./BarcodeScanner";
 import {
   Table,
   TableBody,
@@ -102,6 +104,7 @@ const StudentsFund = ({
   const [lookupSearchTerm, setLookupSearchTerm] = useState("");
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [clearOnNextInput, setClearOnNextInput] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   const printRef = useRef();
   const allStudentsFundRef = useRef();
@@ -508,15 +511,17 @@ const StudentsFund = ({
     html2pdf().set(opt).from(element).save();
   };
 
-  const handleStudentLookup = () => {
-    if (!lookupSearchTerm.trim()) {
+  const handleStudentLookup = (overrideSearchTerm) => {
+    const term = typeof overrideSearchTerm === "string" ? overrideSearchTerm : lookupSearchTerm;
+
+    if (!term.trim()) {
       toast.error("Please enter a student ID or name to search.");
       return;
     }
 
     setIsLookingUp(true);
 
-    const searchLower = lookupSearchTerm.toLowerCase();
+    const searchLower = term.toLowerCase();
 
     // Find the student in the loaded students array
     const foundStudent = (students || []).find(s =>
@@ -538,11 +543,20 @@ const StudentsFund = ({
       }
     } else {
       toast.error("Student not found. Ensure the student is loaded in this view.");
-      setSelectedStudents([]);
-      setSelectedBatch("");
+      if (typeof overrideSearchTerm !== "string") {
+        setSelectedStudents([]);
+        setSelectedBatch("");
+      }
     }
 
     setIsLookingUp(false);
+  };
+
+  const handleBarcodeScan = (result) => {
+    setLookupSearchTerm(result);
+    setShowScanner(false);
+    // Use a small timeout to ensure state is updated or just pass it directly
+    handleStudentLookup(result);
   };
 
 
@@ -613,11 +627,22 @@ const StudentsFund = ({
                     </Button>
                   )}
                 </div>
-                <Button onClick={handleStudentLookup} disabled={isLookingUp}>
+                <Button
+                  onClick={() => {
+                    if (isMobile) {
+                      setShowScanner(true);
+                    } else if (lookupSearchTerm.trim()) {
+                      handleStudentLookup();
+                    } else {
+                      setShowScanner(true);
+                    }
+                  }}
+                  disabled={isLookingUp}
+                >
                   {isLookingUp ? (
                     <Loader className="h-4 w-4 animate-spin sm:mr-2" />
                   ) : (
-                    <Search className="h-4 w-4 sm:mr-2" />
+                    <ScanBarcode className="h-4 w-4 sm:mr-2" />
                   )}
                   <span className="hidden sm:inline">Search</span>
                 </Button>
@@ -1497,7 +1522,25 @@ const StudentsFund = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div >
+
+      {/* Barcode Scanner Dialog */}
+      <Dialog open={showScanner} onOpenChange={setShowScanner}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Scan Barcode</DialogTitle>
+            <DialogDescription>
+              Scan a student barcode to look up their fund details.
+            </DialogDescription>
+          </DialogHeader>
+          {showScanner && (
+            <BarcodeScanner
+              onScan={handleBarcodeScan}
+              onClose={() => setShowScanner(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
