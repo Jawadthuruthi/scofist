@@ -318,6 +318,39 @@ export default function MarksManager() {
         setSavingMarks(false);
     };
 
+    const saveSettings = async () => {
+        const activeExamId = showResult ? resultExam?._id : selectedExam?._id;
+        if (!activeExamId) return;
+
+        setSavingMarks(true);
+        try {
+            const res = await fetch(`/api/marks/${activeExamId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    gradingScale,
+                    // Send existing data to satisfy schema if needed, but the API should handle partial updates if implemented well.
+                    // Assuming partial update is supported as it's a Mongoose PUT.
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success("Grading settings saved!");
+                // Refresh exams to get updated scale everywhere
+                const r = await fetch(`/api/marks?classId=${selectedClass}`);
+                const d = await r.json();
+                setSavedExams(d.data || []);
+                setIsGradingDialogOpen(false); // Close dialog on success
+            } else {
+                toast.error(data.message || "Failed to save settings");
+            }
+        } catch (error) {
+            console.error("Save settings error:", error);
+            toast.error("Network error");
+        }
+        setSavingMarks(false);
+    };
+
     const handlePrint = useReactToPrint({
         contentRef: printRef,
         documentTitle: `${examName} - ${selectedClassName}`,
@@ -431,6 +464,10 @@ export default function MarksManager() {
                             onValueChange={(val) => {
                                 const exam = savedExams.find((e) => e._id === val);
                                 setResultExam(exam || null);
+                                if (exam && activeRole !== "Teacher") {
+                                    setExamName(exam.examName);
+                                    setGradingScale(exam.gradingScale || []);
+                                }
                             }}
                         >
                             <SelectTrigger>
@@ -448,44 +485,44 @@ export default function MarksManager() {
                         // Entry Mode
                         <>
                             {activeRole === "Teacher" || (activeRole !== "Teacher" && !isAddingNewExam && !examReady) ? (
-                                <div className="relative">
-                                    <Select
-                                        value={selectedExam?._id || ""}
-                                        onValueChange={(val) => {
-                                            if (val === "NEW_EXAM") {
-                                                setIsAddingNewExam(true);
-                                                setSelectedExam(null);
-                                                setExamName("");
-                                                return;
-                                            }
-                                            const exam = savedExams.find((e) => e._id === val);
-                                            if (exam) {
-                                                loadExam(exam);
-                                            } else {
-                                                setSelectedExam(null);
-                                                setExamName("");
-                                                setSubjects([{ name: "", maxMark: 100, passMark: 40 }]);
-                                                setExamReady(false);
-                                            }
-                                        }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select exam..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {activeRole !== "Teacher" && (
-                                                <SelectItem value="NEW_EXAM" className="font-semibold text-primary">
-                                                    + Add New Exam
-                                                </SelectItem>
-                                            )}
-                                            {savedExams.map((exam) => (
-                                                <SelectItem key={exam._id} value={exam._id}>
-                                                    {exam.examName}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <Select
+                                    value={selectedExam?._id || ""}
+                                    onValueChange={(val) => {
+                                        if (val === "NEW_EXAM") {
+                                            setIsAddingNewExam(true);
+                                            setSelectedExam(null);
+                                            setExamName("");
+                                            setGradingScale([]); // Reset to empty for brand new exams
+                                            return;
+                                        }
+                                        const exam = savedExams.find((e) => e._id === val);
+                                        if (exam) {
+                                            loadExam(exam);
+                                        } else {
+                                            setSelectedExam(null);
+                                            setExamName("");
+                                            setSubjects([{ name: "", maxMark: 100, passMark: 40 }]);
+                                            setGradingScale([]);
+                                            setExamReady(false);
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select exam..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {activeRole !== "Teacher" && (
+                                            <SelectItem value="NEW_EXAM" className="font-semibold text-primary">
+                                                + Add New Exam
+                                            </SelectItem>
+                                        )}
+                                        {savedExams.map((exam) => (
+                                            <SelectItem key={exam._id} value={exam._id}>
+                                                {exam.examName}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             ) : (
                                 <div className="flex gap-1 items-center">
                                     <Input
@@ -1042,7 +1079,12 @@ export default function MarksManager() {
                         </Button>
                     </div>
                     <DialogFooter>
-                        <Button onClick={() => setIsGradingDialogOpen(false)}>Done</Button>
+                        {activeRole !== "Teacher" && (selectedExam || resultExam) && (
+                            <Button className="w-full" onClick={saveSettings} disabled={savingMarks}>
+                                <Save className="w-3.5 h-3.5 mr-2" />
+                                {savingMarks ? "Saving..." : "Save Settings"}
+                            </Button>
+                        )}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
