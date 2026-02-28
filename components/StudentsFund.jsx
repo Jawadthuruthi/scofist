@@ -136,8 +136,14 @@ const StudentsFund = ({
 
   const { useFetchItems, useAddItem, useUpdateItem } = useCrud(
     "studentsFund",
-    apiKey
+    apiKey || ""
   );
+
+  useEffect(() => {
+    if (!apiKey) {
+      console.warn("StudentsFund: apiKey is missing. API calls may fail.");
+    }
+  }, [apiKey]);
 
   const fetchStudentFundQuery = useFetchItems(
     null,
