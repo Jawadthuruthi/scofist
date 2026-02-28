@@ -10,7 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Save, Plus, Printer, Trophy, Edit, Settings } from "lucide-react";
+import { Trash2, Save, Plus, Printer, Trophy, Edit, Settings, X } from "lucide-react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { useReactToPrint } from "react-to-print";
@@ -47,6 +47,8 @@ export default function MarksManager() {
     const [savingMarks, setSavingMarks] = useState(false);
     const [showResult, setShowResult] = useState(false);
     const [resultExam, setResultExam] = useState(null);
+    const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(null);
+    const [isAddingNewExam, setIsAddingNewExam] = useState(false);
 
     const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
     const [editingSubjectIndex, setEditingSubjectIndex] = useState(null);
@@ -87,6 +89,8 @@ export default function MarksManager() {
         setSubjects([{ name: "", maxMark: 100, passMark: 40 }]);
         setGradingScale([]);
         setExamReady(false);
+        setSelectedSubjectIndex(null);
+        setIsAddingNewExam(false);
     }, [selectedClass]);
 
     const loadExam = (exam) => {
@@ -115,6 +119,7 @@ export default function MarksManager() {
         setMarksData(md);
         setExamReady(true);
         setShowResult(false);
+        setSelectedSubjectIndex(null);
     };
 
     const handleOpenTable = () => {
@@ -211,24 +216,35 @@ export default function MarksManager() {
     };
 
     const computeStats = () => {
+        // Use only the selected subject for teachers if one is selected
+        const currentSubjects = (activeRole === "Teacher" && selectedSubjectIndex !== null)
+            ? [subjects[selectedSubjectIndex]]
+            : subjects;
+
+        // Map back to original indices in subjects array to read from marksData
+        const currentIndices = (activeRole === "Teacher" && selectedSubjectIndex !== null)
+            ? [selectedSubjectIndex]
+            : subjects.map((_, i) => i);
+
         const totals = students.map((st) => {
-            const total = subjects.reduce(
-                (sum, _, i) => sum + (Number(marksData[st._id]?.[i]) || 0),
+            const total = currentIndices.reduce(
+                (sum, origIdx) => sum + (Number(marksData[st._id]?.[origIdx]) || 0),
                 0
             );
-            const maxTotal = subjects.reduce((sum, s) => sum + (Number(s.maxMark) || 0), 0);
+            const maxTotal = currentSubjects.reduce((sum, s) => sum + (Number(s.maxMark) || 0), 0);
             const percentage =
                 maxTotal > 0 ? ((total / maxTotal) * 100).toFixed(1) : "0.0";
 
-            // Check if student passed all subjects
-            const hasFailed = subjects.some((subj, i) => {
-                const mark = marksData[st._id]?.[i] || 0;
+            // Check if student passed relevant subjects
+            const hasFailed = currentSubjects.some((subj, i) => {
+                const origIdx = currentIndices[i];
+                const mark = marksData[st._id]?.[origIdx] || 0;
                 return mark < (Number(subj.passMark) || 0);
             });
 
             let remark = hasFailed ? "Fail" : "Pass";
             if (gradingScale?.length > 0) {
-                const matched = gradingScale.find(g => percentage >= g.min && percentage <= g.max);
+                const matched = gradingScale.find(g => Number(percentage) >= g.min && Number(percentage) <= g.max);
                 if (matched) remark = matched.remark;
             }
 
@@ -429,16 +445,96 @@ export default function MarksManager() {
                             </SelectContent>
                         </Select>
                     ) : (
-                        <Input
-                            placeholder="e.g. First Term Exam"
-                            value={examName}
-                            onChange={(e) => setExamName(e.target.value)}
-                            onKeyDown={(e) =>
-                                e.key === "Enter" && !examReady && handleOpenTable()
-                            }
-                        />
+                        // Entry Mode
+                        <>
+                            {activeRole === "Teacher" || (activeRole !== "Teacher" && !isAddingNewExam && !examReady) ? (
+                                <div className="relative">
+                                    <Select
+                                        value={selectedExam?._id || ""}
+                                        onValueChange={(val) => {
+                                            if (val === "NEW_EXAM") {
+                                                setIsAddingNewExam(true);
+                                                setSelectedExam(null);
+                                                setExamName("");
+                                                return;
+                                            }
+                                            const exam = savedExams.find((e) => e._id === val);
+                                            if (exam) {
+                                                loadExam(exam);
+                                            } else {
+                                                setSelectedExam(null);
+                                                setExamName("");
+                                                setSubjects([{ name: "", maxMark: 100, passMark: 40 }]);
+                                                setExamReady(false);
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select exam..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {activeRole !== "Teacher" && (
+                                                <SelectItem value="NEW_EXAM" className="font-semibold text-primary">
+                                                    + Add New Exam
+                                                </SelectItem>
+                                            )}
+                                            {savedExams.map((exam) => (
+                                                <SelectItem key={exam._id} value={exam._id}>
+                                                    {exam.examName}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            ) : (
+                                <div className="flex gap-1 items-center">
+                                    <Input
+                                        placeholder="e.g. First Term Exam"
+                                        value={examName}
+                                        onChange={(e) => setExamName(e.target.value)}
+                                        onKeyDown={(e) =>
+                                            e.key === "Enter" && !examReady && handleOpenTable()
+                                        }
+                                        className="flex-1"
+                                    />
+                                    {isAddingNewExam && !examReady && (
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-8 w-8"
+                                            onClick={() => setIsAddingNewExam(false)}
+                                            title="Back to dropdown"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
+
+                {/* Subject Selection for Teachers */}
+                {!showResult && examReady && activeRole === "Teacher" && (
+                    <div className="w-48">
+                        <label className="text-sm font-medium mb-1 block">Subject</label>
+                        <Select
+                            value={selectedSubjectIndex !== null ? selectedSubjectIndex.toString() : ""}
+                            onValueChange={(val) => setSelectedSubjectIndex(val === "" ? null : Number(val))}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select subject..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {subjects.map((subj, i) => (
+                                    <SelectItem key={i} value={i.toString()}>
+                                        {subj.name || `Subject ${i + 1}`}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
 
                 {/* Marks Entry button */}
                 {!showResult && !examReady && (
@@ -472,15 +568,17 @@ export default function MarksManager() {
                                     <Printer className="w-3.5 h-3.5 mr-1.5" />
                                     Print
                                 </Button>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 py-0"
-                                    onClick={() => loadExam(resultExam)}
-                                >
-                                    <Edit className="w-3.5 h-3.5 mr-1.5" />
-                                    Edit
-                                </Button>
+                                {activeRole !== "Teacher" && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 py-0"
+                                        onClick={() => loadExam(resultExam)}
+                                    >
+                                        <Edit className="w-3.5 h-3.5 mr-1.5" />
+                                        Edit
+                                    </Button>
+                                )}
                                 {activeRole === "College Admin" && (
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
@@ -630,228 +728,254 @@ export default function MarksManager() {
 
             {/* ── Marks Entry Table */}
             {examReady && !showResult && students.length > 0 && (
-                <div className="space-y-3">
-                    <div className="overflow-x-auto rounded border" ref={printRef}>
-                        <table className="w-full text-sm">
-                            <thead className="bg-muted">
-                                <tr>
-                                    <th className="p-3 text-center border-b w-12">Sl No</th>
-                                    <th className="p-1 text-left border-b w-[50px]">Adm. No</th>
-                                    <th className="p-1 text-left border-b min-w-[80px]">Name</th>
-                                    {subjects.map((subj, i) => (
-                                        <th key={i} className="p-1 text-center border-b w-auto">
-                                            <div className="flex flex-col items-center gap-1 group">
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="text-xs font-semibold truncate max-w-[80px]">
-                                                        {subj.name || `Sub ${i + 1}`}
-                                                    </span>
-                                                    {activeRole !== "Teacher" && (
-                                                        <div className="flex items-center gap-1">
-                                                            <Edit
-                                                                className="w-3 h-3 cursor-pointer text-muted-foreground hover:text-primary transition-colors"
-                                                                onClick={() => openSubjectDialog(i)}
-                                                            />
-                                                            <Trash2
-                                                                className="w-3 h-3 cursor-pointer text-red-500 hover:text-red-700 transition-colors"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    if (subjects.length <= 1) {
-                                                                        toast.error("At least one subject is required.");
-                                                                        return;
-                                                                    }
-                                                                    setSubjectToDeleteIndex(i);
-                                                                }}
-                                                            />
+                activeRole !== "Teacher" || selectedSubjectIndex !== null ? (
+                    <div className="space-y-3">
+                        <div className="overflow-x-auto rounded border" ref={printRef}>
+                            <table className="w-full text-sm">
+                                <thead className="bg-muted">
+                                    <tr>
+                                        <th className="p-3 text-center border-b w-12">Sl No</th>
+                                        <th className="p-1 text-left border-b w-[50px]">Adm. No</th>
+                                        <th className="p-1 text-left border-b min-w-[80px]">Name</th>
+                                        {subjects.map((subj, i) => {
+                                            // Filter for teachers: only show selected subject
+                                            if (activeRole === "Teacher" && selectedSubjectIndex !== null && selectedSubjectIndex !== i) return null;
+
+                                            return (
+                                                <th key={i} className="p-1 text-center border-b w-auto">
+                                                    <div className="flex flex-col items-center gap-1 group">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-xs font-semibold truncate max-w-[80px]">
+                                                                {subj.name || `Sub ${i + 1}`}
+                                                            </span>
+                                                            {activeRole !== "Teacher" && (
+                                                                <div className="flex items-center gap-1">
+                                                                    <Edit
+                                                                        className="w-3 h-3 cursor-pointer text-muted-foreground hover:text-primary transition-colors"
+                                                                        onClick={() => openSubjectDialog(i)}
+                                                                    />
+                                                                    <Trash2
+                                                                        className="w-3 h-3 cursor-pointer text-red-500 hover:text-red-700 transition-colors"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (subjects.length <= 1) {
+                                                                                toast.error("At least one subject is required.");
+                                                                                return;
+                                                                            }
+                                                                            setSubjectToDeleteIndex(i);
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </div>
-                                                <div className="text-[9px] text-muted-foreground leading-none">
-                                                    ({subj.passMark}/{subj.maxMark})
-                                                </div>
+                                                        <div className="text-[9px] text-muted-foreground leading-none">
+                                                            ({subj.passMark}/{subj.maxMark})
+                                                        </div>
+                                                    </div>
+                                                </th>
+                                            );
+                                        })}
+                                        {activeRole !== "Teacher" && (
+                                            <th className="p-2 border-b w-10">
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-7 w-7"
+                                                    onClick={() => openSubjectDialog()}
+                                                    title="Add subject column"
+                                                >
+                                                    <Plus className="w-4 h-4 text-primary" />
+                                                </Button>
+                                            </th>
+                                        )}
+                                        <th className="p-3 text-center border-b bg-blue-50 dark:bg-blue-950 min-w-[60px]">
+                                            Total
+                                        </th>
+                                        <th className="p-3 text-center border-b bg-green-50 dark:bg-green-950 min-w-[60px]">
+                                            %
+                                        </th>
+                                        <th className="p-3 text-center border-b bg-yellow-50 dark:bg-yellow-950 min-w-[60px]">
+                                            Rank
+                                        </th>
+                                        <th
+                                            className={`p-3 text-center border-b bg-slate-50 dark:bg-slate-900 min-w-[70px] ${activeRole !== "Teacher" ? "cursor-pointer hover:bg-slate-100 transition-colors group" : ""}`}
+                                            onClick={() => activeRole !== "Teacher" && setIsGradingDialogOpen(true)}
+                                            title={activeRole !== "Teacher" ? "Click to change remark settings" : ""}
+                                        >
+                                            <div className="flex items-center justify-center gap-1">
+                                                Remark
+                                                {activeRole !== "Teacher" && (
+                                                    <Settings className="w-3 h-3 text-muted-foreground group-hover:text-primary" />
+                                                )}
                                             </div>
                                         </th>
-                                    ))}
-                                    {activeRole !== "Teacher" && (
-                                        <th className="p-2 border-b w-10">
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-7 w-7"
-                                                onClick={() => openSubjectDialog()}
-                                                title="Add subject column"
-                                            >
-                                                <Plus className="w-4 h-4 text-primary" />
-                                            </Button>
-                                        </th>
-                                    )}
-                                    <th className="p-3 text-center border-b bg-blue-50 dark:bg-blue-950 min-w-[60px]">
-                                        Total
-                                    </th>
-                                    <th className="p-3 text-center border-b bg-green-50 dark:bg-green-950 min-w-[60px]">
-                                        %
-                                    </th>
-                                    <th className="p-3 text-center border-b bg-yellow-50 dark:bg-yellow-950 min-w-[60px]">
-                                        Rank
-                                    </th>
-                                    <th
-                                        className={`p-3 text-center border-b bg-slate-50 dark:bg-slate-900 min-w-[70px] ${activeRole !== "Teacher" ? "cursor-pointer hover:bg-slate-100 transition-colors group" : ""}`}
-                                        onClick={() => activeRole !== "Teacher" && setIsGradingDialogOpen(true)}
-                                        title={activeRole !== "Teacher" ? "Click to change remark settings" : ""}
-                                    >
-                                        <div className="flex items-center justify-center gap-1">
-                                            Remark
-                                            {activeRole !== "Teacher" && (
-                                                <Settings className="w-3 h-3 text-muted-foreground group-hover:text-primary" />
-                                            )}
-                                        </div>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {students.map((st, idx) => {
-                                    const stat = stats.find((s) => s.studentId === st._id);
-                                    return (
-                                        <tr key={st._id} className="hover:bg-muted/30 border-b">
-                                            <td className="p-2 text-center text-muted-foreground">
-                                                {idx + 1}
-                                            </td>
-                                            <td className="p-1 text-muted-foreground truncate max-w-[50px]">
-                                                {st._id}
-                                            </td>
-                                            <td className="p-1 font-medium">{st.name}</td>
-                                            {subjects.map((_, i) => (
-                                                <td key={i} className="p-1 text-center">
-                                                    <Input
-                                                        id={`mark-${idx}-${i}`}
-                                                        type="number"
-                                                        min={0}
-                                                        max={subjects[i]?.maxMark || 100}
-                                                        className="w-14 mx-auto text-center h-7 text-xs"
-                                                        value={marksData[st._id]?.[i] ?? ""}
-                                                        onChange={(e) =>
-                                                            handleMarkChange(st._id, i, e.target.value)
-                                                        }
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === "Enter") {
-                                                                e.preventDefault();
-                                                                const nextCol = document.getElementById(
-                                                                    `mark-${idx}-${i + 1}`
-                                                                );
-                                                                if (nextCol) {
-                                                                    nextCol.focus();
-                                                                } else {
-                                                                    const nextRow = document.getElementById(
-                                                                        `mark-${idx + 1}-0`
-                                                                    );
-                                                                    if (nextRow) nextRow.focus();
-                                                                }
-                                                            }
-                                                        }}
-                                                    />
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {students.map((st, idx) => {
+                                        const stat = stats.find((s) => s.studentId === st._id);
+                                        return (
+                                            <tr key={st._id} className="hover:bg-muted/30 border-b">
+                                                <td className="p-2 text-center text-muted-foreground">
+                                                    {idx + 1}
                                                 </td>
-                                            ))}
-                                            {activeRole !== "Teacher" && <td />}
-                                            <td className="p-2 text-center font-semibold text-blue-700 dark:text-blue-300">
-                                                {stat?.total ?? 0}
-                                            </td>
-                                            <td className="p-2 text-center font-semibold text-green-700 dark:text-green-300">
-                                                {stat?.percentage ?? 0}%
-                                            </td>
-                                            <td className="p-2 text-center font-semibold text-yellow-700 dark:text-yellow-300">
-                                                {stat?.rank ?? "-"}
-                                            </td>
-                                            <td className={`p-2 text-center font-bold ${stat?.remark === "Pass" ? "text-green-600" : stat?.remark === "Fail" ? "text-red-600" : "text-blue-600"}`}>
-                                                {stat?.remark ?? "-"}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                                <td className="p-1 text-muted-foreground truncate max-w-[50px]">
+                                                    {st._id}
+                                                </td>
+                                                <td className="p-1 font-medium">{st.name}</td>
+                                                {subjects.map((_, i) => {
+                                                    // Filter for teachers: only show selected subject
+                                                    if (activeRole === "Teacher" && selectedSubjectIndex !== null && selectedSubjectIndex !== i) return null;
 
-                    <div className="flex justify-end">
-                        <Button onClick={saveMarks} disabled={savingMarks}>
-                            <Save className="w-4 h-4 mr-2" />
-                            {savingMarks ? "Saving..." : "Save Marks"}
-                        </Button>
-                    </div>
+                                                    return (
+                                                        <td key={i} className="p-1 text-center">
+                                                            <Input
+                                                                id={`mark-${idx}-${i}`}
+                                                                type="number"
+                                                                min={0}
+                                                                max={subjects[i]?.maxMark || 100}
+                                                                className="w-14 mx-auto text-center h-7 text-xs"
+                                                                value={marksData[st._id]?.[i] ?? ""}
+                                                                onChange={(e) =>
+                                                                    handleMarkChange(st._id, i, e.target.value)
+                                                                }
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === "Enter") {
+                                                                        e.preventDefault();
+                                                                        // For teachers, find the next visible student since only one column is shown
+                                                                        if (activeRole === "Teacher" && selectedSubjectIndex !== null) {
+                                                                            const nextRow = document.getElementById(
+                                                                                `mark-${idx + 1}-${i}`
+                                                                            );
+                                                                            if (nextRow) nextRow.focus();
+                                                                            return;
+                                                                        }
 
-                    {/* Subject Detail Pop-up */}
-                    <Dialog open={isSubjectDialogOpen} onOpenChange={setIsSubjectDialogOpen}>
-                        <DialogContent className="sm:max-w-[400px]">
-                            <DialogHeader>
-                                <DialogTitle>{editingSubjectIndex !== null ? "Edit Subject" : "Add New Subject"}</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid gap-2">
-                                    <label className="text-sm font-medium">Subject Name</label>
-                                    <Input
-                                        placeholder="e.g. Mathematics"
-                                        value={subjectForm.name}
-                                        onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value.toUpperCase() })}
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="grid gap-2">
-                                        <label className="text-sm font-medium">Maximum Mark</label>
-                                        <Input
-                                            type="number"
-                                            value={subjectForm.maxMark}
-                                            onChange={(e) => setSubjectForm({ ...subjectForm, maxMark: Number(e.target.value) })}
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <label className="text-sm font-medium">Pass Mark</label>
-                                        <Input
-                                            type="number"
-                                            value={subjectForm.passMark}
-                                            onChange={(e) => setSubjectForm({ ...subjectForm, passMark: Number(e.target.value) })}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <DialogFooter className="flex justify-between items-center sm:justify-between">
-                                {editingSubjectIndex !== null && subjects.length > 1 ? (
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                                                <Trash2 className="w-4 h-4 mr-2" />
-                                                Delete
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Delete Subject?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    Are you sure you want to delete <strong>{subjectForm.name}</strong>?
-                                                    All marks for this subject will be permanently removed.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                    onClick={() => {
-                                                        setIsSubjectDialogOpen(false);
-                                                        confirmRemoveSubject();
-                                                    }}
-                                                    className="bg-red-500 hover:bg-red-600"
-                                                >
-                                                    Confirm Delete
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                ) : <div />}
-                                <div className="flex gap-2">
-                                    <Button variant="outline" onClick={() => setIsSubjectDialogOpen(false)}>Cancel</Button>
-                                    <Button onClick={saveSubject}>Save Subject</Button>
-                                </div>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </div>
+                                                                        const nextCol = document.getElementById(
+                                                                            `mark-${idx}-${i + 1}`
+                                                                        );
+                                                                        if (nextCol) {
+                                                                            nextCol.focus();
+                                                                        } else {
+                                                                            const nextRow = document.getElementById(
+                                                                                `mark-${idx + 1}-0`
+                                                                            );
+                                                                            if (nextRow) nextRow.focus();
+                                                                        }
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </td>
+                                                    );
+                                                })}
+                                                {activeRole !== "Teacher" && <td />}
+                                                <td className="p-2 text-center font-semibold text-blue-700 dark:text-blue-300">
+                                                    {stat?.total ?? 0}
+                                                </td>
+                                                <td className="p-2 text-center font-semibold text-green-700 dark:text-green-300">
+                                                    {stat?.percentage ?? 0}%
+                                                </td>
+                                                <td className="p-2 text-center font-semibold text-yellow-700 dark:text-yellow-300">
+                                                    {stat?.rank ?? "-"}
+                                                </td>
+                                                <td className={`p-2 text-center font-bold ${stat?.remark === "Pass" ? "text-green-600" : stat?.remark === "Fail" ? "text-red-600" : "text-blue-600"}`}>
+                                                    {stat?.remark ?? "-"}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="flex justify-end">
+                            <Button onClick={saveMarks} disabled={savingMarks}>
+                                <Save className="w-4 h-4 mr-2" />
+                                {savingMarks ? "Saving..." : "Save Marks"}
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    activeRole === "Teacher" && !showResult && examReady && (
+                        <div className="p-10 text-center border rounded border-dashed bg-muted/20 text-muted-foreground mt-4">
+                            <p className="font-medium">Please select a subject to start entering marks.</p>
+                            <p className="text-xs">Subject dropdown is available at the top.</p>
+                        </div>
+                    )
+                )
             )}
+            <Dialog open={isSubjectDialogOpen} onOpenChange={setIsSubjectDialogOpen}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle>{editingSubjectIndex !== null ? "Edit Subject" : "Add New Subject"}</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">Subject Name</label>
+                            <Input
+                                placeholder="e.g. Mathematics"
+                                value={subjectForm.name}
+                                onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value.toUpperCase() })}
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">Maximum Mark</label>
+                                <Input
+                                    type="number"
+                                    value={subjectForm.maxMark}
+                                    onChange={(e) => setSubjectForm({ ...subjectForm, maxMark: Number(e.target.value) })}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">Pass Mark</label>
+                                <Input
+                                    type="number"
+                                    value={subjectForm.passMark}
+                                    onChange={(e) => setSubjectForm({ ...subjectForm, passMark: Number(e.target.value) })}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter className="flex justify-between items-center sm:justify-between">
+                        {editingSubjectIndex !== null && subjects.length > 1 ? (
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Delete
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Subject?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Are you sure you want to delete <strong>{subjectForm.name}</strong>?
+                                            All marks for this subject will be permanently removed.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                            onClick={() => {
+                                                setIsSubjectDialogOpen(false);
+                                                confirmRemoveSubject();
+                                            }}
+                                            className="bg-red-500 hover:bg-red-600"
+                                        >
+                                            Confirm Delete
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        ) : <div />}
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setIsSubjectDialogOpen(false)}>Cancel</Button>
+                            <Button onClick={saveSubject}>Save Subject</Button>
+                        </div>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Grading Scale Dialog */}
             <Dialog open={isGradingDialogOpen} onOpenChange={setIsGradingDialogOpen}>
