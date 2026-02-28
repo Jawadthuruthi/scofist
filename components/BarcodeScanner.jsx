@@ -9,19 +9,14 @@ import { toast } from "sonner";
 const BarcodeScanner = ({ onScan, onClose }) => {
     const [isScanning, setIsScanning] = useState(false);
     const [hasCamera, setHasCamera] = useState(true);
-    const [isSecure, setIsSecure] = useState(true);
     const [errorMsg, setErrorMsg] = useState("");
+    const [isSecureContext, setIsSecureContext] = useState(true);
+    const [isLocalhost, setIsLocalhost] = useState(false);
     const scannerRef = useRef(null);
 
     const startScanner = async () => {
         setErrorMsg("");
         setHasCamera(true);
-
-        // Check for secure context (required for camera)
-        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            setIsSecure(false);
-            // We don't return here, we let the browser try, but we'll show a hint later
-        }
 
         try {
             const scanner = new Html5Qrcode("reader");
@@ -33,16 +28,14 @@ const BarcodeScanner = ({ onScan, onClose }) => {
                 aspectRatio: 1.0,
             };
 
-            // Prefer back camera for mobile using facingMode
             await scanner.start(
                 { facingMode: "environment" },
                 config,
                 (decodedText) => {
                     onScan(decodedText);
-                    // stopScanner will be called by handleBarcodeScan in the parent or here
                 },
-                (errorMessage) => {
-                    // Continuous scanning errors are expected and ignored
+                () => {
+                    // Ignore continuous errors
                 }
             );
             setIsScanning(true);
@@ -52,10 +45,10 @@ const BarcodeScanner = ({ onScan, onClose }) => {
 
             let friendlyError = "Could not access camera.";
             if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                friendlyError = "Camera permission denied. Please enable it in your browser settings.";
+                friendlyError = "Camera permission denied. Please enable it in browser settings.";
             } else if (err.name === 'NotFoundError') {
                 friendlyError = "No camera found on this device.";
-            } else if (!window.isSecureContext) {
+            } else if (typeof window !== 'undefined' && !window.isSecureContext) {
                 friendlyError = "Camera access requires a secure connection (HTTPS).";
             }
 
@@ -65,7 +58,11 @@ const BarcodeScanner = ({ onScan, onClose }) => {
     };
 
     useEffect(() => {
-        // Small delay to ensure DOM is ready and any previous instance is cleared
+        if (typeof window !== 'undefined') {
+            setIsSecureContext(window.isSecureContext);
+            setIsLocalhost(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        }
+
         const timer = setTimeout(() => {
             startScanner();
         }, 500);
@@ -124,9 +121,9 @@ const BarcodeScanner = ({ onScan, onClose }) => {
                 </Button>
             </div>
 
-            {!window.isSecureContext && window.location.hostname !== 'localhost' && (
+            {!isSecureContext && !isLocalhost && (
                 <p className="text-[10px] text-destructive text-center px-6 font-medium">
-                    CRITICAL: Browser blocks camera access on non-HTTPS sites. Use HTTPS or localhost.
+                    CRITICAL: Browser blocks camera access on non-HTTPS sites. Use HTTPS.
                 </p>
             )}
 
