@@ -629,9 +629,7 @@ const StudentsFund = ({
                 </div>
                 <Button
                   onClick={() => {
-                    if (isMobile) {
-                      setShowScanner(true);
-                    } else if (lookupSearchTerm.trim()) {
+                    if (lookupSearchTerm.trim()) {
                       handleStudentLookup();
                     } else {
                       setShowScanner(true);
@@ -641,6 +639,8 @@ const StudentsFund = ({
                 >
                   {isLookingUp ? (
                     <Loader className="h-4 w-4 animate-spin sm:mr-2" />
+                  ) : lookupSearchTerm.trim() ? (
+                    <Search className="h-4 w-4 sm:mr-2" />
                   ) : (
                     <ScanBarcode className="h-4 w-4 sm:mr-2" />
                   )}
