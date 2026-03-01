@@ -59,6 +59,9 @@ const TableComponent = ({
   filterConfig = [],
   enableGrid = false,
   renderGridItem,
+  onRowClick,
+  hideSearch = false,
+  hideColumnManagement = false,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -103,55 +106,57 @@ const TableComponent = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {/* Column Management - First */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 lg:flex">
-                <SlidersHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[200px] max-h-[300px] overflow-y-auto">
-              <div className="p-2 border-b">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="select-all-columns"
-                    checked={table.getIsAllColumnsVisible()}
-                    onCheckedChange={(value) =>
-                      table.toggleAllColumnsVisible(!!value)
-                    }
-                  />
-                  <label
-                    htmlFor="select-all-columns"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    Select All
-                  </label>
+          {!hideColumnManagement && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 lg:flex">
+                  <SlidersHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-[200px] max-h-[300px] overflow-y-auto">
+                <div className="p-2 border-b">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="select-all-columns"
+                      checked={table.getIsAllColumnsVisible()}
+                      onCheckedChange={(value) =>
+                        table.toggleAllColumnsVisible(!!value)
+                      }
+                    />
+                    <label
+                      htmlFor="select-all-columns"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      Select All
+                    </label>
+                  </div>
                 </div>
-              </div>
-              {table
-                .getAllColumns()
-                .filter(
-                  (column) =>
-                    typeof column.accessorFn !== "undefined" && column.getCanHide()
-                )
-                .map((column) => {
-                  return (
-                    <div key={column.id} className="flex items-center space-x-2 p-2">
-                      <Checkbox
-                        id={`col-${column.id}`}
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                      />
-                      <label
-                        htmlFor={`col-${column.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer capitalize"
-                      >
-                        {column.columnDef.header}
-                      </label>
-                    </div>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {table
+                  .getAllColumns()
+                  .filter(
+                    (column) =>
+                      typeof column.accessorFn !== "undefined" && column.getCanHide()
+                  )
+                  .map((column) => {
+                    return (
+                      <div key={column.id} className="flex items-center space-x-2 p-2">
+                        <Checkbox
+                          id={`col-${column.id}`}
+                          checked={column.getIsVisible()}
+                          onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                        />
+                        <label
+                          htmlFor={`col-${column.id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer capitalize"
+                        >
+                          {column.columnDef.header}
+                        </label>
+                      </div>
+                    );
+                  })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           {enableGrid && (
             <div className="flex items-center border rounded-md overflow-hidden">
@@ -201,21 +206,25 @@ const TableComponent = ({
           )}
 
           {/* Global Search Button/Input - Always visible */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 hidden lg:flex"
-            onClick={() => setShowFilterInput(!showFilterInput)}
-          >
-            <Search className="h-4 w-4" />
-          </Button>
-          {showFilterInput && (
-            <Input
-              placeholder="Search..."
-              value={globalFilter ?? ""}
-              onChange={(event) => setGlobalFilter(event.target.value)}
-              className="h-8 w-[150px] lg:w-[250px] hidden lg:block"
-            />
+          {!hideSearch && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 hidden lg:flex"
+                onClick={() => setShowFilterInput(!showFilterInput)}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+              {showFilterInput && (
+                <Input
+                  placeholder="Search..."
+                  value={globalFilter ?? ""}
+                  onChange={(event) => setGlobalFilter(event.target.value)}
+                  className="h-8 w-[150px] lg:w-[250px] hidden lg:block"
+                />
+              )}
+            </>
           )}
 
         </div>
@@ -235,24 +244,26 @@ const TableComponent = ({
         </div>
       </div>
 
-      <div className="lg:hidden flex items-center gap-2 mt-2 w-full">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 shrink-0"
-          onClick={() => setShowFilterInput(!showFilterInput)}
-        >
-          <Search className="h-4 w-4" />
-        </Button>
-        {showFilterInput && (
-          <Input
-            placeholder="Search..."
-            value={globalFilter ?? ""}
-            onChange={(event) => setGlobalFilter(event.target.value)}
-            className="h-8 flex-1"
-          />
-        )}
-      </div>
+      {!hideSearch && (
+        <div className="lg:hidden flex items-center gap-2 mt-2 w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 shrink-0"
+            onClick={() => setShowFilterInput(!showFilterInput)}
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+          {showFilterInput && (
+            <Input
+              placeholder="Search..."
+              value={globalFilter ?? ""}
+              onChange={(event) => setGlobalFilter(event.target.value)}
+              className="h-8 flex-1"
+            />
+          )}
+        </div>
+      )}
 
       {viewMode === "grid" && renderGridItem ? (
         <div ref={tableRef}>
@@ -323,7 +334,11 @@ const TableComponent = ({
                     <TableRow
                       key={row.id}
                       data-state={row.getIsSelected() ? "selected" : undefined}
-                      className="break-inside-avoid"
+                      className={cn(
+                        "break-inside-avoid transition-colors",
+                        onRowClick && "cursor-pointer hover:bg-muted/50"
+                      )}
+                      onClick={() => onRowClick && onRowClick(row)}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell
