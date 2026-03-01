@@ -652,6 +652,8 @@ const StudentsFund = ({
                     }
                   }}
                   disabled={isLookingUp}
+                  variant={lookupSearchTerm.trim() ? "default" : "outline"}
+                  className={!lookupSearchTerm.trim() ? "bg-foreground text-background hover:bg-foreground/90 border-none" : ""}
                 >
                   {isLookingUp ? (
                     <Loader className="h-4 w-4 animate-spin sm:mr-2" />
@@ -660,7 +662,7 @@ const StudentsFund = ({
                   ) : (
                     <ScanBarcode className="h-4 w-4 sm:mr-2" />
                   )}
-                  <span className="hidden sm:inline">Search</span>
+                  <span className="hidden sm:inline">{lookupSearchTerm.trim() ? "Search" : "Scan"}</span>
                 </Button>
               </div>
             </CardHeader>

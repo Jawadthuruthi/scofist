@@ -29,6 +29,17 @@ import { Progress } from "@/components/ui/progress";
 import RangeInput from "./RangeInput";
 import usePopulateFormField from "@/hooks/use-populate-form-field";
 import { toast } from "sonner";
+import { ScanBarcode } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const BarcodeScanner = dynamic(() => import("./BarcodeScanner"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center p-8">
+      <Loader className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  ),
+});
 
 /* ---------- AsyncInput Component ---------- */
 const AsyncInput = ({
@@ -237,6 +248,13 @@ function FieldRenderer({ field, form, apiKey, data }) {
     if (depValue !== expected) return null;
   }
 
+  const [showScanner, setShowScanner] = React.useState(false);
+
+  const handleScanFinish = (result) => {
+    form.setValue(fieldToRender.name, result, { shouldDirty: true, shouldValidate: true });
+    setShowScanner(false);
+  };
+
   return (
     <FormField
       control={form.control}
@@ -250,75 +268,106 @@ function FieldRenderer({ field, form, apiKey, data }) {
             </FormLabel>
           )}
           <FormControl>
-            {fieldToRender.inputType === "image" ? (
-              <ImageUploader
-                value={formField.value}
-                onChange={(val) => formField.onChange(val)}
-                disabled={fieldToRender.disabled}
-                apiKey={apiKey}
-                maxFileSize={fieldToRender.maxFileSize}
-                allowedTypes={fieldToRender.allowedTypes}
-                minWidth={fieldToRender.minWidth}
-                minHeight={fieldToRender.minHeight}
-                maxWidth={fieldToRender.maxWidth}
-                maxHeight={fieldToRender.maxHeight}
-                aspectRatio={fieldToRender.aspectRatio}
-                readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
-              />
-            ) : fieldToRender.inputType === "select" ||
-              fieldToRender.inputType === "multiSelect" ? (
-              <MultiSelect
-                options={fieldToRender.options || []}
-                placeholder={fieldToRender.placeholder || "Select options"}
-                multiSelect={fieldToRender.inputType === "multiSelect"}
-                value={formField.value}
-                onValueChange={(value) => formField.onChange(value)}
-                variant={fieldToRender.variant || "default"}
-                maxCount={fieldToRender.maxCount}
-                disableSearch={fieldToRender.disableSearch}
-                freeSolo={fieldToRender.freeSolo}
-                showSelectedCount={fieldToRender.showSelectedCount}
-                readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
-                isLoading={fieldToRender.isLoading}
-              />
-            ) : fieldToRender.inputType === "range" ? (
-              <RangeInput
-                min={fieldToRender.min}
-                max={fieldToRender.max}
-                step={fieldToRender.step}
-                unit={fieldToRender.unit}
-                value={formField.value}
-                onChange={(value) => formField.onChange(value)}
-                disabled={fieldToRender.disabled}
-                variant={fieldToRender.variant || "default"}
-                type={fieldToRender.type || "number"}
-                placeholder={fieldToRender.placeholder}
-                fromLabel={fieldToRender.fromLabel || "From"}
-                toLabel={fieldToRender.toLabel || "To"}
-                className={fieldToRender.className}
-                readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
-                {...fieldToRender.props}
-              />
-            ) : fieldToRender.inputType === "async-text" ? (
-              <AsyncInput
-                value={formField.value}
-                onChange={formField.onChange}
-                placeholder={fieldToRender.placeholder}
-                disabled={fieldToRender.disabled}
-                readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
-                asyncProps={fieldToRender.asyncProps}
-                autoFocus={fieldToRender.autoFocus}
-                {...formField}
-              />
-            ) : (
-              <Input
-                type={fieldToRender.type || "text"}
-                placeholder={fieldToRender.placeholder}
-                readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
-                autoFocus={fieldToRender.autoFocus}
-                {...formField}
-              />
-            )}
+            <div className="flex gap-2 items-start">
+              <div className="flex-1">
+                {fieldToRender.inputType === "image" ? (
+                  <ImageUploader
+                    value={formField.value}
+                    onChange={(val) => formField.onChange(val)}
+                    disabled={fieldToRender.disabled}
+                    apiKey={apiKey}
+                    maxFileSize={fieldToRender.maxFileSize}
+                    allowedTypes={fieldToRender.allowedTypes}
+                    minWidth={fieldToRender.minWidth}
+                    minHeight={fieldToRender.minHeight}
+                    maxWidth={fieldToRender.maxWidth}
+                    maxHeight={fieldToRender.maxHeight}
+                    aspectRatio={fieldToRender.aspectRatio}
+                    readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                  />
+                ) : fieldToRender.inputType === "select" ||
+                  fieldToRender.inputType === "multiSelect" ? (
+                  <MultiSelect
+                    options={fieldToRender.options || []}
+                    placeholder={fieldToRender.placeholder || "Select options"}
+                    multiSelect={fieldToRender.inputType === "multiSelect"}
+                    value={formField.value}
+                    onValueChange={(value) => formField.onChange(value)}
+                    variant={fieldToRender.variant || "default"}
+                    maxCount={fieldToRender.maxCount}
+                    disableSearch={fieldToRender.disableSearch}
+                    freeSolo={fieldToRender.freeSolo}
+                    showSelectedCount={fieldToRender.showSelectedCount}
+                    readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                    isLoading={fieldToRender.isLoading}
+                  />
+                ) : fieldToRender.inputType === "range" ? (
+                  <RangeInput
+                    min={fieldToRender.min}
+                    max={fieldToRender.max}
+                    step={fieldToRender.step}
+                    unit={fieldToRender.unit}
+                    value={formField.value}
+                    onChange={(value) => formField.onChange(value)}
+                    disabled={fieldToRender.disabled}
+                    variant={fieldToRender.variant || "default"}
+                    type={fieldToRender.type || "number"}
+                    placeholder={fieldToRender.placeholder}
+                    fromLabel={fieldToRender.fromLabel || "From"}
+                    toLabel={fieldToRender.toLabel || "To"}
+                    className={fieldToRender.className}
+                    readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                    {...fieldToRender.props}
+                  />
+                ) : fieldToRender.inputType === "async-text" ? (
+                  <AsyncInput
+                    value={formField.value}
+                    onChange={formField.onChange}
+                    placeholder={fieldToRender.placeholder}
+                    disabled={fieldToRender.disabled}
+                    readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                    asyncProps={fieldToRender.asyncProps}
+                    autoFocus={fieldToRender.autoFocus}
+                    {...formField}
+                  />
+                ) : (
+                  <Input
+                    type={fieldToRender.type || "text"}
+                    placeholder={fieldToRender.placeholder}
+                    readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                    autoFocus={fieldToRender.autoFocus}
+                    {...formField}
+                  />
+                )}
+              </div>
+              {fieldToRender.enableScanner && (
+                <Dialog open={showScanner} onOpenChange={setShowScanner}>
+                  <DialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0 h-10 w-10 bg-foreground text-background hover:bg-foreground/90 border-none"
+                      title="Scan Barcode"
+                    >
+                      <ScanBarcode className="h-5 w-5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Scan Barcode ({fieldToRender.label})</DialogTitle>
+                      <DialogDescription>
+                        Scan a barcode to automatically fill the {fieldToRender.label} field.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <BarcodeScanner
+                      onScan={handleScanFinish}
+                      onClose={() => setShowScanner(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           </FormControl>
           <FormMessage />
         </FormItem>

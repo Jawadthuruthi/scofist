@@ -16,7 +16,17 @@ import { toast } from "sonner";
 import Barcode from "react-barcode";
 import { useReactToPrint } from "react-to-print";
 import BarcodeSheet from "./BarcodeSheet";
-import { Search, Scan, IdCard, Book as BookIcon } from "lucide-react";
+import { Search, Scan, IdCard, Book as BookIcon, ScanBarcode } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const BarcodeScanner = dynamic(() => import("./BarcodeScanner"), {
+    ssr: false,
+    loading: () => (
+        <div className="flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+    ),
+});
 import { Input } from "@/components/ui/input";
 import { useEffect, useRef, useMemo } from "react";
 import {
@@ -59,6 +69,8 @@ export default function LibraryDashboard({
     const [studentPopupOpen, setStudentPopupOpen] = useState(false);
     const [bookPopupOpen, setBookPopupOpen] = useState(false);
     const [lookupLoading, setLookupLoading] = useState(false);
+    const [showStudentScanner, setShowStudentScanner] = useState(false);
+    const [showBookScanner, setShowBookScanner] = useState(false);
 
     const selectedIds = Object.keys(rowSelection);
     const selectedBook = view === "books" && selectedIds.length === 1
@@ -91,6 +103,7 @@ export default function LibraryDashboard({
             inputType: "text",
             type: "text",
             required: true,
+            enableScanner: true,
         },
         {
             name: "name",
@@ -146,6 +159,7 @@ export default function LibraryDashboard({
             },
             autoFocus: true,
             required: true,
+            enableScanner: true,
         },
         {
             name: "studentId",
@@ -158,6 +172,7 @@ export default function LibraryDashboard({
                 responseKey: "users"
             },
             required: true,
+            enableScanner: true,
         },
         {
             name: "rentedDate",
@@ -692,14 +707,15 @@ export default function LibraryDashboard({
 
     // --- Lookup Handlers ---
 
-    const handleStudentLookup = async (e) => {
-        if (e && e.key !== 'Enter') return;
-        if (!studentSearchId) return;
+    const handleStudentLookup = async (e, directId) => {
+        if (e && e.key && e.key !== 'Enter') return;
+        const id = directId || studentSearchId;
+        if (!id) return;
 
         setLookupLoading(true);
         try {
             // First fetch student details
-            const userRes = await fetch(`/api/users?_id=${studentSearchId}`);
+            const userRes = await fetch(`/api/users?_id=${id}`);
             const userData = await userRes.json();
 
             if (userData.users && userData.users.length > 0) {
@@ -724,16 +740,17 @@ export default function LibraryDashboard({
         }
     };
 
-    const handleBookLookup = async (e) => {
-        if (e && e.key !== 'Enter') return;
-        if (!bookSearchId) return;
+    const handleBookLookup = async (e, directId) => {
+        if (e && e.key && e.key !== 'Enter') return;
+        const id = directId || bookSearchId;
+        if (!id) return;
 
         setLookupLoading(true);
         try {
             // Find book by number
             const bookRes = await fetch("/api/library/books");
             const bookData = await bookRes.json();
-            const book = bookData.data.find(b => String(b.number).toLowerCase() === bookSearchId.toLowerCase());
+            const book = bookData.data.find(b => String(b.number).toLowerCase() === id.toLowerCase());
 
             if (book) {
                 setLookupBook(book);
@@ -786,10 +803,32 @@ export default function LibraryDashboard({
                                         autoFocus
                                     />
                                 </div>
-                                <Button size="icon" onClick={() => handleStudentLookup()} disabled={lookupLoading}>
-                                    <Search className="h-4 w-4" />
+                                <Button
+                                    size="icon"
+                                    variant={studentSearchId ? "default" : "outline"}
+                                    onClick={() => studentSearchId ? handleStudentLookup() : setShowStudentScanner(true)}
+                                    disabled={lookupLoading}
+                                    className={!studentSearchId ? "bg-foreground text-background hover:bg-foreground/90 border-none" : ""}
+                                >
+                                    {studentSearchId ? <Search className="h-4 w-4" /> : <ScanBarcode className="h-4 w-4" />}
                                 </Button>
                             </div>
+
+                            <Dialog open={showStudentScanner} onOpenChange={setShowStudentScanner}>
+                                <DialogContent className="sm:max-w-md">
+                                    <DialogHeader>
+                                        <DialogTitle>Scan Student Card</DialogTitle>
+                                    </DialogHeader>
+                                    <BarcodeScanner
+                                        onScan={(result) => {
+                                            setStudentSearchId(result);
+                                            setShowStudentScanner(false);
+                                            handleStudentLookup(null, result);
+                                        }}
+                                        onClose={() => setShowStudentScanner(false)}
+                                    />
+                                </DialogContent>
+                            </Dialog>
                         </CardContent>
                     </Card>
 
@@ -813,13 +852,35 @@ export default function LibraryDashboard({
                                         disabled={lookupLoading}
                                     />
                                 </div>
-                                <Button size="icon" onClick={() => handleBookLookup()} disabled={lookupLoading}>
-                                    <Search className="h-4 w-4" />
+                                <Button
+                                    size="icon"
+                                    variant={bookSearchId ? "default" : "outline"}
+                                    onClick={() => bookSearchId ? handleBookLookup() : setShowBookScanner(true)}
+                                    disabled={lookupLoading}
+                                    className={!bookSearchId ? "bg-foreground text-background hover:bg-foreground/90 border-none" : ""}
+                                >
+                                    {bookSearchId ? <Search className="h-4 w-4" /> : <ScanBarcode className="h-4 w-4" />}
                                 </Button>
                             </div>
+
+                            <Dialog open={showBookScanner} onOpenChange={setShowBookScanner}>
+                                <DialogContent className="sm:max-w-md">
+                                    <DialogHeader>
+                                        <DialogTitle>Scan Book Barcode</DialogTitle>
+                                    </DialogHeader>
+                                    <BarcodeScanner
+                                        onScan={(result) => {
+                                            setBookSearchId(result);
+                                            setShowBookScanner(false);
+                                            handleBookLookup(null, result);
+                                        }}
+                                        onClose={() => setShowBookScanner(false)}
+                                    />
+                                </DialogContent>
+                            </Dialog>
                         </CardContent>
                     </Card>
-                </div>
+                </div >
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Card>
@@ -1045,7 +1106,7 @@ export default function LibraryDashboard({
                         )}
                     </DialogContent>
                 </Dialog>
-            </div>
+            </div >
         );
     }
 
