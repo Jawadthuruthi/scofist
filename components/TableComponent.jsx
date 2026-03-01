@@ -26,7 +26,7 @@ import { useMemo, useRef, useState } from "react";
 import { useReactToPrint } from "react-to-print";
 import useTableColumns from "@/hooks/use-table-columns";
 import PrintHeader from "./PrintHeader";
-import { SlidersHorizontal, Filter, Search, LayoutGrid, List } from "lucide-react";
+import { SlidersHorizontal, Filter, Search, LayoutGrid, List, Download } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import PopupFilter from "./PopupFilter";
@@ -62,6 +62,7 @@ const TableComponent = ({
   onRowClick,
   hideSearch = false,
   hideColumnManagement = false,
+  showCsvBtn = false,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -80,6 +81,44 @@ const TableComponent = ({
     contentRef: tableRef,
     documentTitle: printTitle ? printTitle : "Table Print",
   });
+
+  const handleExportCSV = () => {
+    const visibleColumns = table.getVisibleLeafColumns()
+      .filter((col) => col.id !== "select" && col.id !== "actions" && !col.columnDef.meta?.className?.includes("print:hidden") && !col.columnDef.type?.includes("avatar"));
+
+    const csvHeaders = visibleColumns.map((col) => `"${String(col.columnDef.header).replace(/"/g, '""')}"`).join(",");
+
+    const csvRows = table.getFilteredRowModel().rows.map((row) => {
+      return visibleColumns.map((col) => {
+        let val = row.getValue(col.id);
+        if (col.id === "serialNo") {
+          val = row.index + 1;
+        } else if (col.columnDef.type?.includes("avatar")) {
+          // Skip exporting raw image URLs for avatars
+          val = "";
+        }
+
+        if (val === null || val === undefined) val = "";
+
+        if (typeof val === "object") {
+          val = Array.isArray(val) ? val.join(", ") : JSON.stringify(val);
+        }
+
+        return `"${String(val).replace(/"/g, '""')}"`;
+      }).join(",");
+    });
+
+    const csvContent = [csvHeaders, ...csvRows].join("\r\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${printTitle || "export"}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const table = useReactTable({
     data,
@@ -232,6 +271,17 @@ const TableComponent = ({
         <div className="flex items-center gap-2">
           {/* Action Buttons - Third/Last */}
           {actionButtons}
+          {showCsvBtn && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportCSV}
+              className="h-8 lg:flex"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+          )}
           {!hidePrintBtn && (
             <Button
               size="sm"

@@ -52,6 +52,7 @@ const StudentsContactsListPage = async ({ params }) => {
           columnsConfig={columnsConfig}
           printTitle={`Students Contacts${data?.length > 0 ? ` - ${data[0].className}` : ""}`}
           apiKey={apiKey}
+          showCsvBtn={true}
         />
       </>
     );
