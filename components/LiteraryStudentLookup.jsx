@@ -239,11 +239,35 @@ export default function LiteraryStudentLookup({ apiKey }) {
             {/* Attendance History separate card */}
             {hasSearched && !isLoading && student && (
                 <Card className="w-full">
-                    <CardHeader className="bg-muted/30 pb-2 pt-4 sm:pb-4 sm:pt-6 border-b">
+                    <CardHeader className="bg-muted/30 pb-4 pt-4 sm:pt-6 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <CardTitle className="text-lg flex items-center gap-2">
                             Literary Attendance History
-                            <Badge variant="secondary" className="font-normal text-xs">{attendanceRecords.length} Records</Badge>
                         </CardTitle>
+
+                        {(() => {
+                            const total = attendanceRecords.length;
+                            const present = attendanceRecords.filter(r => r.present).length;
+                            const absent = total - present;
+                            const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+
+                            return (
+                                <div className="flex flex-wrap items-center gap-2 text-sm">
+                                    <Badge variant="outline" className="bg-background shadow-sm">Total: {total}</Badge>
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 shadow-sm">Present: {present}</Badge>
+                                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 shadow-sm">Absent: {absent}</Badge>
+                                    <Badge
+                                        variant="secondary"
+                                        className={
+                                            percentage >= 75 ? "bg-green-100 text-green-800 hover:bg-green-100" :
+                                                percentage >= 50 ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100" :
+                                                    "bg-red-100 text-red-800 hover:bg-red-100"
+                                        }
+                                    >
+                                        {percentage}%
+                                    </Badge>
+                                </div>
+                            );
+                        })()}
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="overflow-hidden">
