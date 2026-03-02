@@ -52,6 +52,7 @@ import useCrud from "@/hooks/use-crud";
 import Header from "@/components/Header";
 import TimeTableComponent from "@/components/TimeTableComponent";
 import LiteraryStudentLookup from "./LiteraryStudentLookup";
+import LiterarySummaryCard from "./LiterarySummaryCard";
 import { formatDateForDisplay } from "@/lib/utils";
 import {
   Dialog,
@@ -721,12 +722,14 @@ export default function Dashboard({
 
   if (activeRole === "Literary Leader") {
     return (
-      <div className="flex flex-col space-y-2">
+      <div className="flex flex-col space-y-4">
         <Header
           title="DASHBOARD"
           subTitle={currentDate}
           icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
+          className="mb-0 pb-0"
         />
+        <LiterarySummaryCard apiKey={apiKey} />
         <LiteraryStudentLookup apiKey={apiKey} />
       </div>
     );

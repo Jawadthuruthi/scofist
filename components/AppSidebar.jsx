@@ -362,6 +362,12 @@ const items = [
     icon: ClipboardList,
   },
   {
+    title: "Attendance Sheet",
+    url: "/dashboard/literary-attendance/attendance-sheet",
+    allowedRoles: ["Literary Leader"],
+    icon: FileSpreadsheet,
+  },
+  {
     title: "Attendance Tracking",
     url: "/dashboard/literary-attendance/attendance-tracking",
     allowedRoles: ["Literary Leader"],

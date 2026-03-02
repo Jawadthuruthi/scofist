@@ -158,81 +158,89 @@ export default function LiteraryStudentLookup({ apiKey }) {
 
     return (
         <div className="space-y-6">
-            <Card className="w-full">
-                <CardHeader className="bg-muted/30 pb-4 pt-2 border-b">
-                    <CardTitle className="text-lg">Student Literary Lookup</CardTitle>
-                    <CardDescription>
-                        Search for  students literary attendance history
-                    </CardDescription>
-                    <div className="flex gap-2 mt-4 max-w-md">
-                        <Input
-                            ref={searchInputRef}
-                            placeholder="Search by Student ID or Name..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            className="flex-1"
-                        />
-                        <Button
-                            size="icon"
-                            variant={searchTerm ? "default" : "outline"}
-                            onClick={() => searchTerm ? handleSearch() : setShowScanner(true)}
-                            disabled={isLoading}
-                            className={!searchTerm ? "bg-foreground text-background hover:bg-foreground/90 border-none" : "px-3 w-auto"}
-                        >
-                            {isLoading ? (
-                                <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
-                            ) : searchTerm ? (
-                                <Search className="h-4 w-4 sm:mr-2" />
-                            ) : (
-                                <ScanBarcode className="h-4 w-4" />
-                            )}
-                            {searchTerm && <span className="hidden sm:inline">Search</span>}
-                        </Button>
-                    </div>
-                </CardHeader>
+            <Card className="w-full flex flex-col md:flex-row overflow-hidden">
+                <div className={`transition-all duration-300 ${hasSearched ? 'md:w-1/2 lg:w-[40%] md:border-r border-b md:border-b-0' : 'w-full'}`}>
+                    <CardHeader className="bg-muted/30 pb-6 pt-5 h-full justify-center">
+                        <CardTitle className="text-lg">Student Literary Lookup</CardTitle>
+                        <CardDescription>
+                            Search for students literary attendance history
+                        </CardDescription>
+                        <div className="flex gap-2 mt-4 w-full max-w-md mx-auto md:mx-0">
+                            <Input
+                                ref={searchInputRef}
+                                placeholder="Search by Student ID or Name..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                className="flex-1"
+                            />
+                            <Button
+                                size="icon"
+                                variant={searchTerm ? "default" : "outline"}
+                                onClick={() => searchTerm ? handleSearch() : setShowScanner(true)}
+                                disabled={isLoading}
+                                className={!searchTerm ? "bg-foreground text-background hover:bg-foreground/90 border-none" : "px-3 w-auto"}
+                            >
+                                {isLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
+                                ) : searchTerm ? (
+                                    <Search className="h-4 w-4 sm:mr-2" />
+                                ) : (
+                                    <ScanBarcode className="h-4 w-4" />
+                                )}
+                                {searchTerm && <span className="hidden sm:inline">Search</span>}
+                            </Button>
+                        </div>
+                    </CardHeader>
+                </div>
 
                 {hasSearched && (
-                    <CardContent className="pt-6">
-                        {isLoading ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                                <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                                <p>Gathering student records...</p>
-                            </div>
-                        ) : student ? (
-                            <div className="space-y-6">
-                                {/* Profile Section */}
-                                <div className="flex flex-col">
-                                    <h3 className="text-xl font-bold tracking-tight text-center sm:text-left mb-2 sm:mb-0 sm:hidden">{student.name}</h3>
-                                    <div className="flex flex-row items-center sm:items-start gap-4">
-                                        <Avatar className="h-24 w-24 sm:h-20 sm:w-20 border shadow-sm flex-shrink-0">
-                                            <AvatarImage src={student.profilePic?.url} />
-                                            <AvatarFallback className="text-lg font-medium text-primary bg-primary/10">
-                                                {student.name?.charAt(0)}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1 space-y-1">
-                                            <h3 className="text-xl font-bold tracking-tight hidden sm:block">{student.name}</h3>
-                                            <div className="text-sm text-muted-foreground flex flex-col sm:grid sm:grid-cols-2 gap-x-4 gap-y-1.5 items-start sm:items-center">
-                                                <div><span className="font-medium mr-1">ID:</span> {student._id}</div>
-                                                {student.className && <div><span className="font-medium mr-1">Class:</span> {student.className}</div>}
-                                                {student.batchName && <div><span className="font-medium mr-1">Batch:</span> {student.batchName}</div>}
-                                                <div className="mt-1 sm:mt-0 sm:col-span-2">
-                                                    <Badge variant={student.status === "Active" ? "outline" : "secondary"} className={student.status === "Active" ? "bg-green-50 text-green-700" : ""}>
-                                                        {student.status || "Unknown"}
-                                                    </Badge>
+                    <div className="flex-1 bg-background flex flex-col justify-center">
+                        <CardContent className="p-6">
+                            {isLoading ? (
+                                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                                    <Loader2 className="h-8 w-8 animate-spin mb-4" />
+                                    <p>Gathering student records...</p>
+                                </div>
+                            ) : student ? (
+                                <div className="space-y-6">
+                                    {/* Profile Section */}
+                                    <div className="flex flex-col">
+                                        <h3 className="text-xl font-bold tracking-tight text-center sm:text-left mb-2 sm:mb-0 sm:hidden">{student.name}</h3>
+                                        <div className="flex flex-row items-center sm:items-start gap-4">
+                                            <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                                                <Avatar className="h-24 w-24 sm:h-20 sm:w-20 border shadow-sm">
+                                                    <AvatarImage src={student.profilePic?.url} />
+                                                    <AvatarFallback className="text-lg font-medium text-primary bg-primary/10">
+                                                        {student.name?.charAt(0)}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="text-xs text-muted-foreground text-center break-all max-w-[6rem]">
+                                                    {student._id}
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 space-y-1">
+                                                <h3 className="text-xl font-bold tracking-tight hidden sm:block">{student.name}</h3>
+                                                <div className="text-sm text-muted-foreground flex flex-col gap-y-1.5 items-start mt-1">
+                                                    {student.className && <div><span className="font-medium mr-1">Class:</span> {student.className}</div>}
+                                                    {student.batchName && <div><span className="font-medium mr-1">Batch:</span> {student.batchName}</div>}
+                                                    <div className="mt-1">
+                                                        <Badge variant={student.status === "Active" ? "outline" : "secondary"} className={student.status === "Active" ? "bg-green-50 text-green-700" : ""}>
+                                                            {student.status || "Unknown"}
+                                                        </Badge>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="text-center py-8 text-muted-foreground">
-                                No student found.
-                            </div>
-                        )}
-                    </CardContent>
+                            ) : (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    No student found.
+                                </div>
+                            )}
+                        </CardContent>
+                    </div>
                 )}
             </Card>
 

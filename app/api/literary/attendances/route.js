@@ -170,7 +170,7 @@ export async function GET(req, res) {
     if (trackHistory) {
       formattedAttendances?.forEach((attendance) => {
         const dateExists = attendanceHistory.some(
-          (item) => item.date === attendance.date
+          (item) => item.date === attendance.date && item.category === attendance.category
         );
 
         if (!dateExists) {
