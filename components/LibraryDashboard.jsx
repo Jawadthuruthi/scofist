@@ -808,9 +808,16 @@ export default function LibraryDashboard({
                                     variant={studentSearchId ? "default" : "outline"}
                                     onClick={() => studentSearchId ? handleStudentLookup() : setShowStudentScanner(true)}
                                     disabled={lookupLoading}
-                                    className={!studentSearchId ? "bg-foreground text-background hover:bg-foreground/90 border-none" : ""}
+                                    className={!studentSearchId ? "bg-foreground text-background hover:bg-foreground/90 border-none" : "px-3 w-auto"}
                                 >
-                                    {studentSearchId ? <Search className="h-4 w-4" /> : <ScanBarcode className="h-4 w-4" />}
+                                    {lookupLoading ? (
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                    ) : studentSearchId ? (
+                                        <Search className="h-4 w-4 sm:mr-2" />
+                                    ) : (
+                                        <ScanBarcode className="h-4 w-4" />
+                                    )}
+                                    {studentSearchId && <span className="hidden sm:inline">Search</span>}
                                 </Button>
                             </div>
 
@@ -857,9 +864,16 @@ export default function LibraryDashboard({
                                     variant={bookSearchId ? "default" : "outline"}
                                     onClick={() => bookSearchId ? handleBookLookup() : setShowBookScanner(true)}
                                     disabled={lookupLoading}
-                                    className={!bookSearchId ? "bg-foreground text-background hover:bg-foreground/90 border-none" : ""}
+                                    className={!bookSearchId ? "bg-foreground text-background hover:bg-foreground/90 border-none" : "px-3 w-auto"}
                                 >
-                                    {bookSearchId ? <Search className="h-4 w-4" /> : <ScanBarcode className="h-4 w-4" />}
+                                    {lookupLoading ? (
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                    ) : bookSearchId ? (
+                                        <Search className="h-4 w-4 sm:mr-2" />
+                                    ) : (
+                                        <ScanBarcode className="h-4 w-4" />
+                                    )}
+                                    {bookSearchId && <span className="hidden sm:inline">Search</span>}
                                 </Button>
                             </div>
 

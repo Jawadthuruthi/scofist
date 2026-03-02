@@ -21,11 +21,12 @@ const columnsConfig = [
     minWidth: 70,
   },
   { accessorKey: "name", header: "Name" },
-  { accessorKey: "contactNumber", header: "Contact" },
-  { accessorKey: "guardianName", header: "Guardian Name" },
+  { accessorKey: "contactNumber", header: "Contact", type: ["contactWithAlternative"] },
+  { accessorKey: "guardianName", header: "Guardian Name", type: ["guardianNameWithRelationship"] },
   {
     accessorKey: "guardianContactNumber",
     header: "Guardian Contact",
+    type: ["guardianContactWithAlternative"]
   },
 ];
 
@@ -36,7 +37,7 @@ const StudentsContactsListPage = async ({ params }) => {
     const { id } = await params;
     const data = await fetchData(
       "users",
-      `projection=_id,name,profilePic,contactNumber,studentSpecificField.guardianName,studentSpecificField.guardianContactNumber&classId=${id}&roles=Student&status=Active`
+      `projection=_id,name,profilePic,contactNumber,alternativeNumber,studentSpecificField.guardianName,studentSpecificField.relationship,studentSpecificField.guardianContactNumber,studentSpecificField.guardianAlternativeNumber&classId=${id}&roles=Student&status=Active`
     );
 
     return (

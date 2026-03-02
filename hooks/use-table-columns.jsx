@@ -253,6 +253,51 @@ const useTableColumns = (columnConfig) => {
       };
     }
 
+    if (col.type?.includes("contactWithAlternative")) {
+      columnDefinition.cell = ({ row }) => {
+        const contact = row.getValue(col.accessorKey) || row.original.contactNumber || "-";
+        const alternative = row.original.alternativeNumber;
+        return (
+          <div className="flex flex-col">
+            <span>{contact}</span>
+            {alternative && (
+              <span className="text-xs text-muted-foreground">{alternative}</span>
+            )}
+          </div>
+        );
+      };
+    }
+
+    if (col.type?.includes("guardianNameWithRelationship")) {
+      columnDefinition.cell = ({ row }) => {
+        const name = row.getValue(col.accessorKey) || row.original.guardianName || row.original?.studentSpecificField?.guardianName || "-";
+        const relationship = row.original.relationship || row.original?.studentSpecificField?.relationship;
+        return (
+          <div className="flex flex-col">
+            <span>{name}</span>
+            {relationship && (
+              <span className="text-xs text-muted-foreground">({relationship})</span>
+            )}
+          </div>
+        );
+      };
+    }
+
+    if (col.type?.includes("guardianContactWithAlternative")) {
+      columnDefinition.cell = ({ row }) => {
+        const contact = row.getValue(col.accessorKey) || row.original.guardianContactNumber || row.original?.studentSpecificField?.guardianContactNumber || "-";
+        const alternative = row.original.guardianAlternativeNumber || row.original?.studentSpecificField?.guardianAlternativeNumber;
+        return (
+          <div className="flex flex-col">
+            <span>{contact}</span>
+            {alternative && (
+              <span className="text-xs text-muted-foreground">{alternative}</span>
+            )}
+          </div>
+        );
+      };
+    }
+
     if (col?.type?.includes("percentage")) {
       columnDefinition.cell = ({ row }) => {
         const total = row.original?.[col.totalKey]?.length || 0;

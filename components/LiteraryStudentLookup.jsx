@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, Loader2, CalendarX2, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,11 @@ import {
 import useCrud from "@/hooks/use-crud";
 import { formatDateForDisplay } from "@/lib/utils";
 import { toast } from "sonner";
+import { ScanBarcode } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+const BarcodeScanner = dynamic(() => import("./BarcodeScanner"), { ssr: false });
 
 export default function LiteraryStudentLookup({ apiKey }) {
     const [searchTerm, setSearchTerm] = useState("");
@@ -39,6 +44,15 @@ export default function LiteraryStudentLookup({ apiKey }) {
 
     const [isSearching, setIsSearching] = useState(false);
     const [currentStudentId, setCurrentStudentId] = useState(null);
+    const [showScanner, setShowScanner] = useState(false);
+    const searchInputRef = useRef(null);
+
+    // Focus input on mount
+    useEffect(() => {
+        if (searchInputRef.current) {
+            searchInputRef.current.focus();
+        }
+    }, []);
 
     // Use the hook for fetching students
     const usersQuery = useFetchUsers(
@@ -152,68 +166,74 @@ export default function LiteraryStudentLookup({ apiKey }) {
                     </CardDescription>
                     <div className="flex gap-2 mt-4 max-w-md">
                         <Input
+                            ref={searchInputRef}
                             placeholder="Search by Student ID or Name..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             onKeyDown={handleKeyDown}
                             className="flex-1"
                         />
-                        <Button onClick={handleSearch} disabled={isLoading}>
+                        <Button
+                            size="icon"
+                            variant={searchTerm ? "default" : "outline"}
+                            onClick={() => searchTerm ? handleSearch() : setShowScanner(true)}
+                            disabled={isLoading}
+                            className={!searchTerm ? "bg-foreground text-background hover:bg-foreground/90 border-none" : "px-3 w-auto"}
+                        >
                             {isLoading ? (
                                 <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
-                            ) : (
+                            ) : searchTerm ? (
                                 <Search className="h-4 w-4 sm:mr-2" />
+                            ) : (
+                                <ScanBarcode className="h-4 w-4" />
                             )}
-                            <span className="hidden sm:inline">Search</span>
+                            {searchTerm && <span className="hidden sm:inline">Search</span>}
                         </Button>
                     </div>
                 </CardHeader>
 
-                <CardContent className="pt-6">
-                    {!hasSearched ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                            <Search className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                            <p>Enter a student ID or name above to start searching</p>
-                        </div>
-                    ) : isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                            <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                            <p>Gathering student records...</p>
-                        </div>
-                    ) : student ? (
-                        <div className="space-y-6">
-                            {/* Profile Section */}
-                            <div className="flex flex-col">
-                                <h3 className="text-xl font-bold tracking-tight text-center sm:text-left mb-2 sm:mb-0 sm:hidden">{student.name}</h3>
-                                <div className="flex flex-row items-center sm:items-start gap-4">
-                                    <Avatar className="h-24 w-24 sm:h-20 sm:w-20 border shadow-sm flex-shrink-0">
-                                        <AvatarImage src={student.profilePic?.url} />
-                                        <AvatarFallback className="text-lg font-medium text-primary bg-primary/10">
-                                            {student.name?.charAt(0)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 space-y-1">
-                                        <h3 className="text-xl font-bold tracking-tight hidden sm:block">{student.name}</h3>
-                                        <div className="text-sm text-muted-foreground flex flex-col sm:grid sm:grid-cols-2 gap-x-4 gap-y-1.5 items-start sm:items-center">
-                                            <div><span className="font-medium mr-1">ID:</span> {student._id}</div>
-                                            {student.className && <div><span className="font-medium mr-1">Class:</span> {student.className}</div>}
-                                            {student.batchName && <div><span className="font-medium mr-1">Batch:</span> {student.batchName}</div>}
-                                            <div className="mt-1 sm:mt-0 sm:col-span-2">
-                                                <Badge variant={student.status === "Active" ? "outline" : "secondary"} className={student.status === "Active" ? "bg-green-50 text-green-700" : ""}>
-                                                    {student.status || "Unknown"}
-                                                </Badge>
+                {hasSearched && (
+                    <CardContent className="pt-6">
+                        {isLoading ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                <Loader2 className="h-8 w-8 animate-spin mb-4" />
+                                <p>Gathering student records...</p>
+                            </div>
+                        ) : student ? (
+                            <div className="space-y-6">
+                                {/* Profile Section */}
+                                <div className="flex flex-col">
+                                    <h3 className="text-xl font-bold tracking-tight text-center sm:text-left mb-2 sm:mb-0 sm:hidden">{student.name}</h3>
+                                    <div className="flex flex-row items-center sm:items-start gap-4">
+                                        <Avatar className="h-24 w-24 sm:h-20 sm:w-20 border shadow-sm flex-shrink-0">
+                                            <AvatarImage src={student.profilePic?.url} />
+                                            <AvatarFallback className="text-lg font-medium text-primary bg-primary/10">
+                                                {student.name?.charAt(0)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1 space-y-1">
+                                            <h3 className="text-xl font-bold tracking-tight hidden sm:block">{student.name}</h3>
+                                            <div className="text-sm text-muted-foreground flex flex-col sm:grid sm:grid-cols-2 gap-x-4 gap-y-1.5 items-start sm:items-center">
+                                                <div><span className="font-medium mr-1">ID:</span> {student._id}</div>
+                                                {student.className && <div><span className="font-medium mr-1">Class:</span> {student.className}</div>}
+                                                {student.batchName && <div><span className="font-medium mr-1">Batch:</span> {student.batchName}</div>}
+                                                <div className="mt-1 sm:mt-0 sm:col-span-2">
+                                                    <Badge variant={student.status === "Active" ? "outline" : "secondary"} className={student.status === "Active" ? "bg-green-50 text-green-700" : ""}>
+                                                        {student.status || "Unknown"}
+                                                    </Badge>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                            No student selected.
-                        </div>
-                    )}
-                </CardContent>
+                        ) : (
+                            <div className="text-center py-8 text-muted-foreground">
+                                No student found.
+                            </div>
+                        )}
+                    </CardContent>
+                )}
             </Card>
 
             {/* Attendance History separate card */}
@@ -225,23 +245,23 @@ export default function LiteraryStudentLookup({ apiKey }) {
                             <Badge variant="secondary" className="font-normal text-xs">{attendanceRecords.length} Records</Badge>
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="pt-6 p-0 sm:p-6">
+                    <CardContent className="p-0">
                         <div className="overflow-hidden">
-                            <div className="h-[300px] overflow-y-auto">
+                            <div className="max-h-[300px] overflow-y-auto">
                                 <Table>
                                     <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                                        <TableRow>
-                                            <TableHead className="w-[60px]">Sl No</TableHead>
+                                        <TableRow className="border-t-0">
+                                            <TableHead className="w-[60px] pl-4 sm:pl-6">Sl No</TableHead>
                                             <TableHead className="w-[150px]">Date</TableHead>
                                             <TableHead>Category</TableHead>
-                                            <TableHead className="text-right">Status</TableHead>
+                                            <TableHead className="text-right pr-4 sm:pr-6">Status</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {attendanceRecords.length > 0 ? (
                                             attendanceRecords.map((record, index) => (
                                                 <TableRow key={record._id}>
-                                                    <TableCell className="text-muted-foreground">
+                                                    <TableCell className="text-muted-foreground pl-4 sm:pl-6">
                                                         {index + 1}
                                                     </TableCell>
                                                     <TableCell className="font-medium">
@@ -252,7 +272,7 @@ export default function LiteraryStudentLookup({ apiKey }) {
                                                             {record.category === "ALL" ? "General" : "Group"}
                                                         </Badge>
                                                     </TableCell>
-                                                    <TableCell className="text-right">
+                                                    <TableCell className="text-right pr-4 sm:pr-6">
                                                         {renderStatus(record)}
                                                     </TableCell>
                                                 </TableRow>
@@ -271,6 +291,24 @@ export default function LiteraryStudentLookup({ apiKey }) {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Barcode Scanner Dialog */}
+            <Dialog open={showScanner} onOpenChange={setShowScanner}>
+                <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-background">
+                    <DialogHeader className="p-4 pb-0">
+                        <DialogTitle>Scan Student Barcode</DialogTitle>
+                    </DialogHeader>
+                    <div className="w-full relative z-50">
+                        <BarcodeScanner
+                            onScan={(data) => {
+                                setSearchTerm(data);
+                                setShowScanner(false);
+                            }}
+                            onClose={() => setShowScanner(false)}
+                        />
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
