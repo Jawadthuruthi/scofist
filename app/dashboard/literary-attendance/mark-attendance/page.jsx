@@ -67,9 +67,26 @@ const LiteraryAttendance = () => {
     queryParams.apiKey
   );
 
+  const { useFetchItems: useFetchLeaveRecords } = useCrud(
+    "leave-records",
+    queryParams.apiKey
+  );
+
   const saveAttendance = useSaveAttendance();
   const updateAttendance = useUpdateAttendance();
   const deleteAttendance = useDeleteAttendance();
+
+  const leaveRecordsQuery = useFetchLeaveRecords(
+    0,
+    0,
+    {
+      classId: queryParams.classId ? queryParams.classId : undefined,
+      projection: "studentId,dateOfLeave,arrivedDate",
+    },
+    {
+      refetchOnWindowFocus: true,
+    }
+  );
 
   const attendanceQuery = useFetchAttendance(0, 0, {
     date: queryParams.date,
@@ -138,6 +155,38 @@ const LiteraryAttendance = () => {
     return participantsQuery.data?.groups[0]?.assistantLeaderId;
   }, [participantsQuery.data]);
 
+  const studentsOnLeave = useMemo(() => {
+    if (!leaveRecordsQuery.data?.["leave-records"]) return {};
+
+    const onLeaveMap = {};
+    if (!queryParams.date) return onLeaveMap;
+
+    const attendanceDate = new Date(queryParams.date);
+    attendanceDate.setHours(0, 0, 0, 0);
+
+    leaveRecordsQuery.data["leave-records"].forEach((record) => {
+      if (!record.studentId) return;
+
+      const studentId = record.studentId._id || record.studentId;
+      const leaveDate = new Date(record.dateOfLeave);
+      leaveDate.setHours(0, 0, 0, 0);
+
+      if (leaveDate <= attendanceDate) {
+        if (!record.arrivedDate) {
+          onLeaveMap[studentId] = true;
+        } else {
+          const arrivedDate = new Date(record.arrivedDate);
+          arrivedDate.setHours(0, 0, 0, 0);
+          if (arrivedDate > attendanceDate) {
+            onLeaveMap[studentId] = true;
+          }
+        }
+      }
+    });
+
+    return onLeaveMap;
+  }, [leaveRecordsQuery.data, queryParams.date]);
+
   const students = useMemo(() => {
     if (queryParams.groupId) {
       return (
@@ -170,19 +219,21 @@ const LiteraryAttendance = () => {
   }, [studentsQuery.isLoading, attendanceQuery.isLoading]);
 
   useEffect(() => {
-    if (students?.length > 0) {
-      // Initialize attendance map efficiently
-      const initialAttendance = {};
-      students.forEach((student) => {
-        initialAttendance[student._id] = true; // Default to present
-      });
+    // Wait for leave records to load
+    if (leaveRecordsQuery.isLoading || studentsQuery.isLoading) return;
 
+    if (students?.length > 0) {
       // Only set attendance if we don't have existing attendance data
       if (Object.keys(attendance).length === 0) {
+        const initialAttendance = {};
+        students.forEach((student) => {
+          const isOnLeave = studentsOnLeave[student._id];
+          initialAttendance[student._id] = !isOnLeave; // Default to absent if on leave, otherwise present
+        });
         setAttendance(initialAttendance);
       }
     }
-  }, [students, attendance]);
+  }, [students, attendance, studentsOnLeave, leaveRecordsQuery.isLoading, studentsQuery.isLoading]);
 
   const toggleAttendance = useCallback((studentId) => {
     setAttendance((prev) => ({
@@ -392,16 +443,25 @@ const LiteraryAttendance = () => {
                 {students.length > 0 ? (
                   students.map((student, index) => {
                     const absenteeInfo = getStudentAbsenteeInfo(student._id);
-                    const hasAbsenceHistory =
-                      absenteeInfo && absenteeInfo.continuousAbsences > 0;
+                    const hasAbsenceHistory = absenteeInfo && absenteeInfo.continuousAbsences > 0;
+                    const isOnLeave = studentsOnLeave[student._id];
+                    const isPresent = attendance[student._id];
+
+                    let rowClass = "hover:bg-transparent";
+                    if (isPresent) {
+                      rowClass = "cursor-pointer";
+                    } else {
+                      if (isOnLeave) {
+                        rowClass = "bg-red-50/80 dark:bg-red-950/30 cursor-pointer border-l-4 border-l-yellow-500";
+                      } else {
+                        rowClass = "bg-rose-300 dark:bg-rose-700 hover:bg-rose-300 dark:hover:bg-rose-700 cursor-pointer text-foreground";
+                      }
+                    }
+
                     return (
                       <TableRow
                         key={student._id}
-                        className={
-                          attendance[student._id]
-                            ? ""
-                            : "bg-rose-300 dark:bg-rose-700 hover:bg-rose-300 dark:hover:bg-rose-700"
-                        }
+                        className={rowClass}
                         onClick={() => toggleAttendance(student._id)}
                       >
                         <TableCell>{index + 1}</TableCell>
@@ -424,9 +484,17 @@ const LiteraryAttendance = () => {
                                     "(Assistant Leader)") ||
                                   ""}
                               </p>
-                              <p className="text-xs text-muted-foreground">
-                                {student._id} {student?.className}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs text-muted-foreground">
+                                  {student._id} {student?.className}
+                                </p>
+                                {isOnLeave && (
+                                  <Badge variant="outline" className="h-4 text-[10px] px-1 bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-500 dark:border-yellow-800">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    On Leave
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </TableCell>
