@@ -113,25 +113,27 @@ const calculateAttendancePercentage = (attendanceRecords) => {
 // ===== LOADING COMPONENTS =====
 const StatCardSkeleton = memo(() => (
   <Card
-    className="overflow-hidden"
+    className="overflow-hidden border-l-4 border-l-muted"
     role="status"
     aria-label="Loading statistics"
   >
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-muted/30">
-      <Skeleton className="h-4 w-16" />
-      <Skeleton className="h-4 w-4 rounded-full" />
+    <CardHeader className="flex flex-row items-center justify-between pb-2 bg-muted/10">
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-8 w-16" />
+      </div>
+      <Skeleton className="h-12 w-12 rounded-full" />
     </CardHeader>
-    <CardContent className="pt-4">
-      <Skeleton className="h-7 w-14 mb-1" />
-      <Skeleton className="h-3 w-24" />
+    <CardContent className="pt-3 pb-4">
+      <Skeleton className="h-3 w-32" />
     </CardContent>
   </Card>
 ));
 StatCardSkeleton.displayName = "StatCardSkeleton";
 
 const StatsOverviewSkeleton = memo(() => (
-  <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-4">
-    {Array.from({ length: 4 }, (_, i) => (
+  <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-3">
+    {Array.from({ length: 6 }, (_, i) => (
       <StatCardSkeleton key={i} />
     ))}
   </div>
@@ -194,27 +196,31 @@ ClassesSkeleton.displayName = "ClassesSkeleton";
 // ===== MAIN COMPONENTS =====
 const StatCard = memo(({ title, value, icon: Icon, description }) => (
   <Card
-    className="overflow-hidden"
+    className="overflow-hidden hover:shadow-md transition-shadow duration-300 border-l-4 border-l-primary"
     role="region"
     aria-labelledby={`stat-${title}`}
   >
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-muted/30">
-      <CardTitle id={`stat-${title}`} className="text-sm font-medium">
-        {title}
-      </CardTitle>
-      <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
-    </CardHeader>
-    <CardContent className="pt-4">
-      <div
-        className="text-2xl font-bold"
-        aria-describedby={`stat-${title}-desc`}
-      >
-        {value}
+    <CardHeader className="flex flex-row items-center justify-between pb-2 bg-muted/10">
+      <div className="space-y-1">
+        <CardTitle id={`stat-${title}`} className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
+        <div
+          className="text-3xl font-bold tracking-tight"
+          aria-describedby={`stat-${title}-desc`}
+        >
+          {value}
+        </div>
       </div>
+      <div className="p-3 bg-primary/10 rounded-full">
+        <Icon className="h-8 w-8 text-primary" aria-hidden="true" />
+      </div>
+    </CardHeader>
+    <CardContent className="pt-3 pb-4">
       {description && (
         <p
           id={`stat-${title}-desc`}
-          className="text-xs text-muted-foreground mt-1"
+          className="text-xs text-muted-foreground"
         >
           {description}
         </p>
@@ -370,6 +376,12 @@ const StatsOverview = memo(({ totalStats, isLoading }) => {
       description: "Successfully completed program",
     },
     {
+      title: "Total Students",
+      value: totalStats.studentCount,
+      icon: Users,
+      description: "All registered students",
+    },
+    {
       title: "On Leave",
       value: totalStats.leaveStudents,
       icon: Users,
@@ -378,7 +390,7 @@ const StatsOverview = memo(({ totalStats, isLoading }) => {
   ];
 
   return (
-    <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-3">
       {statCards.map((stat) => (
         <StatCard key={stat.title} {...stat} />
       ))}
