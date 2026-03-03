@@ -47,6 +47,8 @@ const AdvancedDataTableComponent = ({
                 apiEndpoint={tab.apiEndpoint}
                 apiFilters={tab.apiFilters}
                 printTitle={tab.printTitle}
+                dateRangeInPopup={tab.dateRangeInPopup}
+                enableMonthYearFilter={tab.enableMonthYearFilter}
               />
             </TabsContent>
           ))}
@@ -68,6 +70,8 @@ const AdvancedDataTableComponent = ({
           apiEndpoint={table.apiEndpoint}
           apiFilters={table.apiFilters}
           printTitle={table.printTitle}
+          dateRangeInPopup={table.dateRangeInPopup}
+          enableMonthYearFilter={table.enableMonthYearFilter}
         />
       ))}
     </div>

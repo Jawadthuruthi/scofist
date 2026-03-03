@@ -161,6 +161,8 @@ const AttendanceTrackingPage = async () => {
         ],
         readOnly: true,
         filterType: "api",
+        dateRangeInPopup: true,
+        enableMonthYearFilter: true,
       },
       {
         label: "Teacher",
@@ -245,69 +247,8 @@ const AttendanceTrackingPage = async () => {
         ],
         readOnly: true,
         filterType: "api",
-      },
-      {
-        label: "Toppers",
-        value: "toppers",
-        resource: "attendanceToppers",
-        filterTitle: "Attendance Toppers",
-        printTitle: "Attendance Toppers",
-        columnsConfig: [
-          {
-            header: "Sl.No.",
-            accessorKey: "serialNo",
-            type: ["serialNo"],
-            width: 60,
-            maxWidth: 60,
-            minWidth: 60,
-          },
-          { header: "Class", accessorKey: "className" },
-          {
-            header: "Students",
-            accessorKey: "students",
-            type: ["arrayWithValueKey", "list"],
-            valueKey: "studentName",
-          },
-
-          {
-            header: "Percentage",
-            accessorKey: "highestPercentage",
-          },
-        ],
-        filterConfig: [
-          {
-            id: "batchId",
-            label: "Batch",
-            type: "text",
-            inputType: "select",
-            nestedArrayField: "attendanceRecords",
-
-            options: formatOptions(batches),
-          },
-          {
-            id: "classId",
-            label: "Class",
-            type: "text",
-            inputType: "select",
-            nestedArrayField: "attendanceRecords",
-
-            options: formatOptions(formattedClasses),
-          },
-
-          {
-            id: "date",
-            label: "Date Range",
-            type: "date",
-            inputType: "dateRange",
-            operator: OPERATORS.DATE_RANGE,
-
-            nestedArrayField: "attendanceRecords",
-            className: "col-span-1 md:col-span-2",
-          },
-        ],
-        readOnly: true,
-        filterType: "api",
-        filterType: "api",
+        dateRangeInPopup: true,
+        enableMonthYearFilter: true,
       },
     ];
     const tabsConfig2 = [
@@ -405,69 +346,8 @@ const AttendanceTrackingPage = async () => {
         ],
         readOnly: true,
         filterType: "api",
-      },
-
-      {
-        label: "Toppers",
-        value: "toppers",
-        resource: "attendanceToppers",
-        filterTitle: "Attendance Toppers",
-        printTitle: "Attendance Toppers",
-        columnsConfig: [
-          {
-            header: "Sl.No.",
-            accessorKey: "serialNo",
-            type: ["serialNo"],
-            width: 60,
-            maxWidth: 60,
-            minWidth: 60,
-          },
-          { header: "Class", accessorKey: "className" },
-          {
-            header: "Students",
-            accessorKey: "students",
-            type: ["arrayWithValueKey", "list"],
-            valueKey: "studentName",
-          },
-
-          {
-            header: "Percentage",
-            accessorKey: "highestPercentage",
-          },
-        ],
-        filterConfig: [
-          {
-            id: "batchId",
-            label: "Batch",
-            type: "text",
-            inputType: "select",
-            nestedArrayField: "attendanceRecords",
-
-            options: formatOptions(batches),
-          },
-          {
-            id: "classId",
-            label: "Class",
-            type: "text",
-            inputType: "select",
-            nestedArrayField: "attendanceRecords",
-
-            options: formatOptions(formattedClasses),
-          },
-
-          {
-            id: "date",
-            label: "Date Range",
-            type: "date",
-            inputType: "dateRange",
-            operator: OPERATORS.DATE_RANGE,
-            nestedArrayField: "attendanceRecords",
-            className: "col-span-1 md:col-span-2",
-          },
-        ],
-        readOnly: true,
-        filterType: "api",
-        filterType: "api",
+        dateRangeInPopup: true,
+        enableMonthYearFilter: true,
       },
     ];
 

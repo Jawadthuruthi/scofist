@@ -33,6 +33,7 @@ import { applyPrintStyles, removePrintStyles, formatDateForDisplay } from "@/lib
 import * as XLSX from "xlsx";
 import PrintHeader from "@/components/PrintHeader";
 import DateRangeFilter from "@/components/DateRangeFilter";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import ColumnCustomization from "./ColumnCustomization";
 import PopupFilter from "./PopupFilter";
@@ -114,6 +115,8 @@ const DataTableComponent = ({
   enableCreate = true,
   enableSearch = false,
   printInReverse = false,
+  dateRangeInPopup = false,
+  enableMonthYearFilter = false,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -131,6 +134,8 @@ const DataTableComponent = ({
   // Add state to track filter changes more precisely
   const [lastFilterHash, setLastFilterHash] = useState("");
   const [isFilterChanged, setIsFilterChanged] = useState(false);
+  const [filterMonth, setFilterMonth] = useState(() => enableMonthYearFilter ? new Date().getMonth() + 1 : null);
+  const [filterYear, setFilterYear] = useState(() => enableMonthYearFilter ? new Date().getFullYear() : null);
 
   const tableRef = useRef(null);
   const isFetchingRef = useRef(false);
@@ -211,12 +216,19 @@ const DataTableComponent = ({
       });
     }
 
+    if (enableMonthYearFilter && filterMonth && filterYear) {
+      const startDateStr = `${filterYear}-${String(filterMonth).padStart(2, '0')}-01`;
+      const endDateStr = `${filterYear}-${String(filterMonth).padStart(2, '0')}-${String(new Date(filterYear, filterMonth, 0).getDate()).padStart(2, '0')}`;
+      transformedFilters.startDate = startDateStr;
+      transformedFilters.endDate = endDateStr;
+    }
+
     return {
       ...activeApiFilters,
       ...transformedFilters,
       ...(globalFilter ? { global: globalFilter } : {}),
     };
-  }, [isApiFiltering, activeApiFilters, filters, globalFilter, hasFilters]);
+  }, [isApiFiltering, activeApiFilters, filters, globalFilter, hasFilters, enableMonthYearFilter, filterMonth, filterYear]);
 
   // Create a hash of current filters to detect changes
   const currentFilterHash = useMemo(() => {
@@ -717,8 +729,56 @@ const DataTableComponent = ({
             <div className="mr-2">{additionalProps.customToolbar}</div>
           )}
           <ColumnCustomization table={table} columnsConfig={columnsConfig} />
+
+          <PopupFilter
+            filterConfig={isMobile || dateRangeInPopup ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
+            filters={filters}
+            setFilter={handleSetFilter}
+            removeFilter={handleRemoveFilter}
+            clearFilters={handleClearFilters}
+            globalFilter={globalFilter}
+            setGlobalFilter={handleSetGlobalFilter}
+            hasFilters={hasFilters || Object.keys(filters).length > 0}
+            title={filterTitle || capitalize(resource)}
+            filterType={filterType}
+          />
+
+          {enableMonthYearFilter && (
+            <div className="flex items-center space-x-2">
+              <Select value={filterYear?.toString()} onValueChange={(v) => {
+                setFilterYear(parseInt(v));
+                if (isApiFiltering) debouncedApiFilterUpdate();
+              }}>
+                <SelectTrigger className="w-[80px] h-8 text-xs">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
+                    <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterMonth?.toString()} onValueChange={(v) => {
+                setFilterMonth(parseInt(v));
+                if (isApiFiltering) debouncedApiFilterUpdate();
+              }}>
+                <SelectTrigger className="w-[120px] h-8 text-xs">
+                  <SelectValue placeholder="Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                    <SelectItem key={m} value={m.toString()}>
+                      {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Desktop Date Range Filter */}
-          {!isMobile && filterConfig.find(f => f.inputType === "dateRange") && (
+          {!isMobile && !dateRangeInPopup && filterConfig.find(f => f.inputType === "dateRange") && (
             <DateRangeFilter
               value={(() => {
                 const filterState = filters[filterConfig.find(f => f.inputType === "dateRange").id];
@@ -746,19 +806,6 @@ const DataTableComponent = ({
               />
             </div>
           )}
-
-          <PopupFilter
-            filterConfig={isMobile ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
-            filters={filters}
-            setFilter={handleSetFilter}
-            removeFilter={handleRemoveFilter}
-            clearFilters={handleClearFilters}
-            globalFilter={globalFilter}
-            setGlobalFilter={handleSetGlobalFilter}
-            hasFilters={hasFilters || Object.keys(filters).length > 0}
-            title={filterTitle || capitalize(resource)}
-            filterType={filterType}
-          />
         </div >
         <div className="space-x-2 flex items-center">
           {additionalProps?.customActions && (
