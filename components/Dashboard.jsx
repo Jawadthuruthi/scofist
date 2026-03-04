@@ -194,7 +194,7 @@ const ClassesSkeleton = memo(() => (
 ClassesSkeleton.displayName = "ClassesSkeleton";
 
 // ===== MAIN COMPONENTS =====
-const StatCard = memo(({ title, value, icon: Icon, description, onClick }) => (
+const StatCard = memo(({ title, value, icon: Icon, description, onClick, clickLabel }) => (
   <Card
     className={`overflow-hidden hover:shadow-md transition-shadow duration-300 border-l-4 border-l-primary${onClick ? " cursor-pointer active:scale-[0.98]" : ""}`}
     role="region"
@@ -227,7 +227,7 @@ const StatCard = memo(({ title, value, icon: Icon, description, onClick }) => (
         </p>
       )}
       {onClick && (
-        <p className="text-xs text-primary font-medium mt-1">Click to view profiles →</p>
+        <p className="text-xs text-primary font-medium mt-1">{clickLabel || "Click to view details →"}</p>
       )}
     </CardContent>
   </Card>
@@ -356,6 +356,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
   const [activeStudentsDialogOpen, setActiveStudentsDialogOpen] = useState(false);
   const [graduatedStudentsDialogOpen, setGraduatedStudentsDialogOpen] = useState(false);
   const [totalStudentsDialogOpen, setTotalStudentsDialogOpen] = useState(false);
+  const [onLeaveDialogOpen, setOnLeaveDialogOpen] = useState(false);
 
   const sortedTeachersLocal = useMemo(() => {
     return [...(teachers || [])].sort(
@@ -372,6 +373,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       icon: UserCheck,
       description: "Active teaching staff",
       onClick: () => setFacultyDialogOpen(true),
+      clickLabel: "Click to view faculty profiles →",
     },
     {
       title: "Active Classes",
@@ -379,6 +381,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       icon: BarChart3,
       description: "Ongoing academic classes",
       onClick: onClassesClick,
+      clickLabel: "Click to view classes →",
     },
     {
       title: "Active Students",
@@ -386,6 +389,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       icon: BookOpen,
       description: "Currently attending classes",
       onClick: () => setActiveStudentsDialogOpen(true),
+      clickLabel: "Click to view chart →",
     },
     {
       title: "Graduated Students",
@@ -393,6 +397,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       icon: GraduationCap,
       description: "Successfully completed program",
       onClick: () => setGraduatedStudentsDialogOpen(true),
+      clickLabel: "Click to view chart →",
     },
     {
       title: "Total Students",
@@ -400,12 +405,15 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       icon: Users,
       description: "All registered students",
       onClick: () => setTotalStudentsDialogOpen(true),
+      clickLabel: "Click to view statistics →",
     },
     {
       title: "On Leave",
       value: totalStats.leaveStudents,
       icon: Users,
       description: "Students currently on leave",
+      onClick: () => setOnLeaveDialogOpen(true),
+      clickLabel: "Click to view students →",
     },
   ];
 
@@ -521,6 +529,36 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
           </div>
         </DialogContent>
       </Dialog>
+      {/* On Leave Students Dialog */}
+      <Dialog open={onLeaveDialogOpen} onOpenChange={setOnLeaveDialogOpen}>
+        <DialogContent className="max-w-md max-h-[70vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Users className="h-5 w-5" />
+              <span>Students On Leave ({dashboardData?.onLeaveStudentsList?.length ?? 0})</span>
+            </DialogTitle>
+            <DialogDescription>
+              Students currently on active leave
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 space-y-1">
+            {dashboardData?.onLeaveStudentsList?.length > 0 ? (
+              dashboardData.onLeaveStudentsList.map((student, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50"
+                >
+                  <span className="text-sm font-medium">{index + 1}. {student.name}</span>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">{student.className}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No students currently on leave</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </>
   );
 });
@@ -813,20 +851,29 @@ export default function Dashboard({
           );
           return studentLeaves.some(record => {
             if (record.arrivedDate) return false;
-            const arrivalDate = new Date(record.dateOfArrival);
-            const currentDate = new Date();
-            currentDate.setHours(0, 0, 0, 0);
-            arrivalDate.setHours(0, 0, 0, 0);
-            // It is active if no arrivedDate (pending) OR if overdue
-            // The logic from LeaveRegister: 
-            // if arrivedDate -> completed
-            // else if currentDate > arrivalDate -> overdue (which is active)
-            // else -> pending (which is active)
-            // So basicaly if !arrivedDate, it is active.
             return !record.arrivedDate;
           });
         }).length,
       },
+      onLeaveStudentsList: students
+        .filter(student => {
+          const studentLeaves = leaveRecords.filter(
+            (record) => String(record.studentId?._id || record.studentId) === String(student._id)
+          );
+          return studentLeaves.some(record => !record.arrivedDate);
+        })
+        .map(student => ({
+          name: student.studentName || student.name || student.username || "Unknown",
+          className: student.className || "N/A",
+        }))
+        .sort((a, b) => {
+          const idxA = sortedClasses.findIndex(c => c.name === a.className);
+          const idxB = sortedClasses.findIndex(c => c.name === b.className);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+          return (a.className || "").localeCompare(b.className || "");
+        }),
     };
   }, [
     students,
