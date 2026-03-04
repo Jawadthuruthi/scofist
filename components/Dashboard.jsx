@@ -357,6 +357,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
   const [graduatedStudentsDialogOpen, setGraduatedStudentsDialogOpen] = useState(false);
   const [totalStudentsDialogOpen, setTotalStudentsDialogOpen] = useState(false);
   const [onLeaveDialogOpen, setOnLeaveDialogOpen] = useState(false);
+  const [classesDialogOpen, setClassesDialogOpen] = useState(false);
 
   const sortedTeachersLocal = useMemo(() => {
     return [...(teachers || [])].sort(
@@ -380,7 +381,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       value: totalStats.activeBatches,
       icon: BarChart3,
       description: "Ongoing academic classes",
-      onClick: onClassesClick,
+      onClick: () => setClassesDialogOpen(true),
       clickLabel: "Click to view classes →",
     },
     {
@@ -555,6 +556,39 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
             ) : (
               <p className="text-sm text-muted-foreground text-center py-4">No students currently on leave</p>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Active Classes Dialog */}
+      <Dialog open={classesDialogOpen} onOpenChange={setClassesDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <BookOpen className="h-5 w-5" />
+              <span>Classes Overview</span>
+            </DialogTitle>
+            <DialogDescription>
+              Detailed information about active classes
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-2">
+            {sortedClasses.map((classData) => {
+              const leaveStudents = dashboardData.leaveRecords?.filter(
+                (record) => record.classId === classData._id
+              ) || [];
+
+              return (
+                <ClassCard
+                  key={classData._id}
+                  classData={classData}
+                  students={dashboardData.students}
+                  batches={dashboardData.batches}
+                  attendances={dashboardData.attendances}
+                  leaveStudents={leaveStudents}
+                />
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>
@@ -838,6 +872,7 @@ export default function Dashboard({
       activeStudents,
       graduatedStudents,
       attendances,
+      leaveRecords,
       totalStats: {
         studentCount:
           fetchStudentsQuery.data?.pagination?.total || students.length,
@@ -1092,50 +1127,6 @@ export default function Dashboard({
           />
         </TabsContent>
 
-        <TabsContent value="classes" className="space-y-6">
-          <Card className="border-t-4 border-t-primary">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BookOpen className="h-5 w-5" />
-                <span>Classes Overview</span>
-              </CardTitle>
-              <CardDescription>
-                View detailed information about active classes and their
-                performance
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingStudents ? (
-                <ClassesSkeleton />
-              ) : hasClasses ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {sortedClasses.map((classData) => {
-                    const leaveStudents = leaveRecords.filter(
-                      (record) => record.classId === classData._id
-                    );
-
-                    return (
-                      <ClassCard
-                        key={classData._id}
-                        classData={classData}
-                        students={dashboardData.students}
-                        batches={dashboardData.batches}
-                        attendances={dashboardData.attendances}
-                        leaveStudents={leaveStudents}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-32 bg-muted/20 rounded-md">
-                  <p className="text-muted-foreground">
-                    No class data available
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );
