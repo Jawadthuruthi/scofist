@@ -324,7 +324,7 @@ const items = [
         allowedRoles: ["College Admin", "Teacher"],
       },
       {
-        title: "Attendance Tracking",
+        title: "Attendance History",
         url: "/dashboard/attendance-tracking",
         icon: UserCheck,
         allowedRoles: ["College Admin", "Teacher"],
@@ -368,7 +368,7 @@ const items = [
     icon: FileSpreadsheet,
   },
   {
-    title: "Attendance Tracking",
+    title: "Attendance History",
     url: "/dashboard/literary-attendance/attendance-tracking",
     allowedRoles: ["Literary Leader"],
     icon: UserCheck,

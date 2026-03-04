@@ -228,7 +228,7 @@ const AttendanceTrackingPage = async () => {
     return (
       <>
         <Header
-          title="ATTENDANCE TRACKING"
+          title="ATTENDANCE HISTORY"
           subTitle="Track Attendance Records In Real Time"
         />
         <AdvancedDataTableComponent tabsConfig={tabsConfig} apiKey={apiKey} />

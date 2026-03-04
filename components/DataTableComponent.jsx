@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useMemo, useRef, useState, useEffect, useCallback, use, isValidElement, cloneElement } from "react";
+import { useMemo, useRef, useState, useEffect, useCallback, isValidElement, cloneElement } from "react";
 import useTableColumns from "@/hooks/use-table-columns";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
@@ -29,7 +29,7 @@ import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
 import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { applyPrintStyles, removePrintStyles, formatDateForDisplay } from "@/lib/utils";
+import { applyPrintStyles, removePrintStyles, formatDateForDisplay, cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import PrintHeader from "@/components/PrintHeader";
 import DateRangeFilter from "@/components/DateRangeFilter";
@@ -118,6 +118,7 @@ const DataTableComponent = ({
   dateRangeInPopup = false,
   enableMonthYearFilter = false,
   trailingToolbar = null,
+  highlightHighest = null,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -137,6 +138,14 @@ const DataTableComponent = ({
   const [isFilterChanged, setIsFilterChanged] = useState(false);
   const [filterMonth, setFilterMonth] = useState(() => enableMonthYearFilter ? new Date().getMonth() + 1 : null);
   const [filterYear, setFilterYear] = useState(() => enableMonthYearFilter ? new Date().getFullYear() : null);
+  const [toppersOnly, setToppersOnly] = useState(false);
+
+  // Sync state to window as a fallback for dynamic toolbar components
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__SET_TOPPERS__ = setToppersOnly;
+    }
+  }, [setToppersOnly]);
 
   const tableRef = useRef(null);
   const isFetchingRef = useRef(false);
@@ -590,9 +599,80 @@ const DataTableComponent = ({
   const updateData = useUpdateItem();
   const deleteData = useDeleteItem();
 
+
+  // Highlight highest logic
+  const highlightedRowIds = useMemo(() => {
+    const tableData = isApiFiltering ? data : filteredData;
+    if (!highlightHighest || !tableData.length) return new Set();
+
+    const { accessorKey, type, totalKey, filterKey, filterValue, groupBy } = highlightHighest;
+    const allIds = new Set();
+
+    // Helper to get group key
+    const getGroupKey = (item) => {
+      if (!groupBy) return "single-group";
+      if (typeof groupBy === "function") return groupBy(item);
+
+      // Support nested keys like "attendanceRecords.0.className"
+      const keys = groupBy.split(".");
+      let val = item;
+      for (const key of keys) {
+        if (val === null || val === undefined) break;
+        val = val[key];
+      }
+      return val || "no-group";
+    };
+
+    // Calculate max value for each group
+    const groupStats = {}; // { groupKey: { maxVal, ids } }
+
+    tableData.forEach((item) => {
+      let val = -1;
+      if (type === "percentage") {
+        const records = item[totalKey] || [];
+        const total = records.length;
+        const present = records.filter(r => r[filterKey] === filterValue).length;
+        val = total > 0 ? (present / total) * 100 : 0;
+      } else {
+        val = parseFloat(item[accessorKey]);
+        if (isNaN(val)) val = -1;
+      }
+
+      const groupKey = getGroupKey(item);
+      if (!groupStats[groupKey]) {
+        groupStats[groupKey] = { maxVal: -Infinity, ids: new Set() };
+      }
+
+      const stats = groupStats[groupKey];
+      if (val > stats.maxVal) {
+        stats.maxVal = val;
+        stats.ids = new Set([item._id]);
+      } else if (val === stats.maxVal && val !== -Infinity && val !== -1) {
+        stats.ids.add(item._id);
+      }
+    });
+
+    // Collect all highlighted IDs from all groups
+    Object.values(groupStats).forEach(stats => {
+      if (stats.maxVal > 0) {
+        stats.ids.forEach(id => allIds.add(id));
+      }
+    });
+
+    return allIds;
+  }, [data, filteredData, isApiFiltering, highlightHighest]);
+
+  const tableDataForTable = useMemo(() => {
+    const baseData = isApiFiltering ? data : filteredData;
+    if (toppersOnly && highlightedRowIds.size > 0) {
+      return baseData.filter((item) => highlightedRowIds.has(item._id));
+    }
+    return baseData;
+  }, [isApiFiltering, data, filteredData, toppersOnly, highlightedRowIds]);
+
   // Initialize table
   const table = useReactTable({
-    data: isApiFiltering ? data : filteredData,
+    data: tableDataForTable,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -786,6 +866,8 @@ const DataTableComponent = ({
                   filterMonth,
                   filterYear,
                   apiKey,
+                  toppersOnly,
+                  setToppersOnly,
                   tableData: table.getFilteredRowModel().rows.map(row => row.original)
                 })
                 : trailingToolbar}
@@ -962,7 +1044,10 @@ const DataTableComponent = ({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() ? "selected" : undefined}
-                  className="break-inside-avoid"
+                  className={cn(
+                    "break-inside-avoid",
+                    highlightedRowIds.has(row.original._id) && highlightHighest?.className
+                  )}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell

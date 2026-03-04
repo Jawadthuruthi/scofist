@@ -47,7 +47,7 @@ function formatDate(dateStr) {
     });
 }
 
-export default function StudentAttendanceLookup({ students = [], setFilter, removeFilter, filterMonth, filterYear, tableData = [], apiKey, classes = [] }) {
+export default function StudentAttendanceLookup({ students = [], setFilter, removeFilter, filterMonth, filterYear, tableData = [], apiKey, classes = [], toppersOnly, setToppersOnly }) {
     const [query, setQuery] = useState("");
     const [showDropdown, setShowDropdown] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
@@ -271,17 +271,35 @@ export default function StudentAttendanceLookup({ students = [], setFilter, remo
                     </Button>
 
                     {/* Toppers Filter Toggle */}
-                    <Button
-                        size="sm"
-                        variant={"outline"}
-                        className={`h-9 border-border px-3`}
-                        onClick={handleToppersToggle}
-                        title="Show Class Toppers"
-                        type="button"
-                    >
-                        <Trophy className={`h-4 w-4 text-amber-500 sm:mr-2`} />
-                        <span className="hidden sm:inline">Toppers</span>
-                    </Button>
+                    <div className="flex items-center gap-1">
+                        <Button
+                            size="sm"
+                            variant={toppersOnly ? "default" : "outline"}
+                            className={`h-9 border-border px-3 ${toppersOnly ? "bg-amber-500 hover:bg-amber-600 text-white border-none shadow-sm" : ""}`}
+                            onClick={() => {
+                                if (typeof setToppersOnly === 'function') {
+                                    setToppersOnly(!toppersOnly);
+                                } else if (typeof window !== 'undefined' && typeof window.__SET_TOPPERS__ === 'function') {
+                                    window.__SET_TOPPERS__(!toppersOnly);
+                                }
+                            }}
+                            title={toppersOnly ? "Show All Students" : "Show Only Class Toppers"}
+                            type="button"
+                        >
+                            <Trophy className={`h-4 w-4 ${toppersOnly ? "text-white" : "text-amber-500"} sm:mr-2`} />
+                            <span className="hidden sm:inline text-xs font-bold">Toppers</span>
+                        </Button>
+                        <Button
+                            size="icon"
+                            variant="outline"
+                            className="h-9 w-8 border-border px-0"
+                            onClick={handleToppersToggle}
+                            title="View Toppers Summary Table"
+                            type="button"
+                        >
+                            <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                        </Button>
+                    </div>
 
                     {/* Dropdown */}
                     {showDropdown && query.length > 0 && (

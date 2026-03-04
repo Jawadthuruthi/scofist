@@ -170,6 +170,15 @@ const AttendanceTrackingPage = async () => {
         filterType: "api",
         dateRangeInPopup: true,
         enableMonthYearFilter: true,
+        highlightHighest: {
+          accessorKey: "percentage",
+          type: "percentage",
+          totalKey: "attendanceRecords",
+          filterKey: "present",
+          filterValue: true,
+          groupBy: "attendanceRecords.0.className",
+          className: "bg-green-100/50"
+        },
         trailingToolbar: <StudentAttendanceLookup students={students} classes={formatOptions(formattedClasses)} />,
       },
       {
@@ -356,6 +365,15 @@ const AttendanceTrackingPage = async () => {
         filterType: "api",
         dateRangeInPopup: true,
         enableMonthYearFilter: true,
+        highlightHighest: {
+          accessorKey: "percentage",
+          type: "percentage",
+          totalKey: "attendanceRecords",
+          filterKey: "present",
+          filterValue: true,
+          groupBy: "attendanceRecords.0.className",
+          className: "bg-green-100/50"
+        },
         trailingToolbar: <StudentAttendanceLookup students={students} />,
       },
     ];
@@ -364,7 +382,7 @@ const AttendanceTrackingPage = async () => {
       return (
         <>
           <Header
-            title="ATTENDANCE TRACKING"
+            title="ATTENDANCE HISTORY"
             subTitle="Track Attendance Records In Real Time"
           />
           <AdvancedDataTableComponent
@@ -378,7 +396,7 @@ const AttendanceTrackingPage = async () => {
     return (
       <>
         <Header
-          title="ATTENDANCE TRACKING"
+          title="ATTENDANCE HISTORY"
           subTitle="Track Attendance Records In Real Time"
         />
         <AdvancedDataTableComponent tabsConfig={tabsConfig} apiKey={apiKey} />

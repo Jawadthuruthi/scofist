@@ -154,7 +154,7 @@ const pages = [
   },
 
   {
-    title: "Attendance Tracking",
+    title: "Attendance History",
     path: "/dashboard/attendance-tracking",
     allowedRoles: ["College Admin", "Teacher"],
   },
@@ -201,7 +201,7 @@ const pages = [
   },
 
   {
-    title: "Attendance Tracking",
+    title: "Attendance History",
     path: "/dashboard/literary-attendance/attendance-tracking",
     allowedRoles: ["Literary Leader"],
   },
