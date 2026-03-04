@@ -45,51 +45,65 @@ export async function GET(req, res) {
     // Initial match to filter by teacherId
     pipeline.push({ $match: query });
 
-    // Handle date filtering with $addFields and $filter
-    if (filterParams.date || (filterParams.startDate && filterParams.endDate)) {
-      let dateCondition = {};
+    // Build record-level filters
+    const recordFilters = {};
+    if (filterParams.classId) recordFilters.classId = filterParams.classId;
+    if (filterParams.batchId) recordFilters.batchId = filterParams.batchId;
+    if (filterParams.subjectId) recordFilters.subjectId = filterParams.subjectId;
+
+    // Always apply $addFields / $filter to handle date + record-level filters
+    if (
+      filterParams.date ||
+      filterParams.startDate ||
+      filterParams.endDate ||
+      recordFilters.classId ||
+      recordFilters.batchId ||
+      recordFilters.subjectId
+    ) {
+      let dateConditions = [];
 
       if (filterParams.date) {
-        // Convert to Date objects for exact date matching - start and end of day
         const exactDate = new Date(filterParams.date);
         const startOfDay = new Date(exactDate);
         startOfDay.setHours(0, 0, 0, 0);
         const endOfDay = new Date(exactDate);
         endOfDay.setHours(23, 59, 59, 999);
-
-        dateCondition = {
-          $and: [
-            { $gte: ["$$record.date", startOfDay] },
-            { $lte: ["$$record.date", endOfDay] },
-          ],
-        };
+        dateConditions.push({ $gte: ["$$record.date", startOfDay] });
+        dateConditions.push({ $lte: ["$$record.date", endOfDay] });
       } else {
-        // Date range filtering
-        const conditions = [];
-
         if (filterParams.startDate) {
           const startDate = new Date(filterParams.startDate);
           startDate.setHours(0, 0, 0, 0);
-          conditions.push({ $gte: ["$$record.date", startDate] });
+          dateConditions.push({ $gte: ["$$record.date", startDate] });
         }
-
         if (filterParams.endDate) {
           const endDate = new Date(filterParams.endDate);
           endDate.setHours(23, 59, 59, 999);
-          conditions.push({ $lte: ["$$record.date", endDate] });
+          dateConditions.push({ $lte: ["$$record.date", endDate] });
         }
-
-        dateCondition = { $and: conditions };
       }
 
-      // Filter records by date using $filter operator
+      const idConditions = [
+        ...(recordFilters.classId
+          ? [{ $eq: [{ $toString: "$$record.classId" }, recordFilters.classId] }]
+          : []),
+        ...(recordFilters.batchId
+          ? [{ $eq: [{ $toString: "$$record.batchId" }, recordFilters.batchId] }]
+          : []),
+        ...(recordFilters.subjectId
+          ? [{ $eq: [{ $toString: "$$record.subjectId" }, recordFilters.subjectId] }]
+          : []),
+      ];
+
+      const allConditions = [...dateConditions, ...idConditions];
+
       pipeline.push({
         $addFields: {
           attendanceRecords: {
             $filter: {
               input: "$attendanceRecords",
               as: "record",
-              cond: dateCondition,
+              cond: allConditions.length > 1 ? { $and: allConditions } : allConditions[0] || true,
             },
           },
         },
@@ -210,7 +224,7 @@ export async function POST(req, res) {
             existing.periodNumber === newRecord.periodNumber &&
             existing.day === newRecord.day &&
             new Date(existing.date).toISOString().split("T")[0] ===
-              newRecordDateString
+            newRecordDateString
         );
 
         if (existingIndex === -1) {

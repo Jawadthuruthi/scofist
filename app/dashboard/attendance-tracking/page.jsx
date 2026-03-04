@@ -2,6 +2,7 @@ import ErrorPage from "@/components/ErrorPage";
 import { cookies } from "next/headers";
 import Header from "@/components/Header";
 import AdvancedDataTableComponent from "@/components/AdvancedDataTableComponent";
+import StudentAttendanceLookup from "@/components/StudentAttendanceLookupWrapper";
 import { fetchData, formatOptions, OPERATORS } from "@/lib/utils";
 
 const API_ENDPOINTS = [
@@ -19,7 +20,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "users",
-    searchParams: "projection=_id,name,studentSpecificField&roles=Student",
+    searchParams: "projection=_id,name,studentSpecificField,profilePic,className&roles=Student",
   },
 ];
 
@@ -81,6 +82,12 @@ const AttendanceTrackingPage = async () => {
             width: 60,
             maxWidth: 60,
             minWidth: 60,
+          },
+          {
+            header: "Class",
+            accessorKey: "attendanceRecords",
+            valueKey: "className",
+            type: ["arrayWithValueKey"],
           },
           { header: "Student ID", accessorKey: "_id" },
           { header: "Name", accessorKey: "name" },
@@ -163,6 +170,7 @@ const AttendanceTrackingPage = async () => {
         filterType: "api",
         dateRangeInPopup: true,
         enableMonthYearFilter: true,
+        trailingToolbar: <StudentAttendanceLookup students={students} classes={formatOptions(formattedClasses)} />,
       },
       {
         label: "Teacher",
@@ -348,6 +356,7 @@ const AttendanceTrackingPage = async () => {
         filterType: "api",
         dateRangeInPopup: true,
         enableMonthYearFilter: true,
+        trailingToolbar: <StudentAttendanceLookup students={students} />,
       },
     ];
 

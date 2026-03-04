@@ -115,7 +115,7 @@ const useTableColumns = (columnConfig) => {
         return (
           <div className="font-medium">
             {items?.length > 0 ? (
-              items?.map((i) => i?.[col.valueKey]).join(", ")
+              Array.from(new Set(items.map((i) => i?.[col.valueKey]).filter(Boolean))).join(", ")
             ) : (
               <span className="text-muted-foreground">-</span>
             )}
@@ -300,6 +300,11 @@ const useTableColumns = (columnConfig) => {
 
     if (col?.type?.includes("percentage")) {
       columnDefinition.cell = ({ row }) => {
+        // If the percentage was calculated directly by the backend (e.g., toppers API)
+        if (row.original.percentage !== undefined && row.original.percentage !== null) {
+          return `${row.original.percentage}%`;
+        }
+
         const total = row.original?.[col.totalKey]?.length || 0;
         const divide =
           row.original?.[col.totalKey]?.filter(

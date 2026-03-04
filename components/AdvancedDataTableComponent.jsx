@@ -49,6 +49,7 @@ const AdvancedDataTableComponent = ({
                 printTitle={tab.printTitle}
                 dateRangeInPopup={tab.dateRangeInPopup}
                 enableMonthYearFilter={tab.enableMonthYearFilter}
+                trailingToolbar={tab.trailingToolbar}
               />
             </TabsContent>
           ))}

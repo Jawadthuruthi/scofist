@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useMemo, useRef, useState, useEffect, useCallback, use } from "react";
+import { useMemo, useRef, useState, useEffect, useCallback, use, isValidElement, cloneElement } from "react";
 import useTableColumns from "@/hooks/use-table-columns";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
@@ -117,6 +117,7 @@ const DataTableComponent = ({
   printInReverse = false,
   dateRangeInPopup = false,
   enableMonthYearFilter = false,
+  trailingToolbar = null,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -774,6 +775,20 @@ const DataTableComponent = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {/* Trailing toolbar slot — renders after month/year selects */}
+          {trailingToolbar && (
+            <div className="flex items-center">
+              {isValidElement(trailingToolbar)
+                ? cloneElement(trailingToolbar, {
+                  filterMonth,
+                  filterYear,
+                  apiKey,
+                  tableData: table.getFilteredRowModel().rows.map(row => row.original)
+                })
+                : trailingToolbar}
             </div>
           )}
 

@@ -15,11 +15,13 @@ export async function GET(req, res) {
     // Build filter object from query parameters
     const filterParams = {};
     for (const [key, value] of url.searchParams.entries()) {
-      // Skip pagination parameters
-      if (key !== "page" && key !== "limit" && key !== "projection") {
+      // Skip pagination, limit, projection, and new toppersOnly parameter
+      if (key !== "page" && key !== "limit" && key !== "projection" && key !== "toppersOnly") {
         filterParams[key] = value;
       }
     }
+
+    const isToppersOnly = url.searchParams.get("toppersOnly") === "true";
 
     // Get projection param
     const projectionParam = url.searchParams.get("projection");
@@ -101,7 +103,7 @@ export async function GET(req, res) {
                   ...(recordFilters.classId
                     ? [
                       {
-                        $eq: ["$$record.classId", recordFilters.classId],
+                        $eq: [{ $toString: "$$record.classId" }, recordFilters.classId],
                       },
                     ]
                     : []),
@@ -110,7 +112,7 @@ export async function GET(req, res) {
                   ...(recordFilters.batchId
                     ? [
                       {
-                        $eq: ["$$record.batchId", recordFilters.batchId],
+                        $eq: [{ $toString: "$$record.batchId" }, recordFilters.batchId],
                       },
                     ]
                     : []),
@@ -119,7 +121,7 @@ export async function GET(req, res) {
                   ...(recordFilters.subjectId
                     ? [
                       {
-                        $eq: ["$$record.subjectId", recordFilters.subjectId],
+                        $eq: [{ $toString: "$$record.subjectId" }, recordFilters.subjectId],
                       },
                     ]
                     : []),
@@ -160,14 +162,66 @@ export async function GET(req, res) {
         $project: {
           studentId: 1,
           attendanceRecords: "$filteredRecords",
-          _id: 1,
         },
       },
-
-      // Apply pagination
-      { $skip: limit === Infinity ? 0 : page * limit },
-      ...(limit !== Infinity ? [{ $limit: limit }] : []),
     ];
+
+    if (isToppersOnly) {
+      // If toppersOnly is true, we need to calculate attendance percentage per class and get the top student
+      pipeline.push(
+        // Unwind to process per-record
+        { $unwind: "$attendanceRecords" },
+        // Calculate Present/Absent for each record (assuming 'present' is boolean) 
+        // We group by classId and studentId to calculate the percentage
+        {
+          $group: {
+            _id: {
+              classId: "$attendanceRecords.classId",
+              studentId: "$studentId"
+            },
+            totalClasses: { $sum: 1 },
+            presentClasses: {
+              $sum: { $cond: [{ $eq: ["$attendanceRecords.present", true] }, 1, 0] }
+            },
+            records: { $push: "$attendanceRecords" } // keep the records to return later
+          }
+        },
+        // Calculate percentage
+        {
+          $addFields: {
+            percentage: {
+              $multiply: [{ $divide: ["$presentClasses", "$totalClasses"] }, 100]
+            }
+          }
+        },
+        // Sort by percentage descending to prepare for getting top per class
+        { $sort: { "_id.classId": 1, percentage: -1 } },
+        // Group by classId to get the top student
+        {
+          $group: {
+            _id: "$_id.classId", // classId
+            topStudentId: { $first: "$_id.studentId" },
+            percentage: { $first: "$percentage" },
+            records: { $first: "$records" }
+          }
+        },
+        // Re-shape the document to match our original structure
+        {
+          $project: {
+            _id: { $toObjectId: "$topStudentId" },
+            studentId: { $toObjectId: "$topStudentId" },
+            attendanceRecords: "$records",
+            percentage: { $round: ["$percentage", 1] }
+          }
+        }
+      );
+    } else {
+      // Normal flow: just paginate
+      pipeline.push(
+        { $skip: limit === Infinity ? 0 : page * limit },
+        ...(limit !== Infinity ? [{ $limit: limit }] : [])
+      );
+    }
 
     // Execute the aggregation pipeline
     const studentAttendances =
@@ -185,8 +239,9 @@ export async function GET(req, res) {
 
     // Format the results
     const formattedStudentAttendances = populatedAttendances.map((record) => ({
-      _id: record.studentId?._id,
-      name: record.studentId?.name,
+      _id: record.studentId?._id || record._id,
+      name: record.studentId?.name || "Unknown Student",
+      percentage: record.percentage,
       attendanceRecords: (record.attendanceRecords || []).map((attendance) => ({
         ...(attendance || {}),
         className: attendance?.classId?.name,
@@ -214,7 +269,7 @@ export async function GET(req, res) {
                   ...(recordFilters.classId
                     ? [
                       {
-                        $eq: ["$$record.classId", recordFilters.classId],
+                        $eq: [{ $toString: "$$record.classId" }, recordFilters.classId],
                       },
                     ]
                     : []),
@@ -222,7 +277,7 @@ export async function GET(req, res) {
                   ...(recordFilters.batchId
                     ? [
                       {
-                        $eq: ["$$record.batchId", recordFilters.batchId],
+                        $eq: [{ $toString: "$$record.batchId" }, recordFilters.batchId],
                       },
                     ]
                     : []),
@@ -230,7 +285,7 @@ export async function GET(req, res) {
                   ...(recordFilters.subjectId
                     ? [
                       {
-                        $eq: ["$$record.subjectId", recordFilters.subjectId],
+                        $eq: [{ $toString: "$$record.subjectId" }, recordFilters.subjectId],
                       },
                     ]
                     : []),
