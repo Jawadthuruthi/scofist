@@ -75,46 +75,43 @@ const StudentStatusByBatchChart = memo(
       );
     }
 
-    const chartContent = (
-      <RechartsBarChart
-        width={isClient && isMobile ? chartData.length * 90 : undefined}
-        height={isClient && isMobile ? 250 : undefined}
-        data={chartData}
-        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-        barCategoryGap={10}
-      >
-        <XAxis dataKey="name" />
-        <YAxis />
-        <Tooltip />
-        <Legend />
-        <Bar
-          dataKey="droppedOut"
-          fill="#FF8042"
-          name="Dropped Out"
-          barSize={isClient && isMobile ? 25 : undefined}
-        >
-          <LabelList dataKey="droppedOut" position="top" />
-        </Bar>
-        <Bar
-          dataKey="activeOrGraduated"
-          fill="#8884d8"
-          name="Active/Graduated"
-          barSize={isClient && isMobile ? 25 : undefined}
-        >
-          <LabelList dataKey="activeOrGraduated" position="top" />
-        </Bar>
-      </RechartsBarChart>
-    );
+    const BAR_WIDTH = 20;
+    const BAR_GAP = 30;
+    const CHART_PADDING = 80;
+    const totalWidth = Math.max(400, (BAR_WIDTH * 2 + BAR_GAP) * chartData.length + CHART_PADDING);
 
     return (
-      <div className="h-64">
-        {isClient && isMobile ? (
-          <div className="overflow-x-auto">{chartContent}</div>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            {chartContent}
-          </ResponsiveContainer>
-        )}
+      <div className="overflow-x-auto">
+        <div style={{ width: `${totalWidth}px`, height: "280px" }}>
+          <RechartsBarChart
+            width={totalWidth}
+            height={280}
+            data={chartData}
+            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            barCategoryGap={BAR_GAP}
+          >
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar
+              dataKey="droppedOut"
+              fill="#FF8042"
+              name="Dropped Out"
+              barSize={BAR_WIDTH}
+            >
+              <LabelList dataKey="droppedOut" position="top" />
+            </Bar>
+            <Bar
+              dataKey="activeOrGraduated"
+              fill="#8884d8"
+              name="Active/Graduated"
+              barSize={BAR_WIDTH}
+            >
+              <LabelList dataKey="activeOrGraduated" position="top" />
+            </Bar>
+          </RechartsBarChart>
+        </div>
       </div>
     );
   }

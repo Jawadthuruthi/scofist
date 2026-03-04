@@ -194,11 +194,12 @@ const ClassesSkeleton = memo(() => (
 ClassesSkeleton.displayName = "ClassesSkeleton";
 
 // ===== MAIN COMPONENTS =====
-const StatCard = memo(({ title, value, icon: Icon, description }) => (
+const StatCard = memo(({ title, value, icon: Icon, description, onClick }) => (
   <Card
-    className="overflow-hidden hover:shadow-md transition-shadow duration-300 border-l-4 border-l-primary"
+    className={`overflow-hidden hover:shadow-md transition-shadow duration-300 border-l-4 border-l-primary${onClick ? " cursor-pointer active:scale-[0.98]" : ""}`}
     role="region"
     aria-labelledby={`stat-${title}`}
+    onClick={onClick}
   >
     <CardHeader className="flex flex-row items-center justify-between pb-2 bg-muted/10">
       <div className="space-y-1">
@@ -224,6 +225,9 @@ const StatCard = memo(({ title, value, icon: Icon, description }) => (
         >
           {description}
         </p>
+      )}
+      {onClick && (
+        <p className="text-xs text-primary font-medium mt-1">Click to view profiles →</p>
       )}
     </CardContent>
   </Card>
@@ -347,7 +351,18 @@ const ClassCard = memo(
 ClassCard.displayName = "ClassCard";
 
 // ===== STATS OVERVIEW COMPONENT =====
-const StatsOverview = memo(({ totalStats, isLoading }) => {
+const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, onClassesClick, dashboardData, isLoadingCharts }) => {
+  const [facultyDialogOpen, setFacultyDialogOpen] = useState(false);
+  const [activeStudentsDialogOpen, setActiveStudentsDialogOpen] = useState(false);
+  const [graduatedStudentsDialogOpen, setGraduatedStudentsDialogOpen] = useState(false);
+  const [totalStudentsDialogOpen, setTotalStudentsDialogOpen] = useState(false);
+
+  const sortedTeachersLocal = useMemo(() => {
+    return [...(teachers || [])].sort(
+      (a, b) => new Date(a.dateOfBirth) - new Date(b.dateOfBirth)
+    );
+  }, [teachers]);
+
   if (isLoading) return <StatsOverviewSkeleton />;
 
   const statCards = [
@@ -356,30 +371,35 @@ const StatsOverview = memo(({ totalStats, isLoading }) => {
       value: totalStats.teachersCount,
       icon: UserCheck,
       description: "Active teaching staff",
+      onClick: () => setFacultyDialogOpen(true),
     },
     {
-      title: "Active Batches",
+      title: "Active Classes",
       value: totalStats.activeBatches,
       icon: BarChart3,
-      description: "Ongoing academic batches",
+      description: "Ongoing academic classes",
+      onClick: onClassesClick,
     },
     {
       title: "Active Students",
       value: totalStats.activeStudents,
       icon: BookOpen,
       description: "Currently attending classes",
+      onClick: () => setActiveStudentsDialogOpen(true),
     },
     {
       title: "Graduated Students",
       value: totalStats.graduatedStudents,
       icon: GraduationCap,
       description: "Successfully completed program",
+      onClick: () => setGraduatedStudentsDialogOpen(true),
     },
     {
       title: "Total Students",
       value: totalStats.studentCount,
       icon: Users,
       description: "All registered students",
+      onClick: () => setTotalStudentsDialogOpen(true),
     },
     {
       title: "On Leave",
@@ -390,11 +410,118 @@ const StatsOverview = memo(({ totalStats, isLoading }) => {
   ];
 
   return (
-    <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-3">
-      {statCards.map((stat) => (
-        <StatCard key={stat.title} {...stat} />
-      ))}
-    </div>
+    <>
+      <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-3">
+        {statCards.map((stat) => (
+          <StatCard key={stat.title} {...stat} />
+        ))}
+      </div>
+
+      {/* Faculty Profiles Dialog */}
+      <Dialog open={facultyDialogOpen} onOpenChange={setFacultyDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <UserCheck className="h-5 w-5" />
+              <span>Faculty Profiles</span>
+            </DialogTitle>
+            <DialogDescription>
+              View active teaching staff profile and information
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pt-2">
+            {sortedTeachersLocal?.map((teacher) => {
+              const assignedClass =
+                sortedClasses?.find((c) => c.teacherId === teacher._id)?.name ||
+                "No Class Assigned";
+              return (
+                <FacultyProfileCard
+                  key={teacher._id}
+                  faculty={teacher}
+                  assignedClass={assignedClass}
+                />
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Active Students Chart Dialog */}
+      <Dialog open={activeStudentsDialogOpen} onOpenChange={setActiveStudentsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <BarChart className="h-5 w-5" />
+              <span>Active Students By Batch ({dashboardData?.activeStudents?.length ?? 0})</span>
+            </DialogTitle>
+            <DialogDescription>
+              Distribution of active students across different batches
+            </DialogDescription>
+          </DialogHeader>
+          <BatchChart
+            batches={dashboardData?.batches}
+            students={dashboardData?.activeStudents}
+            isLoading={isLoadingCharts}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Graduated Students Chart Dialog */}
+      <Dialog open={graduatedStudentsDialogOpen} onOpenChange={setGraduatedStudentsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <BarChart className="h-5 w-5" />
+              <span>Graduated Students By Batch ({dashboardData?.graduatedStudents?.length ?? 0})</span>
+            </DialogTitle>
+            <DialogDescription>
+              Distribution of graduated students across different batches
+            </DialogDescription>
+          </DialogHeader>
+          <BatchChart
+            batches={dashboardData?.batches}
+            students={dashboardData?.graduatedStudents}
+            isLoading={isLoadingCharts}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Total Students Charts Dialog */}
+      <Dialog open={totalStudentsDialogOpen} onOpenChange={setTotalStudentsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Users className="h-5 w-5" />
+              <span>Total Students ({dashboardData?.students?.length ?? 0})</span>
+            </DialogTitle>
+            <DialogDescription>
+              Student status distribution and breakdown by batch
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 pt-2">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-2">Status By Batch</p>
+              <StudentStatusByBatchChart
+                batches={dashboardData?.batches}
+                students={dashboardData?.students}
+                isLoading={isLoadingCharts}
+              />
+            </div>
+            <div className="flex justify-start">
+              <div className="w-full max-w-md">
+                <p className="text-sm font-medium text-muted-foreground mb-2">Status Distribution</p>
+                <div className="ml-8">
+                  <StudentStatusChart
+                    students={dashboardData?.students}
+                    isLoading={isLoadingCharts}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 });
 StatsOverview.displayName = "StatsOverview";
@@ -878,17 +1005,6 @@ export default function Dashboard({
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-3 md:w-auto">
-          <TabsTrigger value="overview" className="px-6">
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="classes" className="px-6">
-            Classes
-          </TabsTrigger>
-          <TabsTrigger value="charts" className="px-6">
-            Charts
-          </TabsTrigger>
-        </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
           {/* TimeTable Section */}
@@ -921,34 +1037,12 @@ export default function Dashboard({
           <StatsOverview
             totalStats={dashboardData.totalStats}
             isLoading={isLoadingStats}
+            teachers={teachers}
+            sortedClasses={sortedClasses}
+            onClassesClick={() => setActiveTab("classes")}
+            dashboardData={dashboardData}
+            isLoadingCharts={isLoadingCharts}
           />
-
-          {/* Faculty Profiles */}
-          <Card className="border-t-4 border-t-primary">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <UserCheck className="h-5 w-5" />
-                <span>Faculty Profiles</span>
-              </CardTitle>
-              <CardDescription>
-                View active teaching staff profile and information
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-6 gap-4">
-              {sortedTeachers?.map((teacher) => {
-                const assignedClass =
-                  sortedClasses.find((c) => c.teacherId === teacher._id)?.name ||
-                  "No Class Assigned";
-                return (
-                  <FacultyProfileCard
-                    key={teacher._id}
-                    faculty={teacher}
-                    assignedClass={assignedClass}
-                  />
-                );
-              })}
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="classes" className="space-y-6">
@@ -994,90 +1088,6 @@ export default function Dashboard({
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="charts" className="space-y-6">
-          <div className="grid gap-6 grid-cols-1">
-            {/* Active Students Chart */}
-            <Card className="border-t-4 border-t-primary">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart className="h-5 w-5" />
-                  <span>Active Students By Batch ({dashboardData.activeStudents.length})</span>
-                </CardTitle>
-                <CardDescription>
-                  Distribution of students across different batches
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <BatchChart
-                  batches={dashboardData.batches}
-                  students={dashboardData.activeStudents}
-                  isLoading={isLoadingCharts}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Graduated Students Chart */}
-            <Card className="border-t-4 border-t-primary">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart className="h-5 w-5" />
-                  <span>Graduated Students By Batch ({dashboardData.graduatedStudents.length})</span>
-                </CardTitle>
-                <CardDescription>
-                  Distribution of graduated students across different batches
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <BatchChart
-                  batches={dashboardData.batches}
-                  students={dashboardData.graduatedStudents}
-                  isLoading={isLoadingCharts}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Student Status By Batch Chart */}
-            <Card className="border-t-4 border-t-primary">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart className="h-5 w-5" />
-                  <span>Student Status By Batch ({dashboardData.students.length})</span>
-                </CardTitle>
-                <CardDescription>
-                  Comparison of active/graduated and dropped out students by
-                  batch
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <StudentStatusByBatchChart
-                  batches={dashboardData.batches}
-                  students={dashboardData.students}
-                  isLoading={isLoadingCharts}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Student Status Chart */}
-            <Card className="border-t-4 border-t-primary">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Users className="h-5 w-5" />
-                  <span>Student Status Distribution ({dashboardData.students.length})</span>
-                </CardTitle>
-                <CardDescription>
-                  Distribution of students by enrollment status
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <StudentStatusChart
-                  students={dashboardData.students}
-                  isLoading={isLoadingStudents}
-                />
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
       </Tabs>
     </div>
