@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import AttendanceTable from "@/components/AttendanceTable";
+import AttendanceTableReport from "@/components/AttendanceTableReport";
 import Header from "@/components/Header";
 import { fetchData } from "@/lib/utils";
 import ErrorPage from "@/components/ErrorPage";
@@ -30,12 +30,12 @@ export default async function AttendanceTablePage() {
   const classes = await getClasses();
 
   return (
-    <div className="flex flex-col space-y-6">
+    <div className="flex flex-col">
       <Header
         title="ATTENDANCE TABLE"
         subTitle="Monthly attendance table for each class"
       />
-      <AttendanceTable classes={classes} />
+      <AttendanceTableReport classes={classes} />
     </div>
   );
 }

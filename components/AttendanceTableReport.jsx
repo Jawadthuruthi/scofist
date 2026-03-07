@@ -1,0 +1,331 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Check, X, AlertCircle, MinusCircle, Printer, FileText } from 'lucide-react';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { sortClasses } from '@/lib/utils';
+
+export default function AttendanceTableReport({ classes }) {
+    const [selectedClass, setSelectedClass] = useState('');
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [tableData, setTableData] = useState([]);
+    const [columns, setColumns] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [isBlankPrint, setIsBlankPrint] = useState(false);
+
+    const handlePrint = () => {
+        setIsBlankPrint(false);
+        setTimeout(() => {
+            window.print();
+        }, 100);
+    };
+
+    const handlePrintSheet = () => {
+        setIsBlankPrint(true);
+        setTimeout(() => {
+            window.print();
+            setIsBlankPrint(false);
+        }, 100);
+    };
+
+    useEffect(() => {
+        if (selectedClass) {
+            fetchAttendanceTable();
+        } else {
+            setTableData([]);
+            setColumns([]);
+        }
+    }, [selectedClass, selectedMonth, selectedYear]);
+
+    const fetchAttendanceTable = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(
+                `/api/attendance-table?classId=${selectedClass}&month=${selectedMonth}&year=${selectedYear}`
+            );
+            const data = await response.json();
+            setTableData(data.tableData || []);
+            setColumns(data.columns || []);
+        } catch (error) {
+            console.error('Error fetching attendance table:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const renderCellContent = (cellData) => {
+        if (isBlankPrint) return null;
+        if (!cellData || typeof cellData !== 'object') return '-';
+
+        switch (cellData.status) {
+            case 'MARKED':
+                return (
+                    <div className="flex items-center justify-center text-blue-600 bg-blue-50 p-1 rounded-full w-6 h-6">
+                        <Check className="h-3 w-3" />
+                    </div>
+                );
+
+            case 'NOT_MARKED':
+                return (
+                    <div className="flex items-center justify-center text-red-600 bg-red-50 p-1 rounded-full w-6 h-6">
+                        <X className="h-3 w-3" />
+                    </div>
+                );
+
+            case 'LEAVE':
+                return (
+                    <div className="flex flex-col items-center justify-center text-orange-600 px-1" title={cellData.leaveReason}>
+                        <AlertCircle className="h-3 w-3" />
+                        <span className="text-[8px] font-medium leading-none mt-0.5 whitespace-nowrap">{cellData.leaveReason}</span>
+                    </div>
+                );
+
+            case 'NO_PERIOD':
+                return (
+                    <div className="flex items-center justify-center text-gray-300 p-0">
+                        <MinusCircle className="h-3 w-3" />
+                    </div>
+                );
+
+            default:
+                return '-';
+        }
+    };
+
+    const months = [
+        { value: 1, label: 'January' },
+        { value: 2, label: 'February' },
+        { value: 3, label: 'March' },
+        { value: 4, label: 'April' },
+        { value: 5, label: 'May' },
+        { value: 6, label: 'June' },
+        { value: 7, label: 'July' },
+        { value: 8, label: 'August' },
+        { value: 9, label: 'September' },
+        { value: 10, label: 'October' },
+        { value: 11, label: 'November' },
+        { value: 12, label: 'December' },
+    ];
+
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+
+    return (
+        <div>
+            <style jsx global>{`
+                @media print {
+                    @page { size: landscape; margin: 10mm; }
+                    
+                    /* Universal Print Reset */
+                    html, body { 
+                        background: white !important; 
+                        color: black !important; 
+                        overflow: visible !important; 
+                        height: auto !important; 
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                    
+                    /* Deep Reset to prevent clipping */
+                    div, main, section { 
+                        overflow: visible !important; 
+                        max-height: none !important; 
+                        position: static !important; 
+                        background: none !important;
+                        box-shadow: none !important;
+                        backdrop-filter: none !important;
+                    }
+
+                    /* Hide Non-Print Elements */
+                    nav, aside, header, footer, .filters-container, [data-sidebar="sidebar"], .no-print, .print\:hidden { 
+                        display: none !important; 
+                    }
+                    
+                    /* Table Infrastructure */
+                    table { 
+                        border-collapse: collapse !important; 
+                        width: 100% !important; 
+                        border: 1px solid #000 !important; 
+                        table-layout: auto !important; 
+                        margin: 0 !important;
+                    }
+                    
+                    th, td { 
+                        border: 1px solid #000 !important; 
+                        background: white !important; 
+                        padding: 4px !important; 
+                        position: static !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        color: black !important;
+                        height: auto !important;
+                    }
+                    
+                    /* Specifically ensure first column is visible */
+                    th:first-child, td:first-child {
+                        min-width: 80px !important;
+                        width: 80px !important;
+                        display: table-cell !important;
+                        z-index: 1 !important;
+                    }
+
+                    .sticky { position: static !important; }
+                    * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
+                }
+            `}</style>
+
+            {/* Print Header */}
+            <div className="hidden print:block text-center mb-6">
+                <h1 className="text-2xl font-bold uppercase tracking-widest">Attendance Report</h1>
+                <div className="flex justify-center gap-4 mt-2 text-sm font-medium">
+                    <span>Class: {classes.find(c => (c.id || c._id) === selectedClass)?.name}</span>
+                    <span>Month: {months.find(m => m.value === selectedMonth)?.label}</span>
+                    <span>Year: {selectedYear}</span>
+                </div>
+            </div>
+
+            {/* Filters */}
+            <div className="flex gap-4 flex-wrap print:hidden">
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                    <SelectTrigger className="w-64">
+                        <SelectValue placeholder="Select Class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {classes?.slice().sort(sortClasses).map((cls) => (
+                            <SelectItem key={cls.id || cls._id} value={cls.id || cls._id}>
+                                {cls.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+                    <SelectTrigger className="w-40">
+                        <SelectValue placeholder="Month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {months.map((m) => (
+                            <SelectItem key={m.value} value={m.value.toString()}>
+                                {m.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+                    <SelectTrigger className="w-32">
+                        <SelectValue placeholder="Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {years.map((y) => (
+                            <SelectItem key={y} value={y.toString()}>
+                                {y}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                <div className="flex gap-2 ml-auto">
+                    <Button onClick={handlePrint} className="flex items-center gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90">
+                        <Printer className="h-4 w-4" /> Print
+                    </Button>
+                    <Button onClick={handlePrintSheet} className="flex items-center gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90">
+                        <FileText className="h-4 w-4" /> Print Sheet
+                    </Button>
+                </div>
+            </div>
+
+
+            {/* Table */}
+            {loading ? (
+                <div className="flex flex-col items-center justify-center p-20 border rounded-lg bg-muted/5 mt-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+                    <p className="text-muted-foreground animate-pulse">Fetching attendance data...</p>
+                </div>
+            ) : tableData.length > 0 ? (
+                <div className="w-fit max-w-full print:max-w-none border rounded-lg shadow-sm print:overflow-visible print:border-none print:shadow-none bg-background print:w-full mt-4">
+                    <div className="overflow-auto max-h-[700px] print:overflow-visible print:max-h-none">
+                        <Table className="w-fit print:w-full border-separate border-spacing-0">
+                            <TableHeader>
+                                <TableRow className="hover:bg-transparent">
+                                    {columns.map((col, idx) => (
+                                        <TableHead
+                                            key={idx}
+                                            className={`h-16 bg-muted/50 font-bold border text-center ${idx === 0 ? 'sticky left-0 z-50 bg-muted/80 backdrop-blur-sm date-column' : 'w-[0.1%] z-40'
+                                                } sticky top-0 p-0 whitespace-nowrap print:static print:z-0 print:bg-white`}
+                                        >
+                                            {idx === 0 ? (
+                                                <div className="text-[11px] font-bold p-0 min-w-max px-2 text-black text-center">{col.Header}</div>
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center leading-tight w-full h-full px-2">
+                                                    <div className="text-[10px] uppercase whitespace-nowrap" title={col.subjectName}>
+                                                        {col.subjectName}
+                                                    </div>
+                                                    <div className="text-[9px] font-normal text-muted-foreground whitespace-nowrap" title={col.teacherName}>
+                                                        {(() => {
+                                                            const parts = col.teacherName?.split(' ') || [];
+                                                            if (parts.length >= 2) {
+                                                                const mid = Math.ceil(parts.length / 2);
+                                                                return (
+                                                                    <div className="flex flex-col items-center">
+                                                                        <div className="whitespace-nowrap">{parts.slice(0, mid).join(' ')}</div>
+                                                                        <div className="whitespace-nowrap">{parts.slice(mid).join(' ')}</div>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return <div className="whitespace-nowrap">{col.teacherName}</div>;
+                                                        })()}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </TableHead>
+                                    ))}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {tableData.map((row, rowIdx) => (
+                                    <TableRow key={rowIdx} className={`group hover:bg-muted/5 transition-colors ${row.dayName === 'Friday' ? 'bg-red-100/60 dark:bg-red-900/20 print:bg-red-100' : ''}`}>
+                                        <TableCell className={`sticky left-0 ${row.dayName === 'Friday' ? 'bg-red-100 dark:bg-red-900/40' : 'bg-background/80'} backdrop-blur-sm font-bold border z-30 p-0 w-[0.1%] h-10 date-column print:static print:bg-white print:text-black print:z-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:shadow-none`}>
+                                            <div className="flex items-center justify-center h-full px-2 text-xs whitespace-nowrap text-black">
+                                                {row.displayDate}
+                                            </div>
+                                        </TableCell>
+                                        {columns.slice(1).map((col, colIdx) => (
+                                            <TableCell key={colIdx} className="p-0 border h-10 w-[0.1%]">
+                                                <div className="flex items-center justify-center px-2 h-full">
+                                                    {renderCellContent(row[col.accessor])}
+                                                </div>
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
+            ) : (
+                <div className="text-center p-20 border-2 border-dashed rounded-xl bg-muted/5">
+                    <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                        <AlertCircle className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-1">No Data to Display</h3>
+                    <p className="text-muted-foreground max-w-xs mx-auto">
+                        {selectedClass ? 'No attendance records found for the selected period.' : 'Please select a class to view the attendance report.'}
+                    </p>
+                </div>
+            )
+            }
+        </div >
+    );
+}
