@@ -232,7 +232,23 @@ export async function POST(req, res) {
     }
 
     // Create new attendance record
-    const newAttendance = await Attendance.create(body);
+    let newAttendance;
+    try {
+      newAttendance = await Attendance.create(body);
+    } catch (createError) {
+      console.error("❌ Attendance Creation/Validation Error:", {
+        message: createError.message,
+        errors: createError.errors,
+        bodyPreview: {
+          classId: body.classId,
+          batchId: body.batchId,
+          subjectId: body.subjectId,
+          date: body.date
+        }
+      });
+      throw createError;
+    }
+
     await markTeacherAttendanceFromStudentAttendance(newAttendance);
 
     // 🔒 STEP 2: Safe update - check for duplicates before adding to student records
@@ -315,6 +331,7 @@ export async function POST(req, res) {
         { status: 409 }
       );
     }
+    console.error("❌ Attendance POST generic error:", error);
     return apiResponse.error(error);
   }
 }

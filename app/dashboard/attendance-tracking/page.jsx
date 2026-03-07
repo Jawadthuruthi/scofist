@@ -168,6 +168,7 @@ const AttendanceTrackingPage = async () => {
           className: "bg-green-100/50"
         },
         trailingToolbar: <StudentAttendanceLookup students={students} classes={formatOptions(formattedClasses)} />,
+        limit: 1000,
       },
       {
         label: "Teachers",
@@ -253,6 +254,7 @@ const AttendanceTrackingPage = async () => {
         filterType: "api",
         dateRangeInPopup: true,
         enableMonthYearFilter: true,
+        limit: 1000,
       },
     ];
     const tabsConfig2 = [
@@ -350,6 +352,7 @@ const AttendanceTrackingPage = async () => {
           className: "bg-green-100/50"
         },
         trailingToolbar: <StudentAttendanceLookup students={students} />,
+        limit: 1000,
       },
     ];
 

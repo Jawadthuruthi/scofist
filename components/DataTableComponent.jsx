@@ -29,7 +29,7 @@ import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
 import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { applyPrintStyles, removePrintStyles, formatDateForDisplay, cn } from "@/lib/utils";
+import { applyPrintStyles, removePrintStyles, formatDateForDisplay, cn, sortClasses } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import PrintHeader from "@/components/PrintHeader";
 import DateRangeFilter from "@/components/DateRangeFilter";
@@ -664,12 +664,28 @@ const DataTableComponent = ({
   }, [data, filteredData, isApiFiltering, highlightHighest]);
 
   const tableDataForTable = useMemo(() => {
-    const baseData = isApiFiltering ? data : filteredData;
+    let baseData = isApiFiltering ? data : filteredData;
     if (toppersOnly && highlightedRowIds.size > 0) {
-      return baseData.filter((item) => highlightedRowIds.has(item._id));
+      baseData = baseData.filter((item) => highlightedRowIds.has(item._id));
+
+      // Sort by class name if highlightHighest.groupBy is available
+      if (highlightHighest?.groupBy) {
+        baseData = [...baseData].sort((a, b) => {
+          const getName = (item) => {
+            const keys = highlightHighest.groupBy.split(".");
+            let val = item;
+            for (const key of keys) {
+              if (val === null || val === undefined) break;
+              val = val[key];
+            }
+            return val;
+          };
+          return sortClasses(a, b, getName);
+        });
+      }
     }
     return baseData;
-  }, [isApiFiltering, data, filteredData, toppersOnly, highlightedRowIds]);
+  }, [isApiFiltering, data, filteredData, toppersOnly, highlightedRowIds, highlightHighest]);
 
   // Initialize table
   const table = useReactTable({

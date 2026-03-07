@@ -520,7 +520,7 @@ async function handleApiRequest(req) {
     "/api/programs",
     "/api/results",
     "/api/settings",
-    "/api/users",
+    "/api/student-attendance-lookup",
   ];
 
   if (req.method === "GET" && publicGet.includes(url.pathname)) {

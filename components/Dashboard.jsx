@@ -53,7 +53,7 @@ import Header from "@/components/Header";
 import TimeTableComponent from "@/components/TimeTableComponent";
 import LiteraryStudentLookup from "./LiteraryStudentLookup";
 import LiterarySummaryCard from "./LiterarySummaryCard";
-import { formatDateForDisplay } from "@/lib/utils";
+import { formatDateForDisplay, sortClasses } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -820,37 +820,7 @@ export default function Dashboard({
   const isLoadingCharts = isLoadingStudents;
 
   const sortedClasses = useMemo(() => {
-    const classOrder = [
-      "PLUS ONE A",
-      "PLUS ONE B",
-      "PLUS TWO",
-      "DEGREE FIRST YEAR",
-      "DEGREE SECOND YEAR",
-      "DEGREE THIRD YEAR",
-      "PG FIRST YEAR",
-      "PG SECOND YEAR",
-      "8TH STD",
-      "9TH STD",
-      "10TH STD",
-    ].map((name) => name.replace(/\s/g, ""));
-
-    return [...classes].sort((a, b) => {
-      const nameA = a.name.trim().toUpperCase().replace(/\s/g, "");
-      const nameB = b.name.trim().toUpperCase().replace(/\s/g, "");
-      const indexA = classOrder.indexOf(nameA);
-      const indexB = classOrder.indexOf(nameB);
-
-      if (indexA !== -1 && indexB !== -1) {
-        return indexA - indexB;
-      }
-      if (indexA !== -1) {
-        return -1;
-      }
-      if (indexB !== -1) {
-        return 1;
-      }
-      return a.name.localeCompare(b.name);
-    });
+    return [...classes].sort((a, b) => sortClasses(a, b));
   }, [classes]);
 
   // Memoized dashboard data
