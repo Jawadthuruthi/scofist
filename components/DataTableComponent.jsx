@@ -227,7 +227,7 @@ const DataTableComponent = ({
       });
     }
 
-    if (enableMonthYearFilter && filterMonth && filterYear) {
+    if (enableMonthYearFilter && filterMonth && filterYear && !transformedFilters.startDate && !transformedFilters.endDate) {
       const startDateStr = `${filterYear}-${String(filterMonth).padStart(2, '0')}-01`;
       const endDateStr = `${filterYear}-${String(filterMonth).padStart(2, '0')}-${String(new Date(filterYear, filterMonth, 0).getDate()).padStart(2, '0')}`;
       transformedFilters.startDate = startDateStr;
@@ -683,6 +683,11 @@ const DataTableComponent = ({
           return sortClasses(a, b, getName);
         });
       }
+    } else if (baseData.length > 0) {
+      // Default sort by admission number (_id)
+      baseData = [...baseData].sort((a, b) => {
+        return String(a._id).localeCompare(String(b._id), undefined, { numeric: true, sensitivity: 'base' });
+      });
     }
     return baseData;
   }, [isApiFiltering, data, filteredData, toppersOnly, highlightedRowIds, highlightHighest]);
