@@ -273,32 +273,29 @@ export default function StudentAttendanceLookup({ students = [], setFilter, remo
                     {/* Toppers Filter Toggle */}
                     <div className="flex items-center gap-1">
                         <Button
-                            size="sm"
+                            size="icon"
                             variant={toppersOnly ? "default" : "outline"}
-                            className={`h-9 border-border px-3 ${toppersOnly ? "bg-amber-500 hover:bg-amber-600 text-white border-none shadow-sm" : ""}`}
-                            onClick={() => {
+                            className={`h-9 w-9 border-border ${toppersOnly ? "bg-green-500 hover:bg-green-600 text-white border-none shadow-sm" : "bg-white text-amber-500 hover:bg-neutral-100"}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                // Determine current state from prop or window fallback
+                                const currentToppersOnly = (typeof toppersOnly !== 'undefined' ? toppersOnly :
+                                    (typeof window !== 'undefined' ? window.__TOPPERS_ONLY__ : false));
+
+                                const nextValue = !currentToppersOnly;
+
                                 if (typeof setToppersOnly === 'function') {
-                                    setToppersOnly(!toppersOnly);
+                                    setToppersOnly(nextValue);
                                 } else if (typeof window !== 'undefined' && typeof window.__SET_TOPPERS__ === 'function') {
-                                    window.__SET_TOPPERS__(!toppersOnly);
+                                    window.__SET_TOPPERS__(nextValue);
                                 }
                             }}
-                            title={toppersOnly ? "Show All Students" : "Show Only Class Toppers"}
+                            title={toppersOnly ? "Show All Students" : "Show Only Green Listed Students"}
                             type="button"
                         >
-                            <Trophy className={`h-4 w-4 ${toppersOnly ? "text-white" : "text-amber-500"} sm:mr-2`} />
-                            <span className="hidden sm:inline text-xs font-bold">Toppers</span>
+                            <Trophy className="h-4 w-4" />
                         </Button>
-                        <Button
-                            size="icon"
-                            variant="outline"
-                            className="h-9 w-8 border-border px-0"
-                            onClick={handleToppersToggle}
-                            title="View Toppers Summary Table"
-                            type="button"
-                        >
-                            <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                        </Button>
+
                     </div>
 
                     {/* Dropdown */}
@@ -541,7 +538,7 @@ export default function StudentAttendanceLookup({ students = [], setFilter, remo
                 <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
                     <DialogHeader className="px-6 pt-5 pb-4 border-b border-border bg-background shrink-0">
                         <DialogTitle className="flex items-center gap-2 text-base">
-                            <Trophy className="h-4 w-4 text-amber-500" />
+                            <Trophy className="h-4 w-4 text-green-500" />
                             Class Toppers
                             {filterMonth && filterYear && (
                                 <span className="text-muted-foreground font-normal ml-2">

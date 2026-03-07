@@ -69,7 +69,7 @@ const AttendanceTrackingPage = async () => {
 
     const tabsConfig = [
       {
-        label: "Student",
+        label: "Students",
         value: "student",
         resource: "studentAttendances",
         printTitle: "Students Attendances",
@@ -116,6 +116,14 @@ const AttendanceTrackingPage = async () => {
         ],
         filterConfig: [
           {
+            id: "date",
+            label: "Date Range",
+            type: "date",
+            inputType: "dateRange",
+            nestedArrayField: "attendanceRecords",
+            className: "col-span-1 md:col-span-2",
+          },
+          {
             id: "batchId",
             label: "Batch",
             type: "text",
@@ -134,18 +142,6 @@ const AttendanceTrackingPage = async () => {
             options: formatOptions(formattedClasses),
           },
           {
-            id: "studentId",
-            label: "Student",
-            type: "text",
-            inputType: "select",
-            nestedArrayField: "attendanceRecords",
-
-            options: formattedStudents,
-            filter: {
-              dependentField: "classId",
-            },
-          },
-          {
             id: "subjectId",
             label: "Subject",
             type: "text",
@@ -156,14 +152,6 @@ const AttendanceTrackingPage = async () => {
             filter: {
               dependentField: "classId",
             },
-          },
-          {
-            id: "date",
-            label: "Date Range",
-            type: "date",
-            inputType: "dateRange",
-            nestedArrayField: "attendanceRecords",
-            className: "col-span-1 md:col-span-2",
           },
         ],
         readOnly: true,
@@ -182,7 +170,7 @@ const AttendanceTrackingPage = async () => {
         trailingToolbar: <StudentAttendanceLookup students={students} classes={formatOptions(formattedClasses)} />,
       },
       {
-        label: "Teacher",
+        label: "Teachers",
         value: "teacher",
         resource: "teacherAttendances",
         filterTitle: "Teacher Attendance",
@@ -223,6 +211,14 @@ const AttendanceTrackingPage = async () => {
         ],
         filterConfig: [
           {
+            id: "date",
+            label: "Date Range",
+            type: "date",
+            inputType: "dateRange",
+            nestedArrayField: "attendanceRecords",
+            className: "col-span-1 md:col-span-2",
+          },
+          {
             id: "batchId",
             label: "Batch",
             type: "text",
@@ -252,15 +248,6 @@ const AttendanceTrackingPage = async () => {
               dependentField: "classId",
             },
           },
-
-          {
-            id: "date",
-            label: "Date Range",
-            type: "date",
-            inputType: "dateRange",
-            nestedArrayField: "attendanceRecords",
-            className: "col-span-1 md:col-span-2",
-          },
         ],
         readOnly: true,
         filterType: "api",
@@ -270,7 +257,7 @@ const AttendanceTrackingPage = async () => {
     ];
     const tabsConfig2 = [
       {
-        label: "Student",
+        label: "Students",
         value: "student",
         resource: "studentAttendances",
         printTitle: "Students Attendances",
@@ -311,16 +298,12 @@ const AttendanceTrackingPage = async () => {
         ],
         filterConfig: [
           {
-            id: "studentId",
-            label: "Student",
-            type: "text",
-            inputType: "select",
+            id: "date",
+            label: "Date Range",
+            type: "date",
+            inputType: "dateRange",
             nestedArrayField: "attendanceRecords",
-
-            options: formattedStudents,
-            filter: {
-              dependentField: "classId",
-            },
+            className: "col-span-1 md:col-span-2",
           },
           {
             id: "batchId",
@@ -351,14 +334,6 @@ const AttendanceTrackingPage = async () => {
             filter: {
               dependentField: "classId",
             },
-          },
-          {
-            id: "date",
-            label: "Date Range",
-            type: "date",
-            inputType: "dateRange",
-            nestedArrayField: "attendanceRecords",
-            className: "col-span-1 md:col-span-2",
           },
         ],
         readOnly: true,

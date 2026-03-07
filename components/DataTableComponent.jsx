@@ -144,8 +144,9 @@ const DataTableComponent = ({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.__SET_TOPPERS__ = setToppersOnly;
+      window.__TOPPERS_ONLY__ = toppersOnly;
     }
-  }, [setToppersOnly]);
+  }, [setToppersOnly, toppersOnly]);
 
   const tableRef = useRef(null);
   const isFetchingRef = useRef(false);
@@ -868,7 +869,7 @@ const DataTableComponent = ({
                   apiKey,
                   toppersOnly,
                   setToppersOnly,
-                  tableData: table.getFilteredRowModel().rows.map(row => row.original)
+                  tableData: isApiFiltering ? data : filteredData,
                 })
                 : trailingToolbar}
             </div>
