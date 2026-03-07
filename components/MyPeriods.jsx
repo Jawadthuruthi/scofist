@@ -115,8 +115,8 @@ const MyPeriods = ({ apiKey, teacherId }) => {
 
   const timeTablesQuery = useFetchItems(
     0,
-    0,
-    { teacherId },
+    100, // Reasonable limit
+    { teacherId, day: today, projection: "classId,timeSlots" },
     {
       staleTime: 1000 * 60 * 60,
       refetchOnWindowFocus: false,
@@ -129,6 +129,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
     {
       date: formattedDate,
       teacherId,
+      projection: "_id,classId,subjectId,periodNumber", // Exclude heavy attendanceData
     },
     {
       staleTime: 1000 * 60 * 2,

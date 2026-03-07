@@ -77,31 +77,44 @@ export async function GET(req, res) {
     const trackAbsentees = url.searchParams.get("trackAbsentees") === "true";
 
     // Execute query with pagination
-    const attendances = await Attendance.find(query, projections)
+    let queryPromise = Attendance.find(query, projections)
       .skip(page * limit)
       .limit(limit)
-      .sort({ date: -1 })
-      .populate("classId", "name")
-      .populate("batchId", "name")
-      .populate("subjectId", "name")
-      .populate("teacherId", "name")
-      .populate({
+      .sort({ date: -1 });
+
+    // Only populate if the fields are in projections (or projections is empty)
+    const shouldPopulate = (field) => Object.keys(projections).length === 0 || projections[field] === 1;
+
+    if (shouldPopulate("classId")) queryPromise = queryPromise.populate("classId", "name");
+    if (shouldPopulate("batchId")) queryPromise = queryPromise.populate("batchId", "name");
+    if (shouldPopulate("subjectId")) queryPromise = queryPromise.populate("subjectId", "name");
+    if (shouldPopulate("teacherId")) queryPromise = queryPromise.populate("teacherId", "name");
+
+    if (shouldPopulate("attendanceData")) {
+      queryPromise = queryPromise.populate({
         path: "attendanceData",
         populate: {
           path: "studentId",
           select: "name email",
         },
       });
+    }
+
+    const attendances = await queryPromise;
 
     let formattedAttendances = attendances.map((attendance) => {
-      return {
-        ...attendance.toObject(),
-        attendanceData: attendance.attendanceData.map((student) => ({
-          ...student.toObject(),
-          studentId: student.studentId?._id,
-          studentName: student.studentId?.name,
-        })),
-      };
+      const attendanceObj = attendance.toObject ? attendance.toObject() : attendance;
+      if (attendanceObj.attendanceData) {
+        return {
+          ...attendanceObj,
+          attendanceData: attendanceObj.attendanceData.map((student) => ({
+            ...student,
+            studentId: student.studentId?._id || student.studentId,
+            studentName: student.studentId?.name,
+          })),
+        };
+      }
+      return attendanceObj;
     });
 
     // Enhanced processing for absentee tracking if requested

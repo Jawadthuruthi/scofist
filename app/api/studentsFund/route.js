@@ -24,6 +24,13 @@ export async function GET(req, res) {
       return NextResponse.json({ studentFunds }, { status: 200 });
     }
 
+    const projections = {};
+    if (searchParams.projection) {
+      searchParams.projection.split(",").forEach((field) => {
+        projections[field.trim()] = 1;
+      });
+    }
+
     const query = {};
     if (searchParams.studentId) {
       query.studentId = searchParams.studentId;
@@ -45,28 +52,33 @@ export async function GET(req, res) {
       query.batchId = searchParams.batchId;
     }
 
-    const studentFund = await StudentsFund.findOne(query);
+    const studentFund = await StudentsFund.findOne(query, projections);
 
     // Query for "All Students Balance" list
-    const allStudentsQuery = {
-      batchId: searchParams.batchId,
-      balance: { $ne: 0 },
-    };
+    // Optimization: If specific studentId is requested, we might not need allStudentsFund unless specifically asked
+    let allStudentsFund = [];
+    if (!searchParams.studentId || searchParams.includeSummary === "true") {
+      const allStudentsQuery = {
+        batchId: searchParams.batchId,
+        balance: { $ne: 0 },
+      };
 
-    if (searchParams.department) {
-      allStudentsQuery.department = searchParams.department;
-      allStudentsQuery.fundType = "Department";
-    } else if (searchParams.teacherId) {
-      allStudentsQuery.teacherId = searchParams.teacherId;
-      allStudentsQuery.$or = [
-        { fundType: "Individual" },
-        { fundType: { $exists: false } },
-      ];
+      if (searchParams.department) {
+        allStudentsQuery.department = searchParams.department;
+        allStudentsQuery.fundType = "Department";
+      } else if (searchParams.teacherId) {
+        allStudentsQuery.teacherId = searchParams.teacherId;
+        allStudentsQuery.$or = [
+          { fundType: "Individual" },
+          { fundType: { $exists: false } },
+        ];
+      }
+
+      allStudentsFund = await StudentsFund.find(allStudentsQuery)
+        .populate("studentId", "name profilePic studentSpecificField.admissionNumber") // Optimized population
+        .sort({ updatedAt: -1 })
+        .lean();
     }
-
-    const allStudentsFund = await StudentsFund.find(allStudentsQuery)
-      .populate("studentId")
-      .sort({ updatedAt: -1 });
 
     return NextResponse.json({ studentFund, allStudentsFund }, { status: 200 });
   } catch (error) {

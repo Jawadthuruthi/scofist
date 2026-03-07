@@ -7,13 +7,15 @@ const API_ENDPOINTS = [
   {
     pathname: "users",
     searchParams:
-      "projection=_id,name,profilePic,studentSpecificField&roles=Student",
+      "projection=_id,name,role,profilePic,studentSpecificField.batchId,studentSpecificField.admissionNumber&roles=Student",
   },
   {
     pathname: "batches",
+    searchParams: "projection=_id,name,startYear,endYear",
   },
   {
     pathname: "classes",
+    searchParams: "projection=_id,name,batchId",
   },
 ];
 const StudentsFundPage = async () => {

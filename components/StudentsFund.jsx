@@ -146,19 +146,21 @@ const StudentsFund = ({
   }, [apiKey]);
 
   const fetchStudentFundQuery = useFetchItems(
-    null,
-    null,
+    0,
+    0,
     {
       studentId: selectedStudents.length === 1 ? selectedStudents[0] : undefined,
       teacherId: department ? undefined : teacherId,
       department,
       batchId: selectedBatch,
+      projection: "studentId,balance,transactions,batchId,fundType,teacherId,department",
+      includeSummary: selectedStudents.length === 0 ? "true" : "false",
     },
     {
+      staleTime: 1000 * 60 * 5, // 5 minutes
       enabled:
         !!(teacherId || department) &&
-        !!selectedBatch &&
-        selectedStudents.length <= 1,
+        !!selectedBatch,
     }
   );
 
