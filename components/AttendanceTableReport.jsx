@@ -285,7 +285,7 @@ export default function AttendanceTableReport({ classes }) {
                                     {columns.map((col, idx) => (
                                         <TableHead
                                             key={idx}
-                                            className={`h-16 bg-muted/50 font-bold border text-center ${idx === 0 ? 'sticky left-0 z-50 bg-[#f9fafb] date-column whitespace-nowrap px-4' : 'z-40'
+                                            className={`h-16 bg-[#f8fafc] font-bold border text-center ${idx === 0 ? 'sticky left-0 z-[100] bg-[#f8fafc] date-column whitespace-nowrap px-4' : 'z-[90]'
                                                 } sticky top-0 p-0 print:static print:z-0 print:bg-white print:text-black`}
                                         >
                                             {idx === 0 ? (
