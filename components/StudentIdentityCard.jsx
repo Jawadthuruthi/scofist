@@ -7,7 +7,7 @@ import { Printer, User, Shield } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import Barcode from "react-barcode";
 import Header from "@/components/Header";
-import { formatDateForDisplay } from "@/lib/utils";
+import { formatDateForDisplay, formatDateMonthYear } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
 const StudentIdentityCard = ({ student, institution = {}, idCardBackgroundImageUrl = "" }) => {
@@ -162,6 +162,24 @@ const StudentIdentityCard = ({ student, institution = {}, idCardBackgroundImageU
                                     <span className="text-gray-700">{student.batchName}</span>
                                 </div>
                                 <div className="flex items-start">
+                                    <span className="mr-2 font-semibold min-w-24 w-24">Dob:</span>
+                                    <span className="text-gray-700">
+                                        {formatDateMonthYear(student.dateOfBirth) || "No DOB provided"}
+                                    </span>
+                                </div>
+                                <div className="flex items-start">
+                                    <span className="mr-2 font-semibold min-w-24 w-24">Phone No:</span>
+                                    <span className="text-gray-700">
+                                        {student.contactNumber || "No phone provided"}
+                                    </span>
+                                </div>
+                                <div className="flex items-start">
+                                    <span className="mr-2 font-semibold min-w-24 w-24">Email:</span>
+                                    <span className="text-gray-700">
+                                        {student.email || "No email provided"}
+                                    </span>
+                                </div>
+                                <div className="flex items-start">
                                     <span className="mr-2 font-semibold min-w-24 w-24">S/o:</span>
                                     <span className="text-gray-700">
                                         {student.guardianName || "No guardian provided"}
@@ -176,23 +194,11 @@ const StudentIdentityCard = ({ student, institution = {}, idCardBackgroundImageU
                                     </span>
                                 </div>
                                 <div className="flex items-start">
-                                    <span className="mr-2 font-semibold min-w-24 w-24">Dob:</span>
-                                    <span className="text-gray-700">
-                                        {formatDateForDisplay(new Date(student.dateOfBirth)) || "No DOB provided"}
-                                    </span>
-                                </div>
-                                <div className="flex items-start">
                                     <span className="mr-2 font-semibold min-w-24 w-24">Address:</span>
                                     <span className="text-gray-700">
                                         {Object.values(student.address || {})
                                             .filter(Boolean)
                                             .join(", ") || "No address provided"}
-                                    </span>
-                                </div>
-                                <div className="flex items-start">
-                                    <span className="mr-2 font-semibold min-w-24 w-24">Phone No:</span>
-                                    <span className="text-gray-700">
-                                        {student.contactNumber || "No phone provided"}
                                     </span>
                                 </div>
                                 <div className="flex items-start">
@@ -384,6 +390,25 @@ const StudentPrintableCard = ({
                                     <span className="text-gray-700">{person.batchName}</span>
                                 </div>
                                 <div className="flex items-start">
+                                    <span className="mr-1 font-semibold min-w-20 w-20">Dob:</span>
+                                    <span className="text-gray-700">
+                                        {formatDateMonthYear(person.dateOfBirth) ||
+                                            "No DOB provided"}
+                                    </span>
+                                </div>
+                                <div className="flex items-start">
+                                    <span className="mr-1 font-semibold min-w-20 w-20">Phone No:</span>
+                                    <span className="text-gray-700">
+                                        {person.contactNumber || "No phone provided"}
+                                    </span>
+                                </div>
+                                <div className="flex items-start">
+                                    <span className="mr-1 font-semibold min-w-20 w-20">Email:</span>
+                                    <span className="text-gray-700">
+                                        {person.email || "No email provided"}
+                                    </span>
+                                </div>
+                                <div className="flex items-start">
                                     <span className="mr-1 font-semibold min-w-20 w-20">S/o:</span>
                                     <span className="text-gray-700">
                                         {person.guardianName || "No guardian provided"}
@@ -398,24 +423,11 @@ const StudentPrintableCard = ({
                                     </span>
                                 </div>
                                 <div className="flex items-start">
-                                    <span className="mr-1 font-semibold min-w-20 w-20">Dob:</span>
-                                    <span className="text-gray-700">
-                                        {formatDateForDisplay(new Date(person.dateOfBirth)) ||
-                                            "No DOB provided"}
-                                    </span>
-                                </div>
-                                <div className="flex items-start">
                                     <span className="mr-1 font-semibold min-w-20 w-20">Address:</span>
                                     <span className="text-gray-700">
                                         {Object.values(person.address || {})
                                             .filter(Boolean)
                                             .join(", ") || "No address provided"}
-                                    </span>
-                                </div>
-                                <div className="flex items-start">
-                                    <span className="mr-1 font-semibold min-w-20 w-20">Phone No:</span>
-                                    <span className="text-gray-700">
-                                        {person.contactNumber || "No phone provided"}
                                     </span>
                                 </div>
                                 <div className="flex items-start">
