@@ -52,12 +52,20 @@ export default function LibraryDashboard({
     languages,
     initialBooks = [],
     initialRentals = [],
+    initialPendingRentals = [],
 }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [rowSelection, setRowSelection] = useState({});
     const [editPopupOpen, setEditPopupOpen] = useState(false);
     const barcodeSheetRef = useRef(null);
+
+    // --- Popup State ---
+    const [categoriesPopupOpen, setCategoriesPopupOpen] = useState(false);
+    const [languagesPopupOpen, setLanguagesPopupOpen] = useState(false);
+    const [pendingRentalsPopupOpen, setPendingRentalsPopupOpen] = useState(false);
+    const [totalBooksPopupOpen, setTotalBooksPopupOpen] = useState(false);
+    const [availableBooksPopupOpen, setAvailableBooksPopupOpen] = useState(false);
 
     // --- Lookup State ---
     const [studentSearchId, setStudentSearchId] = useState("");
@@ -84,13 +92,15 @@ export default function LibraryDashboard({
     // --- Dynamic Options ---
     const dynamicLanguages = useMemo(() => {
         const fromBooks = initialBooks.map(b => b.language).filter(Boolean);
-        const all = new Set([...(languages || []), ...fromBooks]);
+        const fromApi = Array.isArray(languages) ? languages.map(l => l.language) : (languages || []);
+        const all = new Set([...fromApi, ...fromBooks]);
         return Array.from(all).sort();
     }, [languages, initialBooks]);
 
     const dynamicCategories = useMemo(() => {
         const fromBooks = initialBooks.map(b => b.category).filter(Boolean);
-        const all = new Set([...(categories || []), ...fromBooks]);
+        const fromApi = Array.isArray(categories) ? categories.map(c => c.category) : (categories || []);
+        const all = new Set([...fromApi, ...fromBooks]);
         return Array.from(all).sort();
     }, [categories, initialBooks]);
 
@@ -905,7 +915,10 @@ export default function LibraryDashboard({
                 </div >
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card>
+                    <Card
+                        className="cursor-pointer hover:border-primary transition-all active:scale-[0.98]"
+                        onClick={() => setTotalBooksPopupOpen(true)}
+                    >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Total Books</CardTitle>
                             <Book className="h-4 w-4 text-muted-foreground" />
@@ -914,38 +927,49 @@ export default function LibraryDashboard({
                             <div className="text-2xl font-bold">{counts?.total || 0}</div>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card
+                        className="cursor-pointer hover:border-primary transition-all active:scale-[0.98]"
+                        onClick={() => setAvailableBooksPopupOpen(true)}
+                    >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Available</CardTitle>
+                            <CardTitle className="text-sm font-medium">Available Books</CardTitle>
                             <BookOpen className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{counts?.available || 0}</div>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card
+                        className="cursor-pointer hover:border-primary transition-all active:scale-[0.98]"
+                        onClick={() => setPendingRentalsPopupOpen(true)}
+                    >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Rentals</CardTitle>
+                            <CardTitle className="text-sm font-medium">Pending Books</CardTitle>
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{counts?.pendingRentals || 0}</div>
-                            <p className="text-xs text-muted-foreground mt-1">Pending</p>
                         </CardContent>
                     </Card>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card>
+                    <Card
+                        className="cursor-pointer hover:border-primary transition-all active:scale-[0.98]"
+                        onClick={() => setCategoriesPopupOpen(true)}
+                    >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Unique Categories</CardTitle>
+                            <CardTitle className="text-sm font-medium">Categories</CardTitle>
                             <BookOpen className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{categories?.length || 0}</div>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card
+                        className="cursor-pointer hover:border-primary transition-all active:scale-[0.98]"
+                        onClick={() => setLanguagesPopupOpen(true)}
+                    >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Languages</CardTitle>
                             <BookOpen className="h-4 w-4 text-muted-foreground" />
@@ -1128,7 +1152,216 @@ export default function LibraryDashboard({
                         )}
                     </DialogContent>
                 </Dialog>
-            </div >
+
+                {/* Pending Rentals Popup */}
+                <Dialog open={pendingRentalsPopupOpen} onOpenChange={setPendingRentalsPopupOpen}>
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>Pending Books (Currently Rented)</DialogTitle>
+                        </DialogHeader>
+                        <div className="rounded-md border mt-4">
+                            <Table>
+                                <TableHeader className="bg-muted/50">
+                                    <TableRow>
+                                        <TableHead className="w-[50px]">Sl No</TableHead>
+                                        <TableHead>Book ID</TableHead>
+                                        <TableHead>Book Name</TableHead>
+                                        <TableHead>Student Name</TableHead>
+                                        <TableHead>Rented Date</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {initialPendingRentals.length > 0 ? (
+                                        initialPendingRentals.map((rental, index) => (
+                                            <TableRow key={rental._id}>
+                                                <TableCell className="font-medium">{index + 1}</TableCell>
+                                                <TableCell className="font-medium">{rental.bookId?.number}</TableCell>
+                                                <TableCell>{rental.bookId?.name}</TableCell>
+                                                <TableCell>{rental.studentId?.name || rental.studentName}</TableCell>
+                                                <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                                No pending books
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Categories Popup */}
+                <Dialog open={categoriesPopupOpen} onOpenChange={setCategoriesPopupOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Books by Category</DialogTitle>
+                        </DialogHeader>
+                        <div className="rounded-md border mt-4">
+                            <Table>
+                                <TableHeader className="bg-muted/50">
+                                    <TableRow>
+                                        <TableHead className="w-[50px]">Sl No</TableHead>
+                                        <TableHead>Category</TableHead>
+                                        <TableHead className="text-right">Books Count</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {categories.length > 0 ? (
+                                        categories.map((cat, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
+                                                <TableCell className="font-bold">{cat.category}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold">
+                                                        {cat.count}
+                                                    </span>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                                                No categories found
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Languages Popup */}
+                <Dialog open={languagesPopupOpen} onOpenChange={setLanguagesPopupOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Books by Language</DialogTitle>
+                        </DialogHeader>
+                        <div className="rounded-md border mt-4">
+                            <Table>
+                                <TableHeader className="bg-muted/50">
+                                    <TableRow>
+                                        <TableHead className="w-[50px]">Sl No</TableHead>
+                                        <TableHead>Language</TableHead>
+                                        <TableHead className="text-right">Books Count</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {languages.length > 0 ? (
+                                        languages.map((lang, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
+                                                <TableCell className="font-bold">{lang.language}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold">
+                                                        {lang.count}
+                                                    </span>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                                                No languages found
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Total Books Popup */}
+                <Dialog open={totalBooksPopupOpen} onOpenChange={setTotalBooksPopupOpen}>
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>Total Books Inventory</DialogTitle>
+                        </DialogHeader>
+                        <div className="rounded-md border mt-4">
+                            <Table>
+                                <TableHeader className="bg-muted/50">
+                                    <TableRow>
+                                        <TableHead className="w-[50px]">Sl No</TableHead>
+                                        <TableHead>Book ID</TableHead>
+                                        <TableHead>Book Name</TableHead>
+                                        <TableHead>Author</TableHead>
+                                        <TableHead>Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {initialBooks.length > 0 ? (
+                                        initialBooks.map((book, index) => (
+                                            <TableRow key={book._id}>
+                                                <TableCell className="font-medium">{index + 1}</TableCell>
+                                                <TableCell className="font-medium text-primary">{book.number}</TableCell>
+                                                <TableCell>{book.name}</TableCell>
+                                                <TableCell>{book.author}</TableCell>
+                                                <TableCell>
+                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${book.status === 'Available' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                                                        {book.status}
+                                                    </span>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                                No books available
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Available Books Popup */}
+                <Dialog open={availableBooksPopupOpen} onOpenChange={setAvailableBooksPopupOpen}>
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>Available Books</DialogTitle>
+                        </DialogHeader>
+                        <div className="rounded-md border mt-4">
+                            <Table>
+                                <TableHeader className="bg-muted/50">
+                                    <TableRow>
+                                        <TableHead className="w-[50px]">Sl No</TableHead>
+                                        <TableHead>Book ID</TableHead>
+                                        <TableHead>Book Name</TableHead>
+                                        <TableHead>Author</TableHead>
+                                        <TableHead>Category</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {initialBooks.filter(b => b.status === "Available").length > 0 ? (
+                                        initialBooks.filter(b => b.status === "Available").map((book, index) => (
+                                            <TableRow key={book._id}>
+                                                <TableCell className="font-medium">{index + 1}</TableCell>
+                                                <TableCell className="font-medium text-primary">{book.number}</TableCell>
+                                                <TableCell>{book.name}</TableCell>
+                                                <TableCell>{book.author}</TableCell>
+                                                <TableCell>{book.category}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                                No books available
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            </div>
         );
     }
 

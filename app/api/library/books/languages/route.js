@@ -12,13 +12,28 @@ export async function GET(req) {
     try {
         await connectToDB();
         if (!validateApiKey(req)) {
-            return NextResponse.json({ success: false, msg: "Invalid API Key", data: {} }, { status: 401 });
+            return NextResponse.json({ success: false, msg: "Invalid API Key", data: [] }, { status: 401 });
         }
 
-        const languages = await LibraryBook.distinct("language");
+        const stats = await LibraryBook.aggregate([
+            {
+                $group: {
+                    _id: "$language",
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    language: { $ifNull: ["$_id", "Unknown"] },
+                    count: 1
+                }
+            },
+            { $sort: { language: 1 } }
+        ]);
 
-        return NextResponse.json({ success: true, msg: "Languages fetched successfully", data: languages }, { status: 200 });
+        return NextResponse.json({ success: true, msg: "Languages fetched successfully", data: stats }, { status: 200 });
     } catch (error) {
-        return NextResponse.json({ success: false, msg: error.message, data: {} }, { status: 500 });
+        return NextResponse.json({ success: false, msg: error.message, data: [] }, { status: 500 });
     }
 }

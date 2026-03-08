@@ -15,10 +15,12 @@ export async function GET(req) {
         const url = new URL(req.url);
         const studentId = url.searchParams.get("studentId");
         const bookId = url.searchParams.get("bookId");
+        const status = url.searchParams.get("status");
 
         const query = {};
         if (studentId) query.studentId = studentId;
         if (bookId) query.bookId = bookId;
+        if (status === "pending") query.receivedDate = null;
 
         const rentals = await Rental.find(query)
             .populate("bookId")
