@@ -206,11 +206,18 @@ export default function LibraryDashboard({
         {
             id: "select",
             header: ({ table }) => (
-                <Checkbox
-                    checked={table.getIsAllPageRowsSelected()}
-                    onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                    aria-label="Select all"
-                />
+                <div className="flex flex-col items-center gap-0.5">
+                    <Checkbox
+                        checked={table.getIsAllPageRowsSelected()}
+                        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                        aria-label="Select all"
+                    />
+                    {selectedIds.length > 0 && (
+                        <span className="text-[10px] font-bold text-primary leading-none">
+                            {selectedIds.length}
+                        </span>
+                    )}
+                </div>
             ),
             cell: ({ row }) => (
                 <Checkbox
@@ -250,6 +257,66 @@ export default function LibraryDashboard({
             }
         },
         {
+            accessorKey: "name",
+            header: "Book Name",
+            meta: {
+                width: "200px",
+                whiteSpace: "normal"
+            }
+        },
+        {
+            accessorKey: "author",
+            header: "Author",
+            meta: {
+                width: "150px",
+                whiteSpace: "normal"
+            }
+        },
+        {
+            accessorKey: "language",
+            header: "Language",
+            meta: {
+                width: "1%",
+                whiteSpace: "nowrap"
+            }
+        },
+        {
+            accessorKey: "category",
+            header: "Category",
+            meta: {
+                width: "1%",
+                whiteSpace: "nowrap"
+            }
+        },
+        {
+            accessorKey: "publication",
+            header: "Publication",
+            meta: {
+                width: "120px",
+                whiteSpace: "normal"
+            }
+        },
+        {
+            accessorKey: "price",
+            header: "Price",
+            meta: {
+                width: "1%",
+                whiteSpace: "nowrap",
+                padding: "4px 4px",
+            }
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ row }) => {
+                const status = row.getValue("status");
+                const displayStatus = (status === "Pending" || status === "Rented") ? "Rented" : (status || "Unknown");
+                const color = displayStatus === "Available" ? "text-green-600" : "text-red-600";
+                return <span className={`font-medium ${color}`}>{displayStatus}</span>;
+            },
+            meta: { padding: "4px 4px" }
+        },
+        {
             id: "barcode",
             header: "Barcode",
             cell: ({ row }) => {
@@ -273,65 +340,6 @@ export default function LibraryDashboard({
                 width: "130px",
                 padding: "2px",
             }
-        },
-        {
-            accessorKey: "name",
-            header: "Book Name",
-            meta: {
-                whiteSpace: "nowrap"
-            }
-        },
-        {
-            accessorKey: "author",
-            header: "Author",
-            meta: {
-                width: "1%",
-                whiteSpace: "nowrap"
-            }
-        },
-        {
-            accessorKey: "language",
-            header: "Language",
-            meta: {
-                width: "1%",
-                whiteSpace: "nowrap"
-            }
-        },
-        {
-            accessorKey: "category",
-            header: "Category",
-            meta: {
-                width: "1%",
-                whiteSpace: "nowrap"
-            }
-        },
-        {
-            accessorKey: "publication",
-            header: "Publication",
-            meta: {
-                width: "1%",
-                whiteSpace: "nowrap"
-            }
-        },
-        {
-            accessorKey: "price",
-            header: "Price",
-            meta: {
-                width: "1%",
-                whiteSpace: "nowrap",
-                padding: "4px 4px",
-            }
-        },
-        {
-            accessorKey: "status",
-            header: "Status",
-            cell: ({ row }) => {
-                const status = row.getValue("status");
-                const displayStatus = (status === "Pending" || status === "Rented") ? "Rented" : (status || "Unknown");
-                const color = displayStatus === "Available" ? "text-green-600" : "text-red-600";
-                return <span className={`font-medium ${color}`}>{displayStatus}</span>;
-            },
-            meta: { padding: "4px 4px" }
         },
     ];
 
@@ -1126,19 +1134,12 @@ export default function LibraryDashboard({
 
     if (view === "books") {
         return (
-            <div className="space-y-6">
+            <div className="space-y-2">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <Header
                         title="BOOKS MANAGEMENT"
                         subTitle="Manage library books inventory"
                     />
-                    <Button
-                        onClick={() => handlePrintBarcodes()}
-                        className="flex items-center gap-2"
-                    >
-                        <Scan className="h-4 w-4" />
-                        Print All Barcodes
-                    </Button>
                 </div>
                 <TableComponent
                     data={initialBooks}
@@ -1195,14 +1196,25 @@ export default function LibraryDashboard({
                     actionButtons={
                         <div className="flex gap-2">
                             {selectedIds.length > 0 && (
-                                <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={handleBulkDelete}
-                                >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete ({selectedIds.length})
-                                </Button>
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePrintBarcodes()}
+                                        className="flex items-center gap-2 bg-foreground text-background hover:bg-foreground/90 hover:text-background border-none px-3"
+                                    >
+                                        <Scan className="h-4 w-4" />
+                                        Print Barcodes
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={handleBulkDelete}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="ml-2">({selectedIds.length})</span>
+                                    </Button>
+                                </>
                             )}
                             {selectedBook && (
                                 <PopupForm
@@ -1224,14 +1236,14 @@ export default function LibraryDashboard({
                         </div>
                     }
                 />
-                <BarcodeSheet ref={barcodeSheetRef} books={initialBooks} />
+                <BarcodeSheet ref={barcodeSheetRef} books={initialBooks.filter(b => selectedIds.includes(b._id))} />
             </div>
         );
     }
 
     if (view === "rentals") {
         return (
-            <div className="space-y-6">
+            <div className="space-y-2">
                 <Header
                     title="RENTALS MANAGEMENT"
                     subTitle="Track book rentals"
