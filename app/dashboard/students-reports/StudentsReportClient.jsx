@@ -1,0 +1,444 @@
+"use client";
+import React, { useState, useEffect, useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import Header from "@/components/Header";
+import { Users, Loader2, Search, ScanBarcode, X } from "lucide-react";
+import StudentDashboard from "@/components/StudentDashboard";
+import { formatOptions } from "@/lib/utils";
+import { toast } from "sonner";
+import dynamic from "next/dynamic";
+
+const BarcodeScanner = dynamic(() => import("@/components/BarcodeScanner"), {
+    ssr: false,
+    loading: () => (
+        <div className="flex flex-col items-center justify-center p-8 gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading scanner...</p>
+        </div>
+    ),
+});
+
+export default function StudentsReportClient({ batches, classes, apiKey }) {
+    const [selectedBatch, setSelectedBatch] = useState("");
+    const [selectedClass, setSelectedClass] = useState("");
+    const [selectedStudentId, setSelectedStudentId] = useState("");
+    const [students, setStudents] = useState([]);
+    const [loadingStudents, setLoadingStudents] = useState(false);
+    const [selectedStudentData, setSelectedStudentData] = useState(null);
+    const [loadingProfile, setLoadingProfile] = useState(false);
+    const [lookupSearchTerm, setLookupSearchTerm] = useState("");
+    const [isLookingUp, setIsLookingUp] = useState(false);
+    const [showScanner, setShowScanner] = useState(false);
+    const [lookupError, setLookupError] = useState(false);
+
+    // Filter classes based on selected batch
+    const filteredClasses = useMemo(() => {
+        if (!selectedBatch) return classes;
+        return classes.filter((c) => c.batchId === selectedBatch);
+    }, [selectedBatch, classes]);
+
+    // Fetch students when filters change
+    useEffect(() => {
+        const fetchStudents = async () => {
+            setLoadingStudents(true);
+            try {
+                const params = new URLSearchParams();
+                params.append("roles", "Student");
+                params.append("projection", "_id,name,batchId,classId,studentSpecificField,profilePic,contactNumber,email,dateOfBirth,address");
+
+                if (selectedClass && selectedClass !== "none") {
+                    params.append("classId", selectedClass);
+                }
+                if (selectedBatch && selectedBatch !== "none") {
+                    params.append("batchId", selectedBatch);
+                }
+
+                if (!selectedClass || selectedClass === "none") {
+                    if (!selectedBatch || selectedBatch === "none") {
+                        setStudents([]);
+                        setLoadingStudents(false);
+                        return;
+                    }
+                }
+
+                const response = await fetch(`/api/users?${params.toString()}`, {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "api-key": apiKey,
+                    },
+                    cache: "no-store"
+                });
+                const data = await response.json();
+                setStudents(data.users || []);
+            } catch (error) {
+                console.error("Error fetching students:", error);
+                toast.error("Failed to load students");
+            } finally {
+                setLoadingStudents(false);
+            }
+        };
+
+        fetchStudents();
+    }, [selectedClass, selectedBatch, apiKey]);
+
+    // Fetch full student profile when student changes
+    useEffect(() => {
+        const fetchFullProfile = async () => {
+            if (!selectedStudentId) {
+                setSelectedStudentData(null);
+                return;
+            }
+
+            setLoadingProfile(true);
+            try {
+                const response = await fetch(`/api/users/profile`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "api-key": apiKey,
+                    },
+                    body: JSON.stringify({ userId: selectedStudentId }),
+                });
+                const data = await response.json();
+                if (data.user) {
+                    setSelectedStudentData(data.user);
+                } else {
+                    toast.error("Student profile not found");
+                }
+            } catch (error) {
+                console.error("Error fetching student profile:", error);
+                toast.error("Failed to load student profile");
+            } finally {
+                setLoadingProfile(false);
+            }
+        };
+
+        fetchFullProfile();
+    }, [selectedStudentId, apiKey]);
+
+    const handleBatchChange = (value) => {
+        setSelectedBatch(value === "none" ? "" : value);
+        setSelectedClass("");
+        setSelectedStudentId("");
+        setSelectedStudentData(null);
+    };
+
+    const handleClassChange = (value) => {
+        const val = value === "none" ? "" : value;
+        const targetClass = classes.find(c => c._id === val);
+        if (targetClass && targetClass.batchId && !selectedBatch) {
+            setSelectedBatch(targetClass.batchId);
+        }
+        setSelectedClass(val);
+        setSelectedStudentId("");
+        setSelectedStudentData(null);
+    };
+
+    const handleStudentChange = (value) => {
+        const student = students.find(s => s._id === value);
+        if (student) {
+            const batchId = student.batchId || student.studentSpecificField?.batchId;
+            const classId = student.classId || student.studentSpecificField?.classId;
+
+            if (batchId && !selectedBatch) setSelectedBatch(batchId);
+            if (classId && !selectedClass) setSelectedClass(classId);
+        }
+        setSelectedStudentId(value);
+    };
+
+    const handleStudentLookup = async (overrideSearchTerm) => {
+        const term = typeof overrideSearchTerm === "string" ? overrideSearchTerm : lookupSearchTerm;
+
+        if (!term.trim()) {
+            toast.error("Please enter a student ID or name to search.");
+            return;
+        }
+
+        setIsLookingUp(true);
+        setLookupError(false);
+
+        // Add a small artificial delay for better UX and to ensure state is caught up
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        try {
+            const response = await fetch(
+                `/api/users?roles=Student&global=${term}&limit=10&projection=_id,name,batchId,classId,studentSpecificField`,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "api-key": apiKey,
+                    },
+                }
+            );
+            const data = await response.json();
+            const foundUsers = data.users || [];
+
+            if (foundUsers.length > 0) {
+                const exactMatch = foundUsers.find(u =>
+                    u._id.toLowerCase() === term.toLowerCase() ||
+                    u.name.toLowerCase() === term.toLowerCase()
+                );
+
+                if (exactMatch) {
+                    selectStudent(exactMatch);
+                } else {
+                    setSelectedBatch("");
+                    setSelectedClass("");
+                    setSelectedStudentId("");
+                    setSelectedStudentData(null);
+                    setLookupError(true);
+                    toast.error(`Student "${term}" not found (Exact match required).`);
+                }
+            } else {
+                setSelectedBatch("");
+                setSelectedClass("");
+                setSelectedStudentId("");
+                setSelectedStudentData(null);
+                setLookupError(true);
+                toast.error("Student not found.");
+            }
+        } catch (error) {
+            console.error("Lookup error:", error);
+            toast.error("An error occurred during student lookup.");
+        } finally {
+            setIsLookingUp(false);
+        }
+    };
+
+    const selectStudent = (student) => {
+        // Robust ID extraction
+        const getID = (val) => (val && typeof val === 'object' ? val._id : val);
+        const bId = getID(student.batchId || student.studentSpecificField?.batchId);
+        const cId = getID(student.classId || student.studentSpecificField?.classId);
+
+        // Ensure searched student is in the current dropdown list
+        setStudents(prev => {
+            const exists = prev.find(s => s._id === student._id);
+            if (exists) return prev;
+            return [student, ...prev];
+        });
+
+        // Update filters if data exists
+        if (bId) setSelectedBatch(bId);
+        if (cId) setSelectedClass(cId);
+
+        // Always select the student ID to trigger profile fetch
+        setSelectedStudentId(student._id);
+        setLookupSearchTerm(student.name);
+        setLookupError(false);
+        toast.success(`Selected student: ${student.name}`);
+    };
+
+    const handleBarcodeScan = (result) => {
+        setLookupSearchTerm(result);
+        setShowScanner(false);
+        handleStudentLookup(result);
+    };
+
+    return (
+        <div className="flex flex-col space-y-2">
+            <Header
+                title="STUDENTS REPORTS"
+                subTitle="Analyze and View Student Dashboard Data"
+                icon={<Users className="h-5 w-5 text-muted-foreground" />}
+            />
+
+            <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden bg-card">
+                <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+                <CardHeader className="bg-muted/10 pb-4 pt-4 border-b">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <Search className="w-5 h-5 text-primary" />
+                        Student Lookup
+                    </CardTitle>
+                    <CardDescription>
+                        Search for a student by ID or Name to quickly view their report
+                    </CardDescription>
+                    <div className="flex gap-2 mt-4 w-full relative">
+                        <div className="relative flex-1">
+                            <Input
+                                placeholder="Search by Student ID or Name..."
+                                value={lookupSearchTerm}
+                                onChange={(e) => setLookupSearchTerm(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleStudentLookup();
+                                }}
+                                className="w-full pr-10"
+                            />
+                            {lookupSearchTerm && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-transparent"
+                                    onClick={() => {
+                                        setLookupSearchTerm("");
+                                        setSelectedBatch("");
+                                        setSelectedClass("");
+                                        setSelectedStudentId("");
+                                        setSelectedStudentData(null);
+                                        setLookupError(false);
+                                    }}
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
+                        <Button
+                            onClick={() => {
+                                if (lookupSearchTerm.trim()) {
+                                    handleStudentLookup();
+                                } else {
+                                    setShowScanner(true);
+                                }
+                            }}
+                            disabled={isLookingUp}
+                            variant={lookupSearchTerm.trim() ? "default" : "outline"}
+                            className={!lookupSearchTerm.trim() ? "bg-foreground text-background hover:bg-foreground/90 border-none" : ""}
+                        >
+                            {isLookingUp ? (
+                                <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
+                            ) : lookupSearchTerm.trim() ? (
+                                <Search className="h-4 w-4 sm:mr-2" />
+                            ) : (
+                                <ScanBarcode className="h-4 w-4 sm:mr-2" />
+                            )}
+                            <span className="hidden sm:inline">{lookupSearchTerm.trim() ? "Search" : "Scan"}</span>
+                        </Button>
+                    </div>
+                </CardHeader>
+
+                {showScanner && (
+                    <CardContent className="p-4 border-t">
+                        <div className="relative aspect-video max-w-sm mx-auto overflow-hidden rounded-lg bg-black">
+                            <BarcodeScanner
+                                onScan={handleBarcodeScan}
+                                onError={(err) => {
+                                    console.error(err);
+                                    toast.error("Scanner error");
+                                    setShowScanner(false);
+                                }}
+                            />
+                            <Button
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-2 right-2 z-50 h-8 w-8 rounded-full"
+                                onClick={() => setShowScanner(false)}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </CardContent>
+                )}
+            </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-1">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Select Batch</label>
+                    <Select onValueChange={handleBatchChange} value={selectedBatch}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select Batch" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">All Batches</SelectItem>
+                            {batches.map((batch) => (
+                                <SelectItem key={batch._id} value={batch._id}>
+                                    {batch.name} ({batch.startYear})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Select Class</label>
+                    <Select
+                        onValueChange={handleClassChange}
+                        value={selectedClass}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select Class" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">All Classes</SelectItem>
+                            {formatOptions(filteredClasses).map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Select Student</label>
+                    <Select
+                        onValueChange={handleStudentChange}
+                        value={selectedStudentId}
+                        disabled={loadingStudents}
+                    >
+                        <SelectTrigger>
+                            {loadingStudents ? (
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>Loading...</span>
+                                </div>
+                            ) : (
+                                <SelectValue placeholder="Select Student" />
+                            )}
+                        </SelectTrigger>
+                        <SelectContent>
+                            {students.map((student) => (
+                                <SelectItem key={student._id} value={student._id}>
+                                    {student.name} ({student._id})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <div className="mt-6">
+                {loadingProfile ? (
+                    <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                        <p className="text-muted-foreground animate-pulse">Fetching student data...</p>
+                    </div>
+                ) : selectedStudentData ? (
+                    <div className="animate-in fade-in duration-500">
+                        <StudentDashboard
+                            user={selectedStudentData}
+                            apiKey={apiKey}
+                            classes={classes}
+                            batches={batches}
+                            hideHeader={true}
+                        />
+                    </div>
+                ) : lookupError ? (
+                    <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-xl border-red-200 bg-red-50/30">
+                        <Users className="h-12 w-12 text-red-300 mb-4" />
+                        <h3 className="text-lg font-medium text-red-800">Student Not Found</h3>
+                        <p className="text-sm text-red-600/70 max-w-xs text-center">
+                            We couldn't find any student matching "{lookupSearchTerm}". Please check the ID or name and try again.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-xl border-muted bg-muted/5">
+                        <Users className="h-12 w-12 text-muted mb-4" />
+                        <h3 className="text-lg font-medium text-muted-foreground">No Student Selected</h3>
+                        <p className="text-sm text-muted-foreground/70 max-w-xs text-center">
+                            Please select a batch, class, and student from the dropdowns above or use the search bar to view their dashboard reports.
+                        </p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

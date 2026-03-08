@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "@/components/Header";
-import { Calendar } from "lucide-react";
+import { Calendar, Printer, BookOpen, Clock, Loader2 } from "lucide-react";
 import { formatDateForDisplay } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import {
@@ -31,11 +31,21 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Button } from "./ui/button";
-import { Printer } from "lucide-react";
 import dynamic from "next/dynamic";
 
 
 
+
+const formatDateWithoutDay = (dateString) => {
+  if (!dateString) return "N/A";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "N/A";
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
 
 const ProfileField = ({ label, subLabel, value, isBold }) =>
   (value || value === 0 || typeof value === 'string') ? (
@@ -54,14 +64,13 @@ export default function StudentDashboard({
   classes,
   batches,
   attendanceData: initialData,
+  hideHeader = false,
 }) {
   const [currentUser, setCurrentUser] = useState(user);
 
   useEffect(() => {
-    if (new Date(user?.updatedAt) > new Date(currentUser?.updatedAt)) {
-      setCurrentUser(user);
-    }
-  }, [user, currentUser?.updatedAt]);
+    setCurrentUser(user);
+  }, [user]);
 
   const { useFetchItems } = useCrud("studentAttendances", apiKey);
   const { data: fetchedData, isLoading, error } = useFetchItems(
@@ -78,6 +87,8 @@ export default function StudentDashboard({
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [pendingFunds, setPendingFunds] = useState([]); // Array of fund objects
   const [fundsLoading, setFundsLoading] = useState(true);
+  const [rentalHistory, setRentalHistory] = useState([]);
+  const [rentalsLoading, setRentalsLoading] = useState(true);
 
 
   const className = classes.find(
@@ -109,15 +120,9 @@ export default function StudentDashboard({
           headers: { "Content-Type": "application/json", "api-key": apiKey }
         }).then(res => res.ok ? res.json() : { stats: { totalPending: 0 } });
 
-        // 3. Fetch User Details for Library Rentals
-        const userPromise = fetch(`/api/users?_id=${currentUser._id}&populate=funds`, {
-          headers: { "Content-Type": "application/json", "api-key": apiKey }
-        }).then(res => res.json());
-
-        const [fundsResult, couponResult, userResult] = await Promise.all([
+        const [fundsResult, couponResult] = await Promise.all([
           allFundsPromise,
-          couponPromise,
-          userPromise
+          couponPromise
         ]);
 
         // Process Standard Funds with Aggregation
@@ -159,20 +164,10 @@ export default function StudentDashboard({
           value: couponResult.stats?.totalPending || 0
         });
 
-        // Process Library Rentals
-        const rentals = userResult.users?.[0]?.pendingRentals || [];
-        rentals.forEach((rental, index) => {
-          const bookId = rental.bookId?.id ||
-            (rental.bookId?.prefix ? `${rental.bookId.prefix}-${rental.bookId.number}` : rental.bookId?.number) ||
-            "N/A";
-
-          const label = rentals.length > 1 ? `Library Book ${index + 1}` : "Library Book";
-          // Convert to string to avoid toFixed(2) formatting in render
-          fundsList.push({
-            label: label,
-            value: String(bookId),
-            isBold: true
-          });
+        // Process Coupon Fund
+        fundsList.push({
+          label: "Coupon Fund",
+          value: couponResult.stats?.totalPending || 0
         });
 
         setPendingFunds(fundsList);
@@ -190,6 +185,27 @@ export default function StudentDashboard({
       setFundsLoading(false);
     }
   }, [currentUser, classes, apiKey]);
+
+  useEffect(() => {
+    const fetchRentals = async () => {
+      if (!currentUser?._id || !apiKey) return;
+      setRentalsLoading(true);
+      try {
+        const res = await fetch(`/api/rental?studentId=${currentUser._id}`, {
+          headers: { "Content-Type": "application/json", "api-key": apiKey }
+        });
+        const result = await res.json();
+        if (result.success) {
+          setRentalHistory(result.data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching rental history:", error);
+      } finally {
+        setRentalsLoading(false);
+      }
+    };
+    fetchRentals();
+  }, [currentUser, apiKey]);
 
 
   const academicYears = useMemo(() => {
@@ -272,11 +288,13 @@ export default function StudentDashboard({
 
   return (
     <div className="flex flex-col space-y-4">
-      <Header
-        title="DASHBOARD"
-        subTitle={currentDate}
-        icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
-      />
+      {!hideHeader && (
+        <Header
+          title="DASHBOARD"
+          subTitle={currentDate}
+          icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
+        />
+      )}
 
       {/* Profile Header */}
       <Card className="bg-blue-50 dark:bg-blue-950 border-blue-100 dark:border-blue-900">
@@ -426,25 +444,96 @@ export default function StudentDashboard({
             <CardTitle>Pending Transactions</CardTitle>
           </CardHeader>
           <CardContent>
-            {fundsLoading ? (
-              <p>Loading funds...</p>
-            ) : pendingFunds && pendingFunds.length > 0 ? (
-              <>
-                {pendingFunds.map((item, index) => (
-                  <ProfileField
-                    key={index}
-                    label={item.label}
-                    subLabel={item.subLabel}
-                    value={typeof item.value === 'number' ? item.value.toFixed(2) : item.value}
-                    isBold={item.isBold}
-                  />
-                ))}
-                <ProfileField label="Total Pending" value={totalPending.toFixed(2)} isBold={true} />
+            <div className="max-h-[300px] overflow-y-auto pr-2">
+              {fundsLoading ? (
+                <p>Loading funds...</p>
+              ) : pendingFunds && pendingFunds.length > 0 ? (
+                <>
+                  {pendingFunds.map((item, index) => (
+                    <ProfileField
+                      key={index}
+                      label={item.label}
+                      subLabel={item.subLabel}
+                      value={typeof item.value === 'number' ? item.value.toFixed(2) : item.value}
+                      isBold={item.isBold}
+                    />
+                  ))}
+                  <ProfileField label="Total Pending" value={totalPending.toFixed(2)} isBold={true} />
+                </>
+              ) : (
+                <p>No pending transactions.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-              </>
-            ) : (
-              <p>No pending transactions.</p>
-            )}
+        {/* Read Books / Rental History */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              Read Books History
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="max-h-[300px] overflow-y-auto pr-2">
+              {rentalsLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : rentalHistory && rentalHistory.length > 0 ? (
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead className="w-[60px]">Sl No</TableHead>
+                        <TableHead>Book Name</TableHead>
+                        <TableHead>Rented Date</TableHead>
+                        <TableHead>Returned Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rentalHistory.map((rental, index) => (
+                        <TableRow key={rental._id}>
+                          <TableCell className="text-muted-foreground">{index + 1}</TableCell>
+                          <TableCell className="font-medium">
+                            {rental.bookId?.name || "Unknown Book"}
+                            <div className="text-xs text-muted-foreground">
+                              {rental.bookId?.prefix && rental.bookId?.number
+                                ? `${rental.bookId.prefix}-${rental.bookId.number}`
+                                : rental.bookId?.number || "N/A"}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3 text-muted-foreground" />
+                              {formatDateWithoutDay(rental.rentedDate)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {rental.receivedDate ? (
+                              <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                <Clock className="h-3 w-3" />
+                                {formatDateWithoutDay(rental.receivedDate)}
+                              </div>
+                            ) : (
+                              <span className="text-orange-600 dark:text-orange-400 font-medium">
+                                Currently Reading
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-10 text-muted-foreground">
+                  <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                  <p>No book rental history found.</p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
