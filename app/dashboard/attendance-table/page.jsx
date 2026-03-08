@@ -31,10 +31,12 @@ export default async function AttendanceTablePage() {
 
   return (
     <div className="flex flex-col">
-      <Header
-        title="ATTENDANCE TABLE"
-        subTitle="Monthly attendance table for each class"
-      />
+      <div className="print:hidden">
+        <Header
+          title="ATTENDANCE TABLE"
+          subTitle="Monthly attendance table for each class"
+        />
+      </div>
       <AttendanceTableReport classes={classes} />
     </div>
   );

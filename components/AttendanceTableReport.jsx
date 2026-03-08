@@ -65,7 +65,7 @@ export default function AttendanceTableReport({ classes }) {
     };
 
     const renderCellContent = (cellData) => {
-        if (isBlankPrint) return null;
+        if (isBlankPrint && cellData?.status !== 'NO_PERIOD') return null;
         if (!cellData || typeof cellData !== 'object') return '-';
 
         switch (cellData.status) {
@@ -125,7 +125,7 @@ export default function AttendanceTableReport({ classes }) {
         <div>
             <style jsx global>{`
                 @media print {
-                    @page { size: landscape; margin: 10mm; }
+                    @page { size: landscape; margin: 5mm; margin-top: 0 !important; }
                     
                     /* Universal Print Reset */
                     html, body { 
@@ -145,6 +145,8 @@ export default function AttendanceTableReport({ classes }) {
                         background: none !important;
                         box-shadow: none !important;
                         backdrop-filter: none !important;
+                        padding-top: 0 !important;
+                        margin-top: 0 !important;
                     }
 
                     /* Hide Non-Print Elements */
@@ -173,20 +175,41 @@ export default function AttendanceTableReport({ classes }) {
                     }
                     
                     /* Specifically ensure first column is visible */
-                    th:first-child, td:first-child {
-                        min-width: 80px !important;
-                        width: 80px !important;
+                    th:first-child, 
+                    td:first-child,
+                    .date-column {
+                        min-width: 95px !important;
+                        width: auto !important;
                         display: table-cell !important;
-                        z-index: 1 !important;
+                        white-space: nowrap !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        color: black !important;
+                        position: static !important;
+                        background: white !important;
+                        border: 1px solid #000 !important;
+                        text-align: center !important;
+                    }
+
+                    th:first-child *, 
+                    td:first-child * {
+                        display: inline-block !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        color: black !important;
+                        text-align: center !important;
+                        width: auto !important;
                     }
 
                     .sticky { position: static !important; }
+                    .friday-row td { background-color: #fee2e2 !important; }
+                    .no-period-cell { background-color: #f3f4f6 !important; }
                     * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
                 }
             `}</style>
 
             {/* Print Header */}
-            <div className="hidden print:block text-center mb-6">
+            <div className="hidden print:block text-center mb-0">
                 <h1 className="text-2xl font-bold uppercase tracking-widest">Attendance Report</h1>
                 <div className="flex justify-center gap-4 mt-2 text-sm font-medium">
                     <span>Class: {classes.find(c => (c.id || c._id) === selectedClass)?.name}</span>
@@ -210,19 +233,6 @@ export default function AttendanceTableReport({ classes }) {
                     </SelectContent>
                 </Select>
 
-                <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
-                    <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Month" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {months.map((m) => (
-                            <SelectItem key={m.value} value={m.value.toString()}>
-                                {m.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-
                 <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
                     <SelectTrigger className="w-32">
                         <SelectValue placeholder="Year" />
@@ -231,6 +241,19 @@ export default function AttendanceTableReport({ classes }) {
                         {years.map((y) => (
                             <SelectItem key={y} value={y.toString()}>
                                 {y}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+                    <SelectTrigger className="w-40">
+                        <SelectValue placeholder="Month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {months.map((m) => (
+                            <SelectItem key={m.value} value={m.value.toString()}>
+                                {m.label}
                             </SelectItem>
                         ))}
                     </SelectContent>
@@ -254,21 +277,21 @@ export default function AttendanceTableReport({ classes }) {
                     <p className="text-muted-foreground animate-pulse">Fetching attendance data...</p>
                 </div>
             ) : tableData.length > 0 ? (
-                <div className="w-fit max-w-full print:max-w-none border rounded-lg shadow-sm print:overflow-visible print:border-none print:shadow-none bg-background print:w-full mt-4">
+                <div className="w-full print:max-w-none border rounded-lg shadow-sm print:overflow-visible print:border-none print:shadow-none bg-background print:w-full mt-4 print:mt-0">
                     <div className="overflow-auto max-h-[700px] print:overflow-visible print:max-h-none">
-                        <Table className="w-fit print:w-full border-separate border-spacing-0">
+                        <Table className="w-full print:w-full border-separate border-spacing-0">
                             <TableHeader>
                                 <TableRow className="hover:bg-transparent">
                                     {columns.map((col, idx) => (
                                         <TableHead
                                             key={idx}
-                                            className={`h-16 bg-muted/50 font-bold border text-center ${idx === 0 ? 'sticky left-0 z-50 bg-muted/80 backdrop-blur-sm date-column' : 'w-[0.1%] z-40'
-                                                } sticky top-0 p-0 whitespace-nowrap print:static print:z-0 print:bg-white`}
+                                            className={`h-16 bg-muted/50 font-bold border text-center ${idx === 0 ? 'sticky left-0 z-50 bg-[#f9fafb] date-column whitespace-nowrap px-4' : 'z-40'
+                                                } sticky top-0 p-0 print:static print:z-0 print:bg-white print:text-black`}
                                         >
                                             {idx === 0 ? (
-                                                <div className="text-[11px] font-bold p-0 min-w-max px-2 text-black text-center">{col.Header}</div>
+                                                <div className="text-[11px] font-bold p-0 min-w-max px-2 text-black text-center print:text-xs print:uppercase">{col.Header}</div>
                                             ) : (
-                                                <div className="flex flex-col items-center justify-center leading-tight w-full h-full px-2">
+                                                <div className="flex flex-col items-center justify-center leading-tight w-full h-full px-2 min-w-[80px]">
                                                     <div className="text-[10px] uppercase whitespace-nowrap" title={col.subjectName}>
                                                         {col.subjectName}
                                                     </div>
@@ -295,15 +318,15 @@ export default function AttendanceTableReport({ classes }) {
                             </TableHeader>
                             <TableBody>
                                 {tableData.map((row, rowIdx) => (
-                                    <TableRow key={rowIdx} className={`group hover:bg-muted/5 transition-colors ${row.dayName === 'Friday' ? 'bg-red-100/60 dark:bg-red-900/20 print:bg-red-100' : ''}`}>
-                                        <TableCell className={`sticky left-0 ${row.dayName === 'Friday' ? 'bg-red-100 dark:bg-red-900/40' : 'bg-background/80'} backdrop-blur-sm font-bold border z-30 p-0 w-[0.1%] h-10 date-column print:static print:bg-white print:text-black print:z-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:shadow-none`}>
-                                            <div className="flex items-center justify-center h-full px-2 text-xs whitespace-nowrap text-black">
+                                    <TableRow key={rowIdx} className={`group hover:bg-muted/5 transition-colors ${row.dayName === 'Friday' ? 'bg-red-100/60 dark:bg-red-900/20 print:bg-[#fee2e2] friday-row' : ''}`}>
+                                        <TableCell className={`sticky left-0 ${row.dayName === 'Friday' ? 'bg-[#fee2e2]' : 'bg-white'} font-bold border z-30 p-0 h-10 date-column print:static print:bg-white print:text-black print:z-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:shadow-none`}>
+                                            <div className="flex items-center justify-center h-full px-4 text-xs whitespace-nowrap text-black print:text-center print:w-full">
                                                 {row.displayDate}
                                             </div>
                                         </TableCell>
                                         {columns.slice(1).map((col, colIdx) => (
-                                            <TableCell key={colIdx} className="p-0 border h-10 w-[0.1%]">
-                                                <div className="flex items-center justify-center px-2 h-full">
+                                            <TableCell key={colIdx} className={`p-0 border h-10 overflow-hidden ${row[col.accessor]?.status === 'NO_PERIOD' ? 'bg-gray-50/50 no-period-cell' : ''}`}>
+                                                <div className="flex items-center justify-center px-2 h-full min-w-[80px]">
                                                     {renderCellContent(row[col.accessor])}
                                                 </div>
                                             </TableCell>
