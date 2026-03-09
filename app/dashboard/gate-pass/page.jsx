@@ -21,7 +21,7 @@ export default async function GatePassPage() {
         <div className="flex flex-col space-y-6">
             <Header
                 title="GATE PASS"
-                subTitle="Set passes and scan student ID barcodes at the gate"
+                subTitle="Set passes and scan student ID barcodes"
             />
             <GatePass apiKey={process.env.APIKEY} />
         </div>

@@ -72,6 +72,10 @@ export default function GatePass() {
     useEffect(() => {
         fetchLogs()
         fetchTeachers()
+
+        // Poll for updates every minute to handle 15-min expiry cleanup
+        const interval = setInterval(fetchLogs, 60000)
+        return () => clearInterval(interval)
     }, [fetchLogs, fetchTeachers])
 
     const handleSearch = async (e) => {
@@ -124,6 +128,7 @@ export default function GatePass() {
                 setStudentId('')
                 setReason('')
                 setSelectedTeacher('')
+                fetchLogs()
             } else {
                 const data = await res.json()
                 toast.error(data.message || 'Failed to set permission')
@@ -171,6 +176,10 @@ export default function GatePass() {
             const data = await res.json()
 
             if (res.ok) {
+                // Play success sound
+                const audio = new Audio('/success-chime.mp3')
+                audio.play().catch(e => console.log('Audio play failed:', e))
+
                 setConfirmedPass(data.pass)
                 setShowConfirmation(true)
                 setManualConfirmId('')
@@ -227,9 +236,6 @@ export default function GatePass() {
                                         <p className="font-bold text-lg">{student.name}</p>
                                         <p className="text-sm font-semibold text-primary">{student._id}</p>
                                         <p className="text-xs text-muted-foreground">{student.className || 'No Class'}</p>
-                                        <Badge variant={student.studentStatus === 'Active' ? 'default' : 'destructive'} className="mt-2">
-                                            {student.studentStatus}
-                                        </Badge>
                                     </div>
                                 </div>
 
@@ -348,18 +354,18 @@ export default function GatePass() {
             {showConfirmation && confirmedPass && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
                     <Card className="w-full max-w-md shadow-2xl border-green-500/50 overflow-hidden animate-in zoom-in-95 duration-300">
-                        <div className="bg-green-600 p-6 flex flex-col items-center justify-center text-white space-y-4">
+                        <div className="bg-green-600 p-6 lg:p-4 flex flex-col items-center justify-center text-white space-y-4 lg:space-y-2">
                             <div className="bg-white/20 p-4 rounded-full animate-bounce">
-                                <CheckCircle2 className="w-16 h-16" />
+                                <CheckCircle2 className="w-16 h-16 lg:w-12 lg:h-12" />
                             </div>
-                            <h2 className="text-3xl font-black tracking-tight uppercase">Confirmed!</h2>
+                            <h2 className="text-3xl lg:text-2xl font-black tracking-tight uppercase">Confirmed!</h2>
                             <div className="bg-white/10 px-4 py-1 rounded-full text-sm font-bold tracking-wider">
                                 {confirmedPass.type === 'IN' ? 'ENTRY PERMITTED' : 'EXIT PERMITTED'}
                             </div>
                         </div>
-                        <CardContent className="p-8 space-y-6 text-center">
+                        <CardContent className="p-8 lg:p-6 space-y-6 lg:space-y-4 text-center">
                             <div className="flex justify-center">
-                                <div className="relative w-32 h-40 rounded-lg overflow-hidden border-4 border-muted shadow-lg">
+                                <div className="relative w-32 h-40 lg:w-28 lg:h-36 rounded-lg overflow-hidden border-4 border-muted shadow-lg">
                                     {confirmedPass.studentId?.profilePic?.url ? (
                                         <Image src={confirmedPass.studentId.profilePic.url} alt="" fill className="object-cover" />
                                     ) : (
@@ -438,7 +444,7 @@ export default function GatePass() {
                 <CardHeader className="bg-primary/5 pb-4 border-b flex flex-row items-center justify-between">
                     <CardTitle className="text-lg flex items-center gap-2">
                         <History className="w-5 h-5 text-primary" />
-                        Confirmed Activity Log
+                        Activity Log
                     </CardTitle>
                     <Badge variant="outline" className="bg-background">Last 15 Records</Badge>
                 </CardHeader>
@@ -465,49 +471,63 @@ export default function GatePass() {
                                         </TableRow>
                                     ))
                                 ) : logs.length > 0 ? (
-                                    logs.map((log, index) => (
-                                        <TableRow key={log._id} className="hover:bg-muted/10 transition-colors">
-                                            <TableCell className="text-center text-xs text-muted-foreground">
-                                                {(index + 1).toString().padStart(2, '0')}
-                                            </TableCell>
-                                            <TableCell className="font-semibold">{log.studentId?._id}</TableCell>
-                                            <TableCell className="font-bold">{log.studentId?.name || 'User'}</TableCell>
-                                            <TableCell>{log.studentId?.className || 'N/A'}</TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                                                        <UserCheck className="w-3 h-3 text-primary" />
+                                    logs.map((log, index) => {
+                                        const isPending = log.status === 'Pending'
+                                        const timeToDisplay = isPending ? log.createdAt : log.confirmedAt
+                                        const isExpired = isPending && new Date(log.expiresAt) <= new Date()
+
+                                        if (isExpired) return null
+
+                                        return (
+                                            <TableRow
+                                                key={log._id}
+                                                className={`transition-colors ${isPending ? 'bg-yellow-100 hover:bg-yellow-200/50' : 'hover:bg-muted/10'}`}
+                                            >
+                                                <TableCell className="text-center text-xs text-muted-foreground">
+                                                    {(index + 1).toString().padStart(2, '0')}
+                                                </TableCell>
+                                                <TableCell className="font-semibold">{log.studentId?._id}</TableCell>
+                                                <TableCell className="font-bold">{log.studentId?.name || 'User'}</TableCell>
+                                                <TableCell>{log.studentId?.className || 'N/A'}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                                                            <UserCheck className="w-3 h-3 text-primary" />
+                                                        </div>
+                                                        <span className="text-xs font-medium">{log.allowedBy?.name || '-'}</span>
                                                     </div>
-                                                    <span className="text-xs font-medium">{log.allowedBy?.name || '-'}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={log.type === 'IN' ? 'outline' : 'destructive'} className={log.type === 'IN' ? 'text-green-600 border-green-600' : ''}>
-                                                    {log.type === 'IN' ? 'ENTRY' : 'EXIT'}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col text-xs">
-                                                    <span className="font-semibold">
-                                                        {new Date(log.confirmedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
-                                                    <span className="text-muted-foreground">
-                                                        {new Date(log.confirmedAt).toLocaleDateString()}
-                                                    </span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                                    onClick={() => setDeletingId(log._id)}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant={isPending ? 'secondary' : (log.type === 'IN' ? 'outline' : 'destructive')}
+                                                        className={!isPending && log.type === 'IN' ? 'text-green-600 border-green-600' : ''}
+                                                    >
+                                                        {log.type === 'IN' ? 'ENTRY' : 'EXIT'} {isPending && '(PENDING)'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col text-xs">
+                                                        <span className="font-semibold">
+                                                            {new Date(timeToDisplay || log.timestamp || log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                        <span className="text-muted-foreground">
+                                                            {new Date(timeToDisplay || log.timestamp || log.createdAt).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                        onClick={() => setDeletingId(log._id)}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })
                                 ) : (
                                     <TableRow>
                                         <TableCell colSpan={7} className="text-center py-16 text-muted-foreground">

@@ -38,7 +38,12 @@ export async function GET(req) {
         const studentId = searchParams.get("studentId");
         const limit = parseInt(searchParams.get("limit") || "15");
 
-        const query = { status: "Confirmed" };
+        const query = {
+            $or: [
+                { status: "Confirmed" },
+                { status: "Pending", expiresAt: { $gt: new Date() } }
+            ]
+        };
         if (studentId) {
             query.studentId = studentId.trim().toUpperCase();
         }
@@ -54,7 +59,7 @@ export async function GET(req) {
             })
             .populate("recordedBy", "name")
             .populate("allowedBy", "name")
-            .sort({ confirmedAt: -1 })
+            .sort({ updatedAt: -1 })
             .limit(limit);
 
         const formattedLogs = logs.map(formatPass);
