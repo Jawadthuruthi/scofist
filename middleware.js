@@ -450,6 +450,11 @@ const pages = [
     path: "/dashboard/academic-calendar",
     allowedRoles: ["College Admin"],
   },
+  {
+    title: "Gate Pass",
+    path: "/dashboard/gate-pass",
+    allowedRoles: ["College Admin"],
+  },
 ];
 
 export async function middleware(req) {

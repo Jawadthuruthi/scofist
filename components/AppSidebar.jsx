@@ -264,6 +264,12 @@ const items = [
     allowedRoles: ["College Admin"],
   },
   {
+    title: "Gate Pass",
+    url: "/dashboard/gate-pass",
+    icon: QrCode,
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Managements",
     icon: Briefcase,
     allowedRoles: ["College Admin", "Teacher"],

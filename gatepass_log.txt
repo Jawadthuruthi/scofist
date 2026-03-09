@@ -1,0 +1,57 @@
+2026-03-09T01:51:05.843Z - POST Request - Action: set, ID: 530, Type: OUT, AllowedBy: TCH-002
+2026-03-09T01:51:05.980Z - Set Success: ID=69ae2789d2e724fbe55ac1c6, studentId=530, expiresAt=2026-03-09T02:06:05.910Z
+2026-03-09T01:51:11.665Z - POST Request - Action: confirm, ID: 530, Type: undefined, AllowedBy: undefined
+2026-03-09T01:51:11.670Z - Confirm Attempt: ID=530, Time=2026-03-09T01:51:11.670Z
+2026-03-09T01:51:11.728Z - Last pass in DB for 530: {"_id":"69ae2789d2e724fbe55ac1c6","createdAt":"2026-03-09T01:51:05.914Z","studentId":"530"}
+2026-03-09T01:51:11.824Z - No PENDING pass found for 530
+2026-03-09T01:51:20.937Z - POST Request - Action: confirm, ID: 530, Type: undefined, AllowedBy: undefined
+2026-03-09T01:51:20.939Z - Confirm Attempt: ID=530, Time=2026-03-09T01:51:20.939Z
+2026-03-09T01:51:20.993Z - Last pass in DB for 530: {"_id":"69ae2789d2e724fbe55ac1c6","createdAt":"2026-03-09T01:51:05.914Z","studentId":"530"}
+2026-03-09T01:51:21.089Z - No PENDING pass found for 530
+2026-03-09T01:52:28.296Z - GatePass Schema Paths: studentId, type, reason, status, timestamp, expiresAt, confirmedAt, allowedBy, recordedBy, _id, createdAt, updatedAt
+2026-03-09T01:52:34.491Z - GatePass Schema Paths: studentId, type, reason, status, timestamp, expiresAt, confirmedAt, allowedBy, recordedBy, _id, createdAt, updatedAt
+2026-03-09T01:52:34.504Z - POST Request - Action: set, ID: 530, Type: OUT, AllowedBy: TCH-002
+2026-03-09T01:52:34.505Z - POST - GatePass Schema Paths: studentId, type, reason, status, timestamp, expiresAt, confirmedAt, allowedBy, recordedBy, _id, createdAt, updatedAt
+2026-03-09T01:52:34.618Z - Set Success: ID=69ae27e2d2e724fbe55ac1e6, studentId=530, expiresAt=2026-03-09T02:07:34.557Z
+2026-03-09T01:52:39.686Z - POST Request - Action: confirm, ID: 530, Type: undefined, AllowedBy: undefined
+2026-03-09T01:52:39.687Z - POST - GatePass Schema Paths: studentId, type, reason, status, timestamp, expiresAt, confirmedAt, allowedBy, recordedBy, _id, createdAt, updatedAt
+2026-03-09T01:52:39.690Z - Confirm Attempt: ID=530, Time=2026-03-09T01:52:39.690Z
+2026-03-09T01:52:39.745Z - Last pass in DB for 530: {"_id":"69ae27e2d2e724fbe55ac1e6","status":"Pending","expiresAt":"2026-03-09T02:07:34.557Z","createdAt":"2026-03-09T01:52:34.564Z","studentId":"530"}
+2026-03-09T01:52:39.859Z - Confirm Success: ID=69ae27e2d2e724fbe55ac1e6 for 530
+2026-03-09T01:52:49.998Z - POST Request - Action: confirm, ID: 530, Type: undefined, AllowedBy: undefined
+2026-03-09T01:52:49.999Z - POST - GatePass Schema Paths: studentId, type, reason, status, timestamp, expiresAt, confirmedAt, allowedBy, recordedBy, _id, createdAt, updatedAt
+2026-03-09T01:52:50.001Z - Confirm Attempt: ID=530, Time=2026-03-09T01:52:50.001Z
+2026-03-09T01:52:50.051Z - Last pass in DB for 530: {"_id":"69ae27e2d2e724fbe55ac1e6","status":"Confirmed","expiresAt":"2026-03-09T02:07:34.557Z","createdAt":"2026-03-09T01:52:34.564Z","studentId":"530"}
+2026-03-09T01:52:50.145Z - No PENDING pass found for 530
+2026-03-09T01:52:53.704Z - POST Request - Action: confirm, ID: 530, Type: undefined, AllowedBy: undefined
+2026-03-09T01:52:53.705Z - POST - GatePass Schema Paths: studentId, type, reason, status, timestamp, expiresAt, confirmedAt, allowedBy, recordedBy, _id, createdAt, updatedAt
+2026-03-09T01:52:53.707Z - Confirm Attempt: ID=530, Time=2026-03-09T01:52:53.707Z
+2026-03-09T01:52:53.759Z - Last pass in DB for 530: {"_id":"69ae27e2d2e724fbe55ac1e6","status":"Confirmed","expiresAt":"2026-03-09T02:07:34.557Z","createdAt":"2026-03-09T01:52:34.564Z","studentId":"530"}
+2026-03-09T01:52:53.853Z - No PENDING pass found for 530
+2026-03-09T01:53:08.064Z - POST Request - Action: set, ID: 890, Type: OUT, AllowedBy: TCH-002
+2026-03-09T01:53:08.065Z - POST - GatePass Schema Paths: studentId, type, reason, status, timestamp, expiresAt, confirmedAt, allowedBy, recordedBy, _id, createdAt, updatedAt
+2026-03-09T01:53:08.170Z - Set Success: ID=69ae2804d2e724fbe55ac206, studentId=890, expiresAt=2026-03-09T02:08:08.119Z
+2026-03-09T01:53:17.211Z - POST Request - Action: confirm, ID: 890, Type: undefined, AllowedBy: undefined
+2026-03-09T01:53:17.212Z - POST - GatePass Schema Paths: studentId, type, reason, status, timestamp, expiresAt, confirmedAt, allowedBy, recordedBy, _id, createdAt, updatedAt
+2026-03-09T01:53:17.214Z - Confirm Attempt: ID=890, Time=2026-03-09T01:53:17.214Z
+2026-03-09T01:53:17.266Z - Last pass in DB for 890: {"_id":"69ae2804d2e724fbe55ac206","status":"Pending","expiresAt":"2026-03-09T02:08:08.119Z","createdAt":"2026-03-09T01:53:08.120Z","studentId":"890"}
+2026-03-09T01:53:17.371Z - Confirm Success: ID=69ae2804d2e724fbe55ac206 for 890
+2026-03-09T01:53:56.208Z - POST Request - Action: set, ID: 888, Type: IN, AllowedBy: TCH-005
+2026-03-09T01:53:56.208Z - POST - GatePass Schema Paths: studentId, type, reason, status, timestamp, expiresAt, confirmedAt, allowedBy, recordedBy, _id, createdAt, updatedAt
+2026-03-09T01:53:56.314Z - Set Success: ID=69ae2834d2e724fbe55ac21a, studentId=888, expiresAt=2026-03-09T02:08:56.262Z
+2026-03-09T01:54:03.911Z - POST Request - Action: confirm, ID: 888, Type: undefined, AllowedBy: undefined
+2026-03-09T01:54:03.912Z - POST - GatePass Schema Paths: studentId, type, reason, status, timestamp, expiresAt, confirmedAt, allowedBy, recordedBy, _id, createdAt, updatedAt
+2026-03-09T01:54:03.915Z - Confirm Attempt: ID=888, Time=2026-03-09T01:54:03.915Z
+2026-03-09T01:54:03.967Z - Last pass in DB for 888: {"_id":"69ae2834d2e724fbe55ac21a","status":"Pending","expiresAt":"2026-03-09T02:08:56.262Z","createdAt":"2026-03-09T01:53:56.264Z","studentId":"888"}
+2026-03-09T01:54:04.080Z - Confirm Success: ID=69ae2834d2e724fbe55ac21a for 888
+2026-03-09T01:54:15.256Z - POST Request - Action: confirm, ID: 890, Type: undefined, AllowedBy: undefined
+2026-03-09T01:54:15.257Z - POST - GatePass Schema Paths: studentId, type, reason, status, timestamp, expiresAt, confirmedAt, allowedBy, recordedBy, _id, createdAt, updatedAt
+2026-03-09T01:54:15.259Z - Confirm Attempt: ID=890, Time=2026-03-09T01:54:15.259Z
+2026-03-09T01:54:15.310Z - Last pass in DB for 890: {"_id":"69ae2804d2e724fbe55ac206","status":"Confirmed","expiresAt":"2026-03-09T02:08:08.119Z","createdAt":"2026-03-09T01:53:08.120Z","studentId":"890"}
+2026-03-09T01:54:15.405Z - No PENDING pass found for 890
+2026-03-09T02:00:55.956Z - POST Request - Action: set, ID: 890, Type: OUT, AllowedBy: TCH-002
+2026-03-09T02:00:56.093Z - Set Success: ID=69ae29d8d2e724fbe55ac279, studentId=890, expiresAt=2026-03-09T02:15:56.032Z
+2026-03-09T02:01:00.521Z - POST Request - Action: confirm, ID: 890, Type: undefined, AllowedBy: undefined
+2026-03-09T02:01:00.523Z - Confirm Attempt: ID=890, Time=2026-03-09T02:01:00.523Z
+2026-03-09T02:01:00.628Z - Confirm Success: ID=69ae29d8d2e724fbe55ac279 for 890
+2026-03-09T02:01:17.875Z - DELETE Success: ID=69ae2834d2e724fbe55ac21a
