@@ -18,7 +18,7 @@ export default async function GatePassPage() {
     }
 
     return (
-        <div className="flex flex-col space-y-2">
+        <div className="flex flex-col space-y-0">
             <Header
                 title="GATE PASS"
                 subTitle="Set passes and scan student ID barcodes"
