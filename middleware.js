@@ -453,7 +453,7 @@ const pages = [
   {
     title: "Gate Pass",
     path: "/dashboard/gate-pass",
-    allowedRoles: ["College Admin"],
+    allowedRoles: ["College Admin", "Gate Keeper", "Teacher"],
   },
 ];
 
@@ -501,6 +501,10 @@ async function handleLoginPageRequest(req) {
       return NextResponse.redirect(
         new URL("/dashboard/library-dashboard", req.url)
       );
+    }
+
+    if (activeRole === "Gate Keeper") {
+      return NextResponse.redirect(new URL("/dashboard/gate-pass", req.url));
     }
 
     return NextResponse.redirect(new URL("/dashboard", req.url));
@@ -596,46 +600,53 @@ async function handleAuthRequest(req) {
     }
     return res;
   }
-  const token = req.cookies.get("auth-token")?.value;
 
-  if (!token) {
+  // Check for standard auth token first
+  const token = req.cookies.get("auth-token")?.value;
+  // Check for custom member token as fallback
+  const customToken = req.cookies.get("custom-member-token")?.value;
+
+  if (!token && !customToken) {
     return redirectToLogin(req);
   }
 
+  const activeToken = token || customToken;
+
   try {
     // Verify JWT token
-    const { payload } = await jwtVerify(token, SECRET_KEY);
+    const { payload } = await jwtVerify(activeToken, SECRET_KEY);
     const { userId } = payload;
 
-    // Check if user is allowed to access this page
+    // For custom members without a userId in payload (older tokens), use email
+    const effectiveUserId = userId || payload.email;
+
+    if (!effectiveUserId) {
+      return redirectToLogin(req);
+    }
 
     // Check cache first
-    const cachedUser = getUserFromCache(userId);
+    const cachedUser = getUserFromCache(effectiveUserId);
 
     if (cachedUser) {
-      // Use cached user data to avoid API calls
-      return prepareResponse(req, token, cachedUser);
+      return prepareResponse(req, activeToken, cachedUser);
     }
 
     try {
-      // Try to fetch user with increased timeout
-      const user = await fetchUserProfile(userId, process.env.API_KEY, req.nextUrl.origin);
+      // Try to fetch user (profile API now handles custom roles)
+      const user = await fetchUserProfile(effectiveUserId, process.env.API_KEY, req.nextUrl.origin);
 
       if (user) {
-        storeUserInCache(userId, user);
-        return prepareResponse(req, token, user);
+        storeUserInCache(effectiveUserId, user);
+        return prepareResponse(req, activeToken, user);
       }
     } catch (fetchError) {
       console.error("Error fetching user profile:", fetchError.message);
 
-      // Important: Create minimal valid user object from JWT payload
-      // This allows the application to continue working even when API fails
+      // Fallback user from JWT payload
       const fallbackUser = createFallbackUser(payload);
+      storeUserInCache(effectiveUserId, fallbackUser, 1 * 60 * 1000);
 
-      // Store fallback user with shorter TTL
-      storeUserInCache(userId, fallbackUser, 1 * 60 * 1000); // 1 minutes
-
-      return prepareResponse(req, token, fallbackUser);
+      return prepareResponse(req, activeToken, fallbackUser);
     }
 
     return redirectToLogin(req);
@@ -646,12 +657,23 @@ async function handleAuthRequest(req) {
 }
 
 function isUserAllowed(activeRole, path) {
+  if (!activeRole) return false;
+
   const page = pages.find(
     (page) => page.path === path || (page.pattern && page.pattern.test(path))
   );
 
+  // If no specific page rule found, and it's a dashboard subpath, 
+  // we might want to be careful. But for the main dashboard, let's be explicit.
+  if (path === "/dashboard") {
+    return true; // Any authenticated role can see the dashboard
+  }
+
   // Check if user has the required role
   const allowedRoles = page?.allowedRoles || [];
+
+  // If it's a custom role (not one of the known standard ones), 
+  // we might allow it access to certain things by default or if explicitly allowed.
   return allowedRoles.includes(activeRole);
 }
 
@@ -776,6 +798,11 @@ function prepareResponse(req, token, user) {
     if (activeRole === "Librarian" && req.nextUrl.pathname === "/dashboard") {
       return NextResponse.redirect(
         new URL("/dashboard/library-dashboard", req.url)
+      );
+    }
+    if (activeRole === "Gate Keeper" && req.nextUrl.pathname === "/dashboard") {
+      return NextResponse.redirect(
+        new URL("/dashboard/gate-pass", req.url)
       );
     }
     return redirectTo404(req);

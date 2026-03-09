@@ -22,7 +22,6 @@ const customRoleSchema = new Schema(
             required: true,
             trim: true,
             unique: true,
-            uppercase: true,
         },
         description: { type: String, trim: true, default: '' },
         members: [memberSchema],

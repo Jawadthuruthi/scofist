@@ -23,7 +23,7 @@ export async function POST(req) {
         }
 
         const existing = await CustomRole.findOne({
-            name: name.trim().toUpperCase(),
+            name: { $regex: new RegExp(`^${name.trim()}$`, "i") },
         });
         if (existing) {
             return NextResponse.json(

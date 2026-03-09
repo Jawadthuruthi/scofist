@@ -267,7 +267,7 @@ const items = [
     title: "Gate Pass",
     url: "/dashboard/gate-pass",
     icon: QrCode,
-    allowedRoles: ["College Admin"],
+    allowedRoles: ["College Admin", "Gate Keeper", "Teacher"],
   },
   {
     title: "Managements",
@@ -623,11 +623,12 @@ function ComboBox({ roles, role }) {
                     } catch (error) {
                       console.error("Error setting cookie:", error);
                     }
-                    window.location.reload();
                     if (currentValue === "Stationary" || currentValue === "IT Lab") {
                       window.location.href = "/dashboard/students-fund";
                     } else if (currentValue === "Librarian") {
                       window.location.href = "/dashboard/library-dashboard";
+                    } else if (currentValue === "Gate Keeper") {
+                      window.location.href = "/dashboard/gate-pass";
                     } else {
                       window.location.href = "/dashboard";
                     }
@@ -673,8 +674,23 @@ export function AppSidebar({ roles, activeRole, user }) {
 
   // Memoized filtered menu items
   const menuItems = useMemo(() => {
+    // Define standard platform roles to identify custom ones
+    const STANDARD_ROLES = [
+      "College Admin", "Org Admin", "Teacher", "Student",
+      "Program Committee", "Program Leader", "Finance",
+      "Literary Leader", "Stationary", "IT Lab", "Spark Admin", "Librarian", "Gate Keeper"
+    ];
+
     return items
       .filter((item) => {
+        // Special case: Allow 'Dashboard' for any authenticated role (including custom ones)
+        // EXCEPT Gate Keeper who should only see Gate Pass
+        if (item.title === "Dashboard") {
+          if (role === "Gate Keeper") return false;
+          if (item.allowedRoles?.includes(role) || !STANDARD_ROLES.includes(role)) return true;
+          return false;
+        }
+
         if (!item.allowedRoles?.includes(role)) return false;
 
         // Custom check for Downloads and Students: Visible only for 'Active' students
@@ -741,7 +757,7 @@ export function AppSidebar({ roles, activeRole, user }) {
             <SidebarMenu>
               {menuItems.map((item) =>
                 item.subItems ? (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.url + item.title}>
                     <SidebarMenuButton asChild>
                       <div className="flex items-center gap-2">
                         <item.icon className="w-5 h-5" />
@@ -750,7 +766,7 @@ export function AppSidebar({ roles, activeRole, user }) {
                     </SidebarMenuButton>
                     <SidebarMenuSub className="mr-0 pt-2">
                       {item.subItems.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.title}>
+                        <SidebarMenuSubItem key={subItem.url + subItem.title}>
                           <SidebarMenuSubButton
                             data-active={pathname === subItem.url}
                             asChild
@@ -765,7 +781,7 @@ export function AppSidebar({ roles, activeRole, user }) {
                     </SidebarMenuSub>
                   </SidebarMenuItem>
                 ) : (
-                  <SidebarMenuItem className="pt-1" key={item.title}>
+                  <SidebarMenuItem className="pt-1" key={item.url + item.title}>
                     <SidebarMenuButton
                       data-active={pathname === item.url}
                       asChild

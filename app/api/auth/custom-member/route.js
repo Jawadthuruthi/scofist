@@ -87,6 +87,7 @@ export async function POST(req) {
             const roleNames = matchingRoles.map((r) => r.name);
 
             const token = await new SignJWT({
+                userId: emailLower, // Use email as ID for custom members
                 email: emailLower,
                 name: memberInfo?.name || emailLower,
                 customRoles: roleNames,

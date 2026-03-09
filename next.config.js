@@ -1,7 +1,7 @@
 import withPWA from "next-pwa";
 
 /** @type {import('next').NextConfig} */
-// trigger restart 6
+// trigger restart 7
 const nextConfig = {
   reactStrictMode: true,
   images: {

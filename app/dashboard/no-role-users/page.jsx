@@ -224,19 +224,19 @@ function AdminUsersTab({ users, customRoles, loading, refresh }) {
                           <div className="flex flex-wrap gap-1">
                             {/* Standard Roles */}
                             {user.roles?.map((r) => (
-                              <Badge key={r} variant="secondary" className="text-xs uppercase">
+                              <Badge key={r} variant="secondary" className="text-xs">
                                 {r}
                               </Badge>
                             ))}
                             {/* Custom Roles */}
                             {uCustomRoles.map((cr) => (
-                              <Badge key={cr} variant="default" className="text-xs uppercase bg-primary/80">
+                              <Badge key={cr} variant="default" className="text-xs bg-primary/80">
                                 {cr}
                               </Badge>
                             ))}
                             {/* No Roles Placeholder */}
                             {(!user.roles?.length && !uCustomRoles.length) && (
-                              <Badge variant="outline" className="text-xs uppercase">
+                              <Badge variant="outline" className="text-xs">
                                 No Roles
                               </Badge>
                             )}
@@ -261,7 +261,7 @@ function AdminUsersTab({ users, customRoles, loading, refresh }) {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="uppercase">ASSIGN ROLES — {selectedUser?.name}</DialogTitle>
+            <DialogTitle>ASSIGN ROLES — {selectedUser?.name}</DialogTitle>
             <DialogDescription>Select roles to assign to this user.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 py-4">
@@ -523,27 +523,24 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="uppercase text-lg">ROLE SUMMARY OVERVIEW</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 py-3 px-4">
+          <CardTitle className="text-base font-bold">Role Summary</CardTitle>
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={() => setCreateOpen(true)} className="h-8">
-              <Plus className="mr-2 h-4 w-4" />
+            <Button size="sm" onClick={() => setCreateOpen(true)} className="h-7 text-xs px-2">
+              <Plus className="mr-1 h-3 w-3" />
               ADD ROLE
             </Button>
-            <div className="text-xs text-muted-foreground uppercase bg-muted px-2 py-1 rounded">
-              Audit Mode
-            </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="uppercase text-xs">Role Name</TableHead>
-                  <TableHead className="uppercase text-xs">Type</TableHead>
-                  <TableHead className="uppercase text-xs">Members</TableHead>
-                  <TableHead className="text-right uppercase text-xs">Actions</TableHead>
+                <TableRow className="h-8 hover:bg-transparent border-b">
+                  <TableHead className="text-[10px] h-8 py-0 font-bold">Role Name</TableHead>
+                  <TableHead className="text-[10px] h-8 py-0 font-bold">Type</TableHead>
+                  <TableHead className="text-[10px] h-8 py-0 font-bold">Members</TableHead>
+                  <TableHead className="text-right text-[10px] h-8 py-0 font-bold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -556,14 +553,14 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
                 ) : (
                   roleGroups.map((group) => (
                     <TableRow key={`${group.type}-${group.name}`} className="group/row">
-                      <TableCell className="font-semibold py-4">
+                      <TableCell className="font-semibold py-3">
                         <div className="flex items-center gap-2">
                           {group.type === 'Custom' ? (
                             <ShieldCheck className="h-4 w-4 text-primary" />
                           ) : (
                             <UserCheck className="h-4 w-4 text-muted-foreground" />
                           )}
-                          <span className="uppercase">{group.name}</span>
+                          <span className="">{group.name}</span>
                           {group.type === 'Custom' && (
                             <div className="flex items-center gap-1 ml-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
                               <button onClick={() => openEdit(group.id)} className="text-muted-foreground hover:text-primary p-1">
@@ -576,8 +573,8 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={group.type === 'Custom' ? 'default' : 'secondary'} className="uppercase text-[10px]">
+                      <TableCell className="py-3">
+                        <Badge variant={group.type === 'Custom' ? 'default' : 'secondary'} className="text-[10px]">
                           {group.type}
                         </Badge>
                       </TableCell>
@@ -632,8 +629,8 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
       <Dialog open={!!addRole} onOpenChange={(o) => !o && setAddRole(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="uppercase underline underline-offset-4 decoration-primary decoration-2">
-              ADD TO {addRole?.name}
+            <DialogTitle className="underline underline-offset-4 decoration-primary decoration-2">
+              Add to {addRole?.name}
             </DialogTitle>
             <DialogDescription className="pt-2">
               {addRole?.type === 'Standard'
@@ -643,7 +640,7 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-1">
-              <Label htmlFor="member-email" className="text-xs uppercase font-bold text-muted-foreground">Email Address</Label>
+              <Label htmlFor="member-email" className="text-xs font-bold text-muted-foreground">Email Address</Label>
               <Input
                 id="member-email"
                 placeholder="user@example.com"
@@ -670,7 +667,7 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
       <ConfirmDialog
         open={!!confirmRemove}
         onOpenChange={(o) => !o && setConfirmRemove(null)}
-        title="REMOVE MEMBER?"
+        title="Remove Member?"
         description={`Are you sure you want to remove "${confirmRemove?.userEmail}" from the role "${confirmRemove?.roleName}"? This action is effective immediately.`}
         onConfirm={handleRemoveMember}
         loading={removing}
@@ -681,7 +678,7 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="uppercase">CREATE NEW ROLE</DialogTitle>
+            <DialogTitle className="">Create New Role</DialogTitle>
             <DialogDescription>
               Define a custom role name and optional description.
             </DialogDescription>
@@ -723,7 +720,7 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="uppercase">EDIT ROLE: {editRole?.name}</DialogTitle>
+            <DialogTitle className="">Edit Role: {editRole?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1">
@@ -758,7 +755,7 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
       <ConfirmDialog
         open={!!deleteRoleConfirm}
         onOpenChange={(o) => !o && setDeleteRoleConfirm(null)}
-        title={`DELETE "${deleteRoleConfirm?.name}"?`}
+        title={`Delete "${deleteRoleConfirm?.name}"?`}
         description={`This will permanently delete the role and remove all ${deleteRoleConfirm?.members?.length ?? 0} member(s). This cannot be undone.`}
         onConfirm={handleDeleteRole}
         loading={deletingRole}
@@ -803,13 +800,11 @@ export default function AdminUsersPage() {
   const props = { users, customRoles, loading, refresh: fetchData };
 
   return (
-    <div className="container mx-auto p-0 space-y-4 md:space-y-6">
+    <div className="container mx-auto p-0 pt-4 md:pt-0 space-y-4 md:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight uppercase">Admin Users</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage user roles and custom role groups
-        </p>
+        <h1 className="font-bold text-xl md:text-2xl text-foreground uppercase">ADMIN USERS</h1>
+        <h3 className="text-muted-foreground">Manage user roles and custom role groups</h3>
       </div>
 
       <Tabs defaultValue="admin-users">

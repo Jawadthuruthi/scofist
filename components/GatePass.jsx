@@ -21,7 +21,7 @@ import { Search, Scan, LogIn, LogOut, History, User, Shield, Clock, CheckCircle2
 import BarcodeScanner from './BarcodeScanner'
 import Image from 'next/image'
 
-export default function GatePass() {
+export default function GatePass({ activeRole, currentUser }) {
     const [studentId, setStudentId] = useState('')
     const [student, setStudent] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -73,10 +73,15 @@ export default function GatePass() {
         fetchLogs()
         fetchTeachers()
 
+        // If active role is Teacher, set the selected teacher to current user
+        if (activeRole === 'Teacher' && currentUser?._id) {
+            setSelectedTeacher(currentUser._id)
+        }
+
         // Poll for updates every minute to handle 15-min expiry cleanup
         const interval = setInterval(fetchLogs, 60000)
         return () => clearInterval(interval)
-    }, [fetchLogs, fetchTeachers])
+    }, [fetchLogs, fetchTeachers, activeRole, currentUser])
 
     const handleSearch = async (e) => {
         if (e) e.preventDefault()
@@ -196,103 +201,113 @@ export default function GatePass() {
 
     return (
         <div className="space-y-6 relative">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className={`grid grid-cols-1 ${activeRole !== 'Gate Keeper' ? 'lg:grid-cols-2' : 'max-w-2xl mx-auto'} gap-6`}>
                 {/* Step 1: Set Permission */}
-                <Card className="border-primary/10 shadow-lg">
-                    <CardHeader className="bg-primary/5 pb-4">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                            <Shield className="w-5 h-5 text-primary" />
-                            1. Set Gate Permission
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6 space-y-6">
-                        <form onSubmit={handleSearch} className="flex gap-2">
-                            <Input
-                                placeholder="Search Student ID"
-                                value={studentId}
-                                onChange={(e) => setStudentId(e.target.value)}
-                                className="uppercase"
-                            />
-                            <Button type="submit" size="icon" disabled={loading}>
-                                <Search className="w-4 h-4" />
-                            </Button>
-                        </form>
+                {activeRole !== 'Gate Keeper' && (
+                    <Card className="border-primary/10 shadow-lg">
+                        <CardHeader className="bg-primary/5 pb-4">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Shield className="w-5 h-5 text-primary" />
+                                Set Gate Permission
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6 space-y-6">
+                            <form onSubmit={handleSearch} className="flex gap-2">
+                                <Input
+                                    placeholder="Search Student ID"
+                                    value={studentId}
+                                    onChange={(e) => setStudentId(e.target.value)}
+                                    className="uppercase"
+                                />
+                                <Button type="submit" size="icon" disabled={loading}>
+                                    <Search className="w-4 h-4" />
+                                </Button>
+                            </form>
 
-                        {loading ? (
-                            <div className="flex justify-center p-8 animate-pulse">
-                                <Clock className="w-8 h-8 animate-spin text-primary/40" />
-                            </div>
-                        ) : student ? (
-                            <div className="bg-muted/30 p-4 rounded-lg border border-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div className="flex gap-4">
-                                    <div className="relative w-24 h-28 rounded border bg-muted shrink-0 overflow-hidden">
-                                        {student.profilePic?.url ? (
-                                            <Image src={student.profilePic.url} alt={student.name} fill className="object-cover" />
-                                        ) : (
-                                            <User className="w-full h-full p-6 text-muted-foreground/30" />
-                                        )}
+                            {loading ? (
+                                <div className="flex justify-center p-8 animate-pulse">
+                                    <Clock className="w-8 h-8 animate-spin text-primary/40" />
+                                </div>
+                            ) : student ? (
+                                <div className="bg-muted/30 p-4 rounded-lg border border-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="flex gap-4">
+                                        <div className="relative w-24 h-28 rounded border bg-muted shrink-0 overflow-hidden">
+                                            {student.profilePic?.url ? (
+                                                <Image src={student.profilePic.url} alt={student.name} fill className="object-cover" />
+                                            ) : (
+                                                <User className="w-full h-full p-6 text-muted-foreground/30" />
+                                            )}
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="font-bold text-lg">{student.name}</p>
+                                            <p className="text-sm font-semibold text-primary">{student._id}</p>
+                                            <p className="text-xs text-muted-foreground">{student.className || 'No Class'}</p>
+                                        </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <p className="font-bold text-lg">{student.name}</p>
-                                        <p className="text-sm font-semibold text-primary">{student._id}</p>
-                                        <p className="text-xs text-muted-foreground">{student.className || 'No Class'}</p>
+
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-semibold text-muted-foreground ml-1">AUTHORIZED BY (TEACHER)</p>
+                                            <Select
+                                                value={selectedTeacher}
+                                                onValueChange={setSelectedTeacher}
+                                                disabled={activeRole === 'Teacher'}
+                                            >
+                                                <SelectTrigger className="w-full bg-background">
+                                                    <SelectValue placeholder="Select Teacher" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {/* Ensure current teacher is in list even if not fetched yet */}
+                                                    {activeRole === 'Teacher' && currentUser && !teachers.find(t => t._id === currentUser._id) && (
+                                                        <SelectItem key={currentUser._id} value={currentUser._id}>{currentUser.name}</SelectItem>
+                                                    )}
+                                                    {teachers.map(teacher => (
+                                                        <SelectItem key={teacher._id} value={teacher._id}>{teacher.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-semibold text-muted-foreground ml-1">REASON</p>
+                                            <Input
+                                                placeholder="Optional reason for pass"
+                                                value={reason}
+                                                onChange={(e) => setReason(e.target.value)}
+                                            />
+                                        </div>
+
+                                        <div className="flex gap-2 pt-2">
+                                            <Button
+                                                className="flex-1 bg-green-600 hover:bg-green-700 h-10"
+                                                onClick={() => setPermission('IN')}
+                                            >
+                                                <LogIn className="w-4 h-4 mr-2" /> Allow IN
+                                            </Button>
+                                            <Button
+                                                className="flex-1 bg-red-600 hover:bg-red-700 h-10"
+                                                onClick={() => setPermission('OUT')}
+                                            >
+                                                <LogOut className="w-4 h-4 mr-2" /> Allow OUT
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
-
-                                <div className="grid grid-cols-1 gap-3">
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-semibold text-muted-foreground ml-1">AUTHORIZED BY (TEACHER)</p>
-                                        <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
-                                            <SelectTrigger className="w-full bg-background">
-                                                <SelectValue placeholder="Select Teacher" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {teachers.map(teacher => (
-                                                    <SelectItem key={teacher._id} value={teacher._id}>{teacher.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-semibold text-muted-foreground ml-1">REASON</p>
-                                        <Input
-                                            placeholder="Optional reason for pass"
-                                            value={reason}
-                                            onChange={(e) => setReason(e.target.value)}
-                                        />
-                                    </div>
-
-                                    <div className="flex gap-2 pt-2">
-                                        <Button
-                                            className="flex-1 bg-green-600 hover:bg-green-700 h-10"
-                                            onClick={() => setPermission('IN')}
-                                        >
-                                            <LogIn className="w-4 h-4 mr-2" /> Allow IN
-                                        </Button>
-                                        <Button
-                                            className="flex-1 bg-red-600 hover:bg-red-700 h-10"
-                                            onClick={() => setPermission('OUT')}
-                                        >
-                                            <LogOut className="w-4 h-4 mr-2" /> Allow OUT
-                                        </Button>
-                                    </div>
+                            ) : (
+                                <div className="text-center p-12 border-2 border-dashed rounded-lg border-muted/50 text-muted-foreground">
+                                    <p className="text-sm">Search student to identify and set permission</p>
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="text-center p-12 border-2 border-dashed rounded-lg border-muted/50 text-muted-foreground">
-                                <p className="text-sm">Search student to identify and set permission</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Step 2: Confirmation Scanner */}
                 <Card className="border-primary/10 shadow-lg">
                     <CardHeader className="bg-primary/5 pb-4">
                         <CardTitle className="text-lg flex items-center gap-2">
                             <Scan className="w-5 h-5 text-primary" />
-                            2. Gate Scanner (Confirm)
+                            Gate Pass Scanner
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-6 h-full flex flex-col space-y-6">
@@ -440,109 +455,113 @@ export default function GatePass() {
             )}
 
             {/* Activity Table */}
-            <Card className="border-primary/10 shadow-lg overflow-hidden">
-                <CardHeader className="bg-primary/5 pb-4 border-b flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <History className="w-5 h-5 text-primary" />
-                        Activity Log
-                    </CardTitle>
-                    <Badge variant="outline" className="bg-background">Last 15 Records</Badge>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader className="bg-muted/30">
-                                <TableRow>
-                                    <TableHead className="w-[60px] text-center">Sl No</TableHead>
-                                    <TableHead>Student ID</TableHead>
-                                    <TableHead>Full Name</TableHead>
-                                    <TableHead>Class</TableHead>
-                                    <TableHead>Authorized By</TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Date & Time</TableHead>
-                                    <TableHead className="w-[80px] text-center">Action</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {fetchingLogs ? (
-                                    Array(5).fill(0).map((_, i) => (
-                                        <TableRow key={i} className="animate-pulse">
-                                            <TableCell colSpan={7} className="h-14 bg-muted/5" />
-                                        </TableRow>
-                                    ))
-                                ) : logs.length > 0 ? (
-                                    logs.map((log, index) => {
-                                        const isPending = log.status === 'Pending'
-                                        const timeToDisplay = isPending ? log.createdAt : log.confirmedAt
-                                        const isExpired = isPending && new Date(log.expiresAt) <= new Date()
-
-                                        if (isExpired) return null
-
-                                        return (
-                                            <TableRow
-                                                key={log._id}
-                                                className={`transition-colors ${isPending ? 'bg-yellow-100 hover:bg-yellow-200/50' : 'hover:bg-muted/10'}`}
-                                            >
-                                                <TableCell className="text-center text-xs text-muted-foreground">
-                                                    {(index + 1).toString().padStart(2, '0')}
-                                                </TableCell>
-                                                <TableCell className="font-semibold">{log.studentId?._id}</TableCell>
-                                                <TableCell className="font-bold">{log.studentId?.name || 'User'}</TableCell>
-                                                <TableCell>{log.studentId?.className || 'N/A'}</TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                                                            <UserCheck className="w-3 h-3 text-primary" />
-                                                        </div>
-                                                        <span className="text-xs font-medium">{log.allowedBy?.name || '-'}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge
-                                                        variant={isPending ? 'secondary' : (log.type === 'IN' ? 'outline' : 'destructive')}
-                                                        className={!isPending && log.type === 'IN' ? 'text-green-600 border-green-600' : ''}
-                                                    >
-                                                        {log.type === 'IN' ? 'ENTRY' : 'EXIT'} {isPending && '(PENDING)'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col text-xs">
-                                                        <span className="font-semibold">
-                                                            {new Date(timeToDisplay || log.timestamp || log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </span>
-                                                        <span className="text-muted-foreground">
-                                                            {new Date(timeToDisplay || log.timestamp || log.createdAt).toLocaleDateString()}
-                                                        </span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                                        onClick={() => setDeletingId(log._id)}
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        )
-                                    })
-                                ) : (
+            {activeRole !== 'Gate Keeper' && (
+                <Card className="border-primary/10 shadow-lg overflow-hidden">
+                    <CardHeader className="bg-primary/5 pb-4 border-b flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <History className="w-5 h-5 text-primary" />
+                            Activity Log
+                        </CardTitle>
+                        <Badge variant="outline" className="bg-background">Last 15 Records</Badge>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader className="bg-muted/30">
                                     <TableRow>
-                                        <TableCell colSpan={7} className="text-center py-16 text-muted-foreground">
-                                            <div className="flex flex-col items-center space-y-2 opacity-50">
-                                                <AlertCircle className="w-10 h-10" />
-                                                <p>No confirmed activity recorded yet</p>
-                                            </div>
-                                        </TableCell>
+                                        <TableHead className="w-[60px] text-center">Sl No</TableHead>
+                                        <TableHead>Student ID</TableHead>
+                                        <TableHead>Full Name</TableHead>
+                                        <TableHead>Class</TableHead>
+                                        <TableHead>Authorized By</TableHead>
+                                        <TableHead>Type</TableHead>
+                                        <TableHead>Date & Time</TableHead>
+                                        <TableHead className="w-[80px] text-center">Action</TableHead>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
+                                </TableHeader>
+                                <TableBody>
+                                    {fetchingLogs ? (
+                                        Array(5).fill(0).map((_, i) => (
+                                            <TableRow key={i} className="animate-pulse">
+                                                <TableCell colSpan={7} className="h-14 bg-muted/5" />
+                                            </TableRow>
+                                        ))
+                                    ) : logs.length > 0 ? (
+                                        logs.map((log, index) => {
+                                            const isPending = log.status === 'Pending'
+                                            const timeToDisplay = isPending ? log.createdAt : log.confirmedAt
+                                            const isExpired = isPending && new Date(log.expiresAt) <= new Date()
+
+                                            if (isExpired) return null
+
+                                            return (
+                                                <TableRow
+                                                    key={log._id}
+                                                    className={`transition-colors ${isPending ? 'bg-yellow-100 hover:bg-yellow-200/50' : 'hover:bg-muted/10'}`}
+                                                >
+                                                    <TableCell className="text-center text-xs text-muted-foreground">
+                                                        {(index + 1).toString().padStart(2, '0')}
+                                                    </TableCell>
+                                                    <TableCell className="font-semibold">{log.studentId?._id}</TableCell>
+                                                    <TableCell className="font-bold">{log.studentId?.name || 'User'}</TableCell>
+                                                    <TableCell>{log.studentId?.className || 'N/A'}</TableCell>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                                                                <UserCheck className="w-3 h-3 text-primary" />
+                                                            </div>
+                                                            <span className="text-xs font-medium">{log.allowedBy?.name || '-'}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge
+                                                            variant={isPending ? 'secondary' : (log.type === 'IN' ? 'outline' : 'destructive')}
+                                                            className={!isPending && log.type === 'IN' ? 'text-green-600 border-green-600' : ''}
+                                                        >
+                                                            {log.type === 'IN' ? 'ENTRY' : 'EXIT'} {isPending && '(PENDING)'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col text-xs">
+                                                            <span className="font-semibold">
+                                                                {new Date(timeToDisplay || log.timestamp || log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                            <span className="text-muted-foreground">
+                                                                {new Date(timeToDisplay || log.timestamp || log.createdAt).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {activeRole === 'College Admin' && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                                onClick={() => setDeletingId(log._id)}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            )
+                                        })
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="text-center py-16 text-muted-foreground">
+                                                <div className="flex flex-col items-center space-y-2 opacity-50">
+                                                    <AlertCircle className="w-10 h-10" />
+                                                    <p>No confirmed activity recorded yet</p>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     )
 }
