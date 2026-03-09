@@ -442,112 +442,106 @@ const PersonDetails = ({ person, academicYear, isStudent }) => {
           backgroundSize: "250px",
         }}
       ></div>
-      <div className="relative text-xs space-y-1 z-10">
+      <div className="relative text-xs z-10 grid grid-cols-[max-content_auto_1fr] gap-x-1 gap-y-1 w-full">
         {isStudent ? (
           <>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">Class:</span>
-              <span className="text-gray-700">{person.className}</span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">Batch:</span>
-              <span className="text-gray-700">{person.batchName}</span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">Dob:</span>
-              <span className="text-gray-700">
-                {formatDateMonthYear(person.dateOfBirth) || "No DOB provided"}
-              </span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">Phone No:</span>
-              <span className="text-gray-700">
-                {person.contactNumber || "No phone provided"}
-              </span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">Email:</span>
-              <span className="text-gray-700">
-                {person.email || "No email provided"}
-              </span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">S/o:</span>
-              <span className="text-gray-700">
-                {person.guardianName || "No guardian provided"}
-              </span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20 whitespace-nowrap">
-                Contact No:
-              </span>
-              <span className="text-gray-700">
-                {person.guardianContactNumber || "No contact provided"}
-              </span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">Address:</span>
-              <span className="text-gray-700">
-                {Object.values(person.address || {})
-                  .filter(Boolean)
-                  .join(", ") || "No address provided"}
-              </span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">Validity:</span>
-              <span className="text-gray-700">{academicYear}</span>
-            </div>
+            <span className="font-semibold">Class</span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">{person.className}</span>
+
+            <span className="font-semibold">Batch</span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">{person.batchName}</span>
+
+            <span className="font-semibold">Dob</span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">
+              {formatDateMonthYear(person.dateOfBirth) || "No DOB provided"}
+            </span>
+
+            <span className="font-semibold">Phone No</span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">
+              {person.contactNumber || "No phone provided"}
+            </span>
+
+            <span className="font-semibold">Email</span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">
+              {person.email || "No email provided"}
+            </span>
+
+            <span className="font-semibold">S/o</span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">
+              {person.guardianName || "No guardian provided"}
+            </span>
+
+            <span className="font-semibold whitespace-nowrap">
+              Contact No
+            </span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">
+              {person.guardianContactNumber || "No contact provided"}
+            </span>
+
+            <span className="font-semibold">Address</span>
+            <span>:</span>
+            <span className="text-gray-700 text-[0.65rem] break-words leading-tight whitespace-normal min-w-0">
+              {Object.values(person.address || {})
+                .filter(Boolean)
+                .join(", ") || "No address provided"}
+            </span>
+
+            <span className="font-semibold">Validity</span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">{academicYear}</span>
           </>
         ) : (
           <>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">Email:</span>
-              <span className="text-gray-700">
-                {person.email || "No email provided"}
-              </span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">
-                Date of Joining:
-              </span>
-              <span className="text-gray-700">
-                {formatDateForDisplay(new Date(person.dateOfJoining)) ||
-                  "No date provided"}
-              </span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">
-                Alternative Contact:
-              </span>
-              <span className="text-gray-700">
-                {person.alternativeContactNumber || "No contact provided"}
-              </span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">Dob:</span>
-              <span className="text-gray-700">
-                {formatDateForDisplay(new Date(person.dateOfBirth)) ||
-                  "No DOB provided"}
-              </span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">Address:</span>
-              <span className="text-gray-700">
-                {Object.values(person.address || {})
-                  .filter(Boolean)
-                  .join(", ") || "No address provided"}
-              </span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">Phone No:</span>
-              <span className="text-gray-700">
-                {person.contactNumber || "No phone provided"}
-              </span>
-            </div>
-            <div className="flex items-start">
-              <span className="mr-1 font-semibold min-w-20 w-20">Validity:</span>
-              <span className="text-gray-700">{academicYear}</span>
-            </div>
+            <span className="font-semibold">Email</span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">
+              {person.email || "No email provided"}
+            </span>
+
+            <span className="font-semibold">Date of Joining</span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">
+              {formatDateForDisplay(new Date(person.dateOfJoining)) ||
+                "No date provided"}
+            </span>
+
+            <span className="font-semibold">Alternative Contact</span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">
+              {person.alternativeContactNumber || "No contact provided"}
+            </span>
+
+            <span className="font-semibold">Dob</span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">
+              {formatDateForDisplay(new Date(person.dateOfBirth)) ||
+                "No DOB provided"}
+            </span>
+
+            <span className="font-semibold">Address</span>
+            <span>:</span>
+            <span className="text-gray-700 text-[0.65rem] break-words leading-tight whitespace-normal min-w-0">
+              {Object.values(person.address || {})
+                .filter(Boolean)
+                .join(", ") || "No address provided"}
+            </span>
+
+            <span className="font-semibold">Phone No</span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">
+              {person.contactNumber || "No phone provided"}
+            </span>
+
+            <span className="font-semibold">Validity</span>
+            <span>:</span>
+            <span className="text-gray-700 min-w-0">{academicYear}</span>
           </>
         )}
       </div>
