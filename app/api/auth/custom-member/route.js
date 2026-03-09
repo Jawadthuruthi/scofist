@@ -3,40 +3,13 @@ import connectToDB from '@/lib/db';
 import OTP from '@/models/OTP';
 import CustomRole from '@/models/CustomRole';
 import { SignJWT } from 'jose';
-import nodemailer from 'nodemailer';
+import sendOtpEmail from '@/lib/sendOtpEmail';
 
 const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
 const MAX_ATTEMPTS = 3;
 
 function generateOTP() {
     return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-async function sendOTPEmail(email, otp, roleName) {
-    const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT) || 587,
-        secure: false,
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-        },
-    });
-
-    await transporter.sendMail({
-        from: `"SCOFIST" <${process.env.SMTP_USER}>`,
-        to: email,
-        subject: 'Your Login OTP',
-        html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:24px;border:1px solid #e5e7eb;border-radius:8px">
-        <h2 style="color:#1d4ed8">SCOFIST Portal Login</h2>
-        <p>You have been added to the <strong>${roleName}</strong> role.</p>
-        <p>Your one-time password is:</p>
-        <div style="font-size:2rem;font-weight:bold;letter-spacing:0.4em;color:#1d4ed8;padding:16px 0">${otp}</div>
-        <p style="color:#6b7280;font-size:0.875rem">This OTP expires in 5 minutes. Do not share it.</p>
-      </div>
-    `,
-    });
 }
 
 // POST /api/auth/custom-member
@@ -72,7 +45,7 @@ export async function POST(req) {
             await OTP.create({ otp: newOtp, email: emailLower, attempts: 0 });
 
             const roleNames = matchingRoles.map((r) => r.name).join(', ');
-            await sendOTPEmail(emailLower, newOtp, roleNames);
+            await sendOtpEmail(emailLower, newOtp);
 
             return NextResponse.json({ success: true, message: 'OTP sent to ' + emailLower });
         }
