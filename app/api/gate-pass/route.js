@@ -5,6 +5,7 @@ import User from "@/models/User";
 import Class from "@/models/Class"; // Ensure Class model is registered
 import { cookies } from "next/headers";
 import { apiResponse } from "@/lib/apiResponse";
+import Settings from "@/models/Settings";
 import fs from 'fs';
 
 function logToFile(msg) {
@@ -64,7 +65,11 @@ export async function GET(req) {
 
         const formattedLogs = logs.map(formatPass);
 
-        return NextResponse.json({ logs: formattedLogs }, { status: 200 });
+        // Fetch global settings
+        const settings = await Settings.findOne({});
+        const maxValidity = settings?.gatePass?.maxValidity || 15;
+
+        return NextResponse.json({ logs: formattedLogs, maxValidity }, { status: 200 });
     } catch (error) {
         logToFile(`GET Error: ${error.message}`);
         console.error("Error fetching gate pass logs:", error);
@@ -76,22 +81,18 @@ export async function POST(req) {
     try {
         await connectToDB();
         const body = await req.json();
-        let { studentId, type, reason, allowedBy, action } = body;
-
-        if (!studentId) {
-            return NextResponse.json(
-                { message: "Student ID is required" },
-                { status: 400 }
-            );
-        }
-
-        const searchId = studentId.trim().toUpperCase();
-        logToFile(`POST Request - Action: ${action}, ID: ${searchId}, Type: ${type}, AllowedBy: ${allowedBy}`);
+        const { studentId, type, reason, allowedBy, action } = body;
 
         const cookieStore = await cookies();
         const userId = cookieStore.get("userId")?.value || "System";
 
         if (action === "set") {
+            if (!studentId) {
+                return NextResponse.json({ message: "Student ID is required" }, { status: 400 });
+            }
+            const searchId = studentId.trim().toUpperCase();
+            logToFile(`POST Request - Action: ${action}, ID: ${searchId}, Type: ${type}, AllowedBy: ${allowedBy}`);
+
             if (!type) {
                 return NextResponse.json(
                     { message: "Type (IN/OUT) is required" },
@@ -109,7 +110,14 @@ export async function POST(req) {
                 );
             }
 
-            const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+            // Fetch validity (custom or default)
+            let validity = body.validity;
+            if (!validity) {
+                const settings = await Settings.findOne({});
+                validity = settings?.gatePass?.maxValidity || 15;
+            }
+
+            const expiresAt = new Date(Date.now() + validity * 60 * 1000);
 
             const newPass = await GatePass.create({
                 studentId: searchId,
@@ -124,10 +132,36 @@ export async function POST(req) {
             logToFile(`Set Success: ID=${newPass._id}, studentId=${newPass.studentId}, expiresAt=${expiresAt.toISOString()}`);
 
             return NextResponse.json(
-                { message: "Permission set successfully. Valid for 15 minutes.", pass: newPass },
+                { message: `Permission set successfully. Valid for ${validity} minutes.`, pass: newPass },
                 { status: 201 }
             );
+        } else if (action === "updateConfig") {
+            const { maxValidity } = body;
+
+            if (typeof maxValidity !== 'number' || maxValidity < 1) {
+                return NextResponse.json({ message: "Invalid validity value" }, { status: 400 });
+            }
+
+            let settings = await Settings.findOne({});
+            if (!settings) {
+                settings = new Settings({
+                    institution: { name: "Institution" }, // Default required field
+                    gatePass: { maxValidity }
+                });
+            } else {
+                if (!settings.gatePass) settings.gatePass = {};
+                settings.gatePass.maxValidity = maxValidity;
+            }
+
+            await settings.save();
+            logToFile(`Config Updated: maxValidity=${maxValidity}`);
+
+            return NextResponse.json({ message: "Global settings updated", maxValidity }, { status: 200 });
         } else if (action === "confirm") {
+            if (!studentId) {
+                return NextResponse.json({ message: "Student ID is required" }, { status: 400 });
+            }
+            const searchId = studentId.trim().toUpperCase();
             const now = new Date();
             logToFile(`Confirm Attempt: ID=${searchId}, Time=${now.toISOString()}`);
 

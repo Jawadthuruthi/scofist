@@ -17,7 +17,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { toast } from 'sonner'
-import { Search, Scan, LogIn, LogOut, History, User, Shield, Clock, CheckCircle2, AlertCircle, X, UserCheck, Trash2 } from 'lucide-react'
+import { Search, Scan, LogIn, LogOut, History, User, Shield, Clock, CheckCircle2, AlertCircle, X, UserCheck, Trash2, Save } from 'lucide-react'
 import BarcodeScanner from './BarcodeScanner'
 import Image from 'next/image'
 
@@ -36,11 +36,16 @@ export default function GatePass({ activeRole, currentUser }) {
     // Confirmation State
     const [showConfirmation, setShowConfirmation] = useState(false)
     const [confirmedPass, setConfirmedPass] = useState(null)
-    const [isScannerOpen, setIsScannerOpen] = useState(false)
+    const [isScannerOpen, setIsScannerOpen] = useState(activeRole === 'Gate Keeper')
     const [manualConfirmId, setManualConfirmId] = useState('')
     const [confirmingManual, setConfirmingManual] = useState(false)
     const [deletingId, setDeletingId] = useState(null)
     const [isDeleting, setIsDeleting] = useState(false)
+
+    // Validity Settings
+    const [maxValidity, setMaxValidity] = useState(15)
+    const [validity, setValidity] = useState(15)
+    const [isSavingConfig, setIsSavingConfig] = useState(false)
 
     const fetchLogs = useCallback(async (background = false) => {
         if (!background) setFetchingLogs(true)
@@ -49,6 +54,11 @@ export default function GatePass({ activeRole, currentUser }) {
             const data = await res.json()
             if (res.ok) {
                 setLogs(data.logs || [])
+                if (data.maxValidity) {
+                    setMaxValidity(data.maxValidity)
+                    // Update current validity if it's the first fetch or if it matches the previous default
+                    setValidity(prev => (prev === 15 || prev === data.maxValidity) ? data.maxValidity : prev)
+                }
             }
         } catch (error) {
             console.error('Error fetching logs:', error)
@@ -154,12 +164,13 @@ export default function GatePass({ activeRole, currentUser }) {
                     type,
                     reason,
                     allowedBy: selectedTeacher,
+                    validity: validity,
                     action: 'set'
                 })
             })
 
             if (res.ok) {
-                toast.success(`Permission set for ${student.name}. Valid for 15 minutes.`)
+                toast.success(`Permission set for ${student.name}. Valid for ${validity} minutes.`)
                 setStudent(null)
                 setStudentId('')
                 setReason('')
@@ -170,6 +181,32 @@ export default function GatePass({ activeRole, currentUser }) {
             }
         } catch (error) {
             toast.error('Error setting permission')
+        }
+    }
+
+    const saveGlobalValidity = async () => {
+        setIsSavingConfig(true)
+        try {
+            const res = await fetch('/api/gate-pass', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'updateConfig',
+                    maxValidity: validity
+                })
+            })
+
+            if (res.ok) {
+                toast.success('Global validity setting updated')
+                setMaxValidity(validity)
+            } else {
+                const data = await res.json()
+                toast.error(data.message || 'Failed to update settings')
+            }
+        } catch (error) {
+            toast.error('Error updating settings')
+        } finally {
+            setIsSavingConfig(false)
         }
     }
 
@@ -315,6 +352,33 @@ export default function GatePass({ activeRole, currentUser }) {
                                             />
                                         </div>
 
+                                        <div className="space-y-1">
+                                            <div className="flex items-center justify-between ml-1">
+                                                <p className="text-xs font-semibold text-muted-foreground">VALIDITY (MINUTES)</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    type="number"
+                                                    min="1"
+                                                    value={validity}
+                                                    onChange={(e) => setValidity(parseInt(e.target.value) || 1)}
+                                                    disabled={activeRole !== 'College Admin'}
+                                                    className="bg-background font-bold text-center flex-1 h-10"
+                                                />
+                                                {activeRole === 'College Admin' && (
+                                                    <Button
+                                                        onClick={saveGlobalValidity}
+                                                        disabled={isSavingConfig}
+                                                        size="sm"
+                                                        className="flex-1 h-10"
+                                                    >
+                                                        <Save className="w-4 h-4 mr-2" />
+                                                        {isSavingConfig ? 'Saving...' : 'Save'}
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+
                                         <div className="flex gap-2 pt-2">
                                             <Button
                                                 className="flex-1 bg-green-600 hover:bg-green-700 h-10"
@@ -343,22 +407,28 @@ export default function GatePass({ activeRole, currentUser }) {
                 {/* Step 2: Confirmation Scanner */}
                 <Card className="border-primary/10 shadow-lg">
                     <CardHeader className="bg-primary/5 pb-4">
-                        <CardTitle className="text-lg flex items-center gap-2">
+                        <CardTitle
+                            className="text-lg flex items-center gap-2 cursor-pointer hover:text-primary/70 transition-colors"
+                            onClick={() => !isScannerOpen && setIsScannerOpen(true)}
+                        >
                             <Scan className="w-5 h-5 text-primary" />
                             Gate Pass Scanner
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-6 h-full flex flex-col space-y-6">
-                        <div className="flex flex-col items-center justify-center min-h-[160px] bg-muted/20 rounded-lg border-2 border-dashed border-muted relative group">
+                        <div
+                            className={`flex flex-col items-center justify-center min-h-[160px] bg-muted/20 rounded-lg border-2 border-dashed border-muted relative group transition-all ${!isScannerOpen ? 'cursor-pointer hover:bg-primary/5 hover:border-primary/30' : ''}`}
+                            onClick={() => !isScannerOpen && setIsScannerOpen(true)}
+                        >
                             {!isScannerOpen ? (
                                 <div className="flex flex-col items-center space-y-3 p-4">
-                                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                                         <Scan className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
                                     </div>
                                     <Button
-                                        onClick={() => setIsScannerOpen(true)}
                                         variant="secondary"
                                         size="sm"
+                                        className="pointer-events-none"
                                     >
                                         Open Camera Scanner
                                     </Button>
@@ -396,7 +466,7 @@ export default function GatePass({ activeRole, currentUser }) {
                                 </Button>
                             </div>
                             <p className="text-[10px] text-center text-muted-foreground italic">
-                                Permission must have been set within the last 15 minutes.
+                                Permission must have been set within the last {validity} minutes.
                             </p>
                         </div>
                     </CardContent>
@@ -500,7 +570,7 @@ export default function GatePass({ activeRole, currentUser }) {
                             <History className="w-5 h-5 text-primary" />
                             Activity Log
                         </CardTitle>
-                        <Badge variant="outline" className="bg-background">Last 15 Records</Badge>
+                        <Badge variant="outline" className="bg-background">Activity History</Badge>
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">

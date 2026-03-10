@@ -369,6 +369,12 @@ const SettingsSchema = new Schema(
         },
       ],
     },
+    gatePass: {
+      maxValidity: {
+        type: Number,
+        default: 15,
+      },
+    },
   },
   { timestamps: true }
 );
