@@ -59,7 +59,7 @@ export default function LiteraryStudentLookup({ apiKey }) {
         0,
         50, // Increase limit to find exact matches
         {
-            global: searchTerm,
+            global: searchTerm ? encodeURIComponent(searchTerm) : "",
             roles: ["Student"], // "Student" to get students only
         },
         {
@@ -107,18 +107,37 @@ export default function LiteraryStudentLookup({ apiKey }) {
         try {
             const result = await usersQuery.refetch();
             if (result.isSuccess && result.data?.users?.length > 0) {
-                // Prioritize exact match for ID or Name to prevent incorrect selection
-                const searchLower = searchTerm.toLowerCase();
-                const exactMatch = result.data.users.find(
-                    (u) =>
-                        String(u._id).toLowerCase() === searchLower ||
-                        String(u.name).toLowerCase() === searchLower
-                );
+                const searchLower = searchTerm.trim().toLowerCase();
+                const foundUsers = result.data.users;
 
-                const foundStudent = exactMatch || result.data.users[0];
+                // 1. Prioritize Exact ID Match
+                let matchedUser = foundUsers.find(u => u._id.toLowerCase() === searchLower);
 
-                setStudent(foundStudent);
-                setCurrentStudentId(foundStudent._id);
+                // 2. Prioritize Exact Admission Number Match
+                if (!matchedUser) {
+                    matchedUser = foundUsers.find(u =>
+                        u.studentSpecificField?.admissionNumber?.toLowerCase() === searchLower
+                    );
+                }
+
+                // 3. Prioritize Exact Name Match
+                if (!matchedUser) {
+                    matchedUser = foundUsers.find(u => u.name.toLowerCase() === searchLower);
+                }
+
+                // 4. Fallback: Select the first result but notify if there are multiple
+                if (!matchedUser) {
+                    matchedUser = foundUsers[0];
+                    if (foundUsers.length > 1) {
+                        toast.info(`Showing best match: ${matchedUser.name}`);
+                    }
+                }
+
+                if (matchedUser) {
+                    setStudent(matchedUser);
+                    setCurrentStudentId(matchedUser._id);
+                    toast.success(`Found student: ${matchedUser.name}`);
+                }
             } else {
                 toast.error("No student found with that ID or Name.");
             }
@@ -196,7 +215,7 @@ export default function LiteraryStudentLookup({ apiKey }) {
 
                 {hasSearched && (
                     <div className="flex-1 bg-background flex flex-col justify-center">
-                        <CardContent className="p-6">
+                        <CardContent className="p-5">
                             {isLoading ? (
                                 <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                                     <Loader2 className="h-8 w-8 animate-spin mb-4" />
@@ -221,9 +240,21 @@ export default function LiteraryStudentLookup({ apiKey }) {
                                             </div>
                                             <div className="flex-1 space-y-1">
                                                 <h3 className="text-xl font-bold tracking-tight hidden sm:block">{student.name}</h3>
-                                                <div className="text-sm text-muted-foreground flex flex-col gap-y-1.5 items-start mt-1">
-                                                    {student.className && <div><span className="font-medium mr-1">Class:</span> {student.className}</div>}
-                                                    {student.batchName && <div><span className="font-medium mr-1">Batch:</span> {student.batchName}</div>}
+                                                <div className="text-sm text-muted-foreground flex flex-col gap-y-1.5 items-start mt-1 w-full">
+                                                    {student.className && (
+                                                        <div className="grid grid-cols-[max-content_12px_1fr] items-center w-full">
+                                                            <span className="font-medium text-muted-foreground">Class</span>
+                                                            <span>:</span>
+                                                            <span className="text-foreground">{student.className}</span>
+                                                        </div>
+                                                    )}
+                                                    {student.batchName && (
+                                                        <div className="grid grid-cols-[max-content_12px_1fr] items-center w-full">
+                                                            <span className="font-medium text-muted-foreground">Batch</span>
+                                                            <span>:</span>
+                                                            <span className="text-foreground">{student.batchName}</span>
+                                                        </div>
+                                                    )}
                                                     <div className="mt-1">
                                                         <Badge variant={student.status === "Active" ? "outline" : "secondary"} className={student.status === "Active" ? "bg-green-50 text-green-700" : ""}>
                                                             {student.status || "Unknown"}

@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import Header from "@/components/Header";
 import { Calendar, Printer, BookOpen, Clock, Loader2 } from "lucide-react";
-import { formatDateForDisplay } from "@/lib/utils";
+import { formatDateForDisplay, formatMonthYear, formatDateShort } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import {
   BarChart,
@@ -49,13 +49,14 @@ const formatDateWithoutDay = (dateString) => {
 
 const ProfileField = ({ label, subLabel, value, isBold }) =>
   (value || value === 0 || typeof value === 'string') ? (
-    <div className="flex justify-between py-2 border-b border-border">
-      <div className="flex flex-col">
+    <>
+      <div className="flex flex-col py-1">
         <span className={`text-sm font-medium ${isBold ? 'font-bold' : 'text-muted-foreground'}`}>{label}</span>
         {subLabel && <span className="text-xs text-muted-foreground">{subLabel}</span>}
       </div>
-      <span className={`text-sm ${isBold ? 'font-bold' : 'text-foreground'}`}>{value}</span>
-    </div>
+      <div className="text-sm px-1 py-1">:</div>
+      <div className={`text-sm ${isBold ? 'font-bold' : 'text-foreground'} min-w-0 break-words py-1`}>{value}</div>
+    </>
   ) : null;
 
 export default function StudentDashboard({
@@ -298,7 +299,7 @@ export default function StudentDashboard({
 
       {/* Profile Header */}
       <Card className="bg-blue-50 dark:bg-blue-950 border-blue-100 dark:border-blue-900">
-        <CardContent className="flex items-center justify-between p-6">
+        <CardContent className="flex items-center justify-between p-5">
           <div className="flex items-center space-x-6">
             <Avatar className="h-24 w-24 rounded-lg">
               <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} />
@@ -327,16 +328,16 @@ export default function StudentDashboard({
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* Personal Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
+            <CardTitle>Personal Info</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="grid grid-cols-[max-content_12px_1fr] items-start">
             <ProfileField
               label="Date of Birth"
-              value={formatDateForDisplay(currentUser?.dateOfBirth)}
+              value={formatDateShort(currentUser?.dateOfBirth)}
             />
             <ProfileField
               label="Blood Group"
@@ -347,11 +348,12 @@ export default function StudentDashboard({
               value={currentUser?.studentSpecificField?.aadharNo}
             />
             {currentUser?.address && (
-              <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-sm font-medium text-muted-foreground">
+              <>
+                <div className="text-sm font-medium text-muted-foreground py-1">
                   Address
-                </span>
-                <div className="text-sm text-foreground text-right">
+                </div>
+                <div className="text-sm px-1 py-1">:</div>
+                <div className="text-sm text-foreground py-1">
                   {currentUser.address.houseName && (
                     <div>{currentUser.address.houseName}</div>
                   )}
@@ -373,7 +375,7 @@ export default function StudentDashboard({
                       </div>
                     )}
                 </div>
-              </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -383,28 +385,28 @@ export default function StudentDashboard({
           <CardHeader>
             <CardTitle>Academic Info</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="grid grid-cols-[max-content_12px_1fr] items-start">
             <ProfileField label="Batch" value={batchName} />
             <ProfileField
-              label="Admission Class"
+              label="Adm. Class"
               value={admissionClassName}
             />
             <ProfileField
-              label="Admission Date"
-              value={formatDateForDisplay(
+              label="Adm. Date"
+              value={formatDateShort(
                 currentUser?.studentSpecificField?.admissionDate
               )}
             />
             <ProfileField
-              label="Islamic Qualification"
+              label="Islamic Qual."
               value={currentUser?.studentSpecificField?.islamicQualification}
             />
             <ProfileField
-              label="Academic Qualification"
+              label="Academic Qual."
               value={currentUser?.studentSpecificField?.academicQualification}
             />
             <ProfileField
-              label="Graduated Year"
+              label="Graduated Yr"
               value={currentUser?.studentSpecificField?.graduatedYear}
             />
           </CardContent>
@@ -415,38 +417,40 @@ export default function StudentDashboard({
           <CardHeader>
             <CardTitle>Contact Info</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="grid grid-cols-[max-content_12px_1fr] items-start">
             <ProfileField label="Email" value={currentUser?.email} />
-            <ProfileField label="Contact Number" value={currentUser?.contactNumber} />
+            <ProfileField label="Contact No" value={currentUser?.contactNumber} />
             <ProfileField
-              label="Alternative Number"
+              label="Alt. Contact"
               value={currentUser?.alternativeNumber}
             />
             <ProfileField
-              label="Guardian Name"
+              label="Guardian"
               value={currentUser?.studentSpecificField?.guardianName}
             />
             <ProfileField
-              label="Guardian Contact"
+              label="G. Contact"
               value={currentUser?.studentSpecificField?.guardianContactNumber}
             />
             <ProfileField
-              label="Guardian Alt. Contact"
+              label="G. Alt. Contact"
               value={currentUser?.studentSpecificField?.guardianAlternativeNumber}
             />
           </CardContent>
         </Card>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Pending Transactions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pending Transactions</CardTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <Card className="bg-yellow-50/30 dark:bg-yellow-950/20 border-yellow-100 dark:border-yellow-900">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+              <Clock className="h-5 w-5" />
+              Pending Transactions
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="max-h-[300px] overflow-y-auto pr-2">
+            <div className="max-h-[300px] overflow-y-auto pr-2 grid grid-cols-[max-content_12px_1fr] items-start">
               {fundsLoading ? (
-                <p>Loading funds...</p>
+                <p className="col-span-3">Loading funds...</p>
               ) : pendingFunds && pendingFunds.length > 0 ? (
                 <>
                   {pendingFunds.map((item, index) => (
@@ -461,7 +465,7 @@ export default function StudentDashboard({
                   <ProfileField label="Total Pending" value={totalPending.toFixed(2)} isBold={true} />
                 </>
               ) : (
-                <p>No pending transactions.</p>
+                <p className="col-span-3">No pending transactions.</p>
               )}
             </div>
           </CardContent>
@@ -538,7 +542,7 @@ export default function StudentDashboard({
         </Card>
       </div>
       {currentUser?.studentSpecificField?.status === "Active" && (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Month-wise Attendance History</CardTitle>

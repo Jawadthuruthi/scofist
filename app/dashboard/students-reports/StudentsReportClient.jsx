@@ -156,9 +156,9 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
     };
 
     const handleStudentLookup = async (overrideSearchTerm) => {
-        const term = typeof overrideSearchTerm === "string" ? overrideSearchTerm : lookupSearchTerm;
+        const term = (typeof overrideSearchTerm === "string" ? overrideSearchTerm : lookupSearchTerm).trim();
 
-        if (!term.trim()) {
+        if (!term) {
             toast.error("Please enter a student ID or name to search.");
             return;
         }
@@ -171,7 +171,7 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
 
         try {
             const response = await fetch(
-                `/api/users?roles=Student&global=${term}&limit=10&projection=_id,name,batchId,classId,studentSpecificField`,
+                `/api/users?roles=Student&global=${encodeURIComponent(term)}&limit=1000&projection=_id,name,batchId,classId,studentSpecificField`,
                 {
                     headers: {
                         "Content-Type": "application/json",
@@ -181,22 +181,47 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
             );
             const data = await response.json();
             const foundUsers = data.users || [];
+            console.log("API Lookup Results:", foundUsers);
 
             if (foundUsers.length > 0) {
-                const exactMatch = foundUsers.find(u =>
-                    u._id.toLowerCase() === term.toLowerCase() ||
-                    u.name.toLowerCase() === term.toLowerCase()
+                const searchLower = term.toLowerCase();
+
+                // 1. Prioritize Exact ID Match (robust check)
+                let matchedUser = foundUsers.find(u =>
+                    String(u._id).toLowerCase().trim() === searchLower
                 );
 
-                if (exactMatch) {
-                    selectStudent(exactMatch);
+                // 2. Prioritize Exact Admission Number Match
+                if (!matchedUser) {
+                    matchedUser = foundUsers.find(u =>
+                        String(u.studentSpecificField?.admissionNumber || "").toLowerCase().trim() === searchLower
+                    );
+                }
+
+                // 3. Prioritize Exact Name Match
+                if (!matchedUser) {
+                    matchedUser = foundUsers.find(u => String(u.name).toLowerCase().trim() === searchLower);
+                }
+
+                // 4. Fallback: Select the first result but notify if there are multiple
+                if (!matchedUser) {
+                    matchedUser = foundUsers[0];
+                    if (foundUsers.length > 1) {
+                        toast.info(`Showing best match: ${matchedUser.name}`);
+                    }
+                }
+
+                if (matchedUser) {
+                    selectStudent(matchedUser);
                 } else {
+                    // This case should ideally not be reached if foundUsers.length > 0
+                    // but added for robustness.
                     setSelectedBatch("");
                     setSelectedClass("");
                     setSelectedStudentId("");
                     setSelectedStudentData(null);
                     setLookupError(true);
-                    toast.error(`Student "${term}" not found (Exact match required).`);
+                    toast.error(`Student "${term}" not found.`);
                 }
             } else {
                 setSelectedBatch("");
@@ -204,7 +229,7 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                 setSelectedStudentId("");
                 setSelectedStudentData(null);
                 setLookupError(true);
-                toast.error("Student not found.");
+                toast.error(`Student "${term}" not found.`);
             }
         } catch (error) {
             console.error("Lookup error:", error);

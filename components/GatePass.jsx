@@ -85,16 +85,47 @@ export default function GatePass({ activeRole, currentUser }) {
 
     const handleSearch = async (e) => {
         if (e) e.preventDefault()
-        if (!studentId) return
+        const term = studentId.trim();
+        if (!term) return
 
         setLoading(true)
         try {
-            const res = await fetch(`/api/users?_id=${studentId.toUpperCase()}&roles=Student`)
+            const res = await fetch(`/api/users?roles=Student&global=${encodeURIComponent(term)}&limit=1000`)
             const data = await res.json()
 
             if (res.ok && data.users && data.users.length > 0) {
-                setStudent(data.users[0])
-                setReason('')
+                const searchLower = term.toLowerCase();
+                const foundUsers = data.users;
+
+                // 1. Prioritize Exact ID Match (robust check)
+                let matchedUser = foundUsers.find(u =>
+                    String(u._id).toLowerCase().trim() === searchLower
+                );
+
+                // 2. Prioritize Exact Admission Number Match
+                if (!matchedUser) {
+                    matchedUser = foundUsers.find(u =>
+                        String(u.studentSpecificField?.admissionNumber || "").toLowerCase().trim() === searchLower
+                    );
+                }
+
+                // 3. Prioritize Exact Name Match
+                if (!matchedUser) {
+                    matchedUser = foundUsers.find(u => String(u.name).toLowerCase().trim() === searchLower);
+                }
+
+                // 4. Fallback: Select the first result but notify if there are multiple
+                if (!matchedUser) {
+                    matchedUser = foundUsers[0];
+                    if (foundUsers.length > 1) {
+                        toast.info(`Showing best match: ${matchedUser.name}`);
+                    }
+                }
+
+                if (matchedUser) {
+                    setStudent(matchedUser)
+                    setReason('')
+                }
             } else {
                 toast.error('Student not found')
                 setStudent(null)
@@ -237,10 +268,18 @@ export default function GatePass({ activeRole, currentUser }) {
                                                 <User className="w-full h-full p-6 text-muted-foreground/30" />
                                             )}
                                         </div>
-                                        <div className="space-y-1">
-                                            <p className="font-bold text-lg">{student.name}</p>
-                                            <p className="text-sm font-semibold text-primary">{student._id}</p>
-                                            <p className="text-xs text-muted-foreground">{student.className || 'No Class'}</p>
+                                        <div className="space-y-1 w-full">
+                                            <p className="font-bold text-lg leading-tight mb-1">{student.name}</p>
+                                            <div className="grid grid-cols-[max-content_12px_1fr] items-center text-sm font-semibold text-primary">
+                                                <span>ID</span>
+                                                <span className="px-1 text-muted-foreground/50">:</span>
+                                                <span>{student._id}</span>
+                                            </div>
+                                            <div className="grid grid-cols-[max-content_12px_1fr] items-center text-xs text-muted-foreground">
+                                                <span>Class</span>
+                                                <span className="px-1 text-muted-foreground/30">:</span>
+                                                <span>{student.className || 'No Class'}</span>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -368,7 +407,7 @@ export default function GatePass({ activeRole, currentUser }) {
             {showConfirmation && confirmedPass && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
                     <Card className="w-full max-w-md shadow-2xl border-green-500/50 overflow-hidden animate-in zoom-in-95 duration-300">
-                        <div className="bg-green-600 p-6 lg:p-4 flex flex-col items-center justify-center text-white space-y-4 lg:space-y-2">
+                        <div className="bg-green-600 p-5 lg:p-4 flex flex-col items-center justify-center text-white space-y-4 lg:space-y-2">
                             <div className="bg-white/20 p-4 rounded-full animate-bounce">
                                 <CheckCircle2 className="w-16 h-16 lg:w-12 lg:h-12" />
                             </div>
@@ -377,7 +416,7 @@ export default function GatePass({ activeRole, currentUser }) {
                                 {confirmedPass.type === 'IN' ? 'ENTRY PERMITTED' : 'EXIT PERMITTED'}
                             </div>
                         </div>
-                        <CardContent className="p-8 lg:p-6 space-y-6 lg:space-y-4 text-center">
+                        <CardContent className="p-8 lg:p-5 space-y-6 lg:space-y-4 text-center">
                             <div className="flex justify-center">
                                 <div className="relative w-32 h-40 lg:w-28 lg:h-36 rounded-lg overflow-hidden border-4 border-muted shadow-lg">
                                     {confirmedPass.studentId?.profilePic?.url ? (

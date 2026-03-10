@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 
+import { formatMonthYear, formatDateShort } from "@/lib/utils";
 import PrintHeader from "@/components/PrintHeader";
 
 export default function StudentProfileDialog({ student, open, onClose, classes, apiKey }) {
@@ -28,13 +29,11 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
     const DetailRow = ({ label, value }) => {
         if (!value || value === "N/A") return null;
         return (
-            <div className="flex items-start py-0.5 text-sm break-inside-avoid w-full">
-                <div className="flex-1 grid grid-cols-[160px_10px_1fr] items-start">
-                    <span className="text-muted-foreground font-medium uppercase text-xs tracking-wide pt-0.5 ml-8">{label}</span>
-                    <span className="text-muted-foreground font-medium text-center pt-0.5">:</span>
-                    <span className="font-semibold text-gray-800 text-sm whitespace-pre-wrap">{value}</span>
-                </div>
-            </div>
+            <>
+                <div className="text-muted-foreground font-medium uppercase text-xs tracking-wide py-1 ml-8">{label}</div>
+                <div className="text-muted-foreground font-medium px-1 py-1">:</div>
+                <div className="font-semibold text-gray-800 text-sm whitespace-pre-wrap py-1">{value}</div>
+            </>
         );
     };
 
@@ -62,7 +61,7 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-md bg-white p-4 sm:p-6 overflow-hidden sm:max-w-2xl rounded-xl shadow-2xl">
+            <DialogContent className="max-w-md bg-white p-4 sm:p-5 overflow-hidden sm:max-w-2xl rounded-xl shadow-2xl">
                 <div className="overflow-y-auto max-h-[85vh] print:max-h-none print:overflow-visible print:m-8" ref={printRef}>
                     <PrintHeader
                         title="STUDENT PROFILE"
@@ -72,7 +71,7 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
 
                     {/* Header Section */}
                     <div className="bg-gradient-to-br from-muted/50 to-muted/10 p-5 sm:px-8 border-b break-inside-avoid relative rounded-t-lg">
-                        <div className="flex flex-col sm:flex-row items-center gap-6">
+                        <div className="flex flex-col sm:flex-row items-center gap-5">
                             <Avatar className="w-32 h-32 border-4 border-white shadow-lg rounded-2xl flex-shrink-0">
                                 <AvatarImage
                                     src={student.profilePic?.url}
@@ -88,38 +87,44 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
                                     <DialogTitle className="text-3xl font-bold text-gray-900 tracking-tight mb-2">
                                         {student.name}
                                     </DialogTitle>
-                                    <div className="flex items-center gap-2 text-muted-foreground font-medium w-full text-left">
-                                        <span className="w-28 ml-8 font-semibold uppercase text-xs">Adm No:</span>
-                                        <span className="text-gray-800">{student._id || student.username}</span>
-                                    </div>
-                                    {(student.className || student.classId?.name) && (
-                                        <div className="flex items-center gap-2 text-muted-foreground font-medium w-full text-left">
-                                            <span className="w-28 ml-8 font-semibold uppercase text-xs">Class:</span>
-                                            <span className="text-gray-800">{student.className || student.classId?.name}</span>
+                                    <div className="grid grid-cols-[max-content_12px_1fr] items-center">
+                                        <div className="grid grid-cols-[max-content_12px_1fr] text-muted-foreground font-medium w-full text-left items-center col-span-3">
+                                            <span className="font-semibold uppercase text-xs ml-8">Adm No</span>
+                                            <span>:</span>
+                                            <span className="text-gray-800">{student._id || student.username}</span>
                                         </div>
-                                    )}
-                                    {(student.batchName || student.batchId?.name) && (
-                                        <div className="flex items-center gap-2 text-muted-foreground font-medium w-full text-left">
-                                            <span className="w-28 ml-8 font-semibold uppercase text-xs">Batch:</span>
-                                            <span className="text-gray-800">{student.batchName || student.batchId?.name}</span>
+                                        {(student.className || student.classId?.name) && (
+                                            <div className="grid grid-cols-[max-content_12px_1fr] text-muted-foreground font-medium w-full text-left items-center col-span-3">
+                                                <span className="font-semibold uppercase text-xs ml-8">Class</span>
+                                                <span>:</span>
+                                                <span className="text-gray-800">{student.className || student.classId?.name}</span>
+                                            </div>
+                                        )}
+                                        {(student.batchName || student.batchId?.name) && (
+                                            <div className="grid grid-cols-[max-content_15px_1fr] text-muted-foreground font-medium w-full text-left items-center col-span-3">
+                                                <span className="font-semibold uppercase text-xs ml-8">Batch</span>
+                                                <span className="text-center">:</span>
+                                                <span className="text-gray-800">{student.batchName || student.batchId?.name}</span>
+                                            </div>
+                                        )}
+                                        <div className="grid grid-cols-[max-content_15px_1fr] text-muted-foreground font-medium w-full text-left items-center mt-1 col-span-3">
+                                            <span className="font-semibold uppercase text-xs ml-8">Status</span>
+                                            <span className="text-center">:</span>
+                                            <span>{getStatusBadge(currentStatus)}</span>
                                         </div>
-                                    )}
-                                    <div className="flex items-center gap-2 text-muted-foreground font-medium w-full text-left mt-1">
-                                        <span className="w-28 ml-8 font-semibold uppercase text-xs">Status:</span>
-                                        <span>{getStatusBadge(currentStatus)}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="pt-2 pb-6 px-4 sm:px-6 space-y-4">
+                    <div className="pt-2 pb-6 px-4 sm:px-6 space-y-2">
                         {/* Personal Details */}
-                        <SectionHeader title="Personal Details" icon={UserSquare2} className="mt-2" />
-                        <div className="flex flex-col gap-y-1 pl-2">
+                        <SectionHeader title="Personal Info" icon={UserSquare2} className="mt-2" />
+                        <div className="grid grid-cols-[max-content_15px_1fr] items-start pl-2">
                             <DetailRow
                                 label="Date Of Birth"
-                                value={student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : null}
+                                value={formatDateShort(student.dateOfBirth)}
                             />
                             <DetailRow label="Email" value={student.email} />
                             <DetailRow label="Contact Number" value={student.contactNumber} />
@@ -130,7 +135,7 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
 
                         {/* Address Details */}
                         <SectionHeader title="Address Details" icon={MapPin} />
-                        <div className="pl-2 space-y-1">
+                        <div className="grid grid-cols-[max-content_15px_1fr] items-start pl-2">
                             {student.address && (
                                 <DetailRow
                                     label="Full Address"
@@ -148,7 +153,7 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
                                     }
                                 />
                             )}
-                            <div className="flex flex-col gap-y-1 mt-1">
+                            <div className="grid grid-cols-[max-content_15px_1fr] items-start mt-1">
                                 <DetailRow
                                     label="Guardian Name"
                                     value={student.studentSpecificField?.guardianName || student.guardianName}
@@ -158,7 +163,7 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
                                     value={student.studentSpecificField?.relationship || student.relationship}
                                 />
                                 <DetailRow
-                                    label="G. Contact Number"
+                                    label="G. Contact"
                                     value={student.studentSpecificField?.guardianContactNumber || student.guardianContactNumber}
                                 />
                                 <DetailRow
@@ -170,14 +175,14 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
 
                         {/* Academic Details */}
                         <SectionHeader title="Academic Details" icon={Award} />
-                        <div className="flex flex-col gap-y-1 pl-2">
+                        <div className="grid grid-cols-[max-content_15px_1fr] items-start pl-2">
                             <DetailRow
-                                label="Admission Class"
+                                label="Adm. Class"
                                 value={student.admissionClassName || student.admissionClassId?.name}
                             />
                             <DetailRow
-                                label="Admission Date"
-                                value={student.admissionDate ? new Date(student.admissionDate).toLocaleDateString() : "N/A"}
+                                label="Adm. Date"
+                                value={formatDateShort(student.admissionDate)}
                             />
                             <DetailRow label="Status" value={currentStatus} />
 
@@ -203,7 +208,7 @@ export default function StudentProfileDialog({ student, open, onClose, classes, 
 
                             {currentStatus === "Graduated" && (
                                 <>
-                                    <DetailRow label="Status Details" value={`Graduated in ${student.graduatedYear}`} />
+                                    <DetailRow label="Status Info" value={`Graduated in ${student.graduatedYear}`} />
                                     <DetailRow label="Islamic Qual." value={student.islamicQualification} />
                                     <DetailRow label="Academic Qual." value={student.academicQualification} />
                                 </>

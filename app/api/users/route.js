@@ -13,7 +13,8 @@ export async function GET(req, res) {
     // Parse URL to get search params
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
+    const limitParam = url.searchParams.get("limit");
+    const limit = limitParam && !isNaN(parseInt(limitParam)) ? parseInt(limitParam) : 1000;
 
     // Build filter object from query parameters
     const filterParams = {};
@@ -104,6 +105,7 @@ export async function GET(req, res) {
         "address.state",
         "studentSpecificField.guardianName",
         "studentSpecificField.aadharNo",
+        "studentSpecificField.admissionNumber",
         "studentSpecificField.bloodGroup",
         "studentSpecificField.islamicQualification",
         "studentSpecificField.academicQualification",

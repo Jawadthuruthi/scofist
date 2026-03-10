@@ -530,9 +530,9 @@ const StudentsFund = ({
   };
 
   const handleStudentLookup = (overrideSearchTerm) => {
-    const term = typeof overrideSearchTerm === "string" ? overrideSearchTerm : lookupSearchTerm;
+    const term = (typeof overrideSearchTerm === "string" ? overrideSearchTerm : lookupSearchTerm).trim();
 
-    if (!term.trim()) {
+    if (!term) {
       toast.error("Please enter a student ID or name to search.");
       return;
     }
@@ -540,13 +540,45 @@ const StudentsFund = ({
     setIsLookingUp(true);
 
     const searchLower = term.toLowerCase();
+    const studentsList = students || [];
 
-    // Find the student in the loaded students array
-    const foundStudent = (students || []).find(s =>
-      String(s._id).toLowerCase() === searchLower ||
-      String(s.name).toLowerCase() === searchLower ||
-      String(s.studentSpecificField?.admissionNumber).toLowerCase() === searchLower
-    );
+    // Prioritized search in the loaded students array
+    // 1. Exact ID
+    let foundStudent = studentsList.find(s => String(s._id).toLowerCase() === searchLower);
+
+    // 2. Exact Admission Number
+    if (!foundStudent) {
+      foundStudent = studentsList.find(s =>
+        String(s.studentSpecificField?.admissionNumber).toLowerCase() === searchLower
+      );
+    }
+
+    // 3. Exact Name
+    if (!foundStudent) {
+      foundStudent = studentsList.find(s => String(s.name).toLowerCase() === searchLower);
+    }
+
+    // 4. Fallback: Prefix matching / first matching
+    if (!foundStudent) {
+      foundStudent = studentsList.find(s =>
+        String(s._id).toLowerCase().trim().startsWith(searchLower) ||
+        String(s.name).toLowerCase().trim().startsWith(searchLower) ||
+        (s.studentSpecificField?.admissionNumber &&
+          String(s.studentSpecificField.admissionNumber).toLowerCase().trim().startsWith(searchLower))
+      );
+
+      if (foundStudent) {
+        // Check for multiple partial matches
+        const totalMatches = studentsList.filter(s =>
+          String(s._id).toLowerCase().trim().includes(searchLower) ||
+          String(s.name).toLowerCase().trim().includes(searchLower)
+        ).length;
+
+        if (totalMatches > 1) {
+          toast.info(`Showing best match: ${foundStudent.name}`);
+        }
+      }
+    }
 
     if (foundStudent) {
       if (foundStudent.batchId) {
@@ -591,7 +623,7 @@ const StudentsFund = ({
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden bg-card">
@@ -671,7 +703,7 @@ const StudentsFund = ({
           </Card>
 
           <Card>
-            <CardContent className="p-6 space-y-6">
+            <CardContent className="p-5 space-y-6">
               <>
                 <div className="flex flex-col sm:flex-row gap-4 items-end">
                   <div className="flex-1 w-full">

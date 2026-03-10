@@ -65,10 +65,12 @@ export default function StudentAttendanceLookup({ students = [], setFilter, remo
 
     // Filter students based on query
     const filteredStudents = students.filter((s) => {
-        const q = query.toLowerCase();
+        const q = query.trim().toLowerCase();
+        if (!q) return false;
         return (
             s.name?.toLowerCase().includes(q) ||
-            String(s._id)?.toLowerCase().includes(q)
+            String(s._id)?.toLowerCase().includes(q) ||
+            s.studentSpecificField?.admissionNumber?.toLowerCase().includes(q)
         );
     }).slice(0, 8);
 
@@ -119,9 +121,21 @@ export default function StudentAttendanceLookup({ students = [], setFilter, remo
     };
 
     const handleSearchSubmit = () => {
-        if (filteredStudents.length > 0) {
-            handleSelectStudent(filteredStudents[0]);
+        const q = query.trim().toLowerCase();
+        if (!q || filteredStudents.length === 0) return;
+
+        // Try to find exact match first among the filtered results
+        const exactMatch = filteredStudents.find(s =>
+            String(s._id).toLowerCase() === q ||
+            s.name?.toLowerCase() === q ||
+            s.studentSpecificField?.admissionNumber?.toLowerCase() === q
+        );
+
+        if (!exactMatch && filteredStudents.length > 1) {
+            toast.info(`Showing best match: ${filteredStudents[0].name}`);
         }
+
+        handleSelectStudent(exactMatch || filteredStudents[0]);
     };
 
     const handleKeyDown = (e) => {
@@ -354,13 +368,17 @@ export default function StudentAttendanceLookup({ students = [], setFilter, remo
                                         <span className="text-sm font-bold text-foreground">
                                             {selectedStudent.name}
                                         </span>
-                                        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">
-                                            ID: {selectedStudent._id}
-                                        </span>
+                                        <div className="grid grid-cols-[max-content_8px_1fr] items-center text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">
+                                            <span>ID</span>
+                                            <span className="text-center">:</span>
+                                            <span>{selectedStudent._id}</span>
+                                        </div>
                                         {selectedStudent.className && (
-                                            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                                                Class: {selectedStudent.className}
-                                            </span>
+                                            <div className="grid grid-cols-[38px_8px_1fr] items-center text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                                                <span>Class</span>
+                                                <span className="text-center">:</span>
+                                                <span>{selectedStudent.className}</span>
+                                            </div>
                                         )}
                                     </div>
                                     <Avatar className="h-10 w-10 border border-border">
