@@ -139,3 +139,10 @@
 2026-03-09T05:26:10.089Z - Confirm Success: ID=69ae59ec13593fea51df8c56 for 966
 2026-03-09T05:37:15.548Z - DELETE Success: ID=69ae5a94a50bddfa033d6d30
 2026-03-09T05:37:17.803Z - DELETE Success: ID=69ae59ec13593fea51df8c56
+2026-03-10T01:00:13.198Z - POST Request - Action: set, ID: 530, Type: IN, AllowedBy: TCH-002
+2026-03-10T01:00:13.328Z - Set Success: ID=69af6d1d50c3cb696441f801, studentId=530, expiresAt=2026-03-10T01:15:13.257Z
+2026-03-10T01:02:47.034Z - POST Request - Action: confirm, ID: 530, Type: undefined, AllowedBy: undefined
+2026-03-10T01:02:47.063Z - Confirm Attempt: ID=530, Time=2026-03-10T01:02:47.063Z
+2026-03-10T01:02:47.181Z - Confirm Success: ID=69af6d1d50c3cb696441f801 for 530
+2026-03-10T01:04:16.412Z - POST Request - Action: set, ID: 540, Type: OUT, AllowedBy: TCH-002
+2026-03-10T01:04:16.529Z - Set Success: ID=69af6e1050c3cb696441f858, studentId=540, expiresAt=2026-03-10T01:19:16.470Z

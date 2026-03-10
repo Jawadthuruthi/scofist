@@ -132,7 +132,6 @@ export default function GatePass({ activeRole, currentUser }) {
                 setStudent(null)
                 setStudentId('')
                 setReason('')
-                setSelectedTeacher('')
                 fetchLogs()
             } else {
                 const data = await res.json()
@@ -476,14 +475,16 @@ export default function GatePass({ activeRole, currentUser }) {
                                         <TableHead>Authorized By</TableHead>
                                         <TableHead>Type</TableHead>
                                         <TableHead>Date & Time</TableHead>
-                                        <TableHead className="w-[80px] text-center">Action</TableHead>
+                                        {activeRole === 'College Admin' && (
+                                            <TableHead className="w-[80px] text-center">Action</TableHead>
+                                        )}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {fetchingLogs ? (
                                         Array(5).fill(0).map((_, i) => (
                                             <TableRow key={i} className="animate-pulse">
-                                                <TableCell colSpan={7} className="h-14 bg-muted/5" />
+                                                <TableCell colSpan={activeRole === 'College Admin' ? 8 : 7} className="h-14 bg-muted/5" />
                                             </TableRow>
                                         ))
                                     ) : logs.length > 0 ? (
@@ -531,8 +532,8 @@ export default function GatePass({ activeRole, currentUser }) {
                                                             </span>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="text-center">
-                                                        {activeRole === 'College Admin' && (
+                                                    {activeRole === 'College Admin' && (
+                                                        <TableCell className="text-center">
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
@@ -541,14 +542,14 @@ export default function GatePass({ activeRole, currentUser }) {
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
                                                             </Button>
-                                                        )}
-                                                    </TableCell>
+                                                        </TableCell>
+                                                    )}
                                                 </TableRow>
                                             )
                                         })
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center py-16 text-muted-foreground">
+                                            <TableCell colSpan={activeRole === 'College Admin' ? 8 : 7} className="text-center py-16 text-muted-foreground">
                                                 <div className="flex flex-col items-center space-y-2 opacity-50">
                                                     <AlertCircle className="w-10 h-10" />
                                                     <p>No confirmed activity recorded yet</p>
