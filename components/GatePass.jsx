@@ -42,6 +42,10 @@ export default function GatePass({ activeRole, currentUser }) {
     const [deletingId, setDeletingId] = useState(null)
     const [isDeleting, setIsDeleting] = useState(false)
 
+    // Error Overlay State
+    const [showError, setShowError] = useState(false)
+    const [errorMsg, setErrorMsg] = useState('')
+
     // Validity Settings
     const [maxValidity, setMaxValidity] = useState(15)
     const [validity, setValidity] = useState(15)
@@ -259,10 +263,15 @@ export default function GatePass({ activeRole, currentUser }) {
                 // Auto-close confirmation after 5 seconds
                 setTimeout(() => setShowConfirmation(false), 5000)
             } else {
-                toast.error(data.message || 'Scan failed')
+                setErrorMsg(data.message || 'Scan failed')
+                setShowError(true)
+                // Auto-close error after 2 seconds
+                setTimeout(() => setShowError(false), 2000)
             }
         } catch (error) {
-            toast.error('Error confirming scan')
+            setErrorMsg('Error confirming scan')
+            setShowError(true)
+            setTimeout(() => setShowError(false), 2000)
         }
     }
 
@@ -472,6 +481,31 @@ export default function GatePass({ activeRole, currentUser }) {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Error Overlay */}
+            {showError && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                    <Card className="w-full max-w-sm shadow-2xl border-red-500/50 overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="bg-red-600 p-6 flex flex-col items-center justify-center text-white space-y-4">
+                            <div className="bg-white/20 p-4 rounded-full">
+                                <X className="w-16 h-16" />
+                            </div>
+                            <h2 className="text-2xl font-black tracking-tight uppercase text-center">Invalid Pass</h2>
+                        </div>
+                        <CardContent className="p-6 space-y-6 text-center">
+                            <div className="space-y-2">
+                                <p className="text-lg font-bold text-red-600 leading-tight">
+                                    {errorMsg}
+                                </p>
+                            </div>
+
+                            <Button onClick={() => setShowError(false)} variant="destructive" className="w-full h-10 font-bold">
+                                DISMISS
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
             {/* Confirmation Overlay */}
             {showConfirmation && confirmedPass && (
