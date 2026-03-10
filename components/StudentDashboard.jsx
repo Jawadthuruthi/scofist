@@ -90,6 +90,11 @@ export default function StudentDashboard({
   const [fundsLoading, setFundsLoading] = useState(true);
   const [rentalHistory, setRentalHistory] = useState([]);
   const [rentalsLoading, setRentalsLoading] = useState(true);
+  const [marks, setMarks] = useState([]);
+  const [marksLoading, setMarksLoading] = useState(true);
+  const [remarksList, setRemarksList] = useState([]);
+  const [remarksLoading, setRemarksLoading] = useState(true);
+  const [selectedExamId, setSelectedExamId] = useState("all");
 
 
   const className = classes.find(
@@ -206,6 +211,48 @@ export default function StudentDashboard({
       }
     };
     fetchRentals();
+  }, [currentUser, apiKey]);
+
+  useEffect(() => {
+    const fetchMarks = async () => {
+      if (!currentUser?._id || !apiKey) return;
+      setMarksLoading(true);
+      try {
+        const res = await fetch(`/api/marks?studentId=${currentUser._id}`, {
+          headers: { "Content-Type": "application/json", "api-key": apiKey }
+        });
+        const result = await res.json();
+        if (result.success) {
+          setMarks(result.data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching marks:", error);
+      } finally {
+        setMarksLoading(false);
+      }
+    };
+    fetchMarks();
+  }, [currentUser, apiKey]);
+
+  useEffect(() => {
+    const fetchRemarks = async () => {
+      if (!currentUser?._id || !apiKey) return;
+      setRemarksLoading(true);
+      try {
+        const res = await fetch(`/api/remarks?studentId=${currentUser._id}`, {
+          headers: { "Content-Type": "application/json", "api-key": apiKey }
+        });
+        const result = await res.json();
+        if (result.remarks) {
+          setRemarksList(result.remarks || []);
+        }
+      } catch (error) {
+        console.error("Error fetching remarks:", error);
+      } finally {
+        setRemarksLoading(false);
+      }
+    };
+    fetchRemarks();
   }, [currentUser, apiKey]);
 
 
@@ -535,6 +582,182 @@ export default function StudentDashboard({
                 <div className="text-center py-10 text-muted-foreground">
                   <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-20" />
                   <p>No book rental history found.</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Marks Card */}
+        <Card className="flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div className="flex flex-col gap-1">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-indigo-500" />
+                Exam Marks
+              </CardTitle>
+            </div>
+            {marks && marks.length > 0 && (
+              <Select onValueChange={setSelectedExamId} value={selectedExamId}>
+                <SelectTrigger className="w-[180px] h-8 text-xs">
+                  <SelectValue placeholder="Select Exam" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Exams</SelectItem>
+                  {marks.map((exam) => (
+                    <SelectItem key={exam._id} value={exam._id}>
+                      {exam.examName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </CardHeader>
+          <CardContent className="flex-1">
+            <div className="max-h-[400px] overflow-y-auto pr-2">
+              {marksLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : marks && marks.length > 0 ? (
+                <div className="space-y-6">
+                  {marks
+                    .filter((exam) => selectedExamId === "all" || exam._id === selectedExamId)
+                    .map((exam) => {
+                      const studentMarks = exam.students.find(s => s.studentId?._id === currentUser._id || s.studentId === currentUser._id);
+                      if (!studentMarks) return null;
+
+                      // Calculate totals, percentage, and rank
+                      let studentTotal = 0;
+                      let maxTotal = 0;
+                      exam.subjects.forEach(subject => {
+                        const m = studentMarks.marks?.[subject.name] || 0;
+                        studentTotal += typeof m === 'number' ? m : 0;
+                        maxTotal += subject.maxMark || 100;
+                      });
+                      const percentage = maxTotal > 0 ? ((studentTotal / maxTotal) * 100).toFixed(2) : 0;
+
+                      // Rank calculation
+                      const allStudentTotals = exam.students.map(s => {
+                        let total = 0;
+                        exam.subjects.forEach(subject => {
+                          const m = s.marks?.[subject.name] || 0;
+                          total += typeof m === 'number' ? m : 0;
+                        });
+                        return { studentId: s.studentId?._id || s.studentId, total };
+                      });
+                      allStudentTotals.sort((a, b) => b.total - a.total);
+                      const rank = allStudentTotals.findIndex(s => s.studentId === currentUser._id) + 1;
+
+                      return (
+                        <div key={exam._id} className="space-y-1">
+                          <div className="rounded-md border overflow-hidden">
+                            <Table>
+                              <TableHeader className="bg-muted/50">
+                                <TableRow>
+                                  <TableHead colSpan={3} className="text-center font-bold text-sm h-10 bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300">
+                                    {exam.examName}
+                                  </TableHead>
+                                </TableRow>
+                                <TableRow className="bg-muted/30">
+                                  <TableHead className="py-2 text-xs">Subject</TableHead>
+                                  <TableHead className="py-2 text-xs text-center">Marks</TableHead>
+                                  <TableHead className="py-2 text-xs text-center">Result</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {exam.subjects.map((subject, sIndex) => {
+                                  const mark = studentMarks.marks?.[subject.name] ?? "N/A";
+                                  const isPass = typeof mark === 'number' && mark >= (subject.passMark || 40);
+                                  return (
+                                    <TableRow key={`${subject.name}-${sIndex}`}>
+                                      <TableCell className="py-2 text-sm font-medium">{subject.name}</TableCell>
+                                      <TableCell className="py-2 text-sm text-center">
+                                        {mark} <span className="text-xs text-muted-foreground">/ {subject.maxMark}</span>
+                                      </TableCell>
+                                      <TableCell className="py-2 text-center">
+                                        {typeof mark === 'number' ? (
+                                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${isPass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                            {isPass ? 'Pass' : 'Fail'}
+                                          </span>
+                                        ) : "-"}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                                {/* Summary Row */}
+                                <TableRow className="bg-indigo-50/30 dark:bg-indigo-950/20 font-bold border-t-2">
+                                  <TableCell className="py-2 text-sm text-indigo-700 dark:text-indigo-300">SUMMARY</TableCell>
+                                  <TableCell className="py-2 text-sm text-center">
+                                    <div className="flex flex-col">
+                                      <span>{studentTotal} / {maxTotal}</span>
+                                      <span className="text-[10px] text-muted-foreground">{percentage}%</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="py-2 text-center">
+                                    <div className="inline-flex items-center gap-1 bg-indigo-100 dark:bg-indigo-900 px-2 py-0.5 rounded text-indigo-700 dark:text-indigo-300">
+                                      <span className="text-[10px] font-bold">RANK</span>
+                                      <span className="text-sm">#{rank}</span>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                  <BookOpen className="h-10 w-10 mb-2 opacity-20" />
+                  <p className="text-sm">No exam marks records found.</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Remarks Card */}
+        <Card className="flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <Clock className="h-5 w-5 text-orange-500" />
+              Student Remarks
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1">
+            <div className="max-h-[400px] overflow-y-auto pr-2">
+              {remarksLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : remarksList && remarksList.length > 0 ? (
+                <div className="space-y-4">
+                  {remarksList.map((remark) => (
+                    <div key={remark._id} className="p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold">{remark.teacherName || "Teacher"}</span>
+                          <span className="text-xs text-muted-foreground">{formatDateShort(remark.date)}</span>
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${remark.status === 'very good' || remark.status === 'good' ? 'bg-green-100 text-green-700' :
+                          remark.status === 'acceptable' ? 'bg-blue-100 text-blue-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                          {remark.status}
+                        </span>
+                      </div>
+                      <p className="text-sm italic text-muted-foreground">"{remark.comments}"</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                  <Clock className="h-10 w-10 mb-2 opacity-20" />
+                  <p className="text-sm">No remarks records found.</p>
                 </div>
               )}
             </div>

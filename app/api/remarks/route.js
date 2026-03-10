@@ -42,6 +42,7 @@ export async function GET(req) {
     }
 
     if (filterParams.classId) query.classId = filterParams.classId;
+    if (filterParams.studentId) query.studentId = filterParams.studentId;
     if (filterParams.status) query.status = filterParams.status;
     if (filterParams.teacherId) query.teacherId = filterParams.teacherId;
     if (filterParams.comments) query.comments = { $regex: filterParams.comments, $options: "i" };

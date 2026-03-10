@@ -7,7 +7,10 @@ export async function GET(req) {
         await connectToDB();
         const { searchParams } = new URL(req.url);
         const classId = searchParams.get("classId");
-        const filter = classId ? { classId } : {};
+        const studentId = searchParams.get("studentId");
+        const filter = {};
+        if (classId) filter.classId = classId;
+        if (studentId) filter["students.studentId"] = studentId;
         const marks = await Mark.find(filter)
             .populate("classId", "name")
             .populate("students.studentId", "name _id");
