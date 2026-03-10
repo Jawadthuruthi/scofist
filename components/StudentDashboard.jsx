@@ -29,6 +29,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  LabelList,
 } from "recharts";
 import { Button } from "./ui/button";
 import dynamic from "next/dynamic";
@@ -256,57 +257,101 @@ export default function StudentDashboard({
   }, [currentUser, apiKey]);
 
 
-  const academicYears = useMemo(() => {
-    if (!batchName) return [new Date().getFullYear()];
-    const years = batchName.match(/\d{4}/g);
-    if (!years) return [new Date().getFullYear()];
-    const startYear = parseInt(years[0], 10);
-    const endYear = years[1] ? parseInt(years[1], 10) : startYear + 1;
-    const allYears = [];
-    for (let year = startYear; year <= endYear; year++) {
-      allYears.push(year);
-    }
-    return allYears;
-  }, [batchName]);
-
   const attendanceHistory = useMemo(() => {
-    const records = attendanceData?.[0]?.attendanceRecords || [];
+    // Robust extraction of attendance records
+    let records = [];
+    if (attendanceData) {
+      // The API often returns { studentAttendances: [...] } or just [...]
+      const dataToProcess = attendanceData.studentAttendances || attendanceData;
 
-    const allMonthsMeta = [];
-    for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
-      const date = new Date(selectedYear, monthIndex, 1);
-      const monthName = date.toLocaleString("en-US", { month: "long" });
-      allMonthsMeta.push({ year: selectedYear, monthIndex, monthName });
+      if (Array.isArray(dataToProcess)) {
+        // Handle array of student attendance documents
+        records = dataToProcess.flatMap(d => d.attendanceRecords || []);
+      } else if (dataToProcess.attendanceRecords) {
+        // Handle single student attendance document
+        records = dataToProcess.attendanceRecords;
+      } else if (Array.isArray(dataToProcess.records)) {
+        // Handle direct records array
+        records = dataToProcess.records;
+      }
     }
 
-    return allMonthsMeta.map(({ year, monthIndex, monthName }) => {
-      const recordsForMonth = records
-        ? records.filter((r) => {
+    // FIXED: Calculate across ALL available years in attendance records, not just selectedYear
+    const allYearsInRecords = new Set();
+    records.forEach(r => allYearsInRecords.add(new Date(r.date).getFullYear()));
+
+    // Sort years and handle empty case
+    const sortedYears = Array.from(allYearsInRecords).sort((a, b) => a - b);
+    if (sortedYears.length === 0) sortedYears.push(new Date().getFullYear());
+
+    const history = [];
+
+    // Create entries for each year's months that have data
+    sortedYears.forEach(year => {
+      for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+        const recordsForMonth = records.filter((r) => {
           const d = new Date(r.date);
           return d.getFullYear() === year && d.getMonth() === monthIndex;
-        })
-        : [];
+        });
 
-      const totalPeriods = recordsForMonth.length;
-      const presentPeriods = recordsForMonth.filter((r) => r.present).length;
+        if (recordsForMonth.length > 0) {
+          const monthName = new Date(year, monthIndex, 1).toLocaleString("en-US", { month: "long" });
+          const totalPeriods = recordsForMonth.length;
+          const presentPeriods = recordsForMonth.filter((r) => r.present).length;
 
-      const details = recordsForMonth.map((r) => ({
-        date: formatDateForDisplay(r.date),
-        present: r.present,
-      }));
+          const details = recordsForMonth.map((r) => ({
+            date: formatDateForDisplay(r.date),
+            present: r.present,
+          }));
 
-      return {
-        month: monthName,
-        totalPeriods,
-        presentPeriods,
-        details,
-        percentage:
-          totalPeriods > 0
-            ? ((presentPeriods / totalPeriods) * 100).toFixed(2)
-            : 0,
-      };
+          history.push({
+            year,
+            month: monthName,
+            monthYear: `${monthName} ${year}`,
+            totalPeriods,
+            presentPeriods,
+            details,
+            percentage: ((presentPeriods / totalPeriods) * 100).toFixed(2),
+          });
+        }
+      }
     });
-  }, [attendanceData, batchName, selectedYear]);
+
+    return history;
+  }, [attendanceData]);
+
+  const academicYears = useMemo(() => {
+    const yearsFromRecords = new Set();
+    attendanceHistory.forEach(h => yearsFromRecords.add(h.year));
+
+    let yearsFromBatch = [];
+    if (batchName) {
+      const match = batchName.match(/\d{4}/g);
+      if (match) {
+        const startYear = parseInt(match[0], 10);
+        const endYear = match[1] ? parseInt(match[1], 10) : startYear + 1;
+        for (let year = startYear; year <= endYear; year++) {
+          yearsFromBatch.push(year);
+        }
+      }
+    }
+
+    const allYears = new Set([...yearsFromRecords, ...yearsFromBatch]);
+    if (allYears.size === 0) allYears.add(new Date().getFullYear());
+
+    return Array.from(allYears).sort((a, b) => b - a); // Sort descending (newest first)
+  }, [batchName, attendanceHistory]);
+
+  useEffect(() => {
+    if (academicYears.length > 0 && !academicYears.includes(selectedYear)) {
+      setSelectedYear(academicYears[0]);
+    }
+  }, [academicYears, selectedYear]);
+
+  // For the chart and history card, filter by selectedYear if needed
+  const filteredAttendanceHistory = useMemo(() => {
+    return attendanceHistory.filter(h => h.year === selectedYear);
+  }, [attendanceHistory, selectedYear]);
 
   const currentDate = formatDateForDisplay(new Date());
 
@@ -706,6 +751,7 @@ export default function StudentDashboard({
                               </TableBody>
                             </Table>
                           </div>
+
                         </div>
                       );
                     })}
@@ -773,7 +819,7 @@ export default function StudentDashboard({
                 onValueChange={(value) => setSelectedYear(parseInt(value))}
                 defaultValue={selectedYear.toString()}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[100px]">
                   <SelectValue placeholder="Select Year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -796,47 +842,67 @@ export default function StudentDashboard({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {attendanceHistory.map((row) => (
-                    <React.Fragment key={row.month}>
-                      <TableRow
-                        onClick={() =>
-                          setExpandedMonth(
-                            expandedMonth === row.month ? null : row.month
-                          )
-                        }
-                        className="cursor-pointer"
-                      >
-                        <TableCell>{row.month}</TableCell>
-                        <TableCell>{row.totalPeriods}</TableCell>
-                        <TableCell>{row.presentPeriods}</TableCell>
-                        <TableCell>{row.percentage}%</TableCell>
-                      </TableRow>
-                      {expandedMonth === row.month && (
-                        <TableRow>
-                          <TableCell colSpan={4}>
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Date</TableHead>
-                                  <TableHead>Status</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {row.details.map((detail) => (
-                                  <TableRow key={detail.date}>
-                                    <TableCell>{detail.date}</TableCell>
-                                    <TableCell>
-                                      {detail.present ? "Present" : "Absent"}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
+                  {filteredAttendanceHistory.length > 0 ? (
+                    filteredAttendanceHistory.map((row) => (
+                      <React.Fragment key={row.monthYear}>
+                        <TableRow
+                          onClick={() =>
+                            setExpandedMonth(
+                              expandedMonth === row.monthYear ? null : row.monthYear
+                            )
+                          }
+                          className="cursor-pointer hover:bg-muted/50"
+                        >
+                          <TableCell className="font-medium">{row.month}</TableCell>
+                          <TableCell>{row.totalPeriods}</TableCell>
+                          <TableCell>{row.presentPeriods}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${parseFloat(row.percentage) >= 75 ? 'bg-green-100 text-green-700' :
+                              parseFloat(row.percentage) >= 50 ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                              {row.percentage}%
+                            </span>
                           </TableCell>
                         </TableRow>
-                      )}
-                    </React.Fragment>
-                  ))}
+                        {expandedMonth === row.monthYear && (
+                          <TableRow className="bg-muted/30">
+                            <TableCell colSpan={4} className="p-0">
+                              <div className="p-4">
+                                <Table className="border rounded-md bg-background">
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="h-8 py-1">Date</TableHead>
+                                      <TableHead className="h-8 py-1 text-center">Status</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {row.details.map((detail) => (
+                                      <TableRow key={detail.date} className="h-8">
+                                        <TableCell className="py-1">{detail.date}</TableCell>
+                                        <TableCell className="py-1 text-center">
+                                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${detail.present ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
+                                            }`}>
+                                            {detail.present ? "Present" : "Absent"}
+                                          </span>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                        No attendance records found for {selectedYear}.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -844,18 +910,38 @@ export default function StudentDashboard({
 
           <Card>
             <CardHeader>
-              <CardTitle>Attendance Chart</CardTitle>
+              <CardTitle>Attendance Chart ({selectedYear})</CardTitle>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={attendanceHistory}>
-                  <XAxis dataKey="month" />
+            <CardContent className="p-0">
+              <div className="w-full overflow-x-auto pb-2 flex justify-start">
+                <BarChart
+                  width={Math.max(300, filteredAttendanceHistory.length * 60 + 60)}
+                  height={300}
+                  data={filteredAttendanceHistory}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 40 }}
+                  barCategoryGap={20}
+                >
+                  <XAxis dataKey="month" padding={{ left: 10, right: 10 }} />
                   <YAxis />
                   <Tooltip />
-                  <Legend />
-                  <Bar dataKey="percentage" fill="#8884d8" />
+                  <Legend verticalAlign="top" align="left" />
+                  <Bar
+                    dataKey="percentage"
+                    fill="#3b82f6"
+                    radius={[4, 4, 0, 0]}
+                    barSize={40}
+                  >
+                    <LabelList
+                      dataKey="month"
+                      position="insideBottom"
+                      angle={-90}
+                      offset={10}
+                      fill="white"
+                      style={{ fontSize: '10px', fontWeight: 'bold', textAnchor: 'start' }}
+                    />
+                  </Bar>
                 </BarChart>
-              </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         </div>
