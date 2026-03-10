@@ -60,7 +60,6 @@ export async function GET(req, res) {
     if (!searchParams.studentId || searchParams.includeSummary === "true") {
       const allStudentsQuery = {
         batchId: searchParams.batchId,
-        balance: { $ne: 0 },
       };
 
       if (searchParams.department) {

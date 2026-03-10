@@ -154,7 +154,7 @@ const StudentsFund = ({
       department,
       batchId: selectedBatch,
       projection: "studentId,balance,transactions,batchId,fundType,teacherId,department",
-      includeSummary: selectedStudents.length === 0 ? "true" : "false",
+      includeSummary: !!selectedBatch ? "true" : "false",
     },
     {
       staleTime: 1000 * 60 * 5, // 5 minutes

@@ -42,8 +42,8 @@ export default function GatePass({ activeRole, currentUser }) {
     const [deletingId, setDeletingId] = useState(null)
     const [isDeleting, setIsDeleting] = useState(false)
 
-    const fetchLogs = useCallback(async () => {
-        setFetchingLogs(true)
+    const fetchLogs = useCallback(async (background = false) => {
+        if (!background) setFetchingLogs(true)
         try {
             const res = await fetch('/api/gate-pass')
             const data = await res.json()
@@ -53,7 +53,7 @@ export default function GatePass({ activeRole, currentUser }) {
         } catch (error) {
             console.error('Error fetching logs:', error)
         } finally {
-            setFetchingLogs(false)
+            if (!background) setFetchingLogs(false)
         }
     }, [])
 
@@ -78,8 +78,8 @@ export default function GatePass({ activeRole, currentUser }) {
             setSelectedTeacher(currentUser._id)
         }
 
-        // Poll for updates every minute to handle 15-min expiry cleanup
-        const interval = setInterval(fetchLogs, 60000)
+        // Poll for updates every 5 seconds to provide real-time updates and handle expiry
+        const interval = setInterval(() => fetchLogs(true), 5000)
         return () => clearInterval(interval)
     }, [fetchLogs, fetchTeachers, activeRole, currentUser])
 
@@ -163,7 +163,7 @@ export default function GatePass({ activeRole, currentUser }) {
                 setStudent(null)
                 setStudentId('')
                 setReason('')
-                fetchLogs()
+                fetchLogs(true)
             } else {
                 const data = await res.json()
                 toast.error(data.message || 'Failed to set permission')
@@ -182,7 +182,7 @@ export default function GatePass({ activeRole, currentUser }) {
 
             if (res.ok) {
                 toast.success('Record deleted successfully')
-                fetchLogs()
+                fetchLogs(true)
                 setDeletingId(null)
             } else {
                 const data = await res.json()
@@ -218,7 +218,7 @@ export default function GatePass({ activeRole, currentUser }) {
                 setConfirmedPass(data.pass)
                 setShowConfirmation(true)
                 setManualConfirmId('')
-                fetchLogs()
+                fetchLogs(true)
                 // Auto-close confirmation after 5 seconds
                 setTimeout(() => setShowConfirmation(false), 5000)
             } else {
