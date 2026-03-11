@@ -9,15 +9,13 @@ const FormComponent = dynamic(() => import("@/components/FormComponent"), {
 const generalFormField = [
   {
     name: "isWorkingDay",
-    onLabel: "Disable Working Day",
-    offLabel: "Enable Working Day",
+    label: "Working Day",
     required: true,
     type: "boolean",
     inputType: "toggle",
     defaultValue: true,
     hideLabel: true,
     className: "col-span-2",
-    invertToggle: true,
   },
   {
     name: "occasion",
@@ -83,20 +81,6 @@ const institutionFormField = [
     name: "website",
     label: "Website",
     placeholder: "Enter website URL",
-  },
-];
-
-const idCardFormField = [
-  {
-    name: "backgroundImage",
-    label: "ID Card Background",
-    inputType: "image",
-    type: "object",
-    className: "col-span-2",
-    maxFileSize: 2 * 1024 * 1024,
-    allowedTypes: ["image/jpeg", "image/jpg", "image/png"],
-    aspectRatio: "2:3",
-    defaultValue: {},
   },
 ];
 
@@ -355,14 +339,6 @@ export default function SettingsClient({
             resource="settings"
             title="Institution Profile"
             description="Configure Your Institution Details"
-          />
-          <FormComponent
-            formFields={idCardFormField}
-            apiKey={apiKey}
-            data={idCard}
-            resource="settings"
-            title="ID Card"
-            description="Set Your ID Card Background"
           />
         </>
       )}

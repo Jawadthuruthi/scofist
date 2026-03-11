@@ -3,10 +3,19 @@ import { useRef, useState, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { Printer, User, Shield } from "lucide-react";
+import { Printer, User, Shield, Settings } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import Barcode from "react-barcode";
 import Header from "./Header";
+import dynamic from "next/dynamic";
+const FormComponent = dynamic(() => import("./FormComponent"), { ssr: false });
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
 import {
   Select,
   SelectContent,
@@ -19,12 +28,28 @@ import { MultiSelect } from "./ui/multi-select";
 import { formatDateForDisplay, formatDateMonthYear, formatOptions } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
+const idCardFormField = [
+  {
+    name: "backgroundImage",
+    label: "ID Card Background",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/jpeg", "image/jpg", "image/png"],
+    aspectRatio: "2:3",
+    defaultValue: {},
+  },
+];
+
 const IdentityCards = ({
   students = [],
   institution = {},
   classes = [],
   idCardBackgroundImageUrl = "",
   teachers = [],
+  apiKey,
+  settings = {},
 }) => {
   const [selectionType, setSelectionType] = useState("Student ID");
   const [selectedClass, setSelectedClass] = useState([]);
@@ -153,19 +178,41 @@ const IdentityCards = ({
           </div>
         )}
 
-        {/* Print Side and Print Button Column */}
         <div className="w-full md:flex-1 md:min-w-[150px] flex flex-col gap-3">
-          {/* Print Button */}
-          <Button
-            onClick={handlePrint}
-            className="flex items-center justify-center gap-2 w-full"
-            aria-label="Print"
-          >
-            <Printer size={16} />
-            Print
-          </Button>
+          <div className="flex gap-2 w-full">
+            <Button
+              onClick={handlePrint}
+              className="flex items-center justify-center gap-2 flex-1"
+              aria-label="Print"
+            >
+              <Printer size={16} />
+              Print
+            </Button>
 
-          {/* Side Selection */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="icon" title="Settings">
+                  <Settings size={16} />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>ID Card Settings</DialogTitle>
+                </DialogHeader>
+                <div className="mt-4">
+                  <FormComponent
+                    formFields={idCardFormField}
+                    apiKey={apiKey}
+                    data={settings.idCard}
+                    resource="settings"
+                    title="ID Card"
+                    description="Set Your ID Card Background"
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
           <div>
             <label htmlFor="side-select" className="text-sm font-medium mb-1 block">
               Print Side

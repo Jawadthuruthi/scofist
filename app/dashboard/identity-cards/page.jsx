@@ -14,7 +14,9 @@ const identityCardsPage = async () => {
 
     return (
       <IdentityCards
+        apiKey={process.env.API_KEY}
         students={students}
+        settings={settings}
         institution={settings.institution}
         idCardBackgroundImageUrl={settings.idCard?.backgroundImage?.url}
         classes={classes}
