@@ -8,8 +8,6 @@ import {
 } from "@/lib/api";
 
 const useCrud = (apiEndpoint, apiKey) => {
-  const queryClient = useQueryClient();
-
   // Fetch items with pagination support
   const useFetchItems = (page = 0, limit = 20, filters = {}, options = {}) => {
     return useQuery({
@@ -30,10 +28,10 @@ const useCrud = (apiEndpoint, apiKey) => {
 
   // Add an item
   const useAddItem = () => {
+    const queryClient = useQueryClient();
     return useMutation({
       mutationFn: (data) => addItem(apiEndpoint, data, apiKey),
       onSuccess: () => {
-        // queryClient.removeQueries([apiEndpoint]); // Removed to fix immediate refetching issues
         queryClient.invalidateQueries({
           queryKey: [apiEndpoint],
           exact: false,
@@ -44,10 +42,10 @@ const useCrud = (apiEndpoint, apiKey) => {
 
   // Update an item
   const useUpdateItem = () => {
+    const queryClient = useQueryClient();
     return useMutation({
       mutationFn: ({ data }) => updateItem(apiEndpoint, data, apiKey),
       onSuccess: () => {
-        // queryClient.removeQueries([apiEndpoint]);
         queryClient.invalidateQueries({
           queryKey: [apiEndpoint],
           exact: false,
@@ -58,6 +56,7 @@ const useCrud = (apiEndpoint, apiKey) => {
 
   // Delete an item
   const useDeleteItem = () => {
+    const queryClient = useQueryClient();
     return useMutation({
       mutationFn: ({ data }) =>
         deleteItem(apiEndpoint, data, apiKey),

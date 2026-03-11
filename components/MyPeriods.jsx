@@ -108,8 +108,8 @@ const MyPeriods = ({ apiKey, teacherId }) => {
     0,
     {},
     {
-      staleTime: 1000 * 60 * 60,
-      refetchOnWindowFocus: false,
+      staleTime: 0,
+      refetchOnWindowFocus: true,
     }
   );
 
@@ -142,8 +142,8 @@ const MyPeriods = ({ apiKey, teacherId }) => {
     0,
     {},
     {
-      staleTime: 1000 * 60 * 60,
-      refetchOnWindowFocus: false,
+      staleTime: 0,
+      refetchOnWindowFocus: true,
     }
   );
   const settings = settingsQuery.data?.settings;

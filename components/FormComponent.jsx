@@ -101,12 +101,16 @@ const FormFields = ({ form, fields, apiKey }) =>
             ) : field.inputType === "toggle" ? (
               <div className="flex items-center space-x-2">
                 <Label htmlFor={field.name} className="text-sm font-medium">
-                  {field.label}
+                  {field.onLabel && field.offLabel
+                    ? (field.invertToggle ? !formField.value : !!formField.value)
+                      ? field.onLabel
+                      : field.offLabel
+                    : field.label}
                 </Label>
                 <Switch
                   id={field.name}
-                  checked={formField.value || false}
-                  onCheckedChange={(checked) => formField.onChange(checked)}
+                  checked={field.invertToggle ? !formField.value : (formField.value || false)}
+                  onCheckedChange={(checked) => formField.onChange(field.invertToggle ? !checked : checked)}
                   disabled={field.disabled}
                 />
               </div>
@@ -144,6 +148,7 @@ const FormContent = ({
   data,
   loading,
   apiKey,
+  hideSubmitOn,
 }) => {
   const sectionRefs = React.useRef([]);
 
@@ -223,15 +228,19 @@ const FormContent = ({
             </Button>
           )}
           {activeSectionIndex === totalSections - 1 ? (
-            <Button className="ml-auto" type="submit" disabled={loading}>
-              {loading ? (
-                <Loader className="animate-spin mr-2" />
-              ) : data ? (
-                "Save changes"
-              ) : (
-                "Submit"
-              )}
-            </Button>
+            (!hideSubmitOn ||
+              form.getValues()[hideSubmitOn.field] !== hideSubmitOn.value ||
+              form.formState.isDirty) && (
+              <Button className="ml-auto" type="submit" disabled={loading}>
+                {loading ? (
+                  <Loader className="animate-spin mr-2" />
+                ) : data ? (
+                  "Save changes"
+                ) : (
+                  "Submit"
+                )}
+              </Button>
+            )
           ) : (
             <Button
               type="button"
@@ -259,6 +268,7 @@ export default function FormComponent({
   apiKey,
   resource,
   returnBack = false,
+  hideSubmitOn,
 }) {
   const [customizedFormField, setCustomizedFormField] =
     React.useState(formFields);
@@ -324,8 +334,11 @@ export default function FormComponent({
         form.reset();
       }
       router.refresh();
+      if (data) {
+        form.reset(form.getValues());
+      }
     }
-  }, []);
+  }, [data, form, updateItem, addItem, returnBack, router]);
 
   React.useEffect(() => {
     setCustomizedFormField(
@@ -333,7 +346,7 @@ export default function FormComponent({
         (field) =>
           (data ? !field?.hideOnEdit : true) &&
           (!field.conditionalRender ||
-            (field.conditionalRender.expectedValue
+            (field.conditionalRender.expectedValue !== undefined
               ? field.conditionalRender.expectedValue ===
               formValues[field.conditionalRender.dependentField]
               : !!formValues[field.conditionalRender.dependentField]))
@@ -362,6 +375,7 @@ export default function FormComponent({
           data={data}
           loading={loading}
           apiKey={apiKey}
+          hideSubmitOn={hideSubmitOn}
         />
       </CardContent>
     </Card>
