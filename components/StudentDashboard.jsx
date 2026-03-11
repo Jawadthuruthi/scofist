@@ -21,9 +21,11 @@ import Header from "@/components/Header";
 import { Calendar, Printer, BookOpen, Clock, Loader2 } from "lucide-react";
 import { formatDateForDisplay, formatMonthYear, formatDateShort } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
+import PrintHeader from "@/components/PrintHeader";
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   Tooltip,
@@ -380,49 +382,196 @@ export default function StudentDashboard({
 
 
   return (
-    <div className="flex flex-col space-y-4">
-      {!hideHeader && (
-        <Header
-          title="DASHBOARD"
-          subTitle={currentDate}
-          icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
-        />
-      )}
+    <>
+      <style>{`
+        @media print {
+          /* Force exact colors and backgrounds */
+          * { 
+            -webkit-print-color-adjust: exact !important; 
+            print-color-adjust: exact !important; 
+            box-shadow: none !important;
+          }
+          
+          /* Reset root and body layout */
+          @page { margin: 1cm !important; size: auto; }
+          html, body { 
+            height: auto !important; 
+            overflow: visible !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            background: white !important;
+            width: 100% !important;
+          }
 
-      {/* Profile Header */}
-      <Card className="bg-blue-50 dark:bg-blue-950 border-blue-100 dark:border-blue-900">
-        <CardContent className="flex items-center justify-between p-5">
-          <div className="flex items-center space-x-6">
-            <Avatar className="h-24 w-24 rounded-lg">
-              <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} />
-              <AvatarFallback>{currentUser?.name?.[0]}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <h2 className="text-2xl font-bold">{currentUser?.name}</h2>
-              <p className="text-muted-foreground">Admission ID: {currentUser?._id}</p>
+          /* Nuke all potentially hidden spacing at the top */
+          .no-print, [class*="no-print"] { 
+            display: none !important; 
+            height: 0 !important; 
+            width: 0 !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            position: absolute !important;
+            pointer-events: none !important;
+          }
+
+          /* Force all containers to be visible and expanded */
+          [class*="overflow-"], 
+          [class*="max-h-"],
+          [class*="min-h-"] {
+            overflow: visible !important;
+            max-height: none !important;
+            min-height: 0 !important;
+            height: auto !important;
+          }
+
+          /* Specific resets for layout wrappers */
+          .SidebarProvider, 
+          [class*="sidebar-wrapper"], 
+          [class*="h-screen"],
+          [class*="min-h-svh"],
+          main, 
+          header,
+          section { 
+            display: block !important; 
+            height: auto !important; 
+            min-height: 0 !important; 
+            overflow: visible !important;
+            position: static !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          /* Disable all animations and transitions in print */
+          *, *::before, *::after {
+            animation-delay: 0s !important;
+            animation-duration: 0s !important;
+            animation-iteration-count: 1 !important;
+            transition-delay: 0s !important;
+            transition-duration: 0s !important;
+          }
+
+          /* Reset space-y and margins on the main container children */
+          .space-y-6, .space-y-4 { gap: 0 !important; }
+          .space-y-6 > *, .mt-6, .pt-5, .p-4, .p-8 { 
+            margin-top: 0 !important; 
+            padding-top: 0 !important; 
+          }
+          
+          /* Prevent cards from breaking across pages */
+          .card-print-break { 
+            break-inside: avoid !important; 
+            page-break-inside: avoid !important; 
+            margin-bottom: 2rem !important; 
+            display: block !important;
+            border: 1px solid #e2e8f0 !important;
+          }
+
+          /* Professional Table Styling for Print */
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            margin-bottom: 1rem !important;
+            table-layout: auto !important;
+          }
+          th, td {
+            border: 1px solid #e2e8f0 !important;
+            padding: 8px 12px !important;
+            text-align: left !important;
+            font-size: 11px !important;
+            line-height: 1.4 !important;
+          }
+          th {
+            background-color: #f8fafc !important;
+            font-weight: bold !important;
+            text-transform: uppercase !important;
+            color: #1e293b !important;
+          }
+          tr {
+            page-break-inside: avoid !important;
+          }
+          
+          /* Specific column tweaks */
+          .w-[60px] { width: 50px !important; }
+          .text-center { text-align: center !important; }
+          .text-right { text-align: right !important; }
+
+          /* Layout specific for reports */
+          .print-grid-2 { 
+            display: grid !important; 
+            grid-template-columns: 1fr 1fr !important; 
+            gap: 1.5rem !important; 
+          }
+          .print-stack-vertical { 
+            display: block !important; 
+            width: 100% !important;
+          }
+          .print-stack-vertical > * {
+            width: 100% !important;
+            margin-bottom: 2rem !important;
+          }
+          
+          .print-flex-row { 
+            display: flex !important; 
+            flex-direction: row !important; 
+            align-items: center !important; 
+            gap: 2rem !important; 
+          }
+        }
+      `}</style>
+
+      <div className="space-y-6 max-w-7xl mx-auto">
+
+      <div className="no-print mb-4">
+        {!hideHeader && (
+          <Header
+            title="DASHBOARD"
+            subTitle={currentDate}
+            icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
+          />
+        )}
+      </div>
+
+      <PrintHeader title="STUDENT PROFILE" apiKey={apiKey} displayOnScreen={false} />
+
+      {/* Profile Header - Visible in Print now */}
+      <Card className="bg-blue-50 dark:bg-blue-950 border-blue-100 dark:border-blue-900 shadow-none card-print-break">
+        <CardContent className="p-5 flex items-center gap-6">
+          <Avatar className="h-24 w-24 rounded-lg flex-shrink-0">
+            <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} />
+            <AvatarFallback>{currentUser?.name?.[0]}</AvatarFallback>
+          </Avatar>
+          
+          <div className="flex-1 flex flex-col justify-center">
+            <h2 className="text-xl font-bold mb-0.5">{currentUser?.name}</h2>
+            
+            <div className="flex flex-col gap-0 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <span className="font-semibold text-foreground uppercase text-[10px] w-14">ID:</span> 
+                <span>{currentUser?._id}</span>
+              </div>
+              
               {currentUser?.studentSpecificField?.status === "Active" && (
-                <p className="text-muted-foreground">Class: {className}</p>
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-foreground uppercase text-[10px] w-14">Class:</span> 
+                  <span>{className}</span>
+                </div>
               )}
-              <p className="text-muted-foreground">
-                Status:{" "}
-                <span
-                  className={`px-2 py-1 rounded-md ${getStatusClass(
-                    currentUser?.studentSpecificField?.status
-                  )}`}
-                >
+              
+              <div className="flex items-center gap-1">
+                <span className="font-semibold text-foreground uppercase text-[10px] w-14">Status:</span>
+                <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[10px] ${getStatusClass(currentUser?.studentSpecificField?.status)}`}>
                   {currentUser?.studentSpecificField?.status}
                 </span>
-              </p>
-
+              </div>
             </div>
           </div>
-
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="print-grid-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* Personal Information */}
-        <Card>
+        <Card className="card-print-break">
           <CardHeader>
             <CardTitle>Personal Info</CardTitle>
           </CardHeader>
@@ -473,7 +622,7 @@ export default function StudentDashboard({
         </Card>
 
         {/* Academic Info */}
-        <Card>
+        <Card className="card-print-break">
           <CardHeader>
             <CardTitle>Academic Info</CardTitle>
           </CardHeader>
@@ -501,11 +650,27 @@ export default function StudentDashboard({
               label="Graduated Yr"
               value={currentUser?.studentSpecificField?.graduatedYear}
             />
+            {currentUser?.studentSpecificField?.status === "Dropped Out" && (
+              <>
+                <ProfileField
+                  label="Dropout Date"
+                  value={formatDateShort(currentUser?.studentSpecificField?.droppedOutDate)}
+                />
+                <ProfileField
+                  label="Dropout Class"
+                  value={classes?.find(c => c._id === currentUser?.studentSpecificField?.droppedOutClass)?.name || currentUser?.studentSpecificField?.droppedOutClass}
+                />
+                <ProfileField
+                  label="Dropout Reason"
+                  value={currentUser?.studentSpecificField?.droppedOutReason}
+                />
+              </>
+            )}
           </CardContent>
         </Card>
 
         {/* Contact Info */}
-        <Card>
+        <Card className="card-print-break">
           <CardHeader>
             <CardTitle>Contact Info</CardTitle>
           </CardHeader>
@@ -530,9 +695,9 @@ export default function StudentDashboard({
             />
           </CardContent>
         </Card>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        <Card className="bg-yellow-50/30 dark:bg-yellow-950/20 border-yellow-100 dark:border-yellow-900">
+
+        {/* Pending Transactions - Moved here to be 4th in grid */}
+        <Card className="bg-yellow-50/30 dark:bg-yellow-950/20 border-yellow-100 dark:border-yellow-900 card-print-break">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
               <Clock className="h-5 w-5" />
@@ -540,7 +705,7 @@ export default function StudentDashboard({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="max-h-[300px] overflow-y-auto pr-2 grid grid-cols-[max-content_12px_1fr] items-start">
+            <div className="max-h-[300px] overflow-y-auto pr-2 grid grid-cols-[max-content_12px_1fr] items-start print-expand">
               {fundsLoading ? (
                 <p className="col-span-3">Loading funds...</p>
               ) : pendingFunds && pendingFunds.length > 0 ? (
@@ -563,8 +728,8 @@ export default function StudentDashboard({
           </CardContent>
         </Card>
 
-        {/* Read Books / Rental History */}
-        <Card className="lg:col-span-2">
+        {/* Read Books / Rental History - 5th in grid, col-span-2 on screen to pair with Pending */}
+        <Card className="lg:col-span-2 print:col-span-2 card-print-break">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-primary" />
@@ -634,9 +799,10 @@ export default function StudentDashboard({
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {/* Row 1: Marks and Attendance History Table */}
+      <div className={`grid grid-cols-1 ${currentUser?.studentSpecificField?.status === "Active" ? "md:grid-cols-2" : ""} gap-5 pt-5 print-stack-vertical`}>
         {/* Marks Card */}
-        <Card className="flex flex-col">
+        <Card className="flex flex-col card-print-break">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="flex flex-col gap-1">
               <CardTitle className="text-lg font-bold flex items-center gap-2">
@@ -645,19 +811,21 @@ export default function StudentDashboard({
               </CardTitle>
             </div>
             {marks && marks.length > 0 && (
-              <Select onValueChange={setSelectedExamId} value={selectedExamId}>
-                <SelectTrigger className="w-[180px] h-8 text-xs">
-                  <SelectValue placeholder="Select Exam" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Exams</SelectItem>
-                  {marks.map((exam) => (
-                    <SelectItem key={exam._id} value={exam._id}>
-                      {exam.examName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="no-print">
+                <Select onValueChange={setSelectedExamId} value={selectedExamId}>
+                  <SelectTrigger className="w-[180px] h-8 text-xs">
+                    <SelectValue placeholder="Select Exam" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Exams</SelectItem>
+                    {marks.map((exam) => (
+                      <SelectItem key={exam._id} value={exam._id}>
+                        {exam.examName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
           </CardHeader>
           <CardContent className="flex-1">
@@ -766,8 +934,147 @@ export default function StudentDashboard({
           </CardContent>
         </Card>
 
-        {/* Remarks Card */}
-        <Card className="flex flex-col">
+        {currentUser?.studentSpecificField?.status === "Active" && (
+          <Card className="card-print-break">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-lg font-bold">Attendance History</CardTitle>
+              <div className="no-print">
+                <Select
+                  onValueChange={(value) => setSelectedYear(parseInt(value))}
+                  defaultValue={selectedYear.toString()}
+                >
+                  <SelectTrigger className="w-[100px] h-8 text-xs">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {academicYears.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="max-h-[400px] overflow-y-auto pr-2">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow>
+                      <TableHead className="py-2 text-xs">Month</TableHead>
+                      <TableHead className="py-2 text-xs">Total</TableHead>
+                      <TableHead className="py-2 text-xs">Present</TableHead>
+                      <TableHead className="py-2 text-xs text-right">%</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAttendanceHistory.length > 0 ? (
+                      filteredAttendanceHistory.map((row) => (
+                        <React.Fragment key={row.monthYear}>
+                          <TableRow
+                            onClick={() =>
+                              setExpandedMonth(
+                                expandedMonth === row.monthYear ? null : row.monthYear
+                              )
+                            }
+                            className="cursor-pointer hover:bg-muted/50"
+                          >
+                            <TableCell className="py-2 text-sm font-medium">{row.month}</TableCell>
+                            <TableCell className="py-2 text-sm">{row.totalPeriods}</TableCell>
+                            <TableCell className="py-2 text-sm">{row.presentPeriods}</TableCell>
+                            <TableCell className="py-2 text-sm text-right">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${parseFloat(row.percentage) > 80 ? 'bg-green-100 text-green-700' :
+                                parseFloat(row.percentage) >= 50 ? 'bg-orange-100 text-orange-700' :
+                                  'bg-red-100 text-red-700'
+                                }`}>
+                                {row.percentage}%
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                          {expandedMonth === row.monthYear && (
+                            <TableRow className="bg-muted/30">
+                              <TableCell colSpan={4} className="p-0">
+                                <div className="p-4">
+                                  <Table className="border rounded-md bg-background">
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="h-8 py-1">Date</TableHead>
+                                        <TableHead className="h-8 py-1 text-center">Status</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {row.details.map((detail) => (
+                                        <TableRow key={detail.date} className="h-8">
+                                          <TableCell className="py-1 text-xs">{detail.date}</TableCell>
+                                          <TableCell className="py-1 text-center">
+                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${detail.present ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
+                                              }`}>
+                                              {detail.present ? "Present" : "Absent"}
+                                            </span>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">
+                          No records found for {selectedYear}.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Row 2: Attendance Chart and Remarks */}
+      <div className={`grid grid-cols-1 ${currentUser?.studentSpecificField?.status === "Active" ? "md:grid-cols-2" : ""} gap-5 pt-5 print-stack-vertical`}>
+        {currentUser?.studentSpecificField?.status === "Active" && (
+          <Card className="card-print-break flex flex-col">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold">Attendance Chart ({selectedYear})</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 flex-1 flex items-center justify-center">
+              <div className="w-full h-full min-h-[300px] overflow-x-auto pb-2 flex justify-start">
+                <BarChart
+                  width={Math.max(300, filteredAttendanceHistory.length * 60 + 60)}
+                  height={300}
+                  data={filteredAttendanceHistory}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 40 }}
+                  barCategoryGap={20}
+                >
+                  <XAxis dataKey="month" tick={false} padding={{ left: 10, right: 10 }} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend verticalAlign="top" align="right" />
+                  <Bar
+                    dataKey="percentage"
+                    radius={[4, 4, 0, 0]}
+                    barSize={40}
+                  >
+                    {filteredAttendanceHistory.map((entry, index) => {
+                      const p = parseFloat(entry.percentage);
+                      const color = p > 80 ? "#22c55e" : p >= 50 ? "#ea580c" : "#ef4444";
+                      return <Cell key={`cell-${index}`} fill={color} />;
+                    })}
+                  </Bar>
+                </BarChart>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card className="flex flex-col card-print-break">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
               <Clock className="h-5 w-5 text-orange-500" />
@@ -810,142 +1117,6 @@ export default function StudentDashboard({
           </CardContent>
         </Card>
       </div>
-      {currentUser?.studentSpecificField?.status === "Active" && (
-        <div className="grid gap-5 md:grid-cols-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Month-wise Attendance History</CardTitle>
-              <Select
-                onValueChange={(value) => setSelectedYear(parseInt(value))}
-                defaultValue={selectedYear.toString()}
-              >
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue placeholder="Select Year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {academicYears.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Month</TableHead>
-                    <TableHead>Total Periods</TableHead>
-                    <TableHead>Present</TableHead>
-                    <TableHead>Percentage</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAttendanceHistory.length > 0 ? (
-                    filteredAttendanceHistory.map((row) => (
-                      <React.Fragment key={row.monthYear}>
-                        <TableRow
-                          onClick={() =>
-                            setExpandedMonth(
-                              expandedMonth === row.monthYear ? null : row.monthYear
-                            )
-                          }
-                          className="cursor-pointer hover:bg-muted/50"
-                        >
-                          <TableCell className="font-medium">{row.month}</TableCell>
-                          <TableCell>{row.totalPeriods}</TableCell>
-                          <TableCell>{row.presentPeriods}</TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${parseFloat(row.percentage) >= 75 ? 'bg-green-100 text-green-700' :
-                              parseFloat(row.percentage) >= 50 ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>
-                              {row.percentage}%
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                        {expandedMonth === row.monthYear && (
-                          <TableRow className="bg-muted/30">
-                            <TableCell colSpan={4} className="p-0">
-                              <div className="p-4">
-                                <Table className="border rounded-md bg-background">
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead className="h-8 py-1">Date</TableHead>
-                                      <TableHead className="h-8 py-1 text-center">Status</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {row.details.map((detail) => (
-                                      <TableRow key={detail.date} className="h-8">
-                                        <TableCell className="py-1">{detail.date}</TableCell>
-                                        <TableCell className="py-1 text-center">
-                                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${detail.present ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
-                                            }`}>
-                                            {detail.present ? "Present" : "Absent"}
-                                          </span>
-                                        </TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </React.Fragment>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                        No attendance records found for {selectedYear}.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Attendance Chart ({selectedYear})</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="w-full overflow-x-auto pb-2 flex justify-start">
-                <BarChart
-                  width={Math.max(300, filteredAttendanceHistory.length * 60 + 60)}
-                  height={300}
-                  data={filteredAttendanceHistory}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 40 }}
-                  barCategoryGap={20}
-                >
-                  <XAxis dataKey="month" padding={{ left: 10, right: 10 }} />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend verticalAlign="top" align="left" />
-                  <Bar
-                    dataKey="percentage"
-                    fill="#3b82f6"
-                    radius={[4, 4, 0, 0]}
-                    barSize={40}
-                  >
-                    <LabelList
-                      dataKey="month"
-                      position="insideBottom"
-                      angle={-90}
-                      offset={10}
-                      fill="white"
-                      style={{ fontSize: '10px', fontWeight: 'bold', textAnchor: 'start' }}
-                    />
-                  </Bar>
-                </BarChart>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
       <div className="fixed bottom-4 right-4 no-print">
         <Button onClick={() => window.print()}>
           <Printer className="mr-2 h-4 w-4" />
@@ -954,6 +1125,7 @@ export default function StudentDashboard({
       </div>
 
 
-    </div>
+      </div>
+    </>
   );
 }

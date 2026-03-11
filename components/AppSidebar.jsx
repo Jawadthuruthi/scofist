@@ -734,7 +734,7 @@ export function AppSidebar({ roles, activeRole, user }) {
   }, [role, user]);
 
   return (
-    <Sidebar ref={sidebarRef}>
+    <Sidebar ref={sidebarRef} className="no-print">
       <SidebarContent>
         <div className="flex justify-between items-center h-14 px-6 border-b">
           <h2 className="text-lg  font-semibold">SCOFIST</h2>

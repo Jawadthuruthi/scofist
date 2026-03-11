@@ -49,7 +49,7 @@ export function Topbar({ user }) {
   };
 
   return (
-    <header className="fixed top-0 left-0 w-full z-10 h-14 bg-background border-b shadow-sm flex items-center px-4 justify-between">
+    <header className="fixed top-0 left-0 w-full z-10 h-14 bg-background border-b shadow-sm flex items-center px-4 justify-between no-print">
       {/* Sidebar Toggle Button */}
       <Button
         variant="ghost"

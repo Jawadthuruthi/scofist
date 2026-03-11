@@ -71,65 +71,71 @@ export default function PrintHeader({
   } else {
     return (
       <Card
-        className={`w-full border-0 print:block mb-4 ${displayOnScreen ? "" : "hidden"}`}
+        className={`w-full border-0 shadow-none print:shadow-none print:border-0 print:m-0 print:p-0 mb-4 ${displayOnScreen ? "" : "hidden"}`}
       >
         <CardContent className="p-0">
-          <div className="flex flex-col max-w-full overflow-x-auto">
+          <div className="flex flex-col max-w-full overflow-x-auto print:overflow-visible">
             {/* Header with logo and data info */}
             {!hidePrintLogo && (
-              <div className="flex items-center min-w-[560px] justify-center bg-gradient-to-b from-white to-gray-50 border-b border-gray-200 mb-1">
-                {/* Left side - Logo */}
-                <div className="flex-shrink-0 w-28 h-28 mr-4">
-                  {data.logo && data.logo.url ? (
-                    <Image
-                      src={data.logo.url}
-                      alt="Institution Logo"
-                      width={112}
-                      height={112}
-                      className="object-contain"
-                      unoptimized
-                      priority
-                    />
-                  ) : (
-                    <div className="w-28 h-28 bg-gray-50 flex items-center justify-center rounded-md border border-gray-200">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-gray-400"
-                      >
-                        <rect width="18" height="18" x="3" y="3" rx="2" />
-                        <circle cx="9" cy="9" r="2" />
-                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                      </svg>
-                    </div>
-                  )}
+              <div className="flex items-center w-full min-w-0 justify-between px-8 py-4 bg-gradient-to-b from-white to-gray-50 border-b border-gray-200">
+                {/* Left side - Logo and Name side-by-side */}
+                <div className="flex items-center gap-6">
+                  <div className="flex-shrink-0 w-24 h-24">
+                    {data.logo && data.logo.url ? (
+                      <Image
+                        src={data.logo.url}
+                        alt="Institution Logo"
+                        width={96}
+                        height={96}
+                        className="object-contain"
+                        unoptimized
+                        priority
+                      />
+                    ) : (
+                      <div className="w-24 h-24 bg-gray-50 flex items-center justify-center rounded-md border border-gray-200">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="text-gray-400"
+                        >
+                          <rect width="18" height="18" x="3" y="3" rx="2" />
+                          <circle cx="9" cy="9" r="2" />
+                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col text-left leading-tight">
+                    <h1 className="text-xl font-bold mb-0 text-gray-800">
+                      {data.name || "INSTITUTION NAME"}
+                    </h1>
+                    <p className="text-sm text-gray-600 italic">
+                      {data.tagline && <span>{data.tagline}</span>}
+                    </p>
+                  </div>
                 </div>
 
-                {/* Center - Institution details - Properly centered */}
-                <div className=" text-center flex flex-col justify-center space-y-0 leading-tight max-w-md">
-                  <h1 className="text-lg font-bold mb-0 text-gray-800">
-                    {data.name || "INSTITUTION NAME"}
-                  </h1>
-                  <p className="text-sm text-gray-600">
-                    {data.tagline && <span>({data.tagline})</span>}
-                  </p>
-                  <p className="text-sm text-gray-600">{data.address || ""}</p>
-                  <p className="text-sm text-gray-600">
+                {/* Right side - Contact details */}
+                <div className="text-right flex flex-col justify-center space-y-0.5 text-xs text-gray-600 max-w-xs">
+                  <p className="font-medium">{data.address || ""}</p>
+                  <p>
                     {data.contact?.primaryPhone &&
                       `Phone: ${data.contact.primaryPhone}`}
                     {data.contact?.secondaryPhone &&
                       `, ${data.contact.secondaryPhone}`}
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p>
                     {data.contact?.email && `Email: ${data.contact.email}`}
-                    {data.contact?.website && ` | Web: ${data.contact.website}`}
+                  </p>
+                  <p>
+                    {data.contact?.website && `Web: ${data.contact.website}`}
                   </p>
                 </div>
               </div>

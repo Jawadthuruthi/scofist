@@ -271,13 +271,15 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
 
     return (
         <div className="flex flex-col space-y-2">
-            <Header
-                title="STUDENTS REPORTS"
-                subTitle="Analyze and View Student Dashboard Data"
-                icon={<Users className="h-5 w-5 text-muted-foreground" />}
-            />
+            <div className="no-print">
+                <Header
+                    title="STUDENTS REPORTS"
+                    subTitle="Analyze and View Student Dashboard Data"
+                    icon={<Users className="h-5 w-5 text-muted-foreground" />}
+                />
+            </div>
 
-            <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden bg-card">
+            <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden bg-card no-print">
                 <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
                 <CardHeader className="bg-muted/10 pb-4 pt-4 border-b">
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -364,7 +366,7 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                 )}
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-1 no-print">
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Select Batch</label>
                     <Select onValueChange={handleBatchChange} value={selectedBatch}>
