@@ -227,7 +227,7 @@ const statusMessages = {
 };
 
 const apiFilters = {
-  roles: ["Teacher", "College Admin", "Org Admin", "Stationary", "IT Lab", "Librarian"],
+  roles: ["Teacher"],
 };
 
 export default async function BatchesPage() {
@@ -253,7 +253,8 @@ export default async function BatchesPage() {
           editSuccessMessage={statusMessages.edit}
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
-          limit={20}
+          limit={50}
+          tableHeight="calc(100vh - 250px)"
           apiFilters={apiFilters}
           printTitle={"Teachers"}
         />
