@@ -168,7 +168,7 @@ export default function GatePass({ activeRole, currentUser }) {
                     type,
                     reason,
                     allowedBy: selectedTeacher,
-                    validity: validity,
+                    validity: Math.max(1, parseInt(validity) || 1),
                     action: 'set'
                 })
             })
@@ -196,7 +196,7 @@ export default function GatePass({ activeRole, currentUser }) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'updateConfig',
-                    maxValidity: validity
+                    maxValidity: Math.max(1, parseInt(validity) || 1)
                 })
             })
 
@@ -288,6 +288,43 @@ export default function GatePass({ activeRole, currentUser }) {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-6 space-y-6">
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between ml-1">
+                                    <p className="text-xs font-semibold text-muted-foreground">VALIDITY (MINUTES)</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        value={validity}
+                                        onChange={(e) => setValidity(e.target.value)}
+                                        onBlur={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            if (isNaN(val) || val < 1) {
+                                                setValidity(1);
+                                            }
+                                        }}
+                                        disabled={activeRole !== 'College Admin'}
+                                        className="bg-background font-bold text-center flex-1 h-10"
+                                    />
+                                    {activeRole === 'College Admin' && (
+                                        <Button
+                                            onClick={() => {
+                                                const finalVal = Math.max(1, parseInt(validity) || 1);
+                                                setValidity(finalVal);
+                                                saveGlobalValidity();
+                                            }}
+                                            disabled={isSavingConfig}
+                                            size="sm"
+                                            className="flex-1 h-10"
+                                        >
+                                            <Save className="w-4 h-4 mr-2" />
+                                            {isSavingConfig ? 'Saving...' : 'Save'}
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+
                             <form onSubmit={handleSearch} className="flex gap-2">
                                 <Input
                                     placeholder="Search Student ID"
@@ -361,32 +398,7 @@ export default function GatePass({ activeRole, currentUser }) {
                                             />
                                         </div>
 
-                                        <div className="space-y-1">
-                                            <div className="flex items-center justify-between ml-1">
-                                                <p className="text-xs font-semibold text-muted-foreground">VALIDITY (MINUTES)</p>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <Input
-                                                    type="number"
-                                                    min="1"
-                                                    value={validity}
-                                                    onChange={(e) => setValidity(parseInt(e.target.value) || 1)}
-                                                    disabled={activeRole !== 'College Admin'}
-                                                    className="bg-background font-bold text-center flex-1 h-10"
-                                                />
-                                                {activeRole === 'College Admin' && (
-                                                    <Button
-                                                        onClick={saveGlobalValidity}
-                                                        disabled={isSavingConfig}
-                                                        size="sm"
-                                                        className="flex-1 h-10"
-                                                    >
-                                                        <Save className="w-4 h-4 mr-2" />
-                                                        {isSavingConfig ? 'Saving...' : 'Save'}
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
+
 
                                         <div className="flex gap-2 pt-2">
                                             <Button
