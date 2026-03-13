@@ -165,8 +165,21 @@ const StudentsFund = ({
   );
 
   const allStudentsFund = useMemo(() => {
-    return fetchStudentFundQuery.data?.allStudentsFund || [];
-  }, [fetchStudentFundQuery.data, selectedBatch]);
+    const rawFunds = fetchStudentFundQuery.data?.allStudentsFund || [];
+    // Filter to only include students who actually belong to the selected batch
+    return rawFunds.filter(studentFund => {
+      if (!selectedBatch) return false;
+      
+      // 1. Batch Filtering: studentId is populated with studentSpecificField.batchId
+      const studentBatchId = studentFund.studentId?.studentSpecificField?.batchId;
+      if (studentBatchId !== selectedBatch) return false;
+
+      // 2. Zero-Balance Filtering: Hide zero balance students for department funds
+      if (department && (studentFund.balance || 0) === 0) return false;
+
+      return true;
+    });
+  }, [fetchStudentFundQuery.data, selectedBatch, department]);
 
   const allStudentBalance = useMemo(() => {
     return allStudentsFund.reduce((total, studentFund) => {

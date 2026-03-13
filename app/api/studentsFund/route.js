@@ -19,7 +19,10 @@ export async function GET(req, res) {
         query.batchId = searchParams.batchId;
       }
 
-      const studentFunds = await StudentsFund.find(query).populate("teacherId", "name"); // Get teacher name for label
+      const studentFunds = await StudentsFund.find(query)
+        .populate("teacherId", "name roles")
+        .populate("transactions.performedBy", "name")
+        .lean();
 
       return NextResponse.json({ studentFunds }, { status: 200 });
     }
@@ -74,7 +77,7 @@ export async function GET(req, res) {
       }
 
       allStudentsFund = await StudentsFund.find(allStudentsQuery)
-        .populate("studentId", "name profilePic studentSpecificField.admissionNumber") // Optimized population
+        .populate("studentId", "name profilePic studentSpecificField.admissionNumber studentSpecificField.batchId") // Optimized population
         .sort({ updatedAt: -1 })
         .lean();
     }

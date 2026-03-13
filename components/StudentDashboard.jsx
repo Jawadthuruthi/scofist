@@ -35,6 +35,12 @@ import {
 } from "recharts";
 import { Button } from "./ui/button";
 import dynamic from "next/dynamic";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 
 
@@ -98,6 +104,10 @@ export default function StudentDashboard({
   const [remarksList, setRemarksList] = useState([]);
   const [remarksLoading, setRemarksLoading] = useState(true);
   const [selectedExamId, setSelectedExamId] = useState("all");
+  const [couponDetails, setCouponDetails] = useState([]);
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
+  const [selectedStandardFund, setSelectedStandardFund] = useState(null);
+  const [isStandardModalOpen, setIsStandardModalOpen] = useState(false);
 
 
   const className = classes.find(
@@ -138,29 +148,55 @@ export default function StudentDashboard({
         const fundsMap = new Map();
 
         (fundsResult.studentFunds || []).forEach(fund => {
+          // Filter to only include funds for the student's current batch
+          if (fund.batchId !== currentUser?.studentSpecificField?.batchId) return;
+
+          let label = "Students Fund";
+          let subLabel = "";
+          
           if (fund.fundType === 'Department') {
-            const key = `Dept-${fund.department}`;
-            if (fundsMap.has(key)) {
-              fundsMap.get(key).value += fund.balance;
-            } else {
-              fundsMap.set(key, {
-                label: `${fund.department} Fund`,
-                value: fund.balance
-              });
-            }
+            label = `${fund.department} Fund`;
+            // For Department funds, the "Role Holder" is the one who added/performed the transaction
+            const lastTransaction = fund.transactions?.[fund.transactions.length - 1];
+            subLabel = lastTransaction?.performedBy?.name || fund.department;
           } else {
-            // Individual Fund
-            const teacherName = fund.teacherId?.name || "Class Teacher";
-            const key = `Indiv-${teacherName}`;
-            if (fundsMap.has(key)) {
-              fundsMap.get(key).value += fund.balance;
-            } else {
-              fundsMap.set(key, {
-                label: "Students Fund",
-                subLabel: teacherName,
-                value: fund.balance
-              });
+            const roles = fund.teacherId?.roles || [];
+            subLabel = fund.teacherId?.name || "Class Teacher";
+            
+            if (roles.includes("Teacher")) {
+              label = "Students Fund";
+            } else if (roles.includes("Stationary")) {
+              label = "Stationary Fund";
+            } else if (roles.includes("IT Lab")) {
+              label = "IT Lab Fund";
+            } else if (roles.length > 0) {
+              label = "Staff Fund";
             }
+          }
+
+          const key = `Fund-${label}-${subLabel}`;
+          const currentBatch = batches.find(b => b._id === fund.batchId)?.name || "Unknown Batch";
+          
+          if (fundsMap.has(key)) {
+            const entry = fundsMap.get(key);
+            entry.value += fund.balance;
+            entry.records.push({
+              year: currentBatch,
+              holder: subLabel,
+              value: fund.balance
+            });
+          } else {
+            fundsMap.set(key, {
+              label: label,
+              subLabel: fund.fundType === 'Department' ? "" : subLabel,
+              value: fund.balance,
+              isInteractive: true,
+              records: [{
+                year: currentBatch,
+                holder: subLabel,
+                value: fund.balance
+              }]
+            });
           }
         });
 
@@ -168,16 +204,18 @@ export default function StudentDashboard({
         fundsMap.forEach(item => fundsList.push(item));
 
         // Process Coupon Fund
-        fundsList.push({
-          label: "Coupon Fund",
-          value: couponResult.stats?.totalPending || 0
-        });
-
-        // Process Coupon Fund
-        fundsList.push({
-          label: "Coupon Fund",
-          value: couponResult.stats?.totalPending || 0
-        });
+        const rawCoupons = couponResult.coupons || [];
+        setCouponDetails(rawCoupons);
+        
+        const couponPendingTotal = (couponResult.stats?.totalPending || 0);
+        
+        if (couponPendingTotal > 0) {
+          fundsList.push({
+            label: "Coupon Fund",
+            value: couponPendingTotal,
+            isCoupon: true
+          });
+        }
 
         setPendingFunds(fundsList);
       } catch (error) {
@@ -545,21 +583,22 @@ export default function StudentDashboard({
           <div className="flex-1 flex flex-col justify-center">
             <h2 className="text-xl font-bold mb-0.5">{currentUser?.name}</h2>
             
-            <div className="flex flex-col gap-0 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <span className="font-semibold text-foreground uppercase text-[10px] w-14">ID:</span> 
-                <span>{currentUser?._id}</span>
-              </div>
+            <div className="grid grid-cols-[60px_10px_1fr] items-center text-sm text-muted-foreground">
+              <span className="font-medium text-foreground text-sm">ID</span>
+              <span className="text-sm">:</span>
+              <span className="text-sm">{currentUser?._id}</span>
               
               {currentUser?.studentSpecificField?.status === "Active" && (
-                <div className="flex items-center gap-1">
-                  <span className="font-semibold text-foreground uppercase text-[10px] w-14">Class:</span> 
-                  <span>{className}</span>
-                </div>
+                <>
+                  <span className="font-medium text-foreground text-sm">Class</span>
+                  <span className="text-sm">:</span>
+                  <span className="text-sm">{className}</span>
+                </>
               )}
               
-              <div className="flex items-center gap-1">
-                <span className="font-semibold text-foreground uppercase text-[10px] w-14">Status:</span>
+              <span className="font-medium text-foreground text-sm">Status</span>
+              <span className="text-sm">:</span>
+              <div className="flex">
                 <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[10px] ${getStatusClass(currentUser?.studentSpecificField?.status)}`}>
                   {currentUser?.studentSpecificField?.status}
                 </span>
@@ -711,19 +750,109 @@ export default function StudentDashboard({
               ) : pendingFunds && pendingFunds.length > 0 ? (
                 <>
                   {pendingFunds.map((item, index) => (
-                    <ProfileField
-                      key={index}
-                      label={item.label}
-                      subLabel={item.subLabel}
-                      value={typeof item.value === 'number' ? item.value.toFixed(2) : item.value}
-                      isBold={item.isBold}
-                    />
+                    <React.Fragment key={index}>
+                      <div className="flex flex-col py-1">
+                        <span className={`text-sm font-medium ${item.isBold ? 'font-bold' : 'text-muted-foreground'}`}>{item.label}</span>
+                        {item.subLabel && <span className="text-xs text-muted-foreground">{item.subLabel}</span>}
+                      </div>
+                      <div className="text-sm px-1 py-1">:</div>
+                      <div 
+                        className={`text-sm ${item.isBold ? 'font-bold' : 'text-foreground'} min-w-0 break-words py-1 ${item.isInteractive || item.isCoupon ? 'cursor-pointer hover:text-primary transition-colors underline decoration-dotted' : ''}`}
+                        onClick={() => {
+                          if (item.isCoupon) {
+                            setIsCouponModalOpen(true);
+                          } else if (item.isInteractive) {
+                            setSelectedStandardFund(item);
+                            setIsStandardModalOpen(true);
+                          }
+                        }}
+                      >
+                        {typeof item.value === 'number' ? item.value.toFixed(2) : item.value}
+                      </div>
+                    </React.Fragment>
                   ))}
                   <ProfileField label="Total Pending" value={totalPending.toFixed(2)} isBold={true} />
                 </>
               ) : (
                 <p className="col-span-3">No pending transactions.</p>
               )}
+
+              {/* Standard Fund Details Modal */}
+              <Dialog open={isStandardModalOpen} onOpenChange={setIsStandardModalOpen}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>{selectedStandardFund?.label} Details</DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-4">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Year (Batch)</TableHead>
+                          <TableHead>Role Holder</TableHead>
+                          <TableHead className="text-right">Balance</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(selectedStandardFund?.records || []).map((record, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="font-medium">{record.year}</TableCell>
+                            <TableCell>{record.holder}</TableCell>
+                            <TableCell className="text-right font-bold text-orange-600">
+                              {record.value.toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Coupon Details Modal */}
+              <Dialog open={isCouponModalOpen} onOpenChange={setIsCouponModalOpen}>
+                <DialogContent className="max-w-3xl">
+                  <DialogHeader>
+                    <DialogTitle>Coupon Fund Details</DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-4">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Academic Year</TableHead>
+                          <TableHead>Coupon No.</TableHead>
+                          <TableHead className="text-right">Coupon Amount</TableHead>
+                          <TableHead className="text-right">Total Paid</TableHead>
+                          <TableHead className="text-right">Pending Balance</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {couponDetails.map((coupon) => {
+                          const paid = (coupon.payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+                          const balance = (coupon.couponAmount || 0) - paid;
+                          return (
+                            <TableRow key={coupon._id}>
+                              <TableCell className="font-medium">{coupon.academicYear}</TableCell>
+                              <TableCell className="font-mono text-xs">{coupon.couponNumber || "N/A"}</TableCell>
+                              <TableCell className="text-right">{coupon.couponAmount.toFixed(2)}</TableCell>
+                              <TableCell className="text-right">{paid.toFixed(2)}</TableCell>
+                              <TableCell className="text-right font-bold text-orange-600">
+                                {balance.toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                        {couponDetails.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                              No coupon records found.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardContent>
         </Card>
