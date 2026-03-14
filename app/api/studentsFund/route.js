@@ -55,7 +55,19 @@ export async function GET(req, res) {
       query.batchId = searchParams.batchId;
     }
 
-    const studentFund = await StudentsFund.findOne(query, projections);
+    const studentFundsList = await StudentsFund.find(query, projections).sort({ updatedAt: -1 }).lean();
+
+    let studentFund = null;
+    if (studentFundsList.length > 0) {
+      if (studentFundsList.length === 1) {
+        studentFund = studentFundsList[0];
+      } else {
+        // Merge duplicates for this specific student
+        studentFund = { ...studentFundsList[0] };
+        studentFund.balance = studentFundsList.reduce((sum, fund) => sum + (fund.balance || 0), 0);
+        studentFund.transactions = studentFundsList.reduce((acc, fund) => acc.concat(fund.transactions || []), []).sort((a, b) => new Date(b.date) - new Date(a.date));
+      }
+    }
 
     // Query for "All Students Balance" list
     // Optimization: If specific studentId is requested, we might not need allStudentsFund unless specifically asked
@@ -76,10 +88,30 @@ export async function GET(req, res) {
         ];
       }
 
-      allStudentsFund = await StudentsFund.find(allStudentsQuery)
+      const rawFunds = await StudentsFund.find(allStudentsQuery)
         .populate("studentId", "name profilePic studentSpecificField.admissionNumber studentSpecificField.batchId") // Optimized population
         .sort({ updatedAt: -1 })
         .lean();
+
+      // Deduplicate on the backend to prevent duplicate students in the list, but sum their balances!
+      const uniqueStudentsMap = new Map();
+      rawFunds.forEach(fund => {
+        const studentId = fund.studentId?._id;
+        if (studentId) {
+          const idStr = studentId.toString();
+          if (!uniqueStudentsMap.has(idStr)) {
+            uniqueStudentsMap.set(idStr, { ...fund });
+          } else {
+            // merge balance and transactions for duplicates
+            const existing = uniqueStudentsMap.get(idStr);
+            existing.balance = (existing.balance || 0) + (fund.balance || 0);
+            if (fund.transactions && fund.transactions.length > 0) {
+               existing.transactions = (existing.transactions || []).concat(fund.transactions);
+            }
+          }
+        }
+      });
+      allStudentsFund = Array.from(uniqueStudentsMap.values());
     }
 
     return NextResponse.json({ studentFund, allStudentsFund }, { status: 200 });
@@ -138,22 +170,58 @@ export async function POST(req, res) {
         ? transaction.amount
         : -transaction.amount;
 
-    // Define the update operation
-    const update = {
-      $inc: { balance: amountChange },
-      $push: { transactions: { ...transaction, date: new Date() } },
-      $setOnInsert: {
-        // fundType, // Already in query
-        // ...query, // Already in query
-      },
-    };
+    // Find all existing records for this exact query
+    const existingFunds = await StudentsFund.find(query).sort({ updatedAt: -1 });
 
-    // Use findOneAndUpdate with upsert: true
-    const studentFund = await StudentsFund.findOneAndUpdate(query, update, {
-      new: true,
-      upsert: true,
-      setDefaultsOnInsert: true,
-    });
+    let studentFund;
+
+    if (existingFunds.length > 1) {
+      // We found duplicates! We need to merge them to fix the data pollution.
+      
+      // Calculate summed balance and collect all transactions from all duplicates
+      const totalBalance = existingFunds.reduce((sum, f) => sum + (f.balance || 0), 0);
+      const allTransactions = existingFunds.reduce((acc, f) => acc.concat(f.transactions || []), []);
+
+      // The newest record will be kept, the rest deleted
+      const primaryFund = existingFunds[0];
+      const duplicateIds = existingFunds.slice(1).map(f => f._id);
+
+      // Clean up duplicates from the DB
+      await StudentsFund.deleteMany({ _id: { $in: duplicateIds } });
+
+      // Apply the new transaction to the merged data
+      const newTotalBalance = totalBalance + amountChange;
+      allTransactions.push({ ...transaction, date: new Date() });
+
+      // Sort transactions latest first (optional, frontend handles it, but good for DB)
+      allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      // Update the primary fund
+      primaryFund.balance = newTotalBalance;
+      primaryFund.transactions = allTransactions;
+      await primaryFund.save();
+      
+      studentFund = primaryFund;
+
+    } else {
+      // Normal flow (0 or 1 record)
+      // Define the update operation
+      const update = {
+        $inc: { balance: amountChange },
+        $push: { transactions: { ...transaction, date: new Date() } },
+        $setOnInsert: {
+          // fundType, // Already in query
+          // ...query, // Already in query
+        },
+      };
+
+      // Use findOneAndUpdate with upsert: true
+      studentFund = await StudentsFund.findOneAndUpdate(query, update, {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+      });
+    }
 
     return NextResponse.json({ newStudentsFund: studentFund }, { status: 200 });
   } catch (error) {
@@ -188,16 +256,44 @@ export async function PUT(req, res) {
       query.teacherId = teacherId;
     }
 
-    const studentFund = await StudentsFund.findOneAndUpdate(
-      query,
-      {
-        $set: {
-          transactions: [],
-          fundType: fundType, // Migrate on update
+    // Get all records to consolidate and clear
+    const existingFunds = await StudentsFund.find(query).sort({ updatedAt: -1 });
+
+    let studentFund = null;
+    if (existingFunds.length > 0) {
+      // Pick the primary/newest fund to keep and update
+      studentFund = existingFunds[0];
+      const duplicateIds = existingFunds.slice(1).map(f => f._id);
+
+      // Delete the duplicates completely
+      if (duplicateIds.length > 0) {
+        await StudentsFund.deleteMany({ _id: { $in: duplicateIds } });
+      }
+
+      // Clear the primary fund's transactions and set fundType
+      studentFund = await StudentsFund.findByIdAndUpdate(
+        studentFund._id,
+        {
+          $set: {
+            transactions: [],
+            fundType: fundType, // Migrate on update
+          },
         },
-      },
-      { new: true }
-    );
+        { new: true }
+      );
+    } else {
+       // If no fund existed, we shouldn't really be clearing history, but we fallback
+       studentFund = await StudentsFund.findOneAndUpdate(
+        query,
+        {
+          $set: {
+            transactions: [],
+            fundType: fundType,
+          },
+        },
+        { new: true, upsert: true }
+      );
+    }
     return NextResponse.json({ studentFund }, { status: 200 });
   } catch (error) {
     return apiResponse.error(error);

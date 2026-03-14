@@ -166,19 +166,35 @@ const StudentsFund = ({
 
   const allStudentsFund = useMemo(() => {
     const rawFunds = fetchStudentFundQuery.data?.allStudentsFund || [];
+    
+    // Use a Map to ensure unique students by ID, keeping the latest/most relevant record 
+    // or just the first one found since we just need one entry per student.
+    const uniqueStudentsMap = new Map();
+
     // Filter to only include students who actually belong to the selected batch
-    return rawFunds.filter(studentFund => {
-      if (!selectedBatch) return false;
+    rawFunds.forEach(studentFund => {
+      if (!selectedBatch) return;
       
       // 1. Batch Filtering: studentId is populated with studentSpecificField.batchId
       const studentBatchId = studentFund.studentId?.studentSpecificField?.batchId;
-      if (studentBatchId !== selectedBatch) return false;
+      if (studentBatchId !== selectedBatch) return;
 
-      // 2. Zero-Balance Filtering: Hide zero balance students for department funds
-      if (department && (studentFund.balance || 0) === 0) return false;
+      // 2. Zero-Balance Filtering: Hide zero balance students
+      if ((studentFund.balance || 0) === 0) return;
 
-      return true;
+      // 3. Unique Student Filtering: Prevent duplicates
+      const studentId = studentFund.studentId?._id;
+      if (studentId) {
+        // If the student is already in the map, we have a duplicate.
+        // We can either keep the first one or add their balances. 
+        // Assuming the latest fetch has the correct total balance, we'll keep the first valid one we see.
+        if (!uniqueStudentsMap.has(studentId)) {
+          uniqueStudentsMap.set(studentId, studentFund);
+        }
+      }
     });
+
+    return Array.from(uniqueStudentsMap.values());
   }, [fetchStudentFundQuery.data, selectedBatch, department]);
 
   const allStudentBalance = useMemo(() => {
@@ -288,7 +304,11 @@ const StudentsFund = ({
       isBatch: true, // Custom property to identify the batch option
     };
 
-    const studentOptions = formatOptions(availableStudents);
+    const studentOptions = availableStudents.map((student) => ({
+      ...student,
+      value: student._id,
+      label: `${student.name} (${student.studentSpecificField?.admissionNumber || student.admissionNumber || student._id})`,
+    }));
 
     return [batchOption, ...studentOptions];
   }, [selectedBatch, availableStudents, selectedBatchData]);
@@ -972,7 +992,11 @@ const StudentsFund = ({
                               student.studentId?._id ||
                               "-"}
                           </TableCell>
-                          <TableCell>{student.studentId?.name || "Unknown"}</TableCell>
+                          <TableCell>
+                            {student.studentId?.name 
+                              ? `${student.studentId.name} (${student.studentId.studentSpecificField?.admissionNumber || student.studentId._id})`
+                              : "Unknown"}
+                          </TableCell>
                           <TableCell
                             className={`text-right font-medium ${(student.balance || 0) < 0
                               ? "text-destructive"
@@ -1204,8 +1228,9 @@ const StudentsFund = ({
                                   className="break-inside-avoid"
                                 >
                                   <TableCell>
-                                    {student.studentId?.name ||
-                                      selectedBatchData?.name}
+                                    {student.studentId?.name 
+                                      ? `${student.studentId.name} (${student.studentId.studentSpecificField?.admissionNumber || student.studentId._id})`
+                                      : selectedBatchData?.name}
                                   </TableCell>
                                   <TableCell>
                                     {student.balance?.toFixed(2)}
@@ -1364,8 +1389,9 @@ const StudentsFund = ({
                                     className="break-inside-avoid"
                                   >
                                     <TableCell>
-                                      {student.studentId?.name ||
-                                        selectedBatchData?.name}
+                                      {student.studentId?.name 
+                                        ? `${student.studentId.name} (${student.studentId.studentSpecificField?.admissionNumber || student.studentId._id})`
+                                        : selectedBatchData?.name}
                                     </TableCell>
                                     <TableCell>
                                       {student.balance?.toFixed(2)}
