@@ -52,10 +52,7 @@ export default async function BatchesPage() {
       return a.name.localeCompare(b.name);
     });
 
-    const batches = JSON.parse(JSON.stringify(batchesData)).map(batch => ({
-      ...batch,
-      name: batch.endYear ? `${batch.name} (${batch.endYear})` : batch.name
-    }));
+    const batches = JSON.parse(JSON.stringify(batchesData));
     const classes = JSON.parse(JSON.stringify(classesData));
 
     return <StudentsClient batches={batches} classes={classes} activeRole={activeRole} apiKey={process.env.API_KEY} />;
