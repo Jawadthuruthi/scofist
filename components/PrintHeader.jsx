@@ -71,7 +71,7 @@ export default function PrintHeader({
   } else {
     return (
       <Card
-        className={`w-full border-0 shadow-none print:shadow-none print:border-0 print:m-0 print:p-0 mb-4 ${displayOnScreen ? "" : "hidden"}`}
+        className={`w-full border-0 shadow-none print:shadow-none print:border-0 print:m-0 print:p-0 mb-4 ${displayOnScreen ? "" : "hidden print:block"}`}
       >
         <CardContent className="p-0">
           <div className="flex flex-col max-w-full overflow-x-auto print:overflow-visible">

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ComboBox } from "@/components/ui/combobox";
 import Header from "@/components/Header";
 import { Users, Loader2, Search, ScanBarcode, X } from "lucide-react";
 import StudentDashboard from "@/components/StudentDashboard";
@@ -374,7 +375,7 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                             <SelectValue placeholder="Select Batch" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="none">All Batches</SelectItem>
+                            <SelectItem value="none">None</SelectItem>
                             {batches.map((batch) => (
                                 <SelectItem key={batch._id} value={batch._id}>
                                     {batch.name} ({batch.startYear})
@@ -394,7 +395,7 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                             <SelectValue placeholder="Select Class" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="none">All Classes</SelectItem>
+                            <SelectItem value="none">None</SelectItem>
                             {formatOptions(filteredClasses).map((option) => (
                                 <SelectItem key={option.value} value={option.value}>
                                     {option.label}
@@ -406,29 +407,22 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Select Student</label>
-                    <Select
-                        onValueChange={handleStudentChange}
-                        value={selectedStudentId}
-                        disabled={loadingStudents}
-                    >
-                        <SelectTrigger>
-                            {loadingStudents ? (
-                                <div className="flex items-center gap-2">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    <span>Loading...</span>
-                                </div>
-                            ) : (
-                                <SelectValue placeholder="Select Student" />
-                            )}
-                        </SelectTrigger>
-                        <SelectContent>
-                            {students.map((student) => (
-                                <SelectItem key={student._id} value={student._id}>
-                                    {student.name} ({student._id})
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    {loadingStudents ? (
+                        <div className="h-9 w-full flex items-center gap-2 px-3 py-2 border rounded-md text-sm text-muted-foreground shadow-sm bg-background">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Loading...</span>
+                        </div>
+                    ) : (
+                        <ComboBox
+                            items={students.map((student) => ({
+                                value: student._id,
+                                label: `${student.name} (${student._id})`,
+                            }))}
+                            value={selectedStudentId}
+                            onSelect={handleStudentChange}
+                            placeholder="Select Student"
+                        />
+                    )}
                 </div>
             </div>
 

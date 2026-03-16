@@ -1220,19 +1220,21 @@ export default function StudentDashboard({
                 <div className="space-y-4">
                   {remarksList.map((remark) => (
                     <div key={remark._id} className="p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-                      <div className="flex justify-between items-start mb-2">
+                      <div className="flex justify-between items-start gap-4">
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold">{remark.teacherName || "Teacher"}</span>
-                          <span className="text-xs text-muted-foreground">{formatDateShort(remark.date)}</span>
+                          <p className="text-sm font-medium text-foreground tracking-wide leading-relaxed">"{remark.comments}"</p>
+                          <span className="text-xs text-muted-foreground mt-1">- {remark.teacherName || "Teacher"}</span>
                         </div>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${remark.status === 'very good' || remark.status === 'good' ? 'bg-green-100 text-green-700' :
-                          remark.status === 'acceptable' ? 'bg-blue-100 text-blue-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
-                          {remark.status}
-                        </span>
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase whitespace-nowrap ${remark.status === 'very good' || remark.status === 'good' ? 'bg-green-100 text-green-700' :
+                            remark.status === 'acceptable' ? 'bg-blue-100 text-blue-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                            {remark.status}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">{formatDateShort(remark.date)}</span>
+                        </div>
                       </div>
-                      <p className="text-sm italic text-muted-foreground">"{remark.comments}"</p>
                     </div>
                   ))}
                 </div>
