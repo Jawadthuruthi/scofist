@@ -957,7 +957,7 @@ const ResultComponent = ({
                               .sort((a, b) => a.rank - b.rank)
                               .filter((participant) => participant.points > 0)
                               .map((participant, index) => (
-                                <TableRow key={participant.id || index}>
+                                <TableRow key={participant._id || participant.participantDetails?._id || index}>
                                   <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border print:border-black">
                                     <div className="flex items-center justify-center gap-1">
                                       {getPositionIcon(participant.rank)}
