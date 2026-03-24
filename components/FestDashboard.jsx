@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 
-import { Calendar, MonitorPlay, Trophy, BarChart3, Crown, Star, TrendingUp } from "lucide-react";
+import { Calendar, MonitorPlay, Trophy, BarChart3, Crown, Star, TrendingUp, Award } from "lucide-react";
 
 import useCrud from "@/hooks/use-crud";
 import Header from "@/components/Header";
@@ -13,6 +13,7 @@ import TeamPointsViewer from "./TeamPointsViewer";
 import ChampionsPostersViewer from "./ChampionsPostersViewer";
 import IndividualToppersViewer from "./IndividualToppersViewer";
 import TeamPointsProgressionViewer from "./TeamPointsProgressionViewer";
+import DeclaringResultViewer from "./DeclaringResultViewer";
 
 // ===== MAIN DASHBOARD COMPONENT =====
 export default function FestDashboard({ apiKey, activeRole }) {
@@ -23,6 +24,7 @@ export default function FestDashboard({ apiKey, activeRole }) {
   const [showChampions, setShowChampions] = useState(false);
   const [showToppers, setShowToppers] = useState(false);
   const [showProgression, setShowProgression] = useState(false);
+  const [showDeclaring, setShowDeclaring] = useState(false);
 
   return (
     <div className="flex flex-col space-y-6">
@@ -33,6 +35,20 @@ export default function FestDashboard({ apiKey, activeRole }) {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Declaring Result Action Card */}
+        <div 
+          onClick={() => setShowDeclaring(true)}
+          className="bg-card hover:bg-zinc-100 dark:hover:bg-zinc-800 border-2 border-amber-500/20 rounded-xl p-6 flex items-center gap-4 cursor-pointer transition-all hover:scale-105 shadow-lg group"
+        >
+          <div className="p-4 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-500 rounded-full group-hover:rotate-12 transition-transform">
+            <Award className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="font-black text-lg uppercase tracking-tight">Declaring Result</h3>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold opacity-60">Animated Entry Announcement</p>
+          </div>
+        </div>
+
         {/* Point Progression Action Card */}
         <div 
           onClick={() => setShowProgression(true)}
@@ -117,6 +133,12 @@ export default function FestDashboard({ apiKey, activeRole }) {
           </div>
         </div>
       </div>
+
+      <DeclaringResultViewer
+        isOpen={showDeclaring}
+        onClose={() => setShowDeclaring(false)}
+        apiKey={apiKey}
+      />
 
       <ProgramPostersViewer 
         isOpen={showPosters} 

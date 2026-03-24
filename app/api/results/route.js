@@ -93,6 +93,20 @@ export async function GET(request) {
     });
 
     // Format results with detailed information
+    const userIds = new Set();
+    results.forEach(res => {
+      res.participants.forEach(p => {
+        if (p.id) userIds.add(p.id._id || p.id);
+      });
+    });
+
+    const User = (await import("@/models/User")).default;
+    const users = await User.find({ _id: { $in: Array.from(userIds) } }, "profilePic").lean();
+    const userProfileMap = {};
+    users.forEach(u => {
+      userProfileMap[u._id] = u.profilePic?.url || null;
+    });
+
     const formattedResults = filteredResults.map((result, index) => ({
       _id: result._id,
       programId: result.programId._id,
@@ -104,7 +118,10 @@ export async function GET(request) {
       divisionName: result.programId.divisionId?.name,
       participants: result.participants.map((p) => ({
         ...p.toObject(),
-        participantDetails: p.id,
+        participantDetails: {
+          ...p.id.toObject(),
+          profilePic: userProfileMap[p.id._id || p.id] || null
+        },
       })),
       winners: result.participants
         ?.filter((p) => p.rank < 4 && (!rank || p.rank == rank))
