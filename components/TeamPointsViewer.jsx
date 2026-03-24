@@ -1,0 +1,382 @@
+import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { X, Trophy, BarChart3, Info, Sun, Moon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const getTeamBgColor = (teamName) => {
+  if (!teamName) return "bg-zinc-600 border-zinc-500 text-white";
+  const colors = [
+    "from-blue-600/90 to-blue-900/95 border-blue-400 text-blue-50 shadow-blue-500/30",
+    "from-emerald-600/90 to-emerald-900/95 border-emerald-400 text-emerald-50 shadow-emerald-500/30",
+    "from-rose-600/90 to-rose-900/95 border-rose-400 text-rose-50 shadow-rose-500/30",
+    "from-purple-600/90 to-purple-900/95 border-purple-400 text-purple-50 shadow-purple-500/30",
+    "from-orange-600/90 to-orange-900/95 border-orange-400 text-orange-50 shadow-orange-500/30",
+    "from-cyan-600/90 to-cyan-900/95 border-cyan-400 text-cyan-50 shadow-cyan-500/30",
+    "from-fuchsia-600/90 to-fuchsia-900/95 border-fuchsia-400 text-fuchsia-50 shadow-fuchsia-500/30",
+    "from-lime-600/90 to-lime-900/95 border-lime-400 text-lime-50 shadow-lime-500/30",
+    "from-indigo-600/90 to-indigo-900/95 border-indigo-400 text-indigo-50 shadow-indigo-500/30",
+    "from-teal-600/90 to-teal-900/95 border-teal-400 text-teal-50 shadow-teal-500/30"
+  ];
+  let hash = 0;
+  for (let i = 0; i < teamName.length; i++) {
+    hash = teamName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const AnimatedCounter = ({ value, isActive, duration = 3000 }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!isActive) {
+      setCount(0);
+      return;
+    }
+
+    let start = null;
+    let animationFrameId;
+
+    const animate = (timestamp) => {
+      if (!start) start = timestamp;
+      const progress = timestamp - start;
+      const progressRatio = Math.min(progress / duration, 1);
+      
+      // easeOutCubic curve for realistic slowing down
+      const easeOutCubic = 1 - Math.pow(1 - progressRatio, 3);
+      setCount(Math.floor(easeOutCubic * value));
+
+      if (progress < duration) {
+        animationFrameId = requestAnimationFrame(animate);
+      } else {
+        setCount(value);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isActive, value, duration]);
+
+  return <>{count}</>;
+};
+
+export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
+  const [teams, setTeams] = useState([]);
+  const [totalResults, setTotalResults] = useState(0);
+  const [limitInput, setLimitInput] = useState("");
+  const [appliedLimit, setAppliedLimit] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isWhiteTheme, setIsWhiteTheme] = useState(false);
+  const [revealedTeams, setRevealedTeams] = useState(new Set());
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
+  const [announcementValue, setAnnouncementValue] = useState("");
+  const [showTrophies, setShowTrophies] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchTeamPoints();
+    } else {
+      setRevealedTeams(new Set());
+      setLimitInput("");
+    }
+  }, [isOpen]);
+
+  const handleApplyLimit = () => {
+    if (!limitInput || limitInput === "") {
+        fetchTeamPoints("");
+        return;
+    }
+
+    setAnnouncementValue(limitInput);
+    setShowAnnouncement(true);
+  };
+
+  const closeAnnouncement = () => {
+    setShowAnnouncement(false);
+    fetchTeamPoints(announcementValue);
+  };
+
+  useEffect(() => {
+    if (!showAnnouncement && teams.length > 0) {
+        // Automatically reveal all teams after announcement dismissal OR on initial load
+        const allIds = new Set(teams.map(t => t._id));
+        setRevealedTeams(allIds);
+        
+        // Final suspense: Show trophies only after the reveal ends (15s if announcement, 3s otherwise)
+        const duration = announcementValue !== "" ? 15000 : 3000;
+        setShowTrophies(false);
+        const timer = setTimeout(() => {
+           setShowTrophies(true);
+        }, duration);
+        return () => clearTimeout(timer);
+    }
+  }, [showAnnouncement, teams, announcementValue]);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+        if (showAnnouncement) {
+            closeAnnouncement();
+        } else {
+            handleApplyLimit();
+        }
+    }
+  };
+
+  // Reset animations when data changes
+  useEffect(() => {
+    setRevealedTeams(new Set());
+  }, [loading, teams]);
+
+  const toggleReveal = (teamId) => {
+    setRevealedTeams(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(teamId)) newSet.delete(teamId);
+      else newSet.add(teamId);
+      return newSet;
+    });
+  };
+
+  const revealAll = () => {
+    if (revealedTeams.size === teams.length) {
+      setRevealedTeams(new Set()); // Hide all
+    } else {
+      setRevealedTeams(new Set(teams.map(t => t._id))); // Show all
+    }
+  };
+
+  const fetchTeamPoints = async (customLimit = null) => {
+    try {
+      setLoading(true);
+      setRevealedTeams(new Set());
+      
+      let url = "/api/team-points-poster";
+      if (customLimit && customLimit !== "") {
+        url += `?limit=${customLimit}`;
+      }
+      
+      const res = await fetch(url, {
+        headers: { "api-key": apiKey },
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setTeams(data.teams);
+        setTotalResults(data.totalResultsAvailable);
+        setAppliedLimit(data.appliedLimit);
+      }
+    } catch (error) {
+      console.error("Error fetching team points:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const maxPoints = teams.length > 0 ? Math.max(...teams.map(t => t.points), 1) : 1;
+  const highestPoints = teams.length > 0 ? teams[0].points : 0;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className={`max-w-none w-screen h-screen m-0 p-0 rounded-none border-none transition-colors duration-500 overflow-hidden flex flex-col font-sans ${isWhiteTheme ? 'bg-zinc-50' : 'bg-zinc-950'}`}>
+        <DialogTitle className="sr-only">Team Points Poster</DialogTitle>
+        
+        {/* Dynamic Background */}
+        <div className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ${isWhiteTheme ? 'opacity-10' : 'opacity-30'}`}>
+          <div className={`absolute inset-0 ${isWhiteTheme ? 'bg-[radial-gradient(ellipse_at_top,#d4d4d8,transparent_80%)]' : 'bg-[radial-gradient(ellipse_at_top,#27272a,transparent_80%)]'}`} />
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+          <div className={`absolute top-0 right-1/4 w-[40rem] h-[40rem] rounded-full blur-[120px] animate-pulse ${isWhiteTheme ? 'bg-indigo-300' : 'bg-indigo-500/20'}`} style={{ animationDuration: '6s' }} />
+          <div className={`absolute bottom-0 left-1/4 w-[40rem] h-[40rem] rounded-full blur-[120px] animate-pulse ${isWhiteTheme ? 'bg-cyan-300' : 'bg-cyan-500/10'}`} style={{ animationDuration: '8s' }} />
+        </div>
+
+
+
+        {/* Top Controls Bar - Left Aligned */}
+        <div className="relative z-50 flex flex-col md:flex-row items-center justify-start p-6 w-full gap-4">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+             {/* Limit Selection Input */}
+             <div className={`flex flex-row items-center space-x-2 p-2 rounded-[1.5rem] backdrop-blur-md shadow-2xl border ${isWhiteTheme ? 'bg-white/80 border-zinc-200' : 'bg-zinc-900/80 border-zinc-700/50'}`}>
+                <BarChart3 className={`w-5 h-5 ml-3 ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'}`} />
+                <span className={`font-bold ml-1 tracking-wide uppercase text-sm ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-300'}`}>After</span>
+                <input
+                  type="number"
+                  min="1"
+                  max={totalResults || 999}
+                  value={limitInput}
+                  onChange={(e) => setLimitInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="All"
+                  className={`w-20 rounded-xl px-2 py-1.5 text-center font-black focus:outline-none transition-colors shadow-inner border-2 ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-zinc-900 focus:border-zinc-400' : 'bg-zinc-950 border-zinc-700/80 text-white focus:border-zinc-500'}`}
+                />
+                <span className={`font-bold mr-2 tracking-wide uppercase text-sm ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-300'}`}>Results</span>
+                <Button 
+                   onClick={handleApplyLimit}
+                   disabled={loading}
+                   className={`font-black uppercase rounded-xl tracking-wider px-4 py-1.5 h-auto border-2 border-transparent transition-transform active:scale-95 ${isWhiteTheme ? 'bg-zinc-900 hover:bg-black text-white' : 'bg-zinc-100 hover:bg-white text-black'}`}
+                >
+                  Apply
+                </Button>
+             </div>
+             
+             {/* Total Results Context */}
+             <div className={`text-xs md:text-sm px-5 py-2.5 rounded-2xl border backdrop-blur-sm flex items-center gap-2 font-bold tracking-widest uppercase shadow-lg ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-800'}`}>
+                <Info className="w-4 h-4" />
+                <span>Overall Declared: <strong className={`text-base px-2 py-0.5 rounded-md ml-1 ${isWhiteTheme ? 'bg-zinc-200 text-zinc-900' : 'bg-zinc-800 text-white'}`}>{totalResults}</strong></span>
+             </div>
+             
+             <div className="flex items-center gap-2">
+                <Button
+                  onClick={revealAll}
+                  className="bg-yellow-500 hover:bg-yellow-400 text-black font-black uppercase rounded-2xl tracking-wider px-6 py-2.5 h-auto transition-transform active:scale-95 shadow-[0_0_15px_rgba(234,179,8,0.3)]"
+                >
+                  Reveal All
+                </Button>
+             </div>
+          </div>
+
+          {/* Top Right Controls Group - Placed at end for highest click priority */}
+          <div className="absolute top-6 right-6 z-[100] flex items-center gap-4 bg-transparent">
+            <button 
+              onClick={() => setIsWhiteTheme(!isWhiteTheme)}
+              className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer pointer-events-auto ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
+              title={isWhiteTheme ? "Dark Theme" : "White Theme"}
+            >
+              {isWhiteTheme ? <Moon className="h-6 w-6" /> : <Sun className="h-6 w-6" />}
+            </button>
+
+            <button 
+              onClick={onClose}
+              className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer pointer-events-auto ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Interactive Content (Hidden during announcement for cinematic focus) */}
+        <div className={`flex flex-col flex-1 w-full transition-all duration-1000 ${showAnnouncement ? 'opacity-0 scale-95 pointer-events-none blur-xl' : 'opacity-100 scale-100'}`}>
+            {/* Title Area */}
+            <div className="shrink-0 w-full text-center z-40 mt-0 px-4 pointer-events-none transition-all duration-500">
+              <h1 className={`text-4xl md:text-6xl lg:text-[5rem] leading-none font-black uppercase tracking-tight drop-shadow-2xl ${isWhiteTheme ? 'text-zinc-900' : 'text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400'}`}>
+                Team Points
+              </h1>
+              <h2 className="text-xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 via-yellow-200 to-yellow-600 uppercase tracking-widest mt-2 md:mt-4">
+                {appliedLimit && appliedLimit < totalResults ? `After ${appliedLimit} Results` : 'Overall Standings'}
+              </h2>
+            </div>
+
+            {/* Main Content Arena */}
+            <div className="relative z-30 flex-1 w-full flex flex-col justify-end pt-0 pb-8 px-2 md:px-16 overflow-y-auto overflow-x-auto no-scrollbar scroll-smooth">
+              {loading ? 
+                <div className="flex-1 flex flex-col items-center justify-center space-y-6 h-full min-h-[50vh]">
+                  <div className="w-16 h-16 border-[6px] border-zinc-800 border-t-white rounded-full animate-spin shadow-[0_0_30px_rgba(255,255,255,0.1)]"></div>
+                  <p className="text-zinc-500 font-bold tracking-[0.3em] uppercase animate-pulse">Computing Standings...</p>
+                </div>
+              : teams.length === 0 ? 
+                <div className="flex-1 flex items-center justify-center h-full min-h-[50vh]">
+                  <p className="text-zinc-600 font-black text-2xl uppercase tracking-[0.3em]">No teams found</p>
+                </div>
+              : 
+                 <div className="flex-1 w-full max-w-[120rem] min-w-max mx-auto flex items-end justify-center gap-8 md:gap-12 lg:gap-20 pt-0 shrink-0">
+                    {teams.map((team, idx) => {
+                      // Calculate height (with minimum offset for 0s)
+                      const heightPercentage = Math.max((team.points / maxPoints) * 70, 1.5);
+                      const themeClasses = getTeamBgColor(team.name);
+                      const isLeader = team.points > 0 && team.points === highestPoints;
+                      const revealDuration = announcementValue !== "" ? 15000 : 3000;
+     
+                      return (
+                        <div key={team._id} className="flex flex-col items-center justify-end h-full w-24 md:w-32 lg:w-44 group cursor-pointer" onClick={() => toggleReveal(team._id)}>
+                          
+                          {/* CHART AREA - Strict wrapper for exact bottom offset */}
+                          <div className="relative w-full flex-1 flex flex-col justify-end items-center">
+                            {/* Floating Points Value Above Bar */}
+                            <div 
+                              className={`absolute flex flex-col items-center transition-all ease-out z-20 pointer-events-none drop-shadow-2xl
+                                ${revealedTeams.has(team._id) ? 'opacity-100 transform translate-y-[-1rem] md:translate-y-[-2rem]' : 'opacity-0 transform translate-y-10'}`} 
+                              style={{ 
+                                bottom: `${heightPercentage}%`,
+                                transitionDuration: `${revealDuration}ms`
+                              }}
+                            >
+                              <span className={`text-4xl md:text-[4rem] lg:text-[5.5rem] font-black leading-none drop-shadow-2xl ${isWhiteTheme ? 'text-zinc-900' : 'text-white'} ${isLeader && (isWhiteTheme ? 'text-amber-600' : 'text-yellow-100 drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]')}`}>
+                                <AnimatedCounter value={team.points} isActive={revealedTeams.has(team._id)} duration={revealDuration} />
+                              </span>
+                            </div>
+                            
+                            {/* The Animated Bar */}
+                            <div 
+                              className={`w-full rounded-t-[2rem] md:rounded-t-[3rem] border-t-8 border-l border-r border-b-0 bg-gradient-to-t ${themeClasses} relative overflow-hidden transition-all ease-out shadow-2xl flex-shrink-0`}
+                              style={{ 
+                                height: revealedTeams.has(team._id) ? `${heightPercentage}%` : '0%',
+                                transitionDuration: `${revealDuration}ms`,
+                                transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)', // Smooth ease-out cubic
+                              }}
+                            >
+                              {/* Leader Trophy Decoration */}
+                              {isLeader && showTrophies && (
+                                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center animate-in zoom-in-50 duration-1000">
+                                   <Trophy className={`w-10 h-10 md:w-14 md:h-14 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,204,21,0.8)] animate-bounce`} style={{animationDuration: '3s'}} />
+                                   <div className="w-16 h-1 bg-yellow-400/50 rounded-full blur-md mt-1 animate-pulse" />
+                                </div>
+                              )}
+
+                              {/* Glassmorphism Inner Shine */}
+                              <div className="absolute inset-0 bg-white/5 box-border border-x border-white/10 opacity-50 group-hover:opacity-100 transition-opacity" />
+                              <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/30 to-transparent mix-blend-overlay" />
+                            </div>
+                          </div>
+     
+                          {/* X-Axis Label (Team Name) */}
+                          <div className="mt-8 mb-4 shrink-0 z-10 w-full text-center">
+                             <span className={`text-sm md:text-3xl lg:text-4xl font-black uppercase tracking-widest block text-balance min-w-full drop-shadow-lg ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                               {team.name}
+                             </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                 </div>
+              }
+            </div>
+        </div>
+
+        {/* Cinematic Announcement Overlay */}
+        {showAnnouncement && (
+          <div 
+            onClick={closeAnnouncement}
+            className="absolute inset-0 z-[200] flex flex-col items-center justify-center p-6 animate-in fade-in duration-500 cursor-pointer bg-black/10 backdrop-blur-[2px]"
+          >
+            <div className="flex flex-col items-center justify-center text-center space-y-4 md:space-y-8 animate-[slow-pan_10s_ease-in-out_infinite] px-4 pointer-events-none">
+               <h3 className={`text-4xl md:text-6xl font-black uppercase tracking-[0.5em] animate-pulse ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                 Declaring Standings
+               </h3>
+               <h1 className={`text-6xl md:text-8xl lg:text-[12rem] font-black uppercase tracking-tighter leading-none drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] px-4 animate-[float_10s_ease-in-out_infinite] ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                 Team Points <br className="md:hidden" />
+                 <span className={`block mt-4 md:mt-8 ${isWhiteTheme ? 'text-blue-600' : 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-white to-yellow-600'}`}>
+                    After {announcementValue} Results
+                 </span>
+               </h1>
+            </div>
+          </div>
+        )}
+
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes progress {
+            from { width: 0%; }
+            to { width: 100%; }
+          }
+          @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.05); }
+          }
+          @keyframes slow-pan {
+            0% { transform: translate(-2%, -2%) scale(1); }
+            50% { transform: translate(2%, 2%) scale(1.1); }
+            100% { transform: translate(-2%, -2%) scale(1); }
+          }
+        ` }} />
+      </DialogContent>
+    </Dialog>
+  );
+}
