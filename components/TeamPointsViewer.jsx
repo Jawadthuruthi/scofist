@@ -1,7 +1,10 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { X, Trophy, BarChart3, Info, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import DashboardTopBar from "./DashboardTopBar";
 
 const getTeamBgColor = (teamName) => {
   if (!teamName) return "bg-zinc-600 border-zinc-500 text-white";
@@ -41,7 +44,6 @@ const AnimatedCounter = ({ value, isActive, duration = 3000 }) => {
       const progress = timestamp - start;
       const progressRatio = Math.min(progress / duration, 1);
       
-      // easeOutCubic curve for realistic slowing down
       const easeOutCubic = 1 - Math.pow(1 - progressRatio, 3);
       setCount(Math.floor(easeOutCubic * value));
 
@@ -60,13 +62,12 @@ const AnimatedCounter = ({ value, isActive, duration = 3000 }) => {
   return <>{count}</>;
 };
 
-export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
+export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, isWhiteTheme, setIsWhiteTheme }) {
   const [teams, setTeams] = useState([]);
   const [totalResults, setTotalResults] = useState(0);
   const [limitInput, setLimitInput] = useState("");
   const [appliedLimit, setAppliedLimit] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isWhiteTheme, setIsWhiteTheme] = useState(false);
   const [revealedTeams, setRevealedTeams] = useState(new Set());
   const [showAnnouncement, setShowAnnouncement] = useState(false);
   const [announcementValue, setAnnouncementValue] = useState("");
@@ -98,11 +99,9 @@ export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
 
   useEffect(() => {
     if (!showAnnouncement && teams.length > 0) {
-        // Automatically reveal all teams after announcement dismissal OR on initial load
         const allIds = new Set(teams.map(t => t._id));
         setRevealedTeams(allIds);
         
-        // Final suspense: Show trophies only after the reveal ends (15s if announcement, 3s otherwise)
         const duration = announcementValue !== "" ? 15000 : 3000;
         setShowTrophies(false);
         const timer = setTimeout(() => {
@@ -122,7 +121,6 @@ export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
     }
   };
 
-  // Reset animations when data changes
   useEffect(() => {
     setRevealedTeams(new Set());
   }, [loading, teams]);
@@ -138,9 +136,9 @@ export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
 
   const revealAll = () => {
     if (revealedTeams.size === teams.length) {
-      setRevealedTeams(new Set()); // Hide all
+      setRevealedTeams(new Set());
     } else {
-      setRevealedTeams(new Set(teams.map(t => t._id))); // Show all
+      setRevealedTeams(new Set(teams.map(t => t._id)));
     }
   };
 
@@ -178,7 +176,7 @@ export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`max-w-none w-screen h-screen m-0 p-0 rounded-none border-none transition-colors duration-500 overflow-hidden flex flex-col font-sans ${isWhiteTheme ? 'bg-zinc-50' : 'bg-zinc-950'}`}>
+      <DialogContent className={`max-w-none w-screen h-screen m-0 p-0 rounded-none border-none transition-colors duration-500 overflow-hidden flex flex-col font-sans ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black'}`}>
         <DialogTitle className="sr-only">Team Points Poster</DialogTitle>
         
         {/* Dynamic Background */}
@@ -189,15 +187,18 @@ export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
           <div className={`absolute bottom-0 left-1/4 w-[40rem] h-[40rem] rounded-full blur-[120px] animate-pulse ${isWhiteTheme ? 'bg-cyan-300' : 'bg-cyan-500/10'}`} style={{ animationDuration: '8s' }} />
         </div>
 
-
-
-        {/* Top Controls Bar - Left Aligned */}
-        <div className="relative z-50 flex flex-col md:flex-row items-center justify-start p-6 w-full gap-4">
-          <div className="flex flex-col md:flex-row items-center gap-4">
-             {/* Limit Selection Input */}
-             <div className={`flex flex-row items-center space-x-2 p-2 rounded-[1.5rem] backdrop-blur-md shadow-2xl border ${isWhiteTheme ? 'bg-white/80 border-zinc-200' : 'bg-zinc-900/80 border-zinc-700/50'}`}>
+        <DashboardTopBar 
+          currentView="teams"
+          onNavigate={onNavigate}
+          isWhiteTheme={isWhiteTheme}
+          toggleTheme={() => setIsWhiteTheme(!isWhiteTheme)}
+          onClose={onClose}
+          leftContent={
+            <div className="flex items-center gap-4">
+              {/* Limit Selection Input */}
+              <div className={`flex flex-row items-center space-x-2 p-1.5 rounded-[1.2rem] backdrop-blur-md shadow-xl border ${isWhiteTheme ? 'bg-white/80 border-zinc-200' : 'bg-zinc-900/80 border-zinc-700/50'}`}>
                 <BarChart3 className={`w-5 h-5 ml-3 ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'}`} />
-                <span className={`font-bold ml-1 tracking-wide uppercase text-sm ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-300'}`}>After</span>
+                <span className={`font-bold ml-1 tracking-wide uppercase text-[10px] md:text-sm ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-300'}`}>After</span>
                 <input
                   type="number"
                   min="1"
@@ -206,57 +207,37 @@ export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
                   onChange={(e) => setLimitInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="All"
-                  className={`w-20 rounded-xl px-2 py-1.5 text-center font-black focus:outline-none transition-colors shadow-inner border-2 ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-zinc-900 focus:border-zinc-400' : 'bg-zinc-950 border-zinc-700/80 text-white focus:border-zinc-500'}`}
+                  className={`w-16 md:w-20 rounded-lg px-1 md:px-2 py-1 text-center font-black focus:outline-none transition-colors shadow-inner border-2 ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-zinc-900 focus:border-zinc-400' : 'bg-zinc-950 border-zinc-700/80 text-white focus:border-zinc-500'}`}
                 />
-                <span className={`font-bold mr-2 tracking-wide uppercase text-sm ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-300'}`}>Results</span>
+                <span className={`font-bold mr-2 tracking-wide uppercase text-[10px] md:text-sm ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-300'}`}>Results</span>
                 <Button 
                    onClick={handleApplyLimit}
                    disabled={loading}
-                   className={`font-black uppercase rounded-xl tracking-wider px-4 py-1.5 h-auto border-2 border-transparent transition-transform active:scale-95 ${isWhiteTheme ? 'bg-zinc-900 hover:bg-black text-white' : 'bg-zinc-100 hover:bg-white text-black'}`}
+                   className={`font-black uppercase rounded-lg tracking-wider px-3 py-1 h-8 md:h-9 border-none transition-transform active:scale-95 ${isWhiteTheme ? 'bg-zinc-900 hover:bg-black text-white' : 'bg-zinc-100 hover:bg-white text-black'}`}
                 >
                   Apply
                 </Button>
-             </div>
-             
-             {/* Total Results Context */}
-             <div className={`text-xs md:text-sm px-5 py-2.5 rounded-2xl border backdrop-blur-sm flex items-center gap-2 font-bold tracking-widest uppercase shadow-lg ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-800'}`}>
-                <Info className="w-4 h-4" />
+              </div>
+              
+              {/* Total Results Context */}
+              <div className={`text-[10px] md:text-xs px-4 py-2 rounded-xl border backdrop-blur-sm flex items-center gap-2 font-bold tracking-widest uppercase shadow-lg ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-800'}`}>
+                <Info className="w-3 h-3 md:w-4 md:h-4" />
                 <span>Overall Declared: <strong className={`text-base px-2 py-0.5 rounded-md ml-1 ${isWhiteTheme ? 'bg-zinc-200 text-zinc-900' : 'bg-zinc-800 text-white'}`}>{totalResults}</strong></span>
-             </div>
-             
-             <div className="flex items-center gap-2">
-                <Button
+              </div>
+
+              <Button
                   onClick={revealAll}
-                  className="bg-yellow-500 hover:bg-yellow-400 text-black font-black uppercase rounded-2xl tracking-wider px-6 py-2.5 h-auto transition-transform active:scale-95 shadow-[0_0_15px_rgba(234,179,8,0.3)]"
-                >
-                  Reveal All
-                </Button>
-             </div>
-          </div>
+                  className="bg-yellow-500 hover:bg-yellow-400 text-black font-black uppercase rounded-xl tracking-wider px-4 py-2 h-8 md:h-10 transition-transform active:scale-95 shadow-[0_0_15px_rgba(234,179,8,0.3)] border-none"
+              >
+                Reveal All
+              </Button>
+            </div>
+          }
+        />
 
-          {/* Top Right Controls Group - Placed at end for highest click priority */}
-          <div className="absolute top-6 right-6 z-[100] flex items-center gap-4 bg-transparent">
-            <button 
-              onClick={() => setIsWhiteTheme(!isWhiteTheme)}
-              className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer pointer-events-auto ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
-              title={isWhiteTheme ? "Dark Theme" : "White Theme"}
-            >
-              {isWhiteTheme ? <Moon className="h-6 w-6" /> : <Sun className="h-6 w-6" />}
-            </button>
-
-            <button 
-              onClick={onClose}
-              className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer pointer-events-auto ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
-            >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
-        </div>
-
-        {/* Interactive Content (Hidden during announcement for cinematic focus) */}
-        <div className={`flex flex-col flex-1 w-full transition-all duration-1000 ${showAnnouncement ? 'opacity-0 scale-95 pointer-events-none blur-xl' : 'opacity-100 scale-100'}`}>
+        <div className={`flex flex-col flex-1 w-full transition-all duration-1000 pt-24 ${showAnnouncement ? 'opacity-0 scale-95 pointer-events-none blur-xl' : 'opacity-100 scale-100'}`}>
             {/* Title Area */}
-            <div className="shrink-0 w-full text-center z-40 mt-0 px-4 pointer-events-none transition-all duration-500">
+            <div className="shrink-0 w-full text-center z-40 px-4 pointer-events-none">
               <h1 className={`text-4xl md:text-6xl lg:text-[5rem] leading-none font-black uppercase tracking-tight drop-shadow-2xl ${isWhiteTheme ? 'text-zinc-900' : 'text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400'}`}>
                 Team Points
               </h1>
@@ -266,7 +247,7 @@ export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
             </div>
 
             {/* Main Content Arena */}
-            <div className="relative z-30 flex-1 w-full flex flex-col justify-end pt-0 pb-8 px-2 md:px-16 overflow-y-auto overflow-x-auto no-scrollbar scroll-smooth">
+            <div className="relative z-30 flex-1 w-full flex flex-col justify-end pt-8 pb-8 px-2 md:px-16 overflow-y-auto overflow-x-auto no-scrollbar scroll-smooth">
               {loading ? 
                 <div className="flex-1 flex flex-col items-center justify-center space-y-6 h-full min-h-[50vh]">
                   <div className="w-16 h-16 border-[6px] border-zinc-800 border-t-white rounded-full animate-spin shadow-[0_0_30px_rgba(255,255,255,0.1)]"></div>
@@ -277,9 +258,8 @@ export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
                   <p className="text-zinc-600 font-black text-2xl uppercase tracking-[0.3em]">No teams found</p>
                 </div>
               : 
-                 <div className="flex-1 w-full max-w-[120rem] min-w-max mx-auto flex items-end justify-center gap-8 md:gap-12 lg:gap-20 pt-0 shrink-0">
+                 <div className="flex-1 w-full max-w-[120rem] min-w-max mx-auto flex items-end justify-center gap-8 md:gap-12 lg:gap-20 pt-16 shrink-0">
                     {teams.map((team, idx) => {
-                      // Calculate height (with minimum offset for 0s)
                       const heightPercentage = Math.max((team.points / maxPoints) * 70, 1.5);
                       const themeClasses = getTeamBgColor(team.name);
                       const isLeader = team.points > 0 && team.points === highestPoints;
@@ -288,9 +268,7 @@ export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
                       return (
                         <div key={team._id} className="flex flex-col items-center justify-end h-full w-24 md:w-32 lg:w-44 group cursor-pointer" onClick={() => toggleReveal(team._id)}>
                           
-                          {/* CHART AREA - Strict wrapper for exact bottom offset */}
                           <div className="relative w-full flex-1 flex flex-col justify-end items-center">
-                            {/* Floating Points Value Above Bar */}
                             <div 
                               className={`absolute flex flex-col items-center transition-all ease-out z-20 pointer-events-none drop-shadow-2xl
                                 ${revealedTeams.has(team._id) ? 'opacity-100 transform translate-y-[-1rem] md:translate-y-[-2rem]' : 'opacity-0 transform translate-y-10'}`} 
@@ -304,16 +282,14 @@ export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
                               </span>
                             </div>
                             
-                            {/* The Animated Bar */}
                             <div 
                               className={`w-full rounded-t-[2rem] md:rounded-t-[3rem] border-t-8 border-l border-r border-b-0 bg-gradient-to-t ${themeClasses} relative overflow-hidden transition-all ease-out shadow-2xl flex-shrink-0`}
                               style={{ 
                                 height: revealedTeams.has(team._id) ? `${heightPercentage}%` : '0%',
                                 transitionDuration: `${revealDuration}ms`,
-                                transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)', // Smooth ease-out cubic
+                                transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
                               }}
                             >
-                              {/* Leader Trophy Decoration */}
                               {isLeader && showTrophies && (
                                 <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center animate-in zoom-in-50 duration-1000">
                                    <Trophy className={`w-10 h-10 md:w-14 md:h-14 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,204,21,0.8)] animate-bounce`} style={{animationDuration: '3s'}} />
@@ -321,13 +297,11 @@ export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
                                 </div>
                               )}
 
-                              {/* Glassmorphism Inner Shine */}
                               <div className="absolute inset-0 bg-white/5 box-border border-x border-white/10 opacity-50 group-hover:opacity-100 transition-opacity" />
                               <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/30 to-transparent mix-blend-overlay" />
                             </div>
                           </div>
      
-                          {/* X-Axis Label (Team Name) */}
                           <div className="mt-8 mb-4 shrink-0 z-10 w-full text-center">
                              <span className={`text-sm md:text-3xl lg:text-4xl font-black uppercase tracking-widest block text-balance min-w-full drop-shadow-lg ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
                                {team.name}
@@ -341,7 +315,6 @@ export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
             </div>
         </div>
 
-        {/* Cinematic Announcement Overlay */}
         {showAnnouncement && (
           <div 
             onClick={closeAnnouncement}
@@ -362,10 +335,6 @@ export default function TeamPointsViewer({ isOpen, onClose, apiKey }) {
         )}
 
         <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes progress {
-            from { width: 0%; }
-            to { width: 100%; }
-          }
           @keyframes float {
             0%, 100% { transform: translateY(0) scale(1); }
             50% { transform: translateY(-30px) scale(1.05); }

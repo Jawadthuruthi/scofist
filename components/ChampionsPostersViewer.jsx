@@ -1,6 +1,9 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { X, Play, Pause, ChevronLeft, ChevronRight, Trophy, Crown, Medal, User as UserIcon, Sun, Moon } from "lucide-react";
+import DashboardTopBar from "./DashboardTopBar";
 
 // Same gradient hash function as others
 const getTeamBgColor = (teamName) => {
@@ -24,13 +27,12 @@ const getTeamBgColor = (teamName) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-export default function ChampionsPostersViewer({ isOpen, onClose, apiKey }) {
+export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, apiKey, isWhiteTheme, setIsWhiteTheme }) {
   const [champions, setChampions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isWhiteTheme, setIsWhiteTheme] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -90,6 +92,28 @@ export default function ChampionsPostersViewer({ isOpen, onClose, apiKey }) {
         <DialogTitle className="sr-only">Champions Posters Viewer</DialogTitle>
         <DialogDescription className="sr-only">Displays full screen posters with champions and leader photos</DialogDescription>
         
+        <DashboardTopBar 
+          currentView="champions"
+          onNavigate={onNavigate}
+          isWhiteTheme={isWhiteTheme}
+          toggleTheme={() => setIsWhiteTheme(!isWhiteTheme)}
+          onClose={onClose}
+          leftContent={champions.length > 0 && (
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => setIsPlaying(!isPlaying)}
+                className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
+                title={isPlaying ? "Pause Slideshow" : "Play Slideshow"}
+              >
+                {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-1" />}
+              </button>
+              <div className={`px-4 py-2 rounded-xl backdrop-blur-sm border font-bold text-sm tracking-widest uppercase ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-800'}`}>
+                Champions Slideshow 
+              </div>
+            </div>
+          )}
+        />
+
         {loading && (
           <div className={`flex flex-col items-center justify-center space-y-4 h-full ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
             <div className={`w-16 h-16 border-4 rounded-full animate-spin shadow-[0_0_30px_rgba(234,179,8,0.3)] ${isWhiteTheme ? 'border-zinc-200 border-t-yellow-500' : 'border-zinc-800 border-t-yellow-500'}`}></div>
@@ -105,10 +129,8 @@ export default function ChampionsPostersViewer({ isOpen, onClose, apiKey }) {
         )}
 
         {!loading && !error && champions.length > 0 && (
-          <div className={`relative w-full h-full flex items-center justify-center overflow-hidden group transition-colors duration-500 ${isWhiteTheme ? 'bg-zinc-50 bg-[radial-gradient(ellipse_at_center,_#ffffff_0%,_#f4f4f5_100%)]' : 'bg-zinc-950 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900 via-zinc-950 to-black'}`}>
+          <div className={`relative w-full h-full flex items-center justify-center overflow-hidden group transition-colors duration-500 pt-20 ${isWhiteTheme ? 'bg-zinc-50 bg-[radial-gradient(ellipse_at_center,_#ffffff_0%,_#f4f4f5_100%)]' : 'bg-zinc-950 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900 via-zinc-950 to-black'}`}>
             
-
-
             {/* Navigation Buttons */}
             <button
               onClick={handlePrev}
@@ -212,32 +234,6 @@ export default function ChampionsPostersViewer({ isOpen, onClose, apiKey }) {
                     </div>
                   );
                 })}
-            </div>
-
-            {/* Top Right Controls Group - Placed at end for highest click priority */}
-            <div className="absolute top-6 right-6 z-[100] flex items-center gap-4">
-              <button 
-                onClick={() => setIsWhiteTheme(!isWhiteTheme)}
-                className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer pointer-events-auto ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
-                title={isWhiteTheme ? "Dark Theme" : "White Theme"}
-              >
-                {isWhiteTheme ? <Moon className="h-6 w-6" /> : <Sun className="h-6 w-6" />}
-              </button>
-
-              <button 
-                onClick={() => setIsPlaying(!isPlaying)}
-                className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer pointer-events-auto ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
-                title={isPlaying ? "Pause Slideshow" : "Play Slideshow"}
-              >
-                {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-1" />}
-              </button>
-              
-              <button 
-                onClick={onClose}
-                className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer pointer-events-auto ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
-              >
-                <X className="h-6 w-6" />
-              </button>
             </div>
           </div>
         )}

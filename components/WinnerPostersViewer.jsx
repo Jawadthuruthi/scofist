@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Loader2, X, ChevronLeft, ChevronRight, Play, Pause, Trophy, Sun, Moon } from "lucide-react";
+import DashboardTopBar from "./DashboardTopBar";
 
 const getRankTheme = (rank, isWhiteTheme) => {
   switch (rank) {
@@ -41,28 +42,20 @@ const getRankTheme = (rank, isWhiteTheme) => {
   }
 };
 
-const getRankString = (rank) => {
-  switch(rank) {
-    case 1: return "1st";
-    case 2: return "2nd";
-    case 3: return "3rd";
-    default: return `${rank}th`;
-  }
-};
-
 const getTeamBgColor = (teamName) => {
   if (!teamName) return "bg-zinc-600 border-zinc-500 text-white";
   const colors = [
-    "bg-blue-600 border-blue-500 text-blue-50",
-    "bg-emerald-600 border-emerald-500 text-emerald-50",
-    "bg-rose-600 border-rose-500 text-rose-50",
-    "bg-purple-600 border-purple-500 text-purple-50",
-    "bg-orange-600 border-orange-500 text-orange-50",
-    "bg-cyan-600 border-cyan-500 text-cyan-50",
-    "bg-fuchsia-600 border-fuchsia-500 text-fuchsia-50",
-    "bg-lime-600 border-lime-500 text-lime-50",
-    "bg-indigo-600 border-indigo-500 text-indigo-50",
-    "bg-teal-600 border-teal-500 text-teal-50"
+    "bg-red-600 border-red-500 text-white",
+    "bg-blue-600 border-blue-500 text-white",
+    "bg-emerald-600 border-emerald-500 text-white",
+    "bg-yellow-500 border-yellow-400 text-black",
+    "bg-purple-600 border-purple-500 text-white",
+    "bg-orange-600 border-orange-500 text-white",
+    "bg-cyan-600 border-cyan-500 text-white",
+    "bg-fuchsia-600 border-fuchsia-500 text-white",
+    "bg-lime-600 border-lime-500 text-white",
+    "bg-indigo-600 border-indigo-500 text-white",
+    "bg-teal-600 border-teal-500 text-white"
   ];
   let hash = 0;
   for (let i = 0; i < teamName.length; i++) {
@@ -92,13 +85,12 @@ const getTeamCardTheme = (teamName, isWhiteTheme) => {
   return themes[Math.abs(hash) % themes.length];
 };
 
-export default function WinnerPostersViewer({ isOpen, onClose, apiKey }) {
+export default function WinnerPostersViewer({ isOpen, onClose, onNavigate, apiKey, isWhiteTheme, setIsWhiteTheme }) {
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isWhiteTheme, setIsWhiteTheme] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -156,10 +148,32 @@ export default function WinnerPostersViewer({ isOpen, onClose, apiKey }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className={`max-w-none w-screen h-screen m-0 p-0 rounded-none border-none transition-colors duration-500 overflow-hidden flex items-center justify-center data-[state=open]:duration-500 [&>button]:hidden ${isWhiteTheme ? 'bg-zinc-50' : 'bg-zinc-950'}`}>
+      <DialogContent className={`max-w-none w-screen h-screen m-0 p-0 rounded-none border-none transition-colors duration-500 overflow-hidden flex flex-col data-[state=open]:duration-500 [&>button]:hidden ${isWhiteTheme ? 'bg-zinc-50' : 'bg-zinc-950'}`}>
         <DialogTitle className="sr-only">Winner Posters Viewer</DialogTitle>
         <DialogDescription className="sr-only">Displays full screen posters with winners' photos</DialogDescription>
         
+        <DashboardTopBar 
+          currentView="winners"
+          onNavigate={onNavigate}
+          isWhiteTheme={isWhiteTheme}
+          toggleTheme={() => setIsWhiteTheme(!isWhiteTheme)}
+          onClose={onClose}
+          leftContent={programs.length > 0 && (
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => setIsPlaying(!isPlaying)}
+                className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
+                title={isPlaying ? "Pause Slideshow" : "Play Slideshow"}
+              >
+                {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-1" />}
+              </button>
+              <div className={`px-4 py-2 rounded-xl backdrop-blur-sm border font-bold text-sm tracking-widest uppercase ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-800'}`}>
+                Results Slideshow 
+              </div>
+            </div>
+          )}
+        />
+
         {loading && (
           <div className={`flex flex-col items-center justify-center space-y-4 h-full ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
             <Loader2 className="h-12 w-12 animate-spin text-yellow-500" />
@@ -182,21 +196,19 @@ export default function WinnerPostersViewer({ isOpen, onClose, apiKey }) {
         )}
 
         {!loading && !error && programs.length > 0 && (
-          <div className={`relative w-full h-full flex items-center justify-center overflow-hidden group transition-colors duration-500 ${isWhiteTheme ? 'bg-zinc-50 bg-[radial-gradient(ellipse_at_center,_#ffffff_0%,_#f4f4f5_100%)]' : 'bg-zinc-950 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900 via-zinc-950 to-black'}`}>
+          <div className={`relative w-full h-full flex flex-col items-center justify-start overflow-hidden group transition-colors duration-500 pt-20 ${isWhiteTheme ? 'bg-zinc-50 bg-[radial-gradient(ellipse_at_center,_#ffffff_0%,_#f4f4f5_100%)]' : 'bg-zinc-950 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900 via-zinc-950 to-black'}`}>
             
-
-
             {/* Navigation Buttons */}
             <button 
               onClick={handlePrev}
-              className={`absolute left-6 z-50 p-4 rounded-full backdrop-blur-md transition-all border shadow-2xl hover:scale-110 hover:-translate-x-1 opacity-0 group-hover:opacity-100 ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/5 hover:bg-white/10 text-white border-white/10'}`}
+              className={`absolute left-6 top-1/2 -translate-y-1/2 z-50 p-4 rounded-full backdrop-blur-md transition-all border shadow-2xl hover:scale-110 hover:-translate-x-1 opacity-0 group-hover:opacity-100 ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/5 hover:bg-white/10 text-white border-white/10'}`}
             >
               <ChevronLeft className="h-8 w-8" />
             </button>
 
             <button 
               onClick={handleNext}
-              className={`absolute right-6 z-50 p-4 rounded-full backdrop-blur-md transition-all border shadow-2xl hover:scale-110 hover:translate-x-1 opacity-0 group-hover:opacity-100 ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/5 hover:bg-white/10 text-white border-white/10'}`}
+              className={`absolute right-6 top-1/2 -translate-y-1/2 z-50 p-4 rounded-full backdrop-blur-md transition-all border shadow-2xl hover:scale-110 hover:translate-x-1 opacity-0 group-hover:opacity-100 ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/5 hover:bg-white/10 text-white border-white/10'}`}
             >
               <ChevronRight className="h-8 w-8" />
             </button>
@@ -204,10 +216,10 @@ export default function WinnerPostersViewer({ isOpen, onClose, apiKey }) {
             {/* Current Poster Content Container */}
             <div 
               key={currentIndex} 
-              className="w-full h-full pt-16 md:pt-24 pb-32 px-4 md:px-12 flex flex-col items-center justify-start overflow-y-auto no-scrollbar scroll-smooth animate-in fade-in slide-in-from-bottom-16 zoom-in-95 duration-700"
+              className="w-full h-full pt-2 pb-32 px-4 md:px-12 flex flex-col items-center justify-start overflow-y-auto no-scrollbar scroll-smooth animate-in fade-in slide-in-from-bottom-16 zoom-in-95 duration-700 mt-4"
             >
                 {/* Poster Header */}
-                <div className="w-full text-center space-y-2 md:space-y-4 md:max-w-4xl mx-auto shrink-0 pb-2">
+                <div className="w-full text-center space-y-3 md:max-w-4xl mx-auto shrink-0 pb-0">
                    <div className={`flex items-center justify-center gap-4 text-sm md:text-lg font-bold font-sans uppercase tracking-[0.2em] ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'}`}>
                       <span>{programs[currentIndex].division}</span>
                       <span className={`w-1.5 h-1.5 rounded-full ${isWhiteTheme ? 'bg-zinc-300' : 'bg-zinc-600'}`}></span>
@@ -215,26 +227,25 @@ export default function WinnerPostersViewer({ isOpen, onClose, apiKey }) {
                       <span className={`w-1.5 h-1.5 rounded-full ${isWhiteTheme ? 'bg-zinc-300' : 'bg-zinc-600'}`}></span>
                       <span>{programs[currentIndex].type}</span>
                    </div>
-                   <h1 className={`text-4xl md:text-6xl lg:text-[4.5rem] leading-[1.1] font-black uppercase tracking-tight drop-shadow-lg break-words whitespace-normal text-balance w-full max-w-[95vw] mx-auto px-4 ${isWhiteTheme ? 'text-black' : 'text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400'}`}>
+                   <h1 className={`text-4xl md:text-6xl lg:text-[4.5rem] leading-[1] font-black uppercase tracking-tight drop-shadow-lg break-words whitespace-normal text-balance w-full max-w-[95vw] mx-auto px-4 ${isWhiteTheme ? 'text-black' : 'text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400'}`}>
                       {programs[currentIndex].name}
                    </h1>
-                   <h2 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 via-yellow-200 to-yellow-600 uppercase tracking-widest mt-2 md:mt-4">
+                   <h2 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 via-yellow-200 to-yellow-600 uppercase tracking-widest mt-1 md:mt-2">
                       WINNERS
                    </h2>
                 </div>
 
-               <div className="w-full max-w-[100vw] px-4 lg:px-12 flex flex-row flex-nowrap items-end justify-start xl:justify-center overflow-x-auto no-scrollbar gap-8 md:gap-16 lg:gap-20 pb-12 pt-12 shrink-0">
+               <div className="w-full max-w-[100vw] px-4 lg:px-12 flex flex-row flex-nowrap items-end justify-start xl:justify-center overflow-x-auto no-scrollbar gap-8 md:gap-16 lg:gap-20 pb-12 pt-4 shrink-0">
                   {programs[currentIndex].winners.map((p, idx) => {
                     const theme = getRankTheme(p.rank, isWhiteTheme);
                     
-                    // Uniform fixed size for all ranks to ensure identical layout
                     const cardSize = "p-8 md:p-10 w-80 md:w-[28rem] h-[38rem] md:h-[50rem] z-20 justify-center shrink-0 flex-none";
                     const imgSize = "w-48 h-48 md:w-64 md:h-64 mb-6 md:mb-10 border-[6px]";
                     const nameSize = "text-3xl md:text-4xl";
                     const rankBadgeSize = "-top-8 w-20 h-20 text-4xl";
 
                     return (
-                      <div key={p._id || idx} className={`group/card relative flex flex-col items-center rounded-[2.5rem] border transition-all duration-500 hover:-translate-y-4 mt-12 md:mt-16 ${theme.shadow} ${theme.glow} ${cardSize} ${getTeamCardTheme(p.teamName, isWhiteTheme)} animate-in fade-in zoom-in-90 fill-mode-both`} style={{ animationDelay: `${idx * 150}ms`, animationDuration: '800ms' }}>
+                      <div key={p._id || idx} className={`group/card relative flex flex-col items-center rounded-[2.5rem] border transition-all duration-500 hover:-translate-y-4 mt-8 md:mt-10 ${theme.shadow} ${theme.glow} ${cardSize} ${getTeamCardTheme(p.teamName, isWhiteTheme)} animate-in fade-in zoom-in-90 fill-mode-both`} style={{ animationDelay: `${idx * 150}ms`, animationDuration: '800ms' }}>
                          
                          {/* Rank Floating Badge */}
                          <div className={`absolute ${rankBadgeSize} ${theme.bg} text-black font-black rounded-full flex flex-col items-center justify-center shadow-2xl transform group-hover/card:scale-110 transition-transform duration-300 border-4 ${isWhiteTheme ? 'border-zinc-100' : 'border-zinc-950'}`}>
@@ -271,7 +282,7 @@ export default function WinnerPostersViewer({ isOpen, onClose, apiKey }) {
                              {p.chestNumber && p.chestNumber !== "N/A" && (
                                <div className={`border rounded-lg px-2.5 py-1 text-[10px] md:text-xs font-bold tracking-widest shadow-inner text-center ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-zinc-500' : 'bg-zinc-950/40 border-zinc-700/50 text-zinc-400'}`}>
                                  CHEST <span className={`${isWhiteTheme ? 'text-zinc-900' : 'text-zinc-100'} ml-1 text-xs md:text-sm`}>{p.chestNumber}</span>
-                               </div>
+                                </div>
                              )}
                              {p.codeLetter && p.codeLetter.trim() !== "" && (
                                <div className={`border rounded-lg px-2.5 py-1 text-[10px] md:text-xs font-bold tracking-widest shadow-inner text-center ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-zinc-500' : 'bg-zinc-950/40 border-zinc-700/50 text-zinc-400'}`}>
@@ -323,30 +334,6 @@ export default function WinnerPostersViewer({ isOpen, onClose, apiKey }) {
               </div>
             </div>
 
-            <div className="absolute top-6 right-6 z-[100] flex items-center gap-4">
-              <button 
-                onClick={() => setIsWhiteTheme(!isWhiteTheme)}
-                className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer pointer-events-auto ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
-                title={isWhiteTheme ? "Dark Theme" : "White Theme"}
-              >
-                {isWhiteTheme ? <Moon className="h-6 w-6" /> : <Sun className="h-6 w-6" />}
-              </button>
-
-              <button 
-                onClick={() => setIsPlaying(!isPlaying)}
-                className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer pointer-events-auto ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
-                title={isPlaying ? "Pause Slideshow" : "Play Slideshow"}
-              >
-                {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-1" />}
-              </button>
-              
-              <button 
-                onClick={onClose}
-                className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer pointer-events-auto ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
           </div>
         )}
       </DialogContent>

@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { X, TrendingUp, BarChart3, Info, Sun, Moon } from "lucide-react";
@@ -12,6 +14,7 @@ import {
   Legend,
   ResponsiveContainer
 } from "recharts";
+import DashboardTopBar from "./DashboardTopBar";
 
 // Hex hashing mimicking exactly the original Tailwind string arrays natively across dashboard components
 const getTeamHexColor = (teamName) => {
@@ -35,7 +38,7 @@ const getTeamHexColor = (teamName) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-export default function TeamPointsProgressionViewer({ isOpen, onClose, apiKey }) {
+export default function TeamPointsProgressionViewer({ isOpen, onClose, onNavigate, apiKey, isWhiteTheme, setIsWhiteTheme }) {
   const [data, setData] = useState([]);
   const [teams, setTeams] = useState([]);
   const [totalResults, setTotalResults] = useState(0);
@@ -43,7 +46,6 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, apiKey })
   const [appliedLimit, setAppliedLimit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isWhiteTheme, setIsWhiteTheme] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -99,15 +101,17 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, apiKey })
         <DialogTitle className="sr-only">Team Point Progression Graph</DialogTitle>
         <DialogDescription className="sr-only">Displays full screen timeline displaying analytical charting cumulative metric histories per active team strictly dynamically.</DialogDescription>
 
-
-
-        {/* Top Controls Bar - Left Aligned */}
-        <div className="relative z-50 flex flex-col md:flex-row items-center justify-start p-6 w-full gap-4">
-          <div className="flex flex-col md:flex-row items-center gap-4">
-             {/* Limit Selection Input */}
-             <div className={`flex flex-row items-center space-x-2 p-2 rounded-[1.5rem] backdrop-blur-md shadow-2xl border ${isWhiteTheme ? 'bg-white/80 border-zinc-200' : 'bg-zinc-900/80 border-zinc-700/50'}`}>
+        <DashboardTopBar 
+          currentView="graph"
+          onNavigate={onNavigate}
+          isWhiteTheme={isWhiteTheme}
+          toggleTheme={() => setIsWhiteTheme(!isWhiteTheme)}
+          onClose={onClose}
+          leftContent={
+            <div className="flex items-center gap-4">
+              <div className={`flex flex-row items-center space-x-2 p-1.5 rounded-[1.2rem] backdrop-blur-md shadow-xl border ${isWhiteTheme ? 'bg-white/80 border-zinc-200' : 'bg-zinc-900/80 border-zinc-700/50'}`}>
                 <BarChart3 className={`w-5 h-5 ml-3 ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'}`} />
-                <span className={`font-bold ml-1 tracking-wide uppercase text-sm ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-300'}`}>After</span>
+                <span className={`font-bold ml-1 tracking-wide uppercase text-[10px] md:text-sm ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-300'}`}>After</span>
                 <input
                   type="number"
                   min="1"
@@ -116,25 +120,25 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, apiKey })
                   onChange={(e) => setLimitInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="All"
-                  className={`w-20 rounded-xl px-2 py-1.5 text-center font-black focus:outline-none transition-colors shadow-inner border-2 ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-zinc-900 focus:border-zinc-400' : 'bg-zinc-950 border-zinc-700/80 text-white focus:border-zinc-500'}`}
+                  className={`w-16 md:w-20 rounded-lg px-1 md:px-2 py-1 text-center font-black focus:outline-none transition-colors shadow-inner border-2 ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-zinc-900 focus:border-zinc-400' : 'bg-zinc-950 border-zinc-700/80 text-white focus:border-zinc-500'}`}
                 />
-                <span className={`font-bold mr-2 tracking-wide uppercase text-sm ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-300'}`}>Results</span>
+                <span className={`font-bold mr-2 tracking-wide uppercase text-[10px] md:text-sm ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-300'}`}>Results</span>
                 <Button 
                    onClick={handleApplyLimit}
                    disabled={loading}
-                   className={`font-black uppercase rounded-xl tracking-wider px-4 py-1.5 h-auto border-2 border-transparent transition-transform active:scale-95 ${isWhiteTheme ? 'bg-zinc-900 hover:bg-black text-white' : 'bg-zinc-100 hover:bg-white text-black'}`}
+                   className={`font-black uppercase rounded-lg tracking-wider px-3 py-1 h-8 md:h-9 border-none transition-transform active:scale-95 ${isWhiteTheme ? 'bg-zinc-900 hover:bg-black text-white' : 'bg-zinc-100 hover:bg-white text-black'}`}
                 >
                   Apply
                 </Button>
-             </div>
-             
-             {/* Total Results Context */}
-             <div className={`text-xs md:text-sm px-5 py-2.5 rounded-2xl border backdrop-blur-sm flex items-center gap-2 font-bold tracking-widest uppercase shadow-lg ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-800'}`}>
-                <Info className="w-4 h-4" />
+              </div>
+              
+              <div className={`text-[10px] md:text-xs px-4 py-2 rounded-xl border backdrop-blur-sm flex items-center gap-2 font-bold tracking-widest uppercase shadow-lg ${isWhiteTheme ? 'bg-white/50 text-zinc-500 border-zinc-200' : 'bg-zinc-900/50 text-zinc-400 border-zinc-800'}`}>
+                <Info className="w-3 h-3 md:w-4 md:h-4" />
                 <span>Overall Declared: <strong className={`text-base px-2 py-0.5 rounded-md ml-1 ${isWhiteTheme ? 'bg-zinc-200 text-zinc-900' : 'bg-zinc-800 text-white'}`}>{totalResults}</strong></span>
-             </div>
-          </div>
-        </div>
+              </div>
+            </div>
+          }
+        />
 
         {/* Main Background Engine */}
         <div className={`absolute inset-0 transition-opacity duration-500 ${isWhiteTheme ? 'opacity-10' : 'opacity-100'}`}>
@@ -150,11 +154,11 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, apiKey })
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none z-[1]" />
 
         {/* Dynamic Content Container */}
-        <div className="relative flex-1 w-full h-full flex flex-col items-center justify-center overflow-hidden z-10 px-6 pb-6 mt-4">
+        <div className="relative flex-1 w-full h-full flex flex-col items-center justify-center overflow-hidden z-10 px-6 pb-6 pt-24">
           
           {/* Dashboard Headings */}
-          <div className="shrink-0 w-full text-center space-y-2 z-40 mb-8 max-w-5xl mt-4 px-4 pointer-events-none">
-            <h1 className={`text-5xl md:text-7xl lg:text-[6rem] leading-none font-black uppercase tracking-tight drop-shadow-2xl ${isWhiteTheme ? 'text-zinc-900' : 'text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400'}`}>
+          <div className="shrink-0 w-full text-center space-y-2 z-40 mb-8 max-w-5xl px-4 pointer-events-none">
+            <h1 className={`text-4xl md:text-6xl lg:text-[5rem] leading-none font-black uppercase tracking-tight drop-shadow-2xl ${isWhiteTheme ? 'text-zinc-900' : 'text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400'}`}>
               Team Points
             </h1>
             <h2 className={`text-xl md:text-3xl font-black uppercase tracking-widest mt-2 md:mt-4 flex items-center justify-center gap-3 ${isWhiteTheme ? 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400'}`}>
@@ -240,24 +244,6 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, apiKey })
                 <p className="text-2xl font-medium text-zinc-400 tracking-widest">Awaiting Initial Results Declaration</p>
               </div>
             )}
-          </div>
-
-          {/* Top Right Controls Group - Placed at end for highest click priority */}
-          <div className="absolute top-6 right-6 z-[100] flex items-center gap-4 bg-transparent">
-            <button 
-              onClick={() => setIsWhiteTheme(!isWhiteTheme)}
-              className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer pointer-events-auto ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
-              title={isWhiteTheme ? "Dark Theme" : "White Theme"}
-            >
-              {isWhiteTheme ? <Moon className="h-6 w-6" /> : <Sun className="h-6 w-6" />}
-            </button>
-
-            <button 
-              onClick={onClose}
-              className={`p-3 rounded-full backdrop-blur-md transition-all shadow-xl hover:scale-[1.15] active:scale-95 flex items-center justify-center border cursor-pointer pointer-events-auto ${isWhiteTheme ? 'bg-black/5 hover:bg-black/10 text-zinc-900 border-zinc-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
-            >
-              <X className="h-6 w-6" />
-            </button>
           </div>
         </div>
       </DialogContent>

@@ -755,9 +755,9 @@ export function AppSidebar({ roles, activeRole, user }) {
         <SidebarGroup className="px-4">
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) =>
+              {menuItems.map((item, index) =>
                 item.subItems ? (
-                  <SidebarMenuItem key={item.url + item.title}>
+                  <SidebarMenuItem key={item.url + item.title + index}>
                     <SidebarMenuButton asChild>
                       <div className="flex items-center gap-2">
                         <item.icon className="w-5 h-5" />
@@ -765,8 +765,8 @@ export function AppSidebar({ roles, activeRole, user }) {
                       </div>
                     </SidebarMenuButton>
                     <SidebarMenuSub className="mr-0 pt-2">
-                      {item.subItems.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.url + subItem.title}>
+                      {item.subItems.map((subItem, subIndex) => (
+                        <SidebarMenuSubItem key={subItem.url + subItem.title + subIndex}>
                           <SidebarMenuSubButton
                             data-active={pathname === subItem.url}
                             asChild
@@ -781,7 +781,7 @@ export function AppSidebar({ roles, activeRole, user }) {
                     </SidebarMenuSub>
                   </SidebarMenuItem>
                 ) : (
-                  <SidebarMenuItem className="pt-1" key={item.url + item.title}>
+                  <SidebarMenuItem className="pt-1" key={item.url + item.title + index}>
                     <SidebarMenuButton
                       data-active={pathname === item.url}
                       asChild
