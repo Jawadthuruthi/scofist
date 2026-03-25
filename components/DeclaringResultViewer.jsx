@@ -422,12 +422,19 @@ function PodiumCard({ rank, data, isWhiteTheme, isLarge = false }) {
     return (
         <div className={`relative flex flex-col items-center flex-1 max-w-[12rem] md:max-w-[22rem] animate-in fade-in slide-in-from-bottom-20 duration-1000 delay-${rank === 1 ? '500' : rank === 2 ? '200' : '700'}`}>
             <div className={`w-full flex flex-col items-center mb-4 transition-transform hover:scale-105 group`}>
-                <div className={`relative rounded-full overflow-hidden border-4 shadow-2xl transition-all duration-500 group-hover:border-white mb-4 ${isLarge ? 'w-32 h-32 md:w-64 md:h-64' : 'w-24 h-24 md:w-48 md:h-48'} ${theme.border}`}>
-                    {data.participantDetails?.profilePic ? (
-                        <img src={data.participantDetails.profilePic} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                        <div className={`w-full h-full flex items-center justify-center font-black ${isLarge ? 'text-4xl' : 'text-2xl'} uppercase ${isWhiteTheme ? 'bg-zinc-100 text-zinc-300' : 'bg-zinc-800 text-zinc-700'}`}>
-                            {data.participantDetails?.name?.charAt(0)}
+                <div className="flex flex-col items-center gap-3 mb-4">
+                    <div className={`relative rounded-full overflow-hidden border-4 shadow-2xl transition-all duration-500 group-hover:border-white ${isLarge ? 'w-32 h-32 md:w-64 md:h-64' : 'w-24 h-24 md:w-48 md:h-48'} ${theme.border}`}>
+                        {data.participantDetails?.profilePic ? (
+                            <img src={data.participantDetails.profilePic} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                            <div className={`w-full h-full flex items-center justify-center font-black ${isLarge ? 'text-4xl' : 'text-2xl'} uppercase ${isWhiteTheme ? 'bg-zinc-100 text-zinc-300' : 'bg-zinc-800 text-zinc-700'}`}>
+                                {data.participantDetails?.name?.charAt(0)}
+                            </div>
+                        )}
+                    </div>
+                    {data.participantDetails?.chestNumber && (
+                        <div className={`px-4 py-1 rounded-lg border-2 font-mono font-bold text-sm md:text-xl shadow-lg transition-all group-hover:border-yellow-500/50 ${isWhiteTheme ? 'bg-white border-zinc-200 text-zinc-600' : 'bg-zinc-900 border-zinc-700 text-zinc-400'}`}>
+                            #{data.participantDetails.chestNumber}
                         </div>
                     )}
                 </div>
@@ -465,40 +472,40 @@ const SequentialWinnerCard = ({ p, rank, isWhiteTheme }) => {
     };
 
     return (
-      <div className="w-full flex flex-col items-center justify-center pb-12 space-y-12 transition-all duration-1000">
-        <div className={`transition-all duration-1000 ease-in-out transform ${revealStage === REVEAL_STAGES.LABEL_BIG ? 'scale-150 text-[8rem] md:text-[15rem] leading-none mb-20' : 'scale-100 text-4xl md:text-7xl opacity-40'}`}>
+      <div className={`w-full flex flex-col items-center justify-center pb-12 transition-all duration-1000 ${revealStage === REVEAL_STAGES.LABEL_BIG ? 'space-y-0' : 'space-y-1 md:space-y-1'}`}>
+        <div className={`transition-all duration-1000 ease-in-out transform ${revealStage === REVEAL_STAGES.LABEL_BIG ? 'scale-150 text-[8rem] md:text-[15rem] leading-none mb-28' : 'scale-100 text-6xl md:text-[10rem] opacity-40 mb-0'}`}>
           <span className={`font-black tracking-tighter ${theme.text} drop-shadow-[0_0_70px_rgba(255,255,255,0.4)]`}>
             {theme.label}
           </span>
         </div>
 
-        {showStage(REVEAL_STAGES.CHEST) && (
-            <div className="animate-in fade-in zoom-in slide-in-from-bottom-20 duration-1000">
-                <div className={`px-12 py-4 rounded-3xl border-4 font-black text-5xl md:text-8xl ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-black' : 'bg-zinc-900/50 border-zinc-800 text-white shadow-[0_0_50px_rgba(255,255,255,0.1)]'}`}>
-                    <span className={`${isWhiteTheme ? 'text-zinc-600' : 'text-zinc-400'} mr-8 text-2xl md:text-4xl uppercase`}>CHEST NO</span>
-                    {p.participantDetails?.chestNumber || "---"}
+        <div className="flex flex-row items-center gap-12 md:gap-24">
+            {showStage(REVEAL_STAGES.CHEST) && (
+                <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in slide-in-from-bottom-32 duration-1000">
+                    <div className={`w-64 h-64 md:w-96 md:h-96 rounded-full overflow-hidden border-[12px] shadow-[0_0_100px_rgba(0,0,0,0.5)] transition-all flex-shrink-0 ${theme.border}`}>
+                        {p.participantDetails?.profilePic ? (
+                            <img src={p.participantDetails.profilePic} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10rem] font-black bg-zinc-800 text-zinc-600">
+                                {p.participantDetails?.name?.charAt(0)}
+                            </div>
+                        )}
+                    </div>
+                    <div className={`px-12 py-2 rounded-2xl border-4 font-black text-4xl md:text-6xl shadow-2xl ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-black' : 'bg-zinc-900 border-zinc-700 text-white'}`}>
+                        <span className={`${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'} mr-4 text-xl md:text-3xl font-bold`}>NO.</span>
+                        {p.participantDetails?.chestNumber || "---"}
+                    </div>
                 </div>
-            </div>
-        )}
-
-        {showStage(REVEAL_STAGES.NAME_PHOTO) && (
-            <div className="flex flex-row items-center gap-12 md:gap-24 animate-in fade-in zoom-in slide-in-from-bottom-32 duration-1000">
-                <div className={`w-64 h-64 md:w-96 md:h-96 rounded-full overflow-hidden border-[12px] shadow-[0_0_100px_rgba(0,0,0,0.5)] transition-all flex-shrink-0 ${theme.border}`}>
-                    {p.participantDetails?.profilePic ? (
-                        <img src={p.participantDetails.profilePic} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[10rem] font-black bg-zinc-800 text-zinc-600">
-                            {p.participantDetails?.name?.charAt(0)}
-                        </div>
-                    )}
-                </div>
-                <h2 className={`text-5xl md:text-8xl lg:text-[10rem] font-black uppercase tracking-tighter text-left leading-none max-w-4xl ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+            )}
+            
+            {showStage(REVEAL_STAGES.NAME_PHOTO) && (
+                <h2 className={`text-4xl md:text-7xl lg:text-[8.5rem] font-black uppercase tracking-tighter text-left leading-[0.8] max-w-4xl animate-in fade-in slide-in-from-left-20 duration-1000 ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
                     {p.participantDetails?.name}
                 </h2>
-            </div>
-        )}
+            )}
+        </div>
 
-        <div className="flex flex-col items-center space-y-4">
+        <div className="flex flex-col items-center space-y-2 mt-4">
             {showStage(REVEAL_STAGES.TEAM) && (
                 <div className="animate-in fade-in zoom-in slide-in-from-bottom-20 duration-1000">
                     <div className={`px-16 py-6 rounded-full font-black text-3xl md:text-6xl uppercase tracking-[0.4em] shadow-2xl ${getTeamBgColor(p.participantDetails?.teamId?.name)}`}>
@@ -509,10 +516,10 @@ const SequentialWinnerCard = ({ p, rank, isWhiteTheme }) => {
 
             {showStage(REVEAL_STAGES.POINTS) && (
                 <div className="animate-in fade-in zoom-in slide-in-from-top-32 duration-1000 pt-4">
-                    <div className={`flex items-center gap-10 text-8xl md:text-[15rem] font-black italic tracking-tighter ${theme.text}`}>
-                        <Sparkles className="w-24 h-24 md:w-40 md:h-40 animate-spin text-yellow-400" />
+                    <div className={`flex items-center gap-10 text-7xl md:text-[12rem] font-black italic tracking-tighter ${theme.text}`}>
+                        <Sparkles className="w-20 h-20 md:w-32 md:h-32 animate-spin text-yellow-400" />
                         {p.points}
-                        <span className="text-4xl md:text-6xl not-italic font-bold text-zinc-500 ml-8 border-b-8 border-zinc-800 pb-4">PTS</span>
+                        <span className="text-4xl md:text-5xl not-italic font-bold text-zinc-500 ml-8 border-b-8 border-zinc-800 pb-4">PTS</span>
                     </div>
                 </div>
             )}
