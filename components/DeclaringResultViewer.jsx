@@ -158,6 +158,14 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
     const currentIndex = sequence.indexOf(step);
     if (currentIndex === -1) return;
 
+    // Custom jump: After 1st Prize, go directly to Consolation Prizes (Others)
+    let nextStepIndex;
+    if (step === STEPS.FIRST_PLACE) {
+        nextStepIndex = sequence.indexOf(STEPS.OTHERS);
+    } else {
+        nextStepIndex = currentIndex + 1;
+    }
+
     const participants = resultData?.participants || [];
     
     // Check if a step has valid data to show
@@ -173,8 +181,6 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
         return false;
     };
 
-    // Find the next step that has data
-    let nextStepIndex = currentIndex + 1;
     while (nextStepIndex < sequence.length) {
       const next = sequence[nextStepIndex];
       if (checkHasData(next)) {
@@ -191,13 +197,34 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isOpen) return;
+
+      // Enter key for sequential navigation
       if (e.key === "Enter") {
         nextStep();
+        return;
+      }
+
+      // Shortcut keys (1-5) for direct jumps if a result is already loaded
+      if (step !== STEPS.INPUT && resultData) {
+        const participants = resultData.participants || [];
+        const participantRanks = participants.map(p => parseRank(p.rank));
+
+        if (e.key === "1" && participantRanks.includes(1)) {
+          setStep(STEPS.FIRST_PLACE);
+        } else if (e.key === "2" && participantRanks.includes(2)) {
+          setStep(STEPS.SECOND_PLACE);
+        } else if (e.key === "3" && participantRanks.includes(3)) {
+          setStep(STEPS.THIRD_PLACE);
+        } else if ((e.key === "4" || e.key.toLowerCase() === "c") && participants.some((p, i) => ![1, 2, 3].includes(participantRanks[i]) && (Number(p.points) || 0) > 0)) {
+          setStep(STEPS.OTHERS);
+        } else if (e.key === "5" || e.key.toLowerCase() === "h") {
+          setStep(STEPS.PODIUM);
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, nextStep]);
+  }, [isOpen, nextStep, step, resultData]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -269,7 +296,7 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
             )}
 
             {step === STEPS.ANNOUNCEMENT && (
-                <div className="space-y-6 animate-in fade-in zoom-in-75 duration-700">
+                <div className="space-y-6 animate-in fade-in zoom-in-75 slide-in-from-bottom-10 duration-100">
                     <h3 className={`text-4xl md:text-6xl font-black uppercase tracking-[0.5em] animate-pulse ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-500'}`}>
                         NOW DECLARING
                     </h3>
@@ -569,14 +596,14 @@ const Announcement = ({ isWhiteTheme }) => {
             <h1 className={`text-6xl md:text-[8rem] lg:text-[10rem] leading-none font-black uppercase tracking-tighter drop-shadow-2xl ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
                 <div className="flex flex-wrap justify-center overflow-hidden">
                     {"now declaring".split("").map((char, i) => (
-                        <span key={i} className="inline-block animate-in fade-in slide-in-from-bottom-10 fill-mode-both" style={{ animationDelay: `${800 + i * 60}ms`, animationDuration: '0.6s' }}>
+                        <span key={i} className="inline-block animate-in fade-in slide-in-from-bottom-10 fill-mode-both" style={{ animationDelay: `${200 + i * 30}ms`, animationDuration: '0.3s' }}>
                             {char === " " ? "\u00A0" : char}
                         </span>
                     ))}
                 </div>
                 <div className="flex flex-wrap justify-center animate-[pulse_3s_ease-in-out_infinite]">
                     {"results...".split("").map((char, i) => (
-                        <span key={i} className="inline-block animate-in fade-in zoom-in fill-mode-both text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-200 to-yellow-600" style={{ animationDelay: `${1600 + i * 80}ms`, animationDuration: '0.8s' }}>
+                        <span key={i} className="inline-block animate-in fade-in zoom-in fill-mode-both text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-200 to-yellow-600" style={{ animationDelay: `${600 + i * 40}ms`, animationDuration: '0.4s' }}>
                             {char === " " ? "\u00A0" : char}
                         </span>
                     ))}
