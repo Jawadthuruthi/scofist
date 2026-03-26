@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Loader, Save, Calendar, Clock } from "lucide-react";
+import { Loader, Save, Calendar, Clock, CheckCircle2 } from "lucide-react";
 
 // UI Components
 import {
@@ -17,6 +17,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
 
 // Hooks and Utils
 import useCrud from "@/hooks/use-crud";
@@ -52,6 +59,7 @@ const Attendance = ({ apiKey, teacherId }) => {
   const [attendanceDate] = useState(formatDate(new Date()));
   const [existingAttendanceId, setExistingAttendanceId] = useState(null);
   const [studentLeaveStatus, setStudentLeaveStatus] = useState({});
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const today = useMemo(() => formatDateForDisplay(new Date()), []);
 
@@ -307,6 +315,16 @@ const Attendance = ({ apiKey, teacherId }) => {
     attendanceQuery.isLoading,
     leaveRecordsQuery.isLoading,
   ]);
+  
+  // Auto-redirect after successful save
+  useEffect(() => {
+    if (showSuccessDialog) {
+      const timer = setTimeout(() => {
+        window.location.href = "/dashboard/my-periods";
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessDialog]);
 
   // Memoize absentee data processing
   const absenteeData = useMemo(() => {
@@ -401,14 +419,12 @@ const Attendance = ({ apiKey, teacherId }) => {
         await updateAttendance.mutateAsync({
           data: { _id: existingAttendanceId, ...payload },
         });
-        toast.success("Attendance updated successfully!");
+        setShowSuccessDialog(true);
       } else {
         await createAttendance.mutateAsync(payload);
-        toast.success("Attendance recorded successfully!");
+        setShowSuccessDialog(true);
         setAttendanceExists(true);
       }
-
-      window.location.href = "/dashboard/my-periods";
     } catch (error) {
       console.error("Error saving attendance:", error);
       toast.error(`Failed to save attendance: ${error.message}`);
@@ -644,6 +660,24 @@ const Attendance = ({ apiKey, teacherId }) => {
           {attendanceExists ? "Update" : "Save"}
         </Button>
       </div>
+
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="flex flex-col items-center justify-center text-center space-y-3">
+            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
+              <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+            </div>
+            <DialogTitle className="text-2xl font-bold text-green-600 dark:text-green-400">
+              Successful
+            </DialogTitle>
+            <DialogDescription className="text-lg">
+              {attendanceExists
+                ? "attendance updated successfully"
+                : "attendance saved successfully"}
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div >
   );
 };
