@@ -60,6 +60,7 @@ const Attendance = ({ apiKey, teacherId }) => {
   const [existingAttendanceId, setExistingAttendanceId] = useState(null);
   const [studentLeaveStatus, setStudentLeaveStatus] = useState({});
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const today = useMemo(() => formatDateForDisplay(new Date()), []);
 
@@ -419,9 +420,11 @@ const Attendance = ({ apiKey, teacherId }) => {
         await updateAttendance.mutateAsync({
           data: { _id: existingAttendanceId, ...payload },
         });
+        setSuccessMessage("Attendance Updated Successfully!");
         setShowSuccessDialog(true);
       } else {
         await createAttendance.mutateAsync(payload);
+        setSuccessMessage("Attendance Saved Successfully!");
         setShowSuccessDialog(true);
         setAttendanceExists(true);
       }
@@ -671,9 +674,7 @@ const Attendance = ({ apiKey, teacherId }) => {
               Successful
             </DialogTitle>
             <DialogDescription className="text-lg">
-              {attendanceExists
-                ? "attendance updated successfully"
-                : "attendance saved successfully"}
+              {successMessage}
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
