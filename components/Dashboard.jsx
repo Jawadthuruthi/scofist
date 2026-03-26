@@ -378,7 +378,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
     },
     {
       title: "Active Classes",
-      value: totalStats.activeBatches,
+      value: totalStats.activeClasses,
       icon: BarChart3,
       description: "Ongoing academic classes",
       onClick: () => setClassesDialogOpen(true),
@@ -573,7 +573,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-2">
-            {sortedClasses.map((classData) => {
+            {dashboardData.activeClasses.map((classData) => {
               const leaveStudents = dashboardData.leaveRecords?.filter(
                 (record) => record.classId === classData._id
               ) || [];
@@ -833,11 +833,14 @@ export default function Dashboard({
     );
     const activeBatches =
       batches?.filter((batch) => batch.status === "Active") || [];
+    const activeBatchIds = new Set(activeBatches.map(b => b._id));
+    const activeClasses = sortedClasses.filter(cls => activeBatchIds.has(cls.batchId));
 
     return {
       students,
       batches,
       classes: sortedClasses,
+      activeClasses,
       teachers,
       activeStudents,
       graduatedStudents,
@@ -849,7 +852,7 @@ export default function Dashboard({
         teachersCount: teachers.length,
         activeStudents: activeStudents.length,
         graduatedStudents: graduatedStudents.length,
-        activeBatches: activeBatches.length,
+        activeClasses: activeClasses.length,
         leaveStudents: students.filter(student => {
           const studentLeaves = leaveRecords.filter(
             (record) => String(record.studentId?._id || record.studentId) === String(student._id)

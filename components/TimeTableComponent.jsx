@@ -225,7 +225,10 @@ const TimeTableComponent = ({
         ref={timeTableRef}
         className="overflow-x-auto border border-collapse rounded-md  "
       >
-        <PrintHeader apiKey={apiKey} title="Time Table" />
+        <PrintHeader
+          apiKey={apiKey}
+          title={teacherId ? "MY TIME TABLE" : "TIME TABLE"}
+        />
         <Table className="w-full">
           <TableHeader>
             <TableRow>
