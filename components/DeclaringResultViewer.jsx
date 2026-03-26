@@ -41,7 +41,7 @@ const getRankTheme = (rank, isWhiteTheme) => {
         bg: "from-yellow-400 to-yellow-600",
         border: "border-yellow-400",
         shadow: "shadow-[0_0_50px_rgba(250,204,21,0.3)]",
-        label: "1st Place"
+        label: "1st Prize"
       };
     case 2:
       return {
@@ -49,7 +49,7 @@ const getRankTheme = (rank, isWhiteTheme) => {
         bg: "from-slate-300 to-slate-500",
         border: "border-slate-300",
         shadow: "shadow-[0_0_50px_rgba(203,213,225,0.3)]",
-        label: "2nd Place"
+        label: "2nd Prize"
       };
     case 3:
       return {
@@ -57,7 +57,7 @@ const getRankTheme = (rank, isWhiteTheme) => {
         bg: "from-amber-600 to-amber-800",
         border: "border-amber-600",
         shadow: "shadow-[0_0_50px_rgba(217,119,6,0.3)]",
-        label: "3rd Place"
+        label: "3rd Prize"
       };
     default:
       return {
@@ -360,10 +360,19 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
                                     </div>
                                     <div className="text-right flex-shrink-0">
                                         <div className="flex flex-col items-end">
-                                            <span className="text-[10px] font-black text-zinc-500 tracking-widest uppercase mb-0.5">PTS</span>
-                                            <span className="text-3xl md:text-5xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600">
-                                                {p.points}
-                                            </span>
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <span className="text-[10px] font-black text-zinc-500 tracking-widest uppercase">Grade</span>
+                                                <span className="text-[10px] font-black text-zinc-500 tracking-widest uppercase">/</span>
+                                                <span className="text-[10px] font-black text-zinc-500 tracking-widest uppercase">PTS</span>
+                                            </div>
+                                            <div className="flex items-baseline gap-2">
+                                                <span className={`text-2xl md:text-4xl font-black italic ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                                                    {p.grade}
+                                                </span>
+                                                <span className="text-3xl md:text-5xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600">
+                                                    {p.points}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -445,7 +454,9 @@ function PodiumCard({ rank, data, isWhiteTheme, isLarge = false }) {
 
             <div className={`w-full rounded-t-3xl border-t-8 border-x bg-gradient-to-b shadow-2xl relative flex flex-col items-center justify-start pt-6 ${theme.bg} ${theme.border} ${isLarge ? 'h-72 md:h-[28rem]' : rank === 2 ? 'h-52 md:h-[22rem]' : 'h-40 md:h-[18rem]'}`}>
                 <span className="text-5xl md:text-9xl font-black text-black/20">{rank}</span>
-                <span className="absolute bottom-4 font-black text-black/40 text-sm md:text-3xl tracking-widest">{data.points} PTS</span>
+                <span className="absolute bottom-4 font-black text-black/40 text-sm md:text-3xl tracking-widest uppercase">
+                    {data.grade} <span className="mx-1 opacity-50">/</span> {data.points} PTS
+                </span>
             </div>
         </div>
     );
@@ -518,8 +529,15 @@ const SequentialWinnerCard = ({ p, rank, isWhiteTheme }) => {
                 <div className="animate-in fade-in zoom-in slide-in-from-top-32 duration-1000 pt-4">
                     <div className={`flex items-center gap-10 text-7xl md:text-[12rem] font-black italic tracking-tighter ${theme.text}`}>
                         <Sparkles className="w-20 h-20 md:w-32 md:h-32 animate-spin text-yellow-400" />
-                        {p.points}
-                        <span className="text-4xl md:text-5xl not-italic font-bold text-zinc-500 ml-8 border-b-8 border-zinc-800 pb-4">PTS</span>
+                        <div className="flex flex-col items-center">
+                            <span className="text-3xl md:text-4xl not-italic font-bold text-zinc-500 uppercase tracking-[0.2em] mb-2">Grade</span>
+                            <span className="leading-none">{p.grade}</span>
+                        </div>
+                        <div className="h-32 md:h-48 w-1.5 md:w-2 bg-zinc-800/50 rounded-full mx-2 md:mx-4" />
+                        <div className="flex flex-col items-center">
+                            <span className="text-3xl md:text-4xl not-italic font-bold text-zinc-500 uppercase tracking-[0.2em] mb-2">Points</span>
+                            <span className="leading-none">{p.points}</span>
+                        </div>
                     </div>
                 </div>
             )}
