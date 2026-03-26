@@ -19,10 +19,24 @@ export function Topbar({ user }) {
   const { toggleSidebar } = useSidebar();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [institution, setInstitution] = useState(null);
 
   // Handle client-side mounting to avoid hydration mismatch
   useEffect(() => {
     setMounted(true);
+
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch("/api/settings");
+        const data = await response.json();
+        if (data.settings?.institution) {
+          setInstitution(data.settings.institution);
+        }
+      } catch (error) {
+        console.error("Error fetching institution settings:", error);
+      }
+    };
+    fetchSettings();
   }, []);
 
   const handleLogout = async () => {
@@ -80,16 +94,36 @@ export function Topbar({ user }) {
               <User className="w-5 h-5" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-72 p-0 rounded-xl mr-4 mt-4">
-            <Card>
-              <CardHeader className="flex items-center space-x-4">
-                <Avatar>
+          <PopoverContent className="w-72 p-0 rounded-xl mr-4 mt-4 overflow-hidden">
+            <Card className="border-none shadow-none">
+              <CardHeader className="flex flex-col items-center space-y-3 pb-6 border-b bg-muted/30">
+                {institution?.logo?.url && (
+                  <img
+                    src={institution.logo.url}
+                    alt="Institution Logo"
+                    className="h-12 w-auto object-contain"
+                  />
+                )}
+                <div className="text-center">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    {institution?.name || "Institution"}
+                  </p>
+                </div>
+              </CardHeader>
+              <CardHeader className="flex items-center space-x-4 pt-6">
+                <Avatar className="h-12 w-12 border-2 border-primary/10">
                   <AvatarImage src={user.profilePic?.url} alt={user.name} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  <AvatarFallback className="bg-primary/5 text-primary font-bold">
+                    {user.name.charAt(0)}
+                  </AvatarFallback>
                 </Avatar>
-                <div>
-                  <CardTitle className="text-center">{user.name}</CardTitle>
-                  <CardDescription>{user.email}</CardDescription>
+                <div className="flex flex-col overflow-hidden">
+                  <CardTitle className="text-base truncate">
+                    {user.name}
+                  </CardTitle>
+                  <CardDescription className="text-xs truncate">
+                    {user.email}
+                  </CardDescription>
                 </div>
               </CardHeader>
               <CardFooter>

@@ -1,4 +1,6 @@
 import Home from "@/components/Home";
+import connectToDB from "@/lib/db";
+import Settings from "@/models/Settings";
 
 // Generate static metadata for the home page
 export const metadata = {
@@ -61,18 +63,21 @@ export const metadata = {
   },
 };
 
-// Force static rendering for optimal SEO
-export const dynamic = "force-static";
-export const revalidate = false;
+// Use dynamic to ensure settings are fetched at request time
+export const dynamic = "force-dynamic";
 
-export default function HomePage() {
+export default async function HomePage() {
+  await connectToDB();
+  const settingsDoc = await Settings.findOne().lean();
+  const settings = JSON.parse(JSON.stringify(settingsDoc));
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "EducationalOrganization",
         "@id": "https://www.scofist.com/#organization",
-        name: "Sadiya Dawa College",
+        name: settings?.institution?.name || "Sadiya Dawa College",
         alternateName: [
           "Sa-adiya Da-awa College",
           "SCOFIST",
@@ -81,7 +86,7 @@ export default function HomePage() {
         url: "https://www.scofist.com",
         logo: {
           "@type": "ImageObject",
-          url: "https://www.scofist.com/logo.svg",
+          url: settings?.institution?.logo?.url || "https://www.scofist.com/logo.svg",
           width: 200,
           height: 200,
         },
@@ -96,9 +101,9 @@ export default function HomePage() {
         },
         contactPoint: {
           "@type": "ContactPoint",
-          telephone: "+91-8943264498",
+          telephone: settings?.institution?.primaryPhone || "+91-8943264498",
           contactType: "Admissions",
-          email: "ksdjabbu@gmail.com",
+          email: settings?.institution?.email || "ksdjabbu@gmail.com",
           availableLanguage: ["English", "Malayalam", "Arabic"],
         },
         sameAs: ["https://instagram.com/jawad_thuruthi"],
@@ -107,7 +112,7 @@ export default function HomePage() {
         "@type": "WebSite",
         "@id": "https://www.scofist.com/#website",
         url: "https://www.scofist.com",
-        name: "Sadiya Dawa College",
+        name: settings?.institution?.name || "Sadiya Dawa College",
         description:
           "Official website of Sadiya Dawa College - Islamic College of Integrated Studies",
         publisher: {
@@ -151,7 +156,7 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Home />
+      <Home settings={settings} />
     </>
   );
 }

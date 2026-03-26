@@ -85,11 +85,55 @@ export default function OTPVerification() {
     }
   };
 
+  const [settings, setSettings] = useState(null);
+  const [backgroundImage, setBackgroundImage] = useState("");
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await axios.get("/api/settings");
+        const data = response.data.settings;
+        setSettings(data);
+        const photoUrl = data?.institution?.institutionPhoto?.url;
+        if (photoUrl) {
+          setBackgroundImage(photoUrl);
+        }
+      } catch (error) {
+        console.error("Error fetching settings:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-center text-xl">Enter OTP</CardTitle>
+    <div
+      className="relative flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-in-out"
+      style={
+        backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {}
+      }
+    >
+      <div
+        className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-1000 ${
+          backgroundImage ? "opacity-100" : "opacity-0"
+        }`}
+      />
+      <Card className="z-10 w-full max-w-md shadow-2xl bg-white/90 backdrop-blur-xl border-white/20 animate-in fade-in zoom-in duration-500">
+        <CardHeader className="text-center">
+          {settings?.institution?.logo?.url && (
+            <div className="flex justify-center mb-4">
+              <img
+                src={settings.institution.logo.url}
+                alt={settings.institution.name}
+                className="h-16 w-auto object-contain"
+              />
+            </div>
+          )}
+          <CardTitle className="text-center text-2xl font-black">
+            Verify Access
+          </CardTitle>
+          <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
+            {settings?.institution?.name || "Institution"}
+          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleVerifyOTP} className="space-y-4">

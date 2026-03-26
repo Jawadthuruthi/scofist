@@ -676,9 +676,19 @@ export function AppSidebar({ roles, activeRole, user }) {
   const menuItems = useMemo(() => {
     // Define standard platform roles to identify custom ones
     const STANDARD_ROLES = [
-      "College Admin", "Org Admin", "Teacher", "Student",
-      "Program Committee", "Program Leader", "Finance",
-      "Literary Leader", "Stationary", "IT Lab", "Spark Admin", "Librarian", "Gate Keeper"
+      "College Admin",
+      "Org Admin",
+      "Teacher",
+      "Student",
+      "Program Committee",
+      "Program Leader",
+      "Finance",
+      "Literary Leader",
+      "Stationary",
+      "IT Lab",
+      "Spark Admin",
+      "Librarian",
+      "Gate Keeper",
     ];
 
     return items
@@ -687,7 +697,11 @@ export function AppSidebar({ roles, activeRole, user }) {
         // EXCEPT Gate Keeper who should only see Gate Pass
         if (item.title === "Dashboard") {
           if (role === "Gate Keeper") return false;
-          if (item.allowedRoles?.includes(role) || !STANDARD_ROLES.includes(role)) return true;
+          if (
+            item.allowedRoles?.includes(role) ||
+            !STANDARD_ROLES.includes(role)
+          )
+            return true;
           return false;
         }
 
@@ -717,8 +731,8 @@ export function AppSidebar({ roles, activeRole, user }) {
         ...item,
         subItems: item.subItems
           ? item.subItems.filter((subItem) =>
-            subItem.allowedRoles?.includes(role)
-          )
+              subItem.allowedRoles?.includes(role)
+            )
           : undefined,
       }))
       .filter((item) => {
@@ -737,7 +751,7 @@ export function AppSidebar({ roles, activeRole, user }) {
     <Sidebar ref={sidebarRef} className="no-print">
       <SidebarContent>
         <div className="flex justify-between items-center h-14 px-6 border-b">
-          <h2 className="text-lg  font-semibold">SCOFIST</h2>
+          <h2 className="text-lg font-semibold">SCOFIST</h2>
           <Button
             variant="ghost"
             size="icon"

@@ -45,6 +45,7 @@ export async function POST(req, res) {
         name: data.name ?? existingSettings?.institution?.name,
         tagline: data.tagline ?? existingSettings?.institution?.tagline,
         logo: data.logo ?? existingSettings?.institution?.logo,
+        institutionPhoto: data.institutionPhoto ?? existingSettings?.institution?.institutionPhoto,
         address: data.address ?? existingSettings?.institution?.address,
         contact: {
           primaryPhone:
@@ -262,12 +263,15 @@ export async function PUT(req, res) {
       data.primaryPhone ||
       data.secondaryPhone ||
       data.email ||
-      data.website
+      data.website ||
+      data.institutionPhoto
     ) {
       updateData.institution = {
         name: data.name ?? existingSettings?.institution?.name,
         tagline: data.tagline ?? existingSettings?.institution?.tagline,
         logo: data.logo ?? existingSettings?.institution?.logo,
+        institutionPhoto:
+          data.institutionPhoto ?? existingSettings?.institution?.institutionPhoto,
         address: data.address ?? existingSettings?.institution?.address,
         contact: {
           primaryPhone:

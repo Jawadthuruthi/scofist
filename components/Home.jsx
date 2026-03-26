@@ -4,37 +4,53 @@ import { Button } from "@/components/ui/button";
 import AuthButtons from "@/components/AuthButtons";
 
 // This is a SERVER COMPONENT by default - perfect for SEO
-export default function Home() {
+export default function Home({ settings }) {
+  const institutionLogo = settings?.institution?.logo?.url;
+  const institutionName = settings?.institution?.name;
+  const backgroundImage = settings?.institution?.institutionPhoto?.url;
+
   return (
-    <main className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800">
-      {/* Header - Server Rendered */}
-      <header className="w-full py-4 px-6 flex justify-center items-center shadow">
-        <Image
-          src="/logo.svg"
-          alt="Sadiya Dawa College Logo - Islamic College of Integrated Studies"
-          width={200}
-          height={200}
-          className="mr-4"
-          priority
-        />
-      </header>
+    <main
+      className="relative flex flex-col min-h-screen text-gray-800 bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-in-out"
+      style={
+        backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {}
+      }
+    >
+      {backgroundImage && (
+        <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px]" />
+      )}
+      <div className="relative z-10 flex flex-col min-h-screen">
+        {/* Header - Server Rendered */}
+        <header className="w-full py-4 px-6 flex justify-center items-center shadow bg-white/80 backdrop-blur-md">
+          <img
+            src={institutionLogo || "/logo.svg"}
+            alt={`${institutionName} Logo`}
+            width={120}
+            height={120}
+            className="mr-4 object-contain h-16 w-auto drop-shadow-sm"
+          />
+        </header>
 
-      {/* Hero Section */}
-      <section className="flex-1 flex flex-col items-center justify-center px-4 py-16 md:py-24">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight text-gray-900">
-            Sa-adiya College of{" "}
-            <span className="text-emerald-700">Integrated Studies</span>
-          </h1>
-          <p className="text-xl max-w-2xl mx-auto mb-10 leading-relaxed text-gray-600">
-            A Legacy of Knowledge and Excellence: Blending Islamic values with
-            modern education for tomorrow's leaders.
-          </p>
+        {/* Hero Section */}
+        <section className="flex-1 flex flex-col items-center justify-center px-4 py-16 md:py-24">
+          <div className="max-w-4xl mx-auto text-center p-8 bg-white/40 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl">
+            <h1 className="text-5xl md:text-6xl font-black mb-6 leading-tight text-gray-900 drop-shadow-sm">
+              {institutionName || (
+                <>
+                  Sa-adiya College of{" "}
+                  <span className="text-emerald-700">Integrated Studies</span>
+                </>
+              )}
+            </h1>
+            <p className="text-xl max-w-2xl mx-auto mb-10 leading-relaxed text-gray-700 font-medium">
+              A Legacy of Knowledge and Excellence: Blending Islamic values with
+              modern education for tomorrow's leaders.
+            </p>
 
-          {/* Client component only for auth-aware buttons */}
-          <AuthButtons />
-        </div>
-      </section>
+            {/* Client component only for auth-aware buttons */}
+            <AuthButtons />
+          </div>
+        </section>
 
       {/* Features Section */}
       <section
@@ -173,6 +189,7 @@ export default function Home() {
           © 2025 Sa-adiya College of Integrated Studies. All rights reserved.
         </div>
       </footer>
+      </div>
     </main>
   );
 }

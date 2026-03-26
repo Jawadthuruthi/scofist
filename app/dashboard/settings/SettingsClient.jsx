@@ -31,7 +31,17 @@ const generalFormField = [
 const institutionFormField = [
   {
     name: "logo",
-    label: "Organisation Logo",
+    label: "Institution Logo",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/jpeg", "image/png", "image/svg+xml"],
+    defaultValue: {},
+  },
+  {
+    name: "institutionPhoto",
+    label: "Institution Photo",
     inputType: "image",
     type: "object",
     className: "col-span-2",
@@ -41,8 +51,8 @@ const institutionFormField = [
   },
   {
     name: "name",
-    label: "Organisation Name",
-    placeholder: "Enter organisation name",
+    label: "Institution Name",
+    placeholder: "Enter institution name",
     required: true,
   },
   {
@@ -53,7 +63,7 @@ const institutionFormField = [
   {
     name: "tagline",
     label: "Tagline",
-    placeholder: "Enter organisation tagline",
+    placeholder: "Enter institution tagline",
     className: "col-span-2 md:col-span-1",
   },
   {
@@ -357,8 +367,8 @@ export default function SettingsClient({
           <FormComponent
             data={spark}
             formFields={sparkFormField}
-            title="Organisation Profile"
-            description="Manage your organisation details"
+            title="Institution Profile"
+            description="Manage your institution details"
             loading={false}
             apiKey={apiKey}
             resource="settings"
@@ -379,8 +389,8 @@ export default function SettingsClient({
             apiKey={apiKey}
             data={org}
             resource="settings"
-            title="Organisation Profile"
-            description="Configure Your Organisation Details"
+            title="Institution Profile"
+            description="Configure Your Institution Details"
           />
           <div className="mt-8">
             <CommitteePostersSettings
