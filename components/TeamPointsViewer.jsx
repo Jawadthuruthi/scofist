@@ -31,11 +31,6 @@ const AnimatedCounter = ({ value, isActive, duration = 3000 }) => {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    if (!isActive) {
-      setCount(0);
-      return;
-    }
-
     let start = null;
     let animationFrameId;
 
@@ -45,12 +40,17 @@ const AnimatedCounter = ({ value, isActive, duration = 3000 }) => {
       const progressRatio = Math.min(progress / duration, 1);
       
       const easeOutCubic = 1 - Math.pow(1 - progressRatio, 3);
-      setCount(Math.floor(easeOutCubic * value));
+      
+      if (isActive) {
+        setCount(Math.floor(easeOutCubic * value));
+      } else {
+        setCount(Math.floor((1 - easeOutCubic) * value));
+      }
 
       if (progress < duration) {
         animationFrameId = requestAnimationFrame(animate);
       } else {
-        setCount(value);
+        setCount(isActive ? value : 0);
       }
     };
 
@@ -99,8 +99,11 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
 
   useEffect(() => {
     if (!showAnnouncement && teams.length > 0) {
-        const allIds = new Set(teams.map(t => t._id));
-        setRevealedTeams(allIds);
+        // Only automatically reveal if no limit applied (overall standings)
+        if (announcementValue === "") {
+          const allIds = new Set(teams.map(t => t._id));
+          setRevealedTeams(allIds);
+        }
         
         const duration = announcementValue !== "" ? 15000 : 3000;
         setShowTrophies(false);
@@ -110,6 +113,27 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
         return () => clearTimeout(timer);
     }
   }, [showAnnouncement, teams, announcementValue]);
+
+  // Global Key Listener for 1, 2, 3
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      // Don't trigger if user is typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      
+      if (isOpen && teams.length > 0) {
+        if (e.key === '1' && teams[0]) {
+          toggleReveal(teams[0]._id);
+        } else if (e.key === '2' && teams[1]) {
+          toggleReveal(teams[1]._id);
+        } else if (e.key === '3' && teams[2]) {
+          toggleReveal(teams[2]._id);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [isOpen, teams]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -290,12 +314,6 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
                                 transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
                               }}
                             >
-                              {isLeader && showTrophies && (
-                                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center animate-in zoom-in-50 duration-1000">
-                                   <Trophy className={`w-10 h-10 md:w-14 md:h-14 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,204,21,0.8)] animate-bounce`} style={{animationDuration: '3s'}} />
-                                   <div className="w-16 h-1 bg-yellow-400/50 rounded-full blur-md mt-1 animate-pulse" />
-                                </div>
-                              )}
 
                               <div className="absolute inset-0 bg-white/5 box-border border-x border-white/10 opacity-50 group-hover:opacity-100 transition-opacity" />
                               <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/30 to-transparent mix-blend-overlay" />
