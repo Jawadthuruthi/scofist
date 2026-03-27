@@ -284,7 +284,7 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
               : 
                  <div className="flex-1 w-full max-w-[120rem] min-w-max mx-auto flex items-end justify-center gap-8 md:gap-12 lg:gap-20 pt-16 shrink-0">
                     {teams.map((team, idx) => {
-                      const heightPercentage = Math.max((team.points / maxPoints) * 70, 1.5);
+                      const heightPercentage = Math.max((team.points / maxPoints) * 90, 1.5);
                       const themeClasses = getTeamBgColor(team.name);
                       const isLeader = team.points > 0 && team.points === highestPoints;
                       const revealDuration = announcementValue !== "" ? 15000 : 3000;
