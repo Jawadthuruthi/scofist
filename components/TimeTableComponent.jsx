@@ -329,7 +329,7 @@ const TimeTableComponent = ({
                                     <TooltipTrigger asChild>
                                       <Badge
                                         variant="outline"
-                                        className="mt-1 text-xxs print:hidden"
+                                        className="mt-1 text-xxs no-print"
                                       >
                                         <UserX className="h-3 w-3 mr-1" />
                                         {absenteesList.length}
@@ -436,7 +436,7 @@ const TimeTableComponent = ({
                                     <TooltipTrigger asChild>
                                       <Badge
                                         variant="outline"
-                                        className="mt-1 text-xxs print:hidden"
+                                        className="mt-1 text-xxs no-print"
                                       >
                                         <UserX className="h-3 w-3 mr-1" />
                                         {absenteesList.length}
@@ -481,7 +481,7 @@ const TimeTableComponent = ({
       />
 
       {!hidePrintButton && (
-        <div className="flex justify-end mt-4">
+        <div className="flex justify-end mt-4 no-print">
           <Button variant="default" onClick={handlePrint}>
             Print
           </Button>

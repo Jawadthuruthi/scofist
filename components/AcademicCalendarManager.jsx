@@ -4,8 +4,12 @@ import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import {
     CalendarDays, Plus, Pencil, Trash2, Printer,
-    ChevronLeft, ChevronRight, X, Check, Loader, CalendarIcon,
+    ChevronLeft, ChevronRight, X, Check, Loader, CalendarIcon, AlertCircle,
 } from "lucide-react";
+import { useReactToPrint } from "react-to-print";
+import PrintHeader from "./PrintHeader";
+import { useRef } from "react";
+import React from "react";
 
 import useCrud from "@/hooks/use-crud";
 import { cn } from "@/lib/utils";
@@ -103,6 +107,9 @@ export default function AcademicCalendarManager({ apiKey }) {
     const [selectedDayEvs, setSelectedDayEvs] = useState([]);
     const [form, setForm] = useState(EMPTY_FORM);
     const [submitting, setSubmitting] = useState(false);
+    const [deletingId, setDeletingId] = useState(null);
+    const [isDeletingRecord, setIsDeletingRecord] = useState(false);
+    const calendarRef = useRef();
 
     const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } =
         useCrud("academic-calendar", apiKey);
@@ -157,132 +164,25 @@ export default function AcademicCalendarManager({ apiKey }) {
     };
 
     const handleDelete = async (id) => {
+        setIsDeletingRecord(true);
         try {
             await deleteEvent.mutateAsync({ data: [id] });
             toast.success("Special day deleted.");
             calendarQuery.refetch();
             setSelectedDayEvs((p) => p.filter((e) => e._id !== id));
+            setDeletingId(null);
         } catch (err) { toast.error(err.message || "Delete failed."); }
+        finally { setIsDeletingRecord(false); }
     };
 
-    const handlePrint = () => {
-        const printWindow = window.open("", "_blank");
-        const content = `
-      <html>
-        <head>
-          <title>Special Days ${year}</title>
-          <style>
-            @media print {
-              @page { margin: 15mm; }
-              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            }
-            body { 
-              font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-              color: #1e293b;
-              margin: 0;
-              padding: 20px;
-            }
-            .header-container {
-              text-align: center;
-              margin-bottom: 30px;
-              padding-bottom: 15px;
-              border-bottom: 2px solid #e2e8f0;
-            }
-            h1 { 
-              font-size: 24px; 
-              margin: 0 0 8px 0;
-              color: #0f172a;
-            }
-            .subtitle {
-              color: #64748b;
-              font-size: 14px;
-              margin: 0;
-            }
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-            }
-            th, td { 
-              padding: 12px 16px; 
-              text-align: left; 
-              border-bottom: 1px solid #e2e8f0;
-            }
-            th { 
-              background-color: #f8fafc; 
-              font-size: 13px; 
-              font-weight: 600;
-              color: #475569;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-            }
-            .month-row td {
-              background-color: #f1f5f9;
-              font-weight: 600;
-              color: #334155;
-              text-align: center;
-              padding: 10px;
-              font-size: 14px;
-            }
-            .event-title {
-              font-weight: 500;
-              color: #0f172a;
-            }
-            .time-cell {
-              color: #64748b;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header-container">
-            <h1>Academic Calendar Special Days</h1>
-            <p class="subtitle">Year ${year}</p>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 25%">Date</th>
-                <th style="width: 20%">Time</th>
-                <th>Title</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${Object.entries(
-            sortedEvents.reduce((acc, ev) => {
-                const m = new Date(ev.date).getMonth();
-                if (!acc[m]) acc[m] = [];
-                acc[m].push(ev);
-                return acc;
-            }, {})
-        ).flatMap(([monthIndex, monthEvents]) => [
-            `<tr class="month-row">
-                   <td colspan="3">${MONTHS[monthIndex]}</td>
-                 </tr>`,
-            ...monthEvents.map(ev => `
-                  <tr>
-                    <td>${fmtDisplay(ev.date)}</td>
-                    <td class="time-cell">${ev.time || "--"}</td>
-                    <td class="event-title">${ev.title}</td>
-                  </tr>
-                `)
-        ]).join("")}
-            </tbody>
-          </table>
-          <div class="footer">Generated on ${new Date().toLocaleString()}</div>
-          <script>
-            window.onload = () => {
-              window.print();
-              setTimeout(() => window.close(), 500);
-            };
-          </script>
-        </body>
-      </html>
-    `;
-        printWindow.document.write(content);
-        printWindow.document.close();
-    };
+    const handlePrint = useReactToPrint({
+        contentRef: calendarRef,
+        documentTitle: `Academic Calendar - ${year}`,
+    });
 
     return (
-        <div className="space-y-6">
+        <>
+            <div className="space-y-6 no-print">
             {/* Toolbar */}
             <div className="flex flex-row items-center justify-between gap-2 overflow-x-auto pb-2 sm:pb-0 sm:overflow-visible">
                 <div className="flex items-center gap-1 sm:gap-2 shrink-0">
@@ -370,9 +270,9 @@ export default function AcademicCalendarManager({ apiKey }) {
                                                                     onClick={() => openEditDialog(ev)}>
                                                                     <Pencil className="h-3.5 w-3.5" />
                                                                 </Button>
-                                                                <Button variant="ghost" size="icon"
+                                                                 <Button variant="ghost" size="icon"
                                                                     className="h-7 w-7 text-destructive hover:text-destructive"
-                                                                    onClick={() => handleDelete(ev._id)}>
+                                                                    onClick={() => setDeletingId(ev._id)}>
                                                                     <Trash2 className="h-3.5 w-3.5" />
                                                                 </Button>
                                                             </div>
@@ -399,7 +299,7 @@ export default function AcademicCalendarManager({ apiKey }) {
 
             {/* Day Detail Dialog */}
             <Dialog open={dayDialogOpen} onOpenChange={setDayDialogOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md no-print">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <CalendarDays className="h-5 w-5" />
@@ -426,7 +326,7 @@ export default function AcademicCalendarManager({ apiKey }) {
                                         </Button>
                                         <Button variant="ghost" size="icon"
                                             className="h-7 w-7 text-destructive hover:text-destructive"
-                                            onClick={() => handleDelete(ev._id)}>
+                                            onClick={() => setDeletingId(ev._id)}>
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </Button>
                                     </div>
@@ -442,7 +342,7 @@ export default function AcademicCalendarManager({ apiKey }) {
 
             {/* Add / Edit Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md no-print">
                     <DialogHeader>
                         <DialogTitle>{editingEvent ? "Edit Special Day" : "Add Special Day"}</DialogTitle>
                         <DialogDescription>
@@ -496,5 +396,92 @@ export default function AcademicCalendarManager({ apiKey }) {
                 </DialogContent>
             </Dialog>
         </div>
+
+        {/* Printable View - Hidden on Screen */}
+        <div ref={calendarRef} className="absolute -top-[9999px] left-0 print:static print:block p-4 sm:p-8 bg-white print:w-full">
+                <PrintHeader
+                        apiKey={apiKey}
+                        title={`ACADEMIC CALENDAR - ${year}`}
+                        subTitle="Special Days and Events"
+                        displayOnScreen={true}
+                    />
+
+                    <div className="mt-6">
+                        <table className="w-full border-collapse border border-slate-300 text-sm">
+                            <thead>
+                                <tr className="bg-slate-50">
+                                    <th className="w-1/4 font-bold border border-slate-300 p-2 text-left">Date</th>
+                                    <th className="w-1/5 font-bold border border-slate-300 p-2 text-left">Time</th>
+                                    <th className="font-bold border border-slate-300 p-2 text-left">Event Title</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Object.entries(
+                                    sortedEvents.reduce((acc, ev) => {
+                                        const m = new Date(ev.date).getMonth();
+                                        if (!acc[m]) acc[m] = [];
+                                        acc[m].push(ev);
+                                        return acc;
+                                    }, {})
+                                ).map(([monthIndex, monthEvents]) => (
+                                    <React.Fragment key={monthIndex}>
+                                        <tr className="bg-slate-100">
+                                            <td colSpan={3} className="text-center font-bold py-2 border border-slate-300">
+                                                {MONTHS[monthIndex]}
+                                            </td>
+                                        </tr>
+                                        {monthEvents.map((ev) => (
+                                            <tr key={ev._id} className="border-b">
+                                                <td className="border border-slate-300 p-2">{fmtDisplay(ev.date)}</td>
+                                                <td className="border border-slate-300 p-2 text-slate-500 italic">
+                                                    {ev.time || "--"}
+                                                </td>
+                                                <td className="border border-slate-300 p-2 font-medium">{ev.title}</td>
+                                            </tr>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            {/* Delete Confirmation Modal */}
+            {deletingId && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <Card className="w-full max-w-sm shadow-2xl border-destructive/20 overflow-hidden animate-in zoom-in-95 duration-200">
+                        <CardHeader className="bg-destructive/5 pb-2">
+                            <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                                <AlertCircle className="w-5 h-5" />
+                                Confirm Deletion
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4 space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                Are you sure you want to delete this special day? This action cannot be undone.
+                            </p>
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={() => setDeletingId(null)}
+                                    disabled={isDeletingRecord}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    className="flex-1"
+                                    onClick={() => handleDelete(deletingId)}
+                                    disabled={isDeletingRecord}
+                                >
+                                    {isDeletingRecord ? 'Deleting...' : 'Delete'}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+        </>
     );
 }

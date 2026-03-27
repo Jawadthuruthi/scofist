@@ -21,7 +21,7 @@ const Header = ({ title, subTitle, alertTitle, alertDescription, rightAction }) 
 
   return (
     <>
-      <div className="p-2 mb-1 flex items-center justify-between">
+      <div className="p-2 mb-1 flex items-center justify-between no-print">
         <div>
           <h1 className="font-bold text-xl md:text-2xl text-foreground">
             {title}

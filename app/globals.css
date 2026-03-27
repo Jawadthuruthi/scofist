@@ -4,7 +4,7 @@
 
 @media print {
   .no-print {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -175,9 +175,7 @@
   }
 
   [data-radix-portal] {
-    all: unset !important;
-    display: block !important;
-    position: static !important;
+    display: none !important;
   }
 
   ::-webkit-scrollbar,
@@ -224,6 +222,18 @@
   .result-poster-overlay {
     -webkit-print-color-adjust: exact;
     color-adjust: exact;
+  }
+
+  main {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .container {
+    padding: 0 !important;
+    max-width: 100% !important;
   }
 }
 

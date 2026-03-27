@@ -174,7 +174,7 @@ const TimetableSlot = ({
                 <TooltipTrigger asChild>
                   <Badge
                     variant="outline"
-                    className="mt-1 text-xxs print:hidden"
+                    className="mt-1 text-xxs no-print"
                     onClick={(e) => {
                       e.stopPropagation();
                       showAbsenteesDialog(
@@ -199,7 +199,7 @@ const TimetableSlot = ({
       ) : (
         <div className="flex items-center justify-center p-2 ">
           {category === "class" && (
-            <Edit className="text-muted-foreground h-4 w-4 print:hidden" />
+            <Edit className="text-muted-foreground h-4 w-4 no-print" />
           )}
         </div>
       )}
@@ -883,7 +883,7 @@ const TimeTablesManagements = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
+      <div className="flex flex-col md:flex-row gap-4 mb-6 no-print">
         <div className="w-full md:w-1/4">
           <Select value={category} onValueChange={setCategory}>
             <SelectTrigger className="w-full">
@@ -965,7 +965,7 @@ const TimeTablesManagements = ({
         )}
       </div>
       {category === "class" && hasPendingChanges && (
-        <div className="flex justify-end gap-2 mb-4">
+        <div className="flex justify-end gap-2 mb-4 no-print">
           <Button
             variant="outline"
             onClick={handleDiscardChanges}
@@ -1159,7 +1159,7 @@ const TimeTablesManagements = ({
         </div>
       )}
 
-      <div className="w-full flex justify-end gap-2 my-4">
+      <div className="w-full flex justify-end gap-2 my-4 no-print">
         {category === "class" && selectedClass && (
           <ConfirmationPopup
             onClick={handleResetTimetable}
