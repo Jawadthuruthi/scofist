@@ -6,8 +6,7 @@ import { X, Trophy, BarChart3, Info, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DashboardTopBar from "./DashboardTopBar";
 
-const getTeamBgColor = (teamName) => {
-  if (!teamName) return "bg-zinc-600 border-zinc-500 text-white";
+const getTeamBgColor = (index) => {
   const colors = [
     "from-blue-600/90 to-blue-900/95 border-blue-400 text-blue-50 shadow-blue-500/30",
     "from-emerald-600/90 to-emerald-900/95 border-emerald-400 text-emerald-50 shadow-emerald-500/30",
@@ -20,11 +19,7 @@ const getTeamBgColor = (teamName) => {
     "from-indigo-600/90 to-indigo-900/95 border-indigo-400 text-indigo-50 shadow-indigo-500/30",
     "from-teal-600/90 to-teal-900/95 border-teal-400 text-teal-50 shadow-teal-500/30"
   ];
-  let hash = 0;
-  for (let i = 0; i < teamName.length; i++) {
-    hash = teamName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
+  return colors[index % colors.length];
 };
 
 const AnimatedCounter = ({ value, isActive, duration = 3000 }) => {
@@ -285,7 +280,7 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
                  <div className="flex-1 w-full max-w-[120rem] min-w-max mx-auto flex items-end justify-center gap-8 md:gap-12 lg:gap-20 pt-16 shrink-0">
                     {teams.map((team, idx) => {
                       const heightPercentage = Math.max((team.points / maxPoints) * 90, 1.5);
-                      const themeClasses = getTeamBgColor(team.name);
+                      const themeClasses = getTeamBgColor(idx);
                       const isLeader = team.points > 0 && team.points === highestPoints;
                       const revealDuration = announcementValue !== "" ? 15000 : 3000;
      

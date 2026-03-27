@@ -17,8 +17,7 @@ import {
 import DashboardTopBar from "./DashboardTopBar";
 
 // Hex hashing mimicking exactly the original Tailwind string arrays natively across dashboard components
-const getTeamHexColor = (teamName) => {
-  if (!teamName) return "#71717a"; // zinc-500
+const getTeamHexColor = (index) => {
   const colors = [
     "#2563eb", // blue-600
     "#059669", // emerald-600
@@ -31,11 +30,7 @@ const getTeamHexColor = (teamName) => {
     "#4f46e5", // indigo-600
     "#0d9488"  // teal-600
   ];
-  let hash = 0;
-  for (let i = 0; i < teamName.length; i++) {
-    hash = teamName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
+  return colors[index % colors.length];
 };
 
 export default function TeamPointsProgressionViewer({ isOpen, onClose, onNavigate, apiKey, isWhiteTheme, setIsWhiteTheme }) {
@@ -49,9 +44,12 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, onNavigat
 
   useEffect(() => {
     if (isOpen) {
-      fetchProgressionData();
+      // Don't auto-fetch, wait for user input
+      setLoading(false);
     } else {
       setLimitInput("");
+      setAppliedLimit(null);
+      setData([]);
     }
   }, [isOpen]);
 
@@ -228,7 +226,7 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, onNavigat
                       key={teamName}
                       type="linear"
                       dataKey={teamName}
-                      stroke={getTeamHexColor(teamName)}
+                      stroke={getTeamHexColor(index)}
                       strokeWidth={4}
                       activeDot={{ r: 5, strokeWidth: 2, fill: isWhiteTheme ? '#fff' : '#000' }}
                       dot={{ r: 2, fill: isWhiteTheme ? '#fff' : '#000', strokeWidth: 2 }}
@@ -239,9 +237,21 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, onNavigat
               </ResponsiveContainer>
             )}
 
-            {!loading && !error && data.length === 0 && (
+            {!loading && !error && appliedLimit === null && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center space-y-6">
+                <div className={`p-6 rounded-full border-2 border-dashed animate-pulse ${isWhiteTheme ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-800 bg-zinc-900/50'}`}>
+                  <BarChart3 className={`w-12 h-12 ${isWhiteTheme ? 'text-zinc-300' : 'text-zinc-700'}`} />
+                </div>
+                <div className="text-center space-y-2">
+                  <p className={`text-2xl font-black uppercase tracking-[0.2em] ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-500'}`}>Ready for Analysis</p>
+                  <p className={`text-sm font-bold uppercase tracking-widest ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'}`}>Enter "After Results" limit above to generate graph</p>
+                </div>
+              </div>
+            )}
+
+            {!loading && !error && appliedLimit !== null && data.length === 0 && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-white space-y-4">
-                <p className="text-2xl font-medium text-zinc-400 tracking-widest">Awaiting Initial Results Declaration</p>
+                <p className="text-2xl font-medium text-zinc-400 tracking-widest uppercase">No data found for this limit</p>
               </div>
             )}
           </div>
