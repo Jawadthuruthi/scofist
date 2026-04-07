@@ -8,11 +8,13 @@ import {
   Crown, 
   BarChart3, 
   MonitorPlay, 
-  Trophy 
+  Trophy,
+  Layout
 } from "lucide-react";
 
 export default function DashboardNavigation({ currentView, onNavigate, isWhiteTheme }) {
   const navItems = [
+    { id: "code-letters", label: "Code Letters", icon: Layout },
     { id: "results", label: "Results", icon: Award },
     { id: "winners", label: "Winners", icon: Trophy },
     { id: "programs", label: "Programs", icon: MonitorPlay },

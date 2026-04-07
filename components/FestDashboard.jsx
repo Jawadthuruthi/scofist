@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 
-import { Calendar, MonitorPlay, Trophy, BarChart3, Crown, Star, TrendingUp, Award } from "lucide-react";
+import { Calendar, MonitorPlay, Trophy, BarChart3, Crown, Star, TrendingUp, Award, Layout } from "lucide-react";
 
 import useCrud from "@/hooks/use-crud";
 import Header from "@/components/Header";
@@ -14,6 +14,7 @@ import ChampionsPostersViewer from "./ChampionsPostersViewer";
 import IndividualToppersViewer from "./IndividualToppersViewer";
 import TeamPointsProgressionViewer from "./TeamPointsProgressionViewer";
 import DeclaringResultViewer from "./DeclaringResultViewer";
+import CodeLettersViewer from "./CodeLettersViewer";
 
 // ===== MAIN DASHBOARD COMPONENT =====
 export default function FestDashboard({ apiKey, activeRole }) {
@@ -25,6 +26,7 @@ export default function FestDashboard({ apiKey, activeRole }) {
   const [showToppers, setShowToppers] = useState(false);
   const [showProgression, setShowProgression] = useState(false);
   const [showDeclaring, setShowDeclaring] = useState(false);
+  const [showCodeLetters, setShowCodeLetters] = useState(false);
   const [isWhiteTheme, setIsWhiteTheme] = useState(false);
 
   const navigateTo = (view) => {
@@ -35,7 +37,34 @@ export default function FestDashboard({ apiKey, activeRole }) {
     setShowToppers(view === 'toppers');
     setShowProgression(view === 'graph');
     setShowDeclaring(view === 'results');
+    setShowCodeLetters(view === 'code-letters');
   };
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger if user is typing in an input field
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable) {
+        return;
+      }
+
+      const key = e.key.toUpperCase();
+      switch (key) {
+        case 'L': navigateTo('code-letters'); break;
+        case 'R': navigateTo('results'); break;
+        case 'W': navigateTo('winners'); break;
+        case 'P': navigateTo('programs'); break;
+        case 'T': navigateTo('teams'); break;
+        case 'G': navigateTo('graph'); break;
+        case 'I': navigateTo('toppers'); break;
+        case 'C': navigateTo('champions'); break;
+        default: break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <div className="flex flex-col space-y-6">
@@ -46,6 +75,20 @@ export default function FestDashboard({ apiKey, activeRole }) {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Code Letters Action Card */}
+        <div 
+          onClick={() => setShowCodeLetters(true)}
+          className="bg-card hover:bg-zinc-100 dark:hover:bg-zinc-800 border-2 border-emerald-500/20 rounded-xl p-6 flex items-center gap-4 cursor-pointer transition-all hover:scale-105 shadow-lg group"
+        >
+          <div className="p-4 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-500 rounded-full group-hover:rotate-12 transition-transform">
+            <Layout className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="font-medium text-lg tracking-tight">Code Letters</h3>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold opacity-60">On the Dais Announcement</p>
+          </div>
+        </div>
+
         {/* Declaring Result Action Card */}
         <div 
           onClick={() => setShowDeclaring(true)}
@@ -60,7 +103,7 @@ export default function FestDashboard({ apiKey, activeRole }) {
           </div>
         </div>
 
-        {/* Winners Posters Action Card */}
+        {/* Winners Action Card */}
         <div 
           onClick={() => setShowWinners(true)}
           className="bg-card hover:bg-zinc-100 dark:hover:bg-zinc-800 border-2 border-yellow-500/20 rounded-xl p-6 flex items-center gap-4 cursor-pointer transition-all hover:scale-105 shadow-lg group"
@@ -69,7 +112,7 @@ export default function FestDashboard({ apiKey, activeRole }) {
             <Trophy className="w-8 h-8" />
           </div>
           <div>
-            <h3 className="font-medium text-lg tracking-tight">Winners Posters</h3>
+            <h3 className="font-medium text-lg tracking-tight">Winners</h3>
             <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold opacity-60">View full-screen winners slideshow</p>
           </div>
         </div>
@@ -83,12 +126,12 @@ export default function FestDashboard({ apiKey, activeRole }) {
             <MonitorPlay className="w-8 h-8" />
           </div>
           <div>
-            <h3 className="font-medium text-lg tracking-tight">Program Posters</h3>
+            <h3 className="font-medium text-lg tracking-tight">Posters</h3>
             <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold opacity-60">View full-screen participant photos</p>
           </div>
         </div>
 
-        {/* Team Points Poster Action Card */}
+        {/* Team Points Action Card */}
         <div 
           onClick={() => setShowTeamPoints(true)}
           className="bg-card hover:bg-zinc-100 dark:hover:bg-zinc-800 border-2 border-purple-500/20 rounded-xl p-6 flex items-center gap-4 cursor-pointer transition-all hover:scale-105 shadow-lg group"
@@ -97,12 +140,12 @@ export default function FestDashboard({ apiKey, activeRole }) {
             <BarChart3 className="w-8 h-8" />
           </div>
           <div>
-            <h3 className="font-medium text-lg tracking-tight">Team Points Poster</h3>
+            <h3 className="font-medium text-lg tracking-tight">Team Points</h3>
             <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold opacity-60">Animated live leaderboard</p>
           </div>
         </div>
 
-        {/* Point Progression Action Card */}
+        {/* Point Graph Action Card */}
         <div 
           onClick={() => setShowProgression(true)}
           className="bg-card hover:bg-zinc-100 dark:hover:bg-zinc-800 border-2 border-teal-500/20 rounded-xl p-6 flex items-center gap-4 cursor-pointer transition-all hover:scale-105 shadow-lg group"
@@ -111,7 +154,7 @@ export default function FestDashboard({ apiKey, activeRole }) {
             <TrendingUp className="w-8 h-8" />
           </div>
           <div>
-            <h3 className="font-medium text-lg tracking-tight">Points Progression</h3>
+            <h3 className="font-medium text-lg tracking-tight">Points Graph</h3>
             <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold opacity-60">Historical chronological line graph</p>
           </div>
         </div>
@@ -130,7 +173,7 @@ export default function FestDashboard({ apiKey, activeRole }) {
           </div>
         </div>
 
-        {/* Champions Posters Action Card */}
+        {/* Champions Action Card */}
         <div 
           onClick={() => setShowChampions(true)}
           className="bg-card hover:bg-zinc-100 dark:hover:bg-zinc-800 border-2 border-amber-500/20 rounded-xl p-6 flex items-center gap-4 cursor-pointer transition-all hover:scale-105 shadow-lg group"
@@ -139,7 +182,7 @@ export default function FestDashboard({ apiKey, activeRole }) {
             <Crown className="w-8 h-8" />
           </div>
           <div>
-            <h3 className="font-medium text-lg tracking-tight">Champions Posters</h3>
+            <h3 className="font-medium text-lg tracking-tight">Champions</h3>
             <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold opacity-60">Top 3 overall teams spotlight</p>
           </div>
         </div>
@@ -148,6 +191,15 @@ export default function FestDashboard({ apiKey, activeRole }) {
       <DeclaringResultViewer
         isOpen={showDeclaring}
         onClose={() => setShowDeclaring(false)}
+        onNavigate={navigateTo}
+        apiKey={apiKey}
+        isWhiteTheme={isWhiteTheme}
+        setIsWhiteTheme={setIsWhiteTheme}
+      />
+
+      <CodeLettersViewer
+        isOpen={showCodeLetters}
+        onClose={() => setShowCodeLetters(false)}
         onNavigate={navigateTo}
         apiKey={apiKey}
         isWhiteTheme={isWhiteTheme}
