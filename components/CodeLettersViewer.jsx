@@ -105,9 +105,13 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
     }
   };
 
-  const handleDisplay = () => {
+  const handleDisplay = (e) => {
     if (codeLetter.trim()) {
       setIsDaisVisible(true);
+      // Blur the input to hide the cursor
+      if (e && e.target) {
+        e.target.blur();
+      }
     }
   };
 
@@ -116,10 +120,31 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
       if (step === STEPS.SEARCH) {
         fetchProgram();
       } else if (step === STEPS.DISPLAY) {
-        handleDisplay();
+        handleDisplay(e);
       }
     }
   };
+
+  // Keyboard shortcut for 'B' to go back to entry
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      // Only handle if viewer is open and in display step
+      if (!isOpen || step !== STEPS.DISPLAY) return;
+
+      // Don't trigger if user is typing in an input field (only relevant for the SEARCH step really)
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+      if (e.key.toUpperCase() === 'B' && isDaisVisible) {
+        setIsDaisVisible(false);
+        setCodeLetter(""); // Clear the input field for new entry
+        // Focus the code input again after a short delay
+        setTimeout(() => codeInputRef.current?.focus(), 100);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [isOpen, step, isDaisVisible]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -207,55 +232,55 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
             )}
 
             {step === STEPS.DISPLAY && selectedProgram && (
-                <div className="w-full max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[80vh]">
+                <div className="w-full max-w-[90vw] mx-auto flex flex-col items-center justify-center min-h-[90vh]">
                     {!isDaisVisible ? (
                         /* INITIAL DISPLAY: BIG PROGRAM & DIVISION */
-                        <div className="space-y-6 md:space-y-8 animate-in fade-in zoom-in-95 duration-1000 text-center">
-                            <div className={`text-2xl md:text-4xl font-bold uppercase tracking-[0.5em] opacity-60 ${isWhiteTheme ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                        <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-1000 text-center">
+                            <div className={`text-3xl md:text-5xl font-bold uppercase tracking-[0.5em] opacity-60 ${isWhiteTheme ? 'text-zinc-600' : 'text-zinc-400'}`}>
                                 {selectedProgram.divisionName}
                             </div>
-                            <h1 className={`text-5xl md:text-9xl font-black uppercase tracking-tight drop-shadow-2xl leading-tight ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                            <h1 className={`text-6xl md:text-[12rem] font-black uppercase tracking-tighter drop-shadow-2xl leading-[0.9] ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
                                 {selectedProgram.name}
                             </h1>
-                            <div className="pt-12 animate-pulse">
-                                <p className={`text-xl font-bold uppercase tracking-[0.3em] opacity-30 ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                            <div className="pt-8 animate-pulse">
+                                <p className={`text-xl md:text-3xl font-bold uppercase tracking-[0.3em] opacity-30 ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'}`}>
                                     Enter Code & Press Enter
                                 </p>
                             </div>
                         </div>
                     ) : (
                         /* REVEAL DISPLAY: CINEMATIC STACK */
-                        <div className="w-full space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-10 duration-700">
+                        <div className="w-full space-y-2 md:space-y-4 animate-in fade-in slide-in-from-bottom-10 duration-700">
                             {/* Header: Division & Program Name */}
                             <div className="space-y-1 md:space-y-2 text-center">
-                                <div className={`text-2xl md:text-5xl font-extrabold uppercase tracking-[0.5em] opacity-80 ${isWhiteTheme ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                                <div className={`text-3xl md:text-6xl font-extrabold uppercase tracking-[0.5em] opacity-80 ${isWhiteTheme ? 'text-zinc-600' : 'text-zinc-400'}`}>
                                     {selectedProgram.divisionName}
                                 </div>
-                                <h1 className={`text-4xl md:text-7xl font-black uppercase tracking-tight drop-shadow-2xl ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                                <h1 className={`text-5xl md:text-[8rem] font-black uppercase tracking-tight drop-shadow-2xl leading-none ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
                                     {selectedProgram.name}
                                 </h1>
                             </div>
 
                             {/* Reveal Container */}
-                            <div className="flex flex-col items-center justify-center -space-y-2 md:-space-y-4">
+                            <div className="flex flex-col items-center justify-center -space-y-6 md:-space-y-12">
                                 {/* "CODE LETTER" Label */}
                                 <div className="animate-in fade-in zoom-in-95 duration-700 delay-100">
-                                    <h2 className={`text-2xl md:text-4xl font-black uppercase tracking-[0.6em] opacity-40 ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                                    <h2 className={`text-3xl md:text-6xl font-black uppercase tracking-[0.6em] opacity-40 ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
                                         CODE LETTER
                                     </h2>
                                 </div>
 
                                 {/* The Actual Code Letter */}
                                 <div className="relative group animate-in fade-in zoom-in-75 duration-700 delay-300">
-                                    <div className={`absolute inset-0 blur-[120px] rounded-full animate-pulse group-hover:scale-110 transition-transform ${isWhiteTheme ? 'bg-zinc-400/20' : 'bg-white/10'}`} />
-                                    <h1 className={`relative text-[15rem] md:text-[28rem] leading-[0.8] font-black uppercase tracking-tighter drop-shadow-2xl animate-[float_6s_ease-in-out_infinite] ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                                    <div className={`absolute inset-0 blur-[150px] rounded-full animate-pulse group-hover:scale-110 transition-transform ${isWhiteTheme ? 'bg-zinc-400/30' : 'bg-white/20'}`} />
+                                    <h1 className={`relative text-[20rem] md:text-[42rem] leading-[0.75] font-black uppercase tracking-tighter drop-shadow-2xl animate-[float_6s_ease-in-out_infinite] ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
                                         {codeLetter}
                                     </h1>
                                 </div>
 
                                 {/* "ON THE DAIS" Label */}
-                                <div className="animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-500 pt-4 md:pt-8">
-                                    <h3 className={`text-4xl md:text-6xl font-black uppercase tracking-[0.4em] ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                                <div className="animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-500 pt-8 md:pt-16">
+                                    <h3 className={`text-5xl md:text-[8rem] font-black uppercase tracking-[0.4em] ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
                                         ON THE DAIS
                                     </h3>
                                 </div>

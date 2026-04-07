@@ -32,28 +32,43 @@ export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, ap
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPreReveal, setIsPreReveal] = useState(true);
 
   useEffect(() => {
     if (isOpen) {
       setCurrentIndex(0);
-      setIsPlaying(true);
+      setIsPlaying(false);
+      setIsPreReveal(true);
       fetchChampions();
     } else {
       setIsPlaying(false);
     }
   }, [isOpen]);
 
+  // Handle Enter to Reveal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isOpen) return;
+      if (e.key === "Enter" && isPreReveal && !loading && !error) {
+        setIsPreReveal(false);
+        setIsPlaying(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isPreReveal, loading, error]);
+
   // Slideshow interval
   useEffect(() => {
     let intervalId;
-    if (isPlaying && champions.length > 0) {
+    if (isPlaying && champions.length > 0 && !isPreReveal) {
       intervalId = setInterval(() => {
         setCurrentIndex(prev => (prev + 1) % champions.length);
       }, 5000);
     }
     return () => clearInterval(intervalId);
-  }, [isPlaying, champions.length]);
+  }, [isPlaying, champions.length, isPreReveal]);
 
   const fetchChampions = async () => {
     try {
@@ -98,7 +113,7 @@ export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, ap
           isWhiteTheme={isWhiteTheme}
           toggleTheme={() => setIsWhiteTheme(!isWhiteTheme)}
           onClose={onClose}
-          leftContent={champions.length > 0 && (
+          leftContent={champions.length > 0 && !isPreReveal && (
             <div className="flex items-center gap-4">
               <button 
                 onClick={() => setIsPlaying(!isPlaying)}
@@ -114,13 +129,6 @@ export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, ap
           )}
         />
 
-        {loading && (
-          <div className={`flex flex-col items-center justify-center space-y-4 h-full ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
-            <div className={`w-16 h-16 border-4 rounded-full animate-spin shadow-[0_0_30px_rgba(234,179,8,0.3)] ${isWhiteTheme ? 'border-zinc-200 border-t-yellow-500' : 'border-zinc-800 border-t-yellow-500'}`}></div>
-            <p className="text-xl font-medium tracking-widest uppercase opacity-60 animate-pulse">Summoning Champions...</p>
-          </div>
-        )}
-
         {error && (
           <div className={`flex flex-col items-center justify-center space-y-4 h-full ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
             <p className="text-xl font-medium text-red-500">{error}</p>
@@ -128,7 +136,54 @@ export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, ap
           </div>
         )}
 
-        {!loading && !error && champions.length > 0 && (
+        {!error && isPreReveal && (
+          <div className={`flex-1 relative z-10 flex flex-col items-center justify-center p-6 text-center pt-24 overflow-hidden ${isWhiteTheme ? 'bg-zinc-50' : 'bg-black text-white'}`}>
+              {/* Background Effects */}
+              <div className="absolute inset-0 pointer-events-none opacity-30">
+                <div className="absolute top-0 right-1/4 w-[50rem] h-[50rem] rounded-full blur-[150px] animate-pulse bg-yellow-500/20" style={{ animationDuration: '10s' }} />
+                <div className="absolute bottom-0 left-1/4 w-[50rem] h-[50rem] rounded-full blur-[150px] animate-pulse bg-amber-500/20" style={{ animationDuration: '12s' }} />
+              </div>
+
+              <div className="relative space-y-4 md:space-y-6 max-w-7xl mx-auto flex flex-col items-center">
+                  {/* Subtle Loading Spinner if data is still fetching */}
+                  {loading && (
+                    <div className="absolute -top-24 flex items-center gap-4 animate-pulse opacity-40">
+                      <div className="w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm font-bold uppercase tracking-[0.4em]">Finalizing Scores...</p>
+                    </div>
+                  )}
+
+                  <div className={`p-8 rounded-full mb-8 animate-[float_8s_ease-in-out_infinite] ${isWhiteTheme ? 'bg-yellow-50 text-yellow-600' : 'bg-yellow-900/40 text-yellow-500 shadow-[0_0_80px_rgba(234,179,8,0.3)]'}`}>
+                      <Crown className="w-24 h-24 md:w-32 md:h-32" />
+                  </div>
+                  
+                  <div className="space-y-2 md:space-y-4 animate-[shimmer-float_12s_ease-in-out_infinite]">
+                    <h2 className={`text-4xl md:text-6xl lg:text-[6rem] font-bold uppercase tracking-[0.5em] opacity-40 ${isWhiteTheme ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                      IT IS TIME TO
+                    </h2>
+                    <h1 className={`text-7xl md:text-[10rem] lg:text-[14rem] font-black uppercase tracking-tighter leading-[0.8] drop-shadow-2xl ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                      DECLARE
+                    </h1>
+                    <h1 className={`text-7xl md:text-[10rem] lg:text-[14rem] font-black uppercase tracking-tighter leading-[0.8] drop-shadow-2xl text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-700`}>
+                      CHAMPIONS
+                    </h1>
+                  </div>
+              </div>
+
+              <style jsx global>{`
+                @keyframes float {
+                  0%, 100% { transform: translateY(0); }
+                  50% { transform: translateY(-30px); }
+                }
+                @keyframes shimmer-float {
+                  0%, 100% { transform: translateY(0) scale(1); filter: brightness(1); }
+                  50% { transform: translateY(-15px) scale(1.02); filter: brightness(1.3); }
+                }
+              `}</style>
+          </div>
+        )}
+
+        {!loading && !error && !isPreReveal && champions.length > 0 && (
           <div className={`relative w-full h-full flex items-center justify-center overflow-hidden group transition-colors duration-500 pt-20 ${isWhiteTheme ? 'bg-zinc-50 bg-[radial-gradient(ellipse_at_center,_#ffffff_0%,_#f4f4f5_100%)]' : 'bg-zinc-950 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-900 via-zinc-950 to-black'}`}>
             
             {/* Navigation Buttons */}
