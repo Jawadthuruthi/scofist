@@ -17,12 +17,12 @@ const STEPS = {
 };
 
 const REVEAL_STAGES = {
-  LABEL_BIG: "LABEL_BIG",
-  LABEL_SMALL: "LABEL_SMALL",
   CHEST: "CHEST",
-  NAME_PHOTO: "NAME_PHOTO",
+  PHOTO: "PHOTO",
+  NAME: "NAME",
   TEAM: "TEAM",
-  POINTS: "POINTS"
+  POINTS: "POINTS",
+  LABEL: "LABEL"
 };
 
 // Robust rank parser
@@ -490,16 +490,16 @@ function PodiumCard({ rank, data, isWhiteTheme, isLarge = false }) {
 }
 
 const SequentialWinnerCard = ({ p, rank, isWhiteTheme }) => {
-    const [revealStage, setRevealStage] = useState(REVEAL_STAGES.LABEL_BIG);
+    const [revealStage, setRevealStage] = useState(REVEAL_STAGES.CHEST);
     const theme = getRankTheme(rank, isWhiteTheme);
 
     useEffect(() => {
         const timers = [
-            setTimeout(() => setRevealStage(REVEAL_STAGES.LABEL_SMALL), 1000),
-            setTimeout(() => setRevealStage(REVEAL_STAGES.CHEST), 2000),
-            setTimeout(() => setRevealStage(REVEAL_STAGES.NAME_PHOTO), 3000),
-            setTimeout(() => setRevealStage(REVEAL_STAGES.TEAM), 4000),
-            setTimeout(() => setRevealStage(REVEAL_STAGES.POINTS), 5000)
+            setTimeout(() => setRevealStage(REVEAL_STAGES.PHOTO), 1000),
+            setTimeout(() => setRevealStage(REVEAL_STAGES.NAME), 2000),
+            setTimeout(() => setRevealStage(REVEAL_STAGES.TEAM), 3000),
+            setTimeout(() => setRevealStage(REVEAL_STAGES.POINTS), 4000),
+            setTimeout(() => setRevealStage(REVEAL_STAGES.LABEL), 6000)
         ];
         return () => timers.forEach(t => clearTimeout(t));
     }, []);
@@ -510,17 +510,17 @@ const SequentialWinnerCard = ({ p, rank, isWhiteTheme }) => {
     };
 
     return (
-      <div className={`w-full flex flex-col items-center justify-center pb-12 transition-all duration-1000 ${revealStage === REVEAL_STAGES.LABEL_BIG ? 'space-y-0' : 'space-y-1 md:space-y-1'}`}>
-        <div className={`transition-all duration-1000 ease-in-out transform ${revealStage === REVEAL_STAGES.LABEL_BIG ? 'scale-150 text-[8rem] md:text-[15rem] leading-none mb-28' : 'scale-100 text-6xl md:text-[10rem] opacity-40 mb-0'}`}>
-          <span className={`font-black tracking-tighter ${theme.text} drop-shadow-[0_0_70px_rgba(255,255,255,0.4)]`}>
-            {theme.label}
-          </span>
-        </div>
+      <div className={`w-full flex flex-col items-center justify-center pb-12 transition-all duration-1000 space-y-4 md:space-y-8`}>
+        
+        {/* Placeholder removed from top - now moved to right column */}
 
-        <div className="flex flex-row items-center gap-12 md:gap-24">
-            {showStage(REVEAL_STAGES.CHEST) && (
-                <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in slide-in-from-bottom-32 duration-1000">
-                    <div className={`w-64 h-64 md:w-96 md:h-96 rounded-full overflow-hidden border-[12px] shadow-[0_0_100px_rgba(0,0,0,0.5)] transition-all flex-shrink-0 ${theme.border}`}>
+        {/* Side-by-Side Container */}
+        <div className="w-full max-w-7xl flex flex-col md:flex-row items-start justify-center gap-12 md:gap-24 animate-in fade-in duration-1000">
+            
+            {/* LEFT SIDE: Photo & Chest Number */}
+            <div className="flex flex-col items-center gap-6 shrink-0 mt-20">
+                {showStage(REVEAL_STAGES.PHOTO) && (
+                    <div className={`w-64 h-64 md:w-[32rem] md:h-[32rem] rounded-full overflow-hidden border-[12px] shadow-[0_0_100px_rgba(0,0,0,0.5)] transition-all flex-shrink-0 animate-in fade-in zoom-in duration-1000 ${theme.border}`}>
                         {p.participantDetails?.profilePic ? (
                             <img src={p.participantDetails.profilePic} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -529,45 +529,69 @@ const SequentialWinnerCard = ({ p, rank, isWhiteTheme }) => {
                             </div>
                         )}
                     </div>
-                    <div className={`px-12 py-2 rounded-2xl border-4 font-black text-4xl md:text-6xl shadow-2xl ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-black' : 'bg-zinc-900 border-zinc-700 text-white'}`}>
-                        <span className={`${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'} mr-4 text-xl md:text-3xl font-bold`}>NO.</span>
+                )}
+
+                {showStage(REVEAL_STAGES.CHEST) && (
+                    <div className={`px-12 py-3 rounded-2xl border-4 font-black text-4xl md:text-7xl shadow-2xl animate-in fade-in slide-in-from-top-10 duration-700 ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-black' : 'bg-zinc-900 border-zinc-700 text-white'}`}>
+                        <span className={`${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'} mr-4 text-xl md:text-4xl font-bold`}>NO.</span>
                         {p.participantDetails?.chestNumber || "---"}
                     </div>
-                </div>
-            )}
-            
-            {showStage(REVEAL_STAGES.NAME_PHOTO) && (
-                <h2 className={`text-4xl md:text-7xl lg:text-[8.5rem] font-black uppercase tracking-tighter text-left leading-[0.8] max-w-4xl animate-in fade-in slide-in-from-left-20 duration-1000 ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
-                    {p.participantDetails?.name}
-                </h2>
-            )}
-        </div>
+                )}
+            </div>
 
-        <div className="flex flex-col items-center space-y-2 mt-4">
-            {showStage(REVEAL_STAGES.TEAM) && (
-                <div className="animate-in fade-in zoom-in slide-in-from-bottom-20 duration-1000">
-                    <div className={`px-16 py-6 rounded-full font-black text-3xl md:text-6xl uppercase tracking-[0.4em] shadow-2xl ${getTeamBgColor(p.participantDetails?.teamId?.name)}`}>
-                        {p.participantDetails?.teamId?.name || "Independent"}
+            {/* RIGHT SIDE: Rank, Name, Team, Points */}
+            <div className="flex flex-col items-center md:items-start text-center md:text-left gap-6 md:gap-10 flex-1 min-w-0">
+                
+                {/* 1. Rank Label (Revealed Last, Aligned with Name) */}
+                <div className={`transition-all duration-1000 ease-in-out transform min-h-[5rem] md:min-h-[10rem] flex items-center justify-start`}>
+                  {showStage(REVEAL_STAGES.LABEL) ? (
+                    <div className="animate-in fade-in zoom-in duration-1000 text-5xl md:text-[8rem]">
+                        <span className={`font-black tracking-tighter ${theme.text} drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]`}>
+                            {theme.label}
+                        </span>
                     </div>
+                  ) : (
+                    <div className={`text-2xl md:text-4xl font-black uppercase tracking-[0.4em] opacity-10 ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                        Wait for the Rank...
+                    </div>
+                  )}
                 </div>
-            )}
 
-            {showStage(REVEAL_STAGES.POINTS) && (
-                <div className="animate-in fade-in zoom-in slide-in-from-top-32 duration-1000 pt-4">
-                    <div className={`flex items-center gap-10 text-7xl md:text-[12rem] font-black italic tracking-tighter ${theme.text}`}>
-                        <Sparkles className="w-20 h-20 md:w-32 md:h-32 animate-spin text-yellow-400" />
-                        <div className="flex flex-col items-center">
-                            <span className="text-3xl md:text-4xl not-italic font-bold text-zinc-500 uppercase tracking-[0.2em] mb-2">Grade</span>
-                            <span className="leading-none">{p.grade}</span>
-                        </div>
-                        <div className="h-32 md:h-48 w-1.5 md:w-2 bg-zinc-800/50 rounded-full mx-2 md:mx-4" />
-                        <div className="flex flex-col items-center">
-                            <span className="text-3xl md:text-4xl not-italic font-bold text-zinc-500 uppercase tracking-[0.2em] mb-2">Points</span>
-                            <span className="leading-none">{p.points}</span>
+                {/* Name */}
+                {showStage(REVEAL_STAGES.NAME) && (
+                    <h2 className={`text-5xl md:text-8xl lg:text-[10rem] font-black uppercase tracking-tighter leading-[0.85] animate-in fade-in slide-in-from-left-20 duration-1000 ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                        {p.participantDetails?.name}
+                    </h2>
+                )}
+
+                {/* Team Name */}
+                {showStage(REVEAL_STAGES.TEAM) && (
+                    <div className="animate-in fade-in zoom-in slide-in-from-bottom-20 duration-1000">
+                        <div className={`px-16 py-6 rounded-full font-black text-3xl md:text-6xl uppercase tracking-[0.4em] shadow-2xl ${getTeamBgColor(p.participantDetails?.teamId?.name)}`}>
+                            {p.participantDetails?.teamId?.name || "Independent"}
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+
+                {/* Grade and Points */}
+                {showStage(REVEAL_STAGES.POINTS) && (
+                    <div className="animate-in fade-in zoom-in slide-in-from-top-32 duration-1000">
+                        <div className={`flex items-center gap-10 text-6xl md:text-[9rem] font-black italic tracking-tighter ${theme.text}`}>
+                            <Sparkles className="w-16 h-16 md:w-24 md:h-24 animate-spin text-yellow-400" />
+                            <div className="flex flex-col items-center md:items-start">
+                                <span className="text-xl md:text-3xl not-italic font-bold text-zinc-500 uppercase tracking-[0.2em] mb-1">Grade</span>
+                                <span className="leading-none">{p.grade}</span>
+                            </div>
+                            <div className="h-20 md:h-32 w-1.5 md:w-2 bg-zinc-800/50 rounded-full mx-2 md:mx-4" />
+                            <div className="flex flex-col items-center md:items-start">
+                                <span className="text-xl md:text-3xl not-italic font-bold text-zinc-500 uppercase tracking-[0.2em] mb-1">Points</span>
+                                <span className="leading-none">{p.points}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
         </div>
       </div>
     );
