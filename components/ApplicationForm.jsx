@@ -78,6 +78,7 @@ export default function ApplicationForm({ trigger }) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [dobInput, setDobInput] = useState("");
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -201,6 +202,46 @@ export default function ApplicationForm({ trigger }) {
 
   const admissionClass = form.watch("admissionClass");
 
+  // Helper to parse DD/MM/YYYY to Date
+  const parseDisplayDate = (str) => {
+    const parts = str.split("/");
+    if (parts.length !== 3) return null;
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const year = parseInt(parts[2], 10);
+    if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+    const date = new Date(year, month - 1, day);
+    // Validate date is real (e.g. not 31/02/2020)
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    )
+      return null;
+    return date;
+  };
+
+  const handleDobInputChange = (e, onChange) => {
+    let value = e.target.value.replace(/\D/g, "");
+    if (value.length > 8) value = value.slice(0, 8);
+
+    let formattedValue = "";
+    if (value.length > 0) {
+      formattedValue = value.slice(0, 2);
+      if (value.length > 2) {
+        formattedValue += "/" + value.slice(2, 4);
+        if (value.length > 4) {
+          formattedValue += "/" + value.slice(4, 8);
+        }
+      }
+    }
+
+    setDobInput(formattedValue);
+
+    const parsed = formattedValue.length === 10 ? parseDisplayDate(formattedValue) : null;
+    onChange(parsed || undefined);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
@@ -235,37 +276,49 @@ export default function ApplicationForm({ trigger }) {
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Date of Birth</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input
+                            placeholder="DD/MM/YYYY"
+                            value={dobInput !== "" ? dobInput : (field.value ? format(field.value, "dd/MM/yyyy") : "")}
+                            onChange={(e) => handleDobInputChange(e, field.onChange)}
+                            maxLength={10}
+                            className="flex-1"
+                          />
+                        </FormControl>
+                        <Popover>
+                          <PopoverTrigger asChild>
                             <Button
                               variant={"outline"}
                               className={cn(
-                                "w-full pl-3 text-left font-normal",
+                                "px-3 font-normal",
                                 !field.value && "text-muted-foreground"
                               )}
                             >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              <CalendarIcon className="h-4 w-4" />
                             </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(date) => {
+                                field.onChange(date);
+                                if (date) {
+                                  setDobInput(format(date, "dd/MM/yyyy"));
+                                }
+                              }}
+                              disabled={(date) =>
+                                date > new Date() || date < new Date("1900-01-01")
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <FormDescription className="text-xs">
+                        Enter manually as DD/MM/YYYY or use the calendar icon
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
