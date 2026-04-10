@@ -241,19 +241,19 @@ function FieldRenderer({ field, form, apiKey, data }) {
   const fieldToRender = { ...field, options: mergedOptions };
 
 
-  if (data && field.hideOnEdit) return null;
-
-  if (field.conditionalRender) {
-    const expected = field.conditionalRender.expectedValue;
-    if (depValue !== expected) return null;
-  }
-
   const [showScanner, setShowScanner] = React.useState(false);
 
   const handleScanFinish = (result) => {
     form.setValue(fieldToRender.name, result, { shouldDirty: true, shouldValidate: true });
     setShowScanner(false);
   };
+
+  if (data && field.hideOnEdit) return null;
+
+  if (field.conditionalRender) {
+    const expected = field.conditionalRender.expectedValue;
+    if (depValue !== expected) return null;
+  }
 
   return (
     <FormField
@@ -576,14 +576,14 @@ export default function PopupForm({
 
   const form = useForm({
     resolver: zodResolver(schema),
-    defaultValues: data || getDefaultValues(data, customFormFields),
+    defaultValues: getDefaultValues(data, customFormFields),
   });
 
   // Reset form when form is opened/closed or data changes
   React.useEffect(() => {
     if (open) {
       // Re-initialize with data or defaults when opened
-      form.reset(data || getDefaultValues(data, customFormFields));
+      form.reset(getDefaultValues(data, customFormFields));
     } else {
       // Reset to defaults when closed
       form.reset(getDefaultValues(data, customFormFields));

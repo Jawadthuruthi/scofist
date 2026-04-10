@@ -26,18 +26,16 @@ const ApplicationDisplayPage = () => {
     [searchParams]
   );
 
-  const { useFetchItems, useUpdateItem } = useCrud(
+  const { useFetchItemById, useUpdateItem } = useCrud(
     "applications",
     queryParams.apiKey
   );
-  const fetchApplicationQuery = useFetchItems(null, null, {
-    _id,
-  });
+  const fetchApplicationQuery = useFetchItemById(_id);
 
   const updateApplication = useUpdateItem();
 
   const applicationData = useMemo(
-    () => fetchApplicationQuery.data?.applications[0],
+    () => fetchApplicationQuery.data?.applicationForm || fetchApplicationQuery.data,
     [fetchApplicationQuery.data]
   );
 
@@ -76,11 +74,11 @@ const ApplicationDisplayPage = () => {
   };
 
   const handleApprove = async () => {
-    await updateApplication.mutateAsync({ data: { _id, status: "Approved" } });
+    await updateApplication.mutateAsync({ data: { id: _id, status: "Approved" } });
   };
 
   const handleReject = async () => {
-    await updateApplication.mutateAsync({ data: { _id, status: "Rejected" } });
+    await updateApplication.mutateAsync({ data: { id: _id, status: "Rejected" } });
   };
 
   return (
@@ -88,10 +86,10 @@ const ApplicationDisplayPage = () => {
       {/* A4 Container - Responsive */}
       {applicationData ? (
         <div
-          className="bg-white shadow-lg print:font-montserrat border border-gray-200 print:shadow-none print:border-none w-full max-w-[210mm] mx-auto text-xxs md:text-xs lg:text-sm print:text-sm"
+          className="bg-white shadow-lg print:font-montserrat border border-gray-200 print:shadow-none print:border-none w-full max-w-[210mm] mx-auto text-xxs md:text-xs lg:text-sm print:text-[12px] print:leading-snug"
           style={{
             minHeight: "297mm",
-            padding: "12mm 15mm",
+            padding: "5mm 15mm",
             lineHeight: "1.2",
           }}
           ref={printRef}
@@ -102,37 +100,38 @@ const ApplicationDisplayPage = () => {
           </div>
 
           {/* Application Content */}
-          <div className="space-y-6">
-            {/* Personal Information Header with Photo */}
-            <div className="flex relative justify-between items-start mb-3">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-sm md:text-base lg:text-xl print:text-xl font-bold text-gray-800 border-b border-gray-400 pb-1">
-                    PERSONAL INFORMATION
-                  </h3>
-                  <Badge
-                    variant="outline"
-                    className={`${getStatusColor(applicationData?.status)} print:hidden text-xs md:text-sm lg:text-base print:text-base px-2 py-1`}
-                  >
-                    {applicationData?.status}
-                  </Badge>
+          <div className="space-y-6 print:space-y-3">
+            <div className="mb-5">
+              {/* Personal Information Header with Photo */}
+              <div className="flex relative justify-between items-start mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-sm md:text-base lg:text-xl print:text-base font-bold text-gray-800 border-b border-gray-400 pb-1">
+                      PERSONAL INFORMATION
+                    </h3>
+                    <Badge
+                      variant="outline"
+                      className={`${getStatusColor(applicationData?.status)} print:hidden text-xs md:text-sm lg:text-base print:text-base px-2 py-1`}
+                    >
+                      {applicationData?.status}
+                    </Badge>
+                  </div>
                 </div>
+                <Avatar className="h-14 w-14 border-2 sm:absolute sm:right-0 border-gray-300 flex-shrink-0">
+                  <AvatarImage
+                    src={applicationData?.profilePic?.url}
+                    alt={applicationData?.name}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="bg-gray-100 text-gray-700 font-semibold text-xs md:text-sm lg:text-base print:text-base">
+                    {getInitials(applicationData?.name)}
+                  </AvatarFallback>
+                </Avatar>
               </div>
-              <Avatar className="h-14 w-14 border-2 sm:absolute sm:right-0 border-gray-300 flex-shrink-0">
-                <AvatarImage
-                  src={applicationData?.profilePic?.url}
-                  alt={applicationData?.name}
-                  className="object-cover"
-                />
-                <AvatarFallback className="bg-gray-100 text-gray-700 font-semibold text-xs md:text-sm lg:text-base print:text-base">
-                  {getInitials(applicationData?.name)}
-                </AvatarFallback>
-              </Avatar>
-            </div>
 
-            {/* Personal Details Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mb-3">
-              <div className="flex flex-wrap">
+              {/* Personal Details Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                <div className="flex flex-wrap">
                 <span className="font-semibold text-gray-700 min-w-fit">
                   Full Name:
                 </span>
@@ -180,14 +179,15 @@ const ApplicationDisplayPage = () => {
                   {applicationData?.guardianAlternativeNumber || "N/A"}
                 </span>
               </div>
+              </div>
             </div>
 
             {/* Address Information */}
-            <div className="mb-3">
-              <h3 className="text-sm md:text-base lg:text-xl print:text-xl font-bold text-gray-800 border-b border-gray-400 pb-1 mb-2">
+            <div className="mb-5">
+              <h3 className="text-sm md:text-base lg:text-xl print:text-base font-bold text-gray-800 border-b border-gray-400 pb-1 mb-3">
                 ADDRESS DETAILS
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                 <div className="flex flex-wrap">
                   <span className="font-semibold text-gray-700 min-w-fit">
                     House Name:
@@ -240,114 +240,115 @@ const ApplicationDisplayPage = () => {
             </div>
 
             {/* Academic Information */}
-            <div className="mb-3">
-              <h3 className="text-sm md:text-base lg:text-xl print:text-xl font-bold text-gray-800 border-b border-gray-400 pb-1 mb-2">
+            <div className="mb-5">
+              <h3 className="text-sm md:text-base lg:text-xl print:text-base font-bold text-gray-800 border-b border-gray-400 pb-1 mb-3">
                 ACADEMIC EDUCATION
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mb-2">
-                <div className="flex flex-wrap">
-                  <span className="font-semibold text-gray-700 min-w-fit">
-                    Admission Class:
+              <div className="flex flex-col space-y-4">
+                <div className="flex items-start">
+                  <span className="font-semibold text-gray-700 w-[180px] md:w-[250px] shrink-0 flex justify-between pr-3 md:pr-6">
+                    <span>Admission Class</span>
+                    <span>:</span>
                   </span>
-                  <span className="ml-2 text-gray-900">
+                  <span className="text-gray-900 flex-1 break-words">
                     {applicationData?.admissionClass || "N/A"}
                   </span>
                 </div>
-                <div className="flex flex-wrap">
-                  <span className="font-semibold text-gray-700 min-w-fit">
-                    Academic Stream:
-                  </span>
-                  <span className="ml-2 text-gray-900">
-                    {applicationData?.academicStream || "N/A"}
-                  </span>
-                </div>
-              </div>
-              {/* SSLC Details */}
-              <div className="mb-2">
-                <h4 className="font-semibold text-gray-800 text-xs md:text-sm lg:text-base print:text-base mb-1">
-                  SSLC Details:
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 pl-3">
-                  <div className="flex flex-wrap">
-                    <span className="font-medium text-gray-700 min-w-fit">
-                      Registration Number:
+                {applicationData?.admissionClass === "+1" && (
+                  <div className="flex items-start">
+                    <span className="font-semibold text-gray-700 w-[180px] md:w-[250px] shrink-0 flex justify-between pr-3 md:pr-6">
+                      <span>Academic Stream</span>
+                      <span>:</span>
                     </span>
-                    <span className="ml-2 text-gray-900 break-all">
-                      {applicationData?.sslcRegistrationNumber || "N/A"}
+                    <span className="text-gray-900 flex-1 break-words">
+                      {applicationData?.academicStream || "N/A"}
                     </span>
                   </div>
-                  <div className="flex flex-wrap">
-                    <span className="font-medium text-gray-700 min-w-fit">
-                      Graduation Year:
-                    </span>
-                    <span className="ml-2 text-gray-900">
-                      {applicationData?.sslcGraduationYear}
-                    </span>
-                  </div>
-                </div>
-              </div>
+                )}
+                {applicationData?.admissionClass === "+1" && (
+                  <>
+                    <div className="flex items-start">
+                      <span className="font-semibold text-gray-700 w-[180px] md:w-[250px] shrink-0 flex justify-between pr-3 md:pr-6">
+                        <span>SSLC Registration No</span>
+                        <span>:</span>
+                      </span>
+                      <span className="text-gray-900 flex-1 break-all">
+                        {applicationData?.sslcRegistrationNumber || "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="font-semibold text-gray-700 w-[180px] md:w-[250px] shrink-0 flex justify-between pr-3 md:pr-6">
+                        <span>SSLC Graduation Year</span>
+                        <span>:</span>
+                      </span>
+                      <span className="text-gray-900 flex-1 break-words">
+                        {applicationData?.sslcGraduationYear || "N/A"}
+                      </span>
+                    </div>
+                  </>
+                )}
 
-              {/* Islamic Education */}
-              <div className="mb-2">
-                <h4 className="font-semibold text-gray-800 text-xs md:text-sm lg:text-base print:text-base mb-1">
-                  Islamic Education Qualification:
-                </h4>
-                <div className="pl-3">
-                  <p className="text-gray-900 text-justify leading-tight">
+                <div className="flex items-start">
+                  <span className="font-semibold text-gray-700 w-[180px] md:w-[250px] shrink-0 flex justify-between pr-3 md:pr-6">
+                    <span>Islamic Education Qualif.</span>
+                    <span>:</span>
+                  </span>
+                  <span className="text-gray-900 leading-relaxed flex-1 break-words">
                     {applicationData?.islamicEducationQualification || "N/A"}
-                  </p>
+                  </span>
                 </div>
-              </div>
 
-              {/* Academic Education */}
-              <div className="mb-2">
-                <h4 className="font-semibold text-gray-800 text-xs md:text-sm lg:text-base print:text-base mb-1">
-                  Academic Education Qualification:
-                </h4>
-                <div className="pl-3">
-                  <p className="text-gray-900 text-justify leading-tight">
+                <div className="flex items-start">
+                  <span className="font-semibold text-gray-700 w-[180px] md:w-[250px] shrink-0 flex justify-between pr-3 md:pr-6">
+                    <span>Academic Education Qualif.</span>
+                    <span>:</span>
+                  </span>
+                  <span className="text-gray-900 leading-relaxed flex-1 break-words">
                     {applicationData?.academicEducationQualification || "N/A"}
-                  </p>
+                  </span>
                 </div>
               </div>
             </div>
 
             {/* Footer Section */}
-            <div className="mt-8 pt-4 border-t border-gray-300 space-y-2">
-              <h3 className="text-center text-base font-bold text-gray-800">
+            <div className="mt-10 pt-6 border-t border-gray-300">
+              <h3 className="text-center text-base md:text-lg lg:text-xl print:text-base font-bold text-gray-800 mb-4">
                 Declaration
               </h3>
-              <p className="text-justify">
+              <p className="text-justify mb-10 leading-relaxed">
                 I do hereby declare that the details given above are correct and
                 that I shall abide by the rules and regulations of the
                 institution.
               </p>
-              <div className="flex">
+              <div className="flex mb-6">
                 <div className="flex w-1/2 justify-between font-bold">
                   <span>Date</span> <span>:</span>
                 </div>
               </div>
-              <div className="flex">
+              <div className="flex mb-6">
                 <div className="flex w-1/2 justify-between font-bold">
                   <span>Name and Signature of the Applicant</span>{" "}
                   <span>:</span>
                 </div>
               </div>
-              <div className="flex">
+              <div className="flex mb-8">
                 <div className="flex w-1/2 justify-between font-bold">
                   <span>Name and Signature of the Guardian</span> <span>:</span>
                 </div>
               </div>
-              <h3 className="text-center text-base font-bold text-gray-800">
-                Approval
-              </h3>
-              <p>
-                The Applicant have been given provisional admission to this
-                Institution
-              </p>
-              <div className="flex">
-                <div className="font-bold w-full"></div>
-                <div className="font-bold w-1/3">Principal:</div>
+              
+              <div className="pt-6 border-t border-dashed border-gray-400 print:pt-4">
+                <h3 className="text-center text-base md:text-lg lg:text-xl print:text-base font-bold text-gray-800 mb-4">
+                  Approval
+                </h3>
+                <p className="mb-8">
+                  The Applicant have been given provisional admission to this
+                  Institution
+                </p>
+                <div className="flex justify-between w-full mt-4">
+                  <div className="font-bold w-1/3">Admission No:</div>
+                  <div className="font-bold w-1/3 text-right sm:text-left">Principal:</div>
+                </div>
               </div>
             </div>
           </div>

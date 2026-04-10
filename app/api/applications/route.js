@@ -1,8 +1,8 @@
-// app/api/applications/route.js
 import apiResponse from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import ApplicationForm from "@/models/ApplicationForm";
 import { NextResponse } from "next/server";
+import { removeEmptyValuesDeep } from "@/lib/utils";
 
 export async function GET(req, res) {
   try {
@@ -38,6 +38,7 @@ export async function GET(req, res) {
     // Build MongoDB query from filter params
     const query = {};
     if (filterParams?.id) query._id = filterParams?.id;
+    if (filterParams?._id) query._id = filterParams?._id;
     if (filterParams.name)
       query.name = { $regex: filterParams.name, $options: "i" };
 
@@ -72,7 +73,8 @@ export async function GET(req, res) {
 export async function POST(req, res) {
   try {
     await connectToDB();
-    const body = await req.json();
+    const rawBody = await req.json();
+    const body = removeEmptyValuesDeep(rawBody);
 
     // Extract address fields - handle both nested and flat structures
     let formattedBody;
@@ -110,8 +112,10 @@ export async function POST(req, res) {
 export async function PUT(req, res) {
   try {
     await connectToDB();
-    const body = await req.json();
-    const { id, ...updateData } = body;
+    const rawBody = await req.json();
+    const body = removeEmptyValuesDeep(rawBody);
+    const { id, _id, ids, ...updateData } = body;
+    const targetId = id || _id || (ids && ids[0]);
 
     // Handle address fields - check if they're nested or flat
     if (updateData.address && typeof updateData.address === 'object') {
@@ -125,7 +129,7 @@ export async function PUT(req, res) {
     }
 
     const updatedApplicationForm = await ApplicationForm.findByIdAndUpdate(
-      id,
+      targetId,
       updateData,
       { new: true, runValidators: true }
     );
@@ -152,8 +156,15 @@ export async function PUT(req, res) {
 export async function DELETE(req, res) {
   try {
     await connectToDB();
-    const ids = await req.json();
-    const id = ids[0];
+    const body = await req.json();
+    const ids = Array.isArray(body) ? body : body.ids;
+
+    if (!ids || ids.length === 0) {
+      return NextResponse.json(
+        { message: "No IDs provided for deletion" },
+        { status: 400 }
+      );
+    }
 
     if (ids.length > 1) {
       const deletedApplicationForms = await ApplicationForm.deleteMany({
@@ -168,7 +179,7 @@ export async function DELETE(req, res) {
       );
     }
 
-    const deletedApplicationForm = await ApplicationForm.findByIdAndDelete(id);
+    const deletedApplicationForm = await ApplicationForm.findByIdAndDelete(ids[0]);
 
     return NextResponse.json(
       {

@@ -286,6 +286,7 @@ export default async function ApplicationsPage() {
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
           limit={20}
+          enableDelete={true}
         />
       </>
     );
