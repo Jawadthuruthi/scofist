@@ -44,9 +44,15 @@ export default async function SettingsPage() {
       left: data.festival?.participantsCard?.textPositions?.left || 0,
       festivalNameImage: data.festival?.festivalNameImage || {},
       printHeader: data.festival?.printHeader || {},
-      registrationDeadline: data.festival?.registrationDeadline
-        ? new Date(data.festival.registrationDeadline).toISOString().split("T")[0]
-        : "",
+      registrationDeadline: (() => {
+        try {
+          if (!data.festival?.registrationDeadline) return "";
+          const date = new Date(data.festival.registrationDeadline);
+          return isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
+        } catch (e) {
+          return "";
+        }
+      })(),
       instructions: data.festival?.instructions || "",
     };
 

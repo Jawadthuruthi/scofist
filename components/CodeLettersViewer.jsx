@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Search, Loader2, RotateCcw, Layout, X } from "lucide-react";
+import Image from "next/image";
 import DashboardTopBar from "./DashboardTopBar";
 
 const STEPS = {
@@ -242,10 +243,12 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
                             {/* Cinematic Glow Behind Logo */}
                             <div className="absolute inset-0 bg-emerald-500/10 blur-[120px] rounded-full animate-pulse transition-all duration-3000 scale-75 lg:scale-100" />
                             
-                            <img 
+                            <Image 
                                 src={festivalSettings.festivalNameImage.url} 
                                 alt="Festival" 
-                                className="w-full h-full max-w-[90vw] max-h-[85vh] object-contain drop-shadow-[0_0_80px_rgba(0,0,0,0.4)] animate-[breathe_8s_ease-in-out_infinite]" 
+                                fill
+                                unoptimized
+                                className="object-contain drop-shadow-[0_0_80px_rgba(0,0,0,0.4)] animate-[breathe_8s_ease-in-out_infinite] max-w-[90vw] max-h-[85vh] m-auto" 
                             />
                         </div>
                     ) : (
