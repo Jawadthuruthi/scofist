@@ -579,14 +579,19 @@ export default function PopupForm({
     defaultValues: getDefaultValues(data, customFormFields),
   });
 
+  const prevOpen = React.useRef(open);
+  const prevDataId = React.useRef(data ? (data._id || 'has-data') : 'no-data');
+
   // Reset form when form is opened/closed or data changes
   React.useEffect(() => {
-    if (open) {
-      // Re-initialize with data or defaults when opened
+    const currentDataId = data ? (data._id || 'has-data') : 'no-data';
+
+    // Only reset if it just opened, just closed, or data identity fundamentally changed
+    // This prevents periodic background refetches from randomly wiping out all typed form inputs
+    if (open !== prevOpen.current || currentDataId !== prevDataId.current) {
       form.reset(getDefaultValues(data, customFormFields));
-    } else {
-      // Reset to defaults when closed
-      form.reset(getDefaultValues(data, customFormFields));
+      prevOpen.current = open;
+      prevDataId.current = currentDataId;
     }
   }, [open, data, customFormFields, form]);
 
