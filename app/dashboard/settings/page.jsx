@@ -10,74 +10,75 @@ export default async function SettingsPage() {
     const activeRole = cookiesStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
 
-    const data = await fetchData("settings", "", 0);
+    const data = (await fetchData("settings", "", 0)) || {};
+    const settings = data || {};
 
     const general = {
-      ...data.general,
+      ...(settings.general || {}),
     };
 
     const institution = {
-      ...data.institution,
-      ...data.institution.contact,
+      ...(settings.institution || {}),
+      ...(settings.institution?.contact || {}),
     };
 
     const festival = {
-      festival_name: data.festival?.festivalInfo?.name || "",
-      festival_theme: data.festival?.festivalInfo?.theme || "",
+      festival_name: settings.festival?.festivalInfo?.name || "",
+      festival_theme: settings.festival?.festivalInfo?.theme || "",
       festival_year:
-        data.festival?.festivalInfo?.year || new Date().getFullYear(),
-      festival_venue: data.festival?.festivalInfo?.venue || "",
-      festival_startDate: data.festival?.festivalInfo?.dates?.startDate
-        ? new Date(data.festival.festivalInfo.dates.startDate)
+        settings.festival?.festivalInfo?.year || new Date().getFullYear(),
+      festival_venue: settings.festival?.festivalInfo?.venue || "",
+      festival_startDate: settings.festival?.festivalInfo?.dates?.startDate
+        ? new Date(settings.festival.festivalInfo.dates.startDate)
             .toISOString()
             .split("T")[0]
         : "",
-      festival_endDate: data.festival?.festivalInfo?.dates?.endDate
-        ? new Date(data.festival.festivalInfo.dates.endDate)
+      festival_endDate: settings.festival?.festivalInfo?.dates?.endDate
+        ? new Date(settings.festival.festivalInfo.dates.endDate)
             .toISOString()
             .split("T")[0]
         : "",
-      participantsCard: data.festival?.participantsCard?.backgroundImage || {},
-      textColor: data.festival?.participantsCard?.textColor || "#000000",
-      right: data.festival?.participantsCard?.textPositions?.right || 0,
-      bottom: data.festival?.participantsCard?.textPositions?.bottom || 0,
-      left: data.festival?.participantsCard?.textPositions?.left || 0,
-      festivalNameImage: data.festival?.festivalNameImage || {},
-      printHeader: data.festival?.printHeader || {},
-      registrationDeadline: data.festival?.registrationDeadline
-        ? new Date(data.festival.registrationDeadline).toISOString().split("T")[0]
+      participantsCard: settings.festival?.participantsCard?.backgroundImage || {},
+      textColor: settings.festival?.participantsCard?.textColor || "#000000",
+      right: settings.festival?.participantsCard?.textPositions?.right || 0,
+      bottom: settings.festival?.participantsCard?.textPositions?.bottom || 0,
+      left: settings.festival?.participantsCard?.textPositions?.left || 0,
+      festivalNameImage: settings.festival?.festivalNameImage || {},
+      printHeader: settings.festival?.printHeader || {},
+      registrationDeadline: settings.festival?.registrationDeadline
+        ? new Date(settings.festival.registrationDeadline).toISOString().split("T")[0]
         : "",
-      instructions: data.festival?.instructions || "",
+      instructions: settings.festival?.instructions || "",
     };
 
     const idCard = {
-      ...data.idCard,
+      ...(settings.idCard || {}),
     };
 
     const spark = {
-      spark_name: data.spark?.name,
-      spark_fullName: data.spark?.fullName,
-      spark_tagline: data.spark?.tagline,
-      spark_address: data.spark?.address,
-      spark_primaryPhone: data.spark?.contact?.primaryPhone,
-      spark_secondaryPhone: data.spark?.contact?.secondaryPhone,
-      spark_email: data.spark?.contact?.email,
-      spark_website: data.spark?.contact?.website,
-      spark_logo: data.spark?.logo || {},
-      committeePosters: data.spark?.committeePosters || [],
+      spark_name: settings.spark?.name || "",
+      spark_fullName: settings.spark?.fullName || "",
+      spark_tagline: settings.spark?.tagline || "",
+      spark_address: settings.spark?.address || "",
+      spark_primaryPhone: settings.spark?.contact?.primaryPhone || "",
+      spark_secondaryPhone: settings.spark?.contact?.secondaryPhone || "",
+      spark_email: settings.spark?.contact?.email || "",
+      spark_website: settings.spark?.contact?.website || "",
+      spark_logo: settings.spark?.logo || {},
+      committeePosters: settings.spark?.committeePosters || [],
     };
 
     const org = {
-      org_name: data.org?.name,
-      org_fullName: data.org?.fullName,
-      org_tagline: data.org?.tagline,
-      org_address: data.org?.address,
-      org_primaryPhone: data.org?.contact?.primaryPhone,
-      org_secondaryPhone: data.org?.contact?.secondaryPhone,
-      org_email: data.org?.contact?.email,
-      org_website: data.org?.contact?.website,
-      org_logo: data.org?.logo || {},
-      committeePosters: data.org?.committeePosters || [],
+      org_name: settings.org?.name || "",
+      org_fullName: settings.org?.fullName || "",
+      org_tagline: settings.org?.tagline || "",
+      org_address: settings.org?.address || "",
+      org_primaryPhone: settings.org?.contact?.primaryPhone || "",
+      org_secondaryPhone: settings.org?.contact?.secondaryPhone || "",
+      org_email: settings.org?.contact?.email || "",
+      org_website: settings.org?.contact?.website || "",
+      org_logo: settings.org?.logo || {},
+      committeePosters: settings.org?.committeePosters || [],
     };
 
     return (
