@@ -460,7 +460,8 @@ const Attendance = ({ apiKey, teacherId }) => {
       await deleteAttendance.mutateAsync({
         data: { ids: [existingAttendanceId] },
       });
-      toast.success("Attendance reset successfully!");
+      setSuccessMessage("Attendance Reset Successfully!");
+      setShowSuccessDialog(true);
 
       setAttendanceExists(false);
       setExistingAttendanceId(null);
