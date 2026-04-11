@@ -528,7 +528,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
         </Dialog>
 
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent>
+          <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
             <DialogTitle>Leave Reason</DialogTitle>
             <DialogDescription>Provide a leave reason.</DialogDescription>
             <div className="relative">

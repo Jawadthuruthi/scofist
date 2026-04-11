@@ -665,7 +665,7 @@ const Attendance = ({ apiKey, teacherId }) => {
       </div>
 
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
           <DialogHeader className="flex flex-col items-center justify-center text-center space-y-3">
             <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
               <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
