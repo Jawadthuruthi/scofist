@@ -22,22 +22,24 @@ export default async function SettingsPage() {
       ...(settings.institution?.contact || {}),
     };
 
+    const formatDateForInput = (dateString) => {
+      if (!dateString) return "";
+      try {
+        const date = new Date(dateString);
+        return isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
+      } catch (e) {
+        return "";
+      }
+    };
+
     const festival = {
       festival_name: settings.festival?.festivalInfo?.name || "",
       festival_theme: settings.festival?.festivalInfo?.theme || "",
       festival_year:
         settings.festival?.festivalInfo?.year || new Date().getFullYear(),
       festival_venue: settings.festival?.festivalInfo?.venue || "",
-      festival_startDate: settings.festival?.festivalInfo?.dates?.startDate
-        ? new Date(settings.festival.festivalInfo.dates.startDate)
-            .toISOString()
-            .split("T")[0]
-        : "",
-      festival_endDate: settings.festival?.festivalInfo?.dates?.endDate
-        ? new Date(settings.festival.festivalInfo.dates.endDate)
-            .toISOString()
-            .split("T")[0]
-        : "",
+      festival_startDate: formatDateForInput(settings.festival?.festivalInfo?.dates?.startDate),
+      festival_endDate: formatDateForInput(settings.festival?.festivalInfo?.dates?.endDate),
       participantsCard: settings.festival?.participantsCard?.backgroundImage || {},
       textColor: settings.festival?.participantsCard?.textColor || "#000000",
       right: settings.festival?.participantsCard?.textPositions?.right || 0,
@@ -45,9 +47,7 @@ export default async function SettingsPage() {
       left: settings.festival?.participantsCard?.textPositions?.left || 0,
       festivalNameImage: settings.festival?.festivalNameImage || {},
       printHeader: settings.festival?.printHeader || {},
-      registrationDeadline: settings.festival?.registrationDeadline
-        ? new Date(settings.festival.registrationDeadline).toISOString().split("T")[0]
-        : "",
+      registrationDeadline: formatDateForInput(settings.festival?.registrationDeadline),
       instructions: settings.festival?.instructions || "",
     };
 
