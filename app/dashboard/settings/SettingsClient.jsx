@@ -139,6 +139,16 @@ const festivalFormField = [
     className: "col-span-2 md:col-span-1",
   },
   {
+    name: "festivalNameImage",
+    label: "Festival Name Image",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/png", "image/jpeg", "image/svg+xml", "image/svg"],
+    defaultValue: {},
+  },
+  {
     name: "printHeader",
     label: "Print Header",
     inputType: "image",

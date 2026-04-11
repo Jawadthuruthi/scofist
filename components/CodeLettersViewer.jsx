@@ -23,6 +23,7 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
   const codeInputRef = useRef(null);
 
   const [programsList, setProgramsList] = useState([]);
+  const [festivalSettings, setFestivalSettings] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -33,8 +34,23 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
       }
       // Pre-fetch all programs to support Sl.No search
       fetchAllPrograms();
+      fetchSettings();
     }
   }, [step, isOpen]);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch(`/api/settings`, {
+        headers: { "api-key": apiKey },
+      });
+      const data = await res.json();
+      if (data.settings && data.settings.festival) {
+        setFestivalSettings(data.settings.festival);
+      }
+    } catch (err) {
+      console.error("Failed to fetch settings:", err);
+    }
+  };
 
   const fetchAllPrograms = async () => {
     try {
@@ -220,15 +236,25 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
         <div className="flex-1 relative z-10 flex flex-col items-center justify-center p-6 text-center pt-24">
             
             {step === STEPS.SEARCH && (
-                <div className="space-y-8 animate-in fade-in zoom-in-95 duration-700">
-                    <div className="flex flex-col items-center gap-4">
-                        <div className={`p-6 rounded-full ${isWhiteTheme ? 'bg-emerald-50 text-emerald-600' : 'bg-emerald-900/40 text-emerald-500'}`}>
-                            <Layout className="w-16 h-16" />
+                <div className="absolute inset-0 top-24 flex items-center justify-center p-8 md:p-12 lg:p-20 overflow-hidden">
+                    {festivalSettings?.festivalNameImage?.url ? (
+                        <div className="relative w-full h-full flex items-center justify-center animate-in fade-in zoom-in-95 duration-1000">
+                            {/* Cinematic Glow Behind Logo */}
+                            <div className="absolute inset-0 bg-emerald-500/10 blur-[120px] rounded-full animate-pulse transition-all duration-3000 scale-75 lg:scale-100" />
+                            
+                            <img 
+                                src={festivalSettings.festivalNameImage.url} 
+                                alt="Festival" 
+                                className="w-full h-full max-w-[90vw] max-h-[85vh] object-contain drop-shadow-[0_0_80px_rgba(0,0,0,0.4)] animate-[breathe_8s_ease-in-out_infinite]" 
+                            />
                         </div>
-                        <h2 className={`text-3xl font-black uppercase tracking-[0.3em] opacity-40 ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                            Select Program
-                        </h2>
-                    </div>
+                    ) : (
+                        <div className="flex flex-col items-center gap-4 group">
+                            <div className={`p-10 rounded-full transition-transform group-hover:scale-110 ${isWhiteTheme ? 'bg-emerald-50 text-emerald-600' : 'bg-emerald-900/40 text-emerald-500'}`}>
+                                <Layout className="w-24 h-24 md:w-32 md:h-32" />
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -296,6 +322,10 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
             @keyframes float {
                 0%, 100% { transform: translateY(0) scale(1); }
                 50% { transform: translateY(-20px) scale(1.02); }
+            }
+            @keyframes breathe {
+                0%, 100% { transform: scale(0.92); opacity: 0.8; }
+                50% { transform: scale(1.05); opacity: 1; }
             }
         `}</style>
       </DialogContent>

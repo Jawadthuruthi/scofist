@@ -780,30 +780,44 @@ export function AppSidebar({ roles, activeRole, user }) {
                     </SidebarMenuButton>
                     <SidebarMenuSub className="mr-0 pt-2">
                       {item.subItems.map((subItem, subIndex) => (
-                        <SidebarMenuSubItem key={subItem.url + subItem.title + subIndex}>
+                        <SidebarMenuSubItem key={(subItem.url || 'no-url') + subItem.title + subIndex}>
                           <SidebarMenuSubButton
                             data-active={pathname === subItem.url}
-                            asChild
+                            asChild={!!subItem.url}
                           >
-                            <Link href={subItem.url}>
-                              <subItem.icon className="w-5 h-5" />
-                              <span>{subItem.title}</span>
-                            </Link>
+                            {subItem.url ? (
+                              <Link href={subItem.url}>
+                                {subItem.icon && <subItem.icon className="w-5 h-5" />}
+                                <span>{subItem.title}</span>
+                              </Link>
+                            ) : (
+                              <div className="flex items-center gap-2 opacity-50 cursor-not-allowed px-2">
+                                {subItem.icon && <subItem.icon className="w-5 h-5" />}
+                                <span>{subItem.title}</span>
+                              </div>
+                            )}
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}
                     </SidebarMenuSub>
                   </SidebarMenuItem>
                 ) : (
-                  <SidebarMenuItem className="pt-1" key={item.url + item.title + index}>
+                  <SidebarMenuItem className="pt-1" key={(item.url || 'no-url') + item.title + index}>
                     <SidebarMenuButton
                       data-active={pathname === item.url}
-                      asChild
+                      asChild={!!item.url}
                     >
-                      <Link href={item.url} className="flex items-center gap-2">
-                        <item.icon className="w-5 h-5" />
-                        <span>{item.title}</span>
-                      </Link>
+                      {item.url ? (
+                        <Link href={item.url} className="flex items-center gap-2">
+                          {item.icon && <item.icon className="w-5 h-5" />}
+                          <span>{item.title}</span>
+                        </Link>
+                      ) : (
+                        <div className="flex items-center gap-2 opacity-50 cursor-not-allowed">
+                          {item.icon && <item.icon className="w-5 h-5" />}
+                          <span>{item.title}</span>
+                        </div>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )

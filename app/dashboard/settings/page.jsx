@@ -37,11 +37,17 @@ export default async function SettingsPage() {
             .toISOString()
             .split("T")[0]
         : "",
-      participantsCard: data.festival.participantsCard.backgroundImage || {},
-      textColor: data.festival.participantsCard.textColor || "#000000",
-      right: data.festival.participantsCard.textPositions.right || 0,
-      bottom: data.festival.participantsCard.textPositions.bottom || 0,
-      left: data.festival.participantsCard.textPositions.left || 0,
+      participantsCard: data.festival?.participantsCard?.backgroundImage || {},
+      textColor: data.festival?.participantsCard?.textColor || "#000000",
+      right: data.festival?.participantsCard?.textPositions?.right || 0,
+      bottom: data.festival?.participantsCard?.textPositions?.bottom || 0,
+      left: data.festival?.participantsCard?.textPositions?.left || 0,
+      festivalNameImage: data.festival?.festivalNameImage || {},
+      printHeader: data.festival?.printHeader || {},
+      registrationDeadline: data.festival?.registrationDeadline
+        ? new Date(data.festival.registrationDeadline).toISOString().split("T")[0]
+        : "",
+      instructions: data.festival?.instructions || "",
     };
 
     const idCard = {

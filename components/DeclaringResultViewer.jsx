@@ -334,13 +334,13 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
             )}
 
             {(step === STEPS.FIRST_PLACE || step === STEPS.SECOND_PLACE || step === STEPS.THIRD_PLACE) && resultData && (
-                <div className="w-full h-full flex flex-col items-center justify-center">
-                    <div className={`mb-6 flex items-center justify-center gap-4 text-sm md:text-3xl font-black uppercase tracking-[0.4em] opacity-60 ${isWhiteTheme ? 'text-black' : 'text-white'}`}>
+                <div className="w-full h-full flex flex-col items-start justify-center pl-4 md:pl-12 lg:pl-24">
+                    <div className={`mb-6 flex items-center justify-start gap-4 text-xl md:text-5xl font-black uppercase tracking-[0.4em] opacity-60 ${isWhiteTheme ? 'text-black' : 'text-white'}`}>
                         <span>{resultData.divisionName}</span>
-                        <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                        <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-current" />
                         <span>{resultData.programName}</span>
                     </div>
-                    <div className="w-full max-w-7xl">
+                    <div className="w-full max-w-[100rem]">
                         {resultData.participants
                             .filter(p => parseRank(p.rank) === (step === STEPS.FIRST_PLACE ? 1 : step === STEPS.SECOND_PLACE ? 2 : 3))
                             .map((p, idx) => (
@@ -353,9 +353,9 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
 
             {step === STEPS.OTHERS && resultData && (
                 <div className="w-full max-w-[95vw] space-y-12 animate-in fade-in zoom-in-95 duration-1000">
-                    <div className={`mb-8 flex items-center justify-center gap-4 text-sm md:text-3xl font-black uppercase tracking-[0.4em] opacity-60 ${isWhiteTheme ? 'text-black' : 'text-white'}`}>
+                    <div className={`mb-8 flex items-center justify-center gap-4 text-xl md:text-5xl font-black uppercase tracking-[0.4em] opacity-60 ${isWhiteTheme ? 'text-black' : 'text-white'}`}>
                         <span>{resultData.divisionName}</span>
-                        <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                        <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-current" />
                         <span>{resultData.programName}</span>
                     </div>
                     <h2 className={`text-4xl md:text-[6vw] font-black uppercase tracking-tighter animate-pulse whitespace-nowrap ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
@@ -418,9 +418,9 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
                         <h2 className="text-4xl md:text-8xl lg:text-[7.5rem] font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 via-yellow-200 to-yellow-600 uppercase tracking-widest leading-none mb-6 whitespace-nowrap">
                             Top Honor Roll
                         </h2>
-                        <div className={`flex items-center justify-center gap-4 text-2xl md:text-5xl font-black uppercase tracking-[0.2em] opacity-40 ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        <div className={`flex items-center justify-center gap-4 text-3xl md:text-6xl font-black uppercase tracking-[0.2em] opacity-40 ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'}`}>
                             <span>{resultData.divisionName}</span>
-                            <div className="w-2 h-2 rounded-full bg-current" />
+                            <div className="w-3 h-3 rounded-full bg-current" />
                             <span>{resultData.programName}</span>
                         </div>
                     </div>
@@ -502,7 +502,7 @@ const SequentialWinnerCard = ({ p, rank, isWhiteTheme }) => {
             setTimeout(() => setRevealStage(REVEAL_STAGES.NAME), 2000),
             setTimeout(() => setRevealStage(REVEAL_STAGES.TEAM), 3000),
             setTimeout(() => setRevealStage(REVEAL_STAGES.POINTS), 4000),
-            setTimeout(() => setRevealStage(REVEAL_STAGES.LABEL), 6000)
+            setTimeout(() => setRevealStage(REVEAL_STAGES.LABEL), 4800)
         ];
         return () => timers.forEach(t => clearTimeout(t));
     }, []);
@@ -513,15 +513,15 @@ const SequentialWinnerCard = ({ p, rank, isWhiteTheme }) => {
     };
 
     return (
-      <div className={`w-full flex flex-col items-center justify-center pb-12 transition-all duration-1000 space-y-4 md:space-y-8`}>
+      <div className={`w-full flex flex-col items-start justify-center pb-12 transition-all duration-1000 space-y-4 md:space-y-8`}>
         
         {/* Placeholder removed from top - now moved to right column */}
 
         {/* Side-by-Side Container */}
-        <div className="w-full max-w-7xl flex flex-col md:flex-row items-start justify-center gap-12 md:gap-24 animate-in fade-in duration-1000">
+        <div className="w-full max-w-[100rem] flex flex-col md:flex-row items-start justify-start gap-8 md:gap-16 animate-in fade-in duration-1000">
             
             {/* LEFT SIDE: Photo & Chest Number */}
-            <div className="flex flex-col items-center gap-6 shrink-0 mt-20">
+            <div className="flex flex-col items-center gap-6 shrink-0 mt-8 md:mt-20">
                 {showStage(REVEAL_STAGES.PHOTO) && (
                     <div className={`w-64 h-64 md:w-[32rem] md:h-[32rem] rounded-full overflow-hidden border-[12px] shadow-[0_0_100px_rgba(0,0,0,0.5)] transition-all flex-shrink-0 animate-in fade-in zoom-in duration-1000 ${theme.border}`}>
                         {p.participantDetails?.profilePic ? (

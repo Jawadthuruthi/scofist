@@ -185,6 +185,19 @@ const SettingsSchema = new Schema(
           default: "Sa-adiya Da-awa College",
         },
       },
+      festivalNameImage: {
+        url: {
+          type: String,
+          trim: true,
+          validate: {
+            validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+            message: "Invalid URL format",
+          },
+        },
+        publicId: {
+          type: String,
+        },
+      },
       printHeader: {
         url: {
           type: String,
@@ -395,8 +408,8 @@ const SettingsSchema = new Schema(
 // Ensure only one settings document exists
 SettingsSchema.index({}, { unique: true });
 
-// Check if model exists but is missing the new field (Hot Reload fix)
-if (models.Settings && !models.Settings.schema.path("spark.committeePosters")) {
+// Check if model exists but is missing the new fields (Hot Reload fix)
+if (models.Settings && (!models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage"))) {
   console.log("Detecting outdated Settings model. Refreshing...");
   delete models.Settings;
 }

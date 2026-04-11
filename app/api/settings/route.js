@@ -135,6 +135,8 @@ export async function POST(req, res) {
             data.festival_venue ??
             existingSettings?.festival?.festivalInfo?.venue,
         },
+        festivalNameImage:
+          data.festivalNameImage ?? existingSettings?.festival?.festivalNameImage,
         printHeader:
           data.printHeader ?? existingSettings?.festival?.printHeader,
         registrationDeadline:
@@ -378,6 +380,7 @@ export async function PUT(req, res) {
       data.festival_venue ||
       data.festival_startDate ||
       data.festival_endDate ||
+      data.festivalNameImage ||
       data.printHeader ||
       data.registrationDeadline ||
       data.participantsCard ||
@@ -411,6 +414,8 @@ export async function PUT(req, res) {
             data.festival_venue ??
             existingSettings?.festival?.festivalInfo?.venue,
         },
+        festivalNameImage:
+          data.festivalNameImage ?? existingSettings?.festival?.festivalNameImage,
         printHeader:
           data.printHeader ?? existingSettings?.festival?.printHeader,
         registrationDeadline:
