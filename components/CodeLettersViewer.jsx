@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Search, Loader2, RotateCcw, LayoutGrid, X } from "lucide-react";
+import { Search, Loader2, RotateCcw, Layout, X } from "lucide-react";
 import DashboardTopBar from "./DashboardTopBar";
 
 const STEPS = {
@@ -251,7 +251,7 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
                     ) : (
                         <div className="flex flex-col items-center gap-4 group">
                             <div className={`p-10 rounded-full transition-transform group-hover:scale-110 ${isWhiteTheme ? 'bg-emerald-50 text-emerald-600' : 'bg-emerald-900/40 text-emerald-500'}`}>
-                                <LayoutGrid className="w-24 h-24 md:w-32 md:h-32" />
+                                <Layout className="w-24 h-24 md:w-32 md:h-32" />
                             </div>
                         </div>
                     )}

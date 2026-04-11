@@ -408,6 +408,12 @@ const SettingsSchema = new Schema(
 // Ensure only one settings document exists
 SettingsSchema.index({}, { unique: true });
 
+// Check if model exists but is missing the new fields (Hot Reload fix)
+if (models.Settings && (!models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage"))) {
+  console.log("Detecting outdated Settings model. Refreshing...");
+  delete models.Settings;
+}
+
 const Settings = models.Settings || model("Settings", SettingsSchema);
 
 export default Settings;
