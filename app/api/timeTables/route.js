@@ -109,16 +109,16 @@ export async function GET(req, res) {
       query.classId = filterParams.classId;
     }
 
-    const timeSlotsFilters = [];
+    const timeSlotMatch = {};
     if (filterParams.teacherId) {
-      timeSlotsFilters.push({ $elemMatch: { teacherId: filterParams.teacherId } });
+      timeSlotMatch.teacherId = filterParams.teacherId;
     }
     if (filterParams.day) {
-      timeSlotsFilters.push({ $elemMatch: { day: filterParams.day } });
+      timeSlotMatch.day = filterParams.day;
     }
 
-    if (timeSlotsFilters.length > 0) {
-      query.timeSlots = { $all: timeSlotsFilters };
+    if (Object.keys(timeSlotMatch).length > 0) {
+      query.timeSlots = { $elemMatch: timeSlotMatch };
     }
 
     // Force a reasonable limit if none provided to prevent massive payload
