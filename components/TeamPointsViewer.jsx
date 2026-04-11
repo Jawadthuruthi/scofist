@@ -132,6 +132,7 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
+        e.target.blur();
         if (showAnnouncement) {
             closeAnnouncement();
         } else {

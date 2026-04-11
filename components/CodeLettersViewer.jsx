@@ -117,6 +117,7 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
+      e.target.blur();
       if (step === STEPS.SEARCH) {
         fetchProgram();
       } else if (step === STEPS.DISPLAY) {

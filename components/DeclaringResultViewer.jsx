@@ -259,7 +259,10 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
                             onChange={(e) => setResultNumber(e.target.value)}
                             onKeyDown={(e) => {
                                 e.stopPropagation();
-                                if (e.key === 'Enter') fetchResult();
+                                if (e.key === 'Enter') {
+                                    fetchResult();
+                                    e.target.blur();
+                                }
                             }}
                             onClick={(e) => e.stopPropagation()}
                             onMouseDown={(e) => e.stopPropagation()}

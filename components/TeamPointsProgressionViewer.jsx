@@ -58,7 +58,10 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, onNavigat
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleApplyLimit();
+    if (e.key === 'Enter') {
+      e.target.blur();
+      handleApplyLimit();
+    }
   };
 
   const fetchProgressionData = async (customLimit = null) => {
