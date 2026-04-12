@@ -19,8 +19,12 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [error, setError] = useState("");
   const [isDaisVisible, setIsDaisVisible] = useState(false);
+  const [maxTime, setMaxTime] = useState(""); // Default to empty (no timer)
+  const [timeLeft, setTimeLeft] = useState(0); // Seconds
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
   
   const searchInputRef = useRef(null);
+  const timeInputRef = useRef(null);
   const codeInputRef = useRef(null);
 
   const [programsList, setProgramsList] = useState([]);
@@ -79,6 +83,8 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
     setSelectedProgram(null);
     setError("");
     setIsDaisVisible(false);
+    setIsTimerRunning(false);
+    setTimeLeft(0);
   }, []);
 
   useEffect(() => {
@@ -95,7 +101,7 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
     if (slMatch) {
       setSelectedProgram(slMatch);
       setStep(STEPS.DISPLAY);
-      setTimeout(() => codeInputRef.current?.focus(), 100);
+      setTimeout(() => timeInputRef.current?.focus(), 100);
       return;
     }
 
@@ -111,7 +117,7 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
       if (data.programs && data.programs.length > 0) {
         setSelectedProgram(data.programs[0]);
         setStep(STEPS.DISPLAY);
-        setTimeout(() => codeInputRef.current?.focus(), 100);
+        setTimeout(() => timeInputRef.current?.focus(), 100);
       } else {
         setError("Program not found. Please try another name or Sl.No.");
       }
@@ -142,6 +148,77 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
       }
     }
   };
+
+  const playTimerSound = useCallback(() => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      
+      const audioCtx = new AudioContext();
+      
+      const playBeep = (delay) => {
+        const startTime = audioCtx.currentTime + delay;
+        
+        // Electronic Timer Beep (Square wave for piercing sound)
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        // Using square wave for a standard "electronic timer" feel
+        osc.type = "square";
+        osc.frequency.setValueAtTime(2500, startTime); // Higher piercing frequency
+        
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.8, startTime + 0.01); // High Volume
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3); // Short sharp beep
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start(startTime);
+        osc.stop(startTime + 0.3);
+      };
+
+      // 3 High-Volume Beeps
+      playBeep(0);
+      playBeep(0.4);
+      playBeep(0.8);
+    } catch (err) {
+      console.error("Failed to play timer sound:", err);
+    }
+  }, []);
+
+  // Timer Logic
+  useEffect(() => {
+    let interval;
+    if (isTimerRunning) {
+      interval = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 0) return 0;
+          const next = prev - 1;
+          // Play sound at exactly 0
+          if (next === 0) {
+            playTimerSound();
+          }
+          return next;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning, playTimerSound]);
+
+  // Start/Stop Timer based on visibility
+  useEffect(() => {
+    if (isDaisVisible) {
+      const duration = parseInt(maxTime);
+      if (duration > 0 && !isTimerRunning) {
+        setTimeLeft(duration * 60);
+        setIsTimerRunning(true);
+      }
+    } else {
+      setIsTimerRunning(false);
+      setTimeLeft(0);
+    }
+  }, [isDaisVisible, maxTime, isTimerRunning]);
 
   // Keyboard shortcut for 'B' to go back to entry
   useEffect(() => {
@@ -184,20 +261,39 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
             toggleTheme={() => setIsWhiteTheme(!isWhiteTheme)}
             onClose={onClose}
             leftContent={
-                <div className="flex items-center gap-4 px-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-6 px-2" onClick={(e) => e.stopPropagation()}>
                     {step === STEPS.SEARCH ? (
-                        <div className="relative w-64">
-                            <input
-                                ref={searchInputRef}
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                placeholder="Program Name/Code..."
-                                className={`w-full bg-transparent border-b-2 text-left text-xl font-black focus:outline-none py-1 transition-all opacity-40 focus:opacity-100 placeholder:uppercase ${isWhiteTheme ? 'border-zinc-200 focus:border-zinc-900 text-zinc-900 placeholder:text-zinc-300' : 'border-zinc-800 focus:border-white text-white placeholder:text-zinc-700'}`}
-                            />
-                            <div className="absolute right-0 bottom-1.5 opacity-30">
-                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                        <div className="flex items-center gap-4">
+                            <div className="relative w-64">
+                                <input
+                                    ref={searchInputRef}
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder="Program Name/Code..."
+                                    className={`w-full bg-transparent border-b-2 text-left text-xl font-black focus:outline-none py-1 transition-all opacity-40 focus:opacity-100 placeholder:uppercase ${isWhiteTheme ? 'border-zinc-200 focus:border-zinc-900 text-zinc-900 placeholder:text-zinc-300' : 'border-zinc-800 focus:border-white text-white placeholder:text-zinc-700'}`}
+                                />
+                                <div className="absolute right-0 bottom-1.5 opacity-30">
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                                </div>
+                            </div>
+                            {/* Time Input next to Search */}
+                            <div className={`flex items-center gap-2 p-1 px-3 rounded-lg border transition-all ${isWhiteTheme ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-800 bg-zinc-900/50'}`}>
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-600'}`}>Time</span>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="99"
+                                    value={maxTime}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setMaxTime(val === "" ? "" : val);
+                                    }}
+                                    onKeyDown={(e) => e.stopPropagation()}
+                                    className={`w-10 bg-transparent text-center text-sm font-black focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}
+                                />
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-600'}`}>Min</span>
                             </div>
                         </div>
                     ) : (
@@ -225,6 +321,29 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
                                     placeholder="LETTER..."
                                     className={`w-full bg-transparent border-b-2 text-center text-xl font-black focus:outline-none py-1 transition-all placeholder:uppercase ${isWhiteTheme ? 'border-zinc-200 focus:border-zinc-900 text-zinc-900 placeholder:text-zinc-300' : 'border-zinc-800 focus:border-white text-white placeholder:text-zinc-700'}`}
                                 />
+                            </div>
+                            {/* Time Input next to Letter */}
+                            <div className={`flex items-center gap-2 p-1 px-3 rounded-lg border transition-all ${isWhiteTheme ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-800 bg-zinc-900/50'}`}>
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-600'}`}>Time</span>
+                                <input
+                                    ref={timeInputRef}
+                                    type="number"
+                                    min="1"
+                                    max="99"
+                                    value={maxTime}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setMaxTime(val === "" ? "" : val);
+                                    }}
+                                    onKeyDown={(e) => {
+                                        e.stopPropagation();
+                                        if (e.key === "Enter") {
+                                            codeInputRef.current?.focus();
+                                        }
+                                    }}
+                                    className={`w-10 bg-transparent text-center text-sm font-black focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}
+                                />
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-600'}`}>Min</span>
                             </div>
                         </div>
                     )}
@@ -291,26 +410,45 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
                                 </h1>
                             </div>
 
-                            {/* Reveal Container */}
-                            <div className="flex flex-col items-center justify-center -space-y-6 md:-space-y-12">
-                                {/* "CODE LETTER" Label */}
-                                <div className="animate-in fade-in zoom-in-95 duration-700 delay-100">
-                                    <h2 className={`text-3xl md:text-6xl font-black uppercase tracking-[0.6em] opacity-40 ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
-                                        CODE LETTER
-                                    </h2>
-                                </div>
+                             {/* Reveal Container: Side-by-Side Cinematic Layout */}
+                            <div className="flex flex-col items-center justify-center w-full">
+                                <div className="flex flex-col md:flex-row items-center justify-center gap-12 md:gap-24 lg:gap-32 w-full animate-in fade-in zoom-in-95 duration-1000">
+                                    
+                                    {/* Code Letter Side: Now First */}
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="animate-in fade-in slide-in-from-left-10 duration-700 delay-200">
+                                            <h2 className={`text-2xl md:text-5xl font-black uppercase tracking-[0.6em] opacity-40 ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                                                CODE LETTER
+                                            </h2>
+                                        </div>
+                                        <div className="relative group">
+                                            <div className={`absolute inset-0 blur-[150px] rounded-full animate-pulse transition-all group-hover:scale-110 ${isWhiteTheme ? 'bg-zinc-400/30' : 'bg-white/20'}`} />
+                                            <h1 className={`relative text-[12rem] md:text-[20rem] lg:text-[25rem] leading-[0.8] font-black uppercase tracking-tighter drop-shadow-2xl animate-[float_6s_ease-in-out_infinite] ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                                                {codeLetter}
+                                            </h1>
+                                        </div>
+                                    </div>
 
-                                {/* The Actual Code Letter */}
-                                <div className="relative group animate-in fade-in zoom-in-75 duration-700 delay-300">
-                                    <div className={`absolute inset-0 blur-[150px] rounded-full animate-pulse group-hover:scale-110 transition-transform ${isWhiteTheme ? 'bg-zinc-400/30' : 'bg-white/20'}`} />
-                                    <h1 className={`relative text-[20rem] md:text-[42rem] leading-[0.75] font-black uppercase tracking-tighter drop-shadow-2xl animate-[float_6s_ease-in-out_infinite] ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
-                                        {codeLetter}
-                                    </h1>
+                                    {/* Timer Side: Only shown if maxTime is set */}
+                                    {parseInt(maxTime) > 0 && (
+                                        <div className="flex flex-col items-center gap-4">
+                                            <div className="animate-in fade-in slide-in-from-right-10 duration-700 delay-200">
+                                                <h2 className={`text-2xl md:text-5xl font-black uppercase tracking-[0.4em] opacity-40 ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                                                    REMAINING
+                                                </h2>
+                                            </div>
+                                            <div className={`px-10 py-4 rounded-[2.5rem] border-4 backdrop-blur-xl transition-all duration-300 transform hover:scale-105 shadow-2xl ${timeLeft <= 0 ? 'bg-red-500/20 border-red-500/50 shadow-[0_0_100px_rgba(239,68,68,0.4)]' : isWhiteTheme ? 'bg-zinc-100/80 border-zinc-200' : 'bg-white/5 border-white/20'}`}>
+                                                <div className={`text-[8rem] md:text-[12rem] lg:text-[15rem] leading-none font-black tabular-nums transition-colors duration-300 ${timeLeft <= 0 ? 'text-red-500 animate-pulse' : isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                                                    {Math.floor(Math.abs(timeLeft) / 60)}:{String(Math.abs(timeLeft) % 60).padStart(2, '0')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* "ON THE DAIS" Label */}
-                                <div className="animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-500 pt-8 md:pt-16">
-                                    <h3 className={`text-5xl md:text-[8rem] font-black uppercase tracking-[0.4em] ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                                <div className="animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-500 pt-16 md:pt-24 lg:pt-32">
+                                    <h3 className={`text-6xl md:text-[8rem] lg:text-[12rem] font-black uppercase tracking-[0.4em] drop-shadow-2xl ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
                                         ON THE DAIS
                                     </h3>
                                 </div>
