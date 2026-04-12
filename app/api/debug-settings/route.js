@@ -1,16 +1,17 @@
-import connectToDB from "../../lib/db";
-import Settings from "../../models/Settings";
+import connectToDB from "@/lib/db";
+import Settings from "@/models/Settings";
+import { NextResponse } from "next/server";
 
-export default async function handler(req, res) {
+export async function GET() {
   try {
     await connectToDB();
     const settings = await Settings.findOne({});
-    res.status(200).json({ 
+    return NextResponse.json({ 
       hasFestivalNameImage: !!settings?.festival?.festivalNameImage,
       festivalNameImage: settings?.festival?.festivalNameImage,
       rawFestival: settings?.festival
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
