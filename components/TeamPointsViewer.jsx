@@ -85,11 +85,12 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
 
     setAnnouncementValue(limitInput);
     setShowAnnouncement(true);
+    fetchTeamPoints(limitInput);
   };
 
   const closeAnnouncement = () => {
+    if (loading) return; 
     setShowAnnouncement(false);
-    fetchTeamPoints(announcementValue);
   };
 
   useEffect(() => {
@@ -122,7 +123,14 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
           toggleReveal(teams[1]._id);
         } else if (e.key === '3' && teams[2]) {
           toggleReveal(teams[2]._id);
+        } else if (e.key === 'Enter') {
+          if (showAnnouncement) {
+            closeAnnouncement();
+          }
         }
+      } else if (isOpen && e.key === 'Enter' && showAnnouncement) {
+        // Even if teams haven't loaded yet, allow closing the announcement overlay
+        closeAnnouncement();
       }
     };
 
@@ -344,6 +352,7 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
                     After {announcementValue} Results
                  </span>
                </h1>
+
             </div>
           </div>
         )}

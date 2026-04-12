@@ -15,6 +15,7 @@ import IndividualToppersViewer from "./IndividualToppersViewer";
 import TeamPointsProgressionViewer from "./TeamPointsProgressionViewer";
 import DeclaringResultViewer from "./DeclaringResultViewer";
 import CodeLettersViewer from "./CodeLettersViewer";
+import GeneralDisplayViewer from "./GeneralDisplayViewer";
 
 // ===== MAIN DASHBOARD COMPONENT =====
 export default function FestDashboard({ apiKey, activeRole }) {
@@ -27,6 +28,8 @@ export default function FestDashboard({ apiKey, activeRole }) {
   const [showProgression, setShowProgression] = useState(false);
   const [showDeclaring, setShowDeclaring] = useState(false);
   const [showCodeLetters, setShowCodeLetters] = useState(false);
+  const [showDisplay, setShowDisplay] = useState(false);
+  const [displayValue, setDisplayValue] = useState("");
   const [isWhiteTheme, setIsWhiteTheme] = useState(false);
 
   const navigateTo = (view) => {
@@ -38,6 +41,7 @@ export default function FestDashboard({ apiKey, activeRole }) {
     setShowProgression(view === 'graph');
     setShowDeclaring(view === 'results');
     setShowCodeLetters(view === 'code-letters');
+    setShowDisplay(view === 'display');
   };
 
   // Keyboard Shortcuts
@@ -58,6 +62,7 @@ export default function FestDashboard({ apiKey, activeRole }) {
         case 'G': navigateTo('graph'); break;
         case 'I': navigateTo('toppers'); break;
         case 'C': navigateTo('champions'); break;
+        case 'D': navigateTo('display'); break;
         default: break;
       }
     };
@@ -75,6 +80,20 @@ export default function FestDashboard({ apiKey, activeRole }) {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Display Action Card */}
+        <div 
+          onClick={() => setShowDisplay(true)}
+          className="bg-card hover:bg-zinc-100 dark:hover:bg-zinc-800 border-2 border-indigo-500/20 rounded-xl p-6 flex items-center gap-4 cursor-pointer transition-all hover:scale-105 shadow-lg group relative overflow-hidden"
+        >
+          <div className="p-4 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-500 rounded-full group-hover:rotate-12 transition-transform">
+            <MonitorPlay className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="font-medium text-lg tracking-tight">Display</h3>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold opacity-60">Full-screen custom announcements</p>
+          </div>
+        </div>
+
         {/* Code Letters Action Card */}
         <div 
           onClick={() => setShowCodeLetters(true)}
@@ -258,6 +277,16 @@ export default function FestDashboard({ apiKey, activeRole }) {
         apiKey={apiKey}
         isWhiteTheme={isWhiteTheme}
         setIsWhiteTheme={setIsWhiteTheme}
+      />
+
+      <GeneralDisplayViewer 
+        isOpen={showDisplay}
+        onClose={() => setShowDisplay(false)}
+        onNavigate={navigateTo}
+        apiKey={apiKey}
+        isWhiteTheme={isWhiteTheme}
+        setIsWhiteTheme={setIsWhiteTheme}
+        initialText={displayValue}
       />
     </div>
   );
