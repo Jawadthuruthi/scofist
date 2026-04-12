@@ -287,7 +287,7 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
         />
 
         {/* Content Arena */}
-        <div className={`flex-1 relative z-10 flex flex-col items-center p-6 text-center pt-24 ${ (step === STEPS.OTHERS) ? 'justify-start mt-8' : (step === STEPS.PODIUM) ? 'justify-start' : 'justify-center' }`}>
+        <div className={`flex-1 relative z-10 flex flex-col items-center px-2 py-6 text-center pt-24 ${ (step === STEPS.OTHERS) ? 'justify-start mt-8' : (step === STEPS.PODIUM) ? 'justify-start' : 'justify-center' }`}>
             
             {step === STEPS.INPUT && (
                 <div className="w-full h-full flex flex-col items-center justify-center space-y-12 animate-in fade-in zoom-in-95 duration-700" onClick={(e) => e.stopPropagation()}>
@@ -340,7 +340,7 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
                         <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-current" />
                         <span>{resultData.programName}</span>
                     </div>
-                    <div className="w-full max-w-[100rem]">
+                    <div className="w-full max-w-none lg:px-12">
                         {resultData.participants
                             .filter(p => parseRank(p.rank) === (step === STEPS.FIRST_PLACE ? 1 : step === STEPS.SECOND_PLACE ? 2 : 3))
                             .map((p, idx) => (
@@ -413,12 +413,12 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
             )}
 
             {step === STEPS.PODIUM && resultData && (
-                <div className="w-full h-full max-w-7xl flex flex-col justify-between pt-4 pb-8">
+                <div className="w-full h-full max-w-[95vw] flex flex-col justify-between pt-4 pb-8">
                     <div className="mb-4">
                         <h2 className="text-4xl md:text-8xl lg:text-[7.5rem] font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 via-yellow-200 to-yellow-600 uppercase tracking-widest leading-none mb-6 whitespace-nowrap">
                             Top Honor Roll
                         </h2>
-                        <div className={`flex items-center justify-center gap-4 text-3xl md:text-6xl font-black uppercase tracking-[0.2em] opacity-40 ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        <div className={`flex items-center justify-center gap-4 text-3xl md:text-6xl font-black uppercase tracking-[0.2em] opacity-40 whitespace-nowrap ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'}`}>
                             <span>{resultData.divisionName}</span>
                             <div className="w-3 h-3 rounded-full bg-current" />
                             <span>{resultData.programName}</span>
@@ -518,12 +518,24 @@ const SequentialWinnerCard = ({ p, rank, isWhiteTheme }) => {
         {/* Placeholder removed from top - now moved to right column */}
 
         {/* Side-by-Side Container */}
-        <div className="w-full max-w-[100rem] flex flex-col md:flex-row items-start justify-start gap-8 md:gap-16 animate-in fade-in duration-1000">
+        <div className="w-full max-w-none flex flex-col md:flex-row items-start justify-start gap-4 md:gap-10 animate-in fade-in duration-1000">
             
-            {/* LEFT SIDE: Photo & Chest Number */}
-            <div className="flex flex-col items-center gap-6 shrink-0 mt-8 md:mt-20">
-                {showStage(REVEAL_STAGES.PHOTO) && (
-                    <div className={`w-64 h-64 md:w-[32rem] md:h-[32rem] rounded-full overflow-hidden border-[12px] shadow-[0_0_100px_rgba(0,0,0,0.5)] transition-all flex-shrink-0 animate-in fade-in zoom-in duration-1000 ${theme.border}`}>
+            {/* LEFT SIDE: Cinematic Toss Coin (Combined Photo & Chest Number) */}
+            <div className="flex flex-col items-center shrink-0 mt-8 md:mt-20 perspective-2000">
+                <div className={`relative w-64 h-64 md:w-[32rem] md:h-[32rem] preserve-3d transition-all duration-1000 ${showStage(REVEAL_STAGES.PHOTO) ? 'animate-[coin-toss_5s_ease-out_forwards]' : ''}`}>
+                    
+                    {/* FRONT FACE: Chest Number */}
+                    <div className={`absolute inset-0 backface-hidden rounded-full border-[12px] flex flex-col items-center justify-center shadow-2xl ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200' : 'bg-zinc-900 border-zinc-700'} ${theme.border}`}>
+                        <div className={`text-xl md:text-5xl font-bold uppercase tracking-[0.2em] mb-2 ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-500'}`}>Chest No</div>
+                        <div className={`text-6xl md:text-[12rem] font-black ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                            {p.participantDetails?.chestNumber || "---"}
+                        </div>
+                        {/* Decorative coin ridges */}
+                        <div className="absolute inset-2 rounded-full border-4 border-dashed opacity-20 animate-spin-slow" />
+                    </div>
+
+                    {/* BACK FACE: Participant Photo */}
+                    <div className={`absolute inset-0 backface-hidden rotate-y-180 rounded-full overflow-hidden border-[12px] shadow-2xl ${theme.border}`}>
                         {p.participantDetails?.profilePic ? (
                             <img src={p.participantDetails.profilePic} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -531,19 +543,24 @@ const SequentialWinnerCard = ({ p, rank, isWhiteTheme }) => {
                                 {p.participantDetails?.name?.charAt(0)}
                             </div>
                         )}
+                        {/* Shimmer overlay that appears during toss */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_5s_infinite] pointer-events-none" />
                     </div>
-                )}
+                </div>
 
-                {showStage(REVEAL_STAGES.CHEST) && (
-                    <div className={`px-12 py-3 rounded-2xl border-4 font-black text-4xl md:text-7xl shadow-2xl animate-in fade-in slide-in-from-top-10 duration-700 ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-black' : 'bg-zinc-900 border-zinc-700 text-white'}`}>
-                        <span className={`${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'} mr-4 text-xl md:text-4xl font-bold`}>NO.</span>
-                        {p.participantDetails?.chestNumber || "---"}
+                {/* Optional: Static Chest Number indicator after landing */}
+                {showStage(REVEAL_STAGES.PHOTO) && (
+                    <div className="mt-12 animate-in fade-in slide-in-from-top-10 duration-1000" style={{ animationDelay: '5s' }}>
+                        <div className={`px-16 py-4 rounded-[2.5rem] border-4 font-black text-5xl md:text-9xl shadow-[0_30px_60px_rgba(0,0,0,0.5)] transform hover:scale-105 transition-transform ${isWhiteTheme ? 'bg-white border-zinc-200 text-zinc-900' : 'bg-black/80 border-zinc-700 text-white'}`}>
+                            <span className="text-2xl md:text-5xl opacity-40 mr-4">NO.</span>
+                            {p.participantDetails?.chestNumber}
+                        </div>
                     </div>
                 )}
             </div>
 
             {/* RIGHT SIDE: Rank, Name, Team, Points */}
-            <div className="flex flex-col items-center md:items-start text-center md:text-left gap-6 md:gap-10 flex-1 min-w-0">
+            <div className="flex flex-col items-center md:items-start text-center md:text-left gap-6 md:gap-10 flex-1 min-w-0 max-w-[1500px]">
                 
                 {/* 1. Rank Label (Revealed Last, Aligned with Name) */}
                 <div className={`transition-all duration-1000 ease-in-out transform min-h-[5rem] md:min-h-[10rem] flex items-center justify-start`}>
@@ -647,6 +664,25 @@ const styles = `
     33% { transform: translateY(-20px) translateX(10px); }
     66% { transform: translateY(-10px) translateX(-10px); }
   }
+  @keyframes coin-toss {
+    0% { transform: translateY(0) rotateY(0) scale(1); }
+    30% { transform: translateY(-400px) rotateY(1080deg) scale(1.2); }
+    60% { transform: translateY(-200px) rotateY(2160deg) scale(1.1); }
+    100% { transform: translateY(0) rotateY(3780deg) scale(1); }
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) rotate(45deg); }
+  }
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-slow { animation: spin-slow 8s linear infinite; }
+  .perspective-2000 { perspective: 2000px; }
+  .preserve-3d { transform-style: preserve-3d; }
+  .backface-hidden { backface-visibility: hidden; }
+  .rotate-y-180 { transform: rotateY(180deg); }
 `;
 
 if (typeof document !== 'undefined') {
