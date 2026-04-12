@@ -106,8 +106,12 @@ const StudentsFund = ({
   const [transactions, setTransactions] = useState([]);
   const amountInputRef = useRef(null);
   const noteInputRef = useRef(null);
+  const depositButtonRef = useRef(null);
+  const withdrawalButtonRef = useRef(null);
   const confirmButtonRef = useRef(null);
   const finalConfirmButtonRef = useRef(null);
+  const cancelButtonRef = useRef(null);
+  const pendingFocusRef = useRef(false);
   const [showQuickPaymentDialog, setShowQuickPaymentDialog] = useState(false);
   const [quickPaymentData, setQuickPaymentData] = useState(null);
   const [quickPaymentAmount, setQuickPaymentAmount] = useState("");
@@ -227,16 +231,16 @@ const StudentsFund = ({
   }, [studentFund, selectedStudents]);
 
   useEffect(() => {
+    if (pendingFocusRef.current && depositButtonRef.current) {
+      depositButtonRef.current.focus();
+      pendingFocusRef.current = false;
+    }
+  });
+
+  useEffect(() => {
     setCurrentDate(new Date().toLocaleDateString());
   }, []);
 
-  useEffect(() => {
-    if (transactionType && amountInputRef.current) {
-      setTimeout(() => {
-        amountInputRef.current.focus();
-      }, 0);
-    }
-  }, [transactionType]);
 
   useEffect(() => {
     if (showConfirmDialog && finalConfirmButtonRef.current) {
@@ -617,8 +621,10 @@ const StudentsFund = ({
       if (foundStudent.batchId) {
         setSelectedBatch(foundStudent.batchId);
         setSelectedStudents([foundStudent._id]);
+        setTransactionType("Deposit");
         toast.success(`Found student: ${foundStudent.name}`);
         setClearOnNextInput(true);
+        pendingFocusRef.current = true;
       } else {
         toast.error("Student found, but they are not assigned to a batch.");
         setSelectedStudents([]);
@@ -861,20 +867,38 @@ const StudentsFund = ({
                   {/* Transaction Type Selection */}
                   <div className="grid grid-cols-2 gap-4">
                     <Button
+                      ref={depositButtonRef}
                       variant={
                         transactionType === "Deposit" ? "default" : "outline"
                       }
                       onClick={() => setTransactionType("Deposit")}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowRight") {
+                          setTransactionType("Withdrawal");
+                          setTimeout(() => withdrawalButtonRef.current?.focus(), 0);
+                        } else if (e.key === "Enter") {
+                          setTimeout(() => amountInputRef.current?.focus(), 0);
+                        }
+                      }}
                       className="h-16 flex-col gap-2"
                     >
                       <Plus className="h-5 w-5" />
                       {transactionLabels.deposit}
                     </Button>
                     <Button
+                      ref={withdrawalButtonRef}
                       variant={
                         transactionType === "Withdrawal" ? "default" : "outline"
                       }
                       onClick={() => setTransactionType("Withdrawal")}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowLeft") {
+                          setTransactionType("Deposit");
+                          setTimeout(() => depositButtonRef.current?.focus(), 0);
+                        } else if (e.key === "Enter") {
+                          setTimeout(() => amountInputRef.current?.focus(), 0);
+                        }
+                      }}
                       className={`h-16 flex-col gap-2 ${transactionType === "Withdrawal"
                         ? "!bg-destructive !text-destructive-foreground"
                         : ""
@@ -1448,10 +1472,24 @@ const StudentsFund = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel
+              ref={cancelButtonRef}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowRight") {
+                  finalConfirmButtonRef.current?.focus();
+                }
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               ref={finalConfirmButtonRef}
               onClick={confirmTransaction}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowLeft") {
+                  cancelButtonRef.current?.focus();
+                }
+              }}
               className={
                 transactionType === "Withdrawal"
                   ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"

@@ -81,3 +81,31 @@ export async function POST(req) {
     return apiResponse.error(error);
   }
 }
+
+export async function DELETE(req) {
+  try {
+    const { _id } = await req.json();
+    if (!_id) {
+      return NextResponse.json(
+        { success: false, error: "Record ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const result = await TeachersLeaveRecord.findByIdAndDelete(_id);
+    
+    if (!result) {
+      return NextResponse.json(
+        { success: false, error: "Record not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: true, message: "Leave record cleared successfully!" },
+      { status: 200 }
+    );
+  } catch (error) {
+    return apiResponse.error(error);
+  }
+}

@@ -23,7 +23,7 @@ const teachersLeaveRecordSchema = new Schema({
   },
   leaveReason: {
     type: String,
-    required: true,
+    required: false,
   },
 });
 

@@ -63,6 +63,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
   const [reason, setReason] = useState("");
   const [classId, setClassId] = useState("");
   const [periodNumber, setPeriodNumber] = useState("");
+  const [selectedRecordId, setSelectedRecordId] = useState("");
   const [error, setError] = useState(false);
 
   const router = useRouter();
@@ -97,10 +98,12 @@ const MyPeriods = ({ apiKey, teacherId }) => {
     useFetchItems: useFetchTeachersLeaveRecord,
     useAddItem,
     useUpdateItem,
+    useDeleteItem,
   } = useCrud("teachers-leave-record", apiKey);
 
   const addLeaveRecord = useAddItem();
   const updateLeaveRecord = useUpdateItem();
+  const deleteLeaveRecord = useDeleteItem();
 
   // Reduce network requests by passing proper options
   const periodsQuery = useFetchPeriods(
@@ -284,13 +287,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
   );
 
   const handleLeave = async () => {
-    if (!reason.trim()) {
-      toast.error("Please enter a reason for leave.");
-      s;
-      return;
-    }
-
-    if (reason.length > 20) {
+    if (reason.trim() !== "" && reason.length > 20) {
       toast.error("Leave reason should not exceed 20 characters.");
       return;
     }
@@ -306,10 +303,29 @@ const MyPeriods = ({ apiKey, teacherId }) => {
       toast.success("Leave reason submitted successfully.");
       setOpen(false);
       setReason("");
+      setSelectedRecordId("");
       await leaveRecordQuery.refetch();
+      router.refresh();
     } catch (error) {
       console.error("Error submitting leave reason:", error);
       toast.error(error.message || "Error submitting leave reason");
+    }
+  };
+
+  const handleClear = async () => {
+    if (!selectedRecordId) return;
+
+    try {
+      await deleteLeaveRecord.mutateAsync({ data: { _id: selectedRecordId } });
+      toast.success("Leave reason cleared successfully.");
+      setOpen(false);
+      setReason("");
+      setSelectedRecordId("");
+      await leaveRecordQuery.refetch();
+      router.refresh();
+    } catch (error) {
+      console.error("Error clearing leave reason:", error);
+      toast.error(error.message || "Error clearing leave reason");
     }
   };
 
@@ -435,6 +451,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                               setClassId(slot.classId._id);
                               setPeriodNumber(slot.periodNumber);
                               setReason(leaveRecord?.leaveReason || "");
+                              setSelectedRecordId(leaveRecord?._id || "");
                             }}
                           >
                             <FileText className="text-muted-foreground h-5 w-5 md:hidden" />
@@ -589,9 +606,25 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                 </p>
               )}
             </div>
-            <Button disabled={addLeaveRecord.isPending} onClick={handleLeave}>
-              Submit
-            </Button>
+            <div className="flex gap-2">
+              {selectedRecordId && (
+                <Button 
+                  variant="outline" 
+                  className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
+                  disabled={deleteLeaveRecord.isPending} 
+                  onClick={handleClear}
+                >
+                  Clear
+                </Button>
+              )}
+              <Button 
+                disabled={addLeaveRecord.isPending} 
+                onClick={handleLeave}
+                className={selectedRecordId ? "flex-1" : "w-full"}
+              >
+                Submit
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

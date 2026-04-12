@@ -796,8 +796,9 @@ export default function Dashboard({
   const router = useRouter();
   const isClient = useIsClient();
 
-  // Data fetching hook
   const { useFetchItems: useFetchStudents } = useCrud("users", apiKey);
+  const { useFetchItems: useFetchTeachersLeaveRecord } = useCrud("teachers-leave-record", apiKey);
+  
   const fetchStudentsQuery = useFetchStudents(
     0,
     0,
@@ -807,6 +808,12 @@ export default function Dashboard({
       refetchOnWindowFocus: false,
     }
   );
+  
+  const todaysDate = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const teachersLeaveRecordQuery = useFetchTeachersLeaveRecord(0, 0, { date: todaysDate });
+  const liveTeachersLeaveRecord = useMemo(() => {
+    return teachersLeaveRecordQuery.data?.teachersLeaveRecord || teachersLeaveRecord;
+  }, [teachersLeaveRecordQuery.data?.teachersLeaveRecord, teachersLeaveRecord]);
 
   // Optimized students data using useMemo
   const students = useMemo(() => {
@@ -1082,7 +1089,7 @@ export default function Dashboard({
                   periods={periods}
                   attendances={attendances}
                   classes={sortedClasses}
-                  teachersLeaveRecord={teachersLeaveRecord}
+                  teachersLeaveRecord={liveTeachersLeaveRecord}
                 />
               </CardContent>
             </Card>
