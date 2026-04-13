@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Upload } from "lucide-react";
+import { CalendarIcon, Loader2, Upload, ChevronsUpDown, Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { MultiSelect } from "@/components/ui/multi-select";
 import {
   Dialog,
   DialogContent,
@@ -79,6 +80,18 @@ export default function ApplicationForm({ trigger }) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [dobInput, setDobInput] = useState("");
+  const [availableClasses, setAvailableClasses] = useState(["+1", "Degree"]);
+
+  useEffect(() => {
+    fetch("/api/applications/classes")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.classes) {
+          setAvailableClasses(data.classes);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch classes", err));
+  }, []);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -528,24 +541,23 @@ export default function ApplicationForm({ trigger }) {
                   control={form.control}
                   name="admissionClass"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Admission Needed For</FormLabel>
-                      <Select
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Admission Needed For</FormLabel>
+                    <FormControl>
+                      <MultiSelect
+                        options={availableClasses.map((c) => ({ value: c, label: c }))}
+                        value={field.value}
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Class" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="+1">+1 (Plus One)</SelectItem>
-                          <SelectItem value="Degree">Degree</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
+                        placeholder="Select or type class"
+                        variant="default"
+                        animation={0}
+                        maxCount={1}
+                        multiSelect={false}
+                        freeSolo={true}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                   )}
                 />
 
