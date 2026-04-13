@@ -198,7 +198,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
     0,
     {
       teacherId,
-      date: dateISO,
+      date: formattedDate,
     },
     {
       staleTime: 1000 * 60 * 5,
@@ -397,7 +397,8 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                     const leaveRecord = leaveRecords.find(
                       (record) =>
                         record.classId === slot.classId?._id &&
-                        record.periodNumber === slot.periodNumber
+                        record.periodNumber === slot.periodNumber &&
+                        formatDate(new Date(record.date)) === formattedDate
                     );
                     return (
                       <TableRow

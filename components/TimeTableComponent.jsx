@@ -281,14 +281,16 @@ const TimeTableComponent = ({
                     const isAttendanceMarked = markedAttendance?.length > 0;
 
                     const leaveRecord = teachersLeaveRecord.find((record) => {
-                      const recordDay = new Date(
-                        record.date
-                      ).toLocaleDateString("en-US", { weekday: "long" });
+                      const recordDate = new Date(record.date);
+                      const recordDay = recordDate.toLocaleDateString("en-US", { weekday: "long" });
+                      const recordDateStr = recordDate.toISOString().split('T')[0];
+                      const todayDateStr = new Date().toISOString().split('T')[0];
 
                       return (
                         record.periodNumber === period.periodNumber &&
                         record.teacherId === teacherId &&
-                        day === recordDay
+                        day === recordDay &&
+                        recordDateStr === todayDateStr
                       );
                     });
 
@@ -388,14 +390,19 @@ const TimeTableComponent = ({
                     const isAttendanceMarked = markedAttendance?.length > 0;
 
                     const leaveRecord = teachersLeaveRecord.find((record) => {
-                      const day = new Date(record.date).toLocaleDateString(
+                      const recordDate = new Date(record.date);
+                      const recordDay = recordDate.toLocaleDateString(
                         "en-US",
                         { weekday: "long" }
                       );
+                      const recordDateStr = recordDate.toISOString().split('T')[0];
+                      const todayDateStr = new Date().toISOString().split('T')[0];
+                      
                       return (
                         record.periodNumber === period.periodNumber &&
                         record.teacherId === cellData?.teacherId?._id &&
-                        day === day
+                        recordDay === currentDay &&
+                        recordDateStr === todayDateStr
                       );
                     });
 
