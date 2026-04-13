@@ -36,6 +36,13 @@ const useCrud = (apiEndpoint, apiKey) => {
           queryKey: [apiEndpoint],
           exact: false,
         });
+
+        // Cross-resource invalidation for attendance actions
+        if (apiEndpoint === "attendances") {
+          queryClient.invalidateQueries({ queryKey: ["teacherAttendances"] });
+          queryClient.invalidateQueries({ queryKey: ["timeTables"] });
+          queryClient.invalidateQueries({ queryKey: ["leave-records"] });
+        }
       },
     });
   };
@@ -50,6 +57,13 @@ const useCrud = (apiEndpoint, apiKey) => {
           queryKey: [apiEndpoint],
           exact: false,
         });
+
+        // Cross-resource invalidation for attendance actions
+        if (apiEndpoint === "attendances") {
+          queryClient.invalidateQueries({ queryKey: ["teacherAttendances"] });
+          queryClient.invalidateQueries({ queryKey: ["timeTables"] });
+          queryClient.invalidateQueries({ queryKey: ["leave-records"] });
+        }
       },
     });
   };
@@ -62,6 +76,13 @@ const useCrud = (apiEndpoint, apiKey) => {
         deleteItem(apiEndpoint, data, apiKey),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [apiEndpoint] });
+
+        // Cross-resource invalidation for attendance actions
+        if (apiEndpoint === "attendances") {
+          queryClient.invalidateQueries({ queryKey: ["teacherAttendances"] });
+          queryClient.invalidateQueries({ queryKey: ["timeTables"] });
+          queryClient.invalidateQueries({ queryKey: ["leave-records"] });
+        }
       },
     });
   };

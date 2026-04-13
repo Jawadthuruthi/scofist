@@ -1,7 +1,7 @@
 import ErrorPage from "@/components/ErrorPage";
 import { cookies } from "next/headers";
 import Header from "@/components/Header";
-import AdvancedDataTableComponent from "@/components/AdvancedDataTableComponent";
+import ClientOnlyAdvancedDataTable from "@/components/ClientOnlyAdvancedDataTable";
 import StudentAttendanceLookup from "@/components/StudentAttendanceLookupWrapper";
 import { fetchData, formatOptions, OPERATORS } from "@/lib/utils";
 
@@ -363,7 +363,7 @@ const AttendanceTrackingPage = async () => {
             title="ATTENDANCE HISTORY"
             subTitle="Track Attendance Records In Real Time"
           />
-          <AdvancedDataTableComponent
+          <ClientOnlyAdvancedDataTable
             tabsConfig={tabsConfig2}
             apiKey={apiKey}
           />
@@ -377,7 +377,7 @@ const AttendanceTrackingPage = async () => {
           title="ATTENDANCE HISTORY"
           subTitle="Track Attendance Records In Real Time"
         />
-        <AdvancedDataTableComponent tabsConfig={tabsConfig} apiKey={apiKey} />
+        <ClientOnlyAdvancedDataTable tabsConfig={tabsConfig} apiKey={apiKey} />
       </>
     );
   } catch (error) {

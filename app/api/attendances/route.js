@@ -1,6 +1,10 @@
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
-import { markTeacherAttendanceFromStudentAttendance } from "@/lib/teacherAttendanceService";
+import { 
+  markTeacherAttendanceFromStudentAttendance,
+  unmarkTeacherAttendanceFromStudentAttendance,
+  syncTeacherAttendanceFromStudentAttendance
+} from "@/lib/teacherAttendanceService";
 import Attendance from "@/models/Attendance";
 import StudentAttendance from "@/models/StudentAttendance";
 import { NextResponse } from "next/server";
@@ -262,7 +266,7 @@ export async function POST(req, res) {
       throw createError;
     }
 
-    await markTeacherAttendanceFromStudentAttendance(newAttendance);
+    await syncTeacherAttendanceFromStudentAttendance(newAttendance);
 
     // 🔒 STEP 2: Safe update - check for duplicates before adding to student records
     const bulkOps = [];
@@ -385,10 +389,13 @@ export async function PUT(req, res) {
         await StudentAttendance.bulkWrite(bulkOps);
       }
     }
+    // Sync teacher attendance after update
+    await syncTeacherAttendanceFromStudentAttendance(updatedAttendance);
+
     // Revalidate paths
     revalidatePath("/dashboard");
-    revalidatePath("/dashboard/time-tables");
-    revalidatePath("/dashboard/my-time-table");
+    revalidatePath("/dashboard/attendance-tracking");
+    revalidatePath("/api/teacherAttendances");
 
     return NextResponse.json(
       { updatedAttendance, message: "Attendance record updated successfully!" },
@@ -411,6 +418,9 @@ export async function DELETE(req, res) {
     const bulkOps = [];
 
     for (const attendance of deletedAttendances) {
+      // Logic for syncing with TeacherAttendance (Reset)
+      await unmarkTeacherAttendanceFromStudentAttendance(attendance);
+
       for (const student of attendance.attendanceData) {
         bulkOps.push({
           updateOne: {
@@ -441,8 +451,8 @@ export async function DELETE(req, res) {
 
       // Revalidate paths
       revalidatePath("/dashboard");
-      revalidatePath("/dashboard/time-tables");
-      revalidatePath("/dashboard/my-time-table");
+      revalidatePath("/dashboard/attendance-tracking");
+      revalidatePath("/api/teacherAttendances");
 
       return NextResponse.json(
         {

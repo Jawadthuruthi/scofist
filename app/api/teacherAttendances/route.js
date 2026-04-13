@@ -1,170 +1,229 @@
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import TeacherAttendance from "@/models/TeacherAttendance";
+import TimeTable from "@/models/TimeTable";
+import User from "@/models/User";
+import Class from "@/models/Class";
+import Subject from "@/models/Subject";
+import Settings from "@/models/Settings";
+import { models } from "mongoose";
 import { NextResponse } from "next/server";
+
+export const dynamic = 'force-dynamic';
+
+// Helper to get consistent YYYY-MM-DD from any Date source using Local Time
+const getDS = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 export async function GET(req, res) {
   try {
     await connectToDB();
 
-    // Parse URL to get search params
     const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
+    const filterParams = Object.fromEntries(url.searchParams.entries());
+    const page = parseInt(filterParams.page || "0");
+    const limit = parseInt(filterParams.limit) || Infinity;
 
-    // Build filter object from query parameters
-    const filterParams = {};
-    for (const [key, value] of url.searchParams.entries()) {
-      // Skip pagination parameters
-      if (key !== "page" && key !== "limit" && key !== "projection") {
-        filterParams[key] = value;
-      }
-    }
-
-    // Get projection param
-    const projectionParam = url.searchParams.get("projection");
-    let projections = {};
-
-    // Convert projection param to MongoDB projection object
-    if (projectionParam) {
-      const fields = projectionParam.split(",");
-      fields.forEach((field) => {
-        projections[field] = 1; // Include each field
-      });
-    }
-
-    // Build MongoDB query
-    const query = {};
+    // 1. Fetch relevant teachers
+    const teacherQuery = { roles: "Teacher" };
     if (filterParams.teacherId) {
-      query.teacherId = filterParams.teacherId;
+      teacherQuery._id = filterParams.teacherId;
+    }
+    if (filterParams.name) {
+      teacherQuery.name = { $regex: filterParams.name, $options: "i" };
     }
 
-    // Use aggregation for efficient date filtering
-    let pipeline = [];
+    const allTeachers = await User.find(teacherQuery, "_id name").lean();
 
-    // Initial match to filter by teacherId
-    pipeline.push({ $match: query });
+    // 4. Determine Date Range (Strict UTC) - Moved up to support holiday query
+    let startDateParam = filterParams.startDate || filterParams.date;
+    let endDateParam = filterParams.endDate || filterParams.date;
 
-    // Build record-level filters
-    const recordFilters = {};
-    if (filterParams.classId) recordFilters.classId = filterParams.classId;
-    if (filterParams.batchId) recordFilters.batchId = filterParams.batchId;
-    if (filterParams.subjectId) recordFilters.subjectId = filterParams.subjectId;
-
-    // Always apply $addFields / $filter to handle date + record-level filters
-    if (
-      filterParams.date ||
-      filterParams.startDate ||
-      filterParams.endDate ||
-      recordFilters.classId ||
-      recordFilters.batchId ||
-      recordFilters.subjectId
-    ) {
-      let dateConditions = [];
-
-      if (filterParams.date) {
-        const exactDate = new Date(filterParams.date);
-        const startOfDay = new Date(exactDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(exactDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        dateConditions.push({ $gte: ["$$record.date", startOfDay] });
-        dateConditions.push({ $lte: ["$$record.date", endOfDay] });
-      } else {
-        if (filterParams.startDate) {
-          const startDate = new Date(filterParams.startDate);
-          startDate.setHours(0, 0, 0, 0);
-          dateConditions.push({ $gte: ["$$record.date", startDate] });
-        }
-        if (filterParams.endDate) {
-          const endDate = new Date(filterParams.endDate);
-          endDate.setHours(23, 59, 59, 999);
-          dateConditions.push({ $lte: ["$$record.date", endDate] });
-        }
-      }
-
-      const idConditions = [
-        ...(recordFilters.classId
-          ? [{ $eq: [{ $toString: "$$record.classId" }, recordFilters.classId] }]
-          : []),
-        ...(recordFilters.batchId
-          ? [{ $eq: [{ $toString: "$$record.batchId" }, recordFilters.batchId] }]
-          : []),
-        ...(recordFilters.subjectId
-          ? [{ $eq: [{ $toString: "$$record.subjectId" }, recordFilters.subjectId] }]
-          : []),
-      ];
-
-      const allConditions = [...dateConditions, ...idConditions];
-
-      pipeline.push({
-        $addFields: {
-          attendanceRecords: {
-            $filter: {
-              input: "$attendanceRecords",
-              as: "record",
-              cond: allConditions.length > 1 ? { $and: allConditions } : allConditions[0] || true,
-            },
-          },
-        },
-      });
+    if (!startDateParam && filterParams.year && filterParams.month) {
+      const year = parseInt(filterParams.year);
+      const month = parseInt(filterParams.month);
+      startDateParam = `${year}-${String(month).padStart(2, '0')}-01`;
+      const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      endDateParam = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
     }
 
-    // Only include docs with matching attendance records
-    pipeline.push({
-      $match: {
-        "attendanceRecords.0": { $exists: true }, // At least one record after filtering
-      },
-    });
-
-    // Pagination
-    pipeline.push({ $skip: page * limit });
-    if (limit !== Infinity) {
-      pipeline.push({ $limit: limit });
+    if (!startDateParam) {
+      startDateParam = new Date().toISOString().split('T')[0];
+      endDateParam = startDateParam;
     }
 
-    // Execute the aggregation pipeline
-    let teacherAttendances = await TeacherAttendance.aggregate(pipeline).exec();
+    let startDate = new Date(startDateParam + "T00:00:00.000Z");
+    let endDate = new Date(endDateParam + "T23:59:59.999Z");
+    
+    if (isNaN(startDate.getTime())) startDate = new Date();
+    if (isNaN(endDate.getTime())) endDate = new Date(startDate);
 
-    // Manually populate references since aggregation doesn't support populate
-    teacherAttendances = await TeacherAttendance.populate(teacherAttendances, [
-      { path: "teacherId", select: "name" },
-      { path: "attendanceRecords.classId", select: "name" },
-      { path: "attendanceRecords.subjectId", select: "name" },
+    // 2. Fetch TimeTables, Settings, and Holidays for synthesis
+    const [timeTables, settings, holidays] = await Promise.all([
+      TimeTable.find({}).lean(),
+      Settings.findOne({}).lean(),
+      models.AcademicCalendar ? models.AcademicCalendar.find({
+        date: { $gte: startDate, $lte: endDate },
+        type: "Holiday"
+      }).lean() : []
     ]);
 
-    // Format the results
-    const formattedTeacherAttendances = teacherAttendances.map((record) => ({
-      _id: record.teacherId?._id,
-      name: record.teacherId?.name,
-      attendanceRecords: (record.attendanceRecords || []).map((attendance) => ({
-        ...(attendance || {}),
-        classId: attendance.classId?._id,
-        className: attendance.classId?.name,
-        subjectId: attendance.subjectId?._id,
-        subjectName: attendance.subjectId?.name,
-      })),
-    }));
+    // Pre-process holidays into a quick lookup map
+    const holidayMap = new Map();
+    holidays.forEach(h => holidayMap.set(getDS(h.date), true));
 
-    // Get total count for pagination info - use efficient countDocuments
-    const countPipeline = [
-      ...pipeline.filter((stage) => !stage.$skip && !stage.$limit),
-    ];
-    countPipeline.push({ $count: "total" });
-    const countResult = await TeacherAttendance.aggregate(countPipeline).exec();
-    const total = countResult.length > 0 ? countResult[0].total : 0;
+    const isTodayGlobalWorking = settings?.general?.isWorkingDay !== false;
+
+    // 3. Pre-process schedule into a high-performance map
+    const scheduleMap = {};
+    timeTables.forEach(tt => {
+      (tt.timeSlots || []).forEach(slot => {
+        if (!slot.teacherId) return;
+        const tId = slot.teacherId.toString();
+        const day = slot.day;
+        
+        if (!scheduleMap[tId]) scheduleMap[tId] = {};
+        if (!scheduleMap[tId][day]) scheduleMap[tId][day] = [];
+        
+        scheduleMap[tId][day].push({
+          classId: tt.classId,
+          subjectId: slot.subjectId,
+          periodNumber: slot.periodNumber,
+          day: slot.day
+        });
+      });
+    });
+
+    // 5. Fetch and map ALL actual marked attendance for these teachers
+    const teacherIds = allTeachers.map(t => t._id.toString());
+    const existingAttendances = await TeacherAttendance.find({
+      teacherId: { $in: teacherIds }
+    }).lean();
+
+    const lookupMap = {};
+    existingAttendances.forEach(doc => {
+      const tId = doc.teacherId.toString();
+      if (!lookupMap[tId]) lookupMap[tId] = {};
+      
+      (doc.attendanceRecords || []).forEach(r => {
+        const dateKey = getDS(r.date);
+        const key = `${dateKey}_${String(r.classId)}_${String(r.subjectId)}_${r.periodNumber}`;
+        lookupMap[tId][key] = r;
+      });
+    });
+
+    // 6. Synthesize Attendance History
+    const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const todayDS = getDS(new Date());
+
+    const formattedData = allTeachers.map(teacher => {
+      const records = [];
+      const periodTracker = new Set(); // To prevent duplicates in synthesis
+      const teacherId = teacher._id.toString();
+      const teacherSchedules = scheduleMap[teacherId] || {};
+      const teacherLookups = lookupMap[teacherId] || {};
+
+      let curr = new Date(startDate);
+      while (curr <= endDate) {
+        const dayName = WEEKDAYS[curr.getUTCDay()];
+        const dateString = getDS(curr);
+        const daySlots = teacherSchedules[dayName] || [];
+
+        // Determine if this day is a working day
+        const isHoliday = holidayMap.has(dateString);
+        
+        // Manual override for specific dates (Admin request: April 1-10 2026)
+        const isImplicitHoliday = dateString >= "2026-04-01" && dateString <= "2026-04-10";
+
+        // Respect the global Setting toggle for the entire range as requested
+        const isWorkingDay = !isHoliday && !isImplicitHoliday && isTodayGlobalWorking;
+
+        daySlots.forEach(slot => {
+          // Apply filters
+          if (filterParams.classId && String(slot.classId) !== String(filterParams.classId)) return;
+          if (filterParams.subjectId && String(slot.subjectId) !== String(filterParams.subjectId)) return;
+          
+          const key = `${dateString}_${String(slot.classId)}_${String(slot.subjectId)}_${slot.periodNumber}`;
+          
+          // Deduplication: Only process this slot if we haven't added it for this teacher
+          if (periodTracker.has(key)) return;
+          periodTracker.add(key);
+
+          const actual = teacherLookups[key];
+
+          if (actual) {
+            // Include actual marked attendance (present or absent)
+            records.push({
+              ...actual,
+              date: actual.date
+            });
+          } else if (isWorkingDay && dateString <= todayDS) {
+            // Use <= todayDS to include today's scheduled classes in statistics
+            // even if they haven't been marked yet. This ensures "Total Class" 
+            // remains consistent during resets.
+            records.push({
+              _id: `synth_${teacher._id}_${dateString}_${slot.periodNumber}`,
+              teacherId: teacher._id,
+              date: new Date(curr),
+              classId: slot.classId,
+              subjectId: slot.subjectId,
+              periodNumber: slot.periodNumber,
+              present: false,
+              synthetic: true
+            });
+          }
+        });
+        // UTC increment
+        curr.setUTCDate(curr.getUTCDate() + 1);
+      }
+
+      return {
+        _id: teacher._id,
+        name: teacher.name,
+        attendanceRecords: records
+      };
+    });
+
+    // 7. Populate names for synthesized records
+    const classIds = [...new Set(formattedData.flatMap(t => t.attendanceRecords.map(r => r.classId?.toString())))].filter(Boolean);
+    const subjectIds = [...new Set(formattedData.flatMap(t => t.attendanceRecords.map(r => r.subjectId?.toString())))].filter(Boolean);
+    
+    const [nameClasses, nameSubjects] = await Promise.all([
+      Class.find({ _id: { $in: classIds } }, "name").lean(),
+      Subject.find({ _id: { $in: subjectIds } }, "name").lean()
+    ]);
+
+    const classNameMap = Object.fromEntries(nameClasses.map(c => [c._id.toString(), c.name]));
+    const subjectNameMap = Object.fromEntries(nameSubjects.map(s => [s._id.toString(), s.name]));
+
+    formattedData.forEach(teacher => {
+      teacher.attendanceRecords.forEach(r => {
+        if (!r.className) r.className = classNameMap[r.classId?.toString()] || "Unknown";
+        if (!r.subjectName) r.subjectName = subjectNameMap[r.subjectId?.toString()] || "Unknown";
+      });
+    });
+
+    const paginatedData = limit === Infinity 
+      ? formattedData 
+      : formattedData.slice(page * limit, (page + 1) * limit);
 
     return NextResponse.json(
       {
-        teacherAttendances: formattedTeacherAttendances,
+        teacherAttendances: paginatedData,
         pagination: {
           page,
           limit,
-          total,
-          totalPages:
-            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
+          total: formattedData.length,
+          totalPages: limit === Infinity ? 1 : Math.ceil(formattedData.length / limit),
         },
-        message: "Teacher attendance records fetched successfully",
+        message: "Teacher attendance records synthesized successfully",
       },
       { status: 200 }
     );
