@@ -871,7 +871,10 @@ const StudentsFund = ({
                       variant={
                         transactionType === "Deposit" ? "default" : "outline"
                       }
-                      onClick={() => setTransactionType("Deposit")}
+                      onClick={() => {
+                        setTransactionType("Deposit");
+                        setTimeout(() => amountInputRef.current?.focus(), 0);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === "ArrowRight") {
                           setTransactionType("Withdrawal");
@@ -890,7 +893,10 @@ const StudentsFund = ({
                       variant={
                         transactionType === "Withdrawal" ? "default" : "outline"
                       }
-                      onClick={() => setTransactionType("Withdrawal")}
+                      onClick={() => {
+                        setTransactionType("Withdrawal");
+                        setTimeout(() => amountInputRef.current?.focus(), 0);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === "ArrowLeft") {
                           setTransactionType("Deposit");
