@@ -57,6 +57,18 @@ const getCurrentValue = (filterItem, currentFilter) => {
   return filterItem.inputType === "multiSelect" ? [] : "";
 };
 
+// Normalize values for comparison
+const normalizeValue = (val) => {
+  if (val === undefined || val === null) return "";
+  if (Array.isArray(val)) return val.length > 0 ? normalizeValue(val[0]) : "";
+  if (typeof val === "object") {
+    if (val._id) return String(val._id).trim();
+    if (val.value) return String(val.value).trim();
+    if (val.id) return String(val.id).trim();
+  }
+  return String(val).trim();
+};
+
 export default function PopupFilter({
   filterConfig = [],
   filters = {},
@@ -90,28 +102,16 @@ export default function PopupFilter({
           return filterItem.options || [];
         }
 
-        // Normalize values for comparison
-        const normalize = (val) => {
-          if (val === undefined || val === null) return "";
-          if (Array.isArray(val)) return val.length > 0 ? normalize(val[0]) : "";
-          if (typeof val === "object") {
-            if (val._id) return String(val._id).trim();
-            if (val.value) return String(val.value).trim();
-            if (val.id) return String(val.id).trim();
-          }
-          return String(val).trim();
-        };
-
-        const normalizedValue = normalize(valueToMatch);
+        const normalizedValue = normalizeValue(valueToMatch);
 
         return (filterItem.options || []).filter((option) => {
           const rawOptionValue = key ? option?.[dependentFieldName]?.[key] : option?.[dependentFieldName];
 
           if (Array.isArray(rawOptionValue)) {
-            return rawOptionValue.some(val => normalize(val) === normalizedValue);
+            return rawOptionValue.some(val => normalizeValue(val) === normalizedValue);
           }
 
-          const normalizedOption = normalize(rawOptionValue);
+          const normalizedOption = normalizeValue(rawOptionValue);
           const isMatch = normalizedOption === normalizedValue;
           return isMatch;
         });
@@ -134,11 +134,11 @@ export default function PopupFilter({
             localFilters[dependentFieldName];
 
           if (valueToMatch) {
-            const normalizedValue = normalize(valueToMatch);
+            const normalizedValue = normalizeValue(valueToMatch);
 
             filteredOptions = filteredOptions.filter((option) => {
               const rawOptionValue = key ? option?.[dependentFieldName]?.[key] : option?.[dependentFieldName];
-              const normalizedOption = normalize(rawOptionValue);
+              const normalizedOption = normalizeValue(rawOptionValue);
               return normalizedOption === normalizedValue;
             });
           }
@@ -255,11 +255,20 @@ export default function PopupFilter({
           return filterItem.options || [];
         }
 
+        const normalizedDependentValue = normalizeValue(dependentValue);
+
         return (filterItem.options || []).filter((option) => {
-          if (key) {
-            return option?.[dependentFieldName]?.[key] === dependentValue;
+          const rawOptionValue = key
+            ? option?.[dependentFieldName]?.[key]
+            : option?.[dependentFieldName];
+
+          if (Array.isArray(rawOptionValue)) {
+            return rawOptionValue.some(
+              (val) => normalizeValue(val) === normalizedDependentValue
+            );
           }
-          return option?.[dependentFieldName] === dependentValue;
+
+          return normalizeValue(rawOptionValue) === normalizedDependentValue;
         });
       }
 
@@ -275,11 +284,19 @@ export default function PopupFilter({
             currentFilters[dependentFieldName];
 
           if (valueToMatch) {
+            const normalizedValue = normalizeValue(valueToMatch);
             filteredOptions = filteredOptions.filter((option) => {
-              if (key) {
-                return option?.[dependentFieldName]?.[key] === valueToMatch;
+              const rawOptionValue = key
+                ? option?.[dependentFieldName]?.[key]
+                : option?.[dependentFieldName];
+
+              if (Array.isArray(rawOptionValue)) {
+                return rawOptionValue.some(
+                  (val) => normalizeValue(val) === normalizedValue
+                );
               }
-              return option?.[dependentFieldName] === valueToMatch;
+
+              return normalizeValue(rawOptionValue) === normalizedValue;
             });
           }
         });
