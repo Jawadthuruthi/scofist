@@ -345,8 +345,8 @@ const useTableColumns = (columnConfig) => {
             </div>
             {Object.entries(grouped)
               .sort(([classA], [classB]) => {
-                const normalize = (name) => name.replace(/\s/g, "").toUpperCase();
-                const normalizedOrder = CLASS_ORDER.map(normalize);
+                const normalize = (name) => String(name || "").replace(/\s/g, "").toUpperCase();
+                const normalizedOrder = Array.isArray(CLASS_ORDER) ? CLASS_ORDER.map(normalize) : [];
 
                 const indexA = normalizedOrder.indexOf(normalize(classA));
                 const indexB = normalizedOrder.indexOf(normalize(classB));
