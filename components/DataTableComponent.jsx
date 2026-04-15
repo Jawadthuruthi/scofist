@@ -16,6 +16,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 import { useMemo, useRef, useState, useEffect, useCallback, isValidElement, cloneElement } from "react";
 import useTableColumns from "@/hooks/use-table-columns";
 import useCrud from "@/hooks/use-crud";
@@ -23,13 +31,13 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import useDataFilter from "@/hooks/use-data-filter";
 import dynamic from "next/dynamic";
-import { Loader, Search } from "lucide-react";
+import { Loader, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
 import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { applyPrintStyles, removePrintStyles, formatDateForDisplay, cn, sortClasses } from "@/lib/utils";
+import { applyPrintStyles, removePrintStyles, formatDateForDisplay, formatDateMonthYear, cn, sortClasses } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import PrintHeader from "@/components/PrintHeader";
 import DateRangeFilter from "@/components/DateRangeFilter";
@@ -144,6 +152,11 @@ const DataTableComponent = ({
   const [filterMonth, setFilterMonth] = useState(() => enableMonthYearFilter ? new Date().getMonth() + 1 : null);
   const [filterYear, setFilterYear] = useState(() => enableMonthYearFilter ? new Date().getFullYear() : null);
   const [toppersOnly, setToppersOnly] = useState(false);
+  
+  // State for cell detail drill-down
+  const [detailView, setDetailView] = useState(null); // { student, col, title }
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailedRecords, setDetailedRecords] = useState([]);
 
   // Sync state to window as a fallback for dynamic toolbar components
   useEffect(() => {
@@ -596,9 +609,57 @@ const DataTableComponent = ({
   };
 
   // Table columns
+  const handleCellClick = useCallback(async (row, col) => {
+    const studentId = row._id;
+    const arrayKey = col.valueKey || col.totalKey;
+    const records = row[arrayKey]?.filter(
+      (item) => item?.[col.accessorKey || col.filterKey] === col.filterValue
+    ) || [];
+
+    setDetailView({
+      student: row,
+      col: col,
+      title: `${col.header} Records for ${row.name}`,
+      colHeader: col.header
+    });
+    setDetailedRecords(records);
+
+    // If it's attendance history, fetch extra details (like teacher names)
+    if (resource === "studentAttendances" || resource === "teacherAttendances") {
+      setDetailsLoading(true);
+      try {
+        // Use the month/year filter from the current table if available
+        const m = filterMonth || (new Date().getMonth() + 1);
+        const y = filterYear || new Date().getFullYear();
+        
+        const endpoint = resource === "studentAttendances" 
+          ? `/api/student-attendance-lookup?studentId=${studentId}&month=${m}&year=${y}`
+          : `/api/teacher-attendance-lookup?teacherId=${studentId}&month=${m}&year=${y}`;
+
+        const res = await fetch(endpoint);
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error(`Fetch failed with status ${res.status}:`, errorText);
+          throw new Error(`API error: ${res.status}`);
+        }
+        const data = await res.json();
+        
+        if (data.records) {
+          // Filter the fetched records to match the specific "Present" or "Absent" status requested
+          const filtered = data.records.filter(r => r.present === col.filterValue);
+          setDetailedRecords(filtered);
+        }
+      } catch (err) {
+        console.error("Error fetching details:", err);
+      } finally {
+        setDetailsLoading(false);
+      }
+    }
+  }, [resource, filterMonth, filterYear]);
+
   const columns = useMemo(() => {
-    return useTableColumns(columnsConfig);
-  }, [columnsConfig]);
+    return useTableColumns(columnsConfig, handleCellClick);
+  }, [columnsConfig, handleCellClick]);
 
   // CRUD operations
   const addData = useAddItem();
@@ -890,8 +951,8 @@ const DataTableComponent = ({
   return (
     <div className="space-y-4">
       {/* ── Mobile Split Layout ── */}
-      {isMobile && mobileSplitLayout ? (
-        <div className="space-y-2">
+      {isMobile ? (
+        <div className="space-y-3">
           {/* Row 1: Full-width search bar */}
           <div className="relative w-full">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -899,41 +960,93 @@ const DataTableComponent = ({
               placeholder={mobileSearchPlaceholder}
               value={globalFilter ?? ""}
               onChange={(e) => handleSetGlobalFilter(e.target.value)}
-              className="h-9 w-full pl-9"
+              className="h-10 w-full pl-9 bg-background"
             />
           </div>
 
-          {/* Row 2: Column management + action buttons */}
-          <div className="flex items-center justify-between gap-1 flex-wrap">
-            <div className="flex items-center">
-              <ColumnCustomization table={table} columnsConfig={columnsConfig} />
-              {additionalProps?.customToolbar && (
-                <div className="ml-1">{additionalProps.customToolbar}</div>
-              )}
-            </div>
-            <div className="flex items-center space-x-1">
+          {/* Row 2: View Controls (Columns, Filters, Month, Year) */}
+          <div className="flex flex-wrap items-center gap-2">
+            <ColumnCustomization table={table} columnsConfig={columnsConfig} />
+            
+            <PopupFilter
+              filterConfig={dateRangeInPopup ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
+              filters={filters}
+              setFilter={handleSetFilter}
+              removeFilter={handleRemoveFilter}
+              clearFilters={handleClearFilters}
+              globalFilter={globalFilter}
+              setGlobalFilter={handleSetGlobalFilter}
+              hasFilters={hasFilters || Object.keys(filters).length > 0}
+              title={filterTitle || capitalize(resource)}
+              filterType={filterType}
+            />
+
+            {enableMonthYearFilter && (
+              <div className="flex items-center gap-2">
+                <Select value={filterYear?.toString()} onValueChange={(v) => {
+                  setFilterYear(parseInt(v));
+                  if (isApiFiltering) debouncedApiFilterUpdate();
+                }}>
+                  <SelectTrigger className="w-[80px] h-9 text-xs">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
+                      <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterMonth?.toString()} onValueChange={(v) => {
+                  setFilterMonth(parseInt(v));
+                  if (isApiFiltering) debouncedApiFilterUpdate();
+                }}>
+                  <SelectTrigger className="w-[100px] h-9 text-xs">
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                      <SelectItem key={m} value={m.toString()}>
+                        {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'short' })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            {additionalProps?.customToolbar && (
+              <div className="flex items-center">
+                {additionalProps.customToolbar}
+              </div>
+            )}
+          </div>
+
+          {/* Row 3: Actions (CRUD, Print, Excel) */}
+          <div className="flex items-center justify-between gap-1 overflow-x-auto pb-1 no-scrollbar">
+            <div className="flex items-center gap-1">
               {actionButtons}
             </div>
           </div>
 
           {!!selectedData.length && (
-            <div className="text-muted-foreground text-sm">
+            <div className="text-muted-foreground text-[10px] bg-muted/50 px-2 py-0.5 rounded-full inline-block">
               {selectedData?.length} selected
             </div>
           )}
         </div>
       ) : (
-        /* ── Default Layout (desktop + non-split mobile) ── */
-        <>
+        /* ── Desktop Layout ── */
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="mr-auto space-x-2 flex items-center">
-              {additionalProps?.customToolbar && !isMobile && (
+              {additionalProps?.customToolbar && (
                 <div className="mr-2">{additionalProps.customToolbar}</div>
               )}
               <ColumnCustomization table={table} columnsConfig={columnsConfig} />
 
               <PopupFilter
-                filterConfig={isMobile || dateRangeInPopup ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
+                filterConfig={dateRangeInPopup ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
                 filters={filters}
                 setFilter={handleSetFilter}
                 removeFilter={handleRemoveFilter}
@@ -979,7 +1092,6 @@ const DataTableComponent = ({
                 </div>
               )}
 
-              {/* Trailing toolbar slot — renders after month/year selects */}
               {trailingToolbar && (
                 <div className="flex items-center">
                   {isValidElement(trailingToolbar)
@@ -995,35 +1107,37 @@ const DataTableComponent = ({
                 </div>
               )}
 
-              {/* Desktop Date Range Filter */}
-              {!isMobile && !dateRangeInPopup && filterConfig.find(f => f.inputType === "dateRange") && (
-                <DateRangeFilter
-                  value={(() => {
-                    const filterState = filters[filterConfig.find(f => f.inputType === "dateRange").id];
-                    return filterState?.value || filterState || {};
-                  })()}
-                  onChange={(val) => {
-                    const config = filterConfig.find(f => f.inputType === "dateRange");
-                    if (val.startDate || val.endDate) {
-                      handleSetFilter(config.id, val, "dateRange", null);
-                    } else {
-                      handleRemoveFilter(config.id);
-                    }
-                  }}
-                />
-              )}
-
-              {enableSearch && (
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by ID or Name..."
-                    value={globalFilter ?? ""}
-                    onChange={(e) => handleSetGlobalFilter(e.target.value)}
-                    className="h-9 w-[180px] lg:w-[250px] pl-9"
+              <div className="flex items-center gap-2">
+                {/* Desktop Date Range Filter */}
+                {!dateRangeInPopup && filterConfig.find(f => f.inputType === "dateRange") && (
+                  <DateRangeFilter
+                    value={(() => {
+                      const filterState = filters[filterConfig.find(f => f.inputType === "dateRange").id];
+                      return filterState?.value || filterState || {};
+                    })()}
+                    onChange={(val) => {
+                      const config = filterConfig.find(f => f.inputType === "dateRange");
+                      if (val.startDate || val.endDate) {
+                        handleSetFilter(config.id, val, "dateRange", null);
+                      } else {
+                        handleRemoveFilter(config.id);
+                      }
+                    }}
                   />
-                </div>
-              )}
+                )}
+
+                {enableSearch && (
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by ID or Name..."
+                      value={globalFilter ?? ""}
+                      onChange={(e) => handleSetGlobalFilter(e.target.value)}
+                      className="h-9 w-[180px] lg:w-[250px] pl-9"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-x-2 flex items-center">
               {actionButtons}
@@ -1031,11 +1145,11 @@ const DataTableComponent = ({
           </div>
 
           {!!selectedData.length && (
-            <div className="text-muted-foreground">
+            <div className="text-muted-foreground text-sm">
               {selectedData?.length} selected
             </div>
           )}
-        </>
+        </div>
       )}
       <div
         ref={tableRef}
@@ -1210,7 +1324,145 @@ const DataTableComponent = ({
           )}
         </div>
       </div>
-    </div >
+      {/* Detail View Modal for drill-down */}
+      <Dialog open={!!detailView} onOpenChange={(open) => !open && setDetailView(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-4 md:p-6 pb-4 border-b bg-background z-50 shrink-0">
+            <div className="flex items-start justify-between w-full relative">
+              <DialogTitle className="flex flex-col text-left">
+                {isMobile ? (
+                  <div className="flex flex-col gap-0.5 pr-10">
+                    <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                      {detailView?.colHeader} Records
+                    </span>
+                    <span className="text-lg font-extrabold text-foreground leading-tight">
+                      {detailView?.student?.name}
+                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-bold">
+                        {detailedRecords.length} {detailedRecords.length === 1 ? 'Record' : 'Records'}
+                      </Badge>
+                      {detailView?.student?._id && (
+                        <span className="text-[10px] font-mono text-muted-foreground">ID: {detailView.student._id}</span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xl font-bold">{detailView?.title}</span>
+                    {detailView?.student?._id && (
+                      <span className="text-xs font-mono text-muted-foreground">ID: {detailView.student._id}</span>
+                    )}
+                  </div>
+                )}
+              </DialogTitle>
+              
+              {!isMobile && (
+                <div className="flex items-center gap-3">
+                  {detailedRecords.length > 0 && (
+                    <Badge variant="secondary" className="h-6">
+                      {detailedRecords.length} Records
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className={cn(
+                  "h-8 w-8 rounded-full hover:bg-muted shrink-0 z-20",
+                  isMobile ? "absolute right-0 top-0" : ""
+                )}
+                onClick={() => setDetailView(null)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto p-6 pt-4 bg-muted/5">
+            {detailsLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary opacity-70" />
+                <div className="space-y-1 text-center">
+                  <p className="text-base font-semibold text-foreground">Loading Records</p>
+                  <p className="text-sm text-muted-foreground animate-pulse">Syncing teacher details and subjects...</p>
+                </div>
+              </div>
+            ) : detailedRecords.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground border-2 border-dashed rounded-lg bg-background">
+                <div className="bg-muted p-4 rounded-full mb-4">
+                  <Search className="h-8 w-8 opacity-40" />
+                </div>
+                <p className="text-lg font-medium">No records found</p>
+                <p className="text-sm">There are no matching entries for the selected filter.</p>
+              </div>
+            ) : (
+              <div className="border rounded-xl shadow-sm bg-background overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="w-[60px] font-bold text-center">Sl. No.</TableHead>
+                      <TableHead className="w-[150px] font-bold">Date & Day</TableHead>
+                      <TableHead className="font-bold">Subject</TableHead>
+                      {(resource === "studentAttendances" || resource === "teacherAttendances") && (
+                        <TableHead className="font-bold">
+                          {resource === "teacherAttendances" ? "Class" : "Teacher"}
+                        </TableHead>
+                      )}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {detailedRecords.map((rec, i) => {
+                      const isAbsent = rec.present === false;
+                      return (
+                        <TableRow 
+                          key={i} 
+                          className={cn(
+                            "transition-colors",
+                            isAbsent ? "bg-red-50/40 hover:bg-red-50/60 dark:bg-red-950/10 dark:hover:bg-red-950/20" : "hover:bg-muted/30"
+                          )}
+                        >
+                          <TableCell className="text-center font-medium text-muted-foreground py-3">
+                            {i + 1}
+                          </TableCell>
+                          <TableCell className="font-medium whitespace-nowrap py-3">
+                            <div className="flex flex-col">
+                               <span className="text-sm font-bold">{formatDateMonthYear(rec.date)}</span>
+                               <span className="text-xs text-muted-foreground font-medium">
+                                 {new Date(rec.date).toLocaleDateString(undefined, { weekday: 'long' })}
+                               </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-sm">
+                                {rec.subjectName || "—"}
+                              </span>
+                              {rec.periodNumber && (
+                                <span className="text-[10px] text-muted-foreground font-medium">
+                                  PERIOD {rec.periodNumber}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          {(resource === "studentAttendances" || resource === "teacherAttendances") && (
+                            <TableCell className="text-muted-foreground text-sm py-3">
+                              {resource === "teacherAttendances" ? (rec.className || "—") : (rec.teacherName || "—")}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

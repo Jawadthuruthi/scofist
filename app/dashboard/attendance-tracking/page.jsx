@@ -104,6 +104,17 @@ const AttendanceTrackingPage = async () => {
             valueKey: "attendanceRecords",
             filterKey: "present",
             filterValue: true,
+            clickable: true,
+          },
+          {
+            header: "Absent",
+            id: "absent",
+            accessorKey: "present",
+            type: ["filteredLength"],
+            valueKey: "attendanceRecords",
+            filterKey: "present",
+            filterValue: false,
+            clickable: true,
           },
           {
             header: "Percentage",
@@ -112,6 +123,7 @@ const AttendanceTrackingPage = async () => {
             totalKey: "attendanceRecords",
             filterKey: "present",
             filterValue: true,
+            clickable: true,
           },
         ],
         filterConfig: [
@@ -200,6 +212,17 @@ const AttendanceTrackingPage = async () => {
             valueKey: "attendanceRecords",
             filterKey: "present",
             filterValue: true,
+            clickable: true,
+          },
+          {
+            header: "Absent",
+            id: "absent",
+            accessorKey: "present",
+            type: ["filteredLength"],
+            valueKey: "attendanceRecords",
+            filterKey: "present",
+            filterValue: false,
+            clickable: true,
           },
           {
             header: "Percentage",
@@ -208,6 +231,7 @@ const AttendanceTrackingPage = async () => {
             totalKey: "attendanceRecords",
             filterKey: "present",
             filterValue: true,
+            clickable: true,
           },
         ],
         filterConfig: [
@@ -288,6 +312,17 @@ const AttendanceTrackingPage = async () => {
             valueKey: "attendanceRecords",
             filterKey: "present",
             filterValue: true,
+            clickable: true,
+          },
+          {
+            header: "Absent",
+            id: "absent",
+            accessorKey: "present",
+            type: ["filteredLength"],
+            valueKey: "attendanceRecords",
+            filterKey: "present",
+            filterValue: false,
+            clickable: true,
           },
           {
             header: "Percentage",
@@ -296,6 +331,7 @@ const AttendanceTrackingPage = async () => {
             totalKey: "attendanceRecords",
             filterKey: "present",
             filterValue: true,
+            clickable: true,
           },
         ],
         filterConfig: [

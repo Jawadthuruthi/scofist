@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
+import StudentAttendance from "@/models/StudentAttendance";
 import Attendance from "@/models/Attendance";
 
 export async function GET(req) {
@@ -18,45 +19,79 @@ export async function GET(req) {
             );
         }
 
-        // Build date range filter
-        const dateFilter = {};
+        // Build date range for filtering
+        let startDate = null;
+        let endDate = null;
         if (month && year) {
-            const startDate = new Date(year, month - 1, 1);
+            startDate = new Date(year, month - 1, 1);
             startDate.setHours(0, 0, 0, 0);
-            const endDate = new Date(year, month, 0);
+            endDate = new Date(year, month, 0);
             endDate.setHours(23, 59, 59, 999);
-            dateFilter.date = { $gte: startDate, $lte: endDate };
         } else if (year) {
-            const startDate = new Date(year, 0, 1);
+            startDate = new Date(year, 0, 1);
             startDate.setHours(0, 0, 0, 0);
-            const endDate = new Date(year, 11, 31);
+            endDate = new Date(year, 11, 31);
             endDate.setHours(23, 59, 59, 999);
-            dateFilter.date = { $gte: startDate, $lte: endDate };
         }
 
-        // Query attendance records that include this student
-        const attendances = await Attendance.find({
-            "attendanceData.studentId": studentId,
-            ...dateFilter,
-        })
-            .populate({ path: "subjectId", select: "name" })
-            .populate({ path: "teacherId", select: "name" })
-            .populate({ path: "classId", select: "name" })
-            .sort({ date: -1 })
+        // ── Primary source: StudentAttendance (same as history table) ─────────
+        const studentDoc = await StudentAttendance.findOne({ studentId })
+            .populate({ path: "attendanceRecords.classId", select: "name" })
+            .populate({ path: "attendanceRecords.subjectId", select: "name" })
             .lean();
 
-        // Extract per-record data for this student
-        const records = attendances.map((att) => {
-            const studentEntry = att.attendanceData?.find(
-                (d) => String(d.studentId) === String(studentId)
-            );
+        if (!studentDoc) {
+            return NextResponse.json({ records: [] }, { status: 200 });
+        }
+
+        // Filter attendanceRecords by date range (mirrors history table filter logic)
+        let filteredRecords = studentDoc.attendanceRecords || [];
+        if (startDate && endDate) {
+            filteredRecords = filteredRecords.filter((rec) => {
+                const d = new Date(rec.date);
+                return d >= startDate && d <= endDate;
+            });
+        }
+
+        // Sort descending by date (most recent first)
+        filteredRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // ── Secondary: look up teacher names from Attendance (best-effort) ────
+        // Build a map keyed by "classId|subjectId|periodNumber|date(date-only)"
+        let teacherMap = {};
+        if (filteredRecords.length > 0) {
+            const dateFilter = startDate && endDate
+                ? { date: { $gte: startDate, $lte: endDate } }
+                : {};
+
+            const attendanceDocs = await Attendance.find({
+                "attendanceData.studentId": studentId,
+                ...dateFilter,
+            })
+                .populate({ path: "teacherId", select: "name" })
+                .lean();
+
+            attendanceDocs.forEach((att) => {
+                const dateKey = new Date(att.date).toISOString().split("T")[0];
+                const key = `${att.classId}|${att.subjectId}|${att.periodNumber}|${dateKey}`;
+                teacherMap[key] = att.teacherId?.name || "—";
+            });
+        }
+
+        // Map to the dialog's expected shape
+        const records = filteredRecords.map((rec) => {
+            const classId = rec.classId?._id || rec.classId;
+            const subjectId = rec.subjectId?._id || rec.subjectId;
+            const dateKey = new Date(rec.date).toISOString().split("T")[0];
+            const key = `${classId}|${subjectId}|${rec.periodNumber}|${dateKey}`;
+
             return {
-                date: att.date,
-                subjectName: att.subjectId?.name || "—",
-                teacherName: att.teacherId?.name || "—",
-                className: att.classId?.name || "—",
-                periodNumber: att.periodNumber,
-                present: studentEntry?.present ?? null,
+                date: rec.date,
+                subjectName: rec.subjectId?.name || "—",
+                teacherName: teacherMap[key] || "—",
+                className: rec.classId?.name || "—",
+                periodNumber: rec.periodNumber,
+                present: rec.present ?? null,
             };
         });
 

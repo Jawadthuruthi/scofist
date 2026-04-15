@@ -72,7 +72,7 @@ export default function StudentAttendanceLookup({ students = [], setFilter, remo
             String(s._id)?.toLowerCase().includes(q) ||
             s.studentSpecificField?.admissionNumber?.toLowerCase().includes(q)
         );
-    }).slice(0, 8);
+    }).slice(0, 50);
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -316,7 +316,7 @@ export default function StudentAttendanceLookup({ students = [], setFilter, remo
                     {showDropdown && query.length > 0 && (
                         <div
                             ref={dropdownRef}
-                            className="absolute top-full left-0 mt-1 z-50 w-full bg-background border border-border rounded-md shadow-lg overflow-hidden"
+                            className="absolute top-full left-0 mt-1 z-50 w-full bg-background border border-border rounded-md shadow-lg overflow-hidden max-h-64 overflow-y-auto"
                         >
                             {filteredStudents.length === 0 ? (
                                 <div className="px-3 py-2 text-xs text-muted-foreground text-center">

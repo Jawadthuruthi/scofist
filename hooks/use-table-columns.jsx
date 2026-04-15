@@ -7,7 +7,7 @@ import { ArrowUpDown, ExternalLink, Pencil, Trash, User } from "lucide-react";
 import Link from "next/link";
 import { CLASS_ORDER } from "@/lib/utils";
 
-const useTableColumns = (columnConfig) => {
+const useTableColumns = (columnConfig, onCellClick) => {
   return columnConfig.map((col) => {
     let columnDefinition = { ...col };
 
@@ -249,6 +249,19 @@ const useTableColumns = (columnConfig) => {
           row.original?.[col.valueKey]?.filter(
             (item) => item?.[col.accessorKey] === col.filterValue
           )?.length || 0;
+
+        if (col.clickable && length > 0) {
+          return (
+            <Button
+              variant="link"
+              className="p-0 h-auto font-medium text-primary hover:text-primary/80"
+              onClick={() => onCellClick?.(row.original, col)}
+            >
+              {length}
+            </Button>
+          );
+        }
+
         return length;
       };
     }
@@ -300,19 +313,36 @@ const useTableColumns = (columnConfig) => {
 
     if (col?.type?.includes("percentage")) {
       columnDefinition.cell = ({ row }) => {
+        let percentageValue = "0.00%";
+        
         // If the percentage was calculated directly by the backend (e.g., toppers API)
         if (row.original.percentage !== undefined && row.original.percentage !== null) {
-          return `${row.original.percentage}%`;
+          percentageValue = `${row.original.percentage}%`;
+        } else {
+          const total = row.original?.[col.totalKey]?.length || 0;
+          const divide =
+            row.original?.[col.totalKey]?.filter(
+              (item) => item?.[col.filterKey] === col.filterValue
+            )?.length || 0;
+          
+          if (total > 0) {
+            percentageValue = `${((divide / total) * 100).toFixed(2)}%`;
+          }
         }
 
-        const total = row.original?.[col.totalKey]?.length || 0;
-        const divide =
-          row.original?.[col.totalKey]?.filter(
-            (item) => item?.[col.filterKey] === col.filterValue
-          )?.length || 0;
-        if (total === 0) return "0.00%";
-        const percentage = ((divide / total) * 100).toFixed(2);
-        return `${percentage}%`;
+        if (col.clickable && percentageValue !== "0.00%") {
+          return (
+            <Button
+              variant="link"
+              className="p-0 h-auto font-medium text-primary hover:text-primary/80"
+              onClick={() => onCellClick?.(row.original, col)}
+            >
+              {percentageValue}
+            </Button>
+          );
+        }
+
+        return percentageValue;
       };
     }
 
