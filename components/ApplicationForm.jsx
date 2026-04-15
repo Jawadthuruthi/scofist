@@ -44,6 +44,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
 
+
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   dateOfBirth: z.date({
@@ -55,7 +56,7 @@ const formSchema = z.object({
     postOffice: z.string().optional(),
     district: z.string().min(2, "District is required"),
     state: z.string().min(2, "State is required"),
-    pin: z.string().regex(/^\d{6}$/, "Invalid PIN code"),
+    pin: z.string().regex(/^\d{6}$/, "Invalid PIN code").optional().or(z.literal("")),
   }),
   guardianName: z.string().min(2, "Guardian name is required"),
   guardianContactNumber: z
@@ -73,6 +74,12 @@ const formSchema = z.object({
   sslcGraduationYear: z.string().optional(),
   islamicEducationQualification: z.string().optional(),
   academicEducationQualification: z.string().optional(),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  aadharNumber: z
+    .string()
+    .regex(/^\d{12}$/, "Aadhar number must be 12 digits")
+    .optional()
+    .or(z.literal("")),
 });
 
 export default function ApplicationForm({ trigger }) {
@@ -115,6 +122,8 @@ export default function ApplicationForm({ trigger }) {
       sslcGraduationYear: "",
       islamicEducationQualification: "",
       academicEducationQualification: "",
+      email: "",
+      aadharNumber: "",
     },
   });
 
@@ -125,68 +134,54 @@ export default function ApplicationForm({ trigger }) {
   });
 
   const onSubmit = async (values) => {
-    if (!file) {
-      toast.error("Please upload a profile picture");
-      return;
-    }
-
     setUploading(true);
 
     try {
-      // 1. Get Signature
-      const signResponse = await fetch("/api/sign-cloudinary", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "active-role": "College Admin",
-        },
-        body: JSON.stringify({ folder: "applications" }),
-      });
+      let profilePic = undefined;
 
-      if (!signResponse.ok) {
-        const errorData = await signResponse.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to get upload signature");
+      // Upload photo only if one was selected
+      if (file) {
+        const signResponse = await fetch("/api/sign-cloudinary", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "active-role": "College Admin",
+          },
+          body: JSON.stringify({ folder: "applications" }),
+        });
+
+        if (!signResponse.ok) {
+          const errorData = await signResponse.json().catch(() => ({}));
+          throw new Error(errorData.message || "Failed to get upload signature");
+        }
+
+        const { signature, timestamp, cloudName, apiKey: cloudApiKey, folder } = await signResponse.json();
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("api_key", cloudApiKey);
+        formData.append("timestamp", timestamp);
+        formData.append("signature", signature);
+        formData.append("folder", folder);
+
+        const uploadResponse = await fetch(
+          `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+          { method: "POST", body: formData }
+        );
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          throw new Error(errorData.error?.message || "Image upload failed");
+        }
+
+        const uploadResult = await uploadResponse.json();
+        profilePic = { url: uploadResult.secure_url, publicId: uploadResult.public_id };
       }
 
-      const {
-        signature,
-        timestamp,
-        cloudName,
-        apiKey: cloudApiKey,
-        folder,
-      } = await signResponse.json();
-
-      // 2. Upload Image to Cloudinary
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("api_key", cloudApiKey);
-      formData.append("timestamp", timestamp);
-      formData.append("signature", signature);
-      formData.append("folder", folder);
-
-      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
-
-      const uploadResponse = await fetch(cloudinaryUrl, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json();
-        throw new Error(errorData.error?.message || "Image upload failed");
-      }
-
-      const uploadResult = await uploadResponse.json();
-      const profilePicUrl = uploadResult.secure_url;
-      const profilePicPublicId = uploadResult.public_id;
-
-      // 3. Submit Application Data
+      // Submit Application Data
       const applicationData = {
         ...values,
-        profilePic: {
-          url: profilePicUrl,
-          publicId: profilePicPublicId,
-        },
+        ...(profilePic ? { profilePic } : {}),
         dateOfBirth: values.dateOfBirth.toISOString(),
       };
 
@@ -268,6 +263,30 @@ export default function ApplicationForm({ trigger }) {
             {/* Personal Details */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Personal Details</h3>
+
+              {/* Photo Upload */}
+              <div className="space-y-2">
+                <FormLabel>Profile Picture <span className="text-gray-400 font-normal">(Optional)</span></FormLabel>
+                <div
+                  {...getRootProps()}
+                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                    isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25"
+                  }`}
+                >
+                  <input {...getInputProps()} />
+                  {file ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      <span className="text-sm font-medium">{file.name}</span>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Drag &amp; drop or click to upload photo
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -338,28 +357,45 @@ export default function ApplicationForm({ trigger }) {
                 />
               </div>
 
-              {/* Photo Upload */}
-              <div className="space-y-2">
-                <FormLabel>Profile Picture</FormLabel>
-                <div
-                  {...getRootProps()}
-                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragActive
-                      ? "border-primary bg-primary/5"
-                      : "border-muted-foreground/25"
-                    }`}
-                >
-                  <input {...getInputProps()} />
-                  {file ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <Upload className="h-4 w-4" />
-                      <span className="text-sm font-medium">{file.name}</span>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Drag & drop or click to upload photo
-                    </p>
+              {/* Email & Aadhar */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Email{" "}
+                        <span className="text-gray-400 font-normal">(Optional)</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="example@email.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
+                />
+
+                <FormField
+                  control={form.control}
+                  name="aadharNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Aadhar Number{" "}
+                        <span className="text-gray-400 font-normal">(Optional)</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="12-digit Aadhar number"
+                          maxLength={12}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <div className="space-y-4">
@@ -457,7 +493,7 @@ export default function ApplicationForm({ trigger }) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          PIN Code <span className="text-red-500">*</span>
+                          PIN Code <span className="text-gray-400 font-normal">(Optional)</span>
                         </FormLabel>
                         <FormControl>
                           <Input
