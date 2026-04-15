@@ -38,14 +38,15 @@ const columnsConfig = [
   { accessorKey: "_id", header: "Group ID", meta: { className: "print:hidden" } },
   { accessorKey: "name", header: "Name" },
   {
-    accessorKey: "leaderName",
-    header: "Leader",
-    meta: { className: "print:hidden" },
-  },
-  {
-    accessorKey: "assistantLeaderName",
-    header: "Assist. Leader",
-    meta: { className: "print:hidden" },
+    id: "leaders",
+    header: "Leader / Assist. Leader",
+    type: ["dualField"],
+    primaryKey: "leaderName",
+    primaryLabel: "Leader",
+    secondaryKey: "assistantLeaderName",
+    secondaryLabel: "Assist. Leader",
+    minWidth: 160,
+    meta: { minWidth: "160px" },
   },
 
   {

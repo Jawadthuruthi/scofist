@@ -316,6 +316,30 @@ const useTableColumns = (columnConfig) => {
       };
     }
 
+    // Render two fields stacked with labeled sub-headings in a single cell
+    if (col.type?.includes("dualField")) {
+      columnDefinition.cell = ({ row }) => {
+        const primary = row.original?.[col.primaryKey];
+        const secondary = row.original?.[col.secondaryKey];
+        return (
+          <div className="flex flex-col gap-1 text-sm">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-0.5">
+                {col.primaryLabel || col.primaryKey}
+              </span>
+              <span>{primary || <span className="text-muted-foreground">—</span>}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-0.5">
+                {col.secondaryLabel || col.secondaryKey}
+              </span>
+              <span>{secondary || <span className="text-muted-foreground">—</span>}</span>
+            </div>
+          </div>
+        );
+      };
+    }
+
     if (col.type?.includes("groupedList")) {
       columnDefinition.cell = ({ row }) => {
         const items = row.getValue(col.accessorKey);
