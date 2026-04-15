@@ -174,6 +174,8 @@ export default async function GroupsPage() {
           filterConfig={filterConfig}
           limit={20}
           printTitle="Literary Groups"
+          mobileSplitLayout={true}
+          mobileSearchPlaceholder="Search by group or student name..."
         />
       </>
     );

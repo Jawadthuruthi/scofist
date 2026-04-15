@@ -119,6 +119,8 @@ const DataTableComponent = ({
   enableMonthYearFilter = false,
   trailingToolbar = null,
   highlightHighest = null,
+  mobileSplitLayout = false,
+  mobileSearchPlaceholder = "Search...",
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -824,167 +826,213 @@ const DataTableComponent = ({
     : filteredData.length;
   const totalItemsText =
     isApiFiltering && totalPages > 0 ? ` of ${dataCount} total` : "";
+  // Shared action buttons (used in both layouts)
+  const actionButtons = (
+    <>
+      {additionalProps?.customActions && (
+        <div>{additionalProps.customActions}</div>
+      )}
+      {!!selectedData?.length && (!readOnly || enableDelete) && (
+        <ConfirmationPopup
+          onClick={handleDelete}
+          action="delete"
+          loading={loading}
+          title={deleteFormTitle}
+        />
+      )}
+      {(selectedData.length === 1 ||
+        (selectedData.length > 1 && multiEdit)) &&
+        !readOnly && (
+          <PopupForm
+            data={selectedData[0]}
+            formFields={
+              selectedData.length > 1 && multiEditFormFields?.length > 0
+                ? multiEditFormFields
+                : editFormFields?.length > 0
+                  ? editFormFields
+                  : formFields
+            }
+            onSubmit={handleEdit}
+            loading={loading}
+            title={editFormTitle}
+            apiKey={apiKey}
+          />
+        )}
+      {!readOnly && enableCreate && (
+        <PopupForm
+          formFields={formFields}
+          onSubmit={handleSubmit}
+          loading={loading}
+          title={createFormTitle}
+          apiKey={apiKey}
+        />
+      )}
+      {table.getRowModel().rows?.length > 0 && (
+        <>
+          <Button onClick={handleExportExcel} className="print:hidden bg-[#1D6F42] text-white hover:bg-[#1D6F42]/90">
+            Excel
+          </Button>
+          {isMobile ? (
+            <Button onClick={handleDownloadPDF} className="print:hidden bg-black text-white hover:bg-gray-800">
+              Print
+            </Button>
+          ) : (
+            <Button onClick={handlePrint} className="btn-print">Print</Button>
+          )}
+        </>
+      )}
+    </>
+  );
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="mr-auto space-x-2 flex items-center">
-          {additionalProps?.customToolbar && !isMobile && (
-            <div className="mr-2">{additionalProps.customToolbar}</div>
-          )}
-          <ColumnCustomization table={table} columnsConfig={columnsConfig} />
+      {/* ── Mobile Split Layout ── */}
+      {isMobile && mobileSplitLayout ? (
+        <div className="space-y-2">
+          {/* Row 1: Full-width search bar */}
+          <div className="relative w-full">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={mobileSearchPlaceholder}
+              value={globalFilter ?? ""}
+              onChange={(e) => handleSetGlobalFilter(e.target.value)}
+              className="h-9 w-full pl-9"
+            />
+          </div>
 
-          <PopupFilter
-            filterConfig={isMobile || dateRangeInPopup ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
-            filters={filters}
-            setFilter={handleSetFilter}
-            removeFilter={handleRemoveFilter}
-            clearFilters={handleClearFilters}
-            globalFilter={globalFilter}
-            setGlobalFilter={handleSetGlobalFilter}
-            hasFilters={hasFilters || Object.keys(filters).length > 0}
-            title={filterTitle || capitalize(resource)}
-            filterType={filterType}
-          />
-
-          {enableMonthYearFilter && (
-            <div className="flex items-center space-x-2">
-              <Select value={filterYear?.toString()} onValueChange={(v) => {
-                setFilterYear(parseInt(v));
-                if (isApiFiltering) debouncedApiFilterUpdate();
-              }}>
-                <SelectTrigger className="w-[80px] h-8 text-xs">
-                  <SelectValue placeholder="Year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
-                    <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filterMonth?.toString()} onValueChange={(v) => {
-                setFilterMonth(parseInt(v));
-                if (isApiFiltering) debouncedApiFilterUpdate();
-              }}>
-                <SelectTrigger className="w-[120px] h-8 text-xs">
-                  <SelectValue placeholder="Month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                    <SelectItem key={m} value={m.toString()}>
-                      {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Trailing toolbar slot — renders after month/year selects */}
-          {trailingToolbar && (
+          {/* Row 2: Column management + action buttons */}
+          <div className="flex items-center justify-between gap-1 flex-wrap">
             <div className="flex items-center">
-              {isValidElement(trailingToolbar)
-                ? cloneElement(trailingToolbar, {
-                  filterMonth,
-                  filterYear,
-                  apiKey,
-                  toppersOnly,
-                  setToppersOnly,
-                  tableData: isApiFiltering ? data : filteredData,
-                })
-                : trailingToolbar}
-            </div>
-          )}
-
-          {/* Desktop Date Range Filter */}
-          {!isMobile && !dateRangeInPopup && filterConfig.find(f => f.inputType === "dateRange") && (
-            <DateRangeFilter
-              value={(() => {
-                const filterState = filters[filterConfig.find(f => f.inputType === "dateRange").id];
-                return filterState?.value || filterState || {};
-              })()}
-              onChange={(val) => {
-                const config = filterConfig.find(f => f.inputType === "dateRange");
-                if (val.startDate || val.endDate) {
-                  handleSetFilter(config.id, val, "dateRange", null);
-                } else {
-                  handleRemoveFilter(config.id);
-                }
-              }}
-            />
-          )}
-
-          {enableSearch && (
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by ID or Name..."
-                value={globalFilter ?? ""}
-                onChange={(e) => handleSetGlobalFilter(e.target.value)}
-                className="h-9 w-[180px] lg:w-[250px] pl-9"
-              />
-            </div>
-          )}
-        </div >
-        <div className="space-x-2 flex items-center">
-          {additionalProps?.customActions && (
-            <div>{additionalProps.customActions}</div>
-          )}
-          {!!selectedData?.length && (!readOnly || enableDelete) && (
-            <ConfirmationPopup
-              onClick={handleDelete}
-              action="delete"
-              loading={loading}
-              title={deleteFormTitle}
-            />
-          )}
-          {(selectedData.length === 1 ||
-            (selectedData.length > 1 && multiEdit)) &&
-            !readOnly && (
-              <PopupForm
-                data={selectedData[0]}
-                formFields={
-                  selectedData.length > 1 && multiEditFormFields?.length > 0
-                    ? multiEditFormFields
-                    : editFormFields?.length > 0
-                      ? editFormFields
-                      : formFields
-                }
-                onSubmit={handleEdit}
-                loading={loading}
-                title={editFormTitle}
-                apiKey={apiKey}
-              />
-            )}
-          {!readOnly && enableCreate && (
-            <PopupForm
-              formFields={formFields}
-              onSubmit={handleSubmit}
-              loading={loading}
-              title={createFormTitle}
-              apiKey={apiKey}
-            />
-          )}
-          {table.getRowModel().rows?.length > 0 && (
-            <>
-              <Button onClick={handleExportExcel} className="print:hidden bg-[#1D6F42] text-white hover:bg-[#1D6F42]/90">
-                Excel
-              </Button>
-              {isMobile ? (
-                <Button onClick={handleDownloadPDF} className="print:hidden bg-black text-white hover:bg-gray-800">
-                  Download PDF
-                </Button>
-              ) : (
-                <Button onClick={handlePrint} className="btn-print">Print</Button>
+              <ColumnCustomization table={table} columnsConfig={columnsConfig} />
+              {additionalProps?.customToolbar && (
+                <div className="ml-1">{additionalProps.customToolbar}</div>
               )}
-            </>
+            </div>
+            <div className="flex items-center space-x-1">
+              {actionButtons}
+            </div>
+          </div>
+
+          {!!selectedData.length && (
+            <div className="text-muted-foreground text-sm">
+              {selectedData?.length} selected
+            </div>
           )}
         </div>
-      </div >
-      {!!selectedData.length && (
-        <div className="text-muted-foreground">
-          {selectedData?.length} selected
-        </div>
+      ) : (
+        /* ── Default Layout (desktop + non-split mobile) ── */
+        <>
+          <div className="flex items-center justify-between">
+            <div className="mr-auto space-x-2 flex items-center">
+              {additionalProps?.customToolbar && !isMobile && (
+                <div className="mr-2">{additionalProps.customToolbar}</div>
+              )}
+              <ColumnCustomization table={table} columnsConfig={columnsConfig} />
+
+              <PopupFilter
+                filterConfig={isMobile || dateRangeInPopup ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
+                filters={filters}
+                setFilter={handleSetFilter}
+                removeFilter={handleRemoveFilter}
+                clearFilters={handleClearFilters}
+                globalFilter={globalFilter}
+                setGlobalFilter={handleSetGlobalFilter}
+                hasFilters={hasFilters || Object.keys(filters).length > 0}
+                title={filterTitle || capitalize(resource)}
+                filterType={filterType}
+              />
+
+              {enableMonthYearFilter && (
+                <div className="flex items-center space-x-2">
+                  <Select value={filterYear?.toString()} onValueChange={(v) => {
+                    setFilterYear(parseInt(v));
+                    if (isApiFiltering) debouncedApiFilterUpdate();
+                  }}>
+                    <SelectTrigger className="w-[80px] h-8 text-xs">
+                      <SelectValue placeholder="Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
+                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={filterMonth?.toString()} onValueChange={(v) => {
+                    setFilterMonth(parseInt(v));
+                    if (isApiFiltering) debouncedApiFilterUpdate();
+                  }}>
+                    <SelectTrigger className="w-[120px] h-8 text-xs">
+                      <SelectValue placeholder="Month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                        <SelectItem key={m} value={m.toString()}>
+                          {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Trailing toolbar slot — renders after month/year selects */}
+              {trailingToolbar && (
+                <div className="flex items-center">
+                  {isValidElement(trailingToolbar)
+                    ? cloneElement(trailingToolbar, {
+                      filterMonth,
+                      filterYear,
+                      apiKey,
+                      toppersOnly,
+                      setToppersOnly,
+                      tableData: isApiFiltering ? data : filteredData,
+                    })
+                    : trailingToolbar}
+                </div>
+              )}
+
+              {/* Desktop Date Range Filter */}
+              {!isMobile && !dateRangeInPopup && filterConfig.find(f => f.inputType === "dateRange") && (
+                <DateRangeFilter
+                  value={(() => {
+                    const filterState = filters[filterConfig.find(f => f.inputType === "dateRange").id];
+                    return filterState?.value || filterState || {};
+                  })()}
+                  onChange={(val) => {
+                    const config = filterConfig.find(f => f.inputType === "dateRange");
+                    if (val.startDate || val.endDate) {
+                      handleSetFilter(config.id, val, "dateRange", null);
+                    } else {
+                      handleRemoveFilter(config.id);
+                    }
+                  }}
+                />
+              )}
+
+              {enableSearch && (
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by ID or Name..."
+                    value={globalFilter ?? ""}
+                    onChange={(e) => handleSetGlobalFilter(e.target.value)}
+                    className="h-9 w-[180px] lg:w-[250px] pl-9"
+                  />
+                </div>
+              )}
+            </div>
+            <div className="space-x-2 flex items-center">
+              {actionButtons}
+            </div>
+          </div>
+
+          {!!selectedData.length && (
+            <div className="text-muted-foreground">
+              {selectedData?.length} selected
+            </div>
+          )}
+        </>
       )}
       <div
         ref={tableRef}
