@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import useDataFilter from "@/hooks/use-data-filter";
 import dynamic from "next/dynamic";
-import { Loader, Search, X } from "lucide-react";
+import { Loader, Search, X, Trophy, FileSpreadsheet, Printer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
@@ -255,7 +255,8 @@ const DataTableComponent = ({
     return {
       ...activeApiFilters,
       ...transformedFilters,
-      ...(globalFilter ? { global: globalFilter } : {}),
+      ...(globalFilter ? (resource === "studentAttendances" ? { name: globalFilter } : { global: globalFilter }) : {}),
+      ...(toppersOnly ? { toppersOnly: true } : {}),
     };
   }, [isApiFiltering, activeApiFilters, filters, globalFilter, hasFilters, enableMonthYearFilter, filterMonth, filterYear]);
 
@@ -953,19 +954,25 @@ const DataTableComponent = ({
       {/* ── Mobile Split Layout ── */}
       {isMobile ? (
         <div className="space-y-3">
-          {/* Row 1: Full-width search bar */}
-          <div className="relative w-full">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={mobileSearchPlaceholder}
-              value={globalFilter ?? ""}
-              onChange={(e) => handleSetGlobalFilter(e.target.value)}
-              className="h-10 w-full pl-9 bg-background"
-            />
+          {/* Row 1: Custom Toolbar (Search/Scan) or Default Search */}
+          <div className="w-full">
+            {additionalProps?.customToolbar ? (
+              <div className="w-full">{additionalProps.customToolbar}</div>
+            ) : (
+              <div className="relative w-full">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={mobileSearchPlaceholder}
+                  value={globalFilter ?? ""}
+                  onChange={(e) => handleSetGlobalFilter(e.target.value)}
+                  className="h-10 w-full pl-9 bg-background"
+                />
+              </div>
+            )}
           </div>
 
-          {/* Row 2: View Controls (Columns, Filters, Month, Year) */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Row 2: Icons (Columns, Filter, Trophy, Excel, Print) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar bg-card/50 p-1.5 rounded-lg border border-border/50 shadow-sm">
             <ColumnCustomization table={table} columnsConfig={columnsConfig} />
             
             <PopupFilter
@@ -981,13 +988,64 @@ const DataTableComponent = ({
               filterType={filterType}
             />
 
-            {enableMonthYearFilter && (
-              <div className="flex items-center gap-2">
+            {/* Trophy Icon Toggle for Toppers */}
+            {resource === "studentAttendances" && enableMonthYearFilter && (
+              <Button
+                variant="outline"
+                size="icon"
+                className={cn(
+                  "h-9 w-9 shrink-0 transition-all duration-200", 
+                  toppersOnly 
+                    ? "bg-green-50 border-green-300 shadow-sm" 
+                    : "hover:bg-neutral-100"
+                )}
+                onClick={() => {
+                  const newVal = !toppersOnly;
+                  setToppersOnly(newVal);
+                  if (isApiFiltering) {
+                    setIsFilterChanged(true);
+                    setPage(0);
+                    setData([]);
+                    debouncedApiFilterUpdate();
+                  }
+                }}
+                title="Green Listed Students (Toppers)"
+              >
+                <Trophy 
+                  className={cn(
+                    "h-4 w-4 transition-colors", 
+                    toppersOnly ? "text-green-500" : "text-black"
+                  )} 
+                  fill={toppersOnly ? "currentColor" : "none"}
+                  strokeWidth={2.5}
+                />
+              </Button>
+            )}
+
+            <Button size="icon" variant="outline" onClick={handleExportExcel} className="h-9 w-9 shrink-0 text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+              <FileSpreadsheet className="h-4 w-4" />
+            </Button>
+            
+            <Button size="icon" variant="outline" onClick={handleDownloadPDF} className="h-9 w-9 shrink-0 text-slate-900 border-slate-300 hover:bg-slate-100">
+              <Printer className="h-4 w-4" />
+            </Button>
+
+            {additionalProps?.customToolbar && !isMobile && (
+              <div className="flex items-center">
+                {additionalProps.customToolbar}
+              </div>
+            )}
+          </div>
+
+          {/* Row 3: Year and Month selectors */}
+          {enableMonthYearFilter && (
+            <div className="flex items-center justify-center gap-2 bg-muted/30 p-2 rounded-lg border border-border/20">
+              <div className="flex items-center gap-1.5 w-full">
                 <Select value={filterYear?.toString()} onValueChange={(v) => {
                   setFilterYear(parseInt(v));
                   if (isApiFiltering) debouncedApiFilterUpdate();
                 }}>
-                  <SelectTrigger className="w-[80px] h-9 text-xs">
+                  <SelectTrigger className="flex-1 h-10 text-sm font-medium bg-background border-muted-foreground/20">
                     <SelectValue placeholder="Year" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1001,32 +1059,60 @@ const DataTableComponent = ({
                   setFilterMonth(parseInt(v));
                   if (isApiFiltering) debouncedApiFilterUpdate();
                 }}>
-                  <SelectTrigger className="w-[100px] h-9 text-xs">
+                  <SelectTrigger className="flex-1 h-10 text-sm font-medium bg-background border-muted-foreground/20">
                     <SelectValue placeholder="Month" />
                   </SelectTrigger>
                   <SelectContent>
                     {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                       <SelectItem key={m} value={m.toString()}>
-                        {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'short' })}
+                        {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            )}
-            
-            {additionalProps?.customToolbar && (
-              <div className="flex items-center">
-                {additionalProps.customToolbar}
-              </div>
-            )}
-          </div>
-
-          {/* Row 3: Actions (CRUD, Print, Excel) */}
-          <div className="flex items-center justify-between gap-1 overflow-x-auto pb-1 no-scrollbar">
-            <div className="flex items-center gap-1">
-              {actionButtons}
             </div>
+          )}
+
+          {/* Additional Actions (CRUD, etc) */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
+            {/* Show only CRUD buttons here; Excel/Print are moved to Row 2 */}
+            {additionalProps?.customActions && (
+              <div>{additionalProps.customActions}</div>
+            )}
+            {!!selectedData?.length && (!readOnly || enableDelete) && (
+              <ConfirmationPopup
+                onClick={handleDelete}
+                action="delete"
+                loading={loading}
+                title={deleteFormTitle}
+              />
+            )}
+            {(selectedData.length === 1 || (selectedData.length > 1 && multiEdit)) && !readOnly && (
+              <PopupForm
+                data={selectedData[0]}
+                formFields={
+                  selectedData.length > 1 && multiEditFormFields?.length > 0
+                    ? multiEditFormFields
+                    : editFormFields?.length > 0
+                      ? editFormFields
+                      : formFields
+                }
+                onSubmit={handleEdit}
+                loading={loading}
+                title={editFormTitle}
+                apiKey={apiKey}
+              />
+            )}
+            {!readOnly && enableCreate && (
+              <PopupForm
+                formFields={formFields}
+                onSubmit={handleSubmit}
+                loading={loading}
+                title={createFormTitle}
+                apiKey={apiKey}
+              />
+            )}
           </div>
 
           {!!selectedData.length && (

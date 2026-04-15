@@ -22,6 +22,10 @@ const API_ENDPOINTS = [
     pathname: "users",
     searchParams: "projection=_id,name,studentSpecificField,profilePic,className&roles=Student",
   },
+  {
+    pathname: "users",
+    searchParams: "projection=_id,name,profilePic&roles=Teacher",
+  },
 ];
 
 const AttendanceTrackingPage = async () => {
@@ -31,7 +35,7 @@ const AttendanceTrackingPage = async () => {
 
     const activeRole = cookieStore.get("active-role")?.value;
 
-    const [batches, classes, subjects, students] = await Promise.all(
+    const [batches, classes, subjects, students, teachers] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
         fetchData(endpoint.pathname, endpoint.searchParams)
       )
@@ -66,6 +70,7 @@ const AttendanceTrackingPage = async () => {
     }));
 
     const formattedStudents = formatOptions(students);
+    const formattedTeachers = formatOptions(teachers);
 
     const tabsConfig = [
       {
@@ -179,7 +184,7 @@ const AttendanceTrackingPage = async () => {
           groupBy: "attendanceRecords.0.className",
           className: "bg-green-100/50"
         },
-        trailingToolbar: <StudentAttendanceLookup students={students} classes={formatOptions(formattedClasses)} />,
+        trailingToolbar: <StudentAttendanceLookup students={formattedStudents} classes={formatOptions(formattedClasses)} />,
         limit: 1000,
       },
       {
@@ -278,6 +283,7 @@ const AttendanceTrackingPage = async () => {
         filterType: "api",
         dateRangeInPopup: true,
         enableMonthYearFilter: true,
+        trailingToolbar: <StudentAttendanceLookup students={formattedTeachers} type="teacher" />,
         limit: 1000,
       },
     ];

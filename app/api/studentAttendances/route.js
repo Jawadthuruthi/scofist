@@ -15,13 +15,14 @@ export async function GET(req, res) {
     // Build filter object from query parameters
     const filterParams = {};
     for (const [key, value] of url.searchParams.entries()) {
-      // Skip pagination, limit, projection, and new toppersOnly parameter
-      if (key !== "page" && key !== "limit" && key !== "projection" && key !== "toppersOnly") {
+      // Skip pagination, limit, projection, and control flags
+      if (!["page", "limit", "projection", "toppersOnly", "name"].includes(key)) {
         filterParams[key] = value;
       }
     }
 
     const isToppersOnly = url.searchParams.get("toppersOnly") === "true";
+    const nameFilter = url.searchParams.get("name");
 
     // Get projection param
     const projectionParam = url.searchParams.get("projection");
@@ -39,6 +40,20 @@ export async function GET(req, res) {
     const documentQuery = {};
     if (filterParams.studentId) {
       documentQuery.studentId = filterParams.studentId;
+    } else if (nameFilter) {
+      // Search for students by name
+      const User = models.User;
+      const matchingStudents = await User.find({
+        name: { $regex: nameFilter, $options: "i" },
+        roles: "Student"
+      }, { _id: 1 }).lean();
+
+      if (matchingStudents.length > 0) {
+        documentQuery.studentId = { $in: matchingStudents.map(m => m._id.toString()) };
+      } else {
+        // If name search is active but no students found, force empty result
+        documentQuery.studentId = "NULL_USER_ID";
+      }
     }
 
     // Store record-level filters separately - these will be used later for filtering the records array
