@@ -22,17 +22,7 @@ const columnsConfig = [
 
   { accessorKey: "name", header: "Name" },
   { accessorKey: "status", header: "Status", type: ["badge"] },
-  {
-    accessorKey: "/dashboard/applications",
-    header: "",
-    endpointKey: "_id",
-    name: "Link Button",
-    type: ["externalLink"],
-    width: 50,
-    minWidth: 50,
-    maxWidth: 50,
-    searchParams: `apiKey=${process.env.API_KEY}`,
-  },
+
 ];
 
 const statusMessages = {
@@ -287,6 +277,9 @@ export default async function ApplicationsPage() {
           filterConfig={filterConfig}
           limit={20}
           enableDelete={true}
+          rowLink="/dashboard/applications"
+          rowLinkKey="_id"
+          rowLinkSearchParams={`apiKey=${apiKey}`}
         />
       </>
     );

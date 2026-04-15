@@ -121,6 +121,9 @@ const DataTableComponent = ({
   highlightHighest = null,
   mobileSplitLayout = false,
   mobileSearchPlaceholder = "Search...",
+  rowLink = null,
+  rowLinkKey = "_id",
+  rowLinkSearchParams = "",
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -686,9 +689,9 @@ const DataTableComponent = ({
         });
       }
     } else if (baseData.length > 0) {
-      // Default sort by admission number (_id)
+      // Default sort by _id descending so newest records appear first
       baseData = [...baseData].sort((a, b) => {
-        return String(a._id).localeCompare(String(b._id), undefined, { numeric: true, sensitivity: 'base' });
+        return String(b._id).localeCompare(String(a._id), undefined, { numeric: true, sensitivity: 'base' });
       });
     }
     return baseData;
@@ -1116,8 +1119,16 @@ const DataTableComponent = ({
                   data-state={row.getIsSelected() ? "selected" : undefined}
                   className={cn(
                     "break-inside-avoid",
-                    highlightedRowIds.has(row.original._id) && highlightHighest?.className
+                    highlightedRowIds.has(row.original._id) && highlightHighest?.className,
+                    rowLink && "cursor-pointer hover:bg-muted/60 active:bg-muted transition-colors"
                   )}
+                  onClick={rowLink ? (e) => {
+                    // Don't navigate if clicking a checkbox or interactive element
+                    if (e.target.closest('input, button, a, [role="checkbox"]')) return;
+                    const id = row.original[rowLinkKey];
+                    const params = rowLinkSearchParams ? `?${rowLinkSearchParams}` : "";
+                    router.push(`${rowLink}/${id}${params}`);
+                  } : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
