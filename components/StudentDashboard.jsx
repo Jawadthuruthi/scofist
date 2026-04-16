@@ -583,18 +583,7 @@ export default function StudentDashboard({
       `}</style>
 
       <div className="space-y-6 max-w-7xl mx-auto">
-
-      <div className="no-print mb-4">
-        {!hideHeader && (
-          <Header
-            title="DASHBOARD"
-            subTitle={currentDate}
-            icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
-          />
-        )}
-      </div>
-
-      <PrintHeader title="STUDENT PROFILE" apiKey={apiKey} displayOnScreen={false} />
+        <PrintHeader title="STUDENT PROFILE" apiKey={apiKey} displayOnScreen={false} />
 
       {/* Premium Header */}
       <div className="no-print relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-950 p-8 text-white shadow-xl mb-6">
