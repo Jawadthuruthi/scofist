@@ -67,7 +67,7 @@ export async function GET(req, res) {
       .populate("classId", ["_id", "name"])
       .skip(page * limit)
       .limit(limit)
-      .sort({ createdAt: -1 });
+      .sort({ updatedAt: -1 });
     // Get total count for pagination info
     const total = await LeaveRecord.countDocuments(query);
     const formattedLeaveRecords = leaveRecords.map((record) => {

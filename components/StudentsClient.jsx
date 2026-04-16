@@ -133,7 +133,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         editSuccessMessage={statusMessages.edit}
         deleteSuccessMessage={statusMessages.delete}
         filterConfig={filterConfig}
-        limit={20}
+        limit={1000}
         apiFilters={apiFilters}
         filterTitle={filterTitle || "Students"}
         printTitle={pageTitle || "Students"}

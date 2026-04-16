@@ -239,6 +239,11 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
                 filterConfig={filterConfig}
                 filterTitle="Leave Records"
                 printTitle="Leave Records"
+                limit={1000}
+                enableDefaultSort={false}
+                tableHeight="calc(100vh - 250px)"
+                createButtonClass="bg-blue-600 text-white hover:bg-blue-700 border-none"
+                createButtonText="Add Record"
             />
         </>
     );

@@ -132,6 +132,9 @@ const DataTableComponent = ({
   rowLink = null,
   rowLinkKey = "_id",
   rowLinkSearchParams = "",
+  enableDefaultSort = true,
+  createButtonClass = "",
+  createButtonText = "",
 }) => {
   const [sorting, setSorting] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -750,7 +753,7 @@ const DataTableComponent = ({
           return sortClasses(a, b, getName);
         });
       }
-    } else if (baseData.length > 0) {
+    } else if (baseData.length > 0 && enableDefaultSort) {
       // Default sort by _id descending so newest records appear first
       baseData = [...baseData].sort((a, b) => {
         return String(b._id).localeCompare(String(a._id), undefined, { numeric: true, sensitivity: 'base' });
@@ -930,6 +933,8 @@ const DataTableComponent = ({
           loading={loading}
           title={createFormTitle}
           apiKey={apiKey}
+          triggerClass={createButtonClass}
+          triggerText={createButtonText}
         />
       )}
       {table.getRowModel().rows?.length > 0 && (
@@ -950,7 +955,7 @@ const DataTableComponent = ({
   );
 
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", isMobile && "space-y-px")}>
       {/* ── Mobile Split Layout ── */}
       {isMobile ? (
         <div className="space-y-3">
@@ -972,7 +977,7 @@ const DataTableComponent = ({
           </div>
 
           {/* Row 2: Icons (Columns, Filter, Trophy, Excel, Print) */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar bg-card/50 p-1.5 rounded-lg border border-border/50 shadow-sm">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar bg-card/50 p-1.5 rounded-lg">
             <ColumnCustomization table={table} columnsConfig={columnsConfig} />
             
             <PopupFilter
@@ -1022,13 +1027,28 @@ const DataTableComponent = ({
               </Button>
             )}
 
-            <Button size="icon" variant="outline" onClick={handleExportExcel} className="h-9 w-9 shrink-0 text-emerald-600 border-emerald-200 hover:bg-emerald-50">
-              <FileSpreadsheet className="h-4 w-4" />
-            </Button>
-            
-            <Button size="icon" variant="outline" onClick={handleDownloadPDF} className="h-9 w-9 shrink-0 text-slate-900 border-slate-300 hover:bg-slate-100">
-              <Printer className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1.5 ml-auto shrink-0">
+              {!readOnly && enableCreate && (
+                <PopupForm
+                  formFields={formFields}
+                  onSubmit={handleSubmit}
+                  loading={loading}
+                  title={createFormTitle}
+                  apiKey={apiKey}
+                  triggerClass={createButtonClass}
+                />
+              )}
+              
+              <Button onClick={handleExportExcel} className="h-9 gap-1.5 bg-[#1D6F42] text-white hover:bg-[#1D6F42]/90 border-0">
+                <FileSpreadsheet className="h-4 w-4" />
+                <span>Excel</span>
+              </Button>
+              
+              <Button onClick={handleDownloadPDF} className="h-9 gap-1.5 btn-print border-0">
+                <Printer className="h-4 w-4" />
+                <span>Print</span>
+              </Button>
+            </div>
 
             {additionalProps?.customToolbar && !isMobile && (
               <div className="flex items-center">
@@ -1039,7 +1059,7 @@ const DataTableComponent = ({
 
           {/* Row 3: Year and Month selectors */}
           {enableMonthYearFilter && (
-            <div className="flex items-center justify-center gap-2 bg-muted/30 p-2 rounded-lg border border-border/20">
+            <div className="flex items-center justify-center gap-2 bg-muted/30 p-2 rounded-lg">
               <div className="flex items-center gap-1.5 w-full">
                 <Select value={filterYear?.toString()} onValueChange={(v) => {
                   setFilterYear(parseInt(v));
@@ -1104,13 +1124,16 @@ const DataTableComponent = ({
                 apiKey={apiKey}
               />
             )}
-            {!readOnly && enableCreate && (
+            {/* In mobile split layout, create button is moved to Row 2 */}
+            {!readOnly && enableCreate && !isMobile && (
               <PopupForm
                 formFields={formFields}
                 onSubmit={handleSubmit}
                 loading={loading}
                 title={createFormTitle}
                 apiKey={apiKey}
+                triggerClass={createButtonClass}
+                triggerText={createButtonText}
               />
             )}
           </div>

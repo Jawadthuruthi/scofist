@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "@/components/Header";
-import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Eye } from "lucide-react";
+import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Eye, Plane } from "lucide-react";
 import { formatDateForDisplay, formatMonthYear, formatDateShort } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "@/components/PrintHeader";
@@ -109,6 +109,8 @@ export default function StudentDashboard({
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [selectedStandardFund, setSelectedStandardFund] = useState(null);
   const [isStandardModalOpen, setIsStandardModalOpen] = useState(false);
+  const [leavesList, setLeavesList] = useState([]);
+  const [leavesLoading, setLeavesLoading] = useState(true);
 
 
   const className = classes.find(
@@ -317,6 +319,26 @@ export default function StudentDashboard({
     fetchRemarks();
   }, [currentUser, apiKey]);
 
+  useEffect(() => {
+    const fetchLeaves = async () => {
+      if (!currentUser?._id || !apiKey) return;
+      setLeavesLoading(true);
+      try {
+        const res = await fetch(`/api/leave-records?studentId=${currentUser._id}&limit=1000`, {
+          headers: { "Content-Type": "application/json", "api-key": apiKey }
+        });
+        const result = await res.json();
+        if (result["leave-records"]) {
+          setLeavesList(result["leave-records"] || []);
+        }
+      } catch (error) {
+        console.error("Error fetching leave records:", error);
+      } finally {
+        setLeavesLoading(false);
+      }
+    };
+    fetchLeaves();
+  }, [currentUser, apiKey]);
 
   const attendanceHistory = useMemo(() => {
     // Robust extraction of attendance records
@@ -634,13 +656,14 @@ export default function StudentDashboard({
       </div>
 
       {/* Navigation Cards Grid */}
-      <div className="no-print grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      <div className="no-print grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
         {[
           { id: "PROFILE", label: "My Profile", icon: User, color: "blue" },
           { id: "FINANCE", label: "Finance", icon: IndianRupee, color: "emerald" },
           { id: "LIBRARY", label: "Library", icon: BookOpen, color: "amber" },
           { id: "ATTENDANCE", label: "Attendance", icon: Calendar, color: "rose" },
           { id: "MARKS", label: "Marks", icon: FileText, color: "indigo" },
+          { id: "LEAVES", label: "Leaves", icon: Plane, color: "violet" },
           { id: "REMARKS", label: "Remarks", icon: MessageSquare, color: "orange" },
         ].map((item) => {
           const Icon = item.icon;
@@ -701,6 +724,15 @@ export default function StudentDashboard({
               iconInactiveText: "text-orange-600",
               labelActive: "text-orange-700 dark:text-orange-300",
               bottomBar: "bg-orange-500"
+            },
+            violet: {
+              activeBorder: "border-violet-500",
+              activeBg: "bg-violet-50/50 dark:bg-violet-900/10",
+              iconActiveBg: "bg-violet-500",
+              iconInactiveBg: "bg-violet-100 dark:bg-violet-900/20",
+              iconInactiveText: "text-violet-600",
+              labelActive: "text-violet-700 dark:text-violet-300",
+              bottomBar: "bg-violet-500"
             }
           };
 
@@ -852,25 +884,25 @@ export default function StudentDashboard({
           <CardContent className="grid grid-cols-[max-content_12px_1fr] items-start">
             <ProfileField label="Batch" value={batchName} />
             <ProfileField
-              label="Adm. Class"
+              label="Admission Class"
               value={admissionClassName}
             />
             <ProfileField
-              label="Adm. Date"
+              label="Admission Date"
               value={formatDateShort(
                 currentUser?.studentSpecificField?.admissionDate
               )}
             />
             <ProfileField
-              label="Islamic Qual."
+              label="Islamic Qualification"
               value={currentUser?.studentSpecificField?.islamicQualification}
             />
             <ProfileField
-              label="Academic Qual."
+              label="Academic Qualification"
               value={currentUser?.studentSpecificField?.academicQualification}
             />
             <ProfileField
-              label="Graduated Yr"
+              label="Graduated Year"
               value={currentUser?.studentSpecificField?.graduatedYear}
             />
             {currentUser?.studentSpecificField?.status === "Dropped Out" && (
@@ -1499,6 +1531,90 @@ export default function StudentDashboard({
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {activeTab === "LEAVES" && (
+        <Card className="flex flex-col card-print-break mt-5 border-violet-100 dark:border-violet-900 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <Plane className="h-5 w-5 text-violet-500" />
+              Leave History
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1">
+            <div className="max-h-[400px] overflow-y-auto pr-2">
+              {leavesLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (leavesList && leavesList.length > 0) ? (
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead className="w-[60px] py-3 pl-4 text-xs font-bold uppercase tracking-wider">Sl No</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[100px]">Date of Leave</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider">Leave Reason</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[100px]">Exp. Arrival</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider min-w-[100px]">Actual Arrival</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider">Late Reason</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider">Remark</TableHead>
+                        <TableHead className="py-3 text-xs font-bold uppercase tracking-wider text-center">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[...leavesList]
+                        .sort((a, b) => new Date(b.dateOfLeave) - new Date(a.dateOfLeave))
+                        .map((leave, index) => (
+                        <TableRow key={leave._id} className="group hover:bg-muted/30 transition-colors">
+                          <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
+                          <TableCell className="py-3 text-sm font-bold text-violet-700 dark:text-violet-300">
+                            {formatDateShort(leave.dateOfLeave)}
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <p className="text-sm text-foreground leading-relaxed italic line-clamp-1" title={leave.leaveReason}>
+                              {leave.leaveReason}
+                            </p>
+                          </TableCell>
+                          <TableCell className="py-3 text-sm font-medium text-slate-600 dark:text-slate-400">
+                            {formatDateShort(leave.dateOfArrival)}
+                          </TableCell>
+                          <TableCell className="py-3 text-sm font-bold text-green-600 dark:text-green-400">
+                            {leave.arrivedDate ? formatDateShort(leave.arrivedDate) : "N/A"}
+                          </TableCell>
+                          <TableCell className="py-3 text-sm text-muted-foreground">
+                            {leave.lateReason || "-"}
+                          </TableCell>
+                          <TableCell className="py-3 text-sm text-muted-foreground">
+                            {leave.remark || "-"}
+                          </TableCell>
+                          <TableCell className="py-3 text-center">
+                            {leave.arrivedDate ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                <span className="h-1 w-1 rounded-full bg-green-500" />
+                                Returned
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 animate-pulse">
+                                <span className="h-1 w-1 rounded-full bg-orange-500" />
+                                On Leave
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                  <Plane className="h-10 w-10 mb-2 opacity-20" />
+                  <p className="text-sm">No leave records found.</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {activeTab === "REMARKS" && (
