@@ -29,9 +29,10 @@ const OPERATORS = {
  *
  * @param {Array} initialData - The original initialData array to filter
  * @param {Object} initialFilters - Optional initial filter criteria
+ * @param {Array|null} searchableFields - Optional array of field keys/paths to restrict global search to
  * @returns {Object} Filtering utilities and filtered initialData
  */
-export default function useDataFilter(initialData = [], initialFilters = {}) {
+export default function useDataFilter(initialData = [], initialFilters = {}, searchableFields = null) {
   const [filters, setFilters] = useState(initialFilters);
   const [globalFilter, setGlobalFilter] = useState("");
 
@@ -426,21 +427,33 @@ export default function useDataFilter(initialData = [], initialFilters = {}) {
 
       // Apply global filter across all fields if specified
       if (globalFilter) {
-        const globalFilterLower = globalFilter.toLowerCase();
+        const globalFilterLower = globalFilter.toLowerCase().trim();
 
-        // Check if any field in the item contains the global filter value
-        return Object.values(item).some((value) => {
-          if (value === null || value === undefined) return false;
-
-          if (typeof value === "object") {
-            // For objects, convert to string for simple filtering
-            return JSON.stringify(value)
-              .toLowerCase()
-              .includes(globalFilterLower);
+        // Helper function to recursively search for a string in any value
+        const matchesGlobal = (val) => {
+          if (val === null || val === undefined) return false;
+          
+          if (Array.isArray(val)) {
+            return val.some(child => matchesGlobal(child));
           }
+          
+          if (typeof val === "object") {
+            // Check all values in the object (used for nested structures or array children)
+            return Object.values(val).some(child => matchesGlobal(child));
+          }
+          
+          const strVal = String(val).toLowerCase();
+          return strVal.includes(globalFilterLower);
+        };
 
-          return String(value).toLowerCase().includes(globalFilterLower);
-        });
+        if (searchableFields && searchableFields.length > 0) {
+          return searchableFields.some(field => {
+            const value = field.split(".").reduce((acc, part) => acc?.[part], item);
+            return matchesGlobal(value);
+          });
+        }
+
+        return matchesGlobal(item);
       }
 
       return true;

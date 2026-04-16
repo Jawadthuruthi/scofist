@@ -640,14 +640,32 @@ export default function StudentDashboard({
               </div>
             </div>
           </div>
-          <Button 
-            variant="secondary" 
-            className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md transition-all duration-300 group rounded-xl px-6 h-12"
+          <Card 
+            className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden min-w-[140px] ${
+              activeTab === "PROFILE" 
+                ? "border-blue-500 bg-white/20 backdrop-blur-md" 
+                : "border-white/10 bg-white/5 hover:border-white/20 backdrop-blur-sm"
+            }`}
             onClick={() => setActiveTab("PROFILE")}
           >
-            <Eye className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
-            View Profile
-          </Button>
+            <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
+              <div className={`p-3 rounded-xl transition-all duration-300 ${
+                activeTab === "PROFILE" 
+                  ? "bg-blue-500 text-white shadow-lg scale-110" 
+                  : "bg-white/10 text-blue-200 group-hover:scale-110"
+              }`}>
+                <User className="h-6 w-6" />
+              </div>
+              <span className={`text-sm font-bold tracking-wide ${
+                activeTab === "PROFILE" ? "text-white" : "text-blue-100"
+              }`}>
+                My Profile
+              </span>
+              {activeTab === "PROFILE" && (
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-400"></div>
+              )}
+            </CardContent>
+          </Card>
         </div>
         
         {/* Decorative elements */}
@@ -656,9 +674,8 @@ export default function StudentDashboard({
       </div>
 
       {/* Navigation Cards Grid */}
-      <div className="no-print grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+      <div className="no-print grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         {[
-          { id: "PROFILE", label: "My Profile", icon: User, color: "blue" },
           { id: "FINANCE", label: "Finance", icon: IndianRupee, color: "emerald" },
           { id: "LIBRARY", label: "Library", icon: BookOpen, color: "amber" },
           { id: "ATTENDANCE", label: "Attendance", icon: Calendar, color: "rose" },
@@ -1506,7 +1523,7 @@ export default function StudentDashboard({
               <div className="w-full h-full min-h-[300px] overflow-x-auto pb-2 flex justify-start">
                 <BarChart
                   width={Math.max(300, filteredAttendanceHistory.length * 60 + 60)}
-                  height={300}
+                  height={400}
                   data={filteredAttendanceHistory}
                   margin={{ top: 10, right: 10, left: 0, bottom: 40 }}
                   barCategoryGap={20}
@@ -1520,6 +1537,18 @@ export default function StudentDashboard({
                     radius={[4, 4, 0, 0]}
                     barSize={40}
                   >
+                    <LabelList 
+                      dataKey="month" 
+                      position="center" 
+                      angle={-90} 
+                      fill="white"
+                      style={{ 
+                        fontWeight: 'bold', 
+                        fontSize: '9px',
+                        textTransform: 'uppercase',
+                        pointerEvents: 'none'
+                      }}
+                    />
                     {filteredAttendanceHistory.map((entry, index) => {
                       const p = parseFloat(entry.percentage);
                       const color = p > 80 ? "#22c55e" : p >= 50 ? "#ea580c" : "#ef4444";

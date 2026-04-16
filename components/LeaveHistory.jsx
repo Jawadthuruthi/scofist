@@ -65,6 +65,13 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
             maxWidth: 60,
             minWidth: 60,
         },
+        {
+            accessorKey: "studentId",
+            header: "Student ID",
+            width: 100,
+            maxWidth: 120,
+            minWidth: 80,
+        },
         { accessorKey: "studentName", header: "Student Name" },
         { accessorKey: "className", header: "Class" },
         { accessorKey: "dateOfLeave", header: "Date of Leave", type: ["date"] },
@@ -239,11 +246,14 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
                 filterConfig={filterConfig}
                 filterTitle="Leave Records"
                 printTitle="Leave Records"
-                limit={1000}
+                limit={2000}
                 enableDefaultSort={false}
-                tableHeight="calc(100vh - 250px)"
+                tableHeight="auto"
                 createButtonClass="bg-blue-600 text-white hover:bg-blue-700 border-none"
                 createButtonText="Add Record"
+                enableSearch={true}
+                mobileSearchPlaceholder="Search student..."
+                desktopSearchPlaceholder="Search student by name or ID..."
             />
         </>
     );

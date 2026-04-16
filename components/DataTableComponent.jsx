@@ -129,6 +129,7 @@ const DataTableComponent = ({
   highlightHighest = null,
   mobileSplitLayout = false,
   mobileSearchPlaceholder = "Search...",
+  desktopSearchPlaceholder = "Search by ID or Name...",
   rowLink = null,
   rowLinkKey = "_id",
   rowLinkSearchParams = "",
@@ -209,6 +210,12 @@ const DataTableComponent = ({
     return defaults;
   }, [filterConfig]);
 
+  const searchableFields = useMemo(() => {
+    return columnsConfig
+      .filter(col => col.accessorKey && col.accessorKey !== "serialNo" && col.id !== "select")
+      .map(col => col.accessorKey);
+  }, [columnsConfig]);
+
   const {
     filteredData,
     filters,
@@ -218,7 +225,7 @@ const DataTableComponent = ({
     globalFilter,
     setGlobalFilter,
     hasFilters,
-  } = useDataFilter(data, initialFilters);
+  } = useDataFilter(data, initialFilters, searchableFields);
 
   const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud(
     apiEndpoint ? apiEndpoint : resource,
@@ -780,7 +787,7 @@ const DataTableComponent = ({
       columnFilters,
       columnVisibility,
       rowSelection,
-      globalFilter: isApiFiltering ? undefined : globalFilter,
+      globalFilter: undefined, // Handled externally by useDataFilter or API
     },
   });
 
@@ -1167,6 +1174,18 @@ const DataTableComponent = ({
                 filterType={filterType}
               />
 
+              {enableSearch && (
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={desktopSearchPlaceholder}
+                    value={globalFilter ?? ""}
+                    onChange={(e) => handleSetGlobalFilter(e.target.value)}
+                    className="h-9 w-[300px] lg:w-[450px] pl-9"
+                  />
+                </div>
+              )}
+
               {enableMonthYearFilter && (
                 <div className="flex items-center space-x-2">
                   <Select value={filterYear?.toString()} onValueChange={(v) => {
@@ -1235,17 +1254,7 @@ const DataTableComponent = ({
                   />
                 )}
 
-                {enableSearch && (
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search by ID or Name..."
-                      value={globalFilter ?? ""}
-                      onChange={(e) => handleSetGlobalFilter(e.target.value)}
-                      className="h-9 w-[180px] lg:w-[250px] pl-9"
-                    />
-                  </div>
-                )}
+
               </div>
             </div>
             <div className="space-x-2 flex items-center">
@@ -1264,7 +1273,7 @@ const DataTableComponent = ({
         ref={tableRef}
         className="rounded-md border overflow-auto shadow-sm table-print relative "
         style={{
-          maxHeight: tableHeight,
+          maxHeight: tableHeight === "auto" ? "none" : tableHeight,
         }}
       >
         <PrintHeader
