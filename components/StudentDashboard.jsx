@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "@/components/Header";
-import { Calendar, Printer, BookOpen, Clock, Loader2 } from "lucide-react";
+import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Eye } from "lucide-react";
 import { formatDateForDisplay, formatMonthYear, formatDateShort } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "@/components/PrintHeader";
@@ -97,6 +97,7 @@ export default function StudentDashboard({
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [pendingFunds, setPendingFunds] = useState([]); // Array of fund objects
   const [fundsLoading, setFundsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("PROFILE");
   const [rentalHistory, setRentalHistory] = useState([]);
   const [rentalsLoading, setRentalsLoading] = useState(true);
   const [marks, setMarks] = useState([]);
@@ -179,29 +180,49 @@ export default function StudentDashboard({
           
           if (fundsMap.has(key)) {
             const entry = fundsMap.get(key);
-            entry.value += fund.balance;
+            entry.value += fund.balance; // Use balance as-is (database stores debt as negative)
             entry.records.push({
               year: currentBatch,
               holder: subLabel,
               value: fund.balance
             });
+            // Support history: aggregate all transactions from these records
+            entry.allTransactions = [...(entry.allTransactions || []), ...(fund.transactions || [])];
           } else {
             fundsMap.set(key, {
               label: label,
               subLabel: fund.fundType === 'Department' ? "" : subLabel,
-              value: fund.balance,
+              value: fund.balance, // Use balance as-is (database stores debt as negative)
               isInteractive: true,
               records: [{
                 year: currentBatch,
                 holder: subLabel,
                 value: fund.balance
-              }]
+              }],
+              allTransactions: fund.transactions || []
             });
           }
         });
 
-        // Convert map values to list
-        fundsMap.forEach(item => fundsList.push(item));
+        // Convert map values to list and calculate running balances
+        fundsMap.forEach(item => {
+          if (item.allTransactions && item.allTransactions.length > 0) {
+            // Sort oldest first for balance calculation
+            const sorted = [...item.allTransactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+            let running = 0;
+            sorted.forEach(t => {
+              if (t.type === 'Withdrawal') {
+                running -= t.amount;
+              } else {
+                running += t.amount;
+              }
+              t.calculatedBalance = running;
+            });
+            // Keep the sorted for display (though UI will sort descending)
+            item.allTransactions = sorted;
+          }
+          fundsList.push(item);
+        });
 
         // Process Coupon Fund
         const rawCoupons = couponResult.coupons || [];
@@ -212,7 +233,7 @@ export default function StudentDashboard({
         if (couponPendingTotal > 0) {
           fundsList.push({
             label: "Coupon Fund",
-            value: couponPendingTotal,
+            value: -couponPendingTotal, // Negate to show as debt
             isCoupon: true
           });
         }
@@ -339,9 +360,12 @@ export default function StudentDashboard({
           const totalPeriods = recordsForMonth.length;
           const presentPeriods = recordsForMonth.filter((r) => r.present).length;
 
-          const details = recordsForMonth.map((r) => ({
+          const details = recordsForMonth.map((r, rIdx) => ({
+            id: r._id || `${r.date}-${rIdx}-${r.periodNumber}`,
             date: formatDateForDisplay(r.date),
             present: r.present,
+            subject: r.subjectName || "N/A",
+            teacher: r.teacherName || "N/A",
           }));
 
           history.push({
@@ -572,45 +596,216 @@ export default function StudentDashboard({
 
       <PrintHeader title="STUDENT PROFILE" apiKey={apiKey} displayOnScreen={false} />
 
-      {/* Profile Header - Visible in Print now */}
-      <Card className="bg-blue-50 dark:bg-blue-950 border-blue-100 dark:border-blue-900 shadow-none card-print-break">
-        <CardContent className="p-5 flex items-center gap-6">
-          <Avatar className="h-24 w-24 rounded-lg flex-shrink-0">
-            <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} />
-            <AvatarFallback>{currentUser?.name?.[0]}</AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1 flex flex-col justify-center">
-            <h2 className="text-xl font-bold mb-0.5">{currentUser?.name}</h2>
-            
-            <div className="grid grid-cols-[60px_10px_1fr] items-center text-sm text-muted-foreground">
-              <span className="font-medium text-foreground text-sm">ID</span>
-              <span className="text-sm">:</span>
-              <span className="text-sm">{currentUser?._id}</span>
-              
-              {currentUser?.studentSpecificField?.status === "Active" && (
-                <>
-                  <span className="font-medium text-foreground text-sm">Class</span>
-                  <span className="text-sm">:</span>
-                  <span className="text-sm">{className}</span>
-                </>
-              )}
-              
-              <span className="font-medium text-foreground text-sm">Status</span>
-              <span className="text-sm">:</span>
-              <div className="flex">
-                <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[10px] ${getStatusClass(currentUser?.studentSpecificField?.status)}`}>
-                  {currentUser?.studentSpecificField?.status}
+      {/* Premium Header */}
+      <div className="no-print relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-950 p-8 text-white shadow-xl mb-6">
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+            <Avatar className="h-24 w-24 rounded-2xl border-4 border-white/20 shadow-2xl ring-4 ring-blue-500/20">
+              <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} className="object-cover" />
+              <AvatarFallback className="bg-white/10 text-2xl font-bold backdrop-blur-md">
+                {currentUser?.name?.[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="text-blue-200 text-sm font-medium tracking-wider uppercase mb-1">Welcome,</p>
+              <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 drop-shadow-md">
+                {currentUser?.name}
+              </h2>
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-blue-100/80">
+                <span className="bg-white/10 px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm border border-white/10 uppercase">
+                  {currentUser?._id}
                 </span>
+                {currentUser?.studentSpecificField?.status === "Active" ? (
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
+                    {className || "No Class"} | {batchName || "No Batch"}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                    {batchName || "No Batch"}
+                  </span>
+                )}
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <Button 
+            variant="secondary" 
+            className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md transition-all duration-300 group rounded-xl px-6 h-12"
+            onClick={() => setActiveTab("PROFILE")}
+          >
+            <Eye className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+            View Profile
+          </Button>
+        </div>
+        
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 -ml-16 -mb-16 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl"></div>
+      </div>
 
-      <div className="print-grid-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {/* Personal Information */}
-        <Card className="card-print-break">
+      {/* Navigation Cards Grid */}
+      <div className="no-print grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        {[
+          { id: "PROFILE", label: "My Profile", icon: User, color: "blue" },
+          { id: "FINANCE", label: "Finance", icon: IndianRupee, color: "emerald" },
+          { id: "LIBRARY", label: "Library", icon: BookOpen, color: "amber" },
+          { id: "ATTENDANCE", label: "Attendance", icon: Calendar, color: "rose" },
+          { id: "MARKS", label: "Marks", icon: FileText, color: "indigo" },
+          { id: "REMARKS", label: "Remarks", icon: MessageSquare, color: "orange" },
+        ].map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          
+          // Color mapping to avoid dynamic class construction issues with Tailwind JIT
+          const colorStyles = {
+            blue: {
+              activeBorder: "border-blue-500",
+              activeBg: "bg-blue-50/50 dark:bg-blue-900/10",
+              iconActiveBg: "bg-blue-500",
+              iconInactiveBg: "bg-blue-100 dark:bg-blue-900/20",
+              iconInactiveText: "text-blue-600",
+              labelActive: "text-blue-700 dark:text-blue-300",
+              bottomBar: "bg-blue-500"
+            },
+            emerald: {
+              activeBorder: "border-emerald-500",
+              activeBg: "bg-emerald-50/50 dark:bg-emerald-900/10",
+              iconActiveBg: "bg-emerald-500",
+              iconInactiveBg: "bg-emerald-100 dark:bg-emerald-900/20",
+              iconInactiveText: "text-emerald-600",
+              labelActive: "text-emerald-700 dark:text-emerald-300",
+              bottomBar: "bg-emerald-500"
+            },
+            amber: {
+              activeBorder: "border-amber-500",
+              activeBg: "bg-amber-50/50 dark:bg-amber-900/10",
+              iconActiveBg: "bg-amber-500",
+              iconInactiveBg: "bg-amber-100 dark:bg-amber-900/20",
+              iconInactiveText: "text-amber-600",
+              labelActive: "text-amber-700 dark:text-amber-300",
+              bottomBar: "bg-amber-500"
+            },
+            rose: {
+              activeBorder: "border-rose-500",
+              activeBg: "bg-rose-50/50 dark:bg-rose-900/10",
+              iconActiveBg: "bg-rose-500",
+              iconInactiveBg: "bg-rose-100 dark:bg-rose-900/20",
+              iconInactiveText: "text-rose-600",
+              labelActive: "text-rose-700 dark:text-rose-300",
+              bottomBar: "bg-rose-500"
+            },
+            indigo: {
+              activeBorder: "border-indigo-500",
+              activeBg: "bg-indigo-50/50 dark:bg-indigo-900/10",
+              iconActiveBg: "bg-indigo-500",
+              iconInactiveBg: "bg-indigo-100 dark:bg-indigo-900/20",
+              iconInactiveText: "text-indigo-600",
+              labelActive: "text-indigo-700 dark:text-indigo-300",
+              bottomBar: "bg-indigo-500"
+            },
+            orange: {
+              activeBorder: "border-orange-500",
+              activeBg: "bg-orange-50/50 dark:bg-orange-900/10",
+              iconActiveBg: "bg-orange-500",
+              iconInactiveBg: "bg-orange-100 dark:bg-orange-900/20",
+              iconInactiveText: "text-orange-600",
+              labelActive: "text-orange-700 dark:text-orange-300",
+              bottomBar: "bg-orange-500"
+            }
+          };
+
+          const s = colorStyles[item.color];
+
+          return (
+            <Card 
+              key={item.id}
+              className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden ${
+                isActive 
+                  ? `${s.activeBorder} ${s.activeBg}` 
+                  : "border-transparent bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-800"
+              }`}
+              onClick={() => setActiveTab(item.id)}
+            >
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
+                <div className={`p-3 rounded-xl transition-all duration-300 ${
+                  isActive 
+                    ? `${s.iconActiveBg} text-white shadow-lg scale-110` 
+                    : `${s.iconInactiveBg} ${s.iconInactiveText} group-hover:scale-110`
+                }`}>
+                  <Icon className="h-6 w-6" />
+                </div>
+                <span className={`text-sm font-bold tracking-wide ${
+                  isActive ? s.labelActive : "text-slate-600 dark:text-slate-400"
+                }`}>
+                  {item.label}
+                </span>
+                {isActive && (
+                  <div className={`absolute bottom-0 left-0 w-full h-1 ${s.bottomBar}`}></div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <div className="space-y-6">
+        {isLoading && !initialData ? (
+          <Card className="min-h-[400px] flex flex-col items-center justify-center p-12 bg-white/50 backdrop-blur-sm border-dashed">
+            <div className="relative">
+              <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+              <div className="absolute inset-0 blur-xl bg-blue-500/20 rounded-full animate-pulse"></div>
+            </div>
+            <p className="mt-6 text-base font-medium text-slate-600 animate-pulse tracking-wide italic">
+              Loading your personalized dashboard...
+            </p>
+          </Card>
+        ) : (
+          <>
+            {/* Current inline profile header for Print only */}
+            <Card className="hidden print:block bg-blue-50 dark:bg-blue-950 border-blue-100 dark:border-blue-900 shadow-none card-print-break mb-6">
+          <CardContent className="p-5 flex items-center gap-6">
+            <Avatar className="h-24 w-24 rounded-lg flex-shrink-0">
+              <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} />
+              <AvatarFallback>{currentUser?.name?.[0]}</AvatarFallback>
+            </Avatar>
+            
+            <div className="flex-1 flex flex-col justify-center">
+              <h2 className="text-xl font-bold mb-0.5">{currentUser?.name}</h2>
+              
+              <div className="grid grid-cols-[60px_10px_1fr] items-center text-sm text-muted-foreground">
+                <span className="font-medium text-foreground text-sm">ID</span>
+                <span className="text-sm">:</span>
+                <span className="text-sm">{currentUser?._id}</span>
+                
+                {currentUser?.studentSpecificField?.status === "Active" && (
+                  <>
+                    <span className="font-medium text-foreground text-sm">Class</span>
+                    <span className="text-sm">:</span>
+                    <span className="text-sm">{className || "N/A"}</span>
+                  </>
+                )}
+                
+                <span className="font-medium text-foreground text-sm">Batch</span>
+                <span className="text-sm">:</span>
+                <span className="text-sm">{batchName || "N/A"}</span>
+                
+                <span className="font-medium text-foreground text-sm">Status</span>
+                <span className="text-sm">:</span>
+                <div className="flex">
+                  <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[10px] ${getStatusClass(currentUser?.studentSpecificField?.status)}`}>
+                    {currentUser?.studentSpecificField?.status}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+      {activeTab === "PROFILE" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+          {/* Personal Information */}
+          <Card className="card-print-break h-full shadow-sm">
           <CardHeader>
             <CardTitle>Personal Info</CardTitle>
           </CardHeader>
@@ -660,8 +855,8 @@ export default function StudentDashboard({
           </CardContent>
         </Card>
 
-        {/* Academic Info */}
-        <Card className="card-print-break">
+          {/* Academic Info */}
+          <Card className="card-print-break h-full shadow-sm">
           <CardHeader>
             <CardTitle>Academic Info</CardTitle>
           </CardHeader>
@@ -708,8 +903,8 @@ export default function StudentDashboard({
           </CardContent>
         </Card>
 
-        {/* Contact Info */}
-        <Card className="card-print-break">
+          {/* Contact Info */}
+          <Card className="card-print-break h-full shadow-sm">
           <CardHeader>
             <CardTitle>Contact Info</CardTitle>
           </CardHeader>
@@ -734,116 +929,225 @@ export default function StudentDashboard({
             />
           </CardContent>
         </Card>
+      </div>
+      )}
 
-        {/* Pending Transactions - Moved here to be 4th in grid */}
-        <Card className="bg-yellow-50/30 dark:bg-yellow-950/20 border-yellow-100 dark:border-yellow-900 card-print-break">
+      {activeTab === "FINANCE" && (
+        <Card className="bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900 card-print-break shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+            <CardTitle className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
               <Clock className="h-5 w-5" />
               Pending Transactions
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="max-h-[300px] overflow-y-auto pr-2 grid grid-cols-[max-content_12px_1fr] items-start print-expand">
+            <div className="max-h-[400px] overflow-y-auto pr-2 rounded-md border min-h-[100px]">
               {fundsLoading ? (
-                <p className="col-span-3">Loading funds...</p>
-              ) : pendingFunds && pendingFunds.length > 0 ? (
-                <>
-                  {pendingFunds.map((item, index) => (
-                    <React.Fragment key={index}>
-                      <div className="flex flex-col py-1">
-                        <span className={`text-sm font-medium ${item.isBold ? 'font-bold' : 'text-muted-foreground'}`}>{item.label}</span>
-                        {item.subLabel && <span className="text-xs text-muted-foreground">{item.subLabel}</span>}
-                      </div>
-                      <div className="text-sm px-1 py-1">:</div>
-                      <div 
-                        className={`text-sm ${item.isBold ? 'font-bold' : 'text-foreground'} min-w-0 break-words py-1 ${item.isInteractive || item.isCoupon ? 'cursor-pointer hover:text-primary transition-colors underline decoration-dotted' : ''}`}
-                        onClick={() => {
-                          if (item.isCoupon) {
-                            setIsCouponModalOpen(true);
-                          } else if (item.isInteractive) {
-                            setSelectedStandardFund(item);
-                            setIsStandardModalOpen(true);
-                          }
-                        }}
-                      >
-                        {typeof item.value === 'number' ? item.value.toFixed(2) : item.value}
-                      </div>
-                    </React.Fragment>
-                  ))}
-                  <ProfileField label="Total Pending" value={totalPending.toFixed(2)} isBold={true} />
-                </>
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading financial records...</span>
+                </div>
+              ) : pendingFunds && pendingFunds.filter(item => item.value !== 0).length > 0 ? (
+                <Table>
+                  <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                    <TableRow>
+                      <TableHead className="w-[60px] py-2">Sl No</TableHead>
+                      <TableHead className="py-2">Fund Name</TableHead>
+                      <TableHead className="py-2 text-right">Balance</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingFunds.filter(item => item.value !== 0).map((item, index) => (
+                      <TableRow key={index} className="group hover:bg-muted/30 transition-colors">
+                        <TableCell className="py-2 text-muted-foreground font-medium">{index + 1}</TableCell>
+                        <TableCell className="py-2">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-sm text-emerald-900 dark:text-emerald-200">{item.label}</span>
+                            {item.subLabel && <span className="text-[10px] text-muted-foreground uppercase">{item.subLabel}</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell 
+                          className={`py-2 text-right font-bold text-sm cursor-pointer hover:underline decoration-dotted ${item.value < 0 ? 'text-red-600' : 'text-green-600'}`}
+                          onClick={() => {
+                            if (item.isCoupon) {
+                              setIsCouponModalOpen(true);
+                            } else if (item.isInteractive) {
+                              setSelectedStandardFund(item);
+                              setIsStandardModalOpen(true);
+                            }
+                          }}
+                        >
+                          {item.value.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {/* Total Summary Row */}
+                    <TableRow className="bg-muted/40 font-bold border-t-2 border-muted hover:bg-muted/40">
+                      <TableCell colSpan={2} className="py-3 text-emerald-800 dark:text-emerald-300 uppercase tracking-wider text-xs">
+                        Total Pending Balance
+                      </TableCell>
+                      <TableCell className={`py-3 text-right text-base ${totalPending < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {totalPending.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               ) : (
-                <p className="col-span-3">No pending transactions.</p>
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+                   <Clock className="h-8 w-8 opacity-20" />
+                   <p className="text-sm italic">No pending transactions found.</p>
+                </div>
               )}
+            </div>
 
               {/* Standard Fund Details Modal */}
               <Dialog open={isStandardModalOpen} onOpenChange={setIsStandardModalOpen}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{selectedStandardFund?.label} Details</DialogTitle>
                   </DialogHeader>
-                  <div className="mt-4">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Year (Batch)</TableHead>
-                          <TableHead>Role Holder</TableHead>
-                          <TableHead className="text-right">Balance</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(selectedStandardFund?.records || []).map((record, i) => (
-                          <TableRow key={i}>
-                            <TableCell className="font-medium">{record.year}</TableCell>
-                            <TableCell>{record.holder}</TableCell>
-                            <TableCell className="text-right font-bold text-orange-600">
-                              {record.value.toFixed(2)}
-                            </TableCell>
+                  <div className="mt-4 space-y-8">
+                    {/* Collection Breakdown */}
+                    <div>
+                      <h3 className="text-sm font-bold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Collection Breakdown
+                      </h3>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Year (Batch)</TableHead>
+                            <TableHead>Role Holder</TableHead>
+                            <TableHead className="text-right">Balance</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {(selectedStandardFund?.records || []).map((record, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium">{record.year}</TableCell>
+                              <TableCell>{record.holder}</TableCell>
+                              <TableCell className="text-right font-bold text-orange-600">
+                                {record.value.toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Full Transaction History */}
+                    <div>
+                      <h3 className="text-sm font-bold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Fund History
+                      </h3>
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader className="bg-muted/50">
+                            <TableRow>
+                              <TableHead className="py-2">Date</TableHead>
+                              <TableHead className="py-2 text-right">Addition / Deduction</TableHead>
+                              <TableHead className="py-2 text-right">Balance</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {selectedStandardFund?.allTransactions && selectedStandardFund.allTransactions.length > 0 ? (
+                              [...selectedStandardFund.allTransactions]
+                                .sort((a, b) => new Date(b.date) - new Date(a.date)) // Newest first for display
+                                .map((t, idx) => (
+                                  <TableRow key={idx}>
+                                    <TableCell className="py-2 text-[10px] leading-tight">
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">{formatDateShort(t.date)}</span>
+                                        <span className="text-muted-foreground">
+                                          {new Date(t.date).toLocaleTimeString("en-US", {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                            hour12: true,
+                                          })}
+                                        </span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className={`py-2 text-xs text-right font-bold ${t.type === 'Withdrawal' ? 'text-red-600' : 'text-green-600'}`}>
+                                      {t.type === 'Withdrawal' ? '-' : '+'}{t.amount.toFixed(2)}
+                                    </TableCell>
+                                    <TableCell className={`py-2 text-xs text-right font-bold ${t.calculatedBalance < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                      {t.calculatedBalance?.toFixed(2) || "0.00"}
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                            ) : (
+                              <TableRow>
+                                <TableCell colSpan={3} className="text-center py-6 text-muted-foreground text-xs italic">
+                                  No transaction history found for this fund.
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
                   </div>
                 </DialogContent>
               </Dialog>
 
               {/* Coupon Details Modal */}
               <Dialog open={isCouponModalOpen} onOpenChange={setIsCouponModalOpen}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Coupon Fund Details</DialogTitle>
                   </DialogHeader>
                   <div className="mt-4">
                     <Table>
-                      <TableHeader>
+                      <TableHeader className="bg-muted/50">
                         <TableRow>
-                          <TableHead>Academic Year</TableHead>
-                          <TableHead>Coupon No.</TableHead>
-                          <TableHead className="text-right">Coupon Amount</TableHead>
-                          <TableHead className="text-right">Total Paid</TableHead>
-                          <TableHead className="text-right">Pending Balance</TableHead>
+                          <TableHead className="py-2 w-[60px]">Sl No</TableHead>
+                          <TableHead className="py-2">Year</TableHead>
+                          <TableHead className="py-2">Coupon No.</TableHead>
+                          <TableHead className="py-2 text-right">Fund</TableHead>
+                          <TableHead className="py-2 text-right">Total Paid</TableHead>
+                          <TableHead className="py-2 text-right">Balance</TableHead>
+                          <TableHead className="py-2">Payment History</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {couponDetails.map((coupon) => {
+                        {couponDetails.map((coupon, index) => {
                           const paid = (coupon.payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
                           const balance = (coupon.couponAmount || 0) - paid;
                           return (
-                            <TableRow key={coupon._id}>
-                              <TableCell className="font-medium">{coupon.academicYear}</TableCell>
-                              <TableCell className="font-mono text-xs">{coupon.couponNumber || "N/A"}</TableCell>
-                              <TableCell className="text-right">{coupon.couponAmount.toFixed(2)}</TableCell>
-                              <TableCell className="text-right">{paid.toFixed(2)}</TableCell>
-                              <TableCell className="text-right font-bold text-orange-600">
-                                {balance.toFixed(2)}
+                            <TableRow key={coupon._id} className="align-top">
+                              <TableCell className="py-3 text-muted-foreground">{index + 1}</TableCell>
+                              <TableCell className="py-3 font-bold text-sm">
+                                {coupon.academicYear}
+                              </TableCell>
+                              <TableCell className="py-3 text-sm">
+                                {coupon.couponNumber || "N/A"}
+                              </TableCell>
+                              <TableCell className="py-3 text-right text-sm">₹{coupon.couponAmount.toFixed(2)}</TableCell>
+                              <TableCell className="py-3 text-right text-sm text-green-600">₹{paid.toFixed(2)}</TableCell>
+                              <TableCell className="py-3 text-right font-bold text-orange-600 text-sm">
+                                ₹{balance.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="py-2">
+                                <div className="space-y-1">
+                                  {coupon.payments && coupon.payments.length > 0 ? (
+                                    coupon.payments.map((p, pIdx) => (
+                                      <div key={pIdx} className="flex items-center justify-between gap-4 text-[10px] bg-muted/30 px-2 py-1 rounded border border-muted/50">
+                                        <span className="text-muted-foreground">{formatDateShort(p.date)}</span>
+                                        <span className="font-bold text-green-700">₹{p.amount.toFixed(2)}</span>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <span className="text-[10px] text-muted-foreground italic">No payments recorded</span>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
                         })}
                         {couponDetails.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                            <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
                               No coupon records found.
                             </TableCell>
                           </TableRow>
@@ -853,12 +1157,13 @@ export default function StudentDashboard({
                   </div>
                 </DialogContent>
               </Dialog>
-            </div>
+
           </CardContent>
         </Card>
+      )}
 
-        {/* Read Books / Rental History - 5th in grid, col-span-2 on screen to pair with Pending */}
-        <Card className="lg:col-span-2 print:col-span-2 card-print-break">
+      {activeTab === "LIBRARY" && (
+        <Card className="lg:col-span-2 print:col-span-2 card-print-break shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-primary" />
@@ -926,12 +1231,11 @@ export default function StudentDashboard({
             </div>
           </CardContent>
         </Card>
-      </div>
+      )}
 
-      {/* Row 1: Marks and Attendance History Table */}
-      <div className={`grid grid-cols-1 ${currentUser?.studentSpecificField?.status === "Active" ? "md:grid-cols-2" : ""} gap-5 pt-5 print-stack-vertical`}>
-        {/* Marks Card */}
-        <Card className="flex flex-col card-print-break">
+      {activeTab === "MARKS" && (
+        <div className="grid grid-cols-1 gap-5 pt-5 print-stack-vertical">
+          <Card className="flex flex-col card-print-break">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="flex flex-col gap-1">
               <CardTitle className="text-lg font-bold flex items-center gap-2">
@@ -1061,9 +1365,13 @@ export default function StudentDashboard({
               )}
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
+      )}
 
-        {currentUser?.studentSpecificField?.status === "Active" && (
+      {activeTab === "ATTENDANCE" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-5 print-stack-vertical">
+          {/* Attendance History */}
           <Card className="card-print-break">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-bold">Attendance History</CardTitle>
@@ -1128,13 +1436,17 @@ export default function StudentDashboard({
                                     <TableHeader>
                                       <TableRow>
                                         <TableHead className="h-8 py-1">Date</TableHead>
+                                        <TableHead className="h-8 py-1">Subject (Teacher)</TableHead>
                                         <TableHead className="h-8 py-1 text-center">Status</TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      {row.details.map((detail) => (
-                                        <TableRow key={detail.date} className="h-8">
+                                      {row.details.map((detail, dIdx) => (
+                                        <TableRow key={`${detail.date}-${dIdx}`} className="h-8">
                                           <TableCell className="py-1 text-xs">{detail.date}</TableCell>
+                                          <TableCell className="py-1 text-xs font-medium">
+                                            {detail.subject} <span className="text-muted-foreground font-normal">({detail.teacher})</span>
+                                          </TableCell>
                                           <TableCell className="py-1 text-center">
                                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${detail.present ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
                                               }`}>
@@ -1163,12 +1475,8 @@ export default function StudentDashboard({
               </div>
             </CardContent>
           </Card>
-        )}
-      </div>
 
-      {/* Row 2: Attendance Chart and Remarks */}
-      <div className={`grid grid-cols-1 ${currentUser?.studentSpecificField?.status === "Active" ? "md:grid-cols-2" : ""} gap-5 pt-5 print-stack-vertical`}>
-        {currentUser?.studentSpecificField?.status === "Active" && (
+          {/* Attendance Chart */}
           <Card className="card-print-break flex flex-col">
             <CardHeader>
               <CardTitle className="text-lg font-bold">Attendance Chart ({selectedYear})</CardTitle>
@@ -1201,9 +1509,11 @@ export default function StudentDashboard({
               </div>
             </CardContent>
           </Card>
-        )}
+        </div>
+      )}
 
-        <Card className="flex flex-col card-print-break">
+      {activeTab === "REMARKS" && (
+        <Card className="flex flex-col card-print-break mt-5">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
               <Clock className="h-5 w-5 text-orange-500" />
@@ -1216,27 +1526,46 @@ export default function StudentDashboard({
                 <div className="flex items-center justify-center py-10">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              ) : remarksList && remarksList.length > 0 ? (
-                <div className="space-y-4">
-                  {remarksList.map((remark) => (
-                    <div key={remark._id} className="p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="flex flex-col">
-                          <p className="text-sm font-medium text-foreground tracking-wide leading-relaxed">"{remark.comments}"</p>
-                          <span className="text-xs text-muted-foreground mt-1">- {remark.teacherName || "Teacher"}</span>
-                        </div>
-                        <div className="flex flex-col items-end gap-1.5 shrink-0">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase whitespace-nowrap ${remark.status === 'very good' || remark.status === 'good' ? 'bg-green-100 text-green-700' :
-                            remark.status === 'acceptable' ? 'bg-blue-100 text-blue-700' :
+              ) : (remarksList && remarksList.length > 0) ? (
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead className="w-[60px] py-3 pl-4 text-xs">Sl No</TableHead>
+                        <TableHead className="py-3 text-xs">Date</TableHead>
+                        <TableHead className="py-3 text-xs w-[40%]">Remarks</TableHead>
+                        <TableHead className="py-3 text-xs">Teacher</TableHead>
+                        <TableHead className="py-3 text-xs text-center">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[...remarksList]
+                        .sort((a, b) => new Date(b.date) - new Date(a.date))
+                        .map((remark, index) => (
+                        <TableRow key={remark._id} className="group hover:bg-muted/30 transition-colors">
+                          <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
+                          <TableCell className="py-3 text-sm font-medium">
+                            {formatDateShort(remark.date)}
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <p className="text-sm text-foreground leading-relaxed italic">"{remark.comments}"</p>
+                          </TableCell>
+                          <TableCell className="py-3 text-sm text-muted-foreground">
+                            {remark.teacherName || "N/A"}
+                          </TableCell>
+                          <TableCell className="py-3 text-center">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                              remark.status === 'very good' || remark.status === 'good' ? 'bg-green-100 text-green-700' :
+                              remark.status === 'acceptable' ? 'bg-blue-100 text-blue-700' :
                               'bg-red-100 text-red-700'
                             }`}>
-                            {remark.status}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">{formatDateShort(remark.date)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                              {remark.status}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
@@ -1247,16 +1576,17 @@ export default function StudentDashboard({
             </div>
           </CardContent>
         </Card>
-      </div>
+      )}
+          </>
+        )}
       <div className="fixed bottom-4 right-4 no-print">
         <Button onClick={() => window.print()}>
           <Printer className="mr-2 h-4 w-4" />
           Print
         </Button>
       </div>
-
-
       </div>
-    </>
+    </div>
+  </>
   );
 }

@@ -153,6 +153,8 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
             if (batchId && !selectedBatch) setSelectedBatch(batchId);
             if (classId && !selectedClass) setSelectedClass(classId);
         }
+        setSelectedStudentData(null);
+        setLoadingProfile(true);
         setSelectedStudentId(value);
     };
 
@@ -213,6 +215,8 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                 }
 
                 if (matchedUser) {
+                    setSelectedStudentData(null);
+                    setLoadingProfile(true);
                     selectStudent(matchedUser);
                 } else {
                     // This case should ideally not be reached if foundUsers.length > 0
@@ -329,7 +333,7 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                             }}
                             disabled={isLookingUp}
                             variant={lookupSearchTerm.trim() ? "default" : "outline"}
-                            className={!lookupSearchTerm.trim() ? "bg-foreground text-background hover:bg-foreground/90 border-none" : ""}
+                            className={!lookupSearchTerm.trim() ? "bg-foreground text-white hover:bg-foreground/90 hover:text-white border-none" : ""}
                         >
                             {isLookingUp ? (
                                 <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
@@ -428,9 +432,14 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
 
             <div className="mt-6">
                 {loadingProfile ? (
-                    <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                        <p className="text-muted-foreground animate-pulse">Fetching student data...</p>
+                    <div className="flex flex-col items-center justify-center py-20 min-h-[400px]">
+                        <div className="relative">
+                            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                            <div className="absolute inset-0 blur-xl bg-primary/20 rounded-full animate-pulse"></div>
+                        </div>
+                        <p className="mt-6 text-base font-medium text-muted-foreground animate-pulse tracking-wide italic">
+                            Preparing student dashboard...
+                        </p>
                     </div>
                 ) : selectedStudentData ? (
                     <div className="animate-in fade-in duration-500">

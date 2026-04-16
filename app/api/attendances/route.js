@@ -297,6 +297,7 @@ export async function POST(req, res) {
                   classId: newAttendance.classId,
                   batchId: newAttendance.batchId,
                   subjectId: newAttendance.subjectId,
+                  teacherId: newAttendance.teacherId, // Sync teacherId
                   periodNumber: newAttendance.periodNumber,
                   day: newAttendance.day,
                   date: newAttendance.date,

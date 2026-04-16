@@ -30,6 +30,10 @@ const studentAttendanceSchema = new Schema(
           required: true,
           ref: "Subject",
         },
+        teacherId: {
+          type: String,
+          ref: "User",
+        },
         periodNumber: {
           type: Number,
           required: true,

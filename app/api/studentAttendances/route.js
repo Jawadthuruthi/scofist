@@ -100,7 +100,7 @@ export async function GET(req, res) {
 
     console.log("Filters:", { documentQuery, recordFilters, dateFilter });
 
-    // For better performance, always use aggregation with properly structured pipeline
+    // For better performance and to handle string IDs correctly, use aggregation with $lookup
     const pipeline = [
       // First match at document level (studentId filter)
       { $match: documentQuery },
@@ -108,7 +108,7 @@ export async function GET(req, res) {
       // Add the filtered records field using $filter operator
       {
         $addFields: {
-          filteredRecords: {
+          attendanceRecords: {
             $filter: {
               input: "$attendanceRecords",
               as: "record",
@@ -168,26 +168,15 @@ export async function GET(req, res) {
       // Now project to only include documents with matching records
       {
         $match: {
-          "filteredRecords.0": { $exists: true }, // Ensures at least one record matched
-        },
-      },
-
-      // Replace the original records with the filtered ones
-      {
-        $project: {
-          studentId: 1,
-          attendanceRecords: "$filteredRecords",
+          "attendanceRecords.0": { $exists: true }, // Ensures at least one record matched
         },
       },
     ];
 
     if (isToppersOnly) {
-      // If toppersOnly is true, we need to calculate attendance percentage per class and get the top student
+      // If toppersOnly is true, calculate percentage and get the top student per class
       pipeline.push(
-        // Unwind to process per-record
         { $unwind: "$attendanceRecords" },
-        // Calculate Present/Absent for each record (assuming 'present' is boolean) 
-        // We group by classId and studentId to calculate the percentage
         {
           $group: {
             _id: {
@@ -198,10 +187,9 @@ export async function GET(req, res) {
             presentClasses: {
               $sum: { $cond: [{ $eq: ["$attendanceRecords.present", true] }, 1, 0] }
             },
-            records: { $push: "$attendanceRecords" } // keep the records to return later
+            records: { $push: "$attendanceRecords" }
           }
         },
-        // Calculate percentage
         {
           $addFields: {
             percentage: {
@@ -209,132 +197,147 @@ export async function GET(req, res) {
             }
           }
         },
-        // Sort by percentage descending to prepare for getting top per class
         { $sort: { "_id.classId": 1, percentage: -1 } },
-        // Group by classId to get the top student
         {
           $group: {
-            _id: "$_id.classId", // classId
+            _id: "$_id.classId",
             topStudentId: { $first: "$_id.studentId" },
             percentage: { $first: "$percentage" },
-            records: { $first: "$records" }
+            attendanceRecords: { $first: "$records" }
           }
         },
-        // Re-shape the document to match our original structure
         {
           $project: {
-            _id: { $toObjectId: "$topStudentId" },
-            studentId: { $toObjectId: "$topStudentId" },
-            attendanceRecords: "$records",
+            _id: 0,
+            studentId: "$topStudentId",
+            attendanceRecords: 1,
             percentage: { $round: ["$percentage", 1] }
           }
         }
       );
     } else {
-      // Normal flow: just paginate
+      // Normal flow: project and then paginate
       pipeline.push(
+        {
+          $project: {
+            studentId: 1,
+            attendanceRecords: 1,
+          },
+        },
         { $skip: limit === Infinity ? 0 : page * limit },
         ...(limit !== Infinity ? [{ $limit: limit }] : [])
       );
     }
 
-    // Execute the aggregation pipeline
-    const studentAttendances =
-      await StudentAttendance.aggregate(pipeline).exec();
+    // Now add $lookups to populate names (shared by both flows)
+    pipeline.push(
+      // Student Name
+      {
+        $lookup: {
+          from: "users",
+          localField: "studentId",
+          foreignField: "_id",
+          as: "studentInfo"
+        }
+      },
+      { $unwind: { path: "$studentInfo", preserveNullAndEmptyArrays: true } },
+      
+      // Unwind attendanceRecords to populate each one
+      { $unwind: { path: "$attendanceRecords", preserveNullAndEmptyArrays: true } },
+      
+      // Class Name for records
+      {
+        $lookup: {
+          from: "classes",
+          localField: "attendanceRecords.classId",
+          foreignField: "_id",
+          as: "classInfo"
+        }
+      },
+      { $unwind: { path: "$classInfo", preserveNullAndEmptyArrays: true } },
+      
+      // Subject Name for records
+      {
+        $lookup: {
+          from: "subjects",
+          localField: "attendanceRecords.subjectId",
+          foreignField: "_id",
+          as: "subjectInfo"
+        }
+      },
+      { $unwind: { path: "$subjectInfo", preserveNullAndEmptyArrays: true } },
 
-    // Populate references
-    const populatedAttendances = await StudentAttendance.populate(
-      studentAttendances,
-      [
-        { path: "studentId", select: "name" },
-        { path: "attendanceRecords.classId", select: "name" },
-        { path: "attendanceRecords.subjectId", select: "name" },
-      ]
+      // Teacher Name for records
+      {
+        $lookup: {
+          from: "users",
+          localField: "attendanceRecords.teacherId",
+          foreignField: "_id",
+          as: "teacherInfo"
+        }
+      },
+      { $unwind: { path: "$teacherInfo", preserveNullAndEmptyArrays: true } },
+
+      // Group back by student
+      {
+        $group: {
+          _id: "$studentId",
+          studentName: { $first: "$studentInfo.name" },
+          percentage: { $first: "$percentage" }, // For toppers flow
+          attendanceRecords: {
+            $push: {
+              date: "$attendanceRecords.date",
+              present: "$attendanceRecords.present",
+              periodNumber: "$attendanceRecords.periodNumber",
+              classId: "$attendanceRecords.classId",
+              className: "$classInfo.name",
+              subjectId: "$attendanceRecords.subjectId",
+              subjectName: "$subjectInfo.name",
+              teacherId: "$attendanceRecords.teacherId",
+              teacherName: "$teacherInfo.name"
+            }
+          }
+        }
+      }
     );
 
-    // Format the results
-    const formattedStudentAttendances = populatedAttendances.map((record) => ({
-      _id: record.studentId?._id || record._id,
-      name: record.studentId?.name || "Unknown Student",
+    // Execute the final aggregation pipeline
+    const results = await StudentAttendance.aggregate(pipeline).exec();
+
+    // Format final results
+    const formattedStudentAttendances = results.map((record) => ({
+      _id: record._id,
+      name: record.studentName || "Unknown Student",
       percentage: record.percentage,
-      attendanceRecords: (record.attendanceRecords || []).map((attendance) => ({
-        ...(attendance || {}),
-        className: attendance?.classId?.name,
-        subjectName: attendance?.subjectId?.name,
-        classId: attendance?.classId?._id,
-        subjectId: attendance?.subjectId?._id,
-      })),
+      attendanceRecords: record.attendanceRecords.map(item => ({
+        ...item,
+        teacherName: item.teacherName || "N/A"
+      }))
     }));
 
-    // Get total count more efficiently
+    // Get total count more efficiently (same documentQuery logic)
     const countPipeline = [
-      // First match at document level (studentId filter)
       { $match: documentQuery },
-
-      // Add the filtered records field using $filter
       {
         $addFields: {
-          filteredRecords: {
+          filtered: {
             $filter: {
               input: "$attendanceRecords",
               as: "record",
               cond: {
                 $and: [
-                  // Same filters as main pipeline
-                  ...(recordFilters.classId
-                    ? [
-                      {
-                        $eq: [{ $toString: "$$record.classId" }, recordFilters.classId],
-                      },
-                    ]
-                    : []),
-
-                  ...(recordFilters.batchId
-                    ? [
-                      {
-                        $eq: [{ $toString: "$$record.batchId" }, recordFilters.batchId],
-                      },
-                    ]
-                    : []),
-
-                  ...(recordFilters.subjectId
-                    ? [
-                      {
-                        $eq: [{ $toString: "$$record.subjectId" }, recordFilters.subjectId],
-                      },
-                    ]
-                    : []),
-
-                  ...(dateFilter?.start
-                    ? [
-                      {
-                        $gte: ["$$record.date", dateFilter.start],
-                      },
-                    ]
-                    : []),
-
-                  ...(dateFilter?.end
-                    ? [
-                      {
-                        $lte: ["$$record.date", dateFilter.end],
-                      },
-                    ]
-                    : []),
+                  ...(recordFilters.classId ? [{ $eq: [{ $toString: "$$record.classId" }, recordFilters.classId] }] : []),
+                  ...(recordFilters.batchId ? [{ $eq: [{ $toString: "$$record.batchId" }, recordFilters.batchId] }] : []),
+                  ...(recordFilters.subjectId ? [{ $eq: [{ $toString: "$$record.subjectId" }, recordFilters.subjectId] }] : []),
+                  ...(dateFilter?.start ? [{ $gte: ["$$record.date", dateFilter.start] }] : []),
+                  ...(dateFilter?.end ? [{ $lte: ["$$record.date", dateFilter.end] }] : []),
                 ],
               },
             },
           },
         },
       },
-
-      // Only count documents with matching records
-      {
-        $match: {
-          "filteredRecords.0": { $exists: true },
-        },
-      },
-
-      // Count documents
+      { $match: { "filtered.0": { $exists: true } } },
       { $count: "total" },
     ];
 
@@ -348,8 +351,7 @@ export async function GET(req, res) {
           page,
           limit,
           total,
-          totalPages:
-            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
+          totalPages: limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
         },
         message: "Student attendance records fetched successfully",
       },

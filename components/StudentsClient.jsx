@@ -148,6 +148,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         open={isProfileOpen}
         onClose={setIsProfileOpen}
         classes={classes}
+        batches={batches}
         apiKey={apiKey}
       />
     </>

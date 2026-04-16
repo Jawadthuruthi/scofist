@@ -43,7 +43,7 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColu
                         }
                     }}
                 >
-                    <span className={`font-medium ${onNameClick ? "text-blue-600 hover:underline" : ""}`}>{row.original.name}</span>
+                    <span className={`font-bold transition-all duration-200 ${onNameClick ? "text-indigo-900 dark:text-indigo-300 hover:text-blue-600 hover:underline" : "text-sky-950 dark:text-sky-200"}`}>{row.original.name}</span>
                     {pageTitle === "ADMISSION REGISTER" && (
                         <div className="flex flex-col gap-0.5 mt-1">
                             {row.original.contactNumber && <span className="text-xs text-muted-foreground">Ph: {row.original.contactNumber}</span>}
