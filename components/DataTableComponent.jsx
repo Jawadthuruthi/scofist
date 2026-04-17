@@ -134,10 +134,11 @@ const DataTableComponent = ({
   rowLinkKey = "_id",
   rowLinkSearchParams = "",
   enableDefaultSort = true,
+  defaultSorting = DEFAULT_ARRAY,
   createButtonClass = "",
   createButtonText = "",
 }) => {
-  const [sorting, setSorting] = useState([]);
+  const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
   const [columnFilters, setColumnFilters] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -151,8 +152,6 @@ const DataTableComponent = ({
   const [activeApiFilters, setActiveApiFilters] = useState(apiFilters);
   const [showLogo, setShowLogo] = useState(false);
   // Add state to track filter changes more precisely
-  const [lastFilterHash, setLastFilterHash] = useState("");
-  const [isFilterChanged, setIsFilterChanged] = useState(false);
   const [filterMonth, setFilterMonth] = useState(() => enableMonthYearFilter ? new Date().getMonth() + 1 : null);
   const [filterYear, setFilterYear] = useState(() => enableMonthYearFilter ? new Date().getFullYear() : null);
   const [toppersOnly, setToppersOnly] = useState(false);
@@ -226,6 +225,13 @@ const DataTableComponent = ({
     setGlobalFilter,
     hasFilters,
   } = useDataFilter(data, initialFilters, searchableFields);
+
+  const [lastFilterHash, setLastFilterHash] = useState(() => JSON.stringify({
+    filters: activeApiFilters,
+    globalFilter,
+    isApiFiltering: filterType === "api",
+  }));
+  const [isFilterChanged, setIsFilterChanged] = useState(false);
 
   const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud(
     apiEndpoint ? apiEndpoint : resource,
@@ -315,9 +321,8 @@ const DataTableComponent = ({
 
       // FIXED: Better logic for when to reset vs append data
       const shouldResetData =
-        isFilterChanged || // Filter changed
-        page === 0 || // First page
-        data.length === 0; // No existing data
+        isFilterChanged || 
+        (page === 0 && data.length === 0);
 
       if (shouldResetData) {
         console.log("Resetting data:", {
@@ -630,8 +635,11 @@ const DataTableComponent = ({
     setDetailView({
       student: row,
       col: col,
-      title: `${col.header} Records for ${row.name}`,
-      colHeader: col.header
+      title: col.header === "Absentees" 
+        ? `Absent Students for ${formatDateForDisplay(row.date)}` 
+        : `${col.header} Records for ${row.name}`,
+      colHeader: col.header,
+      viewType: col.header === "Absentees" ? "studentList" : "recordList"
     });
     setDetailedRecords(records);
 
@@ -760,14 +768,14 @@ const DataTableComponent = ({
           return sortClasses(a, b, getName);
         });
       }
-    } else if (baseData.length > 0 && enableDefaultSort) {
-      // Default sort by _id descending so newest records appear first
+    } else if (baseData.length > 0 && enableDefaultSort && sorting.length === 0) {
+      // Default sort by _id descending so newest records appear first if no other sorting is active
       baseData = [...baseData].sort((a, b) => {
         return String(b._id).localeCompare(String(a._id), undefined, { numeric: true, sensitivity: 'base' });
       });
     }
     return baseData;
-  }, [isApiFiltering, data, filteredData, toppersOnly, highlightedRowIds, highlightHighest]);
+  }, [isApiFiltering, data, filteredData, toppersOnly, highlightedRowIds, highlightHighest, sorting]);
 
   // Initialize table
   const table = useReactTable({
@@ -1522,12 +1530,22 @@ const DataTableComponent = ({
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableHead className="w-[60px] font-bold text-center">Sl. No.</TableHead>
-                      <TableHead className="w-[150px] font-bold">Date & Day</TableHead>
-                      <TableHead className="font-bold">Subject</TableHead>
-                      {(resource === "studentAttendances" || resource === "teacherAttendances") && (
-                        <TableHead className="font-bold">
-                          {resource === "teacherAttendances" ? "Class" : "Teacher"}
-                        </TableHead>
+                      {detailView?.viewType === "studentList" ? (
+                        <>
+                          <TableHead className="w-[120px] font-bold">Student ID</TableHead>
+                          <TableHead className="font-bold">Name</TableHead>
+                          <TableHead className="font-bold">Class</TableHead>
+                        </>
+                      ) : (
+                        <>
+                          <TableHead className="w-[150px] font-bold">Date & Day</TableHead>
+                          <TableHead className="font-bold">Subject</TableHead>
+                          {(resource === "studentAttendances" || resource === "teacherAttendances") && (
+                            <TableHead className="font-bold">
+                              {resource === "teacherAttendances" ? "Class" : "Teacher"}
+                            </TableHead>
+                          )}
+                        </>
                       )}
                     </TableRow>
                   </TableHeader>
@@ -1545,30 +1563,40 @@ const DataTableComponent = ({
                           <TableCell className="text-center font-medium text-muted-foreground py-3">
                             {i + 1}
                           </TableCell>
-                          <TableCell className="font-medium whitespace-nowrap py-3">
-                            <div className="flex flex-col">
-                               <span className="text-sm font-bold">{formatDateMonthYear(rec.date)}</span>
-                               <span className="text-xs text-muted-foreground font-medium">
-                                 {new Date(rec.date).toLocaleDateString(undefined, { weekday: 'long' })}
-                               </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-3">
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-sm">
-                                {rec.subjectName || "—"}
-                              </span>
-                              {rec.periodNumber && (
-                                <span className="text-[10px] text-muted-foreground font-medium">
-                                  PERIOD {rec.periodNumber}
-                                </span>
+                          {detailView?.viewType === "studentList" ? (
+                            <>
+                              <TableCell className="font-mono text-xs py-3">{rec.studentId || "—"}</TableCell>
+                              <TableCell className="font-bold text-sm py-3 uppercase">{rec.studentName || rec.name || "—"}</TableCell>
+                              <TableCell className="text-muted-foreground text-sm py-3 font-medium">{rec.className || "—"}</TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="font-medium whitespace-nowrap py-3">
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-bold">{formatDateMonthYear(rec.date)}</span>
+                                  <span className="text-xs text-muted-foreground font-medium">
+                                    {new Date(rec.date).toLocaleDateString(undefined, { weekday: 'long' })}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-3">
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-sm">
+                                    {rec.subjectName || "—"}
+                                  </span>
+                                  {rec.periodNumber && (
+                                    <span className="text-[10px] text-muted-foreground font-medium">
+                                      PERIOD {rec.periodNumber}
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              {(resource === "studentAttendances" || resource === "teacherAttendances") && (
+                                <TableCell className="text-muted-foreground text-sm py-3">
+                                  {resource === "teacherAttendances" ? (rec.className || "—") : (rec.teacherName || "—")}
+                                </TableCell>
                               )}
-                            </div>
-                          </TableCell>
-                          {(resource === "studentAttendances" || resource === "teacherAttendances") && (
-                            <TableCell className="text-muted-foreground text-sm py-3">
-                              {resource === "teacherAttendances" ? (rec.className || "—") : (rec.teacherName || "—")}
-                            </TableCell>
+                            </>
                           )}
                         </TableRow>
                       );

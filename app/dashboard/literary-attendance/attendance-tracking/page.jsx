@@ -179,7 +179,7 @@ const AttendanceTrackingPage = async () => {
             maxWidth: 60,
             minWidth: 60,
           },
-          { header: "Date", accessorKey: "dateForDisplay" },
+          { header: "Date", accessorKey: "date", type: ["date", "longDate"] },
           {
             header: "Category",
             accessorKey: "category",
@@ -194,6 +194,7 @@ const AttendanceTrackingPage = async () => {
             accessorKey: "absentees",
             valueKey: "absentees",
             type: ["length"],
+            clickable: true,
           },
         ],
         filterConfig: [
@@ -220,8 +221,9 @@ const AttendanceTrackingPage = async () => {
         apiFilters: {
           trackHistory: true,
           trackAbsentees: true,
-          projection: "_id,date,attendanceData,category",
+          projection: "_id,date,attendanceData,category,classId",
         },
+        defaultSorting: [{ id: "date", desc: true }],
       },
     ];
 

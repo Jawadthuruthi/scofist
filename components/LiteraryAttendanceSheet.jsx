@@ -142,7 +142,7 @@ const LiteraryAttendanceSheet = ({ apiKey, userId }) => {
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-2 animate-in fade-in duration-500">
             {/* Styles for Print */}
             <style jsx global>{`
                 @media print {
@@ -182,80 +182,94 @@ const LiteraryAttendanceSheet = ({ apiKey, userId }) => {
 
             {/* Filters - Hidden in Print */}
             <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6 print:hidden">
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                            variant={"outline"}
-                            className={cn(
-                                "w-full justify-start text-left font-normal bg-background h-10",
-                                !filters.fromDate && "text-muted-foreground"
-                            )}
-                        >
-                            <span className="text-muted-foreground font-semibold uppercase text-xs mr-2">From:</span>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {filters.fromDate ? format(filters.fromDate, "dd MMM yyyy") : <span>Select Date</span>}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            mode="single"
-                            selected={filters.fromDate}
-                            onSelect={(v) => setFilters(prev => ({ ...prev, fromDate: v }))}
-                            initialFocus
-                        />
-                    </PopoverContent>
-                </Popover>
+                <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">From</label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-full justify-start text-left font-normal bg-background",
+                                    !filters.fromDate && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {filters.fromDate ? format(filters.fromDate, "dd MMM yyyy") : <span>Select Date</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={filters.fromDate}
+                                onSelect={(v) => setFilters(prev => ({ ...prev, fromDate: v }))}
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
 
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                            variant={"outline"}
-                            className={cn(
-                                "w-full justify-start text-left font-normal bg-background h-10",
-                                !filters.toDate && "text-muted-foreground"
-                            )}
-                        >
-                            <span className="text-muted-foreground font-semibold uppercase text-xs mr-2">To:</span>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {filters.toDate ? format(filters.toDate, "dd MMM yyyy") : <span>Select Date</span>}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            mode="single"
-                            selected={filters.toDate}
-                            onSelect={(v) => setFilters(prev => ({ ...prev, toDate: v }))}
-                            initialFocus
-                        />
-                    </PopoverContent>
-                </Popover>
+                <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">To</label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-full justify-start text-left font-normal bg-background",
+                                    !filters.toDate && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {filters.toDate ? format(filters.toDate, "dd MMM yyyy") : <span>Select Date</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={filters.toDate}
+                                onSelect={(v) => setFilters(prev => ({ ...prev, toDate: v }))}
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
 
-                <Select value={filters.category} onValueChange={(v) => setFilters(prev => ({ ...prev, category: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="ALL">General</SelectItem>
-                        <SelectItem value="GROUP">Group</SelectItem>
-                        <SelectItem value="BOTH">Both</SelectItem>
-                    </SelectContent>
-                </Select>
+                <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Category</label>
+                    <Select value={filters.category} onValueChange={(v) => setFilters(prev => ({ ...prev, category: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">General</SelectItem>
+                            <SelectItem value="GROUP">Group</SelectItem>
+                            <SelectItem value="BOTH">Both</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
 
-                <Select value={filters.categoryId} onValueChange={(v) => setFilters(prev => ({ ...prev, categoryId: v }))} disabled={!filters.category}>
-                    <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
-                    <SelectContent>
-                        {classes.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                </Select>
+                <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Class</label>
+                    <Select value={filters.categoryId} onValueChange={(v) => setFilters(prev => ({ ...prev, categoryId: v }))} disabled={!filters.category}>
+                        <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
+                        <SelectContent>
+                            {classes.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
 
-                <Button onClick={loadAttendance} disabled={loading} className="w-full">
-                    {loading ? <Loader className="animate-spin" /> : "Load Data"}
-                </Button>
+                <div className="pt-5">
+                    <Button onClick={loadAttendance} disabled={loading} className="w-full">
+                        {loading ? <Loader className="animate-spin" /> : "Load Data"}
+                    </Button>
+                </div>
 
-                <Button
-                    className="bg-black text-white hover:bg-gray-800 w-full"
-                    onClick={() => window.print()}
-                >
-                    Print
-                </Button>
+                <div className="pt-5">
+                    <Button
+                        className="bg-black text-white hover:bg-gray-800 w-full"
+                        onClick={() => window.print()}
+                    >
+                        Print
+                    </Button>
+                </div>
             </div>
 
             {/* Table */}

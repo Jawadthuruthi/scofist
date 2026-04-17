@@ -177,6 +177,8 @@ export default async function GroupsPage() {
           printTitle="Literary Groups"
           mobileSplitLayout={true}
           mobileSearchPlaceholder="Search by group or student name..."
+          createButtonClass="bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all active:scale-95"
+          createButtonText="Add Group"
         />
       </>
     );

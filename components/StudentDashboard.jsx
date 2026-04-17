@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -77,6 +77,15 @@ export default function StudentDashboard({
   hideHeader = false,
 }) {
   const [currentUser, setCurrentUser] = useState(user);
+  const detailsRef = useRef(null);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    // Add a slight delay to ensure the content is rendered before scrolling
+    setTimeout(() => {
+      detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
 
   useEffect(() => {
     setCurrentUser(user);
@@ -601,6 +610,12 @@ export default function StudentDashboard({
             align-items: center !important; 
             gap: 2rem !important; 
           }
+          .print-exam-card {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+            margin-bottom: 1.5rem !important;
+            display: block !important;
+          }
         }
       `}</style>
 
@@ -610,13 +625,41 @@ export default function StudentDashboard({
       {/* Premium Header */}
       <div className="no-print relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-950 p-8 text-white shadow-xl mb-6">
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-            <Avatar className="h-24 w-24 rounded-2xl border-4 border-white/20 shadow-2xl ring-4 ring-blue-500/20">
-              <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} className="object-cover" />
-              <AvatarFallback className="bg-white/10 text-2xl font-bold backdrop-blur-md">
-                {currentUser?.name?.[0]}
-              </AvatarFallback>
-            </Avatar>
+          <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left w-full md:w-auto">
+            {/* Mobile Header: Photo and Card side by side */}
+            <div className="flex flex-row items-center justify-between w-full md:w-auto gap-4">
+              <Avatar className="h-24 w-24 rounded-2xl border-4 border-white/20 shadow-2xl ring-4 ring-blue-500/20">
+                <AvatarImage src={currentUser?.profilePic?.url} alt={currentUser?.name} className="object-cover" />
+                <AvatarFallback className="bg-white/10 text-2xl font-bold backdrop-blur-md">
+                  {currentUser?.name?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              
+              {/* Profile Card for Mobile View */}
+              <div className="md:hidden scale-90 origin-right">
+                <Card 
+                  className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden min-w-[130px] ${
+                    activeTab === "PROFILE" 
+                      ? "border-blue-500 bg-white/20 backdrop-blur-md" 
+                      : "border-white/10 bg-white/5 hover:border-white/20 backdrop-blur-sm"
+                  }`}
+                  onClick={() => handleTabChange("PROFILE")}
+                >
+                  <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2">
+                    <div className={`p-2 rounded-xl transition-all duration-300 ${
+                      activeTab === "PROFILE" 
+                        ? "bg-blue-500 text-white shadow-lg" 
+                        : "bg-white/10 text-blue-200"
+                    }`}>
+                      <User className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs font-bold text-white uppercase tracking-wider">Profile</span>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Info Section */}
             <div>
               <p className="text-blue-200 text-sm font-medium tracking-wider uppercase mb-1">Welcome,</p>
               <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 drop-shadow-md">
@@ -640,32 +683,36 @@ export default function StudentDashboard({
               </div>
             </div>
           </div>
-          <Card 
-            className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden min-w-[140px] ${
-              activeTab === "PROFILE" 
-                ? "border-blue-500 bg-white/20 backdrop-blur-md" 
-                : "border-white/10 bg-white/5 hover:border-white/20 backdrop-blur-sm"
-            }`}
-            onClick={() => setActiveTab("PROFILE")}
-          >
-            <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
-              <div className={`p-3 rounded-xl transition-all duration-300 ${
+
+          {/* Profile Card for Desktop View */}
+          <div className="hidden md:block">
+            <Card 
+              className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden min-w-[140px] ${
                 activeTab === "PROFILE" 
-                  ? "bg-blue-500 text-white shadow-lg scale-110" 
-                  : "bg-white/10 text-blue-200 group-hover:scale-110"
-              }`}>
-                <User className="h-6 w-6" />
-              </div>
-              <span className={`text-sm font-bold tracking-wide ${
-                activeTab === "PROFILE" ? "text-white" : "text-blue-100"
-              }`}>
-                My Profile
-              </span>
-              {activeTab === "PROFILE" && (
-                <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-400"></div>
-              )}
-            </CardContent>
-          </Card>
+                  ? "border-blue-500 bg-white/20 backdrop-blur-md" 
+                  : "border-white/10 bg-white/5 hover:border-white/20 backdrop-blur-sm"
+              }`}
+              onClick={() => handleTabChange("PROFILE")}
+            >
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
+                <div className={`p-3 rounded-xl transition-all duration-300 ${
+                  activeTab === "PROFILE" 
+                    ? "bg-blue-500 text-white shadow-lg scale-110" 
+                    : "bg-white/10 text-blue-200 group-hover:scale-110"
+                }`}>
+                  <User className="h-6 w-6" />
+                </div>
+                <span className={`text-sm font-bold tracking-wide ${
+                  activeTab === "PROFILE" ? "text-white" : "text-blue-100"
+                }`}>
+                  My Profile
+                </span>
+                {activeTab === "PROFILE" && (
+                  <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-400"></div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
         
         {/* Decorative elements */}
@@ -763,7 +810,7 @@ export default function StudentDashboard({
                   ? `${s.activeBorder} ${s.activeBg}` 
                   : "border-transparent bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-800"
               }`}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => handleTabChange(item.id)}
             >
               <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
                 <div className={`p-3 rounded-xl transition-all duration-300 ${
@@ -787,7 +834,7 @@ export default function StudentDashboard({
         })}
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6" ref={detailsRef}>
         {isLoading && !initialData ? (
           <Card className="min-h-[400px] flex flex-col items-center justify-center p-12 bg-white/50 backdrop-blur-sm border-dashed">
             <div className="relative">
@@ -1273,7 +1320,7 @@ export default function StudentDashboard({
 
       {activeTab === "MARKS" && (
         <div className="grid grid-cols-1 gap-5 pt-5 print-stack-vertical">
-          <Card className="flex flex-col card-print-break">
+          <Card className="flex flex-col">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="flex flex-col gap-1">
               <CardTitle className="text-lg font-bold flex items-center gap-2">
@@ -1336,7 +1383,7 @@ export default function StudentDashboard({
                       const rank = allStudentTotals.findIndex(s => s.studentId === currentUser._id) + 1;
 
                       return (
-                        <div key={exam._id} className="space-y-1">
+                        <div key={exam._id} className="space-y-1 print-exam-card">
                           <div className="rounded-md border overflow-hidden">
                             <Table>
                               <TableHeader className="bg-muted/50">

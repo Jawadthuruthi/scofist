@@ -140,7 +140,18 @@ const useTableColumns = (columnConfig, onCellClick) => {
     // Apply date formatting if type includes "date"
     if (col.type?.includes("date")) {
       columnDefinition.cell = ({ row }) => {
-        const value = new Date(row.getValue(col.accessorKey));
+        const val = row.getValue(col.accessorKey);
+        if (!val) return "";
+        const value = new Date(val);
+        
+        if (col.type?.includes("longDate")) {
+          const dayOfMonth = value.getDate();
+          const monthName = value.toLocaleString("en-US", { month: "long" });
+          const year = value.getFullYear();
+          const dayOfWeek = value.toLocaleString("en-US", { weekday: "long" });
+          return <div className="min-w-[180px]">{`${dayOfMonth} ${monthName} ${year}, ${dayOfWeek}`}</div>;
+        }
+
         const date = value.toLocaleDateString("en-US", {
           year: "numeric",
           month: "short",
@@ -240,6 +251,19 @@ const useTableColumns = (columnConfig, onCellClick) => {
     if (col.type?.includes("length")) {
       columnDefinition.cell = ({ row }) => {
         const length = row.original?.[col.valueKey]?.length || 0;
+        
+        if (col.clickable && length > 0) {
+          return (
+            <Button
+              variant="link"
+              className="p-0 h-auto font-medium text-primary hover:text-primary/80"
+              onClick={() => onCellClick?.(row.original, col)}
+            >
+              {length}
+            </Button>
+          );
+        }
+        
         return length;
       };
     }

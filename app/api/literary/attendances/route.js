@@ -83,7 +83,14 @@ export async function GET(req, res) {
       .populate("groupId", "name")
       .populate("classId", "name")
       .populate("batchId", "name")
-      .populate("attendanceData.studentId", ["name", "profilePic"]);
+      .populate({
+        path: "attendanceData.studentId",
+        select: ["name", "profilePic", "studentSpecificField.classId"],
+        populate: {
+          path: "studentSpecificField.classId",
+          select: "name"
+        }
+      });
 
     let formattedAttendances = literaryAttendances.map((attendance) => {
       return {
@@ -101,6 +108,7 @@ export async function GET(req, res) {
           studentId: data.studentId._id,
           studentName: data.studentId.name,
           studentDetails: data.studentId,
+          className: data.studentId?.studentSpecificField?.classId?.name || (attendance.classId?.name || "—")
         })),
       };
     });
@@ -117,6 +125,7 @@ export async function GET(req, res) {
             studentAbsences[student.studentId] = {
               studentId: student.studentId,
               studentName: student.studentName,
+              className: student.className,
               classId: attendance.classId || undefined,
               groupId: attendance.groupId || undefined,
               category: attendance.category,

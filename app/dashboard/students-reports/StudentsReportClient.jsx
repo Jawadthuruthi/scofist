@@ -292,7 +292,7 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                         Student Lookup
                     </CardTitle>
                     <CardDescription>
-                        Search for a student by ID or Name to quickly view their report
+                        Search for a student by ID or Name
                     </CardDescription>
                     <div className="flex gap-2 mt-4 w-full relative">
                         <div className="relative flex-1">
@@ -371,7 +371,7 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                 )}
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-1 no-print">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 px-1 no-print">
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Select Batch</label>
                     <Select onValueChange={handleBatchChange} value={selectedBatch}>
@@ -409,7 +409,7 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                     </Select>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-2 md:col-span-1">
                     <label className="text-sm font-medium">Select Student</label>
                     {loadingStudents ? (
                         <div className="h-9 w-full flex items-center gap-2 px-3 py-2 border rounded-md text-sm text-muted-foreground shadow-sm bg-background">
