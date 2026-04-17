@@ -343,7 +343,7 @@ const StudentPrintableCard = ({
                         </div>
 
                         <div className="text-xs font-bold text-center mt-auto p-1 flex flex-col items-center">
-                            <span className="mb-4 mt-1 bg-white/80 rounded-md py-0.5 px-2 shadow-sm text-indigo-900">OFFICIAL STUDENT ID</span>
+                            <span className="mb-1 mt-1 bg-white/80 rounded-md py-0.5 px-2 shadow-sm text-indigo-900">OFFICIAL STUDENT ID</span>
                             <div className="p-1 mb-1 bg-white rounded overflow-hidden h-12 flex items-center">
                                 <Barcode
                                     value={person._id?.substring(0, 8).toUpperCase()}

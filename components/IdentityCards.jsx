@@ -433,8 +433,8 @@ const IdCard = ({
             <div className="p-2 flex flex-col items-center">
               <div className="text-xs text-center font-medium text-indigo-800 mb-1 bg-white/80 rounded-md py-0.5 px-2 inline-block shadow-sm w-full">
                 {isStudent
-                  ? "OFFICIAL STUDENT IDENTIFICATION"
-                  : "OFFICIAL TEACHER IDENTIFICATION"}
+                  ? "OFFICIAL STUDENT ID"
+                  : "OFFICIAL TEACHER ID"}
               </div>
               {isStudent && (
                 <div className="flex justify-center mt-2 p-1 bg-white rounded shadow-sm overflow-hidden h-12">
@@ -706,8 +706,8 @@ const PrintableIdCard = ({
               </div>
             </div>
 
-            <div className="text-xs font-bold text-center mt-auto p-1 flex flex-col items-center">
-              <span className="mb-4 mt-1 bg-white/80 rounded-md py-0.5 px-2 shadow-sm text-indigo-900 w-full">{isStudent ? "OFFICIAL STUDENT IDENTIFICATION" : "OFFICIAL TEACHER IDENTIFICATION"}</span>
+            <div className="text-xs font-bold text-center mt-auto p-1 flex flex-col items-center w-full">
+              <span className="mb-1 mt-1 bg-white/80 rounded-md py-0.5 px-2 shadow-sm text-indigo-900 w-full whitespace-nowrap">{isStudent ? "OFFICIAL STUDENT ID" : "OFFICIAL TEACHER ID"}</span>
               {isStudent && (
                 <div className="p-1 mb-1 bg-white rounded overflow-hidden h-12 flex items-center">
                   <Barcode
