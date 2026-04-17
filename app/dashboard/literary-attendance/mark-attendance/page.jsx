@@ -434,9 +434,9 @@ const LiteraryAttendance = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-16">Sl.no</TableHead>
+                  <TableHead className="w-10">Sl.no</TableHead>
                   <TableHead>Students</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="text-right">History</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -451,11 +451,8 @@ const LiteraryAttendance = () => {
                     if (isPresent) {
                       rowClass = "cursor-pointer";
                     } else {
-                      if (isOnLeave) {
-                        rowClass = "bg-red-50/80 dark:bg-red-950/30 cursor-pointer border-l-4 border-l-yellow-500";
-                      } else {
-                        rowClass = "bg-rose-300 dark:bg-rose-700 hover:bg-rose-300 dark:hover:bg-rose-700 cursor-pointer text-foreground";
-                      }
+                      // Unified color for Absent and On Leave students
+                      rowClass = "bg-rose-300 dark:bg-rose-700 hover:bg-rose-300 dark:hover:bg-rose-700 cursor-pointer text-foreground";
                     }
 
                     return (
@@ -466,13 +463,7 @@ const LiteraryAttendance = () => {
                       >
                         <TableCell>{index + 1}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={student.profilePic?.url} />
-                              <AvatarFallback>
-                                {student.name.substring(0, 1)} { }
-                              </AvatarFallback>
-                            </Avatar>
+                          <div className="flex flex-col justify-center">
                             <div>
                               <p className="font-medium text-xs">
                                 {student.name}{" "}
@@ -484,21 +475,21 @@ const LiteraryAttendance = () => {
                                     "(Assistant Leader)") ||
                                   ""}
                               </p>
-                              <div className="flex items-center gap-2">
                                 <p className="text-xs text-muted-foreground">
                                   {student._id} {student?.className}
                                 </p>
-                                {isOnLeave && (
+                              </div>
+                              {isOnLeave && (
+                                <div className="mt-1">
                                   <Badge variant="outline" className="h-4 text-[10px] px-1 bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-500 dark:border-yellow-800">
                                     <Clock className="w-3 h-3 mr-1" />
                                     On Leave
                                   </Badge>
-                                )}
-                              </div>
+                                </div>
+                              )}
                             </div>
-                          </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           {hasAbsenceHistory && (
                             <AbsenteeStatus absenteeInfo={absenteeInfo} />
                           )}
