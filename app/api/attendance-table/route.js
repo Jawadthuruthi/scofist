@@ -13,6 +13,15 @@ export async function GET(req) {
     const month = parseInt(searchParams.get('month'));
     const year = parseInt(searchParams.get('year'));
 
+    // Helper to get YYYY-MM-DD in local time
+    const formatDate = (date) => {
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     if (!classId || !month || !year) {
       return NextResponse.json(
         { message: 'classId, month, and year are required' },
@@ -66,9 +75,7 @@ export async function GET(req) {
       });
     }
 
-    const uniquePairs = Object.values(subjectTeacherPairs).sort((a, b) =>
-      a.subjectName.localeCompare(b.subjectName)
-    );
+    // Derive final unique pairs after harvesting from attendances
 
     // 2. Fetch marked attendances for the month
     const startDate = new Date(year, month - 1, 1);
@@ -87,11 +94,45 @@ export async function GET(req) {
         select: 'name',
       });
 
+    // Extract unique subject-teacher pairs from Attendances as well
+    // AND Reconstruct historical schedule patterns
+    const historicalDayScheduleMap = {}; // dayName -> accessor -> [periodNumbers]
+    
+    attendances.forEach((att) => {
+      if (att.subjectId && att.teacherId) {
+        const sid = att.subjectId._id.toString();
+        const tid = att.teacherId._id.toString();
+        const accessor = `${sid}-${tid}`;
+
+        // 1. Ensure pair exists in uniquePairs
+        if (!subjectTeacherPairs[accessor]) {
+          subjectTeacherPairs[accessor] = {
+            subjectId: sid,
+            subjectName: att.subjectId.name,
+            teacherId: tid,
+            teacherName: att.teacherId.name,
+          };
+        }
+
+        // 2. Map historical schedule
+        const dName = new Date(att.date).toLocaleDateString('en-US', { weekday: 'long' });
+        if (!historicalDayScheduleMap[dName]) historicalDayScheduleMap[dName] = {};
+        if (!historicalDayScheduleMap[dName][accessor]) historicalDayScheduleMap[dName][accessor] = [];
+        if (!historicalDayScheduleMap[dName][accessor].includes(att.periodNumber)) {
+          historicalDayScheduleMap[dName][accessor].push(att.periodNumber);
+        }
+      }
+    });
+
+    const uniquePairs = Object.values(subjectTeacherPairs).sort((a, b) =>
+      a.subjectName.localeCompare(b.subjectName)
+    );
+
     // Create lookup set: date-subjectId-teacherId
     const markedAttendances = new Set();
     attendances.forEach((att) => {
       if (att.subjectId && att.teacherId) {
-        const isoDate = new Date(att.date).toISOString().split('T')[0];
+        const isoDate = formatDate(att.date);
         const key = `${isoDate}-${att.subjectId._id.toString()}-${att.teacherId._id.toString()}`;
         markedAttendances.add(key);
       }
@@ -106,7 +147,7 @@ export async function GET(req) {
     // Create leave lookup: date-teacherId-periodNumber -> leaveReason
     const leaveMap = {};
     leaveRecords.forEach((leave) => {
-      const isoDate = new Date(leave.date).toISOString().split('T')[0];
+      const isoDate = formatDate(leave.date);
       const key = `${isoDate}-${leave.teacherId}-${leave.periodNumber}`;
       leaveMap[key] = leave.leaveReason;
     });
@@ -127,10 +168,13 @@ export async function GET(req) {
     // 5. Create table data with status indicators
     const daysInMonth = endDate.getDate();
     const dates = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month - 1, i + 1));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const tableData = dates.map((date) => {
-      const isoDate = date.toISOString().split('T')[0];
+      const isoDate = formatDate(date);
       const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+      const isUpcoming = date > today;
 
       const row = {
         date: isoDate,
@@ -142,20 +186,38 @@ export async function GET(req) {
         const accessor = `${pair.subjectId}-${pair.teacherId}`;
         const attendanceLookupKey = `${isoDate}-${pair.subjectId}-${pair.teacherId}`;
 
-        // Check if teacher has any period on this day for this subject
-        const hasPeriodOnDay = dayScheduleMap[dayName] && dayScheduleMap[dayName][accessor];
-
-        if (!hasPeriodOnDay) {
-          // No period scheduled
+        // If it's an upcoming day, leave it empty (NO_PERIOD)
+        if (isUpcoming) {
           row[accessor] = {
             status: 'NO_PERIOD',
-            message: 'No Period',
+            message: 'Upcoming',
           };
-        } else {
-          // Has period(s) scheduled
-          const scheduledPeriods = dayScheduleMap[dayName][accessor];
+          return;
+        }
 
-          // Check for leave on any of the scheduled periods
+        // Check for schedule in both current timetable and historical patterns
+        const currentPeriods = (dayScheduleMap[dayName] && dayScheduleMap[dayName][accessor]) || [];
+        const historicalPeriods = (historicalDayScheduleMap[dayName] && historicalDayScheduleMap[dayName][accessor]) || [];
+        
+        // Merge periods to identify if it "should" have been marked
+        const scheduledPeriods = Array.from(new Set([...currentPeriods, ...historicalPeriods]));
+
+        if (scheduledPeriods.length === 0) {
+          // No record of this subject on this day, BUT check if it was marked anyway (Ad-hoc marking)
+          if (markedAttendances.has(attendanceLookupKey)) {
+            row[accessor] = {
+              status: 'MARKED',
+              message: '✓ Marked',
+            };
+          } else {
+             row[accessor] = {
+              status: 'NO_PERIOD',
+              message: 'No Period',
+            };
+          }
+        } else {
+          // Has period(s) scheduled (historically or currently)
+          // 1. Check for leave (can be checked for any of the scheduled periods)
           const leavePeriod = scheduledPeriods.find((periodNum) => {
             const leaveKey = `${isoDate}-${pair.teacherId}-${periodNum}`;
             return leaveMap[leaveKey];
@@ -169,13 +231,13 @@ export async function GET(req) {
               leaveReason: leaveMap[leaveKey],
             };
           } else if (markedAttendances.has(attendanceLookupKey)) {
-            // Attendance marked
+            // 2. Attendance marked
             row[accessor] = {
               status: 'MARKED',
               message: '✓ Marked',
             };
           } else {
-            // Period exists but attendance not marked
+            // 3. Period exists but attendance not marked -> Absent (only for past/current dates)
             row[accessor] = {
               status: 'NOT_MARKED',
               message: '✗ Not Marked',

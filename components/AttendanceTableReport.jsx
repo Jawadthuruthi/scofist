@@ -218,48 +218,78 @@ export default function AttendanceTableReport({ classes }) {
                 </div>
             </div>
 
-            {/* Filters */}
-            <div className="flex gap-4 flex-wrap print:hidden">
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
-                    <SelectTrigger className="w-64">
-                        <SelectValue placeholder="Select Class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {classes?.slice().sort(sortClasses).map((cls) => (
-                            <SelectItem key={cls.id || cls._id} value={cls.id || cls._id}>
-                                {cls.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+            {/* Filters and Controls */}
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:gap-4 print:hidden">
+                {/* Row 1 for Mobile: Year, Month, Print */}
+                <div className="flex gap-2 w-full md:w-auto">
+                    <div className="flex-[0.8] md:w-28">
+                        <label className="text-[10px] font-medium mb-1 block md:hidden">Year</label>
+                        <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {years.map((y) => (
+                                    <SelectItem key={y} value={y.toString()}>
+                                        {y}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
-                    <SelectTrigger className="w-32">
-                        <SelectValue placeholder="Year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {years.map((y) => (
-                            <SelectItem key={y} value={y.toString()}>
-                                {y}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    <div className="flex-[1.2] md:w-36">
+                        <label className="text-[10px] font-medium mb-1 block md:hidden">Month</label>
+                        <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {months.map((m) => (
+                                    <SelectItem key={m.value} value={m.value.toString()}>
+                                        {m.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
-                    <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Month" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {months.map((m) => (
-                            <SelectItem key={m.value} value={m.value.toString()}>
-                                {m.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    <div className="flex-1 md:hidden">
+                        <label className="text-[10px] font-medium mb-1 block">Actions</label>
+                        <Button onClick={handlePrint} className="w-full flex items-center justify-center gap-2 bg-black text-white px-2 h-10">
+                            <Printer className="h-4 w-4" /> Print
+                        </Button>
+                    </div>
+                </div>
 
-                <div className="flex gap-2 ml-auto">
+                {/* Row 2 for Mobile: Class, Print Sheet */}
+                <div className="flex gap-2 w-full md:w-auto md:flex-1">
+                    <div className="flex-[1.5] md:min-w-[200px] md:max-w-xs">
+                        <label className="text-[10px] font-medium mb-1 block md:hidden">Select Class</label>
+                        <Select value={selectedClass} onValueChange={setSelectedClass}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select Class" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {classes?.slice().sort(sortClasses).map((cls) => (
+                                    <SelectItem key={cls.id || cls._id} value={cls.id || cls._id}>
+                                        {cls.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="flex-1 md:hidden">
+                        <label className="text-[10px] font-medium mb-1 block invisible">Actions</label>
+                        <Button onClick={handlePrintSheet} className="w-full flex items-center justify-center gap-2 bg-black text-white px-2 h-10">
+                            <FileText className="h-4 w-4" /> Sheet
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Desktop-only Buttons */}
+                <div className="hidden md:flex gap-2 ml-auto">
                     <Button onClick={handlePrint} className="flex items-center gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90">
                         <Printer className="h-4 w-4" /> Print
                     </Button>

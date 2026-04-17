@@ -415,48 +415,51 @@ export default function MarksManager() {
         <div className="space-y-6">
             {/* ── All controls in one row */}
             <div className="flex gap-4 flex-wrap items-end">
-                {/* Mode */}
-                <div className="w-40">
-                    <label className="text-sm font-medium mb-1 block">Mode</label>
-                    <Select
-                        value={showResult ? "result" : "entry"}
-                        onValueChange={(val) => setShowResult(val === "result")}
-                    >
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="entry">Marks Entry</SelectItem>
-                            <SelectItem value="result">Result View</SelectItem>
-                        </SelectContent>
-                    </Select>
+                {/* Mode and Select Class - Side by side on mobile */}
+                <div className="flex gap-2 w-full sm:w-auto">
+                    {/* Mode */}
+                    <div className="flex-1 sm:w-40">
+                        <label className="text-sm font-medium mb-1 block">Mode</label>
+                        <Select
+                            value={showResult ? "result" : "entry"}
+                            onValueChange={(val) => setShowResult(val === "result")}
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="entry">Marks Entry</SelectItem>
+                                <SelectItem value="result">Result View</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Select Class */}
+                    <div className="flex-1 sm:w-48">
+                        <label className="text-sm font-medium mb-1 block">Select Class</label>
+                        <Select
+                            onValueChange={(val) => {
+                                setSelectedClass(val);
+                                const cls = classes.find((c) => c._id === val);
+                                setSelectedClassName(cls?.name || "");
+                            }}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Choose class..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {classes.map((cls) => (
+                                    <SelectItem key={cls._id} value={cls._id}>
+                                        {cls.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
-                {/* Select Class */}
-                <div className="w-48">
-                    <label className="text-sm font-medium mb-1 block">Select Class</label>
-                    <Select
-                        onValueChange={(val) => {
-                            setSelectedClass(val);
-                            const cls = classes.find((c) => c._id === val);
-                            setSelectedClassName(cls?.name || "");
-                        }}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Choose class..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {classes.map((cls) => (
-                                <SelectItem key={cls._id} value={cls._id}>
-                                    {cls.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                {/* Exam Name */}
-                <div className="w-48">
+                {/* Exam Name - Increased width */}
+                <div className="w-full md:w-80">
                     <label className="text-sm font-medium mb-1 block">Exam Name</label>
                     {showResult ? (
                         <Select
@@ -553,7 +556,7 @@ export default function MarksManager() {
 
                 {/* Subject Selection for Teachers */}
                 {!showResult && examReady && activeRole === "Teacher" && (
-                    <div className="w-48">
+                    <div className="w-full sm:w-48">
                         <label className="text-sm font-medium mb-1 block">Subject</label>
                         <Select
                             value={selectedSubjectIndex !== null ? selectedSubjectIndex.toString() : ""}
@@ -576,7 +579,7 @@ export default function MarksManager() {
                 {/* Marks Entry button */}
                 {!showResult && !examReady && (
                     <Button
-                        className="self-end"
+                        className="self-end w-full sm:w-auto"
                         onClick={handleOpenTable}
                         disabled={!selectedClass || !examName.trim()}
                     >
