@@ -20,6 +20,7 @@ export default function ConfirmationPopup({
   title,
   icon,
   onClick,
+  triggerClass,
 }) {
   const [open, setOpen] = React.useState(false);
 
@@ -35,7 +36,9 @@ export default function ConfirmationPopup({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">{icon || <Trash />}</Button>
+        <Button variant={triggerClass ? "default" : "outline"} className={triggerClass}>
+          {icon || <Trash />}
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

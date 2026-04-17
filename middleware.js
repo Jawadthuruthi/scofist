@@ -68,6 +68,11 @@ const pages = [
     allowedRoles: ["Spark Admin"],
   },
   {
+    title: "Spark Dashboard",
+    path: "/dashboard/spark",
+    allowedRoles: ["Student", "Spark Admin"],
+  },
+  {
     title: "Alumnies",
     path: "/dashboard/alumnies",
     allowedRoles: ["Student", "Spark Admin"],
@@ -176,7 +181,7 @@ const pages = [
   {
     title: "Identity Cards",
     path: "/dashboard/identity-cards",
-    allowedRoles: ["College Admin", "Teacher"],
+    allowedRoles: ["College Admin", "Teacher", "Student"],
   },
   {
     title: "Literary Groups",

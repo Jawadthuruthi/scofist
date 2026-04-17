@@ -257,6 +257,7 @@ export default async function BatchesPage() {
           tableHeight="calc(100vh - 250px)"
           apiFilters={apiFilters}
           printTitle={"Teachers"}
+          enableSearch={true}
         />
       </>
     );

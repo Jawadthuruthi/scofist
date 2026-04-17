@@ -1,10 +1,16 @@
 import ErrorPage from "@/components/ErrorPage";
 import IdentityCards from "@/components/IdentityCards";
 import { fetchData } from "@/lib/utils";
+import { headers } from "next/headers";
 
 export const revalidate = 60;
 const identityCardsPage = async () => {
   try {
+    const headersList = headers();
+    const userHeader = headersList.get("x-user");
+    const user = userHeader ? JSON.parse(userHeader) : null;
+    const activeRole = headersList.get("x-active-role") || (user?.roles?.[0]);
+
     const [students, settings, classes, teachers] = await Promise.all([
       fetchData("users", "roles=Student&status=Active"),
       fetchData("settings"),
@@ -21,6 +27,8 @@ const identityCardsPage = async () => {
         idCardBackgroundImageUrl={settings.idCard?.backgroundImage?.url}
         classes={classes}
         teachers={teachers}
+        userRole={activeRole}
+        userId={user?._id}
       />
     );
   } catch (error) {

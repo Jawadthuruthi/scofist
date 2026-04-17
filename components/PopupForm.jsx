@@ -530,6 +530,7 @@ export default function PopupForm({
   submitButtonClass,
   triggerClass,
   triggerText,
+  triggerVariant,
 }) {
   // Use either external state (if provided) or internal state
   const isControlled = externalOpen !== undefined;
@@ -634,7 +635,7 @@ export default function PopupForm({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger ? trigger : (!hideButton && (
-          <Button variant={triggerClass ? "default" : "outline"} className={triggerClass}>
+          <Button variant={triggerVariant || (triggerClass ? "default" : "outline")} className={triggerClass}>
             {data ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {triggerText && <span className="ml-2">{triggerText}</span>}
           </Button>

@@ -915,14 +915,6 @@ const DataTableComponent = ({
       {additionalProps?.customActions && (
         <div>{additionalProps.customActions}</div>
       )}
-      {!!selectedData?.length && (!readOnly || enableDelete) && (
-        <ConfirmationPopup
-          onClick={handleDelete}
-          action="delete"
-          loading={loading}
-          title={deleteFormTitle}
-        />
-      )}
       {(selectedData.length === 1 ||
         (selectedData.length > 1 && multiEdit)) &&
         !readOnly && (
@@ -939,8 +931,18 @@ const DataTableComponent = ({
             loading={loading}
             title={editFormTitle}
             apiKey={apiKey}
+            triggerVariant="outline"
           />
         )}
+      {!!selectedData?.length && (!readOnly || enableDelete) && (
+        <ConfirmationPopup
+          onClick={handleDelete}
+          action="delete"
+          loading={loading}
+          title={deleteFormTitle}
+          triggerClass="bg-red-600 hover:bg-red-700 text-white rounded-md h-9 w-9 p-0 flex items-center justify-center shrink-0"
+        />
+      )}
       {!readOnly && enableCreate && (
         <PopupForm
           formFields={formFields}
@@ -948,32 +950,30 @@ const DataTableComponent = ({
           loading={loading}
           title={createFormTitle}
           apiKey={apiKey}
-          triggerClass={createButtonClass}
-          triggerText={createButtonText}
+          triggerClass="bg-blue-600 hover:bg-blue-700 text-white rounded-md h-9 w-9 p-0 flex items-center justify-center shrink-0"
+          triggerText=""
         />
       )}
       {table.getRowModel().rows?.length > 0 && (
         <>
-          <Button onClick={handleExportExcel} className="print:hidden bg-[#1D6F42] text-white hover:bg-[#1D6F42]/90">
-            Excel
+          <Button onClick={handleExportExcel} className="print:hidden bg-green-600 text-white hover:bg-green-700 h-9 px-3 gap-2 shrink-0">
+            <FileSpreadsheet className="h-4 w-4" />
+            <span className="hidden md:inline">Excel</span>
           </Button>
-          {isMobile ? (
-            <Button onClick={handleDownloadPDF} className="print:hidden bg-black text-white hover:bg-gray-800">
-              Print
-            </Button>
-          ) : (
-            <Button onClick={handlePrint} className="btn-print">Print</Button>
-          )}
+          <Button onClick={handlePrint} className="print:hidden bg-black text-white hover:bg-gray-800 h-9 px-3 gap-2 shrink-0">
+            <Printer className="h-4 w-4" />
+            <span className="hidden md:inline">Print</span>
+          </Button>
         </>
       )}
     </>
   );
 
   return (
-    <div className={cn("space-y-4", isMobile && "space-y-px")}>
+    <div className={cn("space-y-4", isMobile && "space-y-2")}>
       {/* ── Mobile Split Layout ── */}
       {isMobile ? (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {/* Row 1: Custom Toolbar (Search/Scan) or Default Search */}
           <div className="w-full">
             {additionalProps?.customToolbar ? (
@@ -1043,6 +1043,33 @@ const DataTableComponent = ({
             )}
 
             <div className="flex items-center gap-1.5 ml-auto shrink-0">
+              {(selectedData.length === 1 || (selectedData.length > 1 && multiEdit)) && !readOnly && (
+                <PopupForm
+                  data={selectedData[0]}
+                  formFields={
+                    selectedData.length > 1 && multiEditFormFields?.length > 0
+                      ? multiEditFormFields
+                      : editFormFields?.length > 0
+                        ? editFormFields
+                        : formFields
+                  }
+                  onSubmit={handleEdit}
+                  loading={loading}
+                  title={editFormTitle}
+                  apiKey={apiKey}
+                  triggerClass="h-9 w-9 p-0 flex items-center justify-center shrink-0"
+                  triggerVariant="outline"
+                />
+              )}
+              {!!selectedData?.length && (!readOnly || enableDelete) && (
+                <ConfirmationPopup
+                  onClick={handleDelete}
+                  action="delete"
+                  loading={loading}
+                  title={deleteFormTitle}
+                  triggerClass="bg-red-600 hover:bg-red-700 text-white rounded-md h-9 w-9 p-0 flex items-center justify-center shrink-0"
+                />
+              )}
               {!readOnly && enableCreate && (
                 <PopupForm
                   formFields={formFields}
@@ -1050,18 +1077,17 @@ const DataTableComponent = ({
                   loading={loading}
                   title={createFormTitle}
                   apiKey={apiKey}
-                  triggerClass={createButtonClass}
+                  triggerClass="bg-blue-600 hover:bg-blue-700 text-white rounded-md h-9 w-9 p-0 flex items-center justify-center shrink-0"
+                  triggerText=""
                 />
               )}
               
-              <Button onClick={handleExportExcel} className="h-9 gap-1.5 bg-[#1D6F42] text-white hover:bg-[#1D6F42]/90 border-0">
+              <Button onClick={handleExportExcel} className="h-9 w-9 p-0 flex items-center justify-center bg-green-600 text-white hover:bg-green-700 border-0 shrink-0">
                 <FileSpreadsheet className="h-4 w-4" />
-                <span>Excel</span>
               </Button>
               
-              <Button onClick={handleDownloadPDF} className="h-9 gap-1.5 btn-print border-0">
+              <Button onClick={handleDownloadPDF} className="h-9 w-9 p-0 flex items-center justify-center bg-black text-white hover:bg-gray-800 border-0 shrink-0">
                 <Printer className="h-4 w-4" />
-                <span>Print</span>
               </Button>
             </div>
 
@@ -1110,48 +1136,11 @@ const DataTableComponent = ({
           )}
 
           {/* Additional Actions (CRUD, etc) */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
-            {/* Show only CRUD buttons here; Excel/Print are moved to Row 2 */}
-            {additionalProps?.customActions && (
+          {additionalProps?.customActions && (
+            <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
               <div>{additionalProps.customActions}</div>
-            )}
-            {!!selectedData?.length && (!readOnly || enableDelete) && (
-              <ConfirmationPopup
-                onClick={handleDelete}
-                action="delete"
-                loading={loading}
-                title={deleteFormTitle}
-              />
-            )}
-            {(selectedData.length === 1 || (selectedData.length > 1 && multiEdit)) && !readOnly && (
-              <PopupForm
-                data={selectedData[0]}
-                formFields={
-                  selectedData.length > 1 && multiEditFormFields?.length > 0
-                    ? multiEditFormFields
-                    : editFormFields?.length > 0
-                      ? editFormFields
-                      : formFields
-                }
-                onSubmit={handleEdit}
-                loading={loading}
-                title={editFormTitle}
-                apiKey={apiKey}
-              />
-            )}
-            {/* In mobile split layout, create button is moved to Row 2 */}
-            {!readOnly && enableCreate && !isMobile && (
-              <PopupForm
-                formFields={formFields}
-                onSubmit={handleSubmit}
-                loading={loading}
-                title={createFormTitle}
-                apiKey={apiKey}
-                triggerClass={createButtonClass}
-                triggerText={createButtonText}
-              />
-            )}
-          </div>
+            </div>
+          )}
 
           {!!selectedData.length && (
             <div className="text-muted-foreground text-[10px] bg-muted/50 px-2 py-0.5 rounded-full inline-block">
@@ -1189,7 +1178,7 @@ const DataTableComponent = ({
                     placeholder={desktopSearchPlaceholder}
                     value={globalFilter ?? ""}
                     onChange={(e) => handleSetGlobalFilter(e.target.value)}
-                    className="h-9 w-[300px] lg:w-[450px] pl-9"
+                    className="h-9 w-[400px] lg:w-[600px] xl:w-[800px] pl-9"
                   />
                 </div>
               )}

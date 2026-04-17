@@ -97,6 +97,7 @@ export default async function PeriodsPage() {
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
           limit={20}
+          enableSearch={true}
         />
       </>
     );

@@ -159,6 +159,7 @@ export default async function BatchesPage() {
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
           limit={20}
+          enableSearch={true}
         />
       </>
     );

@@ -169,6 +169,12 @@ const items = [
     icon: GraduationCap, // Reusing GraduationCap or could use another like Users
     allowedRoles: ["Student", "Spark Admin"],
   },
+  {
+    title: "My Identity Card",
+    url: "/dashboard/identity-cards",
+    icon: IdCard,
+    allowedRoles: ["Student"],
+  },
 
   {
     title: "Dashboard",
@@ -707,9 +713,9 @@ export function AppSidebar({ roles, activeRole, user }) {
 
         if (!item.allowedRoles?.includes(role)) return false;
 
-        // Custom check for Downloads and Students: Visible only for 'Active' students
+        // Custom check for Downloads, Students, and Identity Cards: Visible only for 'Active' students
         if (
-          (item.title === "Downloads" || item.title === "Students") &&
+          (item.title === "Downloads" || item.title === "Students" || item.title === "My Identity Card") &&
           role === "Student" &&
           user?.studentSpecificField?.status !== "Active"
         ) {

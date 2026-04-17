@@ -50,6 +50,8 @@ const IdentityCards = ({
   teachers = [],
   apiKey,
   settings = {},
+  userRole,
+  userId,
 }) => {
   const [selectionType, setSelectionType] = useState("Student ID");
   const [selectedClass, setSelectedClass] = useState([]);
@@ -115,7 +117,15 @@ const IdentityCards = ({
   }
 
   const itemsPerPage = selectedSide === "Both Sides" ? 4 : 8;
-  const filteredList = selectionType === "Student ID" ? filteredStudents : filteredTeachers;
+  const filteredList = useMemo(() => {
+    const list = selectionType === "Student ID" ? filteredStudents : filteredTeachers;
+    if (userRole === "Student" && userId) {
+      return list.filter((person) => person._id === userId);
+    }
+    return list;
+  }, [selectionType, filteredStudents, filteredTeachers, userRole, userId]);
+
+  const isManagementView = userRole === "College Admin" || userRole === "Teacher";
 
   return (
     <div>
@@ -124,95 +134,65 @@ const IdentityCards = ({
         subTitle="Official Identity for Students and Teachers"
       />
       <div className="flex flex-col md:flex-row gap-4 mb-6 md:items-end flex-wrap">
-        <div className="w-full md:flex-1 md:min-w-[150px]">
-          <label className="text-sm font-medium mb-1 block">ID Type</label>
-          <Select value={selectionType} onValueChange={setSelectionType}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select an option" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Student ID">Student ID</SelectItem>
-              <SelectItem value="Teacher ID">Teacher ID</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {selectionType === "Student ID" ? (
+        {isManagementView && (
           <>
             <div className="w-full md:flex-1 md:min-w-[150px]">
-              <label htmlFor="class-select" className="text-sm font-medium mb-1 block">
-                Select a Class
-              </label>
-              <MultiSelect
-                options={classOptions}
-                onValueChange={setSelectedClass}
-                value={selectedClass}
-                placeholder="Select a Class"
-                multiSelect={true}
-              />
+              <label className="text-sm font-medium mb-1 block">ID Type</label>
+              <Select value={selectionType} onValueChange={setSelectionType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Student ID">Student ID</SelectItem>
+                  <SelectItem value="Teacher ID">Teacher ID</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="w-full md:flex-1 md:min-w-[150px]">
-              <label htmlFor="student-select" className="text-sm font-medium mb-1 block">
-                Select a Student
-              </label>
-              <MultiSelect
-                options={studentOptions}
-                onValueChange={setSelectedStudent}
-                value={selectedStudent}
-                placeholder="Select a Student"
-                multiSelect={true}
-              />
-            </div>
-          </>
-        ) : (
-          <div className="w-full md:flex-1 md:min-w-[150px]">
-            <label className="text-sm font-medium mb-1 block">Select Teacher</label>
-            <MultiSelect
-              options={teacherOptions}
-              onValueChange={setSelectedTeacher}
-              value={selectedTeacher}
-              placeholder="Select a teacher"
-              multiSelect={true}
-            />
-          </div>
-        )}
-
-        <div className="w-full md:flex-1 md:min-w-[150px] flex flex-col gap-3">
-          <div className="flex gap-2 w-full">
-            <Button
-              onClick={handlePrint}
-              className="flex items-center justify-center gap-2 flex-1"
-              aria-label="Print"
-            >
-              <Printer size={16} />
-              Print
-            </Button>
-
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="icon" title="Settings">
-                  <Settings size={16} />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>ID Card Settings</DialogTitle>
-                </DialogHeader>
-                <div className="mt-4">
-                  <FormComponent
-                    formFields={idCardFormField}
-                    apiKey={apiKey}
-                    data={settings.idCard}
-                    resource="settings"
-                    title="ID Card"
-                    description="Set Your ID Card Background"
+            {selectionType === "Student ID" ? (
+              <>
+                <div className="w-full md:flex-1 md:min-w-[150px]">
+                  <label htmlFor="class-select" className="text-sm font-medium mb-1 block">
+                    Select a Class
+                  </label>
+                  <MultiSelect
+                    options={classOptions}
+                    onValueChange={setSelectedClass}
+                    value={selectedClass}
+                    placeholder="Select a Class"
+                    multiSelect={true}
                   />
                 </div>
-              </DialogContent>
-            </Dialog>
-          </div>
 
+                <div className="w-full md:flex-1 md:min-w-[150px]">
+                  <label htmlFor="student-select" className="text-sm font-medium mb-1 block">
+                    Select a Student
+                  </label>
+                  <MultiSelect
+                    options={studentOptions}
+                    onValueChange={setSelectedStudent}
+                    value={selectedStudent}
+                    placeholder="Select a Student"
+                    multiSelect={true}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="w-full md:flex-1 md:min-w-[150px]">
+                <label className="text-sm font-medium mb-1 block">Select Teacher</label>
+                <MultiSelect
+                  options={teacherOptions}
+                  onValueChange={setSelectedTeacher}
+                  value={selectedTeacher}
+                  placeholder="Select a teacher"
+                  multiSelect={true}
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        <div className="w-full md:flex-1 md:min-w-[150px] flex flex-col-reverse md:flex-col gap-3">
           <div>
             <label htmlFor="side-select" className="text-sm font-medium mb-1 block">
               Print Side
@@ -228,6 +208,42 @@ const IdentityCards = ({
               </SelectContent>
             </Select>
           </div>
+
+          <div className="flex gap-2 w-full">
+            <Button
+              onClick={handlePrint}
+              className="flex items-center justify-center gap-2 flex-1"
+              aria-label="Print"
+            >
+              <Printer size={16} />
+              Print
+            </Button>
+
+            {userRole === "College Admin" && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon" title="Settings">
+                    <Settings size={16} />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>ID Card Settings</DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-4">
+                    <FormComponent
+                      formFields={idCardFormField}
+                      apiKey={apiKey}
+                      data={settings.idCard}
+                      resource="settings"
+                      title="ID Card"
+                      description="Set Your ID Card Background"
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
         </div>
       </div>
 
@@ -242,6 +258,7 @@ const IdentityCards = ({
             idCardBackgroundImageUrl={idCardBackgroundImageUrl}
             isStudent={selectionType === "Student ID"}
             selectedSide={selectedSide}
+            userRole={userRole}
           />
         ))}
       </div>
@@ -328,15 +345,18 @@ const IdCard = ({
   idCardBackgroundImageUrl,
   isStudent,
   selectedSide,
+  userRole,
 }) => {
   const showFront = selectedSide === "Both Sides" || selectedSide === "Front Side";
   const showBack = selectedSide === "Both Sides" || selectedSide === "Back Side";
 
+  const isStudentView = userRole === "Student";
+
   return (
-    <div className={`preview-container col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 gap-4 flex flex-col`}>
+    <div className={`preview-container ${isStudentView ? "col-span-12 flex-row flex-wrap items-start justify-center" : "col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 flex-col"} gap-4 flex`}>
       {/* Front Side Preview */}
       {showFront && (
-        <Card className=" shadow-md overflow-hidden border-none flex-1">
+        <Card className={`shadow-md overflow-hidden border-none flex-1 ${isStudentView ? "max-w-[350px] min-w-[300px]" : ""}`}>
           <CardContent className="p-0">
             <div
               style={{ backgroundImage: `url(${idCardBackgroundImageUrl})` }}
@@ -437,7 +457,7 @@ const IdCard = ({
 
       {/* Back Side Preview */}
       {showBack && (
-        <Card className=" shadow-md overflow-hidden border border-gray-200 flex-1">
+        <Card className={`shadow-md overflow-hidden border border-gray-200 flex-1 ${isStudentView ? "max-w-[350px] min-w-[300px]" : ""}`}>
           <CardContent className="p-4 flex flex-col h-full">
             <div className="border-b border-gray-200 pb-2 mb-3">
               <h3 className="text-sm font-semibold text-gray-800 text-center">

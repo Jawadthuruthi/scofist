@@ -145,6 +145,7 @@ export default async function ClassesPage() {
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
           limit={20}
+          enableSearch={true}
         />
       </>
     );

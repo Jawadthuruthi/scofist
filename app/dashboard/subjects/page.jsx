@@ -86,7 +86,8 @@ export default async function BatchesPage() {
           editSuccessMessage={statusMessages.edit}
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
-          limit={20}
+          limit={1000}
+          enableSearch={true}
         />
       </>
     );
