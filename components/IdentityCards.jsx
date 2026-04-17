@@ -192,27 +192,27 @@ const IdentityCards = ({
           </>
         )}
 
-        <div className="w-full md:flex-1 md:min-w-[150px] flex flex-col-reverse md:flex-col gap-3">
-          <div>
-            <label htmlFor="side-select" className="text-sm font-medium mb-1 block">
-              Print Side
-            </label>
-            <Select value={selectedSide} onValueChange={setSelectedSide}>
-              <SelectTrigger id="side-select">
-                <SelectValue placeholder="Select Side" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Both Sides">Both Sides</SelectItem>
-                <SelectItem value="Front Side">Front Side</SelectItem>
-                <SelectItem value="Back Side">Back Side</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="w-full md:w-[350px] flex flex-col gap-3">
+          <div className="flex gap-2 items-end w-full">
+            <div className="flex-1">
+              <label htmlFor="side-select" className="text-sm font-medium mb-1 block">
+                Print Side
+              </label>
+              <Select value={selectedSide} onValueChange={setSelectedSide}>
+                <SelectTrigger id="side-select">
+                  <SelectValue placeholder="Select Side" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Both Sides">Both Sides</SelectItem>
+                  <SelectItem value="Front Side">Front Side</SelectItem>
+                  <SelectItem value="Back Side">Back Side</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="flex gap-2 w-full">
             <Button
               onClick={handlePrint}
-              className="flex items-center justify-center gap-2 flex-1"
+              className="flex items-center justify-center gap-2 flex-1 h-10"
               aria-label="Print"
             >
               <Printer size={16} />
@@ -222,7 +222,7 @@ const IdentityCards = ({
             {userRole === "College Admin" && (
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="icon" title="Settings">
+                  <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" title="Settings">
                     <Settings size={16} />
                   </Button>
                 </DialogTrigger>
@@ -353,7 +353,7 @@ const IdCard = ({
   const isStudentView = userRole === "Student";
 
   return (
-    <div className={`preview-container ${isStudentView ? "col-span-12 flex-row flex-wrap items-start justify-center" : "col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 flex-col"} gap-4 flex`}>
+    <div className={`preview-container ${isStudentView ? "col-span-12 flex-row flex-wrap items-stretch justify-center" : "col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 flex-col"} gap-4 flex`}>
       {/* Front Side Preview */}
       {showFront && (
         <Card className={`shadow-md overflow-hidden border-none flex-1 ${isStudentView ? "max-w-[350px] min-w-[300px]" : ""}`}>
@@ -430,8 +430,8 @@ const IdCard = ({
               </div>
             </div>
 
-            <div className="p-2">
-              <div className="text-xs text-center font-medium text-indigo-800 mb-1 bg-white/80 rounded-md py-0.5 px-2 inline-block shadow-sm">
+            <div className="p-2 flex flex-col items-center">
+              <div className="text-xs text-center font-medium text-indigo-800 mb-1 bg-white/80 rounded-md py-0.5 px-2 inline-block shadow-sm w-full">
                 {isStudent
                   ? "OFFICIAL STUDENT IDENTIFICATION"
                   : "OFFICIAL TEACHER IDENTIFICATION"}
@@ -707,7 +707,7 @@ const PrintableIdCard = ({
             </div>
 
             <div className="text-xs font-bold text-center mt-auto p-1 flex flex-col items-center">
-              <span className="mb-4 mt-1 bg-white/80 rounded-md py-0.5 px-2 shadow-sm text-indigo-900">{isStudent ? "OFFICIAL STUDENT ID" : "OFFICIAL TEACHER ID"}</span>
+              <span className="mb-4 mt-1 bg-white/80 rounded-md py-0.5 px-2 shadow-sm text-indigo-900 w-full">{isStudent ? "OFFICIAL STUDENT IDENTIFICATION" : "OFFICIAL TEACHER IDENTIFICATION"}</span>
               {isStudent && (
                 <div className="p-1 mb-1 bg-white rounded overflow-hidden h-12 flex items-center">
                   <Barcode

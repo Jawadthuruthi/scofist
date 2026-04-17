@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader, Mail } from "lucide-react";
+import { Loader, Mail, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [mobileNumber, setMobileNumber] = useState("");
   const [backgroundImage, setBackgroundImage] = useState("");
   const [settings, setSettings] = useState(null);
+  const [showMobileNumber, setShowMobileNumber] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -158,13 +159,27 @@ export default function LoginPage() {
                 </div>
                 <div className="space-y-1">
                   <Label>Mobile Number</Label>
-                  <Input
-                    type="password"
-                    placeholder="Enter Mobile Number"
-                    required
-                    value={mobileNumber}
-                    onChange={(e) => setMobileNumber(e.target.value)}
-                  />
+                  <div className="relative">
+                    <Input
+                      type={showMobileNumber ? "text" : "password"}
+                      placeholder="Enter Mobile Number"
+                      required
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(e.target.value)}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowMobileNumber(!showMobileNumber)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                    >
+                      {showMobileNumber ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? <Loader className="animate-spin mr-2" /> : "Login"}
