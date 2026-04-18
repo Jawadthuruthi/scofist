@@ -21,7 +21,8 @@ import {
     Filter,
     X,
     Printer,
-    ScanBarcode
+    ScanBarcode,
+    ChevronDown
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -48,6 +49,7 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
@@ -110,6 +112,9 @@ export default function StudentCouponClient({ apiKey }) {
     const [isSimplePayment, setIsSimplePayment] = useState(false);
     const [simplePaymentStudentName, setSimplePaymentStudentName] = useState("");
 
+    const [isBalancesDialogOpen, setIsBalancesDialogOpen] = useState(false);
+    const [isTransactionsDialogOpen, setIsTransactionsDialogOpen] = useState(false);
+
     // Student Lookup State
     const [lookupSearchTerm, setLookupSearchTerm] = useState("");
     const [lookupStudent, setLookupStudent] = useState(null);
@@ -119,6 +124,7 @@ export default function StudentCouponClient({ apiKey }) {
     const [showLookupScanner, setShowLookupScanner] = useState(false);
 
     // Filter State
+    const [filterMode, setFilterMode] = useState("year"); // "year" or "date"
     const [filters, setFilters] = useState({
         search: "", // Combined Name/ID search from main bar or popover
         year: String(new Date().getFullYear()),
@@ -320,6 +326,12 @@ export default function StudentCouponClient({ apiKey }) {
         academicYear: String(new Date().getFullYear()) // Default, will update dynamically
     }, { enabled: false });
 
+    // Fetch Un-filtered Coupons for Reports (Balances & Transactions)
+    const { data: allYearsCouponsData, isFetching: isFetchingAllYearsCoupons } = useFetchItems(0, 0, {
+        batchId: detailsBatchId !== "all" ? detailsBatchId : undefined,
+        classId: detailsClassId.length > 0 ? detailsClassId.join(",") : undefined,
+    }, { enabled: isBalancesDialogOpen || isTransactionsDialogOpen, keepPreviousData: true });
+
 
     const {
         register: registerDetails,
@@ -431,8 +443,13 @@ export default function StudentCouponClient({ apiKey }) {
             return;
         }
 
+        if (filterMode === "date") {
+            toast.error("Please switch to 'Academic Year' filter and select a valid year to save details.");
+            return;
+        }
+
         if (filters.year === "all") {
-            toast.error("Please select a specific Academic Year from the Total Collected Card to save details.");
+            toast.error("Please select a specific Academic Year to save details.");
             return;
         }
 
@@ -563,18 +580,22 @@ export default function StudentCouponClient({ apiKey }) {
     const queryFilters = useMemo(() => {
         if (hasLookedUp && lookupStudent) {
             return {
-                academicYear: filters.year !== "all" ? filters.year : undefined,
+                academicYear: filterMode === "year" && filters.year !== "all" ? filters.year : undefined,
+                startDate: filterMode === "date" ? filters.startDate : undefined,
+                endDate: filterMode === "date" ? filters.endDate : undefined,
                 studentId: lookupStudent._id
             };
         }
         return {
-            academicYear: filters.year !== "all" ? filters.year : undefined,
+            academicYear: filterMode === "year" && filters.year !== "all" ? filters.year : undefined,
+            startDate: filterMode === "date" ? filters.startDate : undefined,
+            endDate: filterMode === "date" ? filters.endDate : undefined,
             batchId: detailsBatchId !== "all" ? detailsBatchId : undefined,
             status: filters.status !== "all" ? filters.status : undefined,
             classId: detailsClassId.length > 0 ? detailsClassId.join(",") : undefined,
             search: filters.search
         };
-    }, [filters.year, filters.status, filters.search, detailsBatchId, detailsClassId, hasLookedUp, lookupStudent]);
+    }, [filters.year, filters.status, filters.search, filters.startDate, filters.endDate, detailsBatchId, detailsClassId, hasLookedUp, lookupStudent, filterMode]);
 
     const shouldFetchCoupons = !!apiKey;
     const { data: couponsData, isLoading, refetch: refetchCoupons } = useFetchItems(0, 0, queryFilters, { enabled: shouldFetchCoupons });
@@ -757,6 +778,62 @@ export default function StudentCouponClient({ apiKey }) {
         }
     };
 
+    // --- Data for Option 2: Balances By Year ---
+    const allYearsCoupons = allYearsCouponsData?.coupons || [];
+
+    const balancesReportParams = useMemo(() => {
+        if (!allYearsCoupons.length) return { studentRows: [], yearColumns: [] };
+        
+        const yearsSet = new Set();
+        const studentMap = new Map();
+
+        allYearsCoupons.forEach(coupon => {
+            const y = coupon.academicYear;
+            if (y) yearsSet.add(y);
+
+            const sId = coupon.studentId?._id;
+            if (!sId) return;
+
+            if (!studentMap.has(sId)) {
+                studentMap.set(sId, {
+                    id: sId,
+                    name: coupon.studentId?.name || "Unknown",
+                    balances: {},
+                    totalBalance: 0
+                });
+            }
+
+            const sData = studentMap.get(sId);
+            const bal = Number(coupon.balance) || 0;
+            sData.balances[y] = (sData.balances[y] || 0) + bal;
+            sData.totalBalance += bal;
+        });
+
+        const yearColumns = Array.from(yearsSet).sort((a, b) => Number(b) - Number(a)); // Descending years
+        const studentRows = Array.from(studentMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+        return { studentRows, yearColumns };
+    }, [allYearsCoupons]);
+
+    // --- Data for Option 3: Transaction History ---
+    const transactionsReport = useMemo(() => {
+        if (!allYearsCoupons.length) return [];
+        const txs = [];
+        allYearsCoupons.forEach(c => {
+            if (c.payments && Array.isArray(c.payments)) {
+                c.payments.forEach(p => {
+                    txs.push({
+                        date: new Date(p.date),
+                        studentName: c.studentId?.name || "Unknown",
+                        amount: Number(p.amount) || 0
+                    });
+                });
+            }
+        });
+        txs.sort((a, b) => b.date - a.date);
+        return txs;
+    }, [allYearsCoupons]);
+
     // Filter Classes
     const filterClassesData = useFetchClasses(0, 1000, {
         ...(filters.batchId !== "all" && { batchId: filters.batchId })
@@ -923,70 +1000,7 @@ export default function StudentCouponClient({ apiKey }) {
                     <CardContent className="pt-6">
                         <div className="flex flex-row flex-nowrap items-center justify-between gap-4 w-full overflow-x-auto pb-2">
                             <div className="flex flex-row items-center gap-4">
-                                {/* Academic Year */}
-                                <div className="grid gap-1 w-fit min-w-[100px]">
-                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-tight">Academic Year</Label>
-                                    <Select
-                                        value={filters.year}
-                                        onValueChange={(val) => setFilters(prev => ({ ...prev, year: val }))}
-                                    >
-                                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="Year" /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All</SelectItem>
-                                            {getAcademicYears().map((year) => (
-                                                <SelectItem key={year} value={year}>{year}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Date Range Stacked */}
-                                <div className="flex flex-col gap-1 w-fit">
-                                    <div className="grid gap-1 w-[120px]">
-                                        <div className="flex items-center justify-between">
-                                            <Label htmlFor="fromDate" className="text-[10px] text-muted-foreground uppercase tracking-tight">From</Label>
-                                            {filters.startDate && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => setFilters(prev => ({ ...prev, startDate: "" }))}
-                                                    className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground"
-                                                >
-                                                    <X className="h-2 w-2" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                        <Input
-                                            id="fromDate"
-                                            type="date"
-                                            className="h-7 w-full text-[10px] px-1"
-                                            value={filters.startDate}
-                                            onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                                        />
-                                    </div>
-                                    <div className="grid gap-1 w-[120px]">
-                                        <div className="flex items-center justify-between">
-                                            <Label htmlFor="toDate" className="text-[10px] text-muted-foreground uppercase tracking-tight">To</Label>
-                                            {filters.endDate && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => setFilters(prev => ({ ...prev, endDate: "" }))}
-                                                    className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground"
-                                                >
-                                                    <X className="h-2 w-2" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                        <Input
-                                            id="toDate"
-                                            type="date"
-                                            className="h-7 w-full text-[10px] px-1"
-                                            value={filters.endDate}
-                                            onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                                        />
-                                    </div>
-                                </div>
+                                {/* Filters moved to Coupon Details Card */}
                             </div>
 
                             <div className="flex flex-row items-center gap-4">
@@ -1310,8 +1324,92 @@ export default function StudentCouponClient({ apiKey }) {
                                 <CardContent className="p-3 md:px-6 md:pb-6 md:pt-0">
                                     <form onSubmit={handleSubmitDetails(onSaveDetails)}>
                                         <div className="space-y-3 md:space-y-6">
-                                            {/* Filters Row */}
-                                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                                            {/* Top Filter Row */}
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end mb-4">
+                                                <div className="space-y-2">
+                                                    <Label>Filter By</Label>
+                                                    <Select value={filterMode} onValueChange={setFilterMode}>
+                                                        <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="year">Academic Year</SelectItem>
+                                                            <SelectItem value="date">Date Range</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                {filterMode === "year" ? (
+                                                    <div className="space-y-2">
+                                                        <Label>Academic Year</Label>
+                                                        <Select
+                                                            value={filters.year}
+                                                            onValueChange={(val) => setFilters(prev => ({ ...prev, year: val }))}
+                                                        >
+                                                            <SelectTrigger className="bg-white"><SelectValue placeholder="Year" /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="all">All</SelectItem>
+                                                                {getAcademicYears().map((year) => (
+                                                                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="space-y-2">
+                                                            <Label>From Date</Label>
+                                                            <Input
+                                                                type="date"
+                                                                className="h-10 px-2 bg-white w-full"
+                                                                value={filters.startDate}
+                                                                onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label>To Date</Label>
+                                                            <Input
+                                                                type="date"
+                                                                className="h-10 px-2 bg-white w-full"
+                                                                value={filters.endDate}
+                                                                onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )}
+
+                                                <div className="space-y-2">
+                                                    <Label>Action</Label>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                className="w-full h-10 flex justify-between items-center text-sm font-normal px-3 py-2 bg-white border border-input hover:bg-accent hover:text-accent-foreground"
+                                                                disabled={isLoadingBulkStudents || isFetchingAllYearsCoupons}
+                                                            >
+                                                                <div className="flex items-center">
+                                                                    {(isLoadingBulkStudents || isFetchingAllYearsCoupons) ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                                                    Coupon Entry
+                                                                </div>
+                                                                <ChevronDown className="h-4 w-4 opacity-50" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="start" className="w-full min-w-[200px]">
+                                                            <DropdownMenuItem onClick={handleGetStudents} className="cursor-pointer">
+                                                                1. Coupon Entry
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => setIsBalancesDialogOpen(true)} className="cursor-pointer">
+                                                                2. View Balances (All Years)
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => setIsTransactionsDialogOpen(true)} className="cursor-pointer">
+                                                                3. View Transactions
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
+                                            </div>
+
+                                            {/* Batch Selection Row */}
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
                                                 <div className="space-y-2">
                                                     <Label>Select Batch</Label>
                                                     <Select
@@ -1323,7 +1421,7 @@ export default function StudentCouponClient({ apiKey }) {
                                                             setBulkStudents([]); // Reset list
                                                         }}
                                                     >
-                                                        <SelectTrigger><SelectValue placeholder="Select Batch" /></SelectTrigger>
+                                                        <SelectTrigger className="bg-white"><SelectValue placeholder="Select Batch" /></SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="all">Select Batch</SelectItem>
                                                             {batches.map((batch) => (
@@ -1356,16 +1454,6 @@ export default function StudentCouponClient({ apiKey }) {
                                                         variant="default"
                                                     />
                                                 </div>
-                                                <Button
-                                                    type="button"
-                                                    variant="secondary"
-                                                    className="w-full h-10"
-                                                    onClick={handleGetStudents}
-                                                    disabled={isLoadingBulkStudents}
-                                                >
-                                                    {isLoadingBulkStudents ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
-                                                    Coupon Entry
-                                                </Button>
                                                 <Button
                                                     type="button"
                                                     className="w-full h-10 bg-black hover:bg-gray-800 text-white"
@@ -1909,6 +1997,103 @@ export default function StudentCouponClient({ apiKey }) {
                     </Table>
                 </div>
             </div>
+
+            {/* Balances by Year Dialog */}
+            <Dialog open={isBalancesDialogOpen} onOpenChange={setIsBalancesDialogOpen}>
+                <DialogContent className="sm:max-w-[80vw] max-h-[90vh] overflow-hidden flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>Student Balances (All Years)</DialogTitle>
+                    </DialogHeader>
+                    {isFetchingAllYearsCoupons ? (
+                        <div className="flex-1 flex items-center justify-center min-h-[200px]">
+                            <Loader className="h-8 w-8 animate-spin" />
+                        </div>
+                    ) : (
+                        <div className="flex-1 overflow-auto border rounded-md">
+                            <Table>
+                                <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
+                                    <TableRow>
+                                        <TableHead>Sl No</TableHead>
+                                        <TableHead>Student Name</TableHead>
+                                        {balancesReportParams.yearColumns.map(year => (
+                                            <TableHead key={year} className="text-right">Year {year}</TableHead>
+                                        ))}
+                                        <TableHead className="text-right font-bold text-red-600">Total Balance</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {balancesReportParams.studentRows.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={balancesReportParams.yearColumns.length + 3} className="text-center h-24 text-muted-foreground">
+                                                No balances found for the selected batch/class.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        balancesReportParams.studentRows.map((student, idx) => (
+                                            <TableRow key={student.id}>
+                                                <TableCell>{idx + 1}</TableCell>
+                                                <TableCell className="font-medium">{student.name}</TableCell>
+                                                {balancesReportParams.yearColumns.map(year => (
+                                                    <TableCell key={year} className="text-right">
+                                                        {student.balances[year] ? `₹${student.balances[year]}` : "-"}
+                                                    </TableCell>
+                                                ))}
+                                                <TableCell className="text-right font-bold text-red-600">₹{student.totalBalance}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Transaction History Dialog */}
+            <Dialog open={isTransactionsDialogOpen} onOpenChange={setIsTransactionsDialogOpen}>
+                <DialogContent className="sm:max-w-[80vw] max-h-[90vh] overflow-hidden flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>Transaction History</DialogTitle>
+                    </DialogHeader>
+                    {isFetchingAllYearsCoupons ? (
+                        <div className="flex-1 flex items-center justify-center min-h-[200px]">
+                            <Loader className="h-8 w-8 animate-spin" />
+                        </div>
+                    ) : (
+                        <div className="flex-1 overflow-auto border rounded-md">
+                            <Table>
+                                <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
+                                    <TableRow>
+                                        <TableHead className="w-[80px]">Sl. No.</TableHead>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Student Name</TableHead>
+                                        <TableHead className="text-right">Paid Amount</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {transactionsReport.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                                                No transactions found for the selected batch/class.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        transactionsReport.map((tx, idx) => (
+                                            <TableRow key={idx}>
+                                                <TableCell>{idx + 1}</TableCell>
+                                                <TableCell>{format(tx.date, "dd MMM yyyy")}</TableCell>
+                                                <TableCell className="font-medium">{tx.studentName}</TableCell>
+                                                <TableCell className="text-right font-bold text-green-600">₹{tx.amount}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }
