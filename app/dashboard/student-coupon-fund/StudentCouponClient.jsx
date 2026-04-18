@@ -434,8 +434,8 @@ export default function StudentCouponClient({ apiKey }) {
         try {
             const promises = bulkStudents.map((student) => {
                 const cNumber = couponNumbers[student._id] || "";
-                // If coupon number exists (and is not just whitespace), use global amount. Otherwise 0.
-                const finalAmount = cNumber.trim() ? data.couponAmount : 0;
+                
+                const finalAmount = data.couponAmount || 0;
 
                 const payload = {
                     studentId: student._id,
@@ -657,8 +657,7 @@ export default function StudentCouponClient({ apiKey }) {
 
     const onSaveEdit = async (data) => {
         try {
-            const hasCouponNumber = data.couponNumber && data.couponNumber.trim().length > 0;
-            const finalAmount = hasCouponNumber ? Number(data.couponAmount) : 0;
+            const finalAmount = Number(data.couponAmount) || 0;
 
             await updateItem.mutateAsync({
                 data: {
