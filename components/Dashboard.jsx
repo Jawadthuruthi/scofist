@@ -271,6 +271,14 @@ const ClassCard = memo(
       };
     }, [classData, students, batches, attendances]);
 
+    const sortedLeaveStudents = useMemo(() => {
+      return [...(leaveStudents || [])].sort((a, b) => {
+        const idA = a.studentId?._id || a.studentId || "";
+        const idB = b.studentId?._id || b.studentId || "";
+        return String(idA).localeCompare(String(idB), undefined, { numeric: true });
+      });
+    }, [leaveStudents]);
+
     const presentStudents = classStudents - (leaveStudents?.length || 0);
 
     return (
@@ -335,12 +343,16 @@ const ClassCard = memo(
                 {classData.name}'s absentees'
               </DialogDescription>
             </DialogHeader>
-            <div className="text-sm">
-              {leaveStudents.map((std, index) => (
-                <div id={`classIndex - ${index}`}>
-                  {index + 1}. {std.studentName}
-                </div>
-              ))}
+            <div className="text-sm border rounded-md p-2 max-h-60 overflow-y-auto bg-muted/10">
+              {sortedLeaveStudents.length > 0 ? sortedLeaveStudents.map((std, index) => {
+                const displayId = std.studentId?._id || std.studentId || "";
+                return (
+                  <div key={index} id={`classIndex-${index}`} className="flex justify-between py-1 border-b last:border-0 hover:bg-muted/50 px-1">
+                    <div className="font-medium">{index + 1}. {std.studentName}</div>
+                    {displayId && <div className="text-xs text-muted-foreground bg-white border px-1.5 py-0.5 rounded shadow-sm">{displayId}</div>}
+                  </div>
+                );
+              }) : <div className="text-muted-foreground text-center py-2">No absentees</div>}
             </div>
           </DialogContent>
         </Dialog>

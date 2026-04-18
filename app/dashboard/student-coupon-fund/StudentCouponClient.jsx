@@ -570,7 +570,7 @@ export default function StudentCouponClient({ apiKey }) {
         };
     }, [filters.year, filters.status, filters.search, detailsBatchId, detailsClassId, hasLookedUp, lookupStudent]);
 
-    const shouldFetchCoupons = !!apiKey && (hasLookedUp || detailsBatchId !== "all" || detailsClassId.length > 0);
+    const shouldFetchCoupons = !!apiKey;
     const { data: couponsData, isLoading, refetch: refetchCoupons } = useFetchItems(0, 0, queryFilters, { enabled: shouldFetchCoupons });
 
     const coupons = couponsData?.coupons || [];
@@ -616,9 +616,15 @@ export default function StudentCouponClient({ apiKey }) {
         name: "payments"
     });
 
-    const handleEdit = () => {
-        if (selectedCouponIds.length !== 1) return;
-        const coupon = coupons.find(c => c._id === selectedCouponIds[0]);
+    const handleEdit = (targetCoupon) => {
+        let coupon;
+        if (targetCoupon && targetCoupon._id) {
+            coupon = targetCoupon;
+            setSelectedCouponIds([coupon._id]);
+        } else {
+            if (selectedCouponIds.length !== 1) return;
+            coupon = coupons.find(c => c._id === selectedCouponIds[0]) || lookupCouponsQuery.data?.coupons?.find(c => c._id === selectedCouponIds[0]);
+        }
         if (!coupon) return;
 
         setEditingCoupon(coupon);
@@ -1051,8 +1057,7 @@ export default function StudentCouponClient({ apiKey }) {
                                                 onClick={() => {
                                                     const coupon = lookupCouponsQuery.data?.coupons?.find(c => c._id === lookupSelectedCouponIds[0]);
                                                     if (coupon) {
-                                                        setSelectedCouponIds([coupon._id]);
-                                                        handleEdit();
+                                                        handleEdit(coupon);
                                                     }
                                                 }}
                                                 disabled={lookupSelectedCouponIds.length !== 1}
@@ -1639,7 +1644,7 @@ export default function StudentCouponClient({ apiKey }) {
                                 </TableHeader>
                                 <TableBody>
                                     {!shouldFetchCoupons ? (
-                                        <TableRow><TableCell colSpan={10} className="text-center h-24 text-muted-foreground">Please select a Batch or Class in the Coupon Details card to view records.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={10} className="text-center h-24 text-muted-foreground">Loading...</TableCell></TableRow>
                                     ) : isLoading ? (
                                         <TableRow><TableCell colSpan={10} className="text-center h-24"><Loader className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
                                     ) : coupons.length === 0 ? (
@@ -1658,7 +1663,7 @@ export default function StudentCouponClient({ apiKey }) {
                                                 {visibleColumns.studentName && (
                                                     <TableCell
                                                         className="font-medium cursor-pointer hover:underline text-primary"
-                                                        onClick={() => handlePayBalance(coupon)}
+                                                        onClick={() => handleEdit(coupon)}
                                                     >
                                                         {coupon.studentId?.name}
                                                     </TableCell>
