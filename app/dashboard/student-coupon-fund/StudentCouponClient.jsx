@@ -271,6 +271,7 @@ export default function StudentCouponClient({ apiKey }) {
     // =================================================================================================
     const [detailsBatchId, setDetailsBatchId] = useState("all");
     const [detailsClassId, setDetailsClassId] = useState([]);
+    const [detailsStudentId, setDetailsStudentId] = useState([]);
 
     // Setup for Bulk Student List
     const [bulkStudents, setBulkStudents] = useState([]);
@@ -310,8 +311,9 @@ export default function StudentCouponClient({ apiKey }) {
         })
     };
 
-    // We use enabled: false to manually trigger fetch
-    const { data: detailsUsersData, refetch: refetchDetailsUsers, isFetching: isFetchingUsers } = useFetchUsers(0, 1000, detailsStudentFilters, { enabled: false });
+    // We use enabled: !!apiKey to automatically trigger fetch for dropdown
+    const { data: detailsUsersData, refetch: refetchDetailsUsers, isFetching: isFetchingUsers } = useFetchUsers(0, 1000, detailsStudentFilters, { enabled: !!apiKey });
+    const detailsStudents = detailsUsersData?.users || [];
 
     // Fetch Coupons for Pre-filling
     const { data: allCouponsForYearData, refetch: refetchAllCoupons } = useFetchItems(0, 0, {
@@ -342,15 +344,19 @@ export default function StudentCouponClient({ apiKey }) {
 
 
     const handleGetStudents = async () => {
-        if (detailsBatchId === "all" && detailsClassId.length === 0) {
-            toast.warning("Please select a Batch or Class to load students.");
+        if (detailsBatchId === "all" && detailsClassId.length === 0 && detailsStudentId.length === 0) {
+            toast.warning("Please select a Batch, Class, or Students to load students.");
             return;
         }
         setIsLoadingBulkStudents(true);
         try {
             // 1. Fetch Students
             const usersResult = await refetchDetailsUsers();
-            const students = usersResult.data?.users || [];
+            let students = usersResult.data?.users || [];
+
+            if (detailsStudentId.length > 0) {
+                 students = students.filter(s => detailsStudentId.includes(s._id));
+            }
 
             if (students.length === 0) {
                 toast.warning("No students found for satisfied criteria");
@@ -1305,7 +1311,7 @@ export default function StudentCouponClient({ apiKey }) {
                                     <form onSubmit={handleSubmitDetails(onSaveDetails)}>
                                         <div className="space-y-3 md:space-y-6">
                                             {/* Filters Row */}
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
                                                 <div className="space-y-2">
                                                     <Label>Select Batch</Label>
                                                     <Select
@@ -1313,6 +1319,7 @@ export default function StudentCouponClient({ apiKey }) {
                                                         onValueChange={(val) => {
                                                             setDetailsBatchId(val);
                                                             setDetailsClassId([]);
+                                                            setDetailsStudentId([]);
                                                             setBulkStudents([]); // Reset list
                                                         }}
                                                     >
@@ -1329,9 +1336,23 @@ export default function StudentCouponClient({ apiKey }) {
                                                     <Label>Select Class</Label>
                                                     <MultiSelect
                                                         options={detailsClasses.map(c => ({ label: c.name, value: c._id }))}
-                                                        onValueChange={setDetailsClassId}
+                                                        onValueChange={(val) => {
+                                                            setDetailsClassId(val);
+                                                            setDetailsStudentId([]);
+                                                            setBulkStudents([]);
+                                                        }}
                                                         value={detailsClassId}
                                                         placeholder="Select Classes"
+                                                        variant="default"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Select Students</Label>
+                                                    <MultiSelect
+                                                        options={detailsStudents.map(s => ({ label: s.name, value: s._id }))}
+                                                        onValueChange={setDetailsStudentId}
+                                                        value={detailsStudentId}
+                                                        placeholder="All Students"
                                                         variant="default"
                                                     />
                                                 </div>
