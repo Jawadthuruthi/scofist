@@ -42,47 +42,32 @@ const getRankTheme = (rank, isWhiteTheme) => {
   }
 };
 
-const getTeamBgColor = (teamName) => {
-  if (!teamName) return "bg-zinc-600 border-zinc-500 text-white";
-  const colors = [
-    "bg-red-600 border-red-500 text-white",
-    "bg-blue-600 border-blue-500 text-white",
-    "bg-emerald-600 border-emerald-500 text-white",
-    "bg-yellow-500 border-yellow-400 text-black",
-    "bg-purple-600 border-purple-500 text-white",
-    "bg-orange-600 border-orange-500 text-white",
-    "bg-cyan-600 border-cyan-500 text-white",
-    "bg-fuchsia-600 border-fuchsia-500 text-white",
-    "bg-lime-600 border-lime-500 text-white",
-    "bg-indigo-600 border-indigo-500 text-white",
-    "bg-teal-600 border-teal-500 text-white"
-  ];
-  let hash = 0;
-  for (let i = 0; i < teamName.length; i++) {
-    hash = teamName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
+const getContrastColor = (hexcolor) => {
+  if (!hexcolor || hexcolor === "transparent") return "text-white";
+  // If a hex code
+  const hex = hexcolor.replace("#", "");
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 128 ? "text-zinc-950" : "text-white";
 };
 
-const getTeamCardTheme = (teamName, isWhiteTheme) => {
-  if (!teamName) return isWhiteTheme ? "bg-white border-zinc-200" : "bg-zinc-900/60 border-zinc-700/50";
-  const themes = [
-    isWhiteTheme ? "bg-blue-50/90 border-blue-200 hover:bg-blue-100/90" : "bg-blue-900/40 border-blue-500/50 hover:bg-blue-900/60",
-    isWhiteTheme ? "bg-emerald-50/90 border-emerald-200 hover:bg-emerald-100/90" : "bg-emerald-900/40 border-emerald-500/50 hover:bg-emerald-900/60",
-    isWhiteTheme ? "bg-rose-50/90 border-rose-200 hover:bg-rose-100/90" : "bg-rose-900/40 border-rose-500/50 hover:bg-rose-900/60",
-    isWhiteTheme ? "bg-purple-50/90 border-purple-200 hover:bg-purple-100/90" : "bg-purple-900/40 border-purple-500/50 hover:bg-purple-900/60",
-    isWhiteTheme ? "bg-orange-50/90 border-orange-200 hover:bg-orange-100/90" : "bg-orange-900/40 border-orange-500/50 hover:bg-orange-900/60",
-    isWhiteTheme ? "bg-cyan-50/90 border-cyan-200 hover:bg-cyan-100/90" : "bg-cyan-900/40 border-cyan-500/50 hover:bg-cyan-900/60",
-    isWhiteTheme ? "bg-fuchsia-50/90 border-fuchsia-200 hover:bg-fuchsia-100/90" : "bg-fuchsia-900/40 border-fuchsia-500/50 hover:bg-fuchsia-900/60",
-    isWhiteTheme ? "bg-lime-50/90 border-lime-200 hover:bg-lime-100/90" : "bg-lime-900/40 border-lime-500/50 hover:bg-lime-900/60",
-    isWhiteTheme ? "bg-indigo-50/90 border-indigo-200 hover:bg-indigo-100/90" : "bg-indigo-900/40 border-indigo-500/50 hover:bg-indigo-900/60",
-    isWhiteTheme ? "bg-teal-50/90 border-teal-200 hover:bg-teal-100/90" : "bg-teal-900/40 border-teal-500/50 hover:bg-teal-900/60"
-  ];
-  let hash = 0;
-  for (let i = 0; i < teamName.length; i++) {
-    hash = teamName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return themes[Math.abs(hash) % themes.length];
+const getTeamBgColor = (teamColor) => {
+  return teamColor || "#808080";
+};
+
+const getTeamCardStyle = (teamColor, isWhiteTheme) => {
+  const color = teamColor || "#808080";
+  return {
+    backgroundColor: color,
+    borderColor: `${color}40`, // 25% opacity for border
+    boxShadow: `0 20px 50px -10px ${color}66`, // 40% opacity for shadow
+  };
+};
+
+const getTeamCardTheme = (p, isWhiteTheme) => {
+  return ""; // Dynamic style handled via inline styles now
 };
 
 export default function WinnerPostersViewer({ isOpen, onClose, onNavigate, apiKey, isWhiteTheme, setIsWhiteTheme }) {
@@ -239,13 +224,27 @@ export default function WinnerPostersViewer({ isOpen, onClose, onNavigate, apiKe
                   {programs[currentIndex].winners.map((p, idx) => {
                     const theme = getRankTheme(p.rank, isWhiteTheme);
                     
-                    const cardSize = "p-8 md:p-10 w-80 md:w-[28rem] h-[38rem] md:h-[50rem] z-20 justify-center shrink-0 flex-none";
-                    const imgSize = "w-48 h-48 md:w-64 md:h-64 mb-6 md:mb-10 border-[6px]";
-                    const nameSize = "text-3xl md:text-4xl";
-                    const rankBadgeSize = "-top-8 w-20 h-20 text-4xl";
+                     const cardSize = "p-8 md:p-10 w-80 md:w-[28rem] h-[38rem] md:h-[50rem] z-20 justify-center shrink-0 flex-none";
+                     const imgSize = "w-48 h-48 md:w-64 md:h-64 mb-6 md:mb-10 border-[6px]";
+                     const nameSize = "text-3xl md:text-4xl";
+                     const rankBadgeSize = "-top-8 w-20 h-20 text-4xl";
+
+                     const cardStyle = {
+                       ...theme,
+                       ...getTeamCardStyle(p.teamColor, isWhiteTheme)
+                     };
+                     const contrastText = getContrastColor(p.teamColor);
 
                     return (
-                      <div key={p._id || idx} className={`group/card relative flex flex-col items-center rounded-[2.5rem] border transition-all duration-500 hover:-translate-y-4 mt-8 md:mt-10 ${theme.shadow} ${theme.glow} ${cardSize} ${getTeamCardTheme(p.teamName, isWhiteTheme)} animate-in fade-in zoom-in-90 fill-mode-both`} style={{ animationDelay: `${idx * 150}ms`, animationDuration: '800ms' }}>
+                      <div 
+                        key={p._id || idx} 
+                        className={`group/card relative flex flex-col items-center rounded-[2.5rem] border transition-all duration-500 hover:-translate-y-4 mt-8 md:mt-10 ${theme.shadow} ${theme.glow} ${cardSize} animate-in fade-in zoom-in-90 fill-mode-both`} 
+                        style={{ 
+                          ...cardStyle,
+                          animationDelay: `${idx * 150}ms`, 
+                          animationDuration: '800ms' 
+                        }}
+                      >
                          
                          {/* Rank Floating Badge */}
                          <div className={`absolute ${rankBadgeSize} ${theme.bg} text-black font-black rounded-full flex flex-col items-center justify-center shadow-2xl transform group-hover/card:scale-110 transition-transform duration-300 border-4 ${isWhiteTheme ? 'border-zinc-100' : 'border-zinc-950'}`}>
@@ -268,45 +267,46 @@ export default function WinnerPostersViewer({ isOpen, onClose, onNavigate, apiKe
 
                          {/* Details */}
                          <div className="text-center w-full space-y-3 z-10 px-2">
-                           <h3 className={`font-black ${nameSize} leading-tight break-words text-balance w-full transition-colors ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`} title={p.name}>
+                           <h3 className={`font-black ${nameSize} leading-tight break-words text-balance w-full transition-colors ${contrastText}`} title={p.name}>
                              {p.name}
                            </h3>
                            <div className="flex justify-center w-full">
-                             <div className={`px-5 py-2 rounded-full border-2 ${getTeamBgColor(p.teamName)} text-xs md:text-sm font-black tracking-[0.2em] uppercase break-words inline-block shadow-inner`}>
+                             <div 
+                               className={`px-5 py-2 rounded-full border-2 font-black tracking-[0.2em] uppercase break-words inline-block shadow-inner bg-white/10 border-white/20 ${contrastText}`}
+                             >
                                {p.teamName}
                              </div>
                            </div>
                            
-                           {/* Chest and Code Letters */}
-                           <div className="flex justify-center items-center gap-3 w-full pt-2">
-                             {p.chestNumber && p.chestNumber !== "N/A" && (
-                               <div className={`border rounded-lg px-2.5 py-1 text-[10px] md:text-xs font-bold tracking-widest shadow-inner text-center ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-zinc-500' : 'bg-zinc-950/40 border-zinc-700/50 text-zinc-400'}`}>
-                                 CHEST <span className={`${isWhiteTheme ? 'text-zinc-900' : 'text-zinc-100'} ml-1 text-xs md:text-sm`}>{p.chestNumber}</span>
+                            <div className="flex justify-center items-center gap-3 w-full pt-2">
+                              {p.chestNumber && p.chestNumber !== "N/A" && (
+                                <div className={`border rounded-lg px-2.5 py-1 text-[10px] md:text-xs font-bold tracking-widest shadow-inner text-center bg-black/10 border-black/10 ${contrastText} opacity-80`}>
+                                  CHEST <span className={`ml-1 text-xs md:text-sm ${contrastText}`}>{p.chestNumber}</span>
+                                 </div>
+                              )}
+                              {p.codeLetter && p.codeLetter.trim() !== "" && (
+                                <div className={`border rounded-lg px-2.5 py-1 text-[10px] md:text-xs font-bold tracking-widest shadow-inner text-center bg-black/10 border-black/10 ${contrastText} opacity-80`}>
+                                  CODE <span className={`ml-1 text-xs md:text-sm ${contrastText}`}>{p.codeLetter}</span>
                                 </div>
-                             )}
-                             {p.codeLetter && p.codeLetter.trim() !== "" && (
-                               <div className={`border rounded-lg px-2.5 py-1 text-[10px] md:text-xs font-bold tracking-widest shadow-inner text-center ${isWhiteTheme ? 'bg-zinc-100 border-zinc-200 text-zinc-500' : 'bg-zinc-950/40 border-zinc-700/50 text-zinc-400'}`}>
-                                 CODE <span className={`${isWhiteTheme ? 'text-zinc-900' : 'text-zinc-100'} ml-1 text-xs md:text-sm`}>{p.codeLetter}</span>
-                               </div>
-                             )}
-                           </div>
+                              )}
+                            </div>
 
-                           {(p.grade !== "-" || p.points > 0) && (
-                             <div className={`mt-4 pt-4 border-t flex flex-col items-center justify-center gap-2 w-full ${isWhiteTheme ? 'border-zinc-200' : 'border-zinc-800/80'}`}>
-                               {p.grade && p.grade !== "-" && (
-                                 <div className="flex items-center gap-4">
-                                   <span className={`font-mono text-xl md:text-3xl font-bold uppercase tracking-wider ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-500'}`}>GRADE</span>
-                                   <span className={`${theme.text} font-black text-4xl md:text-5xl drop-shadow-lg leading-none`}>{p.grade}</span>
-                                 </div>
-                               )}
-                               {p.points > 0 && (
-                                 <div className="flex items-center gap-4">
-                                   <span className={`font-mono text-xl md:text-3xl font-bold uppercase tracking-wider ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-500'}`}>PTS</span>
-                                   <span className={`${theme.text} font-black text-4xl md:text-5xl drop-shadow-lg leading-none`}>{p.points}</span>
-                                 </div>
-                               )}
-                             </div>
-                           )}
+                            {(p.grade !== "-" || p.points > 0) && (
+                              <div className={`mt-4 pt-4 border-t flex flex-col items-center justify-center gap-2 w-full border-black/10`}>
+                                {p.grade && p.grade !== "-" && (
+                                  <div className="flex items-center gap-4">
+                                    <span className={`font-mono text-xl md:text-3xl font-bold uppercase tracking-wider ${contrastText} opacity-60`}>GRADE</span>
+                                    <span className={`${contrastText} font-black text-4xl md:text-5xl drop-shadow-lg leading-none`}>{p.grade}</span>
+                                  </div>
+                                )}
+                                {p.points > 0 && (
+                                  <div className="flex items-center gap-4">
+                                    <span className={`font-mono text-xl md:text-3xl font-bold uppercase tracking-wider ${contrastText} opacity-60`}>PTS</span>
+                                    <span className={`${contrastText} font-black text-4xl md:text-5xl drop-shadow-lg leading-none`}>{p.points}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                          </div>
                       </div>
                     );

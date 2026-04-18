@@ -6,25 +6,37 @@ import { X, Play, Pause, ChevronLeft, ChevronRight, Medal, Star, Sun, Moon } fro
 import DashboardTopBar from "./DashboardTopBar";
 
 // Same gradient hash function to sync styles seamlessly with other components
-const getTeamBgColor = (teamName) => {
-  if (!teamName) return "bg-zinc-600";
-  const colors = [
-    "from-blue-600 to-blue-900 border-blue-400 text-blue-50",
-    "from-emerald-600 to-emerald-900 border-emerald-400 text-emerald-50",
-    "from-rose-600 to-rose-900 border-rose-400 text-rose-50",
-    "from-purple-600 to-purple-900 border-purple-400 text-purple-50",
-    "from-orange-600 to-orange-900 border-orange-400 text-orange-50",
-    "from-cyan-600 to-cyan-900 border-cyan-400 text-cyan-50",
-    "from-fuchsia-600 to-fuchsia-900 border-fuchsia-400 text-fuchsia-50",
-    "from-lime-600 to-lime-900 border-lime-400 text-lime-50",
-    "from-indigo-600 to-indigo-900 border-indigo-400 text-indigo-50",
-    "from-teal-600 to-teal-900 border-teal-400 text-teal-50"
-  ];
-  let hash = 0;
-  for (let i = 0; i < teamName.length; i++) {
-    hash = teamName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
+const getDarkerColor = (hex, percent = 30) => {
+  const num = parseInt(hex.replace("#", ""), 16),
+    amt = Math.round(2.55 * percent),
+    R = (num >> 16) - amt,
+    G = ((num >> 8) & 0x00ff) - amt,
+    B = (num & 0x0000ff) - amt;
+  return (
+    "#" +
+    (
+      0x1000000 +
+      (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+      (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+      (B < 255 ? (B < 1 ? 0 : B) : 255)
+    )
+      .toString(16)
+      .slice(1)
+  );
+};
+
+const getContrastColor = (hexcolor) => {
+  if (!hexcolor || hexcolor === "transparent") return "text-white";
+  const hex = hexcolor.replace("#", "");
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 128 ? "text-zinc-950" : "text-white";
+};
+
+const getTeamBgColor = (teamColor) => {
+  return teamColor || "#808080";
 };
 
 export default function IndividualToppersViewer({ isOpen, onClose, onNavigate, apiKey, isWhiteTheme, setIsWhiteTheme }) {
@@ -156,7 +168,13 @@ export default function IndividualToppersViewer({ isOpen, onClose, onNavigate, a
             <div className="relative w-full h-full flex flex-col items-center justify-center overflow-y-auto no-scrollbar scroll-smooth">
                {toppers.map((topper, idx) => {
                  if (idx !== currentIndex) return null;
-                 const theme = getTeamBgColor(topper.teamName);
+                 const themeColor = topper.teamColor || "#808080";
+                 const darkerColor = getDarkerColor(themeColor, 40);
+                 const contrastText = getContrastColor(themeColor);
+                 const gradientStyle = {
+                    background: `linear-gradient(135deg, ${themeColor} 0%, ${darkerColor} 100%)`,
+                    borderColor: `${themeColor}40`
+                 };
 
                  return (
                    <div key={topper.name + idx} className="w-full h-full flex flex-col items-center justify-center p-8 px-6 md:px-12 animate-in fade-in zoom-in-95 duration-[1s]">
@@ -171,7 +189,10 @@ export default function IndividualToppersViewer({ isOpen, onClose, onNavigate, a
                       </div>
 
                       {/* The Centerpiece Poster Stack - Side-by-Side Typography */}
-                      <div className={`relative w-full max-w-[95rem] h-auto flex flex-col items-center justify-center p-8 md:p-16 mt-0 md:mt-2 rounded-[4rem] bg-gradient-to-tr ${theme} shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden shrink-0 z-10 mx-auto transition-all duration-700 ${isWhiteTheme ? 'ring-8 ring-white shadow-xl' : ''}`}>
+                      <div 
+                        className={`relative w-full max-w-[95rem] h-auto flex flex-col items-center justify-center p-8 md:p-16 mt-0 md:mt-2 rounded-[4rem] shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden shrink-0 z-10 mx-auto transition-all duration-700 border-none ${isWhiteTheme ? 'ring-8 ring-white shadow-xl' : ''}`}
+                        style={gradientStyle}
+                      >
                          <div className="absolute inset-0 bg-white/5 opacity-0 hover:opacity-100 transition-opacity" />
                          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
                         
@@ -201,12 +222,12 @@ export default function IndividualToppersViewer({ isOpen, onClose, onNavigate, a
                            <div className="flex flex-col items-center xl:items-start text-center xl:text-left justify-center w-full max-w-[50rem]">
                              
                              {/* Individual Name */}
-                             <span className="text-white text-6xl md:text-7xl lg:text-[8rem] font-black uppercase tracking-tighter drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)] text-balance leading-none">
+                             <span className={`${contrastText} text-6xl md:text-7xl lg:text-[8rem] font-black uppercase tracking-tighter drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)] text-balance leading-none`}>
                                {topper.name}
                              </span>
 
                              {/* Bigger Team Name Tag */}
-                             <span className="text-white/90 font-mono text-3xl md:text-5xl lg:text-7xl font-black uppercase tracking-[0.2em] mt-8 mb-4 drop-shadow-lg leading-none">
+                             <span className={`${contrastText} opacity-80 font-mono text-3xl md:text-5xl lg:text-7xl font-black uppercase tracking-[0.2em] mt-8 mb-4 drop-shadow-lg leading-none`}>
                                {topper.teamName}
                              </span>
 
@@ -215,7 +236,7 @@ export default function IndividualToppersViewer({ isOpen, onClose, onNavigate, a
                                <span className={`font-normal text-5xl md:text-7xl lg:text-[7rem] leading-[0.9] drop-shadow-2xl ${isWhiteTheme ? 'text-zinc-900' : 'text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70'}`}>
                                  {topper.points}
                                </span>
-                               <span className={`font-normal text-4xl md:text-6xl lg:text-[6rem] uppercase tracking-tighter leading-[0.9] ml-2 ${isWhiteTheme ? 'text-zinc-800' : 'text-white/95 drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)]'}`}>
+                               <span className={`font-normal text-4xl md:text-6xl lg:text-[6rem] uppercase tracking-tighter leading-[0.9] ml-2 ${contrastText} opacity-90 drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)]`}>
                                  POINTS
                                </span>
                              </div>

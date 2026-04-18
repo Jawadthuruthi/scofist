@@ -12,26 +12,21 @@ import { cn } from "@/lib/utils";
 
 // Predefined color palette
 const DEFAULT_COLORS = [
-  "#ff6b6b",
-  "#4ecdc4",
-  "#45b7d1",
-  "#96ceb4",
-  "#feca57",
-  "#ff9ff3",
-  "#54a0ff",
-  "#5f27cd",
-  "#00d2d3",
-  "#ff9f43",
-  "#2ed573",
-  "#ffa502",
-  "#3742fa",
-  "#2f3542",
-  "#ff4757",
-  "#7bed9f",
-  "#70a1ff",
-  "#5352ed",
-  "#ffffff",
-  "#000000",
+  // Original Vibrant Colors
+  "#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4", "#feca57", 
+  "#ff9ff3", "#54a0ff", "#5f27cd", "#00d2d3", "#ff9f43", 
+  "#2ed573", "#ffa502", "#3742fa", "#2f3542", "#ff4757", 
+  "#7bed9f", "#70a1ff", "#5352ed", "#ffffff", "#000000",
+  // New Vibrant & Modern Colors
+  "#1dd1a1", "#ff6b6b", "#feca57", "#ff9ff3", "#ff9f43",
+  "#ee5253", "#0abde3", "#10ac84", "#5f27cd", "#341f97",
+  "#01a3a4", "#2e86de", "#c56cf0", "#ffb8b8", "#ff3838",
+  "#ff9f1a", "#ffffff", "#7d5fff", "#7158e2", "#3de1ad",
+  "#32ff7e", "#3ae374", "#67e6dc", "#17c0eb", "#18dcff",
+  "#ff4d4d", "#ffaf40", "#fffa65", "#32ff7e", "#7efff5",
+  "#18dcff", "#7d5fff", "#cd84f1", "#ffcccc", "#ffb8b8",
+  "#ff9f1a", "#ffaf40", "#fffa65", "#fff200", "#32ff7e",
+  "#7efff5", "#18dcff", "#7d5fff", "#c56cf0", "#ffb8b8"
 ];
 
 export const ColorInput = React.forwardRef(

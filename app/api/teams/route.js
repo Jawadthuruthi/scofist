@@ -1,92 +1,63 @@
 import { NextResponse } from "next/server";
-import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import Team from "@/models/Team";
+import apiResponse from "@/lib/apiResponse";
 
-export async function GET(req, res) {
+export const dynamic = "force-dynamic";
+
+export async function GET(req) {
   try {
     await connectToDB();
-
-    // Parse URL to get search params
     const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
+    const page = parseInt(url.searchParams.get("page")) || 0;
+    const limit = parseInt(url.searchParams.get("limit")) || 20;
+    const name = url.searchParams.get("name");
+    const projectionParam = url.searchParams.get("projection");
 
-    // Build filter object from query parameters
-    const filterParams = {};
-    for (const [key, value] of url.searchParams.entries()) {
-      // Skip pagination parameters
-      if (key !== "page" && key !== "limit" && key !== "projection") {
-        filterParams[key] = value;
-      }
+    const query = {};
+    if (name) {
+      query.name = { $regex: name, $options: "i" };
     }
 
-    // Get projection param
-    const projectionParam = url.searchParams.get("projection");
-    let projections = {};
-
-    // Convert projection param to MongoDB projection object
+    const projections = {};
     if (projectionParam) {
       const fields = projectionParam.split(",");
       fields.forEach((field) => {
-        projections[field] = 1; // Include each field
+        projections[field.trim()] = 1;
       });
     }
 
-    // Build MongoDB query from filter params
-    const query = {};
-
-    if (filterParams?._id) {
-      query._id = filterParams._id;
-    }
-    if (filterParams.name) {
-      query.name = { $regex: filterParams.name, $options: "i" };
-    }
-    if (filterParams.leaderId) {
-      query.leaderId = filterParams.leaderId;
-    }
-    if (filterParams.membersId) {
-      query.membersId = { $in: filterParams.membersId };
-    }
-
-    // Execute query with pagination
+    const total = await Team.countDocuments(query);
     const teams = await Team.find(query, projections)
-      .populate("leaderId", ["_id", "name"])
-      .populate("membersId", ["_id", "name"])
+      .populate("leaderId", "name")
       .skip(page * limit)
       .limit(limit)
-      .collation({ locale: "en_US", numericOrdering: true });
+      .lean();
 
-    // Get total count for pagination info
-    const total = await Team.countDocuments(query);
-
-    const formattedTeams = teams
-      .map((team) => ({
-        ...team.toObject(),
-        leaderId: team.leaderId?._id,
-        leaderName: team.leaderId?.name || "Unknown",
-        membersCount: team.membersId?.length || 0,
-        totalPoints: (team.stagePoints || 0) + (team.offStagePoints || 0),
-        membersId: team.membersId?.map((member) => member._id) || [],
-        membersNames: team.membersId?.map((member) => member.name) || [],
-      }))
-      ?.sort((a, b) =>
-        filterParams.sortByPoints === "true" ? b.totalPoints - a.totalPoints : 0
-      );
+    const formattedTeams = teams.map((team) => ({
+      ...team,
+      leaderName: team.leaderId?.name || "N/A",
+      color: team.color || "#808080",
+      membersCount: team.membersId?.length || 0,
+    }));
 
     return NextResponse.json(
       {
         teams: formattedTeams,
         pagination: {
+          total,
           page,
           limit,
-          total,
-          totalPages:
-            limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
+          totalPages: Math.ceil(total / limit),
         },
         message: "Teams fetched successfully!",
       },
-      { status: 200 }
+      { 
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store, max-age=0"
+        }
+      }
     );
   } catch (error) {
     console.error("Error fetching teams:", error);
@@ -94,12 +65,11 @@ export async function GET(req, res) {
   }
 }
 
-export async function POST(req, res) {
+export async function POST(req) {
   try {
     await connectToDB();
     const data = await req.json();
 
-    // Create new team
     const team = await Team.create(data);
 
     return NextResponse.json(
@@ -107,65 +77,48 @@ export async function POST(req, res) {
       { status: 201 }
     );
   } catch (error) {
+    console.error("Error creating team:", error);
     return apiResponse.error(error);
   }
 }
 
-export async function PUT(req, res) {
+export async function PUT(req) {
   try {
     await connectToDB();
     const data = await req.json();
 
-    const { ids } = data;
+    const { ids, _id: _idToExclude, ...updateData } = data;
 
     if (!ids || ids.length === 0) {
       return NextResponse.json({ message: "Invalid request" }, { status: 400 });
     }
 
-    const team = await Team.findOneAndUpdate(
+    // Explicitly identify color update to ensure it's not missed
+    if (updateData.color) {
+      console.log(`Force updating team ${ids[0]} color to: ${updateData.color}`);
+    }
+
+    const updatedTeam = await Team.findOneAndUpdate(
       { _id: ids[0] },
-      { $set: data },
-      { new: true }
+      { $set: updateData },
+      { new: true, runValidators: true, lean: true }
     );
 
-    if (!team) {
+    if (!updatedTeam) {
       return NextResponse.json({ message: "Team not found" }, { status: 404 });
     }
 
     return NextResponse.json(
-      { message: "Team updated successfully!", team },
-      { status: 200 }
+      { message: "Team updated successfully!", team: updatedTeam },
+      { 
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store, max-age=0"
+        }
+      }
     );
   } catch (error) {
-    return apiResponse.error(error);
-  }
-}
-
-export async function DELETE(req, res) {
-  try {
-    await connectToDB();
-    const data = await req.json();
-
-    const { ids } = data;
-
-    if (!ids || ids.length === 0) {
-      return NextResponse.json({ message: "Invalid request" }, { status: 400 });
-    }
-
-    const deletedTeams = await Team.deleteMany({ _id: { $in: ids } });
-
-    if (deletedTeams.deletedCount === 0) {
-      return NextResponse.json(
-        { message: "No teams found to delete" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(
-      { message: "Teams deleted successfully!", deletedTeams },
-      { status: 200 }
-    );
-  } catch (error) {
+    console.error("CRITICAL Teams PUT Error:", error);
     return apiResponse.error(error);
   }
 }

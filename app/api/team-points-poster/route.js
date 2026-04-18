@@ -22,7 +22,8 @@ export async function GET(request) {
       teamMap[team._id.toString()] = {
         _id: team._id.toString(),
         name: team.name,
-        points: 0
+        points: 0,
+        color: team.color || "#808080"
       };
     });
 
@@ -58,9 +59,15 @@ export async function GET(request) {
     // 5. Build final array mapped by points
     const teamPointsArray = Object.values(teamMap).sort((a, b) => b.points - a.points);
 
+    const teamColors = {};
+    teams.forEach(t => {
+      teamColors[t.name] = t.color || "#808080";
+    });
+
     return NextResponse.json({
       success: true,
       teams: teamPointsArray,
+      teamColors,
       totalResultsAvailable,
       appliedLimit: limit !== null ? limit : totalResultsAvailable
     });

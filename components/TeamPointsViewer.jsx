@@ -62,6 +62,7 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
   const [totalResults, setTotalResults] = useState(0);
   const [limitInput, setLimitInput] = useState("");
   const [appliedLimit, setAppliedLimit] = useState(null);
+  const [teamColors, setTeamColors] = useState({});
   const [loading, setLoading] = useState(true);
   const [revealedTeams, setRevealedTeams] = useState(new Set());
   const [showAnnouncement, setShowAnnouncement] = useState(false);
@@ -187,6 +188,7 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
 
       if (data.success) {
         setTeams(data.teams);
+        setTeamColors(data.teamColors || {});
         setTotalResults(data.totalResultsAvailable);
         setAppliedLimit(data.appliedLimit);
       }
@@ -287,9 +289,8 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
                 </div>
               : 
                  <div className="flex-1 w-full max-w-[120rem] min-w-max mx-auto flex items-end justify-center gap-8 md:gap-12 lg:gap-20 pt-16 shrink-0">
-                    {teams.map((team, idx) => {
+                    {teams.map((team) => {
                       const heightPercentage = Math.max((team.points / maxPoints) * 90, 1.5);
-                      const themeClasses = getTeamBgColor(idx);
                       const isLeader = team.points > 0 && team.points === highestPoints;
                       const revealDuration = announcementValue !== "" ? 15000 : 3000;
      
@@ -311,11 +312,13 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
                             </div>
                             
                             <div 
-                              className={`w-full rounded-t-[2rem] md:rounded-t-[3rem] border-t-8 border-l border-r border-b-0 bg-gradient-to-t ${themeClasses} relative overflow-hidden transition-all ease-out shadow-2xl flex-shrink-0`}
+                              className={`w-full rounded-t-[2rem] md:rounded-t-[3rem] border-t-8 border-l border-r border-b-0 relative overflow-hidden transition-all ease-out shadow-2xl flex-shrink-0`}
                               style={{ 
                                 height: revealedTeams.has(team._id) ? `${heightPercentage}%` : '0%',
                                 transitionDuration: `${revealDuration}ms`,
                                 transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                                background: `linear-gradient(to top, ${team.color}e6, ${team.color}ff)`,
+                                borderColor: team.color
                               }}
                             >
 

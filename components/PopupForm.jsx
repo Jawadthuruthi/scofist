@@ -30,6 +30,7 @@ import RangeInput from "./RangeInput";
 import usePopulateFormField from "@/hooks/use-populate-form-field";
 import { toast } from "sonner";
 import { ScanBarcode } from "lucide-react";
+import ColorInput from "./ColorInput";
 import dynamic from "next/dynamic";
 
 const BarcodeScanner = dynamic(() => import("./BarcodeScanner"), {
@@ -319,6 +320,13 @@ function FieldRenderer({ field, form, apiKey, data }) {
                     readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
                     {...fieldToRender.props}
                   />
+                ) : fieldToRender.inputType === "color" ? (
+                  <ColorInput
+                    disabled={fieldToRender.disabled}
+                    readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                    {...fieldToRender.props}
+                    {...formField}
+                  />
                 ) : fieldToRender.inputType === "async-text" ? (
                   <AsyncInput
                     value={formField.value}
@@ -425,15 +433,19 @@ const FormContent = ({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(handleSubmit, (errors) => {
-          // Format errors to be easily readable in console
-          const formattedErrors = Object.entries(errors).reduce((acc, [key, err]) => {
-            acc[key] = err?.message || err;
-            return acc;
-          }, {});
-          console.error("Validation errors:", formattedErrors);
-          toast.error("Please fill all required fields correctly.");
-        })}
+        onSubmit={form.handleSubmit(
+          (validatedValues) => handleSubmit(validatedValues),
+          (errors) => {
+            console.error("DEBUG: Full Validation Errors (Stringify):", JSON.stringify(errors, null, 2));
+            // Format for easy reading
+            const formattedErrors = Object.entries(errors).reduce((acc, [key, err]) => {
+              acc[key] = err?.message || (typeof err === "string" ? err : "Invalid value");
+              return acc;
+            }, {});
+            console.error("Formatted Validation Errors:", formattedErrors);
+            toast.error("Please fill all required fields correctly.");
+          }
+        )}
         className="max-w-full overflow-hidden"
       >
         {totalSections > 1 && (
@@ -559,13 +571,14 @@ export default function PopupForm({
 
         let newField = { ...field };
 
-        // If data is populated (object) but we need an ID (like select/async)
-        if (value && typeof value === 'object' && !Array.isArray(value) &&
+        // Explicitly handle color field to ensure it populates from data OR default
+        if (field.name === 'color') {
+          newField.defaultValue = value || field.defaultValue || "#808080";
+        } else if (value && typeof value === 'object' && !Array.isArray(value) &&
           ['select', 'async-text'].includes(field.inputType)) {
-
           // Use the _id if available, otherwise keep original
           newField.defaultValue = value._id || value.id || value;
-        } else if (value !== undefined) {
+        } else if (value !== undefined && value !== null) {
           newField.defaultValue = value;
         }
 
@@ -598,10 +611,12 @@ export default function PopupForm({
     }
   }, [open, data, customFormFields, form]);
 
-  const handleSubmit = React.useCallback(async () => {
+  const handleSubmit = React.useCallback(async (passedValues) => {
     try {
       setLoading(true);
-      const values = form.getValues();
+      // Use passed values if available (from form.handleSubmit), otherwise fallback to current values
+      const values = passedValues || form.getValues();
+      console.log("Form values being submitted:", values);
       const success = await onSubmit(values);
 
       if (success !== false) {

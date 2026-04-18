@@ -169,6 +169,26 @@ const useTableColumns = (columnConfig, onCellClick) => {
       };
     }
 
+    // Apply color formatting if type includes "color"
+    if (col.type?.includes("color")) {
+      columnDefinition.cell = ({ row }) => {
+        const color = row.original[col.accessorKey] || "#808080";
+        return (
+          <div className="flex items-center gap-2 group">
+            <div
+              className="w-5 h-5 rounded-full border-2 border-white shadow-sm shrink-0 transition-transform group-hover:scale-125 duration-200"
+              style={{ 
+                backgroundColor: color,
+                boxShadow: `0 0 10px ${color}40`,
+              }}
+              title={color}
+            />
+            <span className="text-[10px] font-bold font-mono uppercase tracking-tighter opacity-70 group-hover:opacity-100 transition-opacity">{color}</span>
+          </div>
+        );
+      };
+    }
+
     // Apply avatar formatting if type includes "avatar"
     if (col.type?.includes("avatar")) {
       columnDefinition.cell = ({ row }) => {

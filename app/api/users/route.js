@@ -394,7 +394,7 @@ export async function PUT(req) {
     await connectToDB();
     const body = await req.json();
 
-    const { ids, ...updateFields } = body;
+    const { ids, _id: _idToExclude, ...updateFields } = body;
     if (!ids || ids.length === 0) {
       return NextResponse.json(
         { message: "User IDs are required" },

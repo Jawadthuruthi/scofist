@@ -40,11 +40,20 @@ const teamSchema = new Schema(
       type: Number,
       default: 0,
     },
+    color: {
+      type: String,
+      default: "#808080", // Default neutral color
+    },
   },
   {
     timestamps: true,
   }
 );
+
+// Clear the model from cache in development to ensure schema changes are picked up
+if (process.env.NODE_ENV === "development") {
+  delete models.Team;
+}
 
 const Team = models.Team || model("Team", teamSchema);
 

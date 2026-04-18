@@ -708,6 +708,7 @@ export async function PUT(req, res) {
     const participantId = ids[0];
     const updateData = { ...data };
     delete updateData.ids;
+    delete updateData._id;
 
     // Get the existing participant
     const participant = await Participant.findById(participantId);

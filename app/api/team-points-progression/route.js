@@ -82,10 +82,16 @@ export async function GET(request) {
       }
     });
 
+    const teamColors = {};
+    teams.forEach(t => {
+      teamColors[t.name] = t.color || "#808080";
+    });
+
     return NextResponse.json({
       success: true,
       teams: activeTeamsArray,
       data: progressionData,
+      teamColors,
       totalResultsAvailable,
       appliedLimit: limit !== null ? limit : totalResultsAvailable
     });

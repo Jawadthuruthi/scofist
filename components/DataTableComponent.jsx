@@ -319,39 +319,33 @@ const DataTableComponent = ({
       setTotalPages(pagination?.totalPages || 0);
       setDataCount(pagination?.total || 0);
 
-      // FIXED: Better logic for when to reset vs append data
+      // FIXED: Better logic for when to reset vs append/update data
+      const isRefetch = page === 0 && data.length > 0 && !isFilterChanged;
       const shouldResetData =
         isFilterChanged || 
         (page === 0 && data.length === 0);
 
       if (shouldResetData) {
-        console.log("Resetting data:", {
-          isFilterChanged,
-          page,
-          dataLength: data.length,
-          newItemsLength: newItems.length,
-        });
         setData(newItems);
         setIsFilterChanged(false);
       } else {
-        // FIXED: More conservative duplicate handling for pagination
+        // FIXED: Update existing items instead of just filtering them out
         setData((prev) => {
-          const existingIds = new Set(prev.map((item) => item._id));
-          const genuinelyNewItems = newItems.filter(
-            (item) => !existingIds.has(item._id)
-          );
+          const updatedData = [...prev];
+          const newItemsToAppend = [];
 
-          console.log("Appending data:", {
-            prevLength: prev.length,
-            newItemsLength: newItems.length,
-            genuinelyNewLength: genuinelyNewItems.length,
-            page,
+          newItems.forEach(newItem => {
+            const index = updatedData.findIndex(item => item._id === newItem._id);
+            if (index !== -1) {
+              // Update existing item
+              updatedData[index] = { ...updatedData[index], ...newItem };
+            } else {
+              // Mark as new item to append
+              newItemsToAppend.push(newItem);
+            }
           });
 
-          // Only append if we actually have new items
-          return genuinelyNewItems.length > 0
-            ? [...prev, ...genuinelyNewItems]
-            : prev;
+          return isRefetch ? updatedData : [...updatedData, ...newItemsToAppend];
         });
       }
 
@@ -843,25 +837,41 @@ const DataTableComponent = ({
   const handleEdit = async (values) => {
     try {
       setLoading(true);
-      await updateData.mutateAsync({
+      const payload = {
         data: {
           ids: selectedData?.map((item) => item?._id),
           ...values,
           ...getApiProps(additionalProps),
         },
-      });
+      };
+      console.log("Team Update Payload:", JSON.stringify(payload, null, 2));
+      
+      const response = await updateData.mutateAsync(payload);
+      console.log("Team Update Response (Full):", JSON.stringify(response, null, 2));
+      
+      if (response.team) {
+        console.log("Updated Team Color in Response:", response.team.color);
+      }
+      
       table.resetRowSelection();
 
-      // FIXED: Proper data refresh
+      // FIXED: Force a deep refresh by clearing local state and refetching with cache buster
       setIsFilterChanged(true);
       setPage(0);
       setData([]);
-      await fetchItemsQuery.refetch();
-      router.refresh();
+      
+      setTimeout(async () => {
+        // Adding a timestamp to force fresh fetch and bypass any potential caches
+        const result = await fetchItemsQuery.refetch();
+        console.log("Refetch result length:", result.data?.[resource]?.length);
+        
+        router.refresh();
+        toast.success(editSuccessMessage);
+      }, 300);
 
-      toast.success(editSuccessMessage);
       return true;
     } catch (error) {
+      console.error("Mutation Error:", error);
       handleError(error);
       throw error;
     } finally {

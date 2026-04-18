@@ -70,23 +70,38 @@ const getRankTheme = (rank, isWhiteTheme) => {
   }
 };
 
-const getTeamBgColor = (teamName) => {
-  if (!teamName) return "bg-zinc-600 text-white";
-  const colors = [
-    "bg-red-600 text-white",
-    "bg-blue-600 text-white",
-    "bg-emerald-600 text-white",
-    "bg-yellow-500 text-black",
-    "bg-purple-600 text-white",
-    "bg-orange-600 text-white",
-    "bg-teal-600 text-white",
-    "bg-rose-600 text-white"
-  ];
-  let hash = 0;
-  for (let i = 0; i < teamName.length; i++) {
-    hash = teamName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
+const getDarkerColor = (hex, percent = 30) => {
+  if (!hex || hex === "transparent") return "#404040";
+  const num = parseInt(hex.replace("#", ""), 16),
+    amt = Math.round(2.55 * percent),
+    R = (num >> 16) - amt,
+    G = ((num >> 8) & 0x00ff) - amt,
+    B = (num & 0x0000ff) - amt;
+  return (
+    "#" +
+    (
+      0x1000000 +
+      (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+      (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+      (B < 255 ? (B < 1 ? 0 : B) : 255)
+    )
+      .toString(16)
+      .slice(1)
+  );
+};
+
+const getContrastColor = (hexcolor) => {
+  if (!hexcolor || hexcolor === "transparent") return "text-white";
+  const hex = hexcolor.replace("#", "");
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 128 ? "text-zinc-950" : "text-white";
+};
+
+const getTeamBgColor = (teamColor) => {
+  return teamColor || "#808080";
 };
 
 export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavigate, isWhiteTheme, setIsWhiteTheme }) {
@@ -587,7 +602,13 @@ const SequentialWinnerCard = ({ p, rank, isWhiteTheme }) => {
                 {/* Team Name */}
                 {showStage(REVEAL_STAGES.TEAM) && (
                     <div className="animate-in fade-in zoom-in slide-in-from-bottom-20 duration-1000">
-                        <div className={`px-16 py-6 rounded-full font-black text-3xl md:text-6xl uppercase tracking-[0.4em] shadow-2xl ${getTeamBgColor(p.participantDetails?.teamId?.name)}`}>
+                        <div 
+                           className={`px-16 py-6 rounded-full font-black text-3xl md:text-6xl uppercase tracking-[0.4em] shadow-2xl ${getContrastColor(p.participantDetails?.teamId?.color)}`}
+                           style={{
+                              background: `linear-gradient(135deg, ${p.participantDetails?.teamId?.color || '#808080'} 0%, ${getDarkerColor(p.participantDetails?.teamId?.color || '#808080', 40)} 100%)`,
+                              border: `2px solid ${p.participantDetails?.teamId?.color || '#808080'}40`
+                           }}
+                        >
                             {p.participantDetails?.teamId?.name || "Independent"}
                         </div>
                     </div>

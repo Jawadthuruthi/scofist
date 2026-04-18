@@ -33,7 +33,7 @@ export async function GET(request) {
 
     // 2. Hydrate those explicitly scored participants with division and team mappings
     const activeParticipants = await Participant.find({ _id: { $in: activeParticipantIds } })
-      .populate("teamId", "name")
+      .populate("teamId", "name color")
       .populate("divisionId", "name")
       .lean();
 
@@ -62,6 +62,7 @@ export async function GET(request) {
         name: p.name,
         chestNumber: p.chestNumber || "N/A",
         teamName: p.teamId?.name || "Unknown Team",
+        teamColor: p.teamId?.color || "#808080",
         points: points,
         divisionName: divName,
         photo: userPhotoMap[p._id.toString()] || null

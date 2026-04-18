@@ -6,25 +6,37 @@ import { X, Play, Pause, ChevronLeft, ChevronRight, Trophy, Crown, Medal, User a
 import DashboardTopBar from "./DashboardTopBar";
 
 // Same gradient hash function as others
-const getTeamBgColor = (teamName) => {
-  if (!teamName) return "bg-zinc-600";
-  const colors = [
-    "from-blue-600 to-blue-900 border-blue-400 text-blue-50",
-    "from-emerald-600 to-emerald-900 border-emerald-400 text-emerald-50",
-    "from-rose-600 to-rose-900 border-rose-400 text-rose-50",
-    "from-purple-600 to-purple-900 border-purple-400 text-purple-50",
-    "from-orange-600 to-orange-900 border-orange-400 text-orange-50",
-    "from-cyan-600 to-cyan-900 border-cyan-400 text-cyan-50",
-    "from-fuchsia-600 to-fuchsia-900 border-fuchsia-400 text-fuchsia-50",
-    "from-lime-600 to-lime-900 border-lime-400 text-lime-50",
-    "from-indigo-600 to-indigo-900 border-indigo-400 text-indigo-50",
-    "from-teal-600 to-teal-900 border-teal-400 text-teal-50"
-  ];
-  let hash = 0;
-  for (let i = 0; i < teamName.length; i++) {
-    hash = teamName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
+const getDarkerColor = (hex, percent = 30) => {
+  const num = parseInt(hex.replace("#", ""), 16),
+    amt = Math.round(2.55 * percent),
+    R = (num >> 16) - amt,
+    G = ((num >> 8) & 0x00ff) - amt,
+    B = (num & 0x0000ff) - amt;
+  return (
+    "#" +
+    (
+      0x1000000 +
+      (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+      (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+      (B < 255 ? (B < 1 ? 0 : B) : 255)
+    )
+      .toString(16)
+      .slice(1)
+  );
+};
+
+const getContrastColor = (hexcolor) => {
+  if (!hexcolor || hexcolor === "transparent") return "text-white";
+  const hex = hexcolor.replace("#", "");
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 128 ? "text-zinc-950" : "text-white";
+};
+
+const getTeamBgColor = (teamColor) => {
+  return teamColor || "#808080";
 };
 
 export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, apiKey, isWhiteTheme, setIsWhiteTheme }) {
@@ -168,6 +180,14 @@ export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, ap
                       CHAMPIONS
                     </h1>
                   </div>
+
+                  {!loading && (
+                    <div className="mt-12 animate-bounce">
+                      <div className={`px-8 py-4 rounded-2xl border-2 font-black tracking-[0.3em] uppercase text-xl md:text-3xl shadow-2xl ${isWhiteTheme ? 'bg-zinc-900 text-white border-zinc-700' : 'bg-white text-black border-zinc-200'}`}>
+                        Press [ ENTER ] to Reveal
+                      </div>
+                    </div>
+                  )}
               </div>
 
               <style jsx global>{`
@@ -204,7 +224,13 @@ export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, ap
             <div className="relative w-full h-full flex flex-col items-center justify-center overflow-y-auto no-scrollbar scroll-smooth">
                 {champions.map((team, idx) => {
                   if (idx !== currentIndex) return null;
-                  const theme = getTeamBgColor(team.name);
+                  const teamColor = team.color || "#808080";
+                  const darkerColor = getDarkerColor(teamColor, 40);
+                  const contrastText = getContrastColor(teamColor);
+                  const gradientStyle = {
+                     background: `linear-gradient(135deg, ${teamColor} 0%, ${darkerColor} 100%)`,
+                     borderColor: `${teamColor}40`
+                  };
                   
                   // Ranking visual logic
                   let RankIcon = Trophy;
@@ -237,7 +263,10 @@ export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, ap
                       </div>
 
                       {/* The Centerpiece Card - Now Ultra Wide for Side-By-Side layout */}
-                      <div className={`relative w-full max-w-[95rem] h-auto flex flex-col items-center justify-center p-8 md:p-16 mt-0 md:mt-2 rounded-[4rem] bg-gradient-to-tr ${theme} shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden shrink-0 z-10 mx-auto transition-all duration-700 ${isWhiteTheme ? 'ring-8 ring-white shadow-xl' : ''}`}>
+                      <div 
+                        className={`relative w-full max-w-[95rem] h-auto flex flex-col items-center justify-center p-8 md:p-16 mt-0 md:mt-2 rounded-[4rem] shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden shrink-0 z-10 mx-auto transition-all duration-700 border-none ${isWhiteTheme ? 'ring-8 ring-white shadow-xl' : ''}`}
+                        style={gradientStyle}
+                      >
                          <div className="absolute inset-0 bg-white/5 opacity-0 hover:opacity-100 transition-opacity" />
                          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
                          
@@ -260,8 +289,8 @@ export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, ap
                               
                               {/* Leader Name Text */}
                               <div className="flex flex-col items-center md:items-start text-center md:text-left justify-center">
-                                <span className={`font-mono text-xl lg:text-3xl font-bold uppercase tracking-widest mb-1 lg:mb-2 ${isWhiteTheme ? 'text-zinc-900/60' : 'text-white/80'}`}>Team Leader</span>
-                                <span className={`text-5xl md:text-6xl lg:text-[7rem] font-black uppercase tracking-tighter drop-shadow-2xl leading-[0.9] ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
+                                <span className={`font-mono text-xl lg:text-3xl font-bold uppercase tracking-widest mb-1 lg:mb-2 ${contrastText} opacity-60`}>Team Leader</span>
+                                <span className={`text-5xl md:text-6xl lg:text-[7rem] font-black uppercase tracking-tighter drop-shadow-2xl leading-[0.9] ${contrastText}`}>
                                   {team.leaderName.split(" ").length > 1 ? (
                                     <>
                                       {team.leaderName.split(" ")[0]}
@@ -280,7 +309,7 @@ export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, ap
                               <span className={`font-normal text-6xl md:text-[8rem] lg:text-[10rem] text-transparent bg-clip-text bg-gradient-to-b drop-shadow-[0_20px_30px_rgba(0,0,0,0.6)] leading-[0.9] ${isWhiteTheme ? 'from-zinc-900 to-zinc-700' : 'from-white to-white/80'}`}>
                                 {team.points}
                               </span>
-                              <span className={`font-normal text-6xl md:text-[8rem] lg:text-[10rem] uppercase tracking-tighter drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)] leading-[0.9] ${isWhiteTheme ? 'text-zinc-900' : 'text-white/95'}`}>
+                              <span className={`font-normal text-6xl md:text-[8rem] lg:text-[10rem] uppercase tracking-tighter drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)] leading-[0.9] ${contrastText} opacity-90`}>
                                 POINTS
                               </span>
                             </div>

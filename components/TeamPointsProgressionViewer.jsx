@@ -39,13 +39,15 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, onNavigat
   const [totalResults, setTotalResults] = useState(0);
   const [limitInput, setLimitInput] = useState("");
   const [appliedLimit, setAppliedLimit] = useState(null);
+  const [teamColors, setTeamColors] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
-      // Don't auto-fetch, wait for user input
-      setLoading(false);
+      // Auto-fetch top 50 results by default for immediate visualization
+      setLimitInput("50");
+      fetchProgressionData("50");
     } else {
       setLimitInput("");
       setAppliedLimit(null);
@@ -82,6 +84,7 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, onNavigat
       if (json.success) {
         setData(json.data);
         setTeams(json.teams);
+        setTeamColors(json.teamColors || {});
         setTotalResults(json.totalResultsAvailable);
         setAppliedLimit(json.appliedLimit);
       } else {
@@ -229,7 +232,7 @@ export default function TeamPointsProgressionViewer({ isOpen, onClose, onNavigat
                       key={teamName}
                       type="linear"
                       dataKey={teamName}
-                      stroke={getTeamHexColor(index)}
+                      stroke={teamColors[teamName] || getTeamHexColor(index)}
                       strokeWidth={4}
                       activeDot={{ r: 5, strokeWidth: 2, fill: isWhiteTheme ? '#fff' : '#000' }}
                       dot={{ r: 2, fill: isWhiteTheme ? '#fff' : '#000', strokeWidth: 2 }}

@@ -66,7 +66,7 @@ export async function GET(request) {
         select: "name age chestNumber teamId",
         populate: {
           path: "teamId",
-          select: "name",
+          select: "name color",
         },
       })
       .sort({ resultNumber: 1 })

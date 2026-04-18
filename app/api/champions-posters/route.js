@@ -30,6 +30,7 @@ export async function GET(request) {
         _id: team._id.toString(),
         name: team.name,
         points: 0,
+        color: team.color || "#808080",
         leaderName: explicitLeader ? explicitLeader.name : "Unknown Leader",
         leaderPhoto: explicitLeader?.profilePic?.url || null
       };

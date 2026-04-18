@@ -28,7 +28,7 @@ export async function GET(request) {
         select: "name chestNumber teamId _id",
         populate: {
           path: "teamId",
-          select: "name",
+          select: "name color",
         },
       })
       .lean();
@@ -84,6 +84,7 @@ export async function GET(request) {
           name: participantObj.name,
           chestNumber: participantObj.chestNumber || "N/A",
           teamName: participantObj.teamId?.name || "Unknown",
+          teamColor: participantObj.teamId?.color || "#808080",
           profilePic: userProfileMap[participantObj._id] || null,
           rank: p.rank,
           points: p.points,

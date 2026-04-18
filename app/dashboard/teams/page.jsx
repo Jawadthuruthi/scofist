@@ -22,6 +22,7 @@ const columnsConfig = [
     minWidth: 60,
   },
   { accessorKey: "name", header: "Team Name" },
+  { accessorKey: "color", header: "Color", type: ["color"], width: 80 },
   { accessorKey: "leaderName", header: "Team Leader" },
   {
     accessorKey: "membersCount",
@@ -47,7 +48,7 @@ export default async function TeamsPage() {
     // Fetch users for team leader selection
     const users = await fetchData(
       "users",
-      "projection=_id,name&roles=Program Leader",
+      "projection=_id,name&roles=Student&status=Active",
       0
     );
 
@@ -86,6 +87,13 @@ export default async function TeamsPage() {
         options: formatOptions(users),
         required: true,
         placeholder: "Select team leader",
+      },
+      {
+        name: "color",
+        label: "Team Color",
+        inputType: "color",
+        required: true,
+        defaultValue: "#808080",
       },
     ];
 

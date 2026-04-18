@@ -213,11 +213,9 @@ export function useDynamicFormSchema(formFields = null) {
           } else {
             // Regular text input
             fieldSchema = required
-              ? z.coerce
-                .string({
+              ? z.coerce.string({
                   required_error: `${displayName} is required`,
-                })
-                .min(1, `${displayName} is required`)
+                }).nullable().transform(val => val === null ? "" : val).refine(val => val.length > 0, `${displayName} is required`)
               : z.coerce.string().optional();
 
             if (validators.minLength !== undefined) {
