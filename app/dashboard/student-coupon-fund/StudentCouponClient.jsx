@@ -331,6 +331,8 @@ export default function StudentCouponClient({ apiKey }) {
         batchId: detailsBatchId !== "all" ? detailsBatchId : undefined,
         classId: detailsClassId.length > 0 ? detailsClassId.join(",") : undefined,
         studentId: detailsStudentId.length > 0 ? detailsStudentId.join(",") : undefined,
+        startDate: filterMode === "date" ? filters.startDate : undefined,
+        endDate: filterMode === "date" ? filters.endDate : undefined,
     }, { enabled: activeView === "balances" || activeView === "transactions", keepPreviousData: true });
 
 
@@ -698,7 +700,7 @@ export default function StudentCouponClient({ apiKey }) {
                     id: editingCoupon._id,
                     couponNumber: data.couponNumber,
                     couponAmount: finalAmount,
-                    payments: data.payments // Send the array
+                    payments: data.payments || [] // explicitly pass empty array if user deleted all entries
                 }
             });
 
@@ -823,17 +825,31 @@ export default function StudentCouponClient({ apiKey }) {
         allYearsCoupons.forEach(c => {
             if (c.payments && Array.isArray(c.payments)) {
                 c.payments.forEach(p => {
+                    const pDate = new Date(p.date);
+                    if (filterMode === "date") {
+                        if (filters.startDate) {
+                            const start = new Date(filters.startDate);
+                            start.setHours(0, 0, 0, 0);
+                            if (pDate < start) return;
+                        }
+                        if (filters.endDate) {
+                            const end = new Date(filters.endDate);
+                            end.setHours(23, 59, 59, 999);
+                            if (pDate > end) return;
+                        }
+                    }
                     txs.push({
-                        date: new Date(p.date),
+                        date: pDate,
                         studentName: c.studentId?.name || "Unknown",
-                        amount: Number(p.amount) || 0
+                        amount: Number(p.amount) || 0,
+                        academicYear: c.academicYear
                     });
                 });
             }
         });
         txs.sort((a, b) => b.date - a.date);
         return txs;
-    }, [allYearsCoupons]);
+    }, [allYearsCoupons, filterMode, filters.startDate, filters.endDate]);
 
     // Filter Classes
     const filterClassesData = useFetchClasses(0, 1000, {
@@ -1470,6 +1486,19 @@ export default function StudentCouponClient({ apiKey }) {
                                                                 className="w-32"
                                                                 placeholder="Amount"
                                                             />
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-10 w-10 text-muted-foreground hover:text-foreground"
+                                                                onClick={() => {
+                                                                    setBulkStudents([]);
+                                                                    setCouponNumbers({});
+                                                                }}
+                                                                title="Close Sheet"
+                                                            >
+                                                                <X className="h-5 w-5" />
+                                                            </Button>
                                                         </div>
                                                     </div>
 
@@ -1523,8 +1552,6 @@ export default function StudentCouponClient({ apiKey }) {
                                                             onClick={() => {
                                                                 setBulkStudents([]);
                                                                 setCouponNumbers({});
-                                                                setDetailsBatchId("all");
-                                                                setDetailsClassId([]);
                                                             }}
                                                         >
                                                             Cancel
@@ -2056,13 +2083,14 @@ export default function StudentCouponClient({ apiKey }) {
                                         <TableHead className="w-[80px]">Sl. No.</TableHead>
                                         <TableHead>Date</TableHead>
                                         <TableHead>Student Name</TableHead>
+                                        <TableHead>Academic Year</TableHead>
                                         <TableHead className="text-right">Paid Amount</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {transactionsReport.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                                                 No transactions found for the selected criteria.
                                             </TableCell>
                                         </TableRow>
@@ -2072,7 +2100,8 @@ export default function StudentCouponClient({ apiKey }) {
                                                 <TableCell>{idx + 1}</TableCell>
                                                 <TableCell>{format(tx.date, "dd MMM yyyy")}</TableCell>
                                                 <TableCell className="font-medium">{tx.studentName}</TableCell>
-                                                <TableCell className="text-right font-bold text-green-600">₹{tx.amount}</TableCell>
+                                                <TableCell>{tx.academicYear}</TableCell>
+                                                <TableCell className="text-right font-semibold text-green-600">₹{tx.amount}</TableCell>
                                             </TableRow>
                                         ))
                                     )}
