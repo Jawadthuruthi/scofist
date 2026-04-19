@@ -1188,7 +1188,7 @@ const DataTableComponent = ({
                     placeholder={desktopSearchPlaceholder}
                     value={globalFilter ?? ""}
                     onChange={(e) => handleSetGlobalFilter(e.target.value)}
-                    className="h-9 w-[400px] lg:w-[600px] xl:w-[800px] pl-9"
+                    className="h-9 w-[250px] lg:w-[400px] xl:w-[500px] pl-9"
                   />
                 </div>
               )}
