@@ -112,8 +112,7 @@ export default function StudentCouponClient({ apiKey }) {
     const [isSimplePayment, setIsSimplePayment] = useState(false);
     const [simplePaymentStudentName, setSimplePaymentStudentName] = useState("");
 
-    const [isBalancesDialogOpen, setIsBalancesDialogOpen] = useState(false);
-    const [isTransactionsDialogOpen, setIsTransactionsDialogOpen] = useState(false);
+    const [activeView, setActiveView] = useState("none"); // "none", "coupons", "balances", "transactions"
 
     // Student Lookup State
     const [lookupSearchTerm, setLookupSearchTerm] = useState("");
@@ -328,9 +327,11 @@ export default function StudentCouponClient({ apiKey }) {
 
     // Fetch Un-filtered Coupons for Reports (Balances & Transactions)
     const { data: allYearsCouponsData, isFetching: isFetchingAllYearsCoupons } = useFetchItems(0, 0, {
+        academicYear: filterMode === "year" && filters.year !== "all" ? filters.year : undefined,
         batchId: detailsBatchId !== "all" ? detailsBatchId : undefined,
         classId: detailsClassId.length > 0 ? detailsClassId.join(",") : undefined,
-    }, { enabled: isBalancesDialogOpen || isTransactionsDialogOpen, keepPreviousData: true });
+        studentId: detailsStudentId.length > 0 ? detailsStudentId.join(",") : undefined,
+    }, { enabled: activeView === "balances" || activeView === "transactions", keepPreviousData: true });
 
 
     const {
@@ -920,12 +921,13 @@ export default function StudentCouponClient({ apiKey }) {
                 }
             `}</style>
 
-            {/* Top Cards: Lookup Search & Summary side-by-side */}
+            {/* Top Cards: Side by Side */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
                 {/* Student Lookup Card */}
-                <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-                    <CardHeader className="bg-muted/10 pb-4 pt-4 border-b">
+                <Card className="w-full shadow-sm h-full flex flex-col justify-center">
+                    <CardHeader className="bg-muted/10 pb-6 pt-6 flex-1 rounded-t-xl
+                    ">
                         <CardTitle className="text-lg flex items-center gap-2">
                             <Search className="w-5 h-5 text-primary" />
                             Student Lookup
@@ -933,7 +935,7 @@ export default function StudentCouponClient({ apiKey }) {
                         <CardDescription>
                             Search for a student to view coupon history
                         </CardDescription>
-                        <div className="flex gap-2 mt-4 w-full">
+                        <div className="flex gap-2 mt-4 w-full max-w-2xl">
                             <div className="relative flex-1">
                                 <Input
                                     placeholder="Search by Student ID or Name..."
@@ -942,7 +944,7 @@ export default function StudentCouponClient({ apiKey }) {
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter") handleLookupSearch();
                                     }}
-                                    className="w-full pr-10"
+                                    className="w-full pr-10 bg-white"
                                 />
                                 {(hasLookedUp || lookupSearchTerm) && (
                                     <Button
@@ -964,7 +966,7 @@ export default function StudentCouponClient({ apiKey }) {
                                 variant={lookupSearchTerm ? "default" : "outline"}
                                 onClick={() => lookupSearchTerm ? handleLookupSearch() : setShowLookupScanner(true)}
                                 disabled={isLookingUp}
-                                className={!lookupSearchTerm ? "bg-foreground text-background hover:bg-foreground/90 border-none" : ""}
+                                className={!lookupSearchTerm ? "bg-foreground text-background hover:bg-foreground/90 border-none px-6" : "px-6"}
                             >
                                 {isLookingUp ? (
                                     <Loader className="h-4 w-4 animate-spin sm:mr-2" />
@@ -994,41 +996,33 @@ export default function StudentCouponClient({ apiKey }) {
                     </CardHeader>
                 </Card>
 
-                {/* Summary Cards */}
-                {/* Summary Card */}
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex flex-row flex-nowrap items-center justify-between gap-4 w-full overflow-x-auto pb-2">
-                            <div className="flex flex-row items-center gap-4">
-                                {/* Filters moved to Coupon Details Card */}
+                {/* Total Amount Summary Card */}
+                <Card className="w-full border-green-200 shadow-sm bg-green-50/30 h-full">
+                    <CardContent className="h-full pt-6 pb-6 flex justify-center items-center relative">
+                        <div className="flex flex-col items-center space-y-2">
+                            <div className="text-sm md:text-base font-semibold uppercase tracking-widest text-muted-foreground">
+                                Total Collected Amount
                             </div>
-
-                            <div className="flex flex-row items-center gap-4">
-                                {/* Total Collected (Side-by-side) */}
-                                <div className="flex flex-col items-center sm:items-end space-y-1 min-w-fit px-2 border-l pl-4">
-                                    <div className="flex flex-col items-center sm:items-end text-[10px] sm:text-xs font-medium uppercase tracking-widest text-muted-foreground leading-tight">
-                                        <span>Total</span>
-                                        <span>Collected</span>
-                                        <span>Amount</span>
-                                    </div>
-                                    <div className="text-xl sm:text-2xl xl:text-4xl font-normal text-green-600 tabular-nums">₹{stats.totalCollected.toLocaleString()}</div>
-                                </div>
-
-                                {/* Global Clear */}
-                                {(filters.startDate || filters.endDate) && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setFilters(prev => ({ ...prev, startDate: "", endDate: "" }))}
-                                        className="h-8 px-1.5 text-muted-foreground hover:text-foreground"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                )}
+                            <div className="text-4xl md:text-5xl font-bold text-green-600 tabular-nums">
+                                ₹{stats.totalCollected.toLocaleString()}
                             </div>
                         </div>
+
+                        {/* Global Clear (if Date Range Filtering Active) */}
+                        {(filters.startDate || filters.endDate) && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setFilters(prev => ({ ...prev, startDate: "", endDate: "" }))}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                title="Clear Date Filters"
+                            >
+                                <X className="h-5 w-5" />
+                            </Button>
+                        )}
                     </CardContent>
                 </Card>
+
             </div>
 
             {hasLookedUp && (
@@ -1375,41 +1369,6 @@ export default function StudentCouponClient({ apiKey }) {
                                                         </div>
                                                     </>
                                                 )}
-
-                                                <div className="space-y-2">
-                                                    <Label>Action</Label>
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                className="w-full h-10 flex justify-between items-center text-sm font-normal px-3 py-2 bg-white border border-input hover:bg-accent hover:text-accent-foreground"
-                                                                disabled={isLoadingBulkStudents || isFetchingAllYearsCoupons}
-                                                            >
-                                                                <div className="flex items-center">
-                                                                    {(isLoadingBulkStudents || isFetchingAllYearsCoupons) ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                                                    Coupon Entry
-                                                                </div>
-                                                                <ChevronDown className="h-4 w-4 opacity-50" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="start" className="w-full min-w-[200px]">
-                                                            <DropdownMenuItem onClick={handleGetStudents} className="cursor-pointer">
-                                                                1. Coupon Entry
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => setIsBalancesDialogOpen(true)} className="cursor-pointer">
-                                                                2. View Balances (All Years)
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => setIsTransactionsDialogOpen(true)} className="cursor-pointer">
-                                                                3. View Transactions
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
-                                            </div>
-
-                                            {/* Batch Selection Row */}
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
                                                 <div className="space-y-2">
                                                     <Label>Select Batch</Label>
                                                     <Select
@@ -1430,6 +1389,10 @@ export default function StudentCouponClient({ apiKey }) {
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
+                                            </div>
+
+                                            {/* Batch Selection Row */}
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
                                                 <div className="space-y-2">
                                                     <Label>Select Class</Label>
                                                     <MultiSelect
@@ -1444,24 +1407,46 @@ export default function StudentCouponClient({ apiKey }) {
                                                         variant="default"
                                                     />
                                                 </div>
-                                                <div className="space-y-2">
+                                                <div className="space-y-2 md:col-span-2">
                                                     <Label>Select Students</Label>
                                                     <MultiSelect
-                                                        options={detailsStudents.map(s => ({ label: s.name, value: s._id }))}
+                                                        options={detailsStudents.map(s => ({ label: `${s._id} - ${s.name}`, value: s._id }))}
                                                         onValueChange={setDetailsStudentId}
                                                         value={detailsStudentId}
                                                         placeholder="All Students"
                                                         variant="default"
                                                     />
                                                 </div>
-                                                <Button
-                                                    type="button"
-                                                    className="w-full h-10 bg-black hover:bg-gray-800 text-white"
-                                                    onClick={handlePrintSheet}
-                                                >
-                                                    <Printer className="mr-2 h-4 w-4" />
-                                                    Print Sheet
-                                                </Button>
+                                                <div className="space-y-2">
+                                                    <Label>Action</Label>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                className="w-full h-10 flex justify-between items-center text-sm font-normal px-3 py-2 bg-white border border-input hover:bg-accent hover:text-accent-foreground"
+                                                                disabled={isLoadingBulkStudents || isFetchingAllYearsCoupons}
+                                                            >
+                                                                <div className="flex items-center">
+                                                                    {(isLoadingBulkStudents || isFetchingAllYearsCoupons) ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                                                    {activeView === "none" ? "Select an Action" : activeView === "balances" ? "View Balances" : activeView === "transactions" ? "View Transactions" : "Coupon Entry"}
+                                                                </div>
+                                                                <ChevronDown className="h-4 w-4 opacity-50" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="start" className="w-full min-w-[200px]">
+                                                            <DropdownMenuItem onClick={() => { setActiveView("coupons"); handleGetStudents(); }} className="cursor-pointer">
+                                                                1. Coupon Entry
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => setActiveView("balances")} className="cursor-pointer">
+                                                                2. View Balances
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => setActiveView("transactions")} className="cursor-pointer">
+                                                                3. View Transactions
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
                                             </div>
 
                                             {/* Bulk Student List */}
@@ -1469,6 +1454,14 @@ export default function StudentCouponClient({ apiKey }) {
                                                 <div className="space-y-4 border rounded-md p-4 bg-muted/10">
                                                     <div className="flex items-center justify-between">
                                                         <h3 className="font-semibold text-lg">{bulkStudents.length} Students Found</h3>
+                                                        <Button
+                                                            type="button"
+                                                            className="h-10 bg-black hover:bg-gray-800 text-white px-8"
+                                                            onClick={handlePrintSheet}
+                                                        >
+                                                            <Printer className="mr-2 h-4 w-4" />
+                                                            Print Sheet
+                                                        </Button>
                                                         <div className="flex gap-2 items-center">
                                                             <Label className="whitespace-nowrap">Global Amount:</Label>
                                                             <Input
@@ -1727,6 +1720,7 @@ export default function StudentCouponClient({ apiKey }) {
                             </div>
                         )}
 
+                        {activeView === "coupons" && (
                         <div id="printable-table" className="rounded-md border bg-white overflow-x-auto">
                             <div className="hidden print:block text-center mb-6 pt-4">
                                 <h2 className="text-2xl font-bold">STUDENT COUPON FUND MANAGEMENT</h2>
@@ -1947,6 +1941,7 @@ export default function StudentCouponClient({ apiKey }) {
                                 </DialogContent>
                             </Dialog>
                         </div>
+                        )}
                     </>
                 )
             }
@@ -1998,12 +1993,9 @@ export default function StudentCouponClient({ apiKey }) {
                 </div>
             </div>
 
-            {/* Balances by Year Dialog */}
-            <Dialog open={isBalancesDialogOpen} onOpenChange={setIsBalancesDialogOpen}>
-                <DialogContent className="sm:max-w-[80vw] max-h-[90vh] overflow-hidden flex flex-col">
-                    <DialogHeader>
-                        <DialogTitle>Student Balances (All Years)</DialogTitle>
-                    </DialogHeader>
+            {activeView === "balances" && (
+                <div className="rounded-md border bg-white overflow-x-auto p-4 mt-6">
+                    <h2 className="text-xl font-bold mb-4">Student Balances</h2>
                     {isFetchingAllYearsCoupons ? (
                         <div className="flex-1 flex items-center justify-center min-h-[200px]">
                             <Loader className="h-8 w-8 animate-spin" />
@@ -2011,7 +2003,7 @@ export default function StudentCouponClient({ apiKey }) {
                     ) : (
                         <div className="flex-1 overflow-auto border rounded-md">
                             <Table>
-                                <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
+                                <TableHeader className="bg-muted/50">
                                     <TableRow>
                                         <TableHead>Sl No</TableHead>
                                         <TableHead>Student Name</TableHead>
@@ -2025,7 +2017,7 @@ export default function StudentCouponClient({ apiKey }) {
                                     {balancesReportParams.studentRows.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={balancesReportParams.yearColumns.length + 3} className="text-center h-24 text-muted-foreground">
-                                                No balances found for the selected batch/class.
+                                                No balances found for the selected criteria.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
@@ -2046,15 +2038,12 @@ export default function StudentCouponClient({ apiKey }) {
                             </Table>
                         </div>
                     )}
-                </DialogContent>
-            </Dialog>
+                </div>
+            )}
 
-            {/* Transaction History Dialog */}
-            <Dialog open={isTransactionsDialogOpen} onOpenChange={setIsTransactionsDialogOpen}>
-                <DialogContent className="sm:max-w-[80vw] max-h-[90vh] overflow-hidden flex flex-col">
-                    <DialogHeader>
-                        <DialogTitle>Transaction History</DialogTitle>
-                    </DialogHeader>
+            {activeView === "transactions" && (
+                <div className="rounded-md border bg-white overflow-x-auto p-4 mt-6">
+                    <h2 className="text-xl font-bold mb-4">Transaction History</h2>
                     {isFetchingAllYearsCoupons ? (
                         <div className="flex-1 flex items-center justify-center min-h-[200px]">
                             <Loader className="h-8 w-8 animate-spin" />
@@ -2062,7 +2051,7 @@ export default function StudentCouponClient({ apiKey }) {
                     ) : (
                         <div className="flex-1 overflow-auto border rounded-md">
                             <Table>
-                                <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
+                                <TableHeader className="bg-muted/50">
                                     <TableRow>
                                         <TableHead className="w-[80px]">Sl. No.</TableHead>
                                         <TableHead>Date</TableHead>
@@ -2074,7 +2063,7 @@ export default function StudentCouponClient({ apiKey }) {
                                     {transactionsReport.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
-                                                No transactions found for the selected batch/class.
+                                                No transactions found for the selected criteria.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
@@ -2091,8 +2080,8 @@ export default function StudentCouponClient({ apiKey }) {
                             </Table>
                         </div>
                     )}
-                </DialogContent>
-            </Dialog>
+                </div>
+            )}
 
         </div>
     );
