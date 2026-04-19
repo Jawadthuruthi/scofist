@@ -186,6 +186,7 @@ const AttendanceTrackingPage = async () => {
         },
         trailingToolbar: <StudentAttendanceLookup students={formattedStudents} classes={formatOptions(formattedClasses)} />,
         limit: 1000,
+        defaultSorting: [{ id: "_id", desc: false }],
       },
       {
         label: "Teachers",
@@ -285,6 +286,7 @@ const AttendanceTrackingPage = async () => {
         enableMonthYearFilter: true,
         trailingToolbar: <StudentAttendanceLookup students={formattedTeachers} type="teacher" />,
         limit: 1000,
+        defaultSorting: [{ id: "_id", desc: false }],
       },
     ];
     const tabsConfig2 = [
@@ -395,6 +397,7 @@ const AttendanceTrackingPage = async () => {
         },
         trailingToolbar: <StudentAttendanceLookup students={students} />,
         limit: 1000,
+        defaultSorting: [{ id: "_id", desc: false }],
       },
     ];
 

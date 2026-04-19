@@ -258,6 +258,7 @@ export default async function BatchesPage() {
           apiFilters={apiFilters}
           printTitle={"Teachers"}
           enableSearch={true}
+          defaultSorting={[{ id: "_id", desc: false }]}
         />
       </>
     );

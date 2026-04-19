@@ -160,6 +160,7 @@ export default async function BatchesPage() {
           filterConfig={filterConfig}
           limit={20}
           enableSearch={true}
+          defaultSorting={[{ id: "_id", desc: false }]}
         />
       </>
     );

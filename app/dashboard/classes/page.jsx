@@ -146,6 +146,7 @@ export default async function ClassesPage() {
           filterConfig={filterConfig}
           limit={20}
           enableSearch={true}
+          defaultSorting={[{ id: "_id", desc: false }]}
         />
       </>
     );
