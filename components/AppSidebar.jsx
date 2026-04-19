@@ -195,7 +195,7 @@ const items = [
     allowedRoles: ["Librarian"],
   },
   {
-    title: "Library Requests",
+    title: "Books Requests",
     url: "/dashboard/library-requests",
     icon: MessageSquare,
     allowedRoles: ["Librarian"],

@@ -123,7 +123,8 @@ export default function StudentDashboard({
   const [isStandardModalOpen, setIsStandardModalOpen] = useState(false);
   const [leavesList, setLeavesList] = useState([]);
   const [leavesLoading, setLeavesLoading] = useState(true);
-  const [librarySubTab, setLibrarySubTab] = useState("BOOKS");
+  const isActiveStudent = currentUser?.studentSpecificField?.status === "Active";
+  const [librarySubTab, setLibrarySubTab] = useState(isActiveStudent ? "BOOKS" : "HISTORY");
   const [libraryBooks, setLibraryBooks] = useState([]);
   const [libraryBooksLoading, setLibraryBooksLoading] = useState(true);
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -357,9 +358,9 @@ export default function StudentDashboard({
   }, [currentUser, apiKey]);
 
   useEffect(() => {
-    const fetchLibraryBooks = async () => {
-      if (!apiKey) return;
-      setLibraryBooksLoading(true);
+    const fetchLibraryBooks = async (showLoading = true) => {
+      if (!apiKey || !isActiveStudent) return;
+      if (showLoading) setLibraryBooksLoading(true);
       try {
         const res = await fetch("/api/library/books", {
           headers: { "Content-Type": "application/json", "api-key": apiKey }
@@ -371,11 +372,19 @@ export default function StudentDashboard({
       } catch (error) {
         console.error("Error fetching library books:", error);
       } finally {
-        setLibraryBooksLoading(false);
+        if (showLoading) setLibraryBooksLoading(false);
       }
     };
-    fetchLibraryBooks();
-  }, [apiKey]);
+    fetchLibraryBooks(true);
+    const interval = setInterval(() => fetchLibraryBooks(false), 15000); // Poll every 15s
+    return () => clearInterval(interval);
+  }, [apiKey, isActiveStudent]);
+
+  useEffect(() => {
+    if (!isActiveStudent && librarySubTab === "BOOKS") {
+      setLibrarySubTab("HISTORY");
+    }
+  }, [isActiveStudent, librarySubTab]);
 
   const fetchPendingRequests = async () => {
     if (!apiKey || !currentUser._id) return;
@@ -394,16 +403,22 @@ export default function StudentDashboard({
 
   useEffect(() => {
     fetchPendingRequests();
+    const interval = setInterval(fetchPendingRequests, 15000); // Poll every 15s
+    return () => clearInterval(interval);
   }, [apiKey, currentUser._id]);
 
-  const handleRequestBook = async (bookId) => {
-    if (!confirm("Are you sure you want to request this book?")) return;
+  const handleRequestBook = async (book) => {
+    if (book.status !== "Available") {
+      toast.error("This book is not available for request");
+      return;
+    }
+    if (!confirm(`Are you sure you want to request "${book.name}"?`)) return;
 
     try {
       const res = await fetch("/api/library/requests", {
         method: "POST",
         headers: { "Content-Type": "application/json", "api-key": apiKey },
-        body: JSON.stringify({ bookId, studentId: currentUser._id })
+        body: JSON.stringify({ bookId: book._id, studentId: currentUser._id })
       });
       const result = await res.json();
       if (result.success) {
@@ -1320,15 +1335,17 @@ export default function StudentDashboard({
         <Card className="lg:col-span-2 print:col-span-2 card-print-break shadow-sm">
           <CardHeader className="flex flex-col md:flex-row items-center justify-between gap-4 pb-2 border-b mb-4 relative">
             <div className="flex items-center bg-muted rounded-lg p-1 w-full md:w-auto order-2 md:order-1">
-              <Button
-                variant={librarySubTab === "BOOKS" ? "secondary" : "ghost"}
-                size="sm"
-                className={`flex-1 md:flex-none md:w-28 h-8 rounded-md transition-all ${librarySubTab === "BOOKS" ? "bg-white shadow-sm font-bold" : ""}`}
-                onClick={() => setLibrarySubTab("BOOKS")}
-              >
-                <LayoutGrid className="h-4 w-4 mr-2" />
-                Books
-              </Button>
+              {isActiveStudent && (
+                <Button
+                  variant={librarySubTab === "BOOKS" ? "secondary" : "ghost"}
+                  size="sm"
+                  className={`flex-1 md:flex-none md:w-28 h-8 rounded-md transition-all ${librarySubTab === "BOOKS" ? "bg-white shadow-sm font-bold" : ""}`}
+                  onClick={() => setLibrarySubTab("BOOKS")}
+                >
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  Books
+                </Button>
+              )}
               <Button
                 variant={librarySubTab === "HISTORY" ? "secondary" : "ghost"}
                 size="sm"
@@ -1346,7 +1363,7 @@ export default function StudentDashboard({
             <div className="hidden md:block w-56 order-3" /> {/* Spacer to balance the left buttons */}
           </CardHeader>
           <CardContent className="pt-2">
-            {librarySubTab === "BOOKS" ? (
+            {librarySubTab === "BOOKS" && isActiveStudent ? (
               <div className="space-y-4">
                 {libraryBooksLoading ? (
                   <div className="flex items-center justify-center py-20">
@@ -1398,24 +1415,15 @@ export default function StudentDashboard({
                       return (
                         <Card className="h-full hover:shadow-md transition-shadow overflow-hidden border border-border/50">
                           <CardContent className="p-4 flex gap-4 items-start">
-                            <div className="flex-shrink-0 flex flex-col items-center gap-2 w-28">
-                              <div className="bg-muted/50 dark:bg-muted/20 p-3 rounded-md flex items-center justify-center h-24 w-24 border border-border/50">
-                                <BookOpen className="h-10 w-10 text-muted-foreground" />
+                            <div className="flex-shrink-0 flex flex-col items-center gap-1.5 w-20">
+                              <div className="bg-muted/50 dark:bg-muted/20 p-2 rounded-md flex items-center justify-center h-16 w-16 border border-border/50">
+                                <BookOpen className="h-6 w-6 text-muted-foreground" />
                               </div>
                               <div className="text-center w-full space-y-1">
                                 <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/80 py-0.5 rounded border">ID: {book.number}</div>
-                                <div className="flex justify-center items-center w-full h-[38px] overflow-hidden bg-white rounded p-1 border border-border shadow-sm">
-                                  {book.number && (
-                                    <Barcode
-                                      value={String(book.number)}
-                                      width={0.8}
-                                      height={22}
-                                      fontSize={0}
-                                      margin={0}
-                                      displayValue={false}
-                                      background="transparent"
-                                    />
-                                  )}
+                                <div className="font-bold text-[11px] text-foreground">₹{book.price?.toFixed(2) || "0.00"}</div>
+                                <div className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider inline-block ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                                  {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
                                 </div>
                               </div>
                             </div>
@@ -1429,26 +1437,43 @@ export default function StudentDashboard({
                                   <span className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{book.category}</span>
                                 </div>
                               </div>
-                              <div className="pt-2 flex flex-col gap-2 mt-auto">
-                                <div className="flex items-center justify-between">
-                                  <div className="font-bold text-sm text-foreground">₹{book.price?.toFixed(2) || "0.00"}</div>
-                                  <div className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
-                                    {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
+                              <div className="pt-1 flex flex-col gap-2 mt-auto">
+                                <div className="flex items-center gap-2 w-full">
+                                  {/* Barcode in the same row */}
+                                  <div className="flex-1 flex justify-center items-center h-7 overflow-hidden bg-white rounded border border-border/50 shadow-sm p-0.5">
+                                    {book.number && (
+                                      <Barcode
+                                        value={String(book.number)}
+                                        width={0.6}
+                                        height={20}
+                                        fontSize={0}
+                                        margin={0}
+                                        displayValue={false}
+                                        background="transparent"
+                                      />
+                                    )}
+                                  </div>
+
+                                  <div className="flex-1">
+                                    {pendingRequests.some(r => r.bookId?._id === book._id || r.bookId === book._id) ? (
+                                      <Button disabled size="sm" className="w-full h-7 text-[10px] font-bold">
+                                        Requested
+                                      </Button>
+                                    ) : book.status !== "Available" ? (
+                                      <Button disabled size="sm" className="w-full h-7 text-[10px] font-bold bg-muted text-muted-foreground">
+                                        Not Available
+                                      </Button>
+                                    ) : (
+                                      <Button 
+                                        size="sm" 
+                                        className="w-full h-7 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                                        onClick={() => handleRequestBook(book)}
+                                      >
+                                        Request
+                                      </Button>
+                                    )}
                                   </div>
                                 </div>
-                                {pendingRequests.some(r => r.bookId?._id === book._id || r.bookId === book._id) ? (
-                                  <Button disabled size="sm" className="w-full h-7 text-[10px] font-bold">
-                                    Requested
-                                  </Button>
-                                ) : (
-                                  <Button 
-                                    size="sm" 
-                                    className="w-full h-7 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white"
-                                    onClick={() => handleRequestBook(book._id)}
-                                  >
-                                    Request
-                                  </Button>
-                                )}
                               </div>
                             </div>
                           </CardContent>

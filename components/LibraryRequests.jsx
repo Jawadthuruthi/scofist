@@ -5,15 +5,19 @@ import TableComponent from "@/components/TableComponent";
 import PopupForm from "@/components/PopupForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Check, X, BookOpen, Clock, User } from "lucide-react";
+import { Check, X, BookOpen, Clock, User, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import Header from "@/components/Header";
 
 export default function LibraryRequests() {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [rentalPopupOpen, setRentalPopupOpen] = useState(false);
+    const [rowSelection, setRowSelection] = useState({});
+    const selectedIds = Object.keys(rowSelection);
 
     const fetchRequests = async () => {
         setLoading(true);
@@ -33,6 +37,10 @@ export default function LibraryRequests() {
 
     useEffect(() => {
         fetchRequests();
+        
+        // Auto-refresh every 10 seconds
+        const interval = setInterval(fetchRequests, 10000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleReject = async (requestId) => {
@@ -84,6 +92,33 @@ export default function LibraryRequests() {
         }
     };
 
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        
+        if (!confirm(`Are you sure you want to delete ${selectedIds.length} selected request(s)? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/library/requests", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids: selectedIds })
+            });
+            const result = await res.json();
+            if (result.success) {
+                toast.success(result.msg || "Requests deleted successfully");
+                setRowSelection({});
+                fetchRequests();
+            } else {
+                toast.error(result.msg || "Failed to delete requests");
+            }
+        } catch (error) {
+            console.error("Error deleting requests:", error);
+            toast.error("An error occurred while deleting requests");
+        }
+    };
+
     const rentalFields = [
         {
             name: "bookId",
@@ -123,10 +158,42 @@ export default function LibraryRequests() {
 
     const columns = [
         {
+            id: "select",
+            header: ({ table }) => (
+                <div className="flex flex-col items-center gap-0.5">
+                    <Checkbox
+                        checked={table.getIsAllPageRowsSelected()}
+                        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                        aria-label="Select all"
+                    />
+                    {selectedIds.length > 0 && (
+                        <span className="text-[10px] font-bold text-primary leading-none">
+                            {selectedIds.length}
+                        </span>
+                    )}
+                </div>
+            ),
+            cell: ({ row }) => (
+                <Checkbox
+                    checked={row.getIsSelected()}
+                    onCheckedChange={(value) => row.toggleSelected(!!value)}
+                    aria-label="Select row"
+                />
+            ),
+            enableSorting: false,
+            enableHiding: false,
+            meta: {
+                width: "1px",
+                padding: "0px 2px",
+                textAlign: "center",
+                className: "tight-column",
+            },
+        },
+        {
             id: "serial",
             header: "Sl No",
             cell: ({ row }) => row.index + 1,
-            meta: { width: "50px" }
+            meta: { width: "1%", whiteSpace: "nowrap", textAlign: "center", padding: "0px 2px" }
         },
         {
             accessorKey: "bookId.name",
@@ -203,16 +270,11 @@ export default function LibraryRequests() {
     ];
 
     return (
-        <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                    <BookOpen className="h-6 w-6 text-primary" />
-                    <h1 className="text-2xl font-bold">Library Requests</h1>
-                </div>
-                <Button onClick={fetchRequests} variant="outline" size="sm">
-                    Refresh
-                </Button>
-            </div>
+        <div className="space-y-4 pt-2">
+            <Header 
+                title="BOOKS REQUESTS" 
+                subTitle="Manage student library book requests"
+            />
 
             <TableComponent
                 data={requests}
@@ -220,6 +282,22 @@ export default function LibraryRequests() {
                 getRowId={(row) => row._id}
                 loading={loading}
                 hideColumnManagement={true}
+                rowSelection={rowSelection}
+                onRowSelectionChange={setRowSelection}
+                actionButtons={
+                    selectedIds.length > 0 && (
+                        <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            className="h-8"
+                            onClick={handleBulkDelete}
+                        >
+                            <Trash2 className="h-4 w-4 lg:mr-2" />
+                            <span className="hidden lg:inline">Delete </span>
+                            ({selectedIds.length})
+                        </Button>
+                    )
+                }
             />
 
             {rentalPopupOpen && selectedRequest && (

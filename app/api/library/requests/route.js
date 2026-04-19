@@ -87,16 +87,25 @@ export async function PATCH(req) {
 export async function DELETE(req) {
     try {
         await connectToDB();
+        
+        let ids = [];
         const url = new URL(req.url);
-        const id = url.searchParams.get("id");
+        const singleId = url.searchParams.get("id");
 
-        if (!id) {
-            return NextResponse.json({ success: false, msg: "Request ID is required" }, { status: 400 });
+        if (singleId) {
+            ids = [singleId];
+        } else {
+            const body = await req.json();
+            ids = body.ids || [];
         }
 
-        await LibraryRequest.findByIdAndDelete(id);
+        if (!ids || ids.length === 0) {
+            return NextResponse.json({ success: false, msg: "Request ID(s) required" }, { status: 400 });
+        }
 
-        return NextResponse.json({ success: true, msg: "Request deleted successfully" }, { status: 200 });
+        await LibraryRequest.deleteMany({ _id: { $in: ids } });
+
+        return NextResponse.json({ success: true, msg: "Request(s) deleted successfully" }, { status: 200 });
     } catch (error) {
         return NextResponse.json({ success: false, msg: error.message }, { status: 500 });
     }

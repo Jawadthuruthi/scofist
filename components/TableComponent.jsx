@@ -144,8 +144,8 @@ const TableComponent = ({
   });
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           {/* Column Management - First */}
           {!hideColumnManagement && (
             <DropdownMenu>
@@ -248,11 +248,11 @@ const TableComponent = ({
 
           {/* Global Search Button/Input - Always visible */}
           {!hideSearch && (
-            <>
+            <div className="flex items-center gap-1">
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 hidden lg:flex"
+                className="h-8 flex"
                 onClick={() => setShowFilterInput(!showFilterInput)}
               >
                 <Search className="h-4 w-4" />
@@ -262,10 +262,10 @@ const TableComponent = ({
                   placeholder="Search..."
                   value={globalFilter ?? ""}
                   onChange={(event) => setGlobalFilter(event.target.value)}
-                  className="h-8 w-[150px] lg:w-[250px] hidden lg:block"
+                  className="h-8 flex-1 lg:flex-none lg:w-[450px] min-w-[80px]"
                 />
               )}
-            </>
+            </div>
           )}
 
         </div>
@@ -296,26 +296,7 @@ const TableComponent = ({
         </div>
       </div>
 
-      {!hideSearch && (
-        <div className="lg:hidden flex items-center gap-2 mt-2 w-full">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 shrink-0"
-            onClick={() => setShowFilterInput(!showFilterInput)}
-          >
-            <Search className="h-4 w-4" />
-          </Button>
-          {showFilterInput && (
-            <Input
-              placeholder="Search..."
-              value={globalFilter ?? ""}
-              onChange={(event) => setGlobalFilter(event.target.value)}
-              className="h-8 flex-1"
-            />
-          )}
-        </div>
-      )}
+
 
       {viewMode === "grid" && renderGridItem ? (
         <div ref={tableRef}>
