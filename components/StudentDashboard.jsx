@@ -18,9 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "@/components/Header";
-import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Eye, Plane } from "lucide-react";
+import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Eye, Plane, List, LayoutGrid, Search } from "lucide-react";
 import { formatDateForDisplay, formatMonthYear, formatDateShort } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
+import TableComponent from "@/components/TableComponent";
+import Barcode from "react-barcode";
 import PrintHeader from "@/components/PrintHeader";
 import {
   BarChart,
@@ -41,6 +43,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 
 
@@ -120,6 +123,10 @@ export default function StudentDashboard({
   const [isStandardModalOpen, setIsStandardModalOpen] = useState(false);
   const [leavesList, setLeavesList] = useState([]);
   const [leavesLoading, setLeavesLoading] = useState(true);
+  const [librarySubTab, setLibrarySubTab] = useState("BOOKS");
+  const [libraryBooks, setLibraryBooks] = useState([]);
+  const [libraryBooksLoading, setLibraryBooksLoading] = useState(true);
+  const [pendingRequests, setPendingRequests] = useState([]);
 
 
   const className = classes.find(
@@ -348,6 +355,68 @@ export default function StudentDashboard({
     };
     fetchLeaves();
   }, [currentUser, apiKey]);
+
+  useEffect(() => {
+    const fetchLibraryBooks = async () => {
+      if (!apiKey) return;
+      setLibraryBooksLoading(true);
+      try {
+        const res = await fetch("/api/library/books", {
+          headers: { "Content-Type": "application/json", "api-key": apiKey }
+        });
+        const result = await res.json();
+        if (result.success) {
+          setLibraryBooks(result.data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching library books:", error);
+      } finally {
+        setLibraryBooksLoading(false);
+      }
+    };
+    fetchLibraryBooks();
+  }, [apiKey]);
+
+  const fetchPendingRequests = async () => {
+    if (!apiKey || !currentUser._id) return;
+    try {
+      const res = await fetch(`/api/library/requests?studentId=${currentUser._id}&status=Pending`, {
+        headers: { "Content-Type": "application/json", "api-key": apiKey }
+      });
+      const result = await res.json();
+      if (result.success) {
+        setPendingRequests(result.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching pending requests:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingRequests();
+  }, [apiKey, currentUser._id]);
+
+  const handleRequestBook = async (bookId) => {
+    if (!confirm("Are you sure you want to request this book?")) return;
+
+    try {
+      const res = await fetch("/api/library/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "api-key": apiKey },
+        body: JSON.stringify({ bookId, studentId: currentUser._id })
+      });
+      const result = await res.json();
+      if (result.success) {
+        toast.success("Request submitted successfully");
+        fetchPendingRequests();
+      } else {
+        toast.error(result.msg || "Failed to submit request");
+      }
+    } catch (error) {
+      console.error("Error requesting book:", error);
+      toast.error("An error occurred while requesting the book");
+    }
+  };
 
   const attendanceHistory = useMemo(() => {
     // Robust extraction of attendance records
@@ -1249,71 +1318,206 @@ export default function StudentDashboard({
 
       {activeTab === "LIBRARY" && (
         <Card className="lg:col-span-2 print:col-span-2 card-print-break shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              Read Books History
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="max-h-[300px] overflow-y-auto pr-2">
-              {rentalsLoading ? (
-                <div className="flex items-center justify-center py-6">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : rentalHistory && rentalHistory.length > 0 ? (
-                <div className="rounded-md border overflow-hidden">
-                  <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead className="w-[60px]">Sl No</TableHead>
-                        <TableHead>Book Name</TableHead>
-                        <TableHead>Rented Date</TableHead>
-                        <TableHead>Returned Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rentalHistory.map((rental, index) => (
-                        <TableRow key={rental._id}>
-                          <TableCell className="text-muted-foreground">{index + 1}</TableCell>
-                          <TableCell className="font-medium">
-                            {rental.bookId?.name || "Unknown Book"}
-                            <div className="text-xs text-muted-foreground">
-                              {rental.bookId?.prefix && rental.bookId?.number
-                                ? `${rental.bookId.prefix}-${rental.bookId.number}`
-                                : rental.bookId?.number || "N/A"}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3 text-muted-foreground" />
-                              {formatDateWithoutDay(rental.rentedDate)}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {rental.receivedDate ? (
-                              <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                                <Clock className="h-3 w-3" />
-                                {formatDateWithoutDay(rental.receivedDate)}
-                              </div>
-                            ) : (
-                              <span className="text-orange-600 dark:text-orange-400 font-medium">
-                                Currently Reading
-                              </span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-10 text-muted-foreground">
-                  <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-20" />
-                  <p>No book rental history found.</p>
-                </div>
-              )}
+          <CardHeader className="flex flex-col md:flex-row items-center justify-between gap-4 pb-2 border-b mb-4 relative">
+            <div className="flex items-center bg-muted rounded-lg p-1 w-full md:w-auto order-2 md:order-1">
+              <Button
+                variant={librarySubTab === "BOOKS" ? "secondary" : "ghost"}
+                size="sm"
+                className={`flex-1 md:flex-none md:w-28 h-8 rounded-md transition-all ${librarySubTab === "BOOKS" ? "bg-white shadow-sm font-bold" : ""}`}
+                onClick={() => setLibrarySubTab("BOOKS")}
+              >
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Books
+              </Button>
+              <Button
+                variant={librarySubTab === "HISTORY" ? "secondary" : "ghost"}
+                size="sm"
+                className={`flex-1 md:flex-none md:w-28 h-8 rounded-md transition-all ${librarySubTab === "HISTORY" ? "bg-white shadow-sm font-bold" : ""}`}
+                onClick={() => setLibrarySubTab("HISTORY")}
+              >
+                <List className="h-4 w-4 mr-2" />
+                History
+              </Button>
             </div>
+            <CardTitle className="flex items-center gap-2 text-center md:absolute md:left-1/2 md:-translate-x-1/2 order-1 md:order-2">
+              <BookOpen className="h-5 w-5 text-amber-500" />
+              Library Services
+            </CardTitle>
+            <div className="hidden md:block w-56 order-3" /> {/* Spacer to balance the left buttons */}
+          </CardHeader>
+          <CardContent className="pt-2">
+            {librarySubTab === "BOOKS" ? (
+              <div className="space-y-4">
+                {libraryBooksLoading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
+                  </div>
+                ) : (
+                  <TableComponent
+                    data={libraryBooks}
+                    getRowId={(row) => row._id}
+                    tableHeight="calc(100vh - 450px)"
+                    hidePrintBtn={true}
+                    hideColumnManagement={true}
+                    enableGrid={true}
+                    defaultViewMode="grid"
+                    hideViewToggle={true}
+                    columnsConfig={[
+                      { accessorKey: "number", header: "Book ID" },
+                      { accessorKey: "name", header: "Book Name" },
+                      { accessorKey: "author", header: "Author" },
+                      { accessorKey: "category", header: "Category" },
+                      { accessorKey: "language", header: "Language" },
+                      { accessorKey: "status", header: "Status" },
+                    ]}
+                    filterConfig={[
+                      {
+                        id: "category",
+                        label: "Category",
+                        inputType: "select",
+                        options: Array.from(new Set(libraryBooks.map(b => b.category))).filter(Boolean).map(c => ({ value: c, label: c }))
+                      },
+                      {
+                        id: "language",
+                        label: "Language",
+                        inputType: "select",
+                        options: Array.from(new Set(libraryBooks.map(b => b.language))).filter(Boolean).map(l => ({ value: l, label: l }))
+                      },
+                      {
+                        id: "status",
+                        label: "Status",
+                        inputType: "select",
+                        options: [
+                          { value: "Available", label: "Available" },
+                          { value: "Rented", label: "Rented" },
+                        ]
+                      }
+                    ]}
+                    renderGridItem={(row) => {
+                      const book = row.original;
+                      return (
+                        <Card className="h-full hover:shadow-md transition-shadow overflow-hidden border border-border/50">
+                          <CardContent className="p-4 flex gap-4 items-start">
+                            <div className="flex-shrink-0 flex flex-col items-center gap-2 w-28">
+                              <div className="bg-muted/50 dark:bg-muted/20 p-3 rounded-md flex items-center justify-center h-24 w-24 border border-border/50">
+                                <BookOpen className="h-10 w-10 text-muted-foreground" />
+                              </div>
+                              <div className="text-center w-full space-y-1">
+                                <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/80 py-0.5 rounded border">ID: {book.number}</div>
+                                <div className="flex justify-center items-center w-full h-[38px] overflow-hidden bg-white rounded p-1 border border-border shadow-sm">
+                                  {book.number && (
+                                    <Barcode
+                                      value={String(book.number)}
+                                      width={0.8}
+                                      height={22}
+                                      fontSize={0}
+                                      margin={0}
+                                      displayValue={false}
+                                      background="transparent"
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex-1 space-y-1 min-w-0 py-1 flex flex-col h-full">
+                              <div className="flex-1">
+                                <h3 className="font-bold text-base leading-tight break-words mb-1 text-foreground" title={book.name}>{book.name}</h3>
+                                <div className="text-xs text-muted-foreground truncate" title={book.author}>Author: <span className="text-foreground font-medium">{book.author}</span></div>
+                                {book.publication && <div className="text-xs text-muted-foreground truncate" title={book.publication}>Pub: <span className="text-foreground">{book.publication}</span></div>}
+                                <div className="text-[11px] mt-1 flex flex-wrap gap-1">
+                                  <span className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{book.language}</span>
+                                  <span className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{book.category}</span>
+                                </div>
+                              </div>
+                              <div className="pt-2 flex flex-col gap-2 mt-auto">
+                                <div className="flex items-center justify-between">
+                                  <div className="font-bold text-sm text-foreground">₹{book.price?.toFixed(2) || "0.00"}</div>
+                                  <div className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                                    {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
+                                  </div>
+                                </div>
+                                {pendingRequests.some(r => r.bookId?._id === book._id || r.bookId === book._id) ? (
+                                  <Button disabled size="sm" className="w-full h-7 text-[10px] font-bold">
+                                    Requested
+                                  </Button>
+                                ) : (
+                                  <Button 
+                                    size="sm" 
+                                    className="w-full h-7 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                                    onClick={() => handleRequestBook(book._id)}
+                                  >
+                                    Request
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    }}
+                  />
+                )}
+              </div>
+            ) : (
+              <div className="max-h-[500px] overflow-y-auto pr-2">
+                {rentalsLoading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
+                  </div>
+                ) : rentalHistory && rentalHistory.length > 0 ? (
+                  <div className="rounded-md border overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow>
+                          <TableHead className="w-[60px]">Sl No</TableHead>
+                          <TableHead>Book Name</TableHead>
+                          <TableHead>Rented Date</TableHead>
+                          <TableHead>Returned Date</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rentalHistory.map((rental, index) => (
+                          <TableRow key={rental._id}>
+                            <TableCell className="text-muted-foreground">{index + 1}</TableCell>
+                            <TableCell className="font-medium">
+                              {rental.bookId?.name || "Unknown Book"}
+                              <div className="text-xs text-muted-foreground">
+                                {rental.bookId?.prefix && rental.bookId?.number
+                                  ? `${rental.bookId.prefix}-${rental.bookId.number}`
+                                  : rental.bookId?.number || "N/A"}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3 text-muted-foreground" />
+                                {formatDateWithoutDay(rental.rentedDate)}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {rental.receivedDate ? (
+                                <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                  <Clock className="h-3 w-3" />
+                                  {formatDateWithoutDay(rental.receivedDate)}
+                                </div>
+                              ) : (
+                                <span className="text-orange-600 dark:text-orange-400 font-medium">
+                                  Currently Reading
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-20 text-muted-foreground">
+                    <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                    <p>No book rental history found.</p>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

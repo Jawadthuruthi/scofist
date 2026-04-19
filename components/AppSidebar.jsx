@@ -194,6 +194,12 @@ const items = [
     icon: Users,
     allowedRoles: ["Librarian"],
   },
+  {
+    title: "Library Requests",
+    url: "/dashboard/library-requests",
+    icon: MessageSquare,
+    allowedRoles: ["Librarian"],
+  },
 
   {
     title: "Downloads",
@@ -222,7 +228,7 @@ const items = [
         title: "Identity Cards",
         url: "/dashboard/identity-cards",
         icon: IdCard,
-        allowedRoles: ["College Admin", "Student"],
+        allowedRoles: ["College Admin"],
       },
     ],
   },

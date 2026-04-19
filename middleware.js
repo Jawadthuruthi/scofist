@@ -252,6 +252,11 @@ const pages = [
     allowedRoles: ["Librarian"],
   },
   {
+    title: "Library Requests",
+    path: "/dashboard/library-requests",
+    allowedRoles: ["Librarian"],
+  },
+  {
     title: "Downloads",
     path: "/dashboard/downloads",
     allowedRoles: ["College Admin", "Student", "Teacher"],

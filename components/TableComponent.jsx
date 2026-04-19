@@ -63,13 +63,15 @@ const TableComponent = ({
   hideSearch = false,
   hideColumnManagement = false,
   showCsvBtn = false,
+  defaultViewMode = "list",
+  hideViewToggle = false,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState([]); // Advanced filters
   const [showFilterInput, setShowFilterInput] = useState(false);
-  const [viewMode, setViewMode] = useState("list"); // list or grid
+  const [viewMode, setViewMode] = useState(defaultViewMode); // list or grid
 
   const tableRef = useRef(null);
 
@@ -197,7 +199,7 @@ const TableComponent = ({
             </DropdownMenu>
           )}
 
-          {enableGrid && (
+          {enableGrid && !hideViewToggle && (
             <div className="flex items-center border rounded-md overflow-hidden">
               <Button
                 variant={viewMode === "list" ? "secondary" : "ghost"}
