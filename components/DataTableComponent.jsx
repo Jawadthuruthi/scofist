@@ -783,6 +783,45 @@ const DataTableComponent = ({
     return baseData;
   }, [isApiFiltering, data, filteredData, toppersOnly, highlightedRowIds, highlightHighest, sorting]);
 
+  const groupedTopperRows = useMemo(() => {
+    if (!toppersOnly) return [];
+
+    const groups = {};
+    tableDataForTable.forEach((row) => {
+      const getName = (item) => {
+        if (!highlightHighest?.groupBy) return "Other";
+        const keys = highlightHighest.groupBy.split(".");
+        let val = item;
+        for (const key of keys) {
+          if (val === null || val === undefined) break;
+          val = val[key];
+        }
+        return val || "Other";
+      };
+
+      const className = getName(row);
+      if (!groups[className]) groups[className] = { students: [], percentage: 0 };
+
+      // Calculate percentage the same way highlightHighest does
+      let percentage = 0;
+      if (highlightHighest?.type === "percentage") {
+        const records = row[highlightHighest.totalKey] || [];
+        const total = records.length;
+        const present = records.filter(r => r[highlightHighest.filterKey] === highlightHighest.filterValue).length;
+        percentage = total > 0 ? (present / total) * 100 : 0;
+      }
+
+      groups[className].students.push({ id: row._id, name: row.name });
+      groups[className].percentage = percentage;
+    });
+
+    return Object.entries(groups).map(([className, group]) => ({
+      className,
+      students: group.students,
+      percentage: group.percentage,
+    }));
+  }, [toppersOnly, tableDataForTable, highlightHighest]);
+
   // Initialize table
   const table = useReactTable({
     data: tableDataForTable,
@@ -1299,7 +1338,9 @@ const DataTableComponent = ({
       >
         <PrintHeader
           apiKey={apiKey}
-          title={printTitle ? printTitle : resource}
+          title={toppersOnly && enableMonthYearFilter && filterMonth && filterYear 
+            ? `Attendance Toppers - ${new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' })} ${filterYear}`
+            : (printTitle ? printTitle : resource)}
           subTitle={(() => {
             const dateFilterConfig = filterConfig.find(f => f.inputType === "dateRange");
             if (!dateFilterConfig) return null;
@@ -1332,7 +1373,7 @@ const DataTableComponent = ({
           displayOnScreen={showLogo}
           isFestival={isFestival}
         />
-        <Table>
+        <Table className={cn(toppersOnly ? "print:hidden" : "")}>
           <TableHeader className="sticky top-0 bg-background z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -1440,6 +1481,44 @@ const DataTableComponent = ({
             </TableBody>
           )}
         </Table>
+
+        {/* Grouped Toppers Table (Only visible during print when toppersOnly is active) */}
+        {toppersOnly && (
+          <div className="hidden print:block w-full">
+            <Table className="print:table w-full border-collapse">
+              <TableHeader className="bg-muted/10">
+                <TableRow>
+                  <TableHead className="w-[80px] border text-center font-bold">Sl.No.</TableHead>
+                  <TableHead className="w-[180px] border font-bold">Class</TableHead>
+                  <TableHead className="border font-bold">Toppers</TableHead>
+                  <TableHead className="w-[100px] border text-right font-bold">Percentage</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groupedTopperRows.map((group, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell className="text-center border py-2">{idx + 1}</TableCell>
+                    <TableCell className="font-bold border bg-muted/5 py-2 uppercase">
+                      {group.className}
+                    </TableCell>
+                    <TableCell className="border leading-relaxed py-2 font-normal text-foreground">
+                      <div className="flex flex-col gap-1">
+                        {group.students.map((student, sIdx) => (
+                          <div key={sIdx} className="whitespace-nowrap">
+                            {sIdx + 1}. [{student.id}] {student.name}
+                          </div>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right border font-bold py-2 px-4 shadow-none">
+                      {group.percentage.toFixed(2)}%
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
         {hasNextPage && table.getRowModel().rows?.length > 0 && (
           <div ref={loaderRef} className="w-full p-4 text-center print:hidden">
             {isLoadingMore ? (
