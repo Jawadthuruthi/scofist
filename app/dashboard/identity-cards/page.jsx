@@ -28,6 +28,7 @@ const identityCardsPage = async () => {
         classes={classes}
         teachers={teachers}
         userRole={activeRole}
+        allRoles={user?.roles || []}
         userId={user?._id}
       />
     );

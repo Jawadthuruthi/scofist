@@ -585,7 +585,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 enableCreate={false} // Disable built-in add button
                 createFormTitle="Add Transaction"
                 editFormTitle="Edit Transaction"
-                apiFilters={{ accountType, accountName }} // Pass accountType and accountName for filtering
+                apiFilters={{ accountType, accountName, refreshKey }} // Pass accountType, accountName and refreshKey for filtering
                 additionalFormParams={{ accountType, accountName }} // For creation if we enabled it here
                 additionalProps={{
                     customActions: summary?.categories && (
@@ -597,6 +597,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 printInReverse={true}
                 printTitle={`Accounts ${accountName ? `- ${accountName}` : ""}`}
                 limit={0}
+                onSuccess={handleSuccess}
             />
 
             <Dialog open={deleteConfirmationOpen} onOpenChange={setDeleteConfirmationOpen}>

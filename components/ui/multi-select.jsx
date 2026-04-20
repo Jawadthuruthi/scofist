@@ -64,6 +64,7 @@ export const MultiSelect = React.forwardRef(
       maxLength = 50,
       caseSensitive = false,
       readOnly = false,
+      onOptionDelete = null,
       ...props
     },
     ref
@@ -581,11 +582,24 @@ export const MultiSelect = React.forwardRef(
                       )}
                       <span
                         className={cn(
+                          "flex-1",
                           option.isCustom && "text-primary font-medium"
                         )}
                       >
                         {option.label}
                       </span>
+                      {onOptionDelete && !option.isCustom && (
+                        <div
+                          className="ml-2 hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOptionDelete(option.value);
+                          }}
+                          title={`Remove ${option.label} from list`}
+                        >
+                          <XIcon className="h-3.5 w-3.5" />
+                        </div>
+                      )}
                       {option.isCustom && (
                         <Badge variant="outline" className="ml-auto text-xs">
                           Custom

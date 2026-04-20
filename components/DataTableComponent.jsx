@@ -137,6 +137,7 @@ const DataTableComponent = ({
   defaultSorting = DEFAULT_ARRAY,
   createButtonClass = "",
   createButtonText = "",
+  onSuccess = null,
 }) => {
   const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
@@ -823,6 +824,7 @@ const DataTableComponent = ({
       setData([]);
       await fetchItemsQuery.refetch();
       router.refresh();
+      if (onSuccess) onSuccess();
       toast.success(createSuccessMessage);
       return true;
     } catch (error) {
@@ -866,6 +868,7 @@ const DataTableComponent = ({
         console.log("Refetch result length:", result.data?.[resource]?.length);
         
         router.refresh();
+        if (onSuccess) onSuccess();
         toast.success(editSuccessMessage);
       }, 300);
 
@@ -897,7 +900,7 @@ const DataTableComponent = ({
       setData([]);
       await fetchItemsQuery.refetch();
       router.refresh();
-
+      if (onSuccess) onSuccess();
       toast.success(deleteSuccessMessage);
       return true;
     } catch (error) {

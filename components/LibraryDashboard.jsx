@@ -443,7 +443,22 @@ export default function LibraryDashboard({
         {
             accessorKey: "receivedDate",
             header: "Returned On",
-            cell: ({ row }) => row.original.receivedDate ? format(new Date(row.original.receivedDate), "PPP") : "Pending",
+            cell: ({ row }) => {
+                const rental = row.original;
+                return rental.receivedDate ? (
+                    format(new Date(rental.receivedDate), "PPP")
+                ) : (
+                    <PopupForm
+                        title="Return Book"
+                        description="Select the returned date"
+                        formFields={returnFormFields}
+                        onSubmit={(data) => handleSaveReturnBook(rental._id, data)}
+                        trigger={<span className="text-red-500 font-bold hover:underline cursor-pointer">Pending</span>}
+                        className="sm:max-w-[250px]"
+                        submitButtonClass="w-full"
+                    />
+                );
+            },
             meta: {
                 width: "1%",
                 whiteSpace: "nowrap"

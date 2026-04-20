@@ -22,8 +22,7 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
     const addItem = useAddItem();
 
     const categoryOptions = useMemo(() => {
-        const defaults = ["Stationary", "IT Lab", "Donation"];
-        const allCategories = Array.from(new Set([...defaults, ...existingCategories]));
+        const allCategories = Array.from(new Set(existingCategories));
         return allCategories.map(cat => ({ value: cat, label: cat }));
     }, [existingCategories]);
 
@@ -45,6 +44,28 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
 
     const handleSelectChange = (name, value) => {
         setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleDeleteCategory = async (categoryName) => {
+        if (!confirm(`Are you sure you want to remove "${categoryName}" from the list? \n\nThis will clear the category name for all associated transactions, but the transactions will NOT be deleted.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/finance/categories?category=${encodeURIComponent(categoryName)}&accountType=${accountType}`, {
+                method: "DELETE",
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success(data.message);
+                if (onSuccess) onSuccess(); // Refresh data/summary
+            } else {
+                toast.error(data.error || "Failed to remove category");
+            }
+        } catch (error) {
+            console.error("Error removing category:", error);
+            toast.error("An error occurred while removing the category");
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -209,6 +230,7 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
                                 options={categoryOptions}
                                 value={formData.category}
                                 onValueChange={(val) => handleSelectChange("category", val)}
+                                onOptionDelete={handleDeleteCategory}
                                 placeholder="Select or type category"
                                 variant="default"
                                 animation={0}

@@ -6,12 +6,12 @@ import AccountsClient from "./AccountsClient";
 
 export const dynamic = "force-dynamic"; // Ensure real-time updates
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 export default async function AccountsPage({ searchParams }) {
     const cookieStore = await cookies();
     const activeRole = cookieStore.get("active-role")?.value;
-    const { accountName } = await searchParams;
+    const { accountName, startDate, endDate } = await searchParams;
 
     let accountType = "College";
     if (activeRole === "Org Admin") {
@@ -25,11 +25,23 @@ export default async function AccountsPage({ searchParams }) {
     let summary = null;
     let allCategories = [];
     try {
-        summary = await getFinanceSummary(accountType, accountName);
+        const userHeader = (await headers()).get("x-user");
+        const user = userHeader ? JSON.parse(userHeader) : null;
+        const currentUserId = (activeRole === "College Admin" && user?._id) ? user._id : null;
 
-        // Fetch all categories globally for this accountType across all years
+        summary = await getFinanceSummary(accountType, accountName, currentUserId, startDate, endDate);
+
+        // Fetch all categories for this accountType and user isolated context
         await connectToDB();
-        allCategories = await Finance.distinct("category", { accountType });
+        const categoryQuery = { accountType };
+        if (currentUserId) {
+            categoryQuery.$or = [
+                { userId: currentUserId },
+                { userId: { $exists: false } },
+                { userId: null }
+            ];
+        }
+        allCategories = await Finance.distinct("category", categoryQuery);
         allCategories = allCategories.filter(Boolean); // Remove empty/null categories
     } catch (error) {
         console.error("Error fetching finance summary:", error);

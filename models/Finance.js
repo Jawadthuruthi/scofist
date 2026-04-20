@@ -49,6 +49,10 @@ const financeSchema = new mongoose.Schema(
       required: false,
       index: true,
     },
+    userId: {
+      type: String,
+      index: true,
+    },
   },
   { timestamps: true }
 );

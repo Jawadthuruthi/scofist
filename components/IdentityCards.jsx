@@ -51,6 +51,7 @@ const IdentityCards = ({
   apiKey,
   settings = {},
   userRole,
+  allRoles = [],
   userId,
 }) => {
   const [selectionType, setSelectionType] = useState("Student ID");
@@ -210,16 +211,7 @@ const IdentityCards = ({
               </Select>
             </div>
 
-            <Button
-              onClick={handlePrint}
-              className="flex items-center justify-center gap-2 flex-1 h-10"
-              aria-label="Print"
-            >
-              <Printer size={16} />
-              Print
-            </Button>
-
-            {userRole === "College Admin" && (
+            {(userRole === "College Admin" || allRoles.includes("College Admin")) && (
               <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" title="Settings">
@@ -243,6 +235,15 @@ const IdentityCards = ({
                 </DialogContent>
               </Dialog>
             )}
+
+            <Button
+              onClick={handlePrint}
+              className="flex items-center justify-center gap-2 flex-1 h-10"
+              aria-label="Print"
+            >
+              <Printer size={16} />
+              Print
+            </Button>
           </div>
         </div>
       </div>

@@ -2,11 +2,32 @@
 import connectToDB from "@/lib/db";
 import Finance from "@/models/Finance";
 
-export async function getFinanceSummary(accountType = "College", accountName = null) {
+export async function getFinanceSummary(accountType = "College", accountName = null, userId = null, startDate = null, endDate = null) {
     await connectToDB();
 
     // Aggregation for summary
     const matchStage = { accountType }; // Filter by accountType provided
+
+    if (userId && accountType === "College") {
+        matchStage.$or = [
+            { userId: userId },
+            { userId: { $exists: false } },
+            { userId: null }
+        ];
+    }
+
+    if (startDate || endDate) {
+        matchStage.date = {};
+        if (startDate) {
+            matchStage.date.$gte = new Date(startDate);
+        }
+        if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            matchStage.date.$lte = end;
+        }
+    }
+
     if (accountName) {
         matchStage.accountName = accountName;
     } else if (accountType === "Org") {

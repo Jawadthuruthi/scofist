@@ -1,4 +1,6 @@
 
+export const dynamic = "force-dynamic";
+
 import connectToDB from "@/lib/db";
 import Finance from "@/models/Finance";
 import { getFinanceSummary } from "@/libservices/financeService";
@@ -16,6 +18,10 @@ export async function GET(req) {
     const accountType = searchParams.get("accountType") || "College"; // Default to College
     const accountName = searchParams.get("accountName"); // Get accountName
     console.log("Finance API GET:", { accountType, accountName, allParams: Object.fromEntries(searchParams) });
+    const userHeader = req.headers.get("x-user");
+    const user = userHeader ? JSON.parse(userHeader) : null;
+    const isCollegeAdmin = user?.roles?.includes("College Admin");
+
     const page = parseInt(searchParams.get("page")) || 1;
     const limitParam = searchParams.get("limit");
     const limit = limitParam === "0" ? 0 : (parseInt(limitParam) || 20);
@@ -23,13 +29,24 @@ export async function GET(req) {
 
     let query = {};
 
-    if (startDate && endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      query.date = {
-        $gte: new Date(startDate),
-        $lte: end,
-      };
+    if (isCollegeAdmin && accountType === "College") {
+      query.$or = [
+        { userId: user._id },
+        { userId: { $exists: false } },
+        { userId: null }
+      ];
+    }
+
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) {
+        query.date.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.date.$lte = end;
+      }
     }
 
     if (category && category !== "all") {
@@ -91,8 +108,9 @@ export async function GET(req) {
     const total = await Finance.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
 
-    // Calculate Summary (Global Balance)
-    const summary = await getFinanceSummary(accountType, accountName);
+    // Calculate Summary (Global Balance or Filtered Summary)
+    const summaryUserId = (isCollegeAdmin && accountType === "College") ? user._id : null;
+    const summary = await getFinanceSummary(accountType, accountName, summaryUserId, startDate, endDate);
 
     return NextResponse.json({
       success: true,
@@ -123,6 +141,13 @@ export async function POST(req) {
       item: body.item,
       recipient: body.recipient
     });
+
+    const userHeader = req.headers.get("x-user");
+    const user = userHeader ? JSON.parse(userHeader) : null;
+    
+    if (user?._id) {
+        body.userId = user._id;
+    }
 
     const newTransaction = await Finance.create(body);
     console.log("Created Transaction:", newTransaction);
@@ -155,8 +180,19 @@ export async function PUT(req) {
     delete updateData.createdAt;
     delete updateData.updatedAt;
 
+    const userHeader = req.headers.get("x-user");
+    const user = userHeader ? JSON.parse(userHeader) : null;
+    const isCollegeAdmin = user?.roles?.includes("College Admin");
+
+    const query = { _id: { $in: ids } };
+    if (isCollegeAdmin && updateData.accountType !== "Org") { // If College Admin, restrict to their own records except for Org accounts
+        // Wait, for College Admin, accountType is usually "College". 
+        // If it's "College", we should isolate.
+        query.userId = user._id;
+    }
+
     const result = await Finance.updateMany(
-      { _id: { $in: ids } },
+      query,
       { $set: updateData }
     );
 
@@ -186,7 +222,16 @@ export async function DELETE(req) {
       );
     }
 
-    const result = await Finance.deleteMany({ _id: { $in: ids } });
+    const userHeader = req.headers.get("x-user");
+    const user = userHeader ? JSON.parse(userHeader) : null;
+    const isCollegeAdmin = user?.roles?.includes("College Admin");
+
+    const query = { _id: { $in: ids } };
+    if (isCollegeAdmin) {
+        query.userId = user._id;
+    }
+
+    const result = await Finance.deleteMany(query);
 
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
