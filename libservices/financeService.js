@@ -9,11 +9,8 @@ export async function getFinanceSummary(accountType = "College", accountName = n
     const matchStage = { accountType }; // Filter by accountType provided
 
     if (userId && accountType === "College") {
-        matchStage.$or = [
-            { userId: userId },
-            { userId: { $exists: false } },
-            { userId: null }
-        ];
+        // STRICT ISOLATION: Only include records created by the current user
+        matchStage.userId = userId;
     }
 
     if (startDate || endDate) {

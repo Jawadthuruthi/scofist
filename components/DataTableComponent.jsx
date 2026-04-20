@@ -138,6 +138,7 @@ const DataTableComponent = ({
   createButtonClass = "",
   createButtonText = "",
   onSuccess = null,
+  onDataFetched = null,
 }) => {
   const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
@@ -180,6 +181,10 @@ const DataTableComponent = ({
   // Sync activeApiFilters with prop
   useEffect(() => {
     setActiveApiFilters(apiFilters);
+    // Reset state when filters (like refreshKey) change to ensure a clean reload
+    setPage(0);
+    setData([]);
+    setIsFilterChanged(true);
   }, [apiFilters]);
 
   // Periodic refresh
@@ -353,6 +358,11 @@ const DataTableComponent = ({
       setHasNextPage(page < (pagination?.totalPages || 1) - 1);
       setIsFetchingNextPage(false);
       isFetchingRef.current = false;
+
+      // Notify parent of fetched data (contains summary, pagination, etc.)
+      if (onDataFetched) {
+        onDataFetched(fetchItemsQuery.data);
+      }
     }
   }, [fetchItemsQuery.data, page, resource, isFilterChanged, data.length]);
 
@@ -862,15 +872,13 @@ const DataTableComponent = ({
       setPage(0);
       setData([]);
       
-      setTimeout(async () => {
-        // Adding a timestamp to force fresh fetch and bypass any potential caches
-        const result = await fetchItemsQuery.refetch();
-        console.log("Refetch result length:", result.data?.[resource]?.length);
-        
-        router.refresh();
-        if (onSuccess) onSuccess();
-        toast.success(editSuccessMessage);
-      }, 300);
+      // Perform refresh immediately without artificial delay
+      const result = await fetchItemsQuery.refetch();
+      console.log("Refetch result length:", result.data?.[resource]?.length);
+      
+      router.refresh();
+      if (onSuccess) onSuccess();
+      toast.success(editSuccessMessage);
 
       return true;
     } catch (error) {
@@ -1095,6 +1103,10 @@ const DataTableComponent = ({
                 />
               )}
               
+              {additionalProps?.customActions && (
+                <div className="shrink-0">{additionalProps.customActions}</div>
+              )}
+              
               <Button onClick={handleExportExcel} className="h-9 w-9 p-0 flex items-center justify-center bg-green-600 text-white hover:bg-green-700 border-0 shrink-0">
                 <FileSpreadsheet className="h-4 w-4" />
               </Button>
@@ -1148,12 +1160,6 @@ const DataTableComponent = ({
             </div>
           )}
 
-          {/* Additional Actions (CRUD, etc) */}
-          {additionalProps?.customActions && (
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
-              <div>{additionalProps.customActions}</div>
-            </div>
-          )}
 
           {!!selectedData.length && (
             <div className="text-muted-foreground text-[10px] bg-muted/50 px-2 py-0.5 rounded-full inline-block">

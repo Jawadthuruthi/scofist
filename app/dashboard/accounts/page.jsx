@@ -35,11 +35,8 @@ export default async function AccountsPage({ searchParams }) {
         await connectToDB();
         const categoryQuery = { accountType };
         if (currentUserId) {
-            categoryQuery.$or = [
-                { userId: currentUserId },
-                { userId: { $exists: false } },
-                { userId: null }
-            ];
+            // STRICT ISOLATION: Only show categories used by the current user
+            categoryQuery.userId = currentUserId;
         }
         allCategories = await Finance.distinct("category", categoryQuery);
         allCategories = allCategories.filter(Boolean); // Remove empty/null categories

@@ -287,6 +287,12 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         }
     ];
 
+    const handleDataFetched = useCallback((data) => {
+        if (data?.summary) {
+            setSummary(data.summary);
+        }
+    }, []);
+
     const handleSuccess = useCallback(() => {
         router.refresh();
         // Force DataTable refresh by updating key
@@ -573,7 +579,6 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
             />
 
             <DataTableComponent
-                key={refreshKey}
                 tableHeight="calc(100vh - 140px)"
                 resource="finance"
                 apiEndpoint="finance"
@@ -598,6 +603,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 printTitle={`Accounts ${accountName ? `- ${accountName}` : ""}`}
                 limit={0}
                 onSuccess={handleSuccess}
+                onDataFetched={handleDataFetched}
             />
 
             <Dialog open={deleteConfirmationOpen} onOpenChange={setDeleteConfirmationOpen}>

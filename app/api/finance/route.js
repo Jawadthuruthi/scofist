@@ -30,11 +30,8 @@ export async function GET(req) {
     let query = {};
 
     if (isCollegeAdmin && accountType === "College") {
-      query.$or = [
-        { userId: user._id },
-        { userId: { $exists: false } },
-        { userId: null }
-      ];
+      // STRICT ISOLATION: Only show records created by the current user
+      query.userId = user._id;
     }
 
     if (startDate || endDate) {
