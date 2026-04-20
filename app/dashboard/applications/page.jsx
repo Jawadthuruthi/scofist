@@ -69,6 +69,38 @@ export default async function ApplicationsPage() {
           maxDateMessage: "Date of birth cannot be in the future",
         },
       },
+      {
+        name: "aadharNumber",
+        label: "Aadhar Number",
+        type: "text",
+        placeholder: "12-digit Aadhar Number",
+        validators: {
+          pattern: "^\\d{12}$",
+          patternMessage: "Aadhar Number must be exactly 12 digits",
+        },
+      },
+      {
+        name: "email",
+        label: "Email",
+        type: "email",
+        placeholder: "Email address",
+      },
+      {
+        name: "bloodGroup",
+        label: "Blood Group",
+        inputType: "select",
+        placeholder: "Select Blood Group",
+        options: [
+          { label: "A+", value: "A+" },
+          { label: "A-", value: "A-" },
+          { label: "B+", value: "B+" },
+          { label: "B-", value: "B-" },
+          { label: "AB+", value: "AB+" },
+          { label: "AB-", value: "AB-" },
+          { label: "O+", value: "O+" },
+          { label: "O-", value: "O-" },
+        ],
+      },
 
       {
         name: "guardianName",
@@ -280,6 +312,7 @@ export default async function ApplicationsPage() {
           rowLink="/dashboard/applications"
           rowLinkKey="_id"
           rowLinkSearchParams={`apiKey=${apiKey}`}
+          formClassName="sm:max-w-4xl"
         />
       </>
     );

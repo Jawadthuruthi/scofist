@@ -24,6 +24,27 @@ const applicationFormSchema = new Schema(
       type: Date,
       required: true,
     },
+    aadharNumber: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: (v) => !v || /^\d{12}$/.test(v),
+        message: "Invalid 12-digit Aadhar number",
+      },
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      validate: {
+        validator: (v) => !v || /^\S+@\S+\.\S+$/.test(v),
+        message: "Invalid email address",
+      },
+    },
+    bloodGroup: {
+      type: String,
+      trim: true,
+    },
 
     address: {
       houseName: { type: String, trim: true },

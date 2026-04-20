@@ -80,6 +80,7 @@ const formSchema = z.object({
     .regex(/^\d{12}$/, "Aadhar number must be 12 digits")
     .optional()
     .or(z.literal("")),
+  bloodGroup: z.string().optional(),
 });
 
 export default function ApplicationForm({ trigger }) {
@@ -124,6 +125,7 @@ export default function ApplicationForm({ trigger }) {
       academicEducationQualification: "",
       email: "",
       aadharNumber: "",
+      bloodGroup: "",
     },
   });
 
@@ -392,6 +394,39 @@ export default function ApplicationForm({ trigger }) {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="bloodGroup"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Blood Group{" "}
+                        <span className="text-gray-400 font-normal">(Optional)</span>
+                      </FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Blood Group" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(
+                            (bg) => (
+                              <SelectItem key={bg} value={bg}>
+                                {bg}
+                              </SelectItem>
+                            )
+                          )}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

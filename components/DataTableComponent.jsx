@@ -139,6 +139,7 @@ const DataTableComponent = ({
   createButtonText = "",
   onSuccess = null,
   onDataFetched = null,
+  formClassName = "",
 }) => {
   const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
@@ -953,6 +954,7 @@ const DataTableComponent = ({
             title={editFormTitle}
             apiKey={apiKey}
             triggerVariant="outline"
+            className={formClassName}
           />
         )}
       {!!selectedData?.length && (!readOnly || enableDelete) && (
@@ -973,6 +975,7 @@ const DataTableComponent = ({
           apiKey={apiKey}
           triggerClass="bg-blue-600 hover:bg-blue-700 text-white rounded-md h-9 w-9 p-0 flex items-center justify-center shrink-0"
           triggerText=""
+          className={formClassName}
         />
       )}
       {table.getRowModel().rows?.length > 0 && (
@@ -1080,6 +1083,7 @@ const DataTableComponent = ({
                   apiKey={apiKey}
                   triggerClass="h-9 w-9 p-0 flex items-center justify-center shrink-0"
                   triggerVariant="outline"
+                  className={formClassName}
                 />
               )}
               {!!selectedData?.length && (!readOnly || enableDelete) && (
@@ -1100,6 +1104,7 @@ const DataTableComponent = ({
                   apiKey={apiKey}
                   triggerClass="bg-blue-600 hover:bg-blue-700 text-white rounded-md h-9 w-9 p-0 flex items-center justify-center shrink-0"
                   triggerText=""
+                  className={formClassName}
                 />
               )}
               

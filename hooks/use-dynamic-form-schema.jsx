@@ -76,7 +76,8 @@ export function useDynamicFormSchema(formFields = null) {
             : z
               .string()
               .email(validators.emailMessage || "Invalid email address")
-              .optional();
+              .optional()
+              .or(z.literal(""));
           break;
 
         case "boolean":
@@ -107,7 +108,8 @@ export function useDynamicFormSchema(formFields = null) {
             : z
               .string()
               .url(validators.urlMessage || "Invalid URL")
-              .optional();
+              .optional()
+              .or(z.literal(""));
           break;
 
         case "date":
