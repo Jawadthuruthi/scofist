@@ -95,7 +95,7 @@ import * as XLSX from "xlsx-js-style";
 // Helper to generate dynamic academic years
 const getAcademicYears = () => {
     const currentYear = new Date().getFullYear();
-    const startYear = 2020;
+    const startYear = 2016;
     const endYear = currentYear + 1; // Includes next year
     const years = [];
     for (let y = endYear; y >= startYear; y--) {
