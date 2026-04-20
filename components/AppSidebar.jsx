@@ -109,6 +109,12 @@ const items = [
     allowedRoles: ["Teacher"],
   },
   {
+    title: "My Attendance",
+    url: "/dashboard/my-attendance",
+    icon: UserCheck,
+    allowedRoles: ["Teacher"],
+  },
+  {
     title: "Students",
     url: "/dashboard/students",
     icon: GraduationCap,
