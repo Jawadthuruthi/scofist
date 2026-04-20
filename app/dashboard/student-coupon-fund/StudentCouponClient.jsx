@@ -1534,6 +1534,18 @@ export default function StudentCouponClient({ apiKey }) {
                                                                                         } else {
                                                                                             handleSubmitDetails(onSaveDetails)();
                                                                                         }
+                                                                                    } else if (e.key === "ArrowDown") {
+                                                                                        e.preventDefault();
+                                                                                        if (index < bulkStudents.length - 1) {
+                                                                                            const nextInput = document.getElementById(`coupon-input-${index + 1}`);
+                                                                                            if (nextInput) nextInput.focus();
+                                                                                        }
+                                                                                    } else if (e.key === "ArrowUp") {
+                                                                                        e.preventDefault();
+                                                                                        if (index > 0) {
+                                                                                            const prevInput = document.getElementById(`coupon-input-${index - 1}`);
+                                                                                            if (prevInput) prevInput.focus();
+                                                                                        }
                                                                                     }
                                                                                 }}
                                                                             />
