@@ -128,10 +128,19 @@ export async function PUT(req, res) {
       }
     }
 
+    // Automatically set decisionDate when status is updated
+    if (updateData.status) {
+      if (["Approved", "Rejected", "Admitted"].includes(updateData.status)) {
+        updateData.decisionDate = new Date();
+      } else if (updateData.status === "Pending") {
+        updateData.decisionDate = null;
+      }
+    }
+
     const updatedApplicationForm = await ApplicationForm.findByIdAndUpdate(
       targetId,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true, strict: false }
     );
 
     if (!updatedApplicationForm) {

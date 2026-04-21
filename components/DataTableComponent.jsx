@@ -140,6 +140,7 @@ const DataTableComponent = ({
   onSuccess = null,
   onDataFetched = null,
   formClassName = "",
+  onCellClick = null,
 }) => {
   const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
@@ -632,6 +633,12 @@ const DataTableComponent = ({
 
   // Table columns
   const handleCellClick = useCallback(async (row, col) => {
+    // If an external click handler is provided, call it
+    if (onCellClick) {
+      onCellClick(row, col);
+      return;
+    }
+
     const studentId = row._id;
     const arrayKey = col.valueKey || col.totalKey;
     const records = row[arrayKey]?.filter(

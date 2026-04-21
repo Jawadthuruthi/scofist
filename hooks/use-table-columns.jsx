@@ -140,8 +140,16 @@ const useTableColumns = (columnConfig, onCellClick) => {
     // Apply date formatting if type includes "date"
     if (col.type?.includes("date")) {
       columnDefinition.cell = ({ row }) => {
-        const val = row.getValue(col.accessorKey);
-        if (!val) return "";
+        let val = row.getValue(col.accessorKey);
+        
+        // Specialized handling for decisionDate with fallback to updatedAt for legacy records
+        if (col.type?.includes("decisionDate")) {
+          const status = row.original.status;
+          const updatedAt = row.original.updatedAt;
+          val = val || (status !== "Pending" ? updatedAt : null);
+        }
+
+        if (!val) return <span className="text-muted-foreground">-</span>;
         const value = new Date(val);
         
         if (col.type?.includes("longDate")) {
@@ -157,7 +165,7 @@ const useTableColumns = (columnConfig, onCellClick) => {
           month: "short",
           day: "numeric",
         });
-        return <div>{date === "Invalid Date" ? "" : date}</div>;
+        return <div>{date === "Invalid Date" ? "-" : date}</div>;
       };
     }
 
@@ -184,6 +192,29 @@ const useTableColumns = (columnConfig, onCellClick) => {
               title={color}
             />
             <span className="text-[10px] font-bold font-mono uppercase tracking-tighter opacity-70 group-hover:opacity-100 transition-opacity">{color}</span>
+          </div>
+        );
+      };
+    }
+
+    // Apply clickable name formatting if accessorKey is "name"
+    if (col.accessorKey === "name" && col.type?.includes("clickableApprovedName")) {
+      columnDefinition.cell = ({ row }) => {
+        const name = row.original.name;
+        const status = row.original.status;
+        const isApproved = status === "Approved";
+        const isClickable = onCellClick && isApproved;
+
+        return (
+          <div
+            className={`font-bold transition-all duration-200 ${isClickable ? "cursor-pointer text-indigo-900 dark:text-indigo-300 hover:text-blue-600 hover:underline" : "text-sky-950 dark:text-sky-200"}`}
+            onClick={() => {
+              if (isClickable) {
+                onCellClick(row.original, col);
+              }
+            }}
+          >
+            {name}
           </div>
         );
       };
@@ -255,12 +286,29 @@ const useTableColumns = (columnConfig, onCellClick) => {
           case "dropped out":
             color = "bg-red-200 text-red-800";
             break;
+          case "approved":
+            color = "bg-blue-100 text-blue-800";
+            break;
+          case "rejected":
+            color = "bg-orange-100 text-orange-800";
+            break;
+          case "admitted":
+            color = "bg-purple-100 text-purple-800";
+            break;
           default:
             color = "bg-gray-200 text-gray-800";
         }
+        const isClickable = col.type?.includes("clickableBadge") && onCellClick;
+
         return (
           <span
-            className={`px-2 py-1 rounded-full text-xs font-semibold ${color}`}
+            className={`px-2 py-1 rounded-full text-xs font-semibold ${color} ${isClickable ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
+            onClick={(e) => {
+              if (isClickable) {
+                e.stopPropagation();
+                onCellClick(row.original, col);
+              }
+            }}
           >
             {status}
           </span>

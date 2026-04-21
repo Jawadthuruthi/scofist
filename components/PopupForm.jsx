@@ -249,7 +249,7 @@ function FieldRenderer({ field, form, apiKey, data }) {
     setShowScanner(false);
   };
 
-  if (data && field.hideOnEdit) return null;
+  if (data?._id && field.hideOnEdit) return null;
 
   if (field.conditionalRender) {
     const expected = field.conditionalRender.expectedValue;
@@ -284,7 +284,7 @@ function FieldRenderer({ field, form, apiKey, data }) {
                     maxWidth={fieldToRender.maxWidth}
                     maxHeight={fieldToRender.maxHeight}
                     aspectRatio={fieldToRender.aspectRatio}
-                    readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                    readOnly={(data?._id && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
                   />
                 ) : fieldToRender.inputType === "select" ||
                   fieldToRender.inputType === "multiSelect" ? (
@@ -299,7 +299,7 @@ function FieldRenderer({ field, form, apiKey, data }) {
                     disableSearch={fieldToRender.disableSearch}
                     freeSolo={fieldToRender.freeSolo}
                     showSelectedCount={fieldToRender.showSelectedCount}
-                    readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                    readOnly={(data?._id && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
                     isLoading={fieldToRender.isLoading}
                   />
                 ) : fieldToRender.inputType === "range" ? (
@@ -317,13 +317,13 @@ function FieldRenderer({ field, form, apiKey, data }) {
                     fromLabel={fieldToRender.fromLabel || "From"}
                     toLabel={fieldToRender.toLabel || "To"}
                     className={fieldToRender.className}
-                    readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                    readOnly={(data?._id && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
                     {...fieldToRender.props}
                   />
                 ) : fieldToRender.inputType === "color" ? (
                   <ColorInput
                     disabled={fieldToRender.disabled}
-                    readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                    readOnly={(data?._id && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
                     {...fieldToRender.props}
                     {...formField}
                   />
@@ -333,7 +333,7 @@ function FieldRenderer({ field, form, apiKey, data }) {
                     onChange={formField.onChange}
                     placeholder={fieldToRender.placeholder}
                     disabled={fieldToRender.disabled}
-                    readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                    readOnly={(data?._id && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
                     asyncProps={fieldToRender.asyncProps}
                     autoFocus={fieldToRender.autoFocus}
                     {...formField}
@@ -342,7 +342,7 @@ function FieldRenderer({ field, form, apiKey, data }) {
                   <Input
                     type={fieldToRender.type || "text"}
                     placeholder={fieldToRender.placeholder}
-                    readOnly={(data && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
+                    readOnly={(data?._id && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
                     autoFocus={fieldToRender.autoFocus}
                     {...formField}
                   />
