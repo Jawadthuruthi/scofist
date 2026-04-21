@@ -10,16 +10,28 @@ import {
   InputOTPSlot,
   InputOTPSeparator,
 } from "@/components/ui/input-otp";
-import { Loader } from "lucide-react";
+import { Loader, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function OTPVerification() {
   const [otp, setOtp] = useState("");
   const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState("");
+  const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [countdown, setCountdown] = useState(300);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [verifySuccess, setVerifySuccess] = useState(false);
+  const [otpError, setOtpError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -48,19 +60,14 @@ export default function OTPVerification() {
 
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
+    setOtpError("");
     try {
       setLoading(true);
       await axios.post("/api/auth/verifyOTP", { email, otp });
-      toast.success("OTP verified successfully!");
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 1000);
+      setVerifySuccess(true);
     } catch (error) {
       console.error("Error verifying OTP:", error.message);
-      toast.error(
-        error?.response?.data?.message ||
-          "Failed to verify OTP. Please try again."
-      );
+      setOtpError(error?.response?.data?.message || "Failed to verify OTP. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -68,18 +75,15 @@ export default function OTPVerification() {
 
   const handleOTPResend = async (e) => {
     e.preventDefault();
+    setOtpError("");
     setResendLoading(true);
     try {
       await axios.post("/api/auth/sendOTP", { email });
-      toast.success(
-        "OTP resent successfully!. Please check your email for OTP."
-      );
+      setResendSuccess(true);
+      setCountdown(300);
     } catch (error) {
       console.error("Error resending OTP:", error.message);
-      toast.error(
-        error?.response?.data?.message ||
-          "Failed to resend OTP. Please try again."
-      );
+      setOtpError(error?.response?.data?.message || "Failed to resend OTP. Please try again.");
     } finally {
       setResendLoading(false);
     }
@@ -156,6 +160,11 @@ export default function OTPVerification() {
                   <InputOTPSlot index={5} />
                 </InputOTPGroup>
               </InputOTP>
+              {otpError && (
+                <p className="mt-4 text-xs font-bold text-red-500 animate-in fade-in slide-in-from-top-1 text-center">
+                  {otpError}
+                </p>
+              )}
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
@@ -191,6 +200,59 @@ export default function OTPVerification() {
           </form>
         </CardContent>
       </Card>
+
+      <AlertDialog open={resendSuccess} onOpenChange={setResendSuccess}>
+        <AlertDialogContent className="max-w-sm rounded-2xl border-none shadow-2xl bg-white/95 backdrop-blur-xl">
+          <AlertDialogHeader className="flex flex-col items-center text-center space-y-4">
+            <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center animate-in zoom-in duration-500">
+              <CheckCircle2 className="h-10 w-10 text-green-600" />
+            </div>
+            <div className="space-y-2">
+              <AlertDialogTitle className="text-2xl font-black text-gray-900">OTP Resent!</AlertDialogTitle>
+              <AlertDialogDescription className="text-base font-medium text-gray-600">
+                A new verification code has been sent to <br />
+                <span className="font-bold text-gray-800">{email}</span>.
+              </AlertDialogDescription>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-col gap-2 mt-2">
+            <AlertDialogAction 
+              onClick={() => setResendSuccess(false)}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-green-500/25"
+            >
+              Okay, I'll check
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={verifySuccess} onOpenChange={setVerifySuccess}>
+        <AlertDialogContent className="max-w-sm rounded-2xl border-none shadow-2xl bg-white/95 backdrop-blur-xl">
+          <AlertDialogHeader className="flex flex-col items-center text-center space-y-4">
+            <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center animate-in zoom-in duration-500">
+              <CheckCircle2 className="h-10 w-10 text-green-600" />
+            </div>
+            <div className="space-y-2">
+              <AlertDialogTitle className="text-2xl font-black text-gray-900">Verified!</AlertDialogTitle>
+              <AlertDialogDescription className="text-base font-medium text-gray-600">
+                Your OTP has been verified successfully. <br />
+                Redirecting you to your dashboard...
+              </AlertDialogDescription>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-col gap-2 mt-2">
+            <AlertDialogAction 
+              onClick={() => {
+                setVerifySuccess(false);
+                router.push("/dashboard");
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-blue-500/25"
+            >
+              Go to Dashboard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

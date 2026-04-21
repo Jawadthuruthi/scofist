@@ -10,6 +10,16 @@ import { Loader, Mail, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { CheckCircle2 } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -21,6 +31,12 @@ export default function LoginPage() {
   const [backgroundImage, setBackgroundImage] = useState("");
   const [settings, setSettings] = useState(null);
   const [showMobileNumber, setShowMobileNumber] = useState(false);
+  const [otpSentSuccess, setOtpSentSuccess] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
+  const [formErrors, setFormErrors] = useState({
+    otp: "",
+    student: ""
+  });
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -41,19 +57,17 @@ export default function LoginPage() {
 
   const handleSendOTP = async (e) => {
     e.preventDefault();
+    setFormErrors(prev => ({ ...prev, otp: "" }));
     try {
       setLoading(true);
       await axios.post("/api/auth/sendOTP", { email });
-      toast.success("OTP sent successfully!");
-      setTimeout(() => {
-        router.push(`/otp?email=${encodeURIComponent(email)}`);
-      }, 1000);
+      setOtpSentSuccess(true);
     } catch (error) {
       console.error("Error sending OTP:", error.message);
-      toast.error(
-        error?.response?.data?.message ||
-        "Failed to send OTP. Please try again."
-      );
+      setFormErrors(prev => ({
+        ...prev,
+        otp: error?.response?.data?.message || "Failed to send OTP. Please try again."
+      }));
     } finally {
       setLoading(false);
     }
@@ -61,18 +75,17 @@ export default function LoginPage() {
 
   const handleStudentLogin = async (e) => {
     e.preventDefault();
+    setFormErrors(prev => ({ ...prev, student: "" }));
     try {
       setLoading(true);
       await axios.post("/api/auth/student-login", { studentId, mobileNumber });
-      toast.success("Login successful!");
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 1000);
+      setLoginSuccess(true);
     } catch (error) {
       console.error("Error logging in:", error.message);
-      toast.error(
-        error?.response?.data?.message || "Failed to login. Please try again."
-      );
+      setFormErrors(prev => ({
+        ...prev,
+        student: error?.response?.data?.message || "Failed to login. Please try again."
+      }));
     } finally {
       setLoading(false);
     }
@@ -129,12 +142,17 @@ export default function LoginPage() {
                       type="email"
                       placeholder="you@example.com"
                       required
-                      className="pl-10"
+                      className={`pl-10 ${formErrors.otp ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
                 </div>
+                {formErrors.otp && (
+                  <p className="text-xs font-bold text-red-500 animate-in fade-in slide-in-from-top-1">
+                    {formErrors.otp}
+                  </p>
+                )}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (
                     <Loader className="animate-spin mr-2" />
@@ -154,7 +172,7 @@ export default function LoginPage() {
                     required
                     value={studentId}
                     onChange={(e) => setStudentId(e.target.value)}
-                    className="uppercase"
+                    className={`uppercase ${formErrors.student ? "border-red-500" : ""}`}
                   />
                 </div>
                 <div className="space-y-1">
@@ -166,7 +184,7 @@ export default function LoginPage() {
                       required
                       value={mobileNumber}
                       onChange={(e) => setMobileNumber(e.target.value)}
-                      className="pr-10"
+                      className={`pr-10 ${formErrors.student ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                     />
                     <button
                       type="button"
@@ -181,6 +199,11 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
+                {formErrors.student && (
+                  <p className="text-xs font-bold text-red-500 animate-in fade-in slide-in-from-top-1">
+                    {formErrors.student}
+                  </p>
+                )}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? <Loader className="animate-spin mr-2" /> : "Login"}
                 </Button>
@@ -189,6 +212,62 @@ export default function LoginPage() {
           </Tabs>
         </CardContent>
       </Card>
+
+      <AlertDialog open={otpSentSuccess} onOpenChange={setOtpSentSuccess}>
+        <AlertDialogContent className="max-w-sm rounded-2xl border-none shadow-2xl bg-white/95 backdrop-blur-xl">
+          <AlertDialogHeader className="flex flex-col items-center text-center space-y-4">
+            <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center animate-in zoom-in duration-500">
+              <CheckCircle2 className="h-10 w-10 text-green-600" />
+            </div>
+            <div className="space-y-2">
+              <AlertDialogTitle className="text-2xl font-black text-gray-900">OTP Sent!</AlertDialogTitle>
+              <AlertDialogDescription className="text-base font-medium text-gray-600">
+                A verification code has been sent to <br />
+                <span className="font-bold text-gray-800">{email}</span>.
+                Please check your inbox.
+              </AlertDialogDescription>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-col gap-2 mt-2">
+            <AlertDialogAction 
+              onClick={() => {
+                setOtpSentSuccess(false);
+                router.push(`/otp?email=${encodeURIComponent(email)}`);
+              }}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-green-500/25"
+            >
+              Enter OTP Now
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={loginSuccess} onOpenChange={setLoginSuccess}>
+        <AlertDialogContent className="max-w-sm rounded-2xl border-none shadow-2xl bg-white/95 backdrop-blur-xl">
+          <AlertDialogHeader className="flex flex-col items-center text-center space-y-4">
+            <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center animate-in zoom-in duration-500">
+              <CheckCircle2 className="h-10 w-10 text-green-600" />
+            </div>
+            <div className="space-y-2">
+              <AlertDialogTitle className="text-2xl font-black text-gray-900">Login Successful!</AlertDialogTitle>
+              <AlertDialogDescription className="text-base font-medium text-gray-600">
+                Welcome back! Redirecting you to your dashboard...
+              </AlertDialogDescription>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-col gap-2 mt-2">
+            <AlertDialogAction 
+              onClick={() => {
+                setLoginSuccess(false);
+                router.push("/dashboard");
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-blue-500/25"
+            >
+              Go to Dashboard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
