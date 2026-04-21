@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import Header from "@/components/Header";
 import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Eye, Plane, List, LayoutGrid, Search } from "lucide-react";
-import { formatDateForDisplay, formatMonthYear, formatDateShort } from "@/lib/utils";
+import { cn, formatDateForDisplay, formatMonthYear, formatDateShort } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import TableComponent from "@/components/TableComponent";
 import Barcode from "react-barcode";
@@ -720,26 +720,46 @@ export default function StudentDashboard({
               </Avatar>
               
               {/* Profile Card for Mobile View */}
-              <div className="md:hidden scale-90 origin-right">
-                <Card 
-                  className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden min-w-[130px] ${
-                    activeTab === "PROFILE" 
-                      ? "border-blue-500 bg-white/20 backdrop-blur-md" 
-                      : "border-white/10 bg-white/5 hover:border-white/20 backdrop-blur-sm"
-                  }`}
-                  onClick={() => handleTabChange("PROFILE")}
-                >
-                  <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2">
-                    <div className={`p-2 rounded-xl transition-all duration-300 ${
+              <div className="md:hidden flex flex-col items-end gap-2">
+                {currentUser?.studentSpecificField?.status && (
+                  <div className={cn(
+                    "px-3 py-1.5 rounded-xl border font-bold text-[10px] uppercase tracking-wider backdrop-blur-md shadow-lg flex items-center gap-1.5",
+                    currentUser.studentSpecificField.status === "Active" ? "bg-green-500/20 text-green-400 border-green-500/30" :
+                    currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-500/20 text-red-400 border-red-500/30" :
+                    currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
+                    "bg-slate-500/20 text-slate-400 border-slate-500/30"
+                  )}>
+                    <div className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      currentUser.studentSpecificField.status === "Active" ? "bg-green-400 animate-pulse" :
+                      currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-400" :
+                      currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-400" :
+                      "bg-slate-400"
+                    )} />
+                    {currentUser.studentSpecificField.status}
+                  </div>
+                )}
+                <div className="scale-90 origin-right">
+                  <Card 
+                    className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden min-w-[130px] ${
                       activeTab === "PROFILE" 
-                        ? "bg-blue-500 text-white shadow-lg" 
-                        : "bg-white/10 text-blue-200"
-                    }`}>
-                      <User className="h-5 w-5" />
-                    </div>
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">Profile</span>
-                  </CardContent>
-                </Card>
+                        ? "border-blue-500 bg-white/20 backdrop-blur-md" 
+                        : "border-white/10 bg-white/5 hover:border-white/20 backdrop-blur-sm"
+                    }`}
+                    onClick={() => handleTabChange("PROFILE")}
+                  >
+                    <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2">
+                      <div className={`p-2 rounded-xl transition-all duration-300 ${
+                        activeTab === "PROFILE" 
+                          ? "bg-blue-500 text-white shadow-lg" 
+                          : "bg-white/10 text-blue-200"
+                      }`}>
+                        <User className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs font-bold text-white uppercase tracking-wider">Profile</span>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </div>
 
@@ -768,8 +788,26 @@ export default function StudentDashboard({
             </div>
           </div>
 
-          {/* Profile Card for Desktop View */}
-          <div className="hidden md:block">
+          {/* Profile Card & Status for Desktop View */}
+          <div className="hidden md:flex items-center gap-4">
+            {currentUser?.studentSpecificField?.status && (
+              <div className={cn(
+                "px-4 py-2.5 rounded-2xl border-2 font-bold text-xs uppercase tracking-widest backdrop-blur-md shadow-2xl flex items-center gap-3 transition-all duration-500 hover:scale-105",
+                currentUser.studentSpecificField.status === "Active" ? "bg-green-500/20 text-green-400 border-green-500/30" :
+                currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-500/20 text-red-400 border-red-500/30" :
+                currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
+                "bg-slate-500/20 text-slate-400 border-slate-500/30"
+              )}>
+                <div className={cn(
+                  "w-2 h-2 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]",
+                  currentUser.studentSpecificField.status === "Active" ? "bg-green-400 animate-pulse ring-4 ring-green-400/20" :
+                  currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-400 ring-4 ring-red-400/20" :
+                  currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-400 ring-4 ring-blue-400/20" :
+                  "bg-slate-400"
+                )} />
+                {currentUser.studentSpecificField.status}
+              </div>
+            )}
             <Card 
               className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden min-w-[140px] ${
                 activeTab === "PROFILE" 
