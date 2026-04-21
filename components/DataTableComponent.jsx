@@ -353,7 +353,7 @@ const DataTableComponent = ({
             }
           });
 
-          return isRefetch ? updatedData : [...updatedData, ...newItemsToAppend];
+          return isRefetch ? newItems : [...updatedData, ...newItemsToAppend];
         });
       }
 

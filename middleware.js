@@ -95,7 +95,7 @@ const pages = [
   {
     title: "Students",
     path: "/dashboard/students",
-    allowedRoles: ["College Admin", "Teacher", "Student"],
+    allowedRoles: ["College Admin", "Student"],
   },
   {
     title: "Faculty",
@@ -171,7 +171,7 @@ const pages = [
   {
     title: "Students Reports",
     path: "/dashboard/students-reports",
-    allowedRoles: ["College Admin", "Teacher"],
+    allowedRoles: ["College Admin"],
   },
   {
     title: "Attendance Sheet",

@@ -52,6 +52,7 @@ const userSchema = new Schema(
       lowercase: true,
       match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Invalid email format"],
       index: true,
+      sparse: true,
     },
     roles: {
       type: [

@@ -142,7 +142,7 @@ const items = [
     title: "Students",
     url: "/dashboard/students",
     icon: GraduationCap,
-    allowedRoles: ["Teacher", "Student"],
+    allowedRoles: ["Student"],
   },
   {
     title: "Faculty",
@@ -287,7 +287,7 @@ const items = [
         title: "Students Reports",
         url: "/dashboard/students-reports",
         icon: FileSearch,
-        allowedRoles: ["College Admin", "Teacher"],
+        allowedRoles: ["College Admin"],
       },
       {
         title: "Attendance Table",

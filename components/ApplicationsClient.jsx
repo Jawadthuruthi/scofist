@@ -41,7 +41,7 @@ const columnsConfig = [
   },
   {
     accessorKey: "decisionDate",
-    header: "Approved/Rejected Date",
+    header: "Status Date",
     type: ["date", "decisionDate"],
   },
 ];
@@ -56,6 +56,7 @@ export default function ApplicationsClient({ batches, classes, apiKey }) {
   const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
   const [preadmittedData, setPreadmittedData] = useState(null);
   const [selectedApplicationId, setSelectedApplicationId] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const router = useRouter();
 
   const filterConfig = useMemo(() => [
@@ -357,10 +358,14 @@ export default function ApplicationsClient({ batches, classes, apiKey }) {
   const handleStudentSubmit = async (values) => {
     try {
       // 1. Create the student
+      const filteredValues = Object.fromEntries(
+        Object.entries(values).filter(([_, value]) => value !== "")
+      );
+
       const userRes = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify(filteredValues),
       });
 
       if (!userRes.ok) {
@@ -397,6 +402,7 @@ export default function ApplicationsClient({ batches, classes, apiKey }) {
       }
 
       setIsStudentFormOpen(false);
+      setRefreshKey((prev) => prev + 1);
       router.refresh();
       return true;
     } catch (err) {
@@ -415,6 +421,7 @@ export default function ApplicationsClient({ batches, classes, apiKey }) {
         columnsConfig={columnsConfig}
         formFields={formFields}
         apiKey={apiKey}
+        apiFilters={{ refreshKey }}
         createFormTitle="Add New Application"
         editFormTitle="Edit Application"
         deleteFormTitle="Delete Application"
