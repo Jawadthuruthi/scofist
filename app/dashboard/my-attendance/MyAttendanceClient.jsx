@@ -116,7 +116,7 @@ const MyAttendanceClient = ({ user, apiKey }) => {
       if (!stats[monthKey]) {
         stats[monthKey] = {
           monthKey,
-          monthName: `${monthName} ${year}`,
+          monthName: monthName,
           total: 0,
           present: 0,
           absent: 0,
@@ -144,7 +144,7 @@ const MyAttendanceClient = ({ user, apiKey }) => {
       isOpen: true,
       monthName,
       type,
-      records: [...records].sort((a, b) => new Date(a.date) - new Date(b.date) || a.periodNumber - b.periodNumber),
+      records: [...records].sort((a, b) => new Date(b.date) - new Date(a.date) || b.periodNumber - a.periodNumber),
     });
   };
 
@@ -178,8 +178,8 @@ const MyAttendanceClient = ({ user, apiKey }) => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border bg-white overflow-x-auto relative">
+        <CardContent className="p-0 sm:p-6">
+          <div className="border-0 sm:border rounded-none sm:rounded-md bg-white overflow-x-auto relative">
             {isLoading && (
               <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
                 <Loader className="h-6 w-6 animate-spin text-primary" />
@@ -262,28 +262,51 @@ const MyAttendanceClient = ({ user, apiKey }) => {
                   <Table>
                       <TableHeader className="bg-muted/50 sticky top-0 z-20">
                           <TableRow>
-                              <TableHead className="w-[60px]">Sl No</TableHead>
-                              <TableHead className="w-[140px]">Date</TableHead>
-                              <TableHead className="text-center w-[80px]">Period</TableHead>
-                              <TableHead className="w-[180px]">Class</TableHead>
-                              <TableHead>Subject</TableHead>
+                              <TableHead className="w-[50px] px-2 text-center text-xs">Sl No</TableHead>
+                              <TableHead className="w-[100px] sm:w-[120px] px-2 text-xs">Date</TableHead>
+                              <TableHead className="hidden md:table-cell text-center w-[70px] text-xs">Period</TableHead>
+                              <TableHead className="hidden sm:table-cell w-[140px] text-xs">Class</TableHead>
+                              <TableHead className="hidden sm:table-cell px-2 text-xs">Subject</TableHead>
+                              <TableHead className="sm:hidden px-2 text-xs">Details</TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
                           {detailModal.records.map((rec, i) => (
                                <TableRow key={i} className="hover:bg-muted/30">
-                                   <TableCell>{i + 1}</TableCell>
-                                   <TableCell className="whitespace-nowrap font-medium">
-                                       {format(new Date(rec.date), "dd MMM yyyy (EEE)")}
+                                   <TableCell className="px-2 text-center text-xs text-muted-foreground">{i + 1}</TableCell>
+                                   <TableCell className="px-2 py-3">
+                                       <div className="flex flex-col">
+                                           <span className="text-sm font-medium whitespace-nowrap">
+                                               {format(new Date(rec.date), "dd MMM yy")}
+                                           </span>
+                                           <span className="text-[10px] uppercase text-muted-foreground font-semibold">
+                                               {format(new Date(rec.date), "EEEE")}
+                                           </span>
+                                       </div>
                                    </TableCell>
-                                   <TableCell className="text-center font-bold text-muted-foreground">
+                                   <TableCell className="hidden md:table-cell text-center font-bold text-muted-foreground">
                                        #{rec.periodNumber}
                                    </TableCell>
-                                   <TableCell className="font-medium text-muted-foreground italic">
+                                   <TableCell className="hidden sm:table-cell font-semibold text-primary">
                                        {rec.className || "N/A"}
                                    </TableCell>
-                                   <TableCell className="font-semibold text-primary truncate max-w-[200px]" title={rec.subjectName}>
+                                   <TableCell className="hidden sm:table-cell font-medium text-foreground px-2">
                                        {rec.subjectName || "N/A"}
+                                   </TableCell>
+                                   <TableCell className="sm:hidden px-2 py-3">
+                                       <div className="flex flex-col gap-0.5">
+                                           <div className="font-bold text-primary leading-tight line-clamp-1">
+                                               {rec.className || "N/A"}
+                                           </div>
+                                           <div className="flex items-center gap-1.5 mt-0.5">
+                                               <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-black">
+                                                   P#{rec.periodNumber}
+                                               </span>
+                                               <span className="text-[11px] text-muted-foreground font-semibold line-clamp-1">
+                                                   {rec.subjectName || "N/A"}
+                                               </span>
+                                           </div>
+                                       </div>
                                    </TableCell>
                                </TableRow>
                           ))}

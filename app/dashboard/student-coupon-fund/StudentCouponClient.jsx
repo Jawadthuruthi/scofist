@@ -1334,9 +1334,10 @@ export default function StudentCouponClient({ apiKey }) {
                                 <CardContent className="p-3 md:px-6 md:pb-6 md:pt-0">
                                     <form onSubmit={handleSubmitDetails(onSaveDetails)}>
                                         <div className="space-y-3 md:space-y-6">
-                                            {/* Top Filter Row */}
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end mb-4">
-                                                <div className="space-y-2">
+                                            {/* Unified Filter & Selection Grid */}
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                                                {/* 1. Filter Mode */}
+                                                <div className="space-y-2 order-1 md:order-1">
                                                     <Label>Filter By</Label>
                                                     <Select value={filterMode} onValueChange={setFilterMode}>
                                                         <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
@@ -1347,8 +1348,9 @@ export default function StudentCouponClient({ apiKey }) {
                                                     </Select>
                                                 </div>
 
+                                                {/* 2 & 3. Academic Year or Date Range */}
                                                 {filterMode === "year" ? (
-                                                    <div className="space-y-2">
+                                                    <div className="space-y-2 order-2 md:order-2">
                                                         <Label>Academic Year</Label>
                                                         <Select
                                                             value={filters.year}
@@ -1365,7 +1367,7 @@ export default function StudentCouponClient({ apiKey }) {
                                                     </div>
                                                 ) : (
                                                     <>
-                                                        <div className="space-y-2">
+                                                        <div className="space-y-2 order-2 md:order-2">
                                                             <Label>From Date</Label>
                                                             <Input
                                                                 type="date"
@@ -1374,7 +1376,7 @@ export default function StudentCouponClient({ apiKey }) {
                                                                 onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
                                                             />
                                                         </div>
-                                                        <div className="space-y-2">
+                                                        <div className="space-y-2 order-2 md:order-2">
                                                             <Label>To Date</Label>
                                                             <Input
                                                                 type="date"
@@ -1385,7 +1387,9 @@ export default function StudentCouponClient({ apiKey }) {
                                                         </div>
                                                     </>
                                                 )}
-                                                <div className="space-y-2">
+
+                                                {/* 4. Select Batch */}
+                                                <div className="space-y-2 order-3 md:order-4">
                                                     <Label>Select Batch</Label>
                                                     <Select
                                                         value={detailsBatchId}
@@ -1393,7 +1397,7 @@ export default function StudentCouponClient({ apiKey }) {
                                                             setDetailsBatchId(val);
                                                             setDetailsClassId([]);
                                                             setDetailsStudentId([]);
-                                                            setBulkStudents([]); // Reset list
+                                                            setBulkStudents([]); 
                                                         }}
                                                     >
                                                         <SelectTrigger className="bg-white"><SelectValue placeholder="Select Batch" /></SelectTrigger>
@@ -1405,11 +1409,9 @@ export default function StudentCouponClient({ apiKey }) {
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
-                                            </div>
 
-                                            {/* Batch Selection Row */}
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                                                <div className="space-y-2">
+                                                {/* 5. Select Class */}
+                                                <div className="space-y-2 order-4 md:order-5">
                                                     <Label>Select Class</Label>
                                                     <MultiSelect
                                                         options={detailsClasses.map(c => ({ label: c.name, value: c._id }))}
@@ -1423,7 +1425,9 @@ export default function StudentCouponClient({ apiKey }) {
                                                         variant="default"
                                                     />
                                                 </div>
-                                                <div className="space-y-2 md:col-span-2">
+
+                                                {/* 6. Select Students */}
+                                                <div className="space-y-2 col-span-2 md:col-span-2 order-5 md:order-6">
                                                     <Label>Select Students</Label>
                                                     <MultiSelect
                                                         options={detailsStudents.map(s => ({ label: `${s._id} - ${s.name}`, value: s._id }))}
@@ -1433,7 +1437,9 @@ export default function StudentCouponClient({ apiKey }) {
                                                         variant="default"
                                                     />
                                                 </div>
-                                                <div className="space-y-2">
+
+                                                {/* 7. Action Dropdown */}
+                                                <div className="space-y-2 col-span-2 md:col-span-1 order-6 md:order-7">
                                                     <Label>Action</Label>
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
@@ -1445,12 +1451,12 @@ export default function StudentCouponClient({ apiKey }) {
                                                             >
                                                                 <div className="flex items-center">
                                                                     {(isLoadingBulkStudents || isFetchingAllYearsCoupons) ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                                                    {activeView === "none" ? "Select an Action" : activeView === "balances" ? "View Balances" : activeView === "transactions" ? "View Transactions" : "Coupon Entry"}
+                                                                    {activeView === "none" ? "Select Action" : activeView === "balances" ? "View Balances" : activeView === "transactions" ? "View Transactions" : "Coupon Entry"}
                                                                 </div>
                                                                 <ChevronDown className="h-4 w-4 opacity-50" />
                                                             </Button>
                                                         </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="start" className="w-full min-w-[200px]">
+                                                        <DropdownMenuContent align="end" className="w-[--radix-dropdown-menu-trigger-width] min-w-[200px]">
                                                             <DropdownMenuItem onClick={() => { setActiveView("coupons"); handleGetStudents(); }} className="cursor-pointer">
                                                                 1. Coupon Entry
                                                             </DropdownMenuItem>
@@ -1468,29 +1474,52 @@ export default function StudentCouponClient({ apiKey }) {
                                             {/* Bulk Student List */}
                                             {bulkStudents.length > 0 && (
                                                 <div className="space-y-4 border rounded-md p-4 bg-muted/10">
-                                                    <div className="flex items-center justify-between">
-                                                        <h3 className="font-semibold text-lg">{bulkStudents.length} Students Found</h3>
-                                                        <Button
-                                                            type="button"
-                                                            className="h-10 bg-black hover:bg-gray-800 text-white px-8"
-                                                            onClick={handlePrintSheet}
-                                                        >
-                                                            <Printer className="mr-2 h-4 w-4" />
-                                                            Print Sheet
-                                                        </Button>
-                                                        <div className="flex gap-2 items-center">
-                                                            <Label className="whitespace-nowrap">Global Amount:</Label>
-                                                            <Input
-                                                                type="number"
-                                                                {...registerDetails("couponAmount", { required: true })}
-                                                                className="w-32"
-                                                                placeholder="Amount"
-                                                            />
+                                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+                                                        {/* Header Title Row */}
+                                                        <div className="flex items-center justify-between w-full md:w-auto">
+                                                            <h3 className="font-semibold text-lg">
+                                                                {bulkStudents.length} <span className="hidden md:inline">Students Found</span><span className="md:hidden">Students</span>
+                                                            </h3>
+                                                            {/* Mobile Print Button: Same row as Title */}
+                                                            <Button
+                                                                type="button"
+                                                                className="h-9 md:hidden bg-black hover:bg-gray-800 text-white px-4"
+                                                                onClick={handlePrintSheet}
+                                                            >
+                                                                <Printer className="mr-2 h-4 w-4" />
+                                                                <span>Print</span>
+                                                            </Button>
+                                                        </div>
+                                                        
+                                                        <div className="flex items-center justify-end gap-3">
+                                                            {/* Amount & Desktop Print - Stacking Amount on top on mobile right */}
+                                                            <div className="flex flex-col items-end gap-2 md:flex-row md:items-center">
+                                                                <div className="flex items-center gap-2 order-1 md:order-2">
+                                                                    <Label className="whitespace-nowrap text-sm md:text-base">Global Amount:</Label>
+                                                                    <Input
+                                                                        type="number"
+                                                                        {...registerDetails("couponAmount", { required: true })}
+                                                                        className="w-24 md:w-32 h-9 md:h-10"
+                                                                        placeholder="Amount"
+                                                                    />
+                                                                </div>
+                                                                
+                                                                {/* Desktop Print Button: Before Global Amount */}
+                                                                <Button
+                                                                    type="button"
+                                                                    className="hidden md:flex h-10 bg-black hover:bg-gray-800 text-white px-8 md:order-1"
+                                                                    onClick={handlePrintSheet}
+                                                                >
+                                                                    <Printer className="mr-2 h-4 w-4" />
+                                                                    <span>Print Sheet</span>
+                                                                </Button>
+                                                            </div>
+
                                                             <Button
                                                                 type="button"
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                className="h-10 w-10 text-muted-foreground hover:text-foreground"
+                                                                className="h-9 w-9 md:h-10 md:w-10 text-muted-foreground hover:text-foreground shrink-0"
                                                                 onClick={() => {
                                                                     setBulkStudents([]);
                                                                     setCouponNumbers({});
