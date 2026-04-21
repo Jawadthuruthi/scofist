@@ -1535,23 +1535,23 @@ export default function StudentCouponClient({ apiKey }) {
                                                         <Table>
                                                             <TableHeader>
                                                                 <TableRow>
-                                                                    <TableHead className="w-[50px]">No.</TableHead>
-                                                                    <TableHead>ID</TableHead>
-                                                                    <TableHead>Student Name</TableHead>
-                                                                    <TableHead>Coupon Number</TableHead>
+                                                                    <TableHead className="w-[30px] md:w-[50px] px-2">No.</TableHead>
+                                                                    <TableHead className="px-2">ID</TableHead>
+                                                                    <TableHead className="px-2">Student Name</TableHead>
+                                                                    <TableHead className="w-[100px] md:w-[200px] px-2">Coupon No</TableHead>
                                                                 </TableRow>
                                                             </TableHeader>
                                                             <TableBody>
                                                                 {bulkStudents.map((student, index) => (
                                                                     <TableRow key={student._id}>
-                                                                        <TableCell>{index + 1}</TableCell>
-                                                                        <TableCell>{student._id}</TableCell>
-                                                                        <TableCell className="font-medium">{student.name}</TableCell>
-                                                                        <TableCell>
+                                                                        <TableCell className="px-2 text-xs md:text-sm">{index + 1}</TableCell>
+                                                                        <TableCell className="px-2 text-xs md:text-sm">{student._id}</TableCell>
+                                                                        <TableCell className="font-medium px-2 text-xs md:text-sm break-words min-w-[80px] md:min-w-0" title={student.name}>{student.name}</TableCell>
+                                                                        <TableCell className="px-2">
                                                                             <Input
                                                                                 id={`coupon-input-${index}`}
-                                                                                className="h-8 w-48"
-                                                                                placeholder="Coupon No"
+                                                                                className="h-8 w-24 md:w-48 text-xs md:text-sm"
+                                                                                placeholder="No"
                                                                                 value={couponNumbers[student._id] || ""}
                                                                                 onChange={(e) => handleCouponNumberChange(student._id, e.target.value)}
                                                                                 onKeyDown={(e) => {
