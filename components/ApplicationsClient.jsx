@@ -326,6 +326,8 @@ export default function ApplicationsClient({ batches, classes, apiKey }) {
       relationship: app.relationship,
       guardianContactNumber: app.guardianContactNumber,
       guardianAlternativeNumber: app.guardianAlternativeNumber,
+      contactNumber: app.guardianContactNumber || "", // Pre-fill student contact with guardian's
+      alternativeNumber: app.guardianAlternativeNumber || "",
       admissionClassId: classId,
       islamicQualification: app.islamicEducationQualification,
       academicQualification: app.academicEducationQualification,
@@ -336,6 +338,12 @@ export default function ApplicationsClient({ batches, classes, apiKey }) {
 
   const handleCellClick = useCallback((app, col) => {
     if (col.accessorKey === "name") {
+      if (app.status !== "Approved") {
+        if (app.status === "Admitted") {
+          toast.info("This applicant has already been admitted.");
+        }
+        return;
+      }
       const studentData = mapApplicationToStudent(app);
       setPreadmittedData(studentData);
       setSelectedApplicationId(app._id);
@@ -357,7 +365,17 @@ export default function ApplicationsClient({ batches, classes, apiKey }) {
 
       if (!userRes.ok) {
         const error = await userRes.json();
-        throw new Error(error.message || "Failed to create student");
+        let errorMessage = error.error || error.message || "Failed to create student";
+        
+        // If there are detailed validation errors, append them
+        if (error.details?.errors) {
+          const detailMessages = error.details.errors
+            .map(e => `${e.field}: ${e.message}`)
+            .join(", ");
+          errorMessage = `${errorMessage} (${detailMessages})`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       // 2. Update application status to "Admitted"
@@ -371,7 +389,9 @@ export default function ApplicationsClient({ batches, classes, apiKey }) {
       });
 
       if (!appRes.ok) {
-        toast.warning("Student created, but failed to update application status.");
+        const error = await appRes.json();
+        const errorMessage = error.error || error.message || "Failed to update application status";
+        toast.warning(`Student created, but: ${errorMessage}`);
       } else {
         toast.success("Student created and application marked as Admitted!");
       }
@@ -417,6 +437,7 @@ export default function ApplicationsClient({ batches, classes, apiKey }) {
         onSubmit={handleStudentSubmit}
         data={preadmittedData}
         apiKey={apiKey}
+        hideButton={true}
         className="sm:max-w-4xl"
       />
     </>

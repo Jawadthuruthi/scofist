@@ -140,7 +140,7 @@ export async function PUT(req, res) {
     const updatedApplicationForm = await ApplicationForm.findByIdAndUpdate(
       targetId,
       updateData,
-      { new: true, runValidators: true, strict: false }
+      { new: true, runValidators: false, strict: false }
     );
 
     if (!updatedApplicationForm) {
