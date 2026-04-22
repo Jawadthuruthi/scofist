@@ -223,6 +223,7 @@ const StudentFamilies = ({ apiKey }) => {
 
       setShowSuccessDialog(true);
       setIsFormOpen(false);
+      setSelectedIndices([]);
       // Keep hasLoadedRef true to prevent the refetch from overwriting our fresh local state
       hasLoadedRef.current[selectedStudentId] = true;
     } catch (error) {
@@ -323,6 +324,16 @@ const StudentFamilies = ({ apiKey }) => {
   const selectedStudent = useMemo(() => {
     return students.find((s) => s._id === selectedStudentId);
   }, [students, selectedStudentId]);
+
+  const lastUpdated = selectedStudent?.updatedAt 
+    ? new Date(selectedStudent.updatedAt).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      })
+    : null;
+
+
 
   const filteredStudents = useMemo(() => {
     if (!searchTerm) return students;
@@ -447,10 +458,27 @@ const StudentFamilies = ({ apiKey }) => {
       {selectedStudentId && (
         <div className="space-y-4">
           <Card className="border-primary/20 shadow-sm">
-            <CardHeader className="bg-muted/10 border-b flex flex-row items-center justify-between py-3">
+            <CardHeader className="bg-muted/10 border-b flex flex-row items-center justify-between py-3 relative">
               <div>
                 <CardTitle className="text-lg">Family Details</CardTitle>
-                <CardDescription className="text-xs">Background information for {selectedStudent?.name}</CardDescription>
+                <CardDescription className="text-xs">
+                  Background information for {selectedStudent?.name}
+                  {lastUpdated && (
+                    <span className="md:hidden block mt-0.5 text-blue-600 font-semibold italic">
+                      Last updated: {lastUpdated}
+                    </span>
+                  )}
+                </CardDescription>
+              </div>
+
+              {/* Centered date for desktop view */}
+              <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                {lastUpdated && (
+                  <span className="flex items-center gap-1.5 bg-white/50 border border-gray-200 px-3 py-1 rounded-full shadow-sm">
+                    <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                    Last Updated: {lastUpdated}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                   <Button 
@@ -552,7 +580,7 @@ const StudentFamilies = ({ apiKey }) => {
             <CardHeader className="py-3 px-4 border-b bg-gray-100/70">
               <CardTitle className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-gray-500" />
-                Kinship — Other Details
+                Other Details
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
@@ -572,7 +600,7 @@ const StudentFamilies = ({ apiKey }) => {
 
       {/* Add/Edit Modal */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full h-full md:w-[95vw] lg:max-w-5xl md:h-auto md:max-h-[90vh] overflow-y-auto p-4 md:p-6 rounded-none md:rounded-lg">
           <DialogHeader>
             <DialogTitle>{isEditing ? "Edit Family Member" : "Add Family Members"}</DialogTitle>
             <DialogDescription>
@@ -580,8 +608,8 @@ const StudentFamilies = ({ apiKey }) => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6 py-4">
-            <div className="space-y-4 bg-muted/20 p-4 rounded-lg border border-dashed border-primary/20">
+          <div className="space-y-4 md:space-y-6 py-2 md:py-4">
+            <div className="space-y-3 md:space-y-4 bg-muted/20 p-3 md:p-4 rounded-lg border border-dashed border-primary/20">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                 <div className="space-y-2 md:col-span-3">
                   <Label>Position</Label>
@@ -671,63 +699,112 @@ const StudentFamilies = ({ apiKey }) => {
             </div>
 
             {familyDetails.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-primary font-semibold">Members in this list:</Label>
-                <div className="border rounded-md overflow-hidden bg-card">
-                  <Table className="text-xs">
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead className="h-8">Position</TableHead>
-                        <TableHead className="h-8">Name</TableHead>
-                        <TableHead className="h-8">Age</TableHead>
-                        <TableHead className="h-8">Education</TableHead>
-                        <TableHead className="h-8">Mobile</TableHead>
-                        <TableHead className="h-8">Status</TableHead>
-                        <TableHead className="h-8 w-10"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {familyDetails.map((member, index) => (
-                        <TableRow key={index} className="hover:bg-muted/30">
-                          <TableCell className="py-1">{member.position}</TableCell>
-                          <TableCell className="py-1 font-medium text-blue-600">{member.name}</TableCell>
-                          <TableCell className="py-1">{member.age || "-"}</TableCell>
-                          <TableCell className="py-1">{member.education || "-"}</TableCell>
-                          <TableCell className="py-1">{member.mobileNumber || "-"}</TableCell>
-                          <TableCell className="py-1">{member.status || "-"}</TableCell>
-                          <TableCell className="py-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => {
-                                setDeleteIndex(index);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </TableCell>
+              <div className="space-y-0">
+                <Card className="border shadow-none overflow-hidden bg-card">
+                  <div className="bg-muted/40 px-3 py-2 border-b">
+                    <h4 className="text-sm font-semibold text-primary">Members in this list</h4>
+                  </div>
+                  
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[300px]">
+                    <Table className="text-xs min-w-full relative">
+                      <TableHeader className="bg-muted/20 sticky top-0 z-10">
+                        <TableRow>
+                          <TableHead className="h-8 py-0">Position</TableHead>
+                          <TableHead className="h-8 py-0">Name</TableHead>
+                          <TableHead className="h-8 py-0">Age</TableHead>
+                          <TableHead className="h-8 py-0">Education</TableHead>
+                          <TableHead className="h-8 py-0">Mobile</TableHead>
+                          <TableHead className="h-8 py-0">Status</TableHead>
+                          <TableHead className="h-8 py-0 w-10"></TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {familyDetails.map((member, index) => (
+                          <TableRow key={index} className="hover:bg-muted/30 border-b last:border-0">
+                            <TableCell className="py-1.5">{member.position}</TableCell>
+                            <TableCell className="py-1.5 font-medium text-blue-600 uppercase">{member.name}</TableCell>
+                            <TableCell className="py-1.5">{member.age || "-"}</TableCell>
+                            <TableCell className="py-1.5">{member.education || "-"}</TableCell>
+                            <TableCell className="py-1.5 whitespace-nowrap">{member.mobileNumber || "-"}</TableCell>
+                            <TableCell className="py-1.5">{member.status || "-"}</TableCell>
+                            <TableCell className="py-1.5 text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => {
+                                  setDeleteIndex(index);
+                                  setIsDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="md:hidden divide-y max-h-[350px] overflow-y-auto">
+                    {familyDetails.map((member, index) => (
+                      <div key={index} className="p-3 space-y-2 bg-background">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-xs text-muted-foreground font-medium">{member.position}</p>
+                            <p className="text-sm font-bold text-blue-600 uppercase">{member.name}</p>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-red-500 hover:bg-red-50"
+                            onClick={() => {
+                              setDeleteIndex(index);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                          <div className="flex gap-2">
+                            <span className="text-muted-foreground">Age:</span>
+                            <span>{member.age || "-"}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="text-muted-foreground">Mobile:</span>
+                            <span className="truncate">{member.mobileNumber || "-"}</span>
+                          </div>
+                          <div className="flex gap-2 col-span-2">
+                            <span className="text-muted-foreground">Edu:</span>
+                            <span className="truncate">{member.education || "-"}</span>
+                          </div>
+                          <div className="flex gap-2 col-span-2">
+                            <span className="text-muted-foreground">Status:</span>
+                            <span className="truncate">{member.status || "-"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label className="text-primary font-semibold">Other Details (General Notes)</Label>
+              <Label className="text-primary font-semibold">Other Details</Label>
               <Textarea 
                 value={familyOtherDetails} 
                 onChange={(e) => setFamilyOtherDetails(e.target.value)} 
                 placeholder="Additional notes for the whole family..." 
-                className="bg-background min-h-[100px]"
+                className="bg-background min-h-[60px] md:min-h-[100px]"
               />
             </div>
           </div>
           
-          <div className="flex justify-end gap-3 mt-4 border-t pt-4">
+          <div className="flex justify-end gap-3 mt-2 md:mt-4 border-t pt-3 md:pt-4">
             <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
             <Button onClick={saveToDatabase} disabled={saving} className="bg-green-600 hover:bg-green-700 min-w-[100px]">
               {saving ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
