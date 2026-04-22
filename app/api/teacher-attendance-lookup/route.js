@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import Attendance from "@/models/Attendance";
+import TeachersLeaveRecord from "@/models/TeachersLeaveRecord";
 import TimeTable from "@/models/TimeTable";
 import Settings from "@/models/Settings";
 import Class from "@/models/Class";
@@ -116,6 +117,8 @@ export async function GET(req) {
                 if (actual) {
                     records.push({
                         date: actual.date,
+                        classId: String(actual.classId?._id || actual.classId || slot.classId),
+                        subjectId: String(actual.subjectId?._id || actual.subjectId || slot.subjectId),
                         subjectName: actual.subjectId?.name || "Unknown",
                         className: actual.classId?.name || "Unknown",
                         periodNumber: actual.periodNumber,
@@ -154,6 +157,29 @@ export async function GET(req) {
             if (r.synthetic) {
                 r.className = classMap[String(r.classId)] || "Unknown";
                 r.subjectName = subjectMap[String(r.subjectId)] || "Unknown";
+            }
+        });
+
+        // 6. Join leaveReason from TeachersLeaveRecord
+        const leaveRecordDocs = await TeachersLeaveRecord.find({
+            teacherId,
+            date: { $gte: startDate, $lte: endDate },
+        }, "classId periodNumber date leaveReason").lean();
+
+        const toStr = (v) => (v?._id || v || "").toString().trim();
+
+        const leaveMap = {};
+        leaveRecordDocs.forEach(lr => {
+            const dateKey = getDS(lr.date);
+            const key = `${toStr(lr.classId)}_${lr.periodNumber}_${dateKey}`;
+            if (lr.leaveReason) leaveMap[key] = lr.leaveReason;
+        });
+
+        records.forEach(r => {
+            const dateKey = getDS(r.date);
+            const key = `${toStr(r.classId)}_${r.periodNumber}_${dateKey}`;
+            if (!r.leaveReason && leaveMap[key]) {
+                r.leaveReason = leaveMap[key];
             }
         });
 

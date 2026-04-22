@@ -1692,7 +1692,25 @@ const DataTableComponent = ({
                               </TableCell>
                               {(resource === "studentAttendances" || resource === "teacherAttendances") && (
                                 <TableCell className="text-muted-foreground text-sm py-3">
-                                  {resource === "teacherAttendances" ? (rec.className || "—") : (rec.teacherName || "—")}
+                                  {resource === "teacherAttendances" ? (
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="whitespace-nowrap font-medium">{rec.className || "—"}</span>
+                                      {rec.leaveReason && (
+                                        <span className="text-[10px] text-orange-500 font-medium leading-tight">
+                                          {rec.leaveReason}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="font-medium">{rec.teacherName || "—"}</span>
+                                      {rec.leaveReason && (
+                                        <span className="text-[10px] text-orange-500 font-medium leading-tight">
+                                          {rec.leaveReason}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
                                 </TableCell>
                               )}
                             </>

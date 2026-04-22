@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import StudentAttendance from "@/models/StudentAttendance";
 import Attendance from "@/models/Attendance";
+import LeaveRecord from "@/models/LeaveRecord";
 
 export async function GET(req) {
     try {
@@ -78,11 +79,59 @@ export async function GET(req) {
             });
         }
 
+        // ── Join leaveReason from LeaveRecord ─────────────────────────────────
+        // Helper: normalize any date to a local YYYY-MM-DD string
+        const toDateKey = (d) => {
+            const dt = new Date(d);
+            const y = dt.getFullYear();
+            const m = String(dt.getMonth() + 1).padStart(2, "0");
+            const day = String(dt.getDate()).padStart(2, "0");
+            return `${y}-${m}-${day}`;
+        };
+
+        let leaveReasonMap = {}; // keyed by local "YYYY-MM-DD" -> leaveReason
+        const absentRecords = filteredRecords.filter(r => r.present === false);
+
+        if (absentRecords.length > 0) {
+            // Expand date range by 1 day on each side to avoid timezone boundary issues
+            const absentTimes = absentRecords.map(r => new Date(r.date).getTime());
+            const minDate = new Date(Math.min(...absentTimes));
+            const maxDate = new Date(Math.max(...absentTimes));
+            minDate.setHours(0, 0, 0, 0);
+            maxDate.setHours(23, 59, 59, 999);
+
+            const leaveRecords = await LeaveRecord.find({
+                studentId,
+                dateOfLeave: { $lte: maxDate },
+            }, "dateOfLeave dateOfArrival arrivedDate leaveReason").lean();
+
+            // For each absent record, find the most recent leave record that applies
+            absentRecords.forEach(rec => {
+                const absDateKey = toDateKey(rec.date);
+                if (leaveReasonMap[absDateKey]) return; // already matched
+
+                // Filter leave records that started on or before this absence
+                // and where the student hadn't yet returned (no arrivedDate or arrivedDate > absence)
+                const relevantLeaves = leaveRecords.filter(lr => {
+                    const fromKey = toDateKey(lr.dateOfLeave);
+                    const arrivedKey = lr.arrivedDate ? toDateKey(lr.arrivedDate) : null;
+                    
+                    return absDateKey >= fromKey && (!arrivedKey || arrivedKey > absDateKey);
+                });
+
+                if (relevantLeaves.length > 0) {
+                    // Sort by dateOfLeave descending to get the most recent one
+                    relevantLeaves.sort((a, b) => new Date(b.dateOfLeave) - new Date(a.dateOfLeave));
+                    leaveReasonMap[absDateKey] = relevantLeaves[0].leaveReason;
+                }
+            });
+        }
+
         // Map to the dialog's expected shape
         const records = filteredRecords.map((rec) => {
             const classId = rec.classId?._id || rec.classId;
             const subjectId = rec.subjectId?._id || rec.subjectId;
-            const dateKey = new Date(rec.date).toISOString().split("T")[0];
+            const dateKey = toDateKey(rec.date);
             const key = `${classId}|${subjectId}|${rec.periodNumber}|${dateKey}`;
 
             return {
@@ -92,6 +141,7 @@ export async function GET(req) {
                 className: rec.classId?.name || "—",
                 periodNumber: rec.periodNumber,
                 present: rec.present ?? null,
+                leaveReason: leaveReasonMap[dateKey] || null,
             };
         });
 

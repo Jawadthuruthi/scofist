@@ -1,6 +1,7 @@
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import TeacherAttendance from "@/models/TeacherAttendance";
+import TeachersLeaveRecord from "@/models/TeachersLeaveRecord";
 import TimeTable from "@/models/TimeTable";
 import User from "@/models/User";
 import Class from "@/models/Class";
@@ -194,6 +195,21 @@ export async function GET(req, res) {
     // 7. Populate names for synthesized records
     const classIds = [...new Set(formattedData.flatMap(t => t.attendanceRecords.map(r => r.classId?.toString())))].filter(Boolean);
     const subjectIds = [...new Set(formattedData.flatMap(t => t.attendanceRecords.map(r => r.subjectId?.toString())))].filter(Boolean);
+
+    // Fetch leave records for all teachers in the date range to join leaveReason
+    const leaveRecords = await TeachersLeaveRecord.find({
+      teacherId: { $in: teacherIds },
+      date: { $gte: startDate, $lte: endDate },
+    }, "teacherId classId periodNumber date leaveReason").lean();
+
+    // Build a fast lookup: teacherId_classId_periodNumber_YYYY-MM-DD -> leaveReason
+    const toStr = (v) => (v?._id || v || "").toString().trim();
+    const leaveReasonMap = {};
+    leaveRecords.forEach(lr => {
+      const dateKey = getDS(lr.date);
+      const key = `${toStr(lr.teacherId)}_${toStr(lr.classId)}_${lr.periodNumber}_${dateKey}`;
+      if (lr.leaveReason) leaveReasonMap[key] = lr.leaveReason;
+    });
     
     const [nameClasses, nameSubjects] = await Promise.all([
       Class.find({ _id: { $in: classIds } }, "name").lean(),
@@ -204,9 +220,16 @@ export async function GET(req, res) {
     const subjectNameMap = Object.fromEntries(nameSubjects.map(s => [s._id.toString(), s.name]));
 
     formattedData.forEach(teacher => {
+      const teacherId = teacher._id.toString();
       teacher.attendanceRecords.forEach(r => {
         if (!r.className) r.className = classNameMap[r.classId?.toString()] || "Unknown";
         if (!r.subjectName) r.subjectName = subjectNameMap[r.subjectId?.toString()] || "Unknown";
+        // Join leaveReason from TeachersLeaveRecord
+        const dateKey = getDS(r.date);
+        const leaveKey = `${toStr(teacher._id)}_${toStr(r.classId)}_${r.periodNumber}_${dateKey}`;
+        if (!r.leaveReason && leaveReasonMap[leaveKey]) {
+          r.leaveReason = leaveReasonMap[leaveKey];
+        }
       });
     });
 

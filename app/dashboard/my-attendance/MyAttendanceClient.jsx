@@ -288,7 +288,14 @@ const MyAttendanceClient = ({ user, apiKey }) => {
                                        #{rec.periodNumber}
                                    </TableCell>
                                    <TableCell className="hidden sm:table-cell font-semibold text-primary">
-                                       {rec.className || "N/A"}
+                                       <div className="flex flex-col gap-0.5">
+                                           <span className="whitespace-nowrap">{rec.className || "N/A"}</span>
+                                           {rec.leaveReason && (
+                                               <span className="text-[10px] text-orange-500 font-medium leading-tight">
+                                                   {rec.leaveReason}
+                                               </span>
+                                           )}
+                                       </div>
                                    </TableCell>
                                    <TableCell className="hidden sm:table-cell font-medium text-foreground px-2">
                                        {rec.subjectName || "N/A"}
@@ -306,6 +313,11 @@ const MyAttendanceClient = ({ user, apiKey }) => {
                                                    {rec.subjectName || "N/A"}
                                                </span>
                                            </div>
+                                           {rec.leaveReason && (
+                                               <div className="text-[10px] text-orange-500 font-medium leading-tight mt-0.5">
+                                                   {rec.leaveReason}
+                                               </div>
+                                           )}
                                        </div>
                                    </TableCell>
                                </TableRow>
