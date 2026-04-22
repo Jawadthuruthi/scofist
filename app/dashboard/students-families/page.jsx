@@ -19,7 +19,7 @@ export default async function StudentFamiliesPage() {
     const apiKey = process.env.API_KEY;
 
     return (
-        <div className="px-4">
+        <div className="px-1 md:px-4">
             <StudentFamilies apiKey={apiKey} />
         </div>
     );

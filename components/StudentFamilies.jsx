@@ -12,6 +12,10 @@ import { toast } from "sonner";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const StudentFamilies = ({ apiKey }) => {
   const [batches, setBatches] = useState([]);
@@ -262,10 +266,10 @@ const StudentFamilies = ({ apiKey }) => {
   }, [students, searchTerm]);
 
   return (
-    <div className="space-y-3 pb-10 px-2 sm:px-0">
+    <div className="space-y-3 pb-10 px-0 sm:px-0">
       <Header 
         title="STUDENT FAMILIES" 
-        subTitle="Manage family details and background for students" 
+        subTitle="Manage students' family background details" 
         icon={<Users className="h-5 w-5 text-muted-foreground" />}
       />
 
@@ -315,50 +319,59 @@ const StudentFamilies = ({ apiKey }) => {
 
             <div className="space-y-2">
               <Label>Student</Label>
-              <Select 
-                value={selectedStudentId} 
-                onValueChange={setSelectedStudentId} 
-                disabled={loading}
-                open={isSelectOpen}
-                onOpenChange={setIsSelectOpen}
-              >
-                <SelectTrigger>
-                  {loading ? (
-                    <div className="flex items-center gap-2">
-                      <Loader className="h-4 w-4 animate-spin" />
-                      <span>Loading Students...</span>
-                    </div>
-                  ) : (
-                    <SelectValue placeholder="Select Student" />
-                  )}
-                </SelectTrigger>
-                <SelectContent>
-                  <div 
-                    className="px-2 py-1 sticky top-0 bg-popover border-b mb-1"
-                    onPointerDown={(e) => e.stopPropagation()} // Fix for mobile dropdown closing
+              <Popover open={isSelectOpen} onOpenChange={setIsSelectOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={isSelectOpen}
+                    className="w-full justify-between font-normal hover:bg-background"
+                    disabled={loading}
                   >
-                    <Input 
-                      ref={searchInputRef}
-                      placeholder="Search student..." 
-                      className="h-8 text-xs"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyDown={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                  {filteredStudents.length > 0 ? (
-                    filteredStudents.map((student) => (
-                      <SelectItem key={student._id} value={student._id}>
-                        {student.name} ({student._id})
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <div className="py-6 text-center text-xs text-muted-foreground">
-                      No students found
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader className="h-4 w-4 animate-spin" />
+                        <span>Loading Students...</span>
+                      </div>
+                    ) : selectedStudentId ? (
+                      <span className="truncate">
+                        {students.find((s) => s._id === selectedStudentId)?.name} ({selectedStudentId})
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Select Student</span>
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search student..." className="h-9" />
+                    <CommandList>
+                      <CommandEmpty>No students found</CommandEmpty>
+                      <CommandGroup>
+                        {students.map((student) => (
+                          <CommandItem
+                            key={student._id}
+                            value={`${student.name} ${student._id}`}
+                            onSelect={() => {
+                              setSelectedStudentId(student._id);
+                              setIsSelectOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedStudentId === student._id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {student.name} ({student._id})
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </CardContent>
@@ -373,38 +386,38 @@ const StudentFamilies = ({ apiKey }) => {
                 <CardDescription className="text-xs">Background information for {selectedStudent?.name}</CardDescription>
               </div>
               <div className="flex items-center gap-2">
-                <Button 
-                  size="sm" 
-                  onClick={handleOpenAddForm} 
-                  className="bg-primary hover:bg-primary/90 h-8 gap-2"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add
-                </Button>
-                {selectedIndices.length > 0 && (
-                  <>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={handleOpenEditForm} 
-                      disabled={selectedIndices.length !== 1}
-                      className="border-blue-200 text-blue-600 hover:bg-blue-50 h-8 gap-2"
-                    >
-                      <Save className="h-3.5 w-3.5" />
-                      Edit
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={handleDeleteMember} 
-                      disabled={saving}
-                      className="border-red-200 text-red-600 hover:bg-red-50 h-8 gap-2"
-                    >
-                      {saving ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                      Delete
-                    </Button>
-                  </>
-                )}
+                  <Button 
+                    size="sm" 
+                    onClick={handleOpenAddForm} 
+                    className="bg-primary hover:bg-primary/90 h-8 gap-2"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span className="hidden md:inline">Add</span>
+                  </Button>
+                  {selectedIndices.length > 0 && (
+                    <>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={handleOpenEditForm} 
+                        disabled={selectedIndices.length !== 1}
+                        className="border-blue-200 text-blue-600 hover:bg-blue-50 h-8 gap-2"
+                      >
+                        <Save className="h-3.5 w-3.5" />
+                        <span className="hidden md:inline">Edit</span>
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={handleDeleteMember} 
+                        disabled={saving}
+                        className="border-red-200 text-red-600 hover:bg-red-50 h-8 gap-2"
+                      >
+                        {saving ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        <span className="hidden md:inline">Delete</span>
+                      </Button>
+                    </>
+                  )}
               </div>
             </CardHeader>
             <CardContent className="p-0">
