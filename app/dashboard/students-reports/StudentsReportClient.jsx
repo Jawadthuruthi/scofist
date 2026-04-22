@@ -40,6 +40,10 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
     const [isLookingUp, setIsLookingUp] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
     const [lookupError, setLookupError] = useState(false);
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
+    const [searchFocused, setSearchFocused] = useState(false);
 
     // Filter classes based on selected batch
     const filteredClasses = useMemo(() => {
@@ -90,6 +94,54 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
 
         fetchStudents();
     }, [selectedClass, selectedBatch, apiKey]);
+
+    // Debounced suggestion fetch
+    useEffect(() => {
+        const fetchSuggestions = async () => {
+            const term = lookupSearchTerm.trim();
+            if (term.length < 1) {
+                setSuggestions([]);
+                setShowSuggestions(false);
+                return;
+            }
+
+            // Don't search if the search term exactly matches current selected student name
+            if (selectedStudentData && selectedStudentData.name === term) {
+                setShowSuggestions(false);
+                return;
+            }
+
+            setIsSearchingSuggestions(true);
+            try {
+                const response = await fetch(
+                    `/api/users?roles=Student&lookup=${encodeURIComponent(term)}&limit=10&projection=_id,name,batchId,classId,studentSpecificField`,
+                    {
+                        headers: {
+                            "Content-Type": "application/json",
+                            "api-key": apiKey,
+                        },
+                    }
+                );
+                const data = await response.json();
+                setSuggestions(data.users || []);
+                if (data.users?.length > 0 && searchFocused) {
+                    setShowSuggestions(true);
+                } else {
+                    setShowSuggestions(false);
+                }
+            } catch (error) {
+                console.error("Suggestion fetch error:", error);
+            } finally {
+                setIsSearchingSuggestions(false);
+            }
+        };
+
+        const timeoutId = setTimeout(() => {
+            fetchSuggestions();
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [lookupSearchTerm, apiKey, searchFocused, selectedStudentData]);
 
     // Fetch full student profile when student changes
     useEffect(() => {
@@ -265,6 +317,7 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
         setSelectedStudentId(student._id);
         setLookupSearchTerm(student.name);
         setLookupError(false);
+        setShowSuggestions(false);
         toast.success(`Selected student: ${student.name}`);
     };
 
@@ -284,7 +337,7 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                 />
             </div>
 
-            <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden bg-card no-print">
+            <Card className="w-full border-primary/20 shadow-sm relative bg-card no-print">
                 <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
                 <CardHeader className="bg-muted/10 pb-4 pt-4 border-b">
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -299,9 +352,19 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                             <Input
                                 placeholder="Search by Student ID or Name..."
                                 value={lookupSearchTerm}
-                                onChange={(e) => setLookupSearchTerm(e.target.value)}
+                                onChange={(e) => {
+                                    setLookupSearchTerm(e.target.value);
+                                }}
                                 onKeyDown={(e) => {
-                                    if (e.key === "Enter") handleStudentLookup();
+                                    if (e.key === "Enter") {
+                                        handleStudentLookup();
+                                        setShowSuggestions(false);
+                                    }
+                                }}
+                                onFocus={() => setSearchFocused(true)}
+                                onBlur={() => {
+                                    // Delay to allow clicking on suggestions
+                                    setTimeout(() => setSearchFocused(false), 200);
                                 }}
                                 className="w-full pr-10"
                             />
@@ -321,6 +384,33 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                                 >
                                     <X className="h-4 w-4" />
                                 </Button>
+                            )}
+                            {showSuggestions && searchFocused && suggestions.length > 0 && (
+                                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border rounded-md shadow-lg overflow-hidden max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-200">
+                                    {suggestions.map((student) => {
+                                        const batch = batches.find(b => b._id === (student.batchId || student.studentSpecificField?.batchId));
+                                        const cls = classes.find(c => c._id === (student.classId || student.studentSpecificField?.classId));
+                                        
+                                        return (
+                                            <button
+                                                key={student._id}
+                                                className="w-full text-left px-4 py-3 hover:bg-muted flex flex-col gap-0.5 border-b last:border-0 transition-colors"
+                                                onClick={() => selectStudent(student)}
+                                            >
+                                                <span className="font-semibold text-sm">{student.name}</span>
+                                                <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                                    <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider">
+                                                        {student._id}
+                                                    </span>
+                                                    <span>•</span>
+                                                    <span>{cls?.name || "Unknown Class"}</span>
+                                                    <span>•</span>
+                                                    <span>{batch?.name || "Unknown Batch"}</span>
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             )}
                         </div>
                         <Button

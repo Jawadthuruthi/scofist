@@ -122,6 +122,24 @@ export async function GET(req) {
       ];
     }
 
+    // Handle lookup search parameter (more specific than global)
+    const lookupSearch = url.searchParams.get("lookup");
+    if (lookupSearch) {
+      const lookupFields = [
+        "_id",
+        "name",
+        "studentSpecificField.admissionNumber",
+      ];
+      query.$and = [
+        ...(query.$and || []),
+        {
+          $or: lookupFields.map((field) => ({
+            [field]: { $regex: lookupSearch, $options: "i" },
+          })),
+        },
+      ];
+    }
+
     // Use lean for better performance when appropriate
     let usersQuery = User.find(query, projections)
       .populate("studentSpecificField.batchId")
