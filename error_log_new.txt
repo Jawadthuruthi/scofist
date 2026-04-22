@@ -1,0 +1,12 @@
+PUT ERROR: User validation failed: studentSpecificField.bloodGroup: `` is not a valid enum value for path `studentSpecificField.bloodGroup`.
+ValidationError: User validation failed: studentSpecificField.bloodGroup: `` is not a valid enum value for path `studentSpecificField.bloodGroup`.
+    at Document.invalidate (D:\Projects\scofist\node_modules\mongoose\lib\document.js:3362:32)
+    at D:\Projects\scofist\node_modules\mongoose\lib\document.js:3123:17
+    at D:\Projects\scofist\node_modules\mongoose\lib\schemaType.js:1446:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:84:11)
+PUT ERROR: User validation failed: studentSpecificField.bloodGroup: `` is not a valid enum value for path `studentSpecificField.bloodGroup`.
+ValidationError: User validation failed: studentSpecificField.bloodGroup: `` is not a valid enum value for path `studentSpecificField.bloodGroup`.
+    at Document.invalidate (D:\Projects\scofist\node_modules\mongoose\lib\document.js:3362:32)
+    at D:\Projects\scofist\node_modules\mongoose\lib\document.js:3123:17
+    at D:\Projects\scofist\node_modules\mongoose\lib\schemaType.js:1446:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:84:11)

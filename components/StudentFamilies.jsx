@@ -1,0 +1,602 @@
+"use client";
+
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Trash2, Save, UserPlus, Users, Loader, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
+import Header from "./Header";
+import useCrud from "@/hooks/use-crud";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+
+const StudentFamilies = ({ apiKey }) => {
+  const [batches, setBatches] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [selectedBatch, setSelectedBatch] = useState("");
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [students, setStudents] = useState([]);
+  const [familyDetails, setFamilyDetails] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedIndices, setSelectedIndices] = useState([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const searchInputRef = useRef(null);
+
+  // Form state for new family member
+  const [formData, setFormData] = useState({
+    position: "",
+    name: "",
+    age: "",
+    education: "",
+    status: "",
+    mobileNumber: "",
+  });
+
+  const { useFetchItems, useUpdateItem } = useCrud("users", apiKey);
+  const updateStudent = useUpdateItem();
+
+  useEffect(() => {
+    fetch("/api/batches")
+      .then((res) => res.json())
+      .then((data) => setBatches(data.batches || []))
+      .catch((err) => console.error("Error fetching batches:", err));
+
+    fetch("/api/classes")
+      .then((res) => res.json())
+      .then((data) => setClasses(data.classes || []))
+      .catch((err) => console.error("Error fetching classes:", err));
+  }, []);
+
+  const studentsQuery = useFetchItems(0, 1000, {
+    roles: "Student",
+    batchId: selectedBatch || undefined,
+    classId: selectedClass || undefined,
+    status: "Active",
+  }, {
+    enabled: true // Always enabled to show all students if no filter
+  });
+
+  useEffect(() => {
+    if (studentsQuery.data?.users) {
+      setStudents(studentsQuery.data.users);
+    }
+  }, [studentsQuery.data]);
+
+  useEffect(() => {
+    if (showSuccessDialog) {
+      const timer = setTimeout(() => {
+        setShowSuccessDialog(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessDialog]);
+
+  useEffect(() => {
+    setLoading(studentsQuery.isLoading);
+  }, [studentsQuery.isLoading]);
+
+  useEffect(() => {
+    if (selectedStudentId && students.length > 0) {
+      const student = students.find((s) => s._id === selectedStudentId);
+      if (student) {
+        setFamilyDetails(student.familyDetails || []);
+      }
+    } else {
+      setFamilyDetails([]);
+    }
+    setSelectedIndices([]);
+    setIsEditing(false);
+    setIsFormOpen(false);
+    setIsSelectOpen(false);
+  }, [selectedStudentId, students]);
+
+  useEffect(() => {
+    if (isSelectOpen) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+    }
+  }, [isSelectOpen]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePositionChange = (value) => {
+    setFormData((prev) => ({ ...prev, position: value }));
+  };
+
+  const addFamilyMember = async () => {
+    if (!formData.position || !formData.name) {
+      toast.error("Please fill in at least Position and Name");
+      return;
+    }
+
+    if (!selectedStudentId) {
+      toast.error("Please select a student first");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const newMember = { ...formData, age: formData.age ? parseInt(formData.age) : undefined };
+      let updatedDetails;
+      
+      if (isEditing && selectedIndices.length > 0) {
+        updatedDetails = [...familyDetails];
+        updatedDetails[selectedIndices[0]] = newMember;
+      } else {
+        updatedDetails = [...familyDetails, newMember];
+      }
+      
+      await updateStudent.mutateAsync({
+        data: {
+          ids: [selectedStudentId],
+          familyDetails: updatedDetails,
+        },
+      });
+      
+      setFamilyDetails(updatedDetails);
+      setFormData({
+        position: "",
+        name: "",
+        age: "",
+        education: "",
+        status: "",
+        mobileNumber: "",
+      });
+      setIsEditing(false);
+      setSelectedIndices([]);
+      setIsFormOpen(false);
+      setShowSuccessDialog(true);
+    } catch (error) {
+      console.error("Error saving family member:", error);
+      toast.error("Failed to save family member");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOpenAddForm = () => {
+    setFormData({
+      position: "",
+      name: "",
+      age: "",
+      education: "",
+      status: "",
+      mobileNumber: "",
+    });
+    setIsEditing(false);
+    setIsFormOpen(true);
+  };
+
+  const handleOpenEditForm = () => {
+    if (selectedIndices.length === 0) return;
+    const member = familyDetails[selectedIndices[0]];
+    setFormData({
+      position: member.position,
+      name: member.name,
+      age: member.age || "",
+      education: member.education || "",
+      status: member.status || "",
+      mobileNumber: member.mobileNumber || "",
+    });
+    setIsEditing(true);
+    setIsFormOpen(true);
+  };
+
+  const handleDeleteMember = () => {
+    if (selectedIndices.length === 0 || !selectedStudentId) return;
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteMember = async () => {
+    setShowDeleteDialog(false);
+
+    setSaving(true);
+    try {
+      const updatedDetails = familyDetails.filter((_, i) => !selectedIndices.includes(i));
+      
+      await updateStudent.mutateAsync({
+        data: {
+          ids: [selectedStudentId],
+          familyDetails: updatedDetails,
+        },
+      });
+      
+      setFamilyDetails(updatedDetails);
+      setSelectedIndices([]);
+      toast.success("Family member(s) removed");
+    } catch (error) {
+      console.error("Error removing family member:", error);
+      toast.error("Failed to remove family member(s)");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIndices.length === familyDetails.length) {
+      setSelectedIndices([]);
+    } else {
+      setSelectedIndices(familyDetails.map((_, i) => i));
+    }
+  };
+
+  const toggleSelectRow = (index) => {
+    if (selectedIndices.includes(index)) {
+      setSelectedIndices(prev => prev.filter(i => i !== index));
+    } else {
+      setSelectedIndices(prev => [...prev, index]);
+    }
+  };
+
+  const removeFamilyMember = (index) => {
+    if (!selectedStudentId) return;
+    
+    setSelectedIndices([index]);
+    setShowDeleteDialog(true);
+  };
+
+  const selectedStudent = useMemo(() => {
+    return students.find((s) => s._id === selectedStudentId);
+  }, [students, selectedStudentId]);
+
+  const filteredStudents = useMemo(() => {
+    if (!searchTerm) return students;
+    return students.filter(s => 
+      s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      s._id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [students, searchTerm]);
+
+  return (
+    <div className="space-y-3 pb-10">
+      <Header 
+        title="STUDENT FAMILIES" 
+        subTitle="Manage family details and background for students" 
+        icon={<Users className="h-5 w-5 text-muted-foreground" />}
+      />
+
+      <Card className="border-primary/10 shadow-sm">
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Batch</Label>
+              <Select value={selectedBatch} onValueChange={(val) => {
+                setSelectedBatch(val);
+                setSelectedStudentId("");
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Batch" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Batches</SelectItem>
+                  {batches.map((batch) => (
+                    <SelectItem key={batch._id} value={batch._id}>
+                      {batch.name} {batch.academicYear ? `(${batch.academicYear})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Class</Label>
+              <Select value={selectedClass} onValueChange={(val) => {
+                setSelectedClass(val);
+                setSelectedStudentId("");
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls._id} value={cls._id}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Student</Label>
+              <Select 
+                value={selectedStudentId} 
+                onValueChange={setSelectedStudentId} 
+                disabled={loading}
+                open={isSelectOpen}
+                onOpenChange={setIsSelectOpen}
+              >
+                <SelectTrigger>
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <Loader className="h-4 w-4 animate-spin" />
+                      <span>Loading Students...</span>
+                    </div>
+                  ) : (
+                    <SelectValue placeholder="Select Student" />
+                  )}
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="px-2 py-1 sticky top-0 bg-popover border-b mb-1">
+                    <Input 
+                      ref={searchInputRef}
+                      placeholder="Search student..." 
+                      className="h-8 text-xs"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()} // Prevent select from closing
+                    />
+                  </div>
+                  {filteredStudents.length > 0 ? (
+                    filteredStudents.map((student) => (
+                      <SelectItem key={student._id} value={student._id}>
+                        {student.name} ({student._id})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="py-6 text-center text-xs text-muted-foreground">
+                      No students found
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedStudentId && (
+        <div className="space-y-6">
+          <Card className="border-primary/20 shadow-sm">
+            <CardHeader className="bg-muted/10 border-b flex flex-row items-center justify-between py-3">
+              <div>
+                <CardTitle className="text-lg">Family Details</CardTitle>
+                <CardDescription className="text-xs">Background information for {selectedStudent?.name}</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  size="sm" 
+                  onClick={handleOpenAddForm} 
+                  className="bg-primary hover:bg-primary/90 h-8 gap-2"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add
+                </Button>
+                {selectedIndices.length > 0 && (
+                  <>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={handleOpenEditForm} 
+                      disabled={selectedIndices.length !== 1}
+                      className="border-blue-200 text-blue-600 hover:bg-blue-50 h-8 gap-2"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      Edit
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={handleDeleteMember} 
+                      disabled={saving}
+                      className="border-red-200 text-red-600 hover:bg-red-50 h-8 gap-2"
+                    >
+                      {saving ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      Delete
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12 text-center">
+                        <input 
+                          type="checkbox" 
+                          checked={familyDetails.length > 0 && selectedIndices.length === familyDetails.length}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 cursor-pointer accent-primary"
+                        />
+                      </TableHead>
+                      <TableHead className="w-16">Sl.No</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead className="w-16 text-center">Age</TableHead>
+                      <TableHead>Education</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Mobile</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {familyDetails.length > 0 ? (
+                      familyDetails.map((member, index) => (
+                        <TableRow 
+                          key={index} 
+                          className={`hover:bg-muted/50 transition-colors cursor-pointer ${selectedIndices.includes(index) ? 'bg-primary/5' : ''}`}
+                          onClick={() => toggleSelectRow(index)}
+                        >
+                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                            <input 
+                              type="checkbox" 
+                              checked={selectedIndices.includes(index)}
+                              onChange={() => toggleSelectRow(index)}
+                              className="h-4 w-4 cursor-pointer accent-primary"
+                            />
+                          </TableCell>
+                          <TableCell>{index + 1}</TableCell>
+                          <TableCell className="font-medium">{member.position}</TableCell>
+                          <TableCell className="uppercase">{member.name}</TableCell>
+                          <TableCell className="text-center">{member.age || "-"}</TableCell>
+                          <TableCell>{member.education || "-"}</TableCell>
+                          <TableCell>{member.status || "-"}</TableCell>
+                          <TableCell>{member.mobileNumber || "-"}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
+                          No family details added yet. Click "Add" to begin.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Add/Edit Modal */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isEditing ? "Edit Family Member" : "Add New Family Member"}</DialogTitle>
+            <DialogDescription>
+              {isEditing ? "Update family information for this student." : "Enter family details for the selected student."}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Position</Label>
+              <Select value={formData.position} onValueChange={handlePositionChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Position" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Father">Father</SelectItem>
+                  <SelectItem value="Mother">Mother</SelectItem>
+                  <SelectItem value="Brother">Brother</SelectItem>
+                  <SelectItem value="Sister">Sister</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input 
+                name="name" 
+                value={formData.name} 
+                onChange={handleInputChange} 
+                placeholder="Full Name" 
+                className="uppercase"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Age</Label>
+                <Input 
+                  type="number" 
+                  name="age" 
+                  value={formData.age} 
+                  onChange={handleInputChange} 
+                  placeholder="Age" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mobile Number</Label>
+                <Input 
+                  name="mobileNumber" 
+                  value={formData.mobileNumber} 
+                  onChange={handleInputChange} 
+                  placeholder="Mobile No" 
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Education</Label>
+              <Input 
+                name="education" 
+                value={formData.education} 
+                onChange={handleInputChange} 
+                placeholder="Education Details" 
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Input 
+                name="status" 
+                value={formData.status} 
+                onChange={handleInputChange} 
+                placeholder="e.g. Working, Deceased, etc." 
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
+            <Button onClick={addFamilyMember} disabled={saving}>
+              {saving ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+              {isEditing ? "Update" : "Save"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
+          <DialogHeader className="flex flex-col items-center justify-center text-center space-y-3">
+            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
+              <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+            </div>
+            <DialogTitle className="text-2xl font-bold text-green-600 dark:text-green-400">
+              Saved Successfully
+            </DialogTitle>
+            <DialogDescription className="text-lg">
+              Family details for {selectedStudent?.name} have been updated.
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md rounded-xl">
+          <DialogHeader className="flex flex-col items-center justify-center text-center space-y-3">
+            <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full">
+              <Trash2 className="h-10 w-10 text-red-600 dark:text-red-400" />
+            </div>
+            <DialogTitle className="text-xl font-bold">
+              Confirm Deletion
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove {selectedIndices.length > 1 ? `${selectedIndices.length} members` : "this family member"}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center gap-3 mt-4">
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} className="w-24">
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteMember} className="w-24">
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default StudentFamilies;

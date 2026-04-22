@@ -24,8 +24,104 @@ const ROLES = [
   "Librarian",
 ];
 
-const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
-const STUDENT_STATUSES = ["Active", "Dropped Out", "Graduated"];
+const BLOOD_GROUPS = ["", "A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
+const STUDENT_STATUSES = ["", "Active", "Dropped Out", "Graduated"];
+
+const FamilyDetailSchema = new Schema({
+  position: { type: String, enum: ["Father", "Mother", "Brother", "Sister"] },
+  name: { type: String, trim: true, uppercase: true },
+  age: Number,
+  education: { type: String, trim: true },
+  status: { type: String, trim: true },
+  mobileNumber: { type: String, trim: true },
+}, { _id: false });
+
+const studentSpecificSchema = {
+  admissionClassId: { type: String, trim: true, ref: "Class" },
+  admissionDate: Date,
+  aadharNo: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: (v) => !v || /^\d{12}$/.test(v),
+      message: "Invalid 12-digit Aadhar number",
+    },
+  },
+  bloodGroup: {
+    type: String,
+    trim: true,
+    enum: BLOOD_GROUPS,
+  },
+  guardianName: {
+    type: String,
+    trim: true,
+    uppercase: true,
+  },
+  guardianContactNumber: {
+    type: String,
+    trim: true,
+    match: [
+      /^(\+?\d{1,3}[-.\s]?)?\d{10,15}$/,
+      "Invalid guardian contact number",
+    ],
+  },
+  guardianAlternativeNumber: {
+    type: String,
+    trim: true,
+    match: [
+      /^(\+?\d{1,3}[-.\s]?)?\d{10,15}$/,
+      "Invalid guardian alternative number",
+    ],
+  },
+  relationship: {
+    type: String,
+    trim: true,
+    uppercase: true,
+  },
+  status: {
+    type: String,
+    trim: true,
+    enum: STUDENT_STATUSES,
+  },
+  islamicQualification: { type: String, trim: true },
+  academicQualification: { type: String, trim: true },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verifiedAt: Date,
+  droppedOutDate: Date,
+  droppedOutClass: {
+    type: String,
+    trim: true,
+  },
+  droppedOutReason: {
+    type: String,
+    trim: true,
+  },
+  graduatedYear: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: function (v) {
+        if (this.studentSpecificField?.status !== "Graduated") return true;
+        return /^\d{4}$/.test(v);
+      },
+      message: "Graduation year must be a 4-digit number",
+    },
+  },
+  classId: {
+    type: String,
+    trim: true,
+    ref: "Class",
+  },
+  batchId: {
+    type: String,
+    trim: true,
+    ref: "Batch",
+  },
+  familyDetails: [FamilyDetailSchema],
+};
 
 const userSchema = new Schema(
   {
@@ -135,127 +231,7 @@ const userSchema = new Schema(
         },
       },
     },
-    studentSpecificField: {
-      admissionClassId: { type: String, trim: true, ref: "Class" },
-      admissionDate: Date,
-      aadharNo: {
-        type: String,
-        trim: true,
-        validate: {
-          validator: (v) => !v || /^\d{12}$/.test(v),
-          message: "Invalid 12-digit Aadhar number",
-        },
-      },
-      bloodGroup: {
-        type: String,
-        trim: true,
-        enum: BLOOD_GROUPS,
-      },
-      guardianName: {
-        type: String,
-        // required: function () {
-        //   return this.roles.includes("Student");
-        // },
-        trim: true,
-        uppercase: true,
-      },
-      guardianContactNumber: {
-        type: String,
-        trim: true,
-        // required: function () {
-        //   return this.roles.includes("Student");
-        // },
-        match: [
-          /^(\+?\d{1,3}[-.\s]?)?\d{10,15}$/,
-          "Invalid guardian contact number",
-        ],
-      },
-      guardianAlternativeNumber: {
-        type: String,
-        trim: true,
-        match: [
-          /^(\+?\d{1,3}[-.\s]?)?\d{10,15}$/,
-          "Invalid guardian alternative number",
-        ],
-      },
-      relationship: {
-        type: String,
-        // required: function () {
-        //   return this.roles.includes("Student");
-        // },
-        trim: true,
-        uppercase: true,
-      },
-      status: {
-        type: String,
-        trim: true,
-        enum: STUDENT_STATUSES,
-        // required: function () {
-        //   return this.roles.includes("Student");
-        // },
-      },
-      islamicQualification: { type: String, trim: true },
-      academicQualification: { type: String, trim: true },
-      isVerified: {
-        type: Boolean,
-        default: false,
-      },
-      verifiedAt: Date,
-      // Status-dependent fields
-      droppedOutDate: {
-        type: Date,
-        // required: function () {
-        //   return this.studentSpecificField?.status === "Dropped Out";
-        // },
-      },
-      droppedOutClass: {
-        type: String,
-        trim: true,
-        // required: function () {
-        //   return this.studentSpecificField?.status === "Dropped Out";
-        // },
-      },
-      droppedOutReason: {
-        type: String,
-        trim: true,
-        // required: function () {
-        //   return this.studentSpecificField?.status === "Dropped Out";
-        // },
-      },
-      graduatedYear: {
-        type: String,
-        trim: true,
-        validate: {
-          validator: function (v) {
-            if (this.studentSpecificField?.status !== "Graduated") return true;
-            return /^\d{4}$/.test(v);
-          },
-          message: "Graduation year must be a 4-digit number",
-        },
-        // required: function () {
-        //   return this.studentSpecificField?.status === "Graduated";
-        // },
-      },
-      classId: {
-        type: String,
-        trim: true,
-        ref: "Class",
-        // required: function () {
-        //   return (
-        //     this.roles.includes("Student") &&
-        //     this.studentSpecificField?.status === "Active"
-        //   );
-        // },
-      },
-      batchId: {
-        type: String,
-        trim: true,
-        ref: "Batch",
-        // required: function () {
-        //   return this.roles.includes("Student");
-        // },
-      },
-    },
+    studentSpecificField: studentSpecificSchema,
   },
   {
     timestamps: true,

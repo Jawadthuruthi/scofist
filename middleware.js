@@ -133,6 +133,11 @@ const pages = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
+    title: "Students Families",
+    path: "/dashboard/students-families",
+    allowedRoles: ["College Admin"],
+  },
+  {
     path: "/dashboard/leave-register",
     pattern: /^\/dashboard\/leave-register(?:\/[^/]+)?$/,
     allowedRoles: ["College Admin", "Teacher"],

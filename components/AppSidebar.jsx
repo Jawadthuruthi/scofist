@@ -133,6 +133,12 @@ const items = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
+    title: "Students Families",
+    url: "/dashboard/students-families",
+    icon: Users2,
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Students Fund",
     url: "/dashboard/students-fund",
     allowedRoles: ["Teacher", "IT Lab", "Stationary"],

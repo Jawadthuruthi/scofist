@@ -4,9 +4,9 @@ import connectToDB from "@/lib/db";
 import User from "@/models/User";
 import "@/models/StudentCoupon"; // Ensure schema is registered
 import { NextResponse } from "next/server";
-import fs from 'fs';
 
-export async function GET(req, res) {
+
+export async function GET(req) {
   try {
     await connectToDB();
 
@@ -150,11 +150,12 @@ export async function GET(req, res) {
     const total = await User.countDocuments(query);
 
     // Optimize the data transformation to avoid deep cloning
-    const formattedUsers = users.map((user) => {
+    const formattedUsers = users.map((u) => {
+      const user = u.toObject({ virtuals: true });
+      const studentSpecificField = user.studentSpecificField || {};
       // Handle null/undefined safely
       const address = user.address || {};
       const teacherSpecificField = user.teacherSpecificField || {};
-      const studentSpecificField = user.studentSpecificField || {};
 
       // Format the user data efficiently
       return {
@@ -208,6 +209,7 @@ export async function GET(req, res) {
         graduatedYear: studentSpecificField.graduatedYear,
         isVerified: studentSpecificField.isVerified,
         verifiedAt: studentSpecificField.verifiedAt,
+        familyDetails: studentSpecificField.familyDetails,
 
         // Class and batch references
         classId: studentSpecificField.classId?._id,
@@ -216,7 +218,6 @@ export async function GET(req, res) {
         batchName: studentSpecificField.batchId?.name,
         classData: studentSpecificField.classId,
         batchData: studentSpecificField.batchId,
-
         status: user.roles?.includes("Student")
           ? studentSpecificField.status
           : teacherSpecificField.status,
@@ -302,6 +303,7 @@ export async function POST(req, res) {
       graduatedYear,
       batchId,
       classId,
+      familyDetails,
     } = body;
 
     // Build user object efficiently
@@ -348,6 +350,7 @@ export async function POST(req, res) {
         status,
         batchId,
         classId,
+        familyDetails,
       };
 
       // Add status-dependent fields only when they're needed
@@ -379,12 +382,6 @@ export async function POST(req, res) {
     }
 
     console.error("Error creating user:", error);
-    try {
-      fs.appendFileSync('d:\\Projects\\scofist\\error_log.txt', new Date().toISOString() + ' - BODY: ' + JSON.stringify(body) + '\n');
-      fs.appendFileSync('d:\\Projects\\scofist\\error_log.txt', new Date().toISOString() + ' - ERROR: ' + (error.stack || error) + '\n');
-    } catch (logError) {
-      console.error("Error writing to log file:", logError);
-    }
     return apiResponse.error(error);
   }
 }
@@ -406,7 +403,6 @@ export async function PUT(req) {
     const user = await User.findById(_id);
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
-      console.log(updateFields);
     }
 
     // Update top-level fields
@@ -459,7 +455,6 @@ export async function PUT(req) {
 
     // Update Student-specific fields
     if (user.roles.includes("Student")) {
-      if (!user.studentSpecificField) user.studentSpecificField = {};
       const studentFields = [
         "admissionClassId",
         "admissionDate",
@@ -473,14 +468,17 @@ export async function PUT(req) {
         "academicQualification",
         "batchId",
         "classId",
-        "classId",
         "status",
         "isVerified",
         "verifiedAt",
+        "familyDetails",
       ];
+      
+      if (!user.studentSpecificField) user.studentSpecificField = {};
+      
       studentFields.forEach((field) => {
         if (updateFields[field] !== undefined) {
-          user.studentSpecificField[field] = updateFields[field] || undefined;
+          user.set(`studentSpecificField.${field}`, updateFields[field]);
         }
       });
 
@@ -489,20 +487,22 @@ export async function PUT(req) {
         ["droppedOutDate", "droppedOutClass", "droppedOutReason"].forEach(
           (field) => {
             if (updateFields[field] !== undefined) {
-              user.studentSpecificField[field] =
-                updateFields[field] || undefined;
+              user.set(`studentSpecificField.${field}`, updateFields[field]);
             }
           }
         );
       } else if (updateFields.status === "Graduated") {
         if (updateFields.graduatedYear !== undefined) {
-          user.studentSpecificField.graduatedYear = updateFields.graduatedYear;
+          user.set(`studentSpecificField.graduatedYear`, updateFields.graduatedYear);
         }
       }
+      
+      user.markModified("studentSpecificField");
     }
 
     // Force Mongoose to detect changes in nested object
     user.markModified("studentSpecificField");
+    user.markModified("studentSpecificField.familyDetails");
 
     // Save the user
     await user.save();
