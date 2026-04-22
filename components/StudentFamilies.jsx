@@ -16,8 +16,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 const StudentFamilies = ({ apiKey }) => {
   const [batches, setBatches] = useState([]);
   const [classes, setClasses] = useState([]);
-  const [selectedBatch, setSelectedBatch] = useState("");
-  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedBatch, setSelectedBatch] = useState("all");
+  const [selectedClass, setSelectedClass] = useState("all");
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [students, setStudents] = useState([]);
   const [familyDetails, setFamilyDetails] = useState([]);
@@ -59,9 +59,9 @@ const StudentFamilies = ({ apiKey }) => {
 
   const studentsQuery = useFetchItems(0, 1000, {
     roles: "Student",
-    batchId: selectedBatch || undefined,
-    classId: selectedClass || undefined,
-    status: "Active",
+    batchId: (selectedBatch && selectedBatch !== "all") ? selectedBatch : undefined,
+    classId: (selectedClass && selectedClass !== "all") ? selectedClass : undefined,
+    status: (selectedClass && selectedClass !== "all") ? "Active" : undefined,
   }, {
     enabled: true // Always enabled to show all students if no filter
   });
@@ -262,7 +262,7 @@ const StudentFamilies = ({ apiKey }) => {
   }, [students, searchTerm]);
 
   return (
-    <div className="space-y-3 pb-10">
+    <div className="space-y-3 pb-10 px-2 sm:px-0">
       <Header 
         title="STUDENT FAMILIES" 
         subTitle="Manage family details and background for students" 
@@ -276,6 +276,7 @@ const StudentFamilies = ({ apiKey }) => {
               <Label>Batch</Label>
               <Select value={selectedBatch} onValueChange={(val) => {
                 setSelectedBatch(val);
+                setSelectedClass("all");
                 setSelectedStudentId("");
               }}>
                 <SelectTrigger>
@@ -332,14 +333,17 @@ const StudentFamilies = ({ apiKey }) => {
                   )}
                 </SelectTrigger>
                 <SelectContent>
-                  <div className="px-2 py-1 sticky top-0 bg-popover border-b mb-1">
+                  <div 
+                    className="px-2 py-1 sticky top-0 bg-popover border-b mb-1"
+                    onPointerDown={(e) => e.stopPropagation()} // Fix for mobile dropdown closing
+                  >
                     <Input 
                       ref={searchInputRef}
                       placeholder="Search student..." 
                       className="h-8 text-xs"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyDown={(e) => e.stopPropagation()} // Prevent select from closing
+                      onKeyDown={(e) => e.stopPropagation()}
                     />
                   </div>
                   {filteredStudents.length > 0 ? (
