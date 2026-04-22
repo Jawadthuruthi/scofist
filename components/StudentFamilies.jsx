@@ -1,13 +1,25 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Save, UserPlus, Users, Loader, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Save, UserPlus, Users, Loader, CheckCircle2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
@@ -18,6 +30,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const StudentFamilies = ({ apiKey }) => {
+  const queryClient = useQueryClient();
   const [batches, setBatches] = useState([]);
   const [classes, setClasses] = useState([]);
   const [selectedBatch, setSelectedBatch] = useState("all");
@@ -34,7 +47,11 @@ const StudentFamilies = ({ apiKey }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const [familyOtherDetails, setFamilyOtherDetails] = useState("");
+  const [deleteIndex, setDeleteIndex] = useState(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const searchInputRef = useRef(null);
+  const hasLoadedRef = useRef({});
 
   // Form state for new family member
   const [formData, setFormData] = useState({
@@ -44,6 +61,7 @@ const StudentFamilies = ({ apiKey }) => {
     education: "",
     status: "",
     mobileNumber: "",
+    otherDetails: "",
   });
 
   const { useFetchItems, useUpdateItem } = useCrud("users", apiKey);
@@ -89,19 +107,23 @@ const StudentFamilies = ({ apiKey }) => {
     setLoading(studentsQuery.isLoading);
   }, [studentsQuery.isLoading]);
 
+  // Loads data when student is selected OR when students data first arrives (e.g. page refresh).
+  // Uses a ref to avoid overwriting local edits when React Query refetches after a save.
   useEffect(() => {
-    if (selectedStudentId && students.length > 0) {
+    if (selectedStudentId) {
       const student = students.find((s) => s._id === selectedStudentId);
-      if (student) {
+      if (student && !hasLoadedRef.current[selectedStudentId]) {
+        // First time data is available for this student — load from server
         setFamilyDetails(student.familyDetails || []);
+        setFamilyOtherDetails(student.familyOtherDetails || "");
+        hasLoadedRef.current[selectedStudentId] = true;
       }
     } else {
+      // No student selected — clear everything and reset ref
       setFamilyDetails([]);
+      setFamilyOtherDetails("");
+      hasLoadedRef.current = {};
     }
-    setSelectedIndices([]);
-    setIsEditing(false);
-    setIsFormOpen(false);
-    setIsSelectOpen(false);
   }, [selectedStudentId, students]);
 
   useEffect(() => {
@@ -144,13 +166,7 @@ const StudentFamilies = ({ apiKey }) => {
         updatedDetails = [...familyDetails, newMember];
       }
       
-      await updateStudent.mutateAsync({
-        data: {
-          ids: [selectedStudentId],
-          familyDetails: updatedDetails,
-        },
-      });
-      
+      // Update local state only (Add to List)
       setFamilyDetails(updatedDetails);
       setFormData({
         position: "",
@@ -159,14 +175,59 @@ const StudentFamilies = ({ apiKey }) => {
         education: "",
         status: "",
         mobileNumber: "",
+        otherDetails: "",
       });
       setIsEditing(false);
       setSelectedIndices([]);
-      setIsFormOpen(false);
-      setShowSuccessDialog(true);
+      toast.success("Added to list. Remember to save changes.");
     } catch (error) {
-      console.error("Error saving family member:", error);
-      toast.error("Failed to save family member");
+      console.error("Error adding to list:", error);
+      toast.error("Failed to add to list");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveToDatabase = async () => {
+    if (!selectedStudentId) {
+      toast.error("Please select a student first");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/kinship", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId: selectedStudentId,
+          familyDetails: familyDetails,
+          familyOtherDetails: familyOtherDetails,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Save failed");
+      }
+
+      // Invalidate queries to trigger a background refetch
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      
+      // Update local students state manually for instant feedback before refetch completes
+      setStudents(prev => prev.map(s => 
+        s._id === selectedStudentId 
+          ? { ...s, familyDetails: [...familyDetails], familyOtherDetails: familyOtherDetails }
+          : s
+      ));
+
+      setShowSuccessDialog(true);
+      setIsFormOpen(false);
+      // Keep hasLoadedRef true to prevent the refetch from overwriting our fresh local state
+      hasLoadedRef.current[selectedStudentId] = true;
+    } catch (error) {
+      console.error("Error saving kinship data:", error);
+      toast.error("Failed to save: " + error.message);
     } finally {
       setSaving(false);
     }
@@ -195,6 +256,7 @@ const StudentFamilies = ({ apiKey }) => {
       education: member.education || "",
       status: member.status || "",
       mobileNumber: member.mobileNumber || "",
+      otherDetails: member.otherDetails || "",
     });
     setIsEditing(true);
     setIsFormOpen(true);
@@ -212,13 +274,18 @@ const StudentFamilies = ({ apiKey }) => {
     try {
       const updatedDetails = familyDetails.filter((_, i) => !selectedIndices.includes(i));
       
-      await updateStudent.mutateAsync({
-        data: {
-          ids: [selectedStudentId],
+      const res = await fetch("/api/kinship", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId: selectedStudentId,
           familyDetails: updatedDetails,
-        },
+          familyOtherDetails: familyOtherDetails,
+        }),
       });
-      
+
+      if (!res.ok) throw new Error("Delete failed");
+
       setFamilyDetails(updatedDetails);
       setSelectedIndices([]);
       toast.success("Family member(s) removed");
@@ -268,7 +335,7 @@ const StudentFamilies = ({ apiKey }) => {
   return (
     <div className="space-y-3 pb-10 px-0 sm:px-0">
       <Header 
-        title="STUDENT FAMILIES" 
+        title="KINSHIP" 
         subTitle="Manage students' family background details" 
         icon={<Users className="h-5 w-5 text-muted-foreground" />}
       />
@@ -378,7 +445,7 @@ const StudentFamilies = ({ apiKey }) => {
       </Card>
 
       {selectedStudentId && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <Card className="border-primary/20 shadow-sm">
             <CardHeader className="bg-muted/10 border-b flex flex-row items-center justify-between py-3">
               <div>
@@ -479,98 +546,221 @@ const StudentFamilies = ({ apiKey }) => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Other Details — directly below the family table */}
+          <Card className="border-border shadow-sm bg-gray-50/50">
+            <CardHeader className="py-3 px-4 border-b bg-gray-100/70">
+              <CardTitle className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-gray-500" />
+                Kinship — Other Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              {familyOtherDetails ? (
+                <p className="text-sm text-gray-900 leading-relaxed whitespace-pre-wrap">
+                  {familyOtherDetails}
+                </p>
+              ) : (
+                <p className="text-sm text-gray-400 italic">
+                  No general notes added for this family. Use the "Add" button to add notes.
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* Add/Edit Modal */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{isEditing ? "Edit Family Member" : "Add New Family Member"}</DialogTitle>
+            <DialogTitle>{isEditing ? "Edit Family Member" : "Add Family Members"}</DialogTitle>
             <DialogDescription>
               {isEditing ? "Update family information for this student." : "Enter family details for the selected student."}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Position</Label>
-              <Select value={formData.position} onValueChange={handlePositionChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Position" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Father">Father</SelectItem>
-                  <SelectItem value="Mother">Mother</SelectItem>
-                  <SelectItem value="Brother">Brother</SelectItem>
-                  <SelectItem value="Sister">Sister</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-6 py-4">
+            <div className="space-y-4 bg-muted/20 p-4 rounded-lg border border-dashed border-primary/20">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div className="space-y-2 md:col-span-3">
+                  <Label>Position</Label>
+                  <Select value={formData.position} onValueChange={handlePositionChange}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Position" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Father">Father</SelectItem>
+                      <SelectItem value="Mother">Mother</SelectItem>
+                      <SelectItem value="Brother">Brother</SelectItem>
+                      <SelectItem value="Sister">Sister</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-2">
-              <Label>Name</Label>
-              <Input 
-                name="name" 
-                value={formData.name} 
-                onChange={handleInputChange} 
-                placeholder="Full Name" 
-                className="uppercase"
-              />
-            </div>
+                <div className="space-y-2 md:col-span-6">
+                  <Label>Name</Label>
+                  <Input 
+                    name="name" 
+                    value={formData.name} 
+                    onChange={handleInputChange} 
+                    placeholder="Full Name" 
+                    className="uppercase bg-background"
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Age</Label>
-                <Input 
-                  type="number" 
-                  name="age" 
-                  value={formData.age} 
-                  onChange={handleInputChange} 
-                  placeholder="Age" 
-                />
+                <div className="space-y-2 md:col-span-3">
+                  <Label>Age</Label>
+                  <Input 
+                    type="number" 
+                    name="age" 
+                    value={formData.age} 
+                    onChange={handleInputChange} 
+                    placeholder="Age" 
+                    className="bg-background"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Mobile Number</Label>
-                <Input 
-                  name="mobileNumber" 
-                  value={formData.mobileNumber} 
-                  onChange={handleInputChange} 
-                  placeholder="Mobile No" 
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                <div className="space-y-2 md:col-span-3">
+                  <Label>Mobile</Label>
+                  <Input 
+                    name="mobileNumber" 
+                    value={formData.mobileNumber} 
+                    onChange={handleInputChange} 
+                    placeholder="Mobile" 
+                    className="bg-background"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-3">
+                  <Label>Education</Label>
+                  <Input 
+                    name="education" 
+                    value={formData.education} 
+                    onChange={handleInputChange} 
+                    placeholder="Education" 
+                    className="bg-background"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-3">
+                  <Label>Status</Label>
+                  <Input 
+                    name="status" 
+                    value={formData.status} 
+                    onChange={handleInputChange} 
+                    placeholder="Status" 
+                    className="bg-background"
+                  />
+                </div>
+
+                <div className="flex items-center md:col-span-2">
+                  <Button 
+                    onClick={addFamilyMember} 
+                    className="w-full bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 h-10 px-2"
+                    variant="outline"
+                    disabled={saving}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    {isEditing ? "Update" : "Add"}
+                  </Button>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Education</Label>
-              <Input 
-                name="education" 
-                value={formData.education} 
-                onChange={handleInputChange} 
-                placeholder="Education Details" 
-              />
-            </div>
+            {familyDetails.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-primary font-semibold">Members in this list:</Label>
+                <div className="border rounded-md overflow-hidden bg-card">
+                  <Table className="text-xs">
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead className="h-8">Position</TableHead>
+                        <TableHead className="h-8">Name</TableHead>
+                        <TableHead className="h-8">Age</TableHead>
+                        <TableHead className="h-8">Education</TableHead>
+                        <TableHead className="h-8">Mobile</TableHead>
+                        <TableHead className="h-8">Status</TableHead>
+                        <TableHead className="h-8 w-10"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {familyDetails.map((member, index) => (
+                        <TableRow key={index} className="hover:bg-muted/30">
+                          <TableCell className="py-1">{member.position}</TableCell>
+                          <TableCell className="py-1 font-medium text-blue-600">{member.name}</TableCell>
+                          <TableCell className="py-1">{member.age || "-"}</TableCell>
+                          <TableCell className="py-1">{member.education || "-"}</TableCell>
+                          <TableCell className="py-1">{member.mobileNumber || "-"}</TableCell>
+                          <TableCell className="py-1">{member.status || "-"}</TableCell>
+                          <TableCell className="py-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                setDeleteIndex(index);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
-              <Label>Status</Label>
-              <Input 
-                name="status" 
-                value={formData.status} 
-                onChange={handleInputChange} 
-                placeholder="e.g. Working, Deceased, etc." 
+              <Label className="text-primary font-semibold">Other Details (General Notes)</Label>
+              <Textarea 
+                value={familyOtherDetails} 
+                onChange={(e) => setFamilyOtherDetails(e.target.value)} 
+                placeholder="Additional notes for the whole family..." 
+                className="bg-background min-h-[100px]"
               />
             </div>
           </div>
           
-          <div className="flex justify-end gap-3 mt-4">
+          <div className="flex justify-end gap-3 mt-4 border-t pt-4">
             <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-            <Button onClick={addFamilyMember} disabled={saving}>
+            <Button onClick={saveToDatabase} disabled={saving} className="bg-green-600 hover:bg-green-700 min-w-[100px]">
               {saving ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              {isEditing ? "Update" : "Save"}
+              Save
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Family Member?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the member from your current list. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (deleteIndex !== null) {
+                  setFamilyDetails(prev => prev.filter((_, i) => i !== deleteIndex));
+                  setDeleteIndex(null);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">

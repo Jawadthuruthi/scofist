@@ -34,9 +34,10 @@ const FamilyDetailSchema = new Schema({
   education: { type: String, trim: true },
   status: { type: String, trim: true },
   mobileNumber: { type: String, trim: true },
+  otherDetails: { type: String, trim: true },
 }, { _id: false });
 
-const studentSpecificSchema = {
+const studentSpecificSchema = new Schema({
   admissionClassId: { type: String, trim: true, ref: "Class" },
   admissionDate: Date,
   aadharNo: {
@@ -121,7 +122,7 @@ const studentSpecificSchema = {
     ref: "Batch",
   },
   familyDetails: [FamilyDetailSchema],
-};
+}, { _id: false });
 
 const userSchema = new Schema(
   {
@@ -232,6 +233,7 @@ const userSchema = new Schema(
       },
     },
     studentSpecificField: studentSpecificSchema,
+    familyOtherDetails: { type: String, trim: true },
   },
   {
     timestamps: true,

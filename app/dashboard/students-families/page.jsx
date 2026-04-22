@@ -12,7 +12,7 @@ export default async function StudentFamiliesPage() {
             <ErrorPage
                 statusCode={403}
                 title="Access Denied"
-                description="Only College Admins can access Student Family details."
+                description="Only College Admins can access Kinship details."
             />
         );
 

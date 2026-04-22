@@ -227,7 +227,8 @@ export async function GET(req) {
         graduatedYear: studentSpecificField.graduatedYear,
         isVerified: studentSpecificField.isVerified,
         verifiedAt: studentSpecificField.verifiedAt,
-        familyDetails: studentSpecificField.familyDetails,
+        familyDetails: studentSpecificField.familyDetails || u.studentSpecificField?.familyDetails || [],
+        familyOtherDetails: user.familyOtherDetails || studentSpecificField.familyOtherDetails || u.familyOtherDetails || u.studentSpecificField?.familyOtherDetails || "",
 
         // Class and batch references
         classId: studentSpecificField.classId?._id,
@@ -322,6 +323,7 @@ export async function POST(req, res) {
       batchId,
       classId,
       familyDetails,
+      familyOtherDetails,
     } = body;
 
     // Build user object efficiently
@@ -368,8 +370,16 @@ export async function POST(req, res) {
         status,
         batchId,
         classId,
-        familyDetails,
+        familyDetails: familyDetails?.map(m => ({
+          position: m.position,
+          name: m.name,
+          age: m.age,
+          education: m.education,
+          status: m.status,
+          mobileNumber: m.mobileNumber,
+        })),
       };
+      userData.familyOtherDetails = familyOtherDetails;
 
       // Add status-dependent fields only when they're needed
       if (status === "Dropped Out") {
@@ -489,16 +499,28 @@ export async function PUT(req) {
         "status",
         "isVerified",
         "verifiedAt",
-        "familyDetails",
       ];
       
       if (!user.studentSpecificField) user.studentSpecificField = {};
       
+      // Handle standard student fields using Mongoose's formal schema tracking
       studentFields.forEach((field) => {
         if (updateFields[field] !== undefined) {
           user.set(`studentSpecificField.${field}`, updateFields[field]);
         }
       });
+
+      // Handle kinship fields explicitly at their correct levels
+      if (updateFields.familyDetails !== undefined) {
+        user.studentSpecificField.familyDetails = updateFields.familyDetails;
+        user.markModified("studentSpecificField.familyDetails");
+      }
+      if (updateFields.familyOtherDetails !== undefined) {
+        user.familyOtherDetails = updateFields.familyOtherDetails;
+        user.markModified("familyOtherDetails");
+      }
+
+      user.markModified("studentSpecificField");
 
       // Handle Dropped Out or Graduated fields
       if (updateFields.status === "Dropped Out") {

@@ -133,7 +133,7 @@ const items = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
-    title: "Students Families",
+    title: "Kinship",
     url: "/dashboard/students-families",
     icon: Users2,
     allowedRoles: ["College Admin"],
