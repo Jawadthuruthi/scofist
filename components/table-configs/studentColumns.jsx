@@ -36,14 +36,15 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColu
             header: pageTitle === "ADMISSION REGISTER" ? <div>Student Name &<br />Contact Number</div> : "Name",
             cell: ({ row }) => (
                 <div
-                    className={`flex flex-col ${onNameClick ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}`}
-                    onClick={() => {
+                    className="flex flex-col cursor-pointer hover:text-blue-600 group"
+                    onClick={(e) => {
+                        e.stopPropagation();
                         if (onNameClick) {
                             onNameClick(row.original);
                         }
                     }}
                 >
-                    <span className={`font-bold transition-all duration-200 ${onNameClick ? "text-indigo-900 dark:text-indigo-300 hover:text-blue-600 hover:underline" : "text-sky-950 dark:text-sky-200"}`}>{row.original.name}</span>
+                    <span className="font-bold text-sky-950 dark:text-sky-200 group-hover:underline">{row.original.name}</span>
                     {pageTitle === "ADMISSION REGISTER" && (
                         <div className="flex flex-col gap-0.5 mt-1">
                             {row.original.contactNumber && <span className="text-xs text-muted-foreground">Ph: {row.original.contactNumber}</span>}

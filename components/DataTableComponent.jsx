@@ -141,6 +141,8 @@ const DataTableComponent = ({
   onDataFetched = null,
   formClassName = "",
   onCellClick = null,
+  enableClickToEdit = false,
+  clickToEditExcludeColumns = ["_id", "select", "serialNo", "actions"],
 }) => {
   const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
@@ -158,6 +160,8 @@ const DataTableComponent = ({
   // Add state to track filter changes more precisely
   const [filterMonth, setFilterMonth] = useState(() => enableMonthYearFilter ? new Date().getMonth() + 1 : null);
   const [filterYear, setFilterYear] = useState(() => enableMonthYearFilter ? new Date().getFullYear() : null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [toppersOnly, setToppersOnly] = useState(false);
   
   // State for cell detail drill-down
@@ -988,6 +992,8 @@ const DataTableComponent = ({
         !readOnly && (
           <PopupForm
             data={selectedData[0]}
+            open={isEditOpen}
+            onOpenChange={setIsEditOpen}
             formFields={
               selectedData.length > 1 && multiEditFormFields?.length > 0
                 ? multiEditFormFields
@@ -1015,6 +1021,8 @@ const DataTableComponent = ({
       {!readOnly && enableCreate && (
         <PopupForm
           formFields={formFields}
+          open={isCreateOpen}
+          onOpenChange={setIsCreateOpen}
           onSubmit={handleSubmit}
           loading={loading}
           title={createFormTitle}
@@ -1435,8 +1443,25 @@ const DataTableComponent = ({
                     <TableCell
                       style={getCellStyles(cell.column.columnDef.meta)}
                       key={cell.id}
-                      className={`${cell.column.id === "select" ? "print:hidden" : ""} ${cell.column.columnDef.meta?.className || ""
-                        }`}
+                      className={cn(
+                        cell.column.id === "select" ? "print:hidden" : "",
+                        cell.column.columnDef.meta?.className || "",
+                        enableClickToEdit && !readOnly && !clickToEditExcludeColumns.includes(cell.column.id) && "cursor-pointer hover:bg-muted/60 transition-colors"
+                      )}
+                      onClick={(e) => {
+                        if (
+                          enableClickToEdit &&
+                          !readOnly &&
+                          !clickToEditExcludeColumns.includes(cell.column.id)
+                        ) {
+                          // Don't trigger if clicking an interactive element
+                          if (e.target.closest('input, button, a, [role="checkbox"]')) return;
+                          
+                          // Select only this row and open edit form
+                          table.setRowSelection({ [row.id]: true });
+                          setIsEditOpen(true);
+                        }
+                      }}
                     >
                       {flexRender(
                         cell.column.columnDef.cell,

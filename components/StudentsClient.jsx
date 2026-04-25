@@ -141,6 +141,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         filterType="api"
         readOnly={activeRole !== "College Admin" || isReadOnly}
         tableHeight="calc(100vh - 200px)"
+        enableClickToEdit={true}
       />
 
       <StudentProfileDialog
