@@ -27,7 +27,8 @@ export default async function AccountsPage({ searchParams }) {
     try {
         const userHeader = (await headers()).get("x-user");
         const user = userHeader ? JSON.parse(userHeader) : null;
-        const currentUserId = (activeRole === "College Admin" && user?._id) ? user._id : null;
+        const isCollegeAdmin = user?.roles?.includes("College Admin");
+        const currentUserId = (isCollegeAdmin && user?._id) ? user._id : null;
 
         summary = await getFinanceSummary(accountType, accountName, currentUserId, startDate, endDate);
 
