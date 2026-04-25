@@ -1,4 +1,5 @@
 import React from "react";
+import { formatDateShort } from "@/lib/utils";
 
 export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColumns = [] }) => {
     return [
@@ -79,7 +80,7 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColu
             header: pageTitle === "ADMISSION REGISTER" ? <div>Admission<br />Date & Class</div> : "Admission Date",
             cell: ({ row }) => {
                 const date = row.getValue("admissionDate");
-                const formattedDate = date ? new Date(date).toLocaleDateString() : "";
+                const formattedDate = formatDateShort(date);
                 return (
                     <div className="flex flex-col">
                         <span>{formattedDate}</span>
@@ -90,7 +91,11 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColu
                 );
             },
         },
-        { accessorKey: "dateOfBirth", header: "Date Of Birth", type: ["date"] },
+        { 
+            accessorKey: "dateOfBirth", 
+            header: "Date Of Birth", 
+            cell: ({ row }) => formatDateShort(row.getValue("dateOfBirth"))
+        },
         { accessorKey: "bloodGroup", header: "Blood Group" },
         { accessorKey: "roles", header: "Roles", type: ["array"] },
 
