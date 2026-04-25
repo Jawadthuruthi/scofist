@@ -13,43 +13,54 @@ export async function PUT(req) {
             return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
         }
 
+        const userHeader = req.headers.get("x-user");
+        const user = userHeader ? JSON.parse(userHeader) : null;
+        const isCollegeAdmin = user?.roles?.includes("College Admin");
+
         // Determine query for finding records to update
         let query = { accountType };
+        if (isCollegeAdmin && accountType === "College") {
+            query.userId = user._id;
+        }
+
         if (oldName) {
             query.accountName = oldName;
         } else {
-            // If oldName is not provided (or empty), distinct from "null" in database?
-            // Usually we want to capture null or empty string.
             query.accountName = { $in: [null, ""] };
         }
 
-        // Bulk update all transactions with the old account name to the new account name
-        // scoped by accountType
-        console.log(`Renaming Account [${accountType}]: '${oldName}' -> '${newName}'`);
+        // Bulk update all transactions
+        console.log(`Renaming Account [${accountType}]: '${oldName}' -> '${newName}' for user ${query.userId || "Global"}`);
 
         const result = await Finance.updateMany(
             query,
             { $set: { accountName: newName } }
         );
 
-        console.log("Finance Update Result:", result); // Debug log
-
-        // Also update the AccountName persistent record
+        console.log("Finance Update Result:", result);
 
         // Also update the AccountName persistent record
         if (oldName) {
             // Rename existing
+            const accountNameQuery = { name: oldName, accountType };
+            if (isCollegeAdmin && accountType === "College") {
+                accountNameQuery.userId = user._id;
+            }
+
             await AccountName.updateOne(
-                { name: oldName, accountType },
+                accountNameQuery,
                 { $set: { name: newName } }
             );
         } else {
             // "Unnamed" to "Named". Create/Upsert the new name if it doesn't exist.
-            // We don't "rename" the null record because it doesn't exist in AccountName.
-            // We just ensure "newName" exists.
-            const exists = await AccountName.findOne({ name: newName, accountType });
+            const accountNameQuery = { name: newName, accountType };
+            if (isCollegeAdmin && accountType === "College") {
+                accountNameQuery.userId = user._id;
+            }
+
+            const exists = await AccountName.findOne(accountNameQuery);
             if (!exists) {
-                await AccountName.create({ name: newName, accountType });
+                await AccountName.create({ ...accountNameQuery, userId: query.userId });
             }
         }
 

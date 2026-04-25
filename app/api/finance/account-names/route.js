@@ -17,23 +17,30 @@ export async function GET(req) {
             return NextResponse.json({ success: false, error: "Account Type is required" }, { status: 400 });
         }
 
+        const userHeader = req.headers.get("x-user");
+        const user = userHeader ? JSON.parse(userHeader) : null;
+        const isCollegeAdmin = user?.roles?.includes("College Admin");
+
+        const query = { accountType };
+        if (isCollegeAdmin && accountType === "College") {
+            query.userId = user._id;
+        }
+
         // Try fetching from AccountName collection first
-        let accountNames = await AccountName.find({ accountType }).select("name").sort({ name: 1 });
+        let accountNames = await AccountName.find(query).select("name").sort({ name: 1 });
         let names = accountNames.map(a => a.name);
 
         // Lazy Migration: If empty, fetch from Finance and populate
-        // This is a one-off measure or for safety.
         if (names.length === 0) {
-            const existingNames = await Finance.distinct("accountName", { accountType });
+            const existingNames = await Finance.distinct("accountName", query);
             const validExisting = existingNames.filter(n => n && n.trim() !== "");
 
             if (validExisting.length > 0) {
                 // Bulk insert
-                const docs = validExisting.map(name => ({ name, accountType }));
+                const docs = validExisting.map(name => ({ name, accountType, userId: query.userId }));
                 try {
                     await AccountName.insertMany(docs, { ordered: false });
                 } catch (e) {
-                    // Ignore duplicate errors if any race condition
                     console.log("Migration duplicate skipped");
                 }
                 names = validExisting.sort();
@@ -57,14 +64,17 @@ export async function POST(req) {
             return NextResponse.json({ success: false, error: "Name and Account Type are required" }, { status: 400 });
         }
 
-        // Use upsert to be safe (or just create)
+        const userHeader = req.headers.get("x-user");
+        const user = userHeader ? JSON.parse(userHeader) : null;
+        const userId = user?._id || null;
+
         // Check if exists
-        const exists = await AccountName.findOne({ name, accountType });
+        const exists = await AccountName.findOne({ name, accountType, userId });
         if (exists) {
             return NextResponse.json({ success: true, message: "Account Name already exists" });
         }
 
-        await AccountName.create({ name, accountType });
+        await AccountName.create({ name, accountType, userId });
 
         return NextResponse.json({ success: true, message: "Account Name created" });
     } catch (error) {
@@ -84,7 +94,16 @@ export async function DELETE(req) {
             return NextResponse.json({ success: false, error: "Name and Account Type are required" }, { status: 400 });
         }
 
-        const result = await AccountName.deleteOne({ name, accountType });
+        const userHeader = req.headers.get("x-user");
+        const user = userHeader ? JSON.parse(userHeader) : null;
+        const isCollegeAdmin = user?.roles?.includes("College Admin");
+
+        const query = { name, accountType };
+        if (isCollegeAdmin && accountType === "College") {
+            query.userId = user._id;
+        }
+
+        const result = await AccountName.deleteOne(query);
 
         return NextResponse.json({ success: true, message: "Account Name deleted" });
     } catch (error) {
