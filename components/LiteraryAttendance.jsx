@@ -272,6 +272,11 @@ const LiteraryAttendance = ({
                   >
                     <TableCell className="whitespace-nowrap">
                       <div className="text-xs md:text-base">{group?.name}</div>
+                      {group.leaderName && (
+                        <div className="text-xxs text-muted-foreground mt-0.5">
+                          Leader: {group.leaderName}
+                        </div>
+                      )}
                       {isAttendanceMarked(group._id) && (
                         <div className="flex items-center gap-1 text-xxs text-muted-foreground mt-0.5">
                           <CheckCircle2 className="text-green-500 h-3 w-3" />

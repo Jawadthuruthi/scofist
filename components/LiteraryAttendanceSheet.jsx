@@ -63,7 +63,7 @@ const LiteraryAttendanceSheet = ({ apiKey, userId }) => {
                     axios.get("/api/literary/groups", { headers: getHeaders() })
                 ]);
                 setClasses(classRes.data.classes || []);
-                setGroups(groupRes.data.data || []);
+                setGroups(groupRes.data.groups || []);
             } catch (error) {
                 toast.error("Failed to fetch classes or groups");
             }

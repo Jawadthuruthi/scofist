@@ -53,8 +53,22 @@ export async function GET(req, res) {
           select: ["_id", "name"],
         },
       })
-      .populate("leaderId", ["_id", "name", "profilePic"])
-      .populate("assistantLeaderId", ["_id", "name", "profilePic"])
+      .populate({
+        path: "leaderId",
+        select: ["_id", "name", "profilePic", "studentSpecificField"],
+        populate: {
+          path: "studentSpecificField.classId",
+          select: ["_id", "name"],
+        },
+      })
+      .populate({
+        path: "assistantLeaderId",
+        select: ["_id", "name", "profilePic", "studentSpecificField"],
+        populate: {
+          path: "studentSpecificField.classId",
+          select: ["_id", "name"],
+        },
+      })
       .skip(page * limit)
       .limit(limit)
       .sort({ _id: 1 })
@@ -68,6 +82,21 @@ export async function GET(req, res) {
         (student) =>
           student && student.studentSpecificField?.status === "Active"
       );
+
+      // Include leader and assistant leader in the list of participants if they are active
+      const leaders = [group.leaderId, group.assistantLeaderId].filter(
+        (leader) =>
+          leader &&
+          leader._id &&
+          leader.studentSpecificField?.status === "Active"
+      );
+
+      const allActiveParticipants = [...activeStudents];
+      leaders.forEach((leader) => {
+        if (!allActiveParticipants.some((p) => p._id === leader._id)) {
+          allActiveParticipants.push(leader);
+        }
+      });
 
       return {
         ...group.toObject(),
@@ -85,7 +114,7 @@ export async function GET(req, res) {
         studentsName: activeStudents
           .sort((a, b) => a._id - b._id)
           .map((student) => `${student._id} ${student.name}`),
-        studentsDetails: activeStudents.map((student) => ({
+        studentsDetails: allActiveParticipants.map((student) => ({
           ...student.toObject(),
           classId: student.studentSpecificField?.classId?._id,
           className: student.studentSpecificField?.classId?.name || "",

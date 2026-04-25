@@ -14,7 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useCrud from "@/hooks/use-crud";
 import { useSearchParams } from "next/navigation";
-import { Calendar, Clock, Loader } from "lucide-react";
+import { Calendar, Clock, Loader, User, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -63,6 +63,11 @@ const LiteraryAttendance = () => {
   );
 
   const { useFetchItems: useFetchParticipants } = useCrud(
+    "literary/groups",
+    queryParams.apiKey
+  );
+
+  const { useFetchItems: useFetchAllGroups } = useCrud(
     "literary/groups",
     queryParams.apiKey
   );
@@ -147,12 +152,60 @@ const LiteraryAttendance = () => {
     }
   );
 
+  const allGroupsQuery = useFetchAllGroups(
+    0,
+    0,
+    {},
+    {
+      enabled: queryParams.category === "ALL",
+      refetchOnWindowFocus: true,
+    }
+  );
+
+  const studentToGroupMap = useMemo(() => {
+    if (!allGroupsQuery.data?.groups) return {};
+    const map = {};
+    allGroupsQuery.data.groups.forEach((group) => {
+      group.studentsId.forEach((studentId) => {
+        map[studentId] = {
+          groupName: group.name,
+          leaderName: group.leaderName.split(" (")[0],
+          isLeader: false,
+          isAssistantLeader: false,
+        };
+      });
+      if (group.leaderId) {
+        map[group.leaderId] = {
+          ...map[group.leaderId],
+          groupName: group.name,
+          isLeader: true,
+        };
+      }
+      if (group.assistantLeaderId) {
+        map[group.assistantLeaderId] = {
+          ...map[group.assistantLeaderId],
+          groupName: group.name,
+          isAssistantLeader: true,
+        };
+      }
+    });
+    return map;
+  }, [allGroupsQuery.data]);
+
   const groupLeaderId = useMemo(() => {
     return participantsQuery.data?.groups[0]?.leaderId;
   }, [participantsQuery.data]);
 
   const groupAssistantLeaderId = useMemo(() => {
     return participantsQuery.data?.groups[0]?.assistantLeaderId;
+  }, [participantsQuery.data]);
+
+  const groupLeaderName = useMemo(() => {
+    return participantsQuery.data?.groups[0]?.leaderName;
+  }, [participantsQuery.data]);
+
+  const groupAssistantLeaderName = useMemo(() => {
+    return participantsQuery.data?.groups[0]?.assistantLeaderName;
   }, [participantsQuery.data]);
 
   const studentsOnLeave = useMemo(() => {
@@ -396,6 +449,28 @@ const LiteraryAttendance = () => {
                     : `Group: ${queryParams.groupName}`}
                 </span>
               </div>
+              {queryParams.category === "GROUP" && groupLeaderName && (
+                <>
+                  <div className="h-4 w-px bg-border"></div>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      Leader: {groupLeaderName}
+                    </span>
+                  </div>
+                </>
+              )}
+              {queryParams.category === "GROUP" && groupAssistantLeaderName && (
+                <>
+                  <div className="h-4 w-px bg-border"></div>
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      Assistant: {groupAssistantLeaderName}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -473,10 +548,20 @@ const LiteraryAttendance = () => {
                                   (!!queryParams.groupId &&
                                     groupAssistantLeaderId === student._id &&
                                     "(Assistant Leader)") ||
+                                  (queryParams.category === "ALL" &&
+                                    studentToGroupMap[student._id]?.isLeader &&
+                                    "(Leader)") ||
+                                  (queryParams.category === "ALL" &&
+                                    studentToGroupMap[student._id]
+                                      ?.isAssistantLeader &&
+                                    "(Assistant Leader)") ||
                                   ""}
                               </p>
                                 <p className="text-xs text-muted-foreground">
                                   {student._id} {student?.className}
+                                  {queryParams.category === "ALL" &&
+                                    studentToGroupMap[student._id] &&
+                                    ` | ${studentToGroupMap[student._id].groupName} (${studentToGroupMap[student._id].leaderName})`}
                                 </p>
                               </div>
                               {isOnLeave && (
