@@ -195,11 +195,13 @@ export async function GET(req) {
         district: address.district,
         state: address.state,
         pin: address.pin,
+        locationPoint: address.locationPoint,
 
         // Keep address object as well with formatted postOffice
         address: {
           ...address,
-          postOffice: address.postOffice ? `PO. ${address.postOffice}` : null,
+          postOffice: address.postOffice || null,
+          locationPoint: address.locationPoint,
         },
 
         // Teacher specific fields
@@ -305,6 +307,7 @@ export async function POST(req, res) {
       district,
       state,
       pin,
+      locationPoint,
       status,
       admissionClassId,
       admissionDate,
@@ -343,6 +346,7 @@ export async function POST(req, res) {
         district,
         state,
         pin,
+        locationPoint,
       },
     };
 
@@ -461,6 +465,7 @@ export async function PUT(req) {
     const addressFields = [
       "houseName",
       "place",
+      "locationPoint",
       "postOffice",
       "district",
       "state",
@@ -468,7 +473,7 @@ export async function PUT(req) {
     ];
     addressFields.forEach((field) => {
       if (updateFields[field] !== undefined) {
-        user.address[field] = updateFields[field] || undefined;
+        user.set(`address.${field}`, updateFields[field]);
       }
     });
 

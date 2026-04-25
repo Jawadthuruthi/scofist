@@ -127,14 +127,48 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColu
             minWidth: 180,
             width: 200,
             cell: ({ row }) => {
-                const addr = row.original.address || {};
+                const student = row.original;
+                const addr = student.address || {};
+                const locationPoint = student.locationPoint || addr.locationPoint;
+                
                 return (
-                    <div className="flex flex-col text-xs gap-0.5 whitespace-normal break-words leading-tight py-1">
-                        {addr.houseName && <span>{addr.houseName}</span>}
-                        {addr.place && <span>{addr.place}</span>}
-                        {addr.postOffice && <span>{addr.postOffice}</span>}
-                        {addr.district && <span>{addr.district}</span>}
-                        {(addr.state || addr.pin) && <span>{addr.state}{addr.pin ? ` - ${addr.pin}` : ''}</span>}
+                    <div className="flex flex-col text-[10px] gap-0.5 whitespace-normal break-words leading-tight py-1">
+                        {addr.houseName && (
+                            <div className="flex gap-1">
+                                <span className="font-bold shrink-0">House:</span>
+                                <span>{addr.houseName}</span>
+                            </div>
+                        )}
+                        {addr.place && (
+                            <div className="flex gap-1">
+                                <span className="font-bold shrink-0">Place:</span>
+                                <span>{addr.place}</span>
+                            </div>
+                        )}
+                        {locationPoint && (
+                            <div className="flex gap-1">
+                                <span className="font-bold shrink-0">Location:</span>
+                                <span>{locationPoint}</span>
+                            </div>
+                        )}
+                        {addr.postOffice && (
+                            <div className="flex gap-1">
+                                <span className="font-bold shrink-0">P.O:</span>
+                                <span>{addr.postOffice}</span>
+                            </div>
+                        )}
+                        {addr.district && (
+                            <div className="flex gap-1">
+                                <span className="font-bold shrink-0">Dist:</span>
+                                <span>{addr.district}</span>
+                            </div>
+                        )}
+                        {(addr.state || addr.pin) && (
+                            <div className="flex gap-1">
+                                <span className="font-bold shrink-0">State:</span>
+                                <span>{addr.state}{addr.pin ? ` - Pin: ${addr.pin}` : ''}</span>
+                            </div>
+                        )}
                     </div>
                 );
             }

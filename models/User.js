@@ -3,8 +3,8 @@ import "./StudentsFund.js"; // Import to ensure schema is registered
 import "./StudentCoupon.js"; // Import to ensure schema is registered
 import "./Rental.js"; // Import to ensure schema is registered
 import "./LibraryBook.js"; // Import to ensure schema is registered
-import Batch from "./Batch";
-import Class from "./Class";
+import Batch from "./Batch.js";
+import Class from "./Class.js";
 
 // Reusable enums
 // Schema updated for verification fields
@@ -178,6 +178,7 @@ const userSchema = new Schema(
     address: {
       houseName: { type: String, trim: true },
       place: { type: String, required: true, trim: true },
+      locationPoint: { type: String, trim: true },
       postOffice: { type: String, trim: true },
       district: { type: String, required: true, trim: true },
       state: { type: String, required: true, trim: true },
@@ -267,5 +268,8 @@ userSchema.virtual('rentals', {
   foreignField: 'studentId'
 });
 
-const User = models.User || model("User", userSchema);
+if (models.User) {
+  delete models.User;
+}
+const User = model("User", userSchema);
 export default User;

@@ -142,8 +142,9 @@ export default function StudentProfilePrintView({ student, classes, batches, api
       {/* Address - Redesigned with individual labels */}
       <Section title="RESIDENTIAL ADDRESS">
         <InfoField label="House Name" value={student?.houseName || student?.address?.houseName} />
-        <InfoField label="Post Office" value={student?.postOffice || student?.address?.postOffice} />
         <InfoField label="Place" value={student?.place || student?.address?.place} />
+        <InfoField label="Location Point" value={student?.locationPoint || student?.address?.locationPoint} />
+        <InfoField label="Post Office" value={student?.postOffice || student?.address?.postOffice} />
         <InfoField label="District" value={student?.district || student?.address?.district} />
         <InfoField label="State" value={student?.state || student?.address?.state} />
         <InfoField label="Pin Code" value={student?.pin || student?.address?.pin} />
