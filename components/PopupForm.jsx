@@ -443,7 +443,8 @@ const FormContent = ({
               return acc;
             }, {});
             console.error("Formatted Validation Errors:", formattedErrors);
-            toast.error("Please fill all required fields correctly.");
+            const errorMessages = Object.values(formattedErrors).join(", ");
+            toast.error(`Please fill all required fields correctly. Errors: ${errorMessages}`);
           }
         )}
         className="max-w-full overflow-hidden"
