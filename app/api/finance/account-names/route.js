@@ -19,7 +19,8 @@ export async function GET(req) {
 
         const userHeader = req.headers.get("x-user");
         const user = userHeader ? JSON.parse(userHeader) : null;
-        const isCollegeAdmin = user?.roles?.includes("College Admin");
+        const activeRole = req.cookies.get("active-role")?.value;
+        const isCollegeAdmin = activeRole === "College Admin";
 
         const query = { accountType };
         if (isCollegeAdmin && accountType === "College") {
@@ -96,7 +97,8 @@ export async function DELETE(req) {
 
         const userHeader = req.headers.get("x-user");
         const user = userHeader ? JSON.parse(userHeader) : null;
-        const isCollegeAdmin = user?.roles?.includes("College Admin");
+        const activeRole = req.cookies.get("active-role")?.value;
+        const isCollegeAdmin = activeRole === "College Admin";
 
         const query = { name, accountType };
         if (isCollegeAdmin && accountType === "College") {

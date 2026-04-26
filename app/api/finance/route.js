@@ -20,7 +20,8 @@ export async function GET(req) {
     console.log("Finance API GET:", { accountType, accountName, allParams: Object.fromEntries(searchParams) });
     const userHeader = req.headers.get("x-user");
     const user = userHeader ? JSON.parse(userHeader) : null;
-    const isCollegeAdmin = user?.roles?.includes("College Admin");
+    const activeRole = req.cookies.get("active-role")?.value;
+    const isCollegeAdmin = activeRole === "College Admin";
 
     const page = parseInt(searchParams.get("page")) || 1;
     const limitParam = searchParams.get("limit");
@@ -179,7 +180,8 @@ export async function PUT(req) {
 
     const userHeader = req.headers.get("x-user");
     const user = userHeader ? JSON.parse(userHeader) : null;
-    const isCollegeAdmin = user?.roles?.includes("College Admin");
+    const activeRole = req.cookies.get("active-role")?.value;
+    const isCollegeAdmin = activeRole === "College Admin";
 
     const query = { _id: { $in: ids } };
     if (isCollegeAdmin && updateData.accountType !== "Org") { // If College Admin, restrict to their own records except for Org accounts
@@ -221,7 +223,8 @@ export async function DELETE(req) {
 
     const userHeader = req.headers.get("x-user");
     const user = userHeader ? JSON.parse(userHeader) : null;
-    const isCollegeAdmin = user?.roles?.includes("College Admin");
+    const activeRole = req.cookies.get("active-role")?.value;
+    const isCollegeAdmin = activeRole === "College Admin";
 
     const query = { _id: { $in: ids } };
     if (isCollegeAdmin) {

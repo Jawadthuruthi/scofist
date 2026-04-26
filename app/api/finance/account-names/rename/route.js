@@ -15,7 +15,8 @@ export async function PUT(req) {
 
         const userHeader = req.headers.get("x-user");
         const user = userHeader ? JSON.parse(userHeader) : null;
-        const isCollegeAdmin = user?.roles?.includes("College Admin");
+        const activeRole = req.cookies.get("active-role")?.value;
+        const isCollegeAdmin = activeRole === "College Admin";
 
         // Determine query for finding records to update
         let query = { accountType };
