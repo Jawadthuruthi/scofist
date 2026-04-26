@@ -35,7 +35,7 @@ export default async function AccountsPage({ searchParams }) {
         // Fetch all categories for this accountType and user isolated context
         await connectToDB();
         const categoryQuery = { accountType };
-        if (currentUserId) {
+        if (currentUserId && accountType === "College") {
             // STRICT ISOLATION: Only show categories used by the current user
             categoryQuery.userId = currentUserId;
         }

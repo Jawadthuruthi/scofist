@@ -24,14 +24,8 @@ export async function DELETE(req) {
         let query = { category, accountType };
 
         if (isCollegeAdmin && accountType === "College") {
-            // For College Admin, we only unset categories in their own isolated records
-            // or shared legacy records that they can see
-            query.$or = [
-                { userId: user._id },
-                { userId: { $exists: false } },
-                { userId: null }
-            ];
-            query.category = category; // Ensure category is still part of the filter
+            // STRICT ISOLATION: Only unset categories in their own isolated records
+            query.userId = user._id;
         }
 
         // We use updateMany to UNSET the category name (set to empty string)
