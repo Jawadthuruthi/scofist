@@ -16,7 +16,7 @@ const FacultyProfileCard = memo(({ faculty, assignedClass }) => (
       <div className="w-20 xs:w-32 h-20 xs:h-32 relative bg-muted/30">
         {faculty.profilePic?.url ? (
           <Image
-            src={faculty.profilePic.url}
+            src={faculty?.profilePic?.url}
             alt={`${faculty.name} profile picture`}
             fill
             className="object-cover"

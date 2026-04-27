@@ -90,7 +90,7 @@ const StudentIdentityCard = ({ student, institution = {}, idCardBackgroundImageU
                                         {student.profilePic?.url ? (
                                             <div className="relative h-full w-full">
                                                 <Image
-                                                    src={student.profilePic.url || ""}
+                                                    src={student?.profilePic?.url || ""}
                                                     alt={`${student.name}'s photo`}
                                                     fill
                                                     className="object-cover"
@@ -320,7 +320,7 @@ const StudentPrintableCard = ({
                                     {person.profilePic?.url ? (
                                         <div className="relative h-full w-full">
                                             <Image
-                                                src={person.profilePic.url || ""}
+                                                src={person?.profilePic?.url || ""}
                                                 alt={`${person.name}'s photo`}
                                                 fill
                                                 className="object-cover"

@@ -346,7 +346,7 @@ export default function GatePass({ activeRole, currentUser }) {
                                     <div className="flex gap-4">
                                         <div className="relative w-24 h-28 rounded border bg-muted shrink-0 overflow-hidden">
                                             {student.profilePic?.url ? (
-                                                <Image src={student.profilePic.url} alt={student.name} fill className="object-cover" />
+                                                <Image src={student?.profilePic?.url} alt={student.name} fill className="object-cover" />
                                             ) : (
                                                 <User className="w-full h-full p-6 text-muted-foreground/30" />
                                             )}
@@ -536,7 +536,7 @@ export default function GatePass({ activeRole, currentUser }) {
                             <div className="flex justify-center">
                                 <div className="relative w-32 h-40 lg:w-28 lg:h-36 rounded-lg overflow-hidden border-4 border-muted shadow-lg">
                                     {confirmedPass.studentId?.profilePic?.url ? (
-                                        <Image src={confirmedPass.studentId.profilePic.url} alt="" fill className="object-cover" />
+                                        <Image src={confirmedPass?.studentId?.profilePic?.url} alt="" fill className="object-cover" />
                                     ) : (
                                         <User className="w-full h-full p-8 text-muted-foreground/30" />
                                     )}

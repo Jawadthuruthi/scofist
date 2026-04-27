@@ -220,9 +220,9 @@ const StudentsFund = ({
       const balance = studentFund.balance;
       setStudentBalance(balance || 0);
       setTransactions(
-        studentFund?.transactions?.sort(
+        [...(studentFund?.transactions || [])].sort(
           (a, b) => new Date(b.date) - new Date(a.date)
-        ) || []
+        )
       );
     } else {
       setStudentBalance(0);
@@ -818,7 +818,7 @@ const StudentsFund = ({
                         <>
                           <Avatar className="h-7 md:h-12 w-7 md:w-12">
                             <AvatarImage
-                              src={selectedStudentData?.profilePic.url}
+                              src={selectedStudentData?.profilePic?.url}
                             />
                             <AvatarFallback>
                               {selectedStudentData?.name

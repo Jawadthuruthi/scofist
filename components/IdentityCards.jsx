@@ -400,7 +400,7 @@ const IdCard = ({
                     {person.profilePic?.url ? (
                       <div className="relative h-full w-full">
                         <Image
-                          src={person.profilePic.url || ""}
+                          src={person?.profilePic?.url || ""}
                           alt={`${person.name}'s photo`}
                           fill
                           className="object-cover"
@@ -678,7 +678,7 @@ const PrintableIdCard = ({
                   {person.profilePic?.url ? (
                     <div className="relative h-full w-full">
                       <Image
-                        src={person.profilePic.url || ""}
+                        src={person?.profilePic?.url || ""}
                         alt={`${person.name}'s photo`}
                         fill
                         className="object-cover"
