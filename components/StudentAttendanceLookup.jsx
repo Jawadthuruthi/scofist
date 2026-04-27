@@ -247,7 +247,7 @@ export default function StudentAttendanceLookup({ students = [], type = "student
                     {/* Search Input Container for precise dropdown alignment */}
                     <div className={cn(
                         "relative",
-                        isMobile ? "flex-1" : "w-full sm:w-80 md:w-[450px]"
+                        isMobile ? "flex-1" : "w-full sm:w-64 md:w-[320px]"
                     )}>
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                         <Input

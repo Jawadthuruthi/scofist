@@ -782,14 +782,35 @@ const DataTableComponent = ({
             }
             return val;
           };
-          return sortClasses(a, b, getName);
+          const classCompare = sortClasses(a, b, getName);
+          if (classCompare !== 0) return classCompare;
+          // Sort by student ID within class
+          return String(a._id).localeCompare(String(b._id), undefined, { numeric: true });
         });
       }
     } else if (baseData.length > 0 && enableDefaultSort && sorting.length === 0) {
-      // Default sort by _id descending so newest records appear first if no other sorting is active
-      baseData = [...baseData].sort((a, b) => {
-        return String(b._id).localeCompare(String(a._id), undefined, { numeric: true, sensitivity: 'base' });
-      });
+      if (resource === "studentAttendances" && highlightHighest?.groupBy) {
+        // Sort by class then student ID ascending
+        baseData = [...baseData].sort((a, b) => {
+          const getName = (item) => {
+            const keys = highlightHighest.groupBy.split(".");
+            let val = item;
+            for (const key of keys) {
+              if (val === null || val === undefined) break;
+              val = val[key];
+            }
+            return val;
+          };
+          const classCompare = sortClasses(a, b, getName);
+          if (classCompare !== 0) return classCompare;
+          return String(a._id).localeCompare(String(b._id), undefined, { numeric: true });
+        });
+      } else {
+        // Default sort by _id descending so newest records appear first if no other sorting is active
+        baseData = [...baseData].sort((a, b) => {
+          return String(b._id).localeCompare(String(a._id), undefined, { numeric: true, sensitivity: 'base' });
+        });
+      }
     }
     return baseData;
   }, [isApiFiltering, data, filteredData, toppersOnly, highlightedRowIds, highlightHighest, sorting]);
@@ -826,11 +847,15 @@ const DataTableComponent = ({
       groups[className].percentage = percentage;
     });
 
-    return Object.entries(groups).map(([className, group]) => ({
-      className,
-      students: group.students,
-      percentage: group.percentage,
-    }));
+    return Object.entries(groups)
+      .sort((a, b) => sortClasses(a[0], b[0], (x) => x))
+      .map(([className, group]) => ({
+        className,
+        students: group.students.sort((a, b) => 
+          String(a.id).localeCompare(String(b.id), undefined, { numeric: true })
+        ),
+        percentage: group.percentage,
+      }));
   }, [toppersOnly, tableDataForTable, highlightHighest]);
 
   // Initialize table
@@ -1229,8 +1254,8 @@ const DataTableComponent = ({
       ) : (
         /* ── Desktop Layout ── */
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div className="mr-auto space-x-2 flex items-center">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="mr-auto flex items-center flex-wrap gap-2">
               {additionalProps?.customToolbar && (
                 <div className="mr-2">{additionalProps.customToolbar}</div>
               )}
@@ -1256,7 +1281,7 @@ const DataTableComponent = ({
                     placeholder={desktopSearchPlaceholder}
                     value={globalFilter ?? ""}
                     onChange={(e) => handleSetGlobalFilter(e.target.value)}
-                    className="h-9 w-[250px] lg:w-[400px] xl:w-[500px] pl-9"
+                    className="h-9 w-[180px] lg:w-[280px] xl:w-[320px] pl-9"
                   />
                 </div>
               )}
