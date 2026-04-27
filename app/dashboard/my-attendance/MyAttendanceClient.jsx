@@ -164,7 +164,7 @@ const MyAttendanceClient = ({ user, apiKey }) => {
             <CardTitle className="text-xl font-bold">Attendance Summary</CardTitle>
             <div className="flex items-center gap-2">
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-[130px] bg-white border shadow-sm h-8">
+                <SelectTrigger className="w-[130px] bg-background border shadow-sm h-8">
                   <SelectValue placeholder="Year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -179,9 +179,9 @@ const MyAttendanceClient = ({ user, apiKey }) => {
           </div>
         </CardHeader>
         <CardContent className="p-0 sm:p-6">
-          <div className="border-0 sm:border rounded-none sm:rounded-md bg-white overflow-x-auto relative">
+          <div className="border-0 sm:border rounded-none sm:rounded-md bg-card overflow-x-auto relative">
             {isLoading && (
-              <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+              <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
                 <Loader className="h-6 w-6 animate-spin text-primary" />
               </div>
             )}
@@ -212,14 +212,14 @@ const MyAttendanceClient = ({ user, apiKey }) => {
                       </TableCell>
                       <TableCell className="text-center">{stat.total}</TableCell>
                       <TableCell 
-                        className="text-center text-green-600 font-bold cursor-pointer hover:bg-green-50 transition-colors"
+                        className="text-center text-green-600 font-bold cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
                         onClick={() => handleShowDetails(stat.monthName, "Present", stat.presentRecords)}
                         title="Click to view details"
                       >
                         {stat.present}
                       </TableCell>
                       <TableCell 
-                        className="text-center text-red-500 font-bold cursor-pointer hover:bg-red-50 transition-colors"
+                        className="text-center text-red-500 font-bold cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                         onClick={() => handleShowDetails(stat.monthName, "Absent", stat.absentRecords)}
                         title="Click to view details"
                       >
