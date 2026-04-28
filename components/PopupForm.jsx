@@ -471,7 +471,7 @@ const FormContent = ({
           {sectionOrder.map((section, index) => (
             <div
               key={section}
-              className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${activeSectionIndex === index ? "block" : "hidden"}`}
+              className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${activeSectionIndex === index ? "grid" : "hidden"}`}
             >
               {section !== "undefined" && (
                 <h2 className="text-lg font-bold md:col-span-2">{section}</h2>
@@ -482,44 +482,45 @@ const FormContent = ({
                 apiKey={apiKey}
                 data={data}
               />
+              {/* Navigation buttons inline with last input */}
+              <div className="flex items-end gap-2 pb-1">
+                {activeSectionIndex > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setActiveSectionIndex((prev) => prev - 1)}
+                  >
+                    Previous
+                  </Button>
+                )}
+                {activeSectionIndex === totalSections - 1 ? (
+                  <Button
+                    className={submitButtonClass || "flex-1"}
+                    type="submit"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <Loader className="animate-spin mr-2" />
+                    ) : (
+                      "Save changes"
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveSectionIndex((prev) => prev + 1);
+                    }}
+                  >
+                    Next
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
-        </div>
-        <div className="flex w-full gap-3 mt-8">
-          {activeSectionIndex > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-1/2"
-              onClick={() => setActiveSectionIndex((prev) => prev - 1)}
-            >
-              Previous
-            </Button>
-          )}
-          {activeSectionIndex === totalSections - 1 ? (
-            <Button
-              className={submitButtonClass || "w-full"}
-              type="submit"
-              disabled={loading}
-            >
-              {loading ? (
-                <Loader className="animate-spin mr-2" />
-              ) : (
-                "Save changes"
-              )}
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              className="w-full"
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveSectionIndex((prev) => prev + 1);
-              }}
-            >
-              Next
-            </Button>
-          )}
         </div>
       </form>
     </Form>
