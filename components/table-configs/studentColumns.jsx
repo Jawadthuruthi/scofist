@@ -222,7 +222,7 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColu
                         </div>
                     );
                 } else if (status === "Dropped Out") {
-                    const formattedDate = droppedOutDate ? new Date(droppedOutDate).toLocaleDateString() : 'N/A';
+                    const formattedDate = formatDateShort(droppedOutDate) || 'N/A';
                     const classObj = classes?.find((c) => c._id === droppedOutClass);
                     const className = classObj ? classObj.name : droppedOutClass;
                     return (
@@ -234,6 +234,18 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColu
                     );
                 }
                 return <span className="text-muted-foreground">-</span>;
+            },
+        },
+        {
+            accessorKey: "updatedAt",
+            header: "Last Updated On",
+            cell: ({ row }) => {
+                const updatedAt = row.original.updatedAt;
+                return (
+                    <span className="text-xs">
+                        {formatDateShort(updatedAt)}
+                    </span>
+                );
             },
         },
 
