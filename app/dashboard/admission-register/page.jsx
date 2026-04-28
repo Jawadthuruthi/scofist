@@ -4,6 +4,7 @@ import StudentsClient from "@/components/StudentsClient.jsx";
 import connectToDB from "@/lib/db";
 import Batch from "@/models/Batch.js";
 import Class from "@/models/Class.js";
+import User from "@/models/User.js";
 
 export default async function AdmissionRegisterPage() {
     try {
@@ -20,6 +21,14 @@ export default async function AdmissionRegisterPage() {
         const batchesData = await Batch.find({}).select("_id name endYear").sort({ startYear: 1, endYear: 1 }).lean();
         const classesData = await Class.find({}).select("_id name").lean();
 
+        // Fetch the last student ID
+        const lastStudent = await User.findOne({ roles: "Student" })
+            .select("_id")
+            .sort({ createdAt: -1 })
+            .lean();
+        
+        const lastStudentId = lastStudent?._id || "None";
+
         const classOrder = [
             "PLUS ONE A",
             "PLUS ONE B",
@@ -32,6 +41,8 @@ export default async function AdmissionRegisterPage() {
             "8TH STD",
             "9TH STD",
             "10TH STD",
+            "11TH STD",
+            "12TH STD",
         ].map((name) => name.replace(/\s/g, "").toUpperCase());
 
         classesData.sort((a, b) => {
@@ -64,6 +75,7 @@ export default async function AdmissionRegisterPage() {
                 isReadOnly={true}
                 pageTitle="ADMISSION REGISTER"
                 filterTitle="Admission Register"
+                lastStudentId={lastStudentId}
                 excludedColumns={["email", "batchName", "className", "bloodGroup", "roles", "status", "guardianContactNumber", "guardianAlternativeNumber", "contactNumber", "alternativeNumber", "aadharNo", "profilePic", "admissionClassName", "serialNo", "liabilities"]}
             />
         );

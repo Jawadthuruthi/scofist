@@ -4,6 +4,7 @@ import StudentsClient from "@/components/StudentsClient.jsx";
 import connectToDB from "@/lib/db";
 import Batch from "@/models/Batch.js";
 import Class from "@/models/Class.js";
+import User from "@/models/User.js";
 
 export default async function BatchesPage() {
   try {
@@ -19,6 +20,14 @@ export default async function BatchesPage() {
 
     const batchesData = await Batch.find({}).select("_id name endYear").sort({ startYear: 1, endYear: 1 }).lean();
     const classesData = await Class.find({}).select("_id name").lean();
+    
+    // Fetch the last student ID
+    const lastStudent = await User.findOne({ roles: "Student" })
+      .select("_id")
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    const lastStudentId = lastStudent?._id || "None";
 
     const classOrder = [
       "PLUS ONE A",
@@ -32,6 +41,8 @@ export default async function BatchesPage() {
       "8TH STD",
       "9TH STD",
       "10TH STD",
+      "11TH STD",
+      "12TH STD",
     ].map((name) => name.replace(/\s/g, "").toUpperCase());
 
     classesData.sort((a, b) => {
@@ -55,7 +66,7 @@ export default async function BatchesPage() {
     const batches = JSON.parse(JSON.stringify(batchesData));
     const classes = JSON.parse(JSON.stringify(classesData));
 
-    return <StudentsClient batches={batches} classes={classes} activeRole={activeRole} apiKey={process.env.API_KEY} />;
+    return <StudentsClient batches={batches} classes={classes} activeRole={activeRole} apiKey={process.env.API_KEY} lastStudentId={lastStudentId} />;
   } catch (error) {
     console.error("Error loading students:", error.message);
     return (

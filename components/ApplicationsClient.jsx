@@ -52,7 +52,7 @@ const statusMessages = {
   delete: "Application deleted successfully!",
 };
 
-export default function ApplicationsClient({ batches, classes, apiKey }) {
+export default function ApplicationsClient({ batches, classes, apiKey, lastStudentId }) {
   const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
   const [preadmittedData, setPreadmittedData] = useState(null);
   const [selectedApplicationId, setSelectedApplicationId] = useState(null);
@@ -411,7 +411,7 @@ export default function ApplicationsClient({ batches, classes, apiKey }) {
     }
   };
 
-  const studentFormFields = useMemo(() => getStudentFormFields(batches, classes), [batches, classes]);
+  const studentFormFields = useMemo(() => getStudentFormFields(batches, classes, lastStudentId), [batches, classes, lastStudentId]);
 
   return (
     <>

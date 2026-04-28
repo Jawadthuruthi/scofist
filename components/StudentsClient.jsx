@@ -9,7 +9,7 @@ import { getStudentFormFields } from "@/lib/studentFormConfig";
 
 import { getStudentColumns } from "@/components/table-configs/studentColumns";
 
-export default function StudentsClient({ batches, classes, activeRole, apiKey, isReadOnly = false, pageTitle, excludedColumns = [], filterTitle }) {
+export default function StudentsClient({ batches, classes, activeRole, apiKey, isReadOnly = false, pageTitle, excludedColumns = [], filterTitle, lastStudentId }) {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -35,7 +35,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
     populate: "funds",
   }), []);
 
-  const formFields = useMemo(() => getStudentFormFields(batches, classes), [batches, classes]);
+  const formFields = useMemo(() => getStudentFormFields(batches, classes, lastStudentId), [batches, classes, lastStudentId]);
 
   const filterConfig = pageTitle === "ADMISSION REGISTER" ? [
     { id: "_id", label: "ID" },

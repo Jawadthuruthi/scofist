@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import connectToDB from "@/lib/db";
 import Batch from "@/models/Batch";
 import Class from "@/models/Class";
+import User from "@/models/User";
 import ApplicationsClient from "@/components/ApplicationsClient";
 
 export default async function ApplicationsPage() {
@@ -20,6 +21,14 @@ export default async function ApplicationsPage() {
     const batchesData = await Batch.find({}).select("_id name endYear").sort({ startYear: 1, endYear: 1 }).lean();
     const classesData = await Class.find({}).select("_id name").lean();
 
+    // Fetch the last student ID
+    const lastStudent = await User.findOne({ roles: "Student" })
+      .select("_id")
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    const lastStudentId = lastStudent?._id || "None";
+
     const batches = JSON.parse(JSON.stringify(batchesData));
     const classes = JSON.parse(JSON.stringify(classesData));
 
@@ -33,6 +42,7 @@ export default async function ApplicationsPage() {
             batches={batches} 
             classes={classes} 
             apiKey={apiKey} 
+            lastStudentId={lastStudentId}
         />
       </>
     );
