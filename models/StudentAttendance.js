@@ -214,19 +214,14 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
     }
 
     // Only include students with the highest percentage for this class
-    // FIXED: Ensure strict 100% attendance requirement if that's what "topper" implies for the user
-    // However, the user said "show only students of toppest", then complained about absences.
-    // If the "toppest" is 94%, they have absences. If we only show 100%, we might show nothing.
-    // BUT "fix it" implies showing 94% is a BUG. So we default to: Topper = 100%.
     if (
-      student.attendancePercentage === resultsByClass[classId].highestPercentage &&
-      resultsByClass[classId].highestPercentage === 100
+      student.attendancePercentage === resultsByClass[classId].highestPercentage
     ) {
       resultsByClass[classId].students.push(student);
     }
   });
 
-  // Filter out classes with no qualified students (i.e. highest < 100%)
+  // Filter out classes with no students (shouldn't happen with the new logic, but for safety)
   Object.keys(resultsByClass).forEach(key => {
     if (resultsByClass[key].students.length === 0) {
       delete resultsByClass[key];

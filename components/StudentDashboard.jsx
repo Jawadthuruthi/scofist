@@ -18,8 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "@/components/Header";
-import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Eye, Plane, List, LayoutGrid, Search } from "lucide-react";
-import { cn, formatDateForDisplay, formatMonthYear, formatDateShort } from "@/lib/utils";
+import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera } from "lucide-react";
+import html2canvas from "html2canvas";
+import { cn, formatDateForDisplay, formatMonthYear, formatDateShort, formatDate } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import TableComponent from "@/components/TableComponent";
 import Barcode from "react-barcode";
@@ -70,6 +71,500 @@ const ProfileField = ({ label, subLabel, value, isBold }) =>
       <div className={`text-sm ${isBold ? 'font-bold' : 'text-foreground'} min-w-0 break-words py-1`}>{value}</div>
     </>
   ) : null;
+
+function DownloadsTabContent({ apiKey }) {
+  const [activeSubTab, setActiveSubTab] = React.useState("PAPERS");
+
+  // -- Question Papers --
+  const [papers, setPapers] = React.useState([]);
+  const [papersLoading, setPapersLoading] = React.useState(false);
+  const [papersLoaded, setPapersLoaded] = React.useState(false);
+
+  // -- Syllabus --
+  const [syllabuses, setSyllabuses] = React.useState([]);
+  const [syllabusLoading, setSyllabusLoading] = React.useState(false);
+  const [syllabusLoaded, setSyllabusLoaded] = React.useState(false);
+
+  // -- Books --
+  const [books, setBooks] = React.useState([]);
+  const [booksLoading, setBooksLoading] = React.useState(false);
+  const [booksLoaded, setBooksLoaded] = React.useState(false);
+
+  // Lazy-load each tab's data only when first opened
+  React.useEffect(() => {
+    if (activeSubTab === "PAPERS" && !papersLoaded && apiKey) {
+      setPapersLoading(true);
+      fetch("/api/downloads", { headers: { "api-key": apiKey } })
+        .then(r => r.json())
+        .then(d => { setPapers(d.downloads || []); setPapersLoaded(true); })
+        .catch(e => console.error("Papers fetch error:", e))
+        .finally(() => setPapersLoading(false));
+    }
+    if (activeSubTab === "SYLLABUS" && !syllabusLoaded && apiKey) {
+      setSyllabusLoading(true);
+      fetch("/api/syllabus", { headers: { "api-key": apiKey } })
+        .then(r => r.json())
+        .then(d => { setSyllabuses(d.syllabuses || []); setSyllabusLoaded(true); })
+        .catch(e => console.error("Syllabus fetch error:", e))
+        .finally(() => setSyllabusLoading(false));
+    }
+    if (activeSubTab === "BOOKS" && !booksLoaded && apiKey) {
+      setBooksLoading(true);
+      fetch("/api/books", { headers: { "api-key": apiKey } })
+        .then(r => r.json())
+        .then(d => { setBooks(d.books || []); setBooksLoaded(true); })
+        .catch(e => console.error("Books fetch error:", e))
+        .finally(() => setBooksLoading(false));
+    }
+  }, [activeSubTab, apiKey]);
+
+  // Open Cloudinary URL directly — no proxy needed for public Cloudinary files
+  const handleOpen = (fileUrl) => {
+    if (!fileUrl) return;
+    let url = fileUrl;
+    // Force PDF transformation for Cloudinary images if they want it in PDF format
+    if (url.includes("cloudinary.com") && !url.toLowerCase().endsWith(".pdf")) {
+      const parts = url.split("/upload/");
+      if (parts.length === 2) {
+        url = `${parts[0]}/upload/f_pdf/${parts[1].replace(/\.[^/.]+$/, ".pdf")}`;
+      }
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const subTabs = [
+    { id: "PAPERS", label: "Question Papers", icon: FileText, color: "text-teal-600 dark:text-teal-400", activeBg: "bg-teal-50 dark:bg-teal-900/20 border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300" },
+    { id: "SYLLABUS", label: "Syllabus", icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", activeBg: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300" },
+    { id: "BOOKS", label: "Books", icon: BookOpen, color: "text-amber-600 dark:text-amber-400", activeBg: "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300" },
+  ];
+
+  const EmptyState = ({ icon: Icon, color, label }) => (
+    <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
+      <div className={`p-5 rounded-2xl mb-4 bg-muted/30`}>
+        <Icon className={`h-10 w-10 opacity-40 ${color}`} />
+      </div>
+      <p className="text-sm font-semibold mb-1">No {label} Available</p>
+      <p className="text-xs text-muted-foreground">Nothing has been uploaded yet.</p>
+    </div>
+  );
+
+  const LoadingState = () => (
+    <div className="flex items-center justify-center py-12">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <span className="ml-2 text-sm text-muted-foreground">Loading...</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* Sub-tab Switcher */}
+      <div className="flex gap-2 border-b pb-3">
+        {subTabs.map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeSubTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveSubTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 ${
+                isActive
+                  ? tab.activeBg
+                  : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+              }`}
+            >
+              <Icon className={`h-4 w-4 ${isActive ? "" : tab.color}`} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Question Papers */}
+      {activeSubTab === "PAPERS" && (
+        papersLoading ? <LoadingState /> :
+        !papers.length ? <EmptyState icon={FileText} color="text-teal-500" label="Question Papers" /> :
+        <div className="rounded-md border overflow-hidden">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow>
+                <TableHead className="py-3 text-xs font-bold uppercase w-[50px]">No</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase">Course</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase">Year</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase">Sem</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase">Subject</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase text-right">Open</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {papers.map((d, idx) => (
+                <TableRow key={d._id} className="hover:bg-muted/30 transition-colors">
+                  <TableCell className="py-2.5 text-sm text-muted-foreground">{idx + 1}</TableCell>
+                  <TableCell className="py-2.5 text-sm">{d.course}</TableCell>
+                  <TableCell className="py-2.5 text-sm">Year {d.year}</TableCell>
+                  <TableCell className="py-2.5 text-sm">Sem {d.semester}</TableCell>
+                  <TableCell className="py-2.5 text-sm font-semibold text-teal-700 dark:text-teal-300">{d.subject}</TableCell>
+                  <TableCell className="py-2.5 text-right">
+                    <Button size="sm" variant="outline" className="text-teal-600 border-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20" onClick={() => handleOpen(d.fileUrl)}>
+                      <Download className="h-3.5 w-3.5 mr-1" />Open
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* Syllabus */}
+      {activeSubTab === "SYLLABUS" && (
+        syllabusLoading ? <LoadingState /> :
+        !syllabuses.length ? <EmptyState icon={FileText} color="text-indigo-500" label="Syllabuses" /> :
+        <div className="rounded-md border overflow-hidden">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow>
+                <TableHead className="py-3 text-xs font-bold uppercase w-[50px]">No</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase">Course</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase">Year</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase">File Name</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase text-right">Open</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {syllabuses.map((s, idx) => (
+                <TableRow key={s._id} className="hover:bg-muted/30 transition-colors">
+                  <TableCell className="py-2.5 text-sm text-muted-foreground">{idx + 1}</TableCell>
+                  <TableCell className="py-2.5 text-sm">{s.course}</TableCell>
+                  <TableCell className="py-2.5 text-sm">{s.year}</TableCell>
+                  <TableCell className="py-2.5 text-sm font-semibold text-indigo-700 dark:text-indigo-300">{s.fileName || "Syllabus"}</TableCell>
+                  <TableCell className="py-2.5 text-right">
+                    <Button size="sm" variant="outline" className="text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20" onClick={() => handleOpen(s.fileUrl)}>
+                      <Download className="h-3.5 w-3.5 mr-1" />Open
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* Books */}
+      {activeSubTab === "BOOKS" && (
+        booksLoading ? <LoadingState /> :
+        !books.length ? <EmptyState icon={BookOpen} color="text-amber-500" label="Books" /> :
+        <div className="rounded-md border overflow-hidden">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow>
+                <TableHead className="py-3 text-xs font-bold uppercase w-[50px]">No</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase">Book Name</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase">Course</TableHead>
+                <TableHead className="py-3 text-xs font-bold uppercase text-right">Open</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {books.map((b, idx) => (
+                <TableRow key={b._id} className="hover:bg-muted/30 transition-colors">
+                  <TableCell className="py-2.5 text-sm text-muted-foreground">{idx + 1}</TableCell>
+                  <TableCell className="py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-300">{b.name}</TableCell>
+                  <TableCell className="py-2.5 text-sm">{b.course || "—"}</TableCell>
+                  <TableCell className="py-2.5 text-right">
+                    <Button size="sm" variant="outline" className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20" onClick={() => handleOpen(b.fileUrl)}>
+                      <Download className="h-3.5 w-3.5 mr-1" />Open
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AwardPoster({ award, currentUser }) {
+  const Icon = award.icon;
+  const posterRef = React.useRef(null);
+  const [isExporting, setIsExporting] = React.useState(false);
+
+  const colorMap = {
+    amber: "from-amber-400 via-yellow-500 to-amber-600",
+    emerald: "from-emerald-400 via-teal-500 to-emerald-600",
+    yellow: "from-yellow-400 via-amber-500 to-yellow-600",
+    indigo: "from-indigo-400 via-blue-500 to-indigo-600",
+    rose: "from-rose-400 via-pink-500 to-rose-600",
+  };
+  
+  const bgGradient = colorMap[award.color] || "from-zinc-400 to-zinc-600";
+
+  const downloadAsJpeg = async () => {
+    if (!posterRef.current) return;
+    setIsExporting(true);
+    try {
+      // Small delay to ensure any hover states are cleared if needed
+      await new Promise(r => setTimeout(r, 100));
+      
+      const canvas = await html2canvas(posterRef.current, {
+        scale: 3, // High quality
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+      });
+      
+      const image = canvas.toDataURL("image/jpeg", 0.9);
+      const link = document.createElement("a");
+      link.href = image;
+      link.download = `${award.type}_${award.period.replace(/\s+/g, "_")}.jpg`;
+      link.click();
+    } catch (err) {
+      console.error("Export error:", err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <div 
+        ref={posterRef}
+        className="group relative flex flex-col items-center p-8 rounded-[2.5rem] border shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 w-full max-w-sm"
+      >
+        {/* Decorative background circle */}
+        <div className={`absolute -top-12 -right-12 w-48 h-48 rounded-full blur-3xl opacity-10 bg-gradient-to-br ${bgGradient}`} />
+        
+        {/* Trophy/Icon at top right */}
+        <Icon className="absolute top-6 right-6 h-10 w-10 text-zinc-200 dark:text-zinc-800 opacity-50 group-hover:opacity-100 transition-opacity" />
+        
+        {/* Profile Pic with rank border */}
+        <div className="relative mb-8">
+            <div className={`w-36 h-36 rounded-full p-1.5 bg-gradient-to-br ${bgGradient} shadow-xl`}>
+                <div className="w-full h-full rounded-full border-[6px] border-white dark:border-zinc-900 overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                    {currentUser?.profilePic?.url ? (
+                        <img src={currentUser.profilePic.url} alt={currentUser.name} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-5xl font-bold text-zinc-400">
+                            {currentUser?.name?.charAt(0) || "S"}
+                        </div>
+                    )}
+                </div>
+            </div>
+            {/* Badge */}
+            <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-6 py-1.5 rounded-full text-xs font-black tracking-[0.2em] text-white shadow-xl uppercase bg-gradient-to-r ${bgGradient} border-2 border-white dark:border-zinc-900`}>
+              Winner
+            </div>
+        </div>
+
+        <div className="text-center space-y-3 pb-4">
+            <h4 className={`text-[10px] font-black tracking-[0.3em] uppercase opacity-70 ${award.color === 'amber' ? 'text-amber-600' : award.color === 'emerald' ? 'text-emerald-600' : 'text-yellow-600'}`}>
+                {award.type}
+            </h4>
+            <h3 className="text-3xl font-black tracking-tight leading-tight text-zinc-900 dark:text-white">
+                {award.title}
+            </h3>
+            {award.subtitle && (
+                <p className="text-base font-bold text-zinc-500 dark:text-zinc-400">{award.subtitle}</p>
+            )}
+            <div className="pt-6 flex flex-col items-center">
+                <div className={`px-6 py-2 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm font-black tracking-widest uppercase ${award.color === 'amber' ? 'text-amber-700' : award.color === 'emerald' ? 'text-emerald-700' : 'text-yellow-700'}`}>
+                    {award.period}
+                </div>
+            </div>
+        </div>
+        
+        {/* Shimmer effect */}
+        <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+        
+        {/* Branding footer inside poster */}
+        <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 w-full flex justify-center opacity-30">
+           <span className="text-[10px] font-black tracking-widest uppercase">SCOFIST ACADEMY</span>
+        </div>
+      </div>
+      
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={downloadAsJpeg} 
+        disabled={isExporting}
+        className="rounded-full gap-2 text-xs font-bold tracking-widest uppercase hover:bg-zinc-100 dark:hover:bg-zinc-800"
+      >
+        {isExporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+        Download JPEG
+      </Button>
+    </div>
+  );
+}
+
+function AwardsTabContent({ currentUser, apiKey }) {
+  const [awards, setAwards] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchAwards = async () => {
+      setLoading(true);
+      const studentAwards = [];
+      
+      try {
+        const monthsToCheck = 36; // Check last 3 years
+        
+        // 1. Fetch Best Reader awards
+        const bestReaderPromises = [];
+        for (let m = 1; m <= monthsToCheck; m++) { // Start from 1 to skip current uncompleted month
+            const date = new Date();
+            date.setMonth(date.getMonth() - m);
+            const month = date.getMonth();
+            const year = date.getFullYear();
+            bestReaderPromises.push(
+                fetch(`/api/library/stats/best-reader?month=${month}&year=${year}`, { headers: { "api-key": apiKey } })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success && res.data?.student?._id === currentUser._id) {
+                            studentAwards.push({
+                                type: "BEST READER",
+                                title: "Best Reader of the Month",
+                                period: formatMonthYear(date),
+                                date: new Date(year, month, 1),
+                                icon: BookOpen,
+                                color: "amber"
+                            });
+                        }
+                    })
+                    .catch(() => null)
+            );
+        }
+
+        // 2. Fetch Attendance Topper awards
+        const attendancePromises = [];
+        for (let m = 1; m <= monthsToCheck; m++) { // Start from 1 to skip current uncompleted month
+            const date = new Date();
+            date.setMonth(date.getMonth() - m);
+            const firstDayDate = new Date(date.getFullYear(), date.getMonth(), 1);
+            const lastDayDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+            
+            const firstDay = formatDate(firstDayDate);
+            const lastDay = formatDate(lastDayDate);
+            
+            attendancePromises.push(
+                fetch(`/api/attendanceToppers?startDate=${firstDay}&endDate=${lastDay}`, { headers: { "api-key": apiKey } })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success && res.attendanceToppers?.length > 0) {
+                            // res.attendanceToppers is an array of class results: [{ classId, className, students: [...] }, ...]
+                            res.attendanceToppers.forEach(classResult => {
+                                const isTopper = classResult.students.some(s => s.studentId === currentUser._id);
+                                if (isTopper) {
+                                    studentAwards.push({
+                                        type: "ATTENDANCE TOPPER",
+                                        title: "Attendance Topper",
+                                        period: formatMonthYear(date),
+                                        date: new Date(date.getFullYear(), date.getMonth(), 1),
+                                        icon: Calendar,
+                                        color: "emerald"
+                                    });
+                                }
+                            });
+                        }
+                    })
+                    .catch(() => null)
+            );
+        }
+
+        // 3. Fetch Program Winners & Runner Ups (Winner Posters)
+        const winnersPromise = fetch(`/api/winner-posters`, { headers: { "api-key": apiKey } })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success && res.programs) {
+                    res.programs.forEach(prog => {
+                        prog.winners.forEach(w => {
+                            if (w._id === currentUser._id) {
+                                let awardInfo = null;
+                                if (w.rank === 1) {
+                                    awardInfo = { type: "CHAMPION", title: "First Place", color: "yellow", icon: Trophy };
+                                } else if (w.rank === 2) {
+                                    awardInfo = { type: "RUNNER UP", title: "Second Place", color: "rose", icon: Award };
+                                } else if (w.rank === 3) {
+                                    awardInfo = { type: "RUNNER UP", title: "Third Place", color: "rose", icon: Award };
+                                }
+
+                                if (awardInfo) {
+                                    studentAwards.push({
+                                        ...awardInfo,
+                                        subtitle: prog.name,
+                                        period: prog.division,
+                                        date: new Date(),
+                                    });
+                                }
+                            }
+                        });
+                    });
+                }
+            })
+            .catch(() => null);
+
+        // 4. Fetch Division Toppers (Individual Toppers)
+        const individualToppersPromise = fetch(`/api/individual-toppers`, { headers: { "api-key": apiKey } })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    res.data.forEach(topper => {
+                        // Match by ID primarily (updated in API), then fallback to name
+                        if (topper._id === currentUser._id || topper.name === currentUser.name) {
+                             studentAwards.push({
+                                type: "TOPPER",
+                                title: "Overall Division Topper",
+                                subtitle: `${topper.divisionName} Category`,
+                                period: `Accrued ${topper.points} Points`,
+                                date: new Date(),
+                                icon: Award,
+                                color: "indigo"
+                            });
+                        }
+                    });
+                }
+            })
+            .catch(() => null);
+
+        await Promise.all([...bestReaderPromises, ...attendancePromises, winnersPromise, individualToppersPromise]);
+        
+        // Sort awards by date descending
+        studentAwards.sort((a, b) => b.date - a.date);
+        setAwards(studentAwards);
+      } catch (e) {
+        console.error("Awards fetch error:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (currentUser?._id && apiKey) fetchAwards();
+  }, [currentUser?._id, apiKey]);
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-yellow-500 mb-4" />
+        <p className="text-sm text-muted-foreground animate-pulse font-medium">Analyzing your achievements...</p>
+    </div>
+  );
+
+  if (!awards.length) return (
+    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+      <div className="p-6 rounded-3xl bg-yellow-50 dark:bg-yellow-900/10 mb-6 transform transition-transform hover:scale-110 duration-500">
+        <Trophy className="h-16 w-16 text-yellow-500/40" />
+      </div>
+      <h3 className="text-xl font-bold text-zinc-800 dark:text-zinc-200 mb-2">No Awards Yet</h3>
+      <p className="text-sm max-w-xs text-center opacity-70">Keep up the great work! Your achievements will shine here once you top the charts.</p>
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-4">
+      {awards.map((award, idx) => (
+        <AwardPoster key={idx} award={award} currentUser={currentUser} />
+      ))}
+    </div>
+  );
+}
 
 export default function StudentDashboard({
   user,
@@ -719,7 +1214,7 @@ export default function StudentDashboard({
                 </AvatarFallback>
               </Avatar>
               
-              {/* Profile Card for Mobile View */}
+              {/* Status Badge for Mobile View */}
               <div className="md:hidden flex flex-col items-end gap-2">
                 {currentUser?.studentSpecificField?.status && (
                   <div className={cn(
@@ -739,27 +1234,6 @@ export default function StudentDashboard({
                     {currentUser.studentSpecificField.status}
                   </div>
                 )}
-                <div className="scale-90 origin-right">
-                  <Card 
-                    className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden min-w-[130px] ${
-                      activeTab === "PROFILE" 
-                        ? "border-blue-500 bg-white/20 backdrop-blur-md" 
-                        : "border-white/10 bg-white/5 hover:border-white/20 backdrop-blur-sm"
-                    }`}
-                    onClick={() => handleTabChange("PROFILE")}
-                  >
-                    <CardContent className="p-3 flex flex-col items-center justify-center text-center gap-2">
-                      <div className={`p-2 rounded-xl transition-all duration-300 ${
-                        activeTab === "PROFILE" 
-                          ? "bg-blue-500 text-white shadow-lg" 
-                          : "bg-white/10 text-blue-200"
-                      }`}>
-                        <User className="h-5 w-5" />
-                      </div>
-                      <span className="text-xs font-bold text-white uppercase tracking-wider">Profile</span>
-                    </CardContent>
-                  </Card>
-                </div>
               </div>
             </div>
 
@@ -788,7 +1262,7 @@ export default function StudentDashboard({
             </div>
           </div>
 
-          {/* Profile Card & Status for Desktop View */}
+          {/* Status Badge for Desktop View */}
           <div className="hidden md:flex items-center gap-4">
             {currentUser?.studentSpecificField?.status && (
               <div className={cn(
@@ -808,32 +1282,6 @@ export default function StudentDashboard({
                 {currentUser.studentSpecificField.status}
               </div>
             )}
-            <Card 
-              className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden min-w-[140px] ${
-                activeTab === "PROFILE" 
-                  ? "border-blue-500 bg-white/20 backdrop-blur-md" 
-                  : "border-white/10 bg-white/5 hover:border-white/20 backdrop-blur-sm"
-              }`}
-              onClick={() => handleTabChange("PROFILE")}
-            >
-              <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
-                <div className={`p-3 rounded-xl transition-all duration-300 ${
-                  activeTab === "PROFILE" 
-                    ? "bg-blue-500 text-white shadow-lg scale-110" 
-                    : "bg-white/10 text-blue-200 group-hover:scale-110"
-                }`}>
-                  <User className="h-6 w-6" />
-                </div>
-                <span className={`text-sm font-bold tracking-wide ${
-                  activeTab === "PROFILE" ? "text-white" : "text-blue-100"
-                }`}>
-                  My Profile
-                </span>
-                {activeTab === "PROFILE" && (
-                  <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-400"></div>
-                )}
-              </CardContent>
-            </Card>
           </div>
         </div>
         
@@ -842,15 +1290,14 @@ export default function StudentDashboard({
         <div className="absolute bottom-0 left-0 -ml-16 -mb-16 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl"></div>
       </div>
 
-      {/* Navigation Cards Grid */}
-      <div className="no-print grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      {/* Navigation Cards Grid - Row 1 */}
+      <div className="no-print grid grid-cols-3 md:grid-cols-5 gap-3 mb-3">
         {[
+          { id: "PROFILE", label: "My Profile", icon: User, color: "blue" },
+          { id: "ATTENDANCE", label: "Attendance", icon: Calendar, color: "rose" },
           { id: "FINANCE", label: "Finance", icon: IndianRupee, color: "emerald" },
           { id: "LIBRARY", label: "Library", icon: BookOpen, color: "amber" },
-          { id: "ATTENDANCE", label: "Attendance", icon: Calendar, color: "rose" },
           { id: "MARKS", label: "Marks", icon: FileText, color: "indigo" },
-          { id: "LEAVES", label: "Leaves", icon: Plane, color: "violet" },
-          { id: "REMARKS", label: "Remarks", icon: MessageSquare, color: "orange" },
         ].map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -950,6 +1397,45 @@ export default function StudentDashboard({
                 {isActive && (
                   <div className={`absolute bottom-0 left-0 w-full h-1 ${s.bottomBar}`}></div>
                 )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Navigation Cards Grid - Row 2 */}
+      <div className="no-print grid grid-cols-3 md:grid-cols-5 gap-3 mb-8">
+        {[
+          { id: "NOTIFICATIONS", label: "Notifications", icon: Bell, color: "cyan" },
+          { id: "DOWNLOADS", label: "Downloads", icon: Download, color: "teal" },
+          { id: "LEAVES", label: "Leaves", icon: Plane, color: "violet" },
+          { id: "REMARKS", label: "Remarks", icon: MessageSquare, color: "orange" },
+          { id: "AWARDS", label: "Awards", icon: Trophy, color: "yellow" },
+        ].map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          const colorStyles2 = {
+            cyan: { activeBorder: "border-cyan-500", activeBg: "bg-cyan-50/50 dark:bg-cyan-900/10", iconActiveBg: "bg-cyan-500", iconInactiveBg: "bg-cyan-100 dark:bg-cyan-900/20", iconInactiveText: "text-cyan-600", labelActive: "text-cyan-700 dark:text-cyan-300", bottomBar: "bg-cyan-500" },
+            teal: { activeBorder: "border-teal-500", activeBg: "bg-teal-50/50 dark:bg-teal-900/10", iconActiveBg: "bg-teal-500", iconInactiveBg: "bg-teal-100 dark:bg-teal-900/20", iconInactiveText: "text-teal-600", labelActive: "text-teal-700 dark:text-teal-300", bottomBar: "bg-teal-500" },
+            violet: { activeBorder: "border-violet-500", activeBg: "bg-violet-50/50 dark:bg-violet-900/10", iconActiveBg: "bg-violet-500", iconInactiveBg: "bg-violet-100 dark:bg-violet-900/20", iconInactiveText: "text-violet-600", labelActive: "text-violet-700 dark:text-violet-300", bottomBar: "bg-violet-500" },
+            orange: { activeBorder: "border-orange-500", activeBg: "bg-orange-50/50 dark:bg-orange-900/10", iconActiveBg: "bg-orange-500", iconInactiveBg: "bg-orange-100 dark:bg-orange-900/20", iconInactiveText: "text-orange-600", labelActive: "text-orange-700 dark:text-orange-300", bottomBar: "bg-orange-500" },
+            yellow: { activeBorder: "border-yellow-500", activeBg: "bg-yellow-50/50 dark:bg-yellow-900/10", iconActiveBg: "bg-yellow-500", iconInactiveBg: "bg-yellow-100 dark:bg-yellow-900/20", iconInactiveText: "text-yellow-600", labelActive: "text-yellow-700 dark:text-yellow-300", bottomBar: "bg-yellow-500" },
+          };
+          const s = colorStyles2[item.color];
+          return (
+            <Card
+              key={item.id}
+              className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden ${
+                isActive ? `${s.activeBorder} ${s.activeBg}` : "border-transparent bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-800"
+              }`}
+              onClick={() => handleTabChange(item.id)}
+            >
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
+                <div className={`p-3 rounded-xl transition-all duration-300 ${isActive ? `${s.iconActiveBg} text-white shadow-lg scale-110` : `${s.iconInactiveBg} ${s.iconInactiveText} group-hover:scale-110`}`}>
+                  <Icon className="h-6 w-6" />
+                </div>
+                <span className={`text-sm font-bold tracking-wide ${isActive ? s.labelActive : "text-slate-600 dark:text-slate-400"}`}>{item.label}</span>
+                {isActive && <div className={`absolute bottom-0 left-0 w-full h-1 ${s.bottomBar}`}></div>}
               </CardContent>
             </Card>
           );
@@ -2022,6 +2508,54 @@ export default function StudentDashboard({
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "NOTIFICATIONS" && (
+        <Card className="flex flex-col card-print-break mt-5">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <Bell className="h-5 w-5 text-cyan-500" />
+              Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1">
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <div className="p-5 rounded-2xl bg-cyan-100 dark:bg-cyan-900/20 mb-4">
+                <Bell className="h-10 w-10 text-cyan-500 opacity-60" />
+              </div>
+              <p className="text-base font-semibold text-cyan-700 dark:text-cyan-300 mb-1">No Notifications</p>
+              <p className="text-sm text-muted-foreground">You have no notifications at this time.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "DOWNLOADS" && (
+        <Card className="flex flex-col card-print-break mt-5">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <Download className="h-5 w-5 text-teal-500" />
+              Downloads
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1">
+            <DownloadsTabContent apiKey={apiKey} />
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "AWARDS" && (
+        <Card className="flex flex-col card-print-break mt-5">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              Awards &amp; Achievements
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1">
+            <AwardsTabContent currentUser={currentUser} apiKey={apiKey} />
           </CardContent>
         </Card>
       )}

@@ -59,6 +59,7 @@ export async function GET(request) {
       }
 
       divisionBuckets[divName].push({
+        _id: p._id,
         name: p.name,
         chestNumber: p.chestNumber || "N/A",
         teamName: p.teamId?.name || "Unknown Team",
