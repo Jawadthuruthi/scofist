@@ -104,6 +104,7 @@ const AttendanceTrackingPage = async () => {
           },
           {
             header: "Present",
+            id: "present",
             accessorKey: "present",
             type: ["filteredLength"],
             valueKey: "attendanceRecords",
@@ -145,8 +146,6 @@ const AttendanceTrackingPage = async () => {
             label: "Batch",
             type: "text",
             inputType: "select",
-            nestedArrayField: "attendanceRecords",
-
             options: formatOptions(batches),
           },
           {
@@ -154,8 +153,6 @@ const AttendanceTrackingPage = async () => {
             label: "Class",
             type: "text",
             inputType: "select",
-            nestedArrayField: "attendanceRecords",
-
             options: formatOptions(formattedClasses),
           },
           {
@@ -213,6 +210,7 @@ const AttendanceTrackingPage = async () => {
           },
           {
             header: "Present",
+            id: "present",
             accessorKey: "present",
             type: ["filteredLength"],
             valueKey: "attendanceRecords",
@@ -254,8 +252,6 @@ const AttendanceTrackingPage = async () => {
             label: "Batch",
             type: "text",
             inputType: "select",
-            nestedArrayField: "attendanceRecords",
-
             options: formatOptions(batches),
           },
           {
@@ -263,8 +259,6 @@ const AttendanceTrackingPage = async () => {
             label: "Class",
             type: "text",
             inputType: "select",
-            nestedArrayField: "attendanceRecords",
-
             options: formatOptions(formattedClasses),
           },
           {
@@ -356,8 +350,6 @@ const AttendanceTrackingPage = async () => {
             label: "Batch",
             type: "text",
             inputType: "select",
-            nestedArrayField: "attendanceRecords",
-
             options: formatOptions(batches),
           },
           {
@@ -365,8 +357,6 @@ const AttendanceTrackingPage = async () => {
             label: "Class",
             type: "text",
             inputType: "select",
-            nestedArrayField: "attendanceRecords",
-
             options: formatOptions(formattedClasses),
           },
           {

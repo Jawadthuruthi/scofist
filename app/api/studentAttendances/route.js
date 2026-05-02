@@ -1,6 +1,7 @@
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import StudentAttendance from "@/models/StudentAttendance";
+import User from "@/models/User";
 import { NextResponse } from "next/server";
 
 export async function GET(req, res) {
@@ -42,7 +43,6 @@ export async function GET(req, res) {
       documentQuery.studentId = filterParams.studentId;
     } else if (nameFilter) {
       // Search for students by name
-      const User = models.User;
       const matchingStudents = await User.find({
         name: { $regex: nameFilter, $options: "i" },
         roles: "Student"
@@ -52,6 +52,41 @@ export async function GET(req, res) {
         documentQuery.studentId = { $in: matchingStudents.map(m => m._id.toString()) };
       } else {
         // If name search is active but no students found, force empty result
+        documentQuery.studentId = "NULL_USER_ID";
+      }
+    }
+
+    // Handle batch and class filters at the student document level
+    if (filterParams.classId || filterParams.batchId) {
+      const userQuery = { roles: "Student" };
+      
+      if (filterParams.classId) {
+        userQuery["studentSpecificField.classId"] = filterParams.classId;
+        userQuery["studentSpecificField.status"] = "Active"; // filter by class only for active students
+      }
+      
+      if (filterParams.batchId) {
+        userQuery["studentSpecificField.batchId"] = filterParams.batchId;
+        // No status filter here, so it includes all students of the batch
+      }
+      
+      const matchingUsers = await User.find(userQuery, { _id: 1 }).lean();
+      const matchedIds = matchingUsers.map(m => m._id.toString());
+      
+      if (matchedIds.length > 0) {
+        if (documentQuery.studentId) {
+          if (documentQuery.studentId.$in) {
+            documentQuery.studentId.$in = documentQuery.studentId.$in.filter(id => matchedIds.includes(id));
+            if (documentQuery.studentId.$in.length === 0) documentQuery.studentId = "NULL_USER_ID";
+          } else {
+             if (!matchedIds.includes(documentQuery.studentId)) {
+                documentQuery.studentId = "NULL_USER_ID";
+             }
+          }
+        } else {
+          documentQuery.studentId = { $in: matchedIds };
+        }
+      } else {
         documentQuery.studentId = "NULL_USER_ID";
       }
     }
@@ -173,61 +208,153 @@ export async function GET(req, res) {
       },
     ];
 
-    if (isToppersOnly) {
-      // If toppersOnly is true, calculate percentage and get the top student per class
-      pipeline.push(
-        { $unwind: "$attendanceRecords" },
-        {
-          $group: {
-            _id: {
-              classId: "$attendanceRecords.classId",
-              studentId: "$studentId"
-            },
-            totalClasses: { $sum: 1 },
-            presentClasses: {
-              $sum: { $cond: [{ $eq: ["$attendanceRecords.present", true] }, 1, 0] }
-            },
-            records: { $push: "$attendanceRecords" }
-          }
+    if (!isToppersOnly) {
+      let userQuery = { roles: "Student" };
+      if (documentQuery.studentId) {
+        if (documentQuery.studentId === "NULL_USER_ID") {
+          return NextResponse.json({
+            studentAttendances: [],
+            pagination: { page, limit, total: 0, totalPages: 0 },
+            message: "No students found"
+          }, { status: 200 });
+        }
+        userQuery._id = documentQuery.studentId;
+      }
+      
+      const total = await User.countDocuments(userQuery);
+      const users = await User.find(userQuery, "_id name")
+        .skip(limit === Infinity ? 0 : page * limit)
+        .limit(limit === Infinity ? 0 : limit)
+        .lean();
+        
+      const userIds = users.map(u => u._id);
+      
+      const attendances = await StudentAttendance.find({ studentId: { $in: userIds } })
+        .populate("attendanceRecords.classId", "name")
+        .populate("attendanceRecords.subjectId", "name")
+        .populate("attendanceRecords.teacherId", "name")
+        .lean();
+        
+      const attendanceMap = {};
+      attendances.forEach(doc => {
+        attendanceMap[doc.studentId] = doc.attendanceRecords || [];
+      });
+      
+      const formattedStudentAttendances = users.map(user => {
+        let records = attendanceMap[user._id] || [];
+        
+        // Debug
+        if (recordFilters.batchId && records.length > 0) {
+          console.log(`Student ${user.name} records before batch filter: ${records.length}. sample batchId in record: ${records[0].batchId}`);
+        }
+        
+        // Apply record filters
+        if (recordFilters.classId) {
+          records = records.filter(r => (r.classId?._id?.toString() || r.classId?.toString()) === String(recordFilters.classId));
+        }
+        if (recordFilters.batchId) {
+          records = records.filter(r => {
+            const bid = r.batchId?._id?.toString() || r.batchId?.toString();
+            // Handle corrupted database records where batchId was saved as "[object Object]"
+            return bid === String(recordFilters.batchId) || bid === "[object Object]";
+          });
+        }
+        
+        if (recordFilters.subjectId) {
+          records = records.filter(r => (r.subjectId?._id?.toString() || r.subjectId?.toString()) === String(recordFilters.subjectId));
+        }
+        if (dateFilter?.start) {
+          records = records.filter(r => new Date(r.date) >= dateFilter.start);
+        }
+        if (dateFilter?.end) {
+          records = records.filter(r => new Date(r.date) <= dateFilter.end);
+        }
+        
+        return {
+          _id: user._id,
+          name: user.name,
+          attendanceRecords: records.map(r => ({
+            date: r.date,
+            present: r.present ?? false,
+            periodNumber: r.periodNumber,
+            classId: r.classId?._id || r.classId,
+            className: r.classId?.name || "Unknown",
+            subjectId: r.subjectId?._id || r.subjectId,
+            subjectName: r.subjectId?.name || "Unknown",
+            teacherId: r.teacherId?._id || r.teacherId,
+            teacherName: r.teacherId?.name || "N/A"
+          }))
+        };
+      });
+      
+      // DEBUG: WRITE TO FILE
+      const fs = require('fs');
+      try {
+        fs.writeFileSync('debug_api.json', JSON.stringify({
+          recordFilters,
+          dateFilter,
+          sampleUsers: formattedStudentAttendances.slice(0, 2),
+          totalFormattedUsers: formattedStudentAttendances.length,
+          totalRecordsForFirstUser: formattedStudentAttendances[0]?.attendanceRecords?.length || 0,
+          originalRecordsCount: attendanceMap[formattedStudentAttendances[0]?._id]?.length || 0
+        }, null, 2));
+      } catch (e) {
+        console.error("Failed to write debug file", e);
+      }
+      
+      return NextResponse.json({
+        studentAttendances: formattedStudentAttendances,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: limit === Infinity ? 1 : Math.max(0, Math.ceil(total / limit)),
         },
-        {
-          $addFields: {
-            percentage: {
-              $multiply: [{ $divide: ["$presentClasses", "$totalClasses"] }, 100]
-            }
-          }
-        },
-        { $sort: { "_id.classId": 1, percentage: -1 } },
-        {
-          $group: {
-            _id: "$_id.classId",
-            topStudentId: { $first: "$_id.studentId" },
-            percentage: { $first: "$percentage" },
-            attendanceRecords: { $first: "$records" }
-          }
-        },
-        {
-          $project: {
-            _id: 0,
-            studentId: "$topStudentId",
-            attendanceRecords: 1,
-            percentage: { $round: ["$percentage", 1] }
+        message: "Student attendance records fetched successfully"
+      }, { status: 200 });
+    }
+
+    // If toppersOnly is true, calculate percentage and get the top student per class
+    pipeline.push(
+      { $unwind: "$attendanceRecords" },
+      {
+        $group: {
+          _id: {
+            classId: "$attendanceRecords.classId",
+            studentId: "$studentId"
+          },
+          totalClasses: { $sum: 1 },
+          presentClasses: {
+            $sum: { $cond: [{ $eq: ["$attendanceRecords.present", true] }, 1, 0] }
+          },
+          records: { $push: "$attendanceRecords" }
+        }
+      },
+      {
+        $addFields: {
+          percentage: {
+            $multiply: [{ $divide: ["$presentClasses", "$totalClasses"] }, 100]
           }
         }
-      );
-    } else {
-      // Normal flow: project and then paginate
-      pipeline.push(
-        {
-          $project: {
-            studentId: 1,
-            attendanceRecords: 1,
-          },
-        },
-        { $skip: limit === Infinity ? 0 : page * limit },
-        ...(limit !== Infinity ? [{ $limit: limit }] : [])
-      );
-    }
+      },
+      { $sort: { "_id.classId": 1, percentage: -1 } },
+      {
+        $group: {
+          _id: "$_id.classId",
+          topStudentId: { $first: "$_id.studentId" },
+          percentage: { $first: "$percentage" },
+          attendanceRecords: { $first: "$records" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          studentId: "$topStudentId",
+          attendanceRecords: 1,
+          percentage: { $round: ["$percentage", 1] }
+        }
+      }
+    );
 
     // Now add $lookups to populate names (shared by both flows)
     pipeline.push(

@@ -41,7 +41,7 @@ const ColumnCustomization = ({ table, columnsConfig }) => {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {columnsConfig.map((columnConfig) => {
-          const columnId = columnConfig.accessorKey || columnConfig.id;
+          const columnId = columnConfig.id || columnConfig.accessorKey;
           if (!columnId) return null;
 
           const column = table.getColumn(columnId);
