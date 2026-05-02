@@ -1378,9 +1378,43 @@ const DataTableComponent = ({
       >
         <PrintHeader
           apiKey={apiKey}
-          title={toppersOnly && enableMonthYearFilter && filterMonth && filterYear 
-            ? `Attendance Toppers - ${new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' })} ${filterYear}`
-            : (printTitle ? printTitle : resource)}
+          title={(() => {
+            if (toppersOnly && enableMonthYearFilter && filterMonth && filterYear) {
+              return `Attendance Toppers - ${new Date(2000, filterMonth - 1, 1).toLocaleString('default', { month: 'long' })} ${filterYear}`;
+            }
+
+            let baseTitle = printTitle || resource;
+            let classLabel = "";
+            let batchLabel = "";
+
+            if (filters["classId"] && filterConfig) {
+              const config = filterConfig.find(f => f.id === "classId");
+              if (config && config.options) {
+                const val = typeof filters["classId"] === 'object' ? filters["classId"].value : filters["classId"];
+                const opt = config.options.find(o => String(o.value) === String(val));
+                if (opt) classLabel = opt.label;
+              }
+            }
+
+            if (filters["batchId"] && filterConfig) {
+              const config = filterConfig.find(f => f.id === "batchId");
+              if (config && config.options) {
+                const val = typeof filters["batchId"] === 'object' ? filters["batchId"].value : filters["batchId"];
+                const opt = config.options.find(o => String(o.value) === String(val));
+                if (opt) batchLabel = opt.label;
+              }
+            }
+
+            if (classLabel && batchLabel) {
+              return `${baseTitle} - ${classLabel} (${batchLabel})`;
+            } else if (classLabel) {
+              return `${baseTitle} - ${classLabel}`;
+            } else if (batchLabel) {
+              return `${baseTitle} - ${batchLabel}`;
+            }
+
+            return baseTitle;
+          })()}
           subTitle={(() => {
             const dateFilterConfig = filterConfig.find(f => f.inputType === "dateRange");
             if (!dateFilterConfig) return null;
