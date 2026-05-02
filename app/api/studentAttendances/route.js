@@ -61,12 +61,14 @@ export async function GET(req, res) {
       const userQuery = { roles: "Student" };
       
       if (filterParams.classId) {
-        userQuery["studentSpecificField.classId"] = filterParams.classId;
+        const classIds = filterParams.classId.split(',').map(s => s.trim());
+        userQuery["studentSpecificField.classId"] = { $in: classIds };
         userQuery["studentSpecificField.status"] = "Active"; // filter by class only for active students
       }
       
       if (filterParams.batchId) {
-        userQuery["studentSpecificField.batchId"] = filterParams.batchId;
+        const batchIds = filterParams.batchId.split(',').map(s => s.trim());
+        userQuery["studentSpecificField.batchId"] = { $in: batchIds };
         // No status filter here, so it includes all students of the batch
       }
       
@@ -153,7 +155,7 @@ export async function GET(req, res) {
                   ...(recordFilters.classId
                     ? [
                       {
-                        $eq: [{ $toString: "$$record.classId" }, recordFilters.classId],
+                        $in: [{ $toString: "$$record.classId" }, recordFilters.classId.split(',').map(s => s.trim())],
                       },
                     ]
                     : []),
@@ -162,7 +164,10 @@ export async function GET(req, res) {
                   ...(recordFilters.batchId
                     ? [
                       {
-                        $eq: [{ $toString: "$$record.batchId" }, recordFilters.batchId],
+                        $or: [
+                          { $in: [{ $toString: "$$record.batchId" }, recordFilters.batchId.split(',').map(s => s.trim())] },
+                          { $eq: [{ $toString: "$$record.batchId" }, "[object Object]"] }
+                        ]
                       },
                     ]
                     : []),
@@ -171,7 +176,7 @@ export async function GET(req, res) {
                   ...(recordFilters.subjectId
                     ? [
                       {
-                        $eq: [{ $toString: "$$record.subjectId" }, recordFilters.subjectId],
+                        $in: [{ $toString: "$$record.subjectId" }, recordFilters.subjectId.split(',').map(s => s.trim())],
                       },
                     ]
                     : []),
@@ -250,18 +255,21 @@ export async function GET(req, res) {
         
         // Apply record filters
         if (recordFilters.classId) {
-          records = records.filter(r => (r.classId?._id?.toString() || r.classId?.toString()) === String(recordFilters.classId));
+          const classIds = String(recordFilters.classId).split(',').map(s => s.trim());
+          records = records.filter(r => classIds.includes(r.classId?._id?.toString() || r.classId?.toString()));
         }
         if (recordFilters.batchId) {
+          const batchIds = String(recordFilters.batchId).split(',').map(s => s.trim());
           records = records.filter(r => {
             const bid = r.batchId?._id?.toString() || r.batchId?.toString();
             // Handle corrupted database records where batchId was saved as "[object Object]"
-            return bid === String(recordFilters.batchId) || bid === "[object Object]";
+            return batchIds.includes(bid) || bid === "[object Object]";
           });
         }
         
         if (recordFilters.subjectId) {
-          records = records.filter(r => (r.subjectId?._id?.toString() || r.subjectId?.toString()) === String(recordFilters.subjectId));
+          const subjectIds = String(recordFilters.subjectId).split(',').map(s => s.trim());
+          records = records.filter(r => subjectIds.includes(r.subjectId?._id?.toString() || r.subjectId?.toString()));
         }
         if (dateFilter?.start) {
           records = records.filter(r => new Date(r.date) >= dateFilter.start);

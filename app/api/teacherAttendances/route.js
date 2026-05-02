@@ -148,8 +148,14 @@ export async function GET(req, res) {
 
         daySlots.forEach(slot => {
           // Apply filters
-          if (filterParams.classId && String(slot.classId) !== String(filterParams.classId)) return;
-          if (filterParams.subjectId && String(slot.subjectId) !== String(filterParams.subjectId)) return;
+          if (filterParams.classId) {
+             const classIds = String(filterParams.classId).split(',').map(s => s.trim());
+             if (!classIds.includes(String(slot.classId))) return;
+          }
+          if (filterParams.subjectId) {
+             const subjectIds = String(filterParams.subjectId).split(',').map(s => s.trim());
+             if (!subjectIds.includes(String(slot.subjectId))) return;
+          }
           
           const key = `${dateString}_${String(slot.classId)}_${String(slot.subjectId)}_${slot.periodNumber}`;
           
