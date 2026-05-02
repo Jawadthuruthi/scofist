@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import { formatOptions } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
-export default function LeaveHistory({ classes, students, apiKey, role }) {
+export default function LeaveHistory({ classes, students, apiKey, role, teacherClassId }) {
     const sortedClasses = useMemo(() => {
         const classOrder = [
             "PLUS ONE A",
@@ -47,6 +47,18 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
             classId: student.studentSpecificField?.classId
         }));
     }, [students]);
+
+    // If this teacher has an assigned class, lock all filters/forms to it
+    const isTeacherLocked = Boolean(teacherClassId);
+    const lockedClass = isTeacherLocked ? classes.find(c => c._id === teacherClassId) : null;
+
+    // apiFilters: always scope records to teacher's class when locked
+    const apiFilters = useMemo(() => {
+        if (isTeacherLocked && teacherClassId) {
+            return { classId: teacherClassId };
+        }
+        return {};
+    }, [isTeacherLocked, teacherClassId]);
 
     const columnsConfig = [
         {
@@ -121,6 +133,9 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
             label: "Class",
             inputType: "select",
             options: formatOptions(sortedClasses),
+            // For class teachers: don't add defaultValue here (it triggers client-side filter
+            // that conflicts with the apiFilters server-side scoping). Just disable the dropdown.
+            ...(isTeacherLocked ? { disabled: true } : {}),
         },
         {
             id: "studentId",
@@ -153,6 +168,8 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
             options: formatOptions(sortedClasses),
             required: true,
             placeholder: "Select Class",
+            // For class teachers, lock the class field to their class
+            ...(isTeacherLocked ? { defaultValue: teacherClassId, disabled: true } : {}),
         },
         {
             name: "studentId",
@@ -234,7 +251,7 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
 
     return (
         <>
-            <Header title="LEAVE HISTORY" subTitle="View and Manage All Leave Records" />
+            <Header title="LEAVE HISTORY" subTitle={isTeacherLocked && lockedClass ? `Leave Records — ${lockedClass.name}` : "View and Manage All Leave Records"} />
             <DataTableComponent
                 resource="leave-records"
                 columnsConfig={columnsConfig}
@@ -254,6 +271,7 @@ export default function LeaveHistory({ classes, students, apiKey, role }) {
                 enableSearch={true}
                 mobileSearchPlaceholder="Search student..."
                 desktopSearchPlaceholder="Search student by name or ID..."
+                apiFilters={apiFilters}
             />
         </>
     );

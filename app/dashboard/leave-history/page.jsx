@@ -16,18 +16,28 @@ export default async function LeaveHistoryPage() {
 
         await connectToDB();
 
-        // Fetch Classes
-        // If teacher, only fetch their class? Or all classes? Usually history allows seeing all or filtered.
-        // Let's fetch all classes for dropdowns.
-        const classesData = await Class.find({}).select("_id name").lean();
+        const isTeacher = activeRole === "Teacher";
 
-        // Fetch Students (Active only logic usually)
-        // fetching ALL students might be heavy if there are thousands. 
-        // But for dropdowns in DataTable form, we often pass them. 
-        // Optimization: ideally the DataTable form should fetch students based on selected class.
-        // But current FormComponent implementation usually takes static options. 
-        // Let's fetch all active students for now as per previous patterns.
-        const studentsData = await User.find({ "studentSpecificField.status": "Active", roles: "Student" })
+        // If the active role is Teacher, find only the class they are assigned to.
+        // Otherwise, fetch all classes.
+        let classesData;
+        let teacherClassId = null;
+
+        if (isTeacher && user?._id) {
+            const teacherClass = await Class.findOne({ teacherId: user._id }).select("_id name").lean();
+            classesData = teacherClass ? [teacherClass] : [];
+            teacherClassId = teacherClass?._id || null;
+        } else {
+            classesData = await Class.find({}).select("_id name").lean();
+        }
+
+        // If teacher, only fetch students in their class. Otherwise, fetch all active students.
+        const studentQuery = { "studentSpecificField.status": "Active", roles: "Student" };
+        if (isTeacher && teacherClassId) {
+            studentQuery["studentSpecificField.classId"] = teacherClassId;
+        }
+
+        const studentsData = await User.find(studentQuery)
             .select("_id name studentSpecificField.classId")
             .sort({ _id: 1 })
             .lean();
@@ -41,6 +51,7 @@ export default async function LeaveHistoryPage() {
                 role={activeRole}
                 classes={classes}
                 students={students}
+                teacherClassId={teacherClassId}
             />
         );
     } catch (error) {
