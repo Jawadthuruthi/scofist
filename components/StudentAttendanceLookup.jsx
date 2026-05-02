@@ -327,9 +327,8 @@ export default function StudentAttendanceLookup({ students = [], type = "student
                     {!isMobile && type === "student" && (
                         <div className="flex items-center gap-1">
                             <Button
-                                size="icon"
                                 variant="outline"
-                                className={`h-9 w-9 border-border transition-all ${toppersOnly ? "bg-green-50 border-green-200 shadow-sm" : "bg-white text-black hover:bg-neutral-100"}`}
+                                className={`h-9 px-3 border-border transition-all flex items-center gap-2 ${toppersOnly ? "bg-green-50 border-green-200 shadow-sm" : "bg-white text-black hover:bg-neutral-100"}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     const currentToppersOnly = (typeof toppersOnly !== 'undefined' ? toppersOnly :
@@ -353,6 +352,7 @@ export default function StudentAttendanceLookup({ students = [], type = "student
                                     fill={toppersOnly ? "currentColor" : "none"}
                                     strokeWidth={2.5}
                                 />
+                                <span className={cn("font-medium text-sm", toppersOnly ? "text-green-700" : "text-black")}>Toppers</span>
                             </Button>
                         </div>
                     )}
