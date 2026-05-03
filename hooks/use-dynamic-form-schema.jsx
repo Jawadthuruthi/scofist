@@ -149,8 +149,8 @@ export function useDynamicFormSchema(formFields = null) {
             fieldSchema = required ? nestedSchema : nestedSchema.optional();
           } else {
             fieldSchema = required
-              ? z.object({}, { required_error: `${displayName} is required` })
-              : z.object({}).optional();
+              ? z.object({}, { required_error: `${displayName} is required` }).passthrough()
+              : z.object({}).passthrough().optional();
           }
           break;
 
