@@ -539,6 +539,7 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                             classes={classes}
                             batches={batches}
                             hideHeader={true}
+                            showKinship={true}
                         />
                     </div>
                 ) : lookupError ? (

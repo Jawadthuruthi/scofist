@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "@/components/Header";
-import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera } from "lucide-react";
+import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera } from "lucide-react";
 import html2canvas from "html2canvas";
 import { cn, formatDateForDisplay, formatMonthYear, formatDateShort, formatDate } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
@@ -573,6 +573,7 @@ export default function StudentDashboard({
   batches,
   attendanceData: initialData,
   hideHeader = false,
+  showKinship = false,
 }) {
   const [currentUser, setCurrentUser] = useState(user);
   const detailsRef = useRef(null);
@@ -1622,6 +1623,60 @@ export default function StudentDashboard({
             />
           </CardContent>
         </Card>
+
+        {showKinship && (currentUser?.studentSpecificField?.familyDetails?.length > 0 || currentUser?.familyOtherDetails) && (
+          <Card className="card-print-break shadow-sm col-span-full mt-2">
+            <CardHeader className="bg-muted/10 border-b py-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Kinship Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {currentUser?.studentSpecificField?.familyDetails?.length > 0 && (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead className="w-16 text-center">Sl.No</TableHead>
+                        <TableHead>Position</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead className="text-center">Age</TableHead>
+                        <TableHead>Education</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Mobile</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {currentUser.studentSpecificField.familyDetails.map((member, index) => (
+                        <TableRow key={index} className="hover:bg-muted/30 transition-colors">
+                          <TableCell className="text-center text-muted-foreground font-medium">{index + 1}</TableCell>
+                          <TableCell className="font-semibold">{member.position}</TableCell>
+                          <TableCell className="uppercase text-blue-600 font-medium">{member.name}</TableCell>
+                          <TableCell className="text-center">{member.age || "-"}</TableCell>
+                          <TableCell>{member.education || "-"}</TableCell>
+                          <TableCell>{member.status || "-"}</TableCell>
+                          <TableCell className="whitespace-nowrap font-mono text-xs">{member.mobileNumber || "-"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+              {currentUser?.familyOtherDetails && (
+                <div className="p-4 bg-muted/5 border-t">
+                  <h4 className="text-xs font-bold mb-2 flex items-center gap-2 text-muted-foreground uppercase tracking-widest">
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    General Notes
+                  </h4>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+                    {currentUser.familyOtherDetails}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
       )}
 
