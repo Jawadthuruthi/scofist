@@ -92,6 +92,21 @@ const institutionFormField = [
     label: "Website",
     placeholder: "Enter website URL",
   },
+  {
+    name: "facebook",
+    label: "Facebook URL",
+    placeholder: "Enter Facebook URL",
+  },
+  {
+    name: "youtube",
+    label: "YouTube URL",
+    placeholder: "Enter YouTube URL",
+  },
+  {
+    name: "instagram",
+    label: "Instagram URL",
+    placeholder: "Enter Instagram URL",
+  },
 ];
 
 const festivalFormField = [

@@ -28,6 +28,9 @@ const SettingsSchema = new Schema(
         secondaryPhone: { type: String, trim: true },
         email: { type: String, trim: true, lowercase: true },
         website: { type: String, trim: true },
+        facebook: { type: String, trim: true },
+        youtube: { type: String, trim: true },
+        instagram: { type: String, trim: true },
       },
       logo: {
         url: {

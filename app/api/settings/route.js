@@ -57,6 +57,12 @@ export async function POST(req, res) {
           email: data.email ?? existingSettings?.institution?.contact.email,
           website:
             data.website ?? existingSettings?.institution?.contact.website,
+          facebook:
+            data.facebook ?? existingSettings?.institution?.contact.facebook,
+          youtube:
+            data.youtube ?? existingSettings?.institution?.contact.youtube,
+          instagram:
+            data.instagram ?? existingSettings?.institution?.contact.instagram,
         },
       },
       spark: {
@@ -285,6 +291,12 @@ export async function PUT(req, res) {
           email: data.email ?? existingSettings?.institution?.contact?.email,
           website:
             data.website ?? existingSettings?.institution?.contact?.website,
+          facebook:
+            data.facebook ?? existingSettings?.institution?.contact?.facebook,
+          youtube:
+            data.youtube ?? existingSettings?.institution?.contact?.youtube,
+          instagram:
+            data.instagram ?? existingSettings?.institution?.contact?.instagram,
         },
       };
     }

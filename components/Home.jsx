@@ -5,6 +5,21 @@ import AuthButtons from "@/components/AuthButtons";
 import { Instagram, Facebook, Youtube } from "lucide-react";
 // This is a SERVER COMPONENT by default - perfect for SEO
 export default function Home({ settings }) {
+  const ensureAbsoluteUrl = (url) => {
+    if (!url) return "";
+    const trimmed = url.trim();
+    if (!trimmed) return "";
+    if (
+      trimmed.startsWith("http://") ||
+      trimmed.startsWith("https://") ||
+      trimmed.startsWith("mailto:") ||
+      trimmed.startsWith("tel:")
+    ) {
+      return trimmed;
+    }
+    return `https://${trimmed}`;
+  };
+
   const institutionLogo = settings?.institution?.logo?.url;
   const institutionName = settings?.institution?.name;
   const backgroundImage = settings?.institution?.institutionPhoto?.url;
@@ -171,33 +186,33 @@ export default function Home({ settings }) {
           <div>
             <h3 className="text-lg font-semibold mb-4">Connect</h3>
             <nav className="flex flex-col gap-3">
-              <Link
-                href="https://facebook.com/jawad_thuruthi"
+              <a
+                href={ensureAbsoluteUrl(settings?.institution?.contact?.facebook) || "https://facebook.com/jawad_thuruthi"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 hover:text-white transition group"
+                className="flex items-center gap-2 hover:text-white transition group cursor-pointer"
               >
                 <Facebook className="w-5 h-5 text-gray-300 group-hover:text-white" />
                 <span>Facebook</span>
-              </Link>
-              <Link
-                href="https://youtube.com/jawad_thuruthi"
+              </a>
+              <a
+                href={ensureAbsoluteUrl(settings?.institution?.contact?.youtube) || "https://youtube.com/jawad_thuruthi"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 hover:text-white transition group"
+                className="flex items-center gap-2 hover:text-white transition group cursor-pointer"
               >
                 <Youtube className="w-5 h-5 text-gray-300 group-hover:text-white" />
                 <span>YouTube</span>
-              </Link>
-              <Link
-                href="https://instagram.com/jawad_thuruthi"
+              </a>
+              <a
+                href={ensureAbsoluteUrl(settings?.institution?.contact?.instagram) || "https://instagram.com/jawad_thuruthi"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 hover:text-white transition group"
+                className="flex items-center gap-2 hover:text-white transition group cursor-pointer"
               >
                 <Instagram className="w-5 h-5 text-gray-300 group-hover:text-white" />
                 <span>Instagram</span>
-              </Link>
+              </a>
             </nav>
           </div>
         </div>
