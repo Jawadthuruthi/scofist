@@ -378,6 +378,18 @@ const items = [
     allowedRoles: ["Org Admin"],
   },
   {
+    title: "Quiz",
+    url: "/dashboard/quiz",
+    icon: FileQuestion,
+    allowedRoles: ["Org Admin"],
+  },
+  {
+    title: "Updates",
+    url: "/dashboard/updates",
+    icon: AlertCircle,
+    allowedRoles: ["Org Admin"],
+  },
+  {
     title: "Literary Groups",
     url: "/dashboard/literary-groups",
     allowedRoles: ["Literary Leader"],

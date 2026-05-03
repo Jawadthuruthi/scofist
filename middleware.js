@@ -419,6 +419,16 @@ const pages = [
     allowedRoles: ["Org Admin", "Teacher"],
   },
   {
+    title: "Quiz",
+    path: "/dashboard/quiz",
+    allowedRoles: ["Org Admin"],
+  },
+  {
+    title: "Updates",
+    path: "/dashboard/updates",
+    allowedRoles: ["Org Admin"],
+  },
+  {
     title: "No Role Users",
     path: "/dashboard/no-role-users",
     allowedRoles: ["College Admin"],

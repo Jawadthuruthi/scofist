@@ -31,6 +31,7 @@ import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
+import { Textarea } from "./ui/textarea";
 import { useRouter } from "next/navigation";
 import { ColorInput } from "./ColorInput"; // Import the new ColorInput component
 
@@ -125,6 +126,13 @@ const FormFields = ({ form, fields, apiKey }) =>
                 placeholder={field.placeholder || "Select a color"}
                 showPalette={field.showPalette !== false}
                 customColors={field.customColors}
+              />
+            ) : field.inputType === "textarea" ? (
+              <Textarea
+                placeholder={field.placeholder}
+                {...formField}
+                readOnly={field.readOnly}
+                rows={field.rows || 3}
               />
             ) : (
               <Input
