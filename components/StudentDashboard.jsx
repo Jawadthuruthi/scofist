@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "@/components/Header";
-import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, HelpCircle, Megaphone, Edit2 } from "lucide-react";
+import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, HelpCircle, Megaphone, Edit2, CheckCircle, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ProfileEditModal from "./ProfileEditModal";
 import html2canvas from "html2canvas";
@@ -1282,66 +1282,66 @@ export default function StudentDashboard({
           </div>
 
           {/* Status Badge for Desktop View */}
-          <div className="hidden md:flex flex-col items-end gap-2">
+          <div className="hidden md:flex flex-col items-end gap-2 min-w-[140px]">
             {currentUser?.studentSpecificField?.status && (
               <div className={cn(
-                "px-4 py-2.5 rounded-2xl border-2 font-bold text-xs uppercase tracking-widest backdrop-blur-md shadow-2xl flex items-center gap-3 transition-all duration-500 hover:scale-105",
+                "w-full px-4 py-1.5 rounded-xl border font-bold text-xs uppercase tracking-wider backdrop-blur-md shadow-lg flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105",
                 currentUser.studentSpecificField.status === "Active" ? "bg-green-500/20 text-green-400 border-green-500/30" :
                 currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-500/20 text-red-400 border-red-500/30" :
                 currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
                 "bg-slate-500/20 text-slate-400 border-slate-500/30"
               )}>
                 <div className={cn(
-                  "w-2 h-2 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]",
-                  currentUser.studentSpecificField.status === "Active" ? "bg-green-400 animate-pulse ring-4 ring-green-400/20" :
-                  currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-400 ring-4 ring-red-400/20" :
-                  currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-400 ring-4 ring-blue-400/20" :
+                  "w-1.5 h-1.5 rounded-full",
+                  currentUser.studentSpecificField.status === "Active" ? "bg-green-400 animate-pulse ring-2 ring-green-400/20" :
+                  currentUser.studentSpecificField.status === "Dropped Out" ? "bg-red-400 ring-2 ring-red-400/20" :
+                  currentUser.studentSpecificField.status === "Graduated" ? "bg-blue-400 ring-2 ring-blue-400/20" :
                   "bg-slate-400"
                 )} />
                 {currentUser.studentSpecificField.status}
               </div>
             )}
             {!hideHeader && (
-              <div className="flex flex-col items-end gap-1.5">
+              <div className="flex flex-col items-end gap-2 w-full">
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="bg-white/10 hover:bg-white/20 border-white/20 text-white gap-2 h-8 px-4 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
+                  className="w-full bg-white/10 hover:bg-white/20 border-white/20 text-white gap-2 h-8 px-4 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
                   onClick={() => setIsEditModalOpen(true)}
                 >
                   <Edit2 className="h-3.5 w-3.5" />
                   Edit Profile
                 </Button>
                 {currentUser?.profileUpdateStatus === "Pending" && (
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-300 animate-pulse flex items-center gap-1 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
-                      <Clock className="h-2.5 w-2.5" />
+                  <div className="flex flex-col items-center w-full px-4 py-1.5 rounded-xl border font-bold text-xs uppercase tracking-wider backdrop-blur-md bg-blue-500/10 text-blue-300 border-blue-500/20 animate-pulse">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-3 w-3" />
                       Requested
-                    </span>
+                    </div>
                     {currentUser.profileRequestDate && (
-                      <span className="text-[9px] text-blue-300/60 font-medium">{formatDateShort(currentUser.profileRequestDate)}</span>
+                      <span className="text-[10px] text-blue-300/60 font-medium mt-0.5">{formatDateShort(currentUser.profileRequestDate)}</span>
                     )}
                   </div>
                 )}
                 {currentUser?.profileUpdateStatus === "Verified" && (
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-green-300 flex items-center gap-1 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
-                      <CheckCircle className="h-2.5 w-2.5" />
+                  <div className="flex flex-col items-center w-full px-4 py-1.5 rounded-xl border font-bold text-xs uppercase tracking-wider backdrop-blur-md bg-green-500/10 text-green-300 border-green-500/20">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-3 w-3" />
                       Approved
-                    </span>
+                    </div>
                     {currentUser.profileActionDate && (
-                      <span className="text-[9px] text-green-300/60 font-medium">{formatDateShort(currentUser.profileActionDate)}</span>
+                      <span className="text-[10px] text-green-300/60 font-medium mt-0.5">{formatDateShort(currentUser.profileActionDate)}</span>
                     )}
                   </div>
                 )}
                 {currentUser?.profileUpdateStatus === "Rejected" && (
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-red-300 flex items-center gap-1 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
-                      <XCircle className="h-2.5 w-2.5" />
+                  <div className="flex flex-col items-center w-full px-4 py-1.5 rounded-xl border font-bold text-xs uppercase tracking-wider backdrop-blur-md bg-red-500/10 text-red-300 border-red-500/20">
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-3 w-3" />
                       Rejected
-                    </span>
+                    </div>
                     {currentUser.profileActionDate && (
-                      <span className="text-[9px] text-red-300/60 font-medium">{formatDateShort(currentUser.profileActionDate)}</span>
+                      <span className="text-[10px] text-red-300/60 font-medium mt-0.5">{formatDateShort(currentUser.profileActionDate)}</span>
                     )}
                   </div>
                 )}

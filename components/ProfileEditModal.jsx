@@ -210,35 +210,35 @@ export default function ProfileEditModal({ user, open, onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* Academic Information Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-1 text-primary">Academic Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Admission Number removed as per request */}
-              <div className="space-y-2">
-                <Label htmlFor="islamicQualification">Islamic Qualification</Label>
-                <Input 
-                  id="islamicQualification" 
-                  name="studentSpecificField.islamicQualification" 
-                  value={formData.studentSpecificField.islamicQualification} 
-                  onChange={handleChange} 
-                  disabled={user?.status !== "Graduated"}
-                  placeholder={user?.status !== "Graduated" ? "Only editable for graduated students" : ""}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="academicQualification">Academic Qualification</Label>
-                <Input 
-                  id="academicQualification" 
-                  name="studentSpecificField.academicQualification" 
-                  value={formData.studentSpecificField.academicQualification} 
-                  onChange={handleChange} 
-                  disabled={user?.status !== "Graduated"}
-                  placeholder={user?.status !== "Graduated" ? "Only editable for graduated students" : ""}
-                />
+          {/* Academic Information Section - Only shown for graduated students */}
+          {(user?.studentSpecificField?.status === "Graduated" || user?.status === "Graduated") && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-1 text-primary">Academic Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Admission Number removed as per request */}
+                <div className="space-y-2">
+                  <Label htmlFor="islamicQualification">Islamic Qualification</Label>
+                  <Input 
+                    id="islamicQualification" 
+                    name="studentSpecificField.islamicQualification" 
+                    value={formData.studentSpecificField.islamicQualification} 
+                    onChange={handleChange} 
+                    placeholder="Enter islamic qualification"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="academicQualification">Academic Qualification</Label>
+                  <Input 
+                    id="academicQualification" 
+                    name="studentSpecificField.academicQualification" 
+                    value={formData.studentSpecificField.academicQualification} 
+                    onChange={handleChange} 
+                    placeholder="Enter academic qualification"
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <DialogFooter className="pt-6">
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>

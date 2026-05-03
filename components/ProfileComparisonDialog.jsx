@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle, XCircle, ArrowRight, CheckSquare, Square } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, ArrowRight, CheckSquare, Square, Save } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateShort } from "@/lib/utils";
 
@@ -13,13 +13,8 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
 
   useEffect(() => {
     if (open && student?.pendingProfileUpdate) {
-      // Auto-set all changed fields to "approve" by default
-      const changed = getChangedFields(student, student.pendingProfileUpdate);
-      const initialActions = {};
-      changed.forEach(path => {
-        initialActions[path] = "approve";
-      });
-      setFieldActions(initialActions);
+      // Initialize fieldActions as empty so admin must explicitly approve/reject
+      setFieldActions({});
     }
   }, [open, student]);
 
@@ -67,6 +62,9 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
     let approvedFields = [];
     
     if (action === "approve") {
+      const changedFields = getChangedFields(oldData, newData);
+      const actionsTakenCount = Object.keys(fieldActions).length;
+      
       if (overrideFields) {
         approvedFields = overrideFields;
       } else {
@@ -75,9 +73,19 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
           .map(([path, _]) => path);
       }
 
-      if (approvedFields.length === 0) {
-        toast.error("Please approve at least one field or reject all");
+      // If no actions were taken at all, warn the user
+      if (!overrideFields && actionsTakenCount === 0) {
+        toast.error("Please select an action (Approve/Reject) for at least one field");
         return;
+      }
+
+      // If everything was rejected, switch the action to "reject" for the API
+      // so it sets the status correctly as Rejected
+      if (approvedFields.length === 0 && !overrideFields) {
+        const anyRejections = Object.values(fieldActions).some(act => act === "reject");
+        if (anyRejections) {
+          action = "reject";
+        }
       }
     }
 
@@ -135,7 +143,16 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
         <div className="col-span-1 flex justify-center">
           {isChanged && <ArrowRight className={`h-4 w-4 ${currentAction === "approve" ? "text-green-500" : "text-red-500 opacity-30"}`} />}
         </div>
-        <div className={`col-span-4 text-sm break-all font-medium ${isChanged ? (currentAction === "approve" ? "text-green-600 dark:text-green-400" : "text-red-600/50 dark:text-red-400/50 line-through") : ""}`}>
+        <div className={`col-span-4 text-sm break-all font-medium ${
+          isChanged 
+            ? (currentAction === "approve" 
+                ? "text-green-600 dark:text-green-400" 
+                : currentAction === "reject"
+                  ? "text-red-600 dark:text-red-400 opacity-60 line-through"
+                  : "text-blue-600 dark:text-blue-400"
+              ) 
+            : ""
+        }`}>
           {typeof newVal === 'object' ? JSON.stringify(newVal) : String(newVal || "-")}
         </div>
         <div className="col-span-2 flex justify-center gap-1.5 pr-2">
@@ -229,18 +246,15 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
         </div>
 
         <DialogFooter className="gap-3 sm:gap-0 border-t pt-4">
-          <div className="flex-1"></div>
+          <div className="flex-1 text-xs text-muted-foreground italic">
+            * Select an action for each modified field to save changes.
+          </div>
           <div className="flex gap-2">
-            <Button variant="outline" disabled={loading} onClick={() => handleAction("reject")} className="gap-2 text-red-600 border-red-200 hover:bg-red-50">
-              <XCircle className="h-4 w-4" />
-              Reject All & Close
-            </Button>
-            <Button variant="outline" disabled={loading} onClick={() => handleAction("approve", getChangedFields(oldData, newData))} className="gap-2 text-green-600 border-green-200 hover:bg-green-50">
-              <CheckCircle className="h-4 w-4" />
-              Approve All & Apply
+            <Button variant="outline" onClick={onClose} disabled={loading}>
+              Cancel
             </Button>
             <Button disabled={loading} onClick={() => handleAction("approve")} className="gap-2 bg-blue-600 hover:bg-blue-700 min-w-[150px]">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckSquare className="h-4 w-4" />}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Save Selected Changes
             </Button>
           </div>

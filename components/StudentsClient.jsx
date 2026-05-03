@@ -153,6 +153,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         initialData={[]}
         columnsConfig={filteredColumnsConfig}
         formFields={formFields}
+        refetchInterval={15000}
         apiKey={apiKey}
         createFormTitle="Add New Student"
         editFormTitle="Edit Student"

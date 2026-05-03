@@ -143,6 +143,7 @@ const DataTableComponent = ({
   onCellClick = null,
   enableClickToEdit = false,
   clickToEditExcludeColumns = ["_id", "select", "serialNo", "actions"],
+  refetchInterval = 0,
 }) => {
   const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
@@ -310,6 +311,7 @@ const DataTableComponent = ({
     retry: 2,
     retryDelay: 1000,
     refetchOnMount: "always",
+    refetchInterval: refetchInterval > 0 ? refetchInterval : false,
   });
 
   // Handle fetch errors
