@@ -91,15 +91,9 @@ const applicationFormSchema = new Schema(
     sslcRegistrationNumber: {
       type: String,
       trim: true,
-      required: function () {
-        return this.admissionClass === "+1";
-      },
     },
     sslcGraduationYear: {
       type: Number,
-      required: function () {
-        return this.admissionClass === "+1";
-      },
     },
     islamicEducationQualification: {
       type: String,
@@ -123,7 +117,10 @@ const applicationFormSchema = new Schema(
   }
 );
 
-const ApplicationForm =
-  models.ApplicationForm || model("ApplicationForm", applicationFormSchema);
+if (models.ApplicationForm) {
+  delete models.ApplicationForm;
+}
+
+const ApplicationForm = model("ApplicationForm", applicationFormSchema);
 
 export default ApplicationForm;

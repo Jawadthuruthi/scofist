@@ -269,7 +269,6 @@ export default function ApplicationsClient({ batches, classes, apiKey, lastStude
       type: "text",
       placeholder: "Academic Stream",
       inputType: "select",
-      required: true,
       options: [
         { label: "Commerce", value: "Commerce" },
         { label: "Science", value: "Science" },
