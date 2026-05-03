@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import AuthButtons from "@/components/AuthButtons";
-
+import { Instagram, Facebook, Youtube } from "lucide-react";
 // This is a SERVER COMPONENT by default - perfect for SEO
 export default function Home({ settings }) {
   const institutionLogo = settings?.institution?.logo?.url;
@@ -110,14 +110,6 @@ export default function Home({ settings }) {
             Discover how Sa-adiya College can help you achieve academic
             excellence while nurturing your spiritual growth.
           </p>
-          <Link href="/virtual-tour">
-            <Button
-              size="lg"
-              className="px-8 py-6 bg-white text-emerald-700 hover:bg-gray-100 rounded-lg shadow-md hover:shadow-lg transition-all"
-            >
-              Take a Virtual Tour
-            </Button>
-          </Link>
         </div>
       </section>
 
@@ -125,9 +117,9 @@ export default function Home({ settings }) {
       <footer className="bg-gray-900 text-gray-300 py-12 px-6">
         <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-lg font-semibold mb-4">Sadiya Dawa College</h3>
+            <h3 className="text-lg font-semibold mb-4">{institutionName || "Sadiya Dawa College"}</h3>
             <p className="text-sm opacity-80">
-              Providing excellence in integrated Islamic education since 2009.
+              Providing excellence in integrated Islamic education since 2006.
             </p>
           </div>
           <nav aria-label="Footer navigation">
@@ -144,8 +136,13 @@ export default function Home({ settings }) {
                 </Link>
               </li>
               <li>
-                <Link href="/faculty" className="hover:text-white transition">
+                <Link href="/dashboard/faculty" className="hover:text-white transition">
                   Faculty
+                </Link>
+              </li>
+              <li>
+                <Link href="/news" className="hover:text-white transition">
+                  News
                 </Link>
               </li>
             </ul>
@@ -153,34 +150,53 @@ export default function Home({ settings }) {
           <address className="not-italic">
             <h3 className="text-lg font-semibold mb-4">Contact</h3>
             <ul className="space-y-2 text-sm">
-              <li>Kasaragod, Kerala, India</li>
+              <li>{settings?.institution?.address || "Kasaragod, Kerala, India"}</li>
               <li>
                 Email:{" "}
                 <a
-                  href="mailto:ksdjabbu@gmail.com"
+                  href={`mailto:${settings?.institution?.contact?.email || "ksdjabbu@gmail.com"}`}
                   className="hover:text-white"
                 >
-                  ksdjabbu@gmail.com
+                  {settings?.institution?.contact?.email || "ksdjabbu@gmail.com"}
                 </a>
               </li>
               <li>
                 Phone:{" "}
-                <a href="tel:+918943264498" className="hover:text-white">
-                  +91-8943264498
+                <a href={`tel:${settings?.institution?.contact?.primaryPhone || "+918943264498"}`} className="hover:text-white">
+                  {settings?.institution?.contact?.primaryPhone || "+91-8943264498"}
                 </a>
               </li>
             </ul>
           </address>
           <div>
             <h3 className="text-lg font-semibold mb-4">Connect</h3>
-            <nav className="flex gap-4">
+            <nav className="flex flex-col gap-3">
+              <Link
+                href="https://facebook.com/jawad_thuruthi"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 hover:text-white transition group"
+              >
+                <Facebook className="w-5 h-5 text-gray-300 group-hover:text-white" />
+                <span>Facebook</span>
+              </Link>
+              <Link
+                href="https://youtube.com/jawad_thuruthi"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 hover:text-white transition group"
+              >
+                <Youtube className="w-5 h-5 text-gray-300 group-hover:text-white" />
+                <span>YouTube</span>
+              </Link>
               <Link
                 href="https://instagram.com/jawad_thuruthi"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-white transition"
+                className="flex items-center gap-2 hover:text-white transition group"
               >
-                Instagram
+                <Instagram className="w-5 h-5 text-gray-300 group-hover:text-white" />
+                <span>Instagram</span>
               </Link>
             </nav>
           </div>
