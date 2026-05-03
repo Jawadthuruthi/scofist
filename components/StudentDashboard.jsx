@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo, useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import Header from "@/components/Header";
 import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, HelpCircle, Megaphone, Edit2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import ProfileEditModal from "./ProfileEditModal";
 import html2canvas from "html2canvas";
 import { cn, formatDateForDisplay, formatMonthYear, formatDateShort, formatDate } from "@/lib/utils";
@@ -576,6 +578,9 @@ export default function StudentDashboard({
   hideHeader = false,
   showKinship = false,
 }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
   const [currentUser, setCurrentUser] = useState(user);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const detailsRef = useRef(null);
@@ -1297,15 +1302,23 @@ export default function StudentDashboard({
               </div>
             )}
             {!hideHeader && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="bg-white/10 hover:bg-white/20 border-white/20 text-white gap-2 h-8 px-4 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
-                onClick={() => setIsEditModalOpen(true)}
-              >
-                <Edit2 className="h-3.5 w-3.5" />
-                Edit Profile
-              </Button>
+              <div className="flex flex-col items-end gap-1.5">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-white/10 hover:bg-white/20 border-white/20 text-white gap-2 h-8 px-4 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
+                  onClick={() => setIsEditModalOpen(true)}
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                  Edit Profile
+                </Button>
+                {currentUser?.profileUpdateStatus === "Pending" && (
+                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-300 animate-pulse flex items-center gap-1 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
+                    <Clock className="h-2.5 w-2.5" />
+                    Requested
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -1451,11 +1464,11 @@ export default function StudentDashboard({
             />
             <ProfileField
               label="Blood Group"
-              value={currentUser?.studentSpecificField?.bloodGroup}
+              value={currentUser?.studentSpecificField?.bloodGroup || currentUser?.bloodGroup}
             />
             <ProfileField
               label="Aadhar No"
-              value={currentUser?.studentSpecificField?.aadharNo}
+              value={currentUser?.studentSpecificField?.aadharNo || currentUser?.aadharNo}
             />
             {currentUser?.address && (
               <>
@@ -1504,20 +1517,20 @@ export default function StudentDashboard({
             <ProfileField
               label="Admission Date"
               value={formatDateShort(
-                currentUser?.studentSpecificField?.admissionDate
+                currentUser?.studentSpecificField?.admissionDate || currentUser?.admissionDate
               )}
             />
             <ProfileField
-              label="Islamic Qualification"
-              value={currentUser?.studentSpecificField?.islamicQualification}
+              label="Islamic Qualif."
+              value={currentUser?.studentSpecificField?.islamicQualification || currentUser?.islamicQualification}
             />
             <ProfileField
-              label="Academic Qualification"
-              value={currentUser?.studentSpecificField?.academicQualification}
+              label="Academic Qualif."
+              value={currentUser?.studentSpecificField?.academicQualification || currentUser?.academicQualification}
             />
             <ProfileField
               label="Graduated Year"
-              value={currentUser?.studentSpecificField?.graduatedYear}
+              value={currentUser?.studentSpecificField?.graduatedYear || currentUser?.graduatedYear}
             />
             {currentUser?.studentSpecificField?.status === "Dropped Out" && (
               <>
@@ -1552,15 +1565,15 @@ export default function StudentDashboard({
             />
             <ProfileField
               label="Guardian"
-              value={currentUser?.studentSpecificField?.guardianName}
+              value={currentUser?.studentSpecificField?.guardianName || currentUser?.guardianName}
             />
             <ProfileField
               label="G. Contact"
-              value={currentUser?.studentSpecificField?.guardianContactNumber}
+              value={currentUser?.studentSpecificField?.guardianContactNumber || currentUser?.guardianContactNumber}
             />
             <ProfileField
               label="G. Alt. Contact"
-              value={currentUser?.studentSpecificField?.guardianAlternativeNumber}
+              value={currentUser?.studentSpecificField?.guardianAlternativeNumber || currentUser?.guardianAlternativeNumber}
             />
           </CardContent>
         </Card>
@@ -2610,6 +2623,37 @@ export default function StudentDashboard({
       user={currentUser} 
       open={isEditModalOpen} 
       onClose={() => setIsEditModalOpen(false)} 
+      onSuccess={async () => {
+        // 1. Optimistically update status to show 'Requested' immediately
+        const now = new Date();
+        setCurrentUser(prev => ({ 
+          ...prev, 
+          profileUpdateStatus: "Pending",
+          profileRequestDate: now.toISOString()
+        }));
+        
+        // 2. Invalidate React Query to update any visible tables immediately
+        queryClient.invalidateQueries({ queryKey: ["users"] });
+        
+        // 3. Re-fetch full user data to ensure state is in sync with server
+        try {
+          const res = await fetch(`/api/users?_id=${currentUser._id}`, {
+             headers: { "x-api-key": apiKey }
+          });
+          const data = await res.json();
+          // The API returns { users: [...], pagination: ... }
+          if (data && data.users && Array.isArray(data.users) && data.users.length > 0) {
+            setCurrentUser(data.users[0]);
+          } else if (data && Array.isArray(data) && data.length > 0) {
+            setCurrentUser(data[0]);
+          }
+        } catch (error) {
+          console.error("Error refreshing user data:", error);
+        }
+
+        // 4. Trigger router refresh for any server components
+        router.refresh();
+      }}
     />
   </>
   );

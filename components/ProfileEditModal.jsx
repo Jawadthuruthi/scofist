@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 
-export default function ProfileEditModal({ user, open, onClose }) {
+export default function ProfileEditModal({ user, open, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || "",
@@ -18,21 +18,24 @@ export default function ProfileEditModal({ user, open, onClose }) {
     alternativeNumber: user?.alternativeNumber || "",
     dateOfBirth: user?.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split("T")[0] : "",
     address: {
-      houseName: user?.address?.houseName || "",
-      place: user?.address?.place || "",
-      locationPoint: user?.address?.locationPoint || "",
-      postOffice: user?.address?.postOffice || "",
-      district: user?.address?.district || "",
-      state: user?.address?.state || "",
-      pin: user?.address?.pin || "",
+      houseName: user?.address?.houseName || user?.houseName || "",
+      place: user?.address?.place || user?.place || "",
+      locationPoint: user?.address?.locationPoint || user?.locationPoint || "",
+      postOffice: user?.address?.postOffice || user?.postOffice || "",
+      district: user?.address?.district || user?.district || "",
+      state: user?.address?.state || user?.state || "",
+      pin: user?.address?.pin || user?.pin || "",
     },
     studentSpecificField: {
-      bloodGroup: user?.bloodGroup || "",
-      aadharNo: user?.aadharNo || "",
-      guardianName: user?.guardianName || "",
-      guardianContactNumber: user?.guardianContactNumber || "",
-      guardianAlternativeNumber: user?.guardianAlternativeNumber || "",
-      relationship: user?.relationship || "",
+      admissionNumber: user?.studentSpecificField?.admissionNumber || user?.admissionNumber || "",
+      bloodGroup: user?.studentSpecificField?.bloodGroup || user?.bloodGroup || "",
+      aadharNo: user?.studentSpecificField?.aadharNo || user?.aadharNo || "",
+      guardianName: user?.studentSpecificField?.guardianName || user?.guardianName || "",
+      guardianContactNumber: user?.studentSpecificField?.guardianContactNumber || user?.guardianContactNumber || "",
+      guardianAlternativeNumber: user?.studentSpecificField?.guardianAlternativeNumber || user?.guardianAlternativeNumber || "",
+      relationship: user?.studentSpecificField?.relationship || user?.relationship || "",
+      islamicQualification: user?.studentSpecificField?.islamicQualification || user?.islamicQualification || "",
+      academicQualification: user?.studentSpecificField?.academicQualification || user?.academicQualification || "",
     }
   });
 
@@ -82,6 +85,7 @@ export default function ProfileEditModal({ user, open, onClose }) {
 
       if (response.ok) {
         toast.success("Profile update request submitted for approval");
+        if (onSuccess) onSuccess();
         onClose();
       } else {
         const data = await response.json();
@@ -104,7 +108,7 @@ export default function ProfileEditModal({ user, open, onClose }) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-8 py-4">
-          {/* Personal Section */}
+          {/* Personal Details Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-1 text-primary">Personal Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -136,7 +140,7 @@ export default function ProfileEditModal({ user, open, onClose }) {
             </div>
           </div>
 
-          {/* Contact Section */}
+          {/* Contact Information Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-1 text-primary">Contact Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -145,17 +149,33 @@ export default function ProfileEditModal({ user, open, onClose }) {
                 <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contactNumber">Primary Contact</Label>
+                <Label htmlFor="contactNumber">Contact Number</Label>
                 <Input id="contactNumber" name="contactNumber" value={formData.contactNumber} onChange={handleChange} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="alternativeNumber">Alternative Contact</Label>
+                <Label htmlFor="alternativeNumber">Alternative Number</Label>
                 <Input id="alternativeNumber" name="alternativeNumber" value={formData.alternativeNumber} onChange={handleChange} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardianName">Guardian Name</Label>
+                <Input id="guardianName" name="studentSpecificField.guardianName" value={formData.studentSpecificField.guardianName} onChange={handleChange} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="relationship">Guardian Relationship</Label>
+                <Input id="relationship" name="studentSpecificField.relationship" value={formData.studentSpecificField.relationship} onChange={handleChange} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardianContactNumber">Guardian Contact Number</Label>
+                <Input id="guardianContactNumber" name="studentSpecificField.guardianContactNumber" value={formData.studentSpecificField.guardianContactNumber} onChange={handleChange} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardianAlternativeNumber">Guardian Alternative Number</Label>
+                <Input id="guardianAlternativeNumber" name="studentSpecificField.guardianAlternativeNumber" value={formData.studentSpecificField.guardianAlternativeNumber} onChange={handleChange} />
               </div>
             </div>
           </div>
 
-          {/* Address Section */}
+          {/* Address Details Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-1 text-primary">Address Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -190,25 +210,21 @@ export default function ProfileEditModal({ user, open, onClose }) {
             </div>
           </div>
 
-          {/* Guardian Section */}
+          {/* Academic Information Section */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-1 text-primary">Guardian Details</h3>
+            <h3 className="text-lg font-semibold border-b pb-1 text-primary">Academic Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="guardianName">Guardian Name</Label>
-                <Input id="guardianName" name="studentSpecificField.guardianName" value={formData.studentSpecificField.guardianName} onChange={handleChange} />
+                <Label htmlFor="admissionNumber">Admission Number</Label>
+                <Input id="admissionNumber" name="studentSpecificField.admissionNumber" value={formData.studentSpecificField.admissionNumber} onChange={handleChange} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="relationship">Relationship</Label>
-                <Input id="relationship" name="studentSpecificField.relationship" value={formData.studentSpecificField.relationship} onChange={handleChange} />
+                <Label htmlFor="islamicQualification">Islamic Qualification</Label>
+                <Input id="islamicQualification" name="studentSpecificField.islamicQualification" value={formData.studentSpecificField.islamicQualification} onChange={handleChange} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="guardianContactNumber">Guardian Contact</Label>
-                <Input id="guardianContactNumber" name="studentSpecificField.guardianContactNumber" value={formData.studentSpecificField.guardianContactNumber} onChange={handleChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="guardianAlternativeNumber">Guardian Alt. Contact</Label>
-                <Input id="guardianAlternativeNumber" name="studentSpecificField.guardianAlternativeNumber" value={formData.studentSpecificField.guardianAlternativeNumber} onChange={handleChange} />
+                <Label htmlFor="academicQualification">Academic Qualification</Label>
+                <Input id="academicQualification" name="studentSpecificField.academicQualification" value={formData.studentSpecificField.academicQualification} onChange={handleChange} />
               </div>
             </div>
           </div>

@@ -38,6 +38,7 @@ const FamilyDetailSchema = new Schema({
 }, { _id: false });
 
 const studentSpecificSchema = new Schema({
+  admissionNumber: { type: String, trim: true },
   admissionClassId: { type: String, trim: true, ref: "Class" },
   admissionDate: Date,
   aadharNo: {

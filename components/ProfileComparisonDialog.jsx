@@ -79,33 +79,40 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
           </div>
 
           <div className="space-y-1">
-            <h4 className="text-sm font-black text-slate-400 uppercase tracking-tighter mb-2">Basic Info</h4>
+            <h4 className="text-sm font-black text-slate-400 uppercase tracking-tighter mb-2">Personal Details</h4>
             <ComparisonRow label="Name" oldVal={oldData.name} newVal={newData.name} />
+            <ComparisonRow label="DOB" oldVal={formatDateShort(oldData.dateOfBirth)} newVal={formatDateShort(newData.dateOfBirth)} />
+            <ComparisonRow label="Blood Group" oldVal={oldData.studentSpecificField?.bloodGroup || oldData.bloodGroup} newVal={newData.studentSpecificField?.bloodGroup || newData.bloodGroup} />
+            <ComparisonRow label="Aadhar" oldVal={oldData.studentSpecificField?.aadharNo || oldData.aadharNo} newVal={newData.studentSpecificField?.aadharNo || newData.aadharNo} />
+          </div>
+
+          <div className="space-y-1">
+            <h4 className="text-sm font-black text-slate-400 uppercase tracking-tighter mb-2">Contact Information</h4>
             <ComparisonRow label="Email" oldVal={oldData.email} newVal={newData.email} />
             <ComparisonRow label="Contact" oldVal={oldData.contactNumber} newVal={newData.contactNumber} />
             <ComparisonRow label="Alt. Contact" oldVal={oldData.alternativeNumber} newVal={newData.alternativeNumber} />
-            <ComparisonRow label="DOB" oldVal={formatDateShort(oldData.dateOfBirth)} newVal={formatDateShort(newData.dateOfBirth)} />
+            <ComparisonRow label="Guardian" oldVal={oldData.studentSpecificField?.guardianName || oldData.guardianName} newVal={newData.studentSpecificField?.guardianName || newData.guardianName} />
+            <ComparisonRow label="Relationship" oldVal={oldData.studentSpecificField?.relationship || oldData.relationship} newVal={newData.studentSpecificField?.relationship || newData.relationship} />
+            <ComparisonRow label="G. Contact" oldVal={oldData.studentSpecificField?.guardianContactNumber || oldData.guardianContactNumber} newVal={newData.studentSpecificField?.guardianContactNumber || newData.guardianContactNumber} />
+            <ComparisonRow label="G. Alt. Contact" oldVal={oldData.studentSpecificField?.guardianAlternativeNumber || oldData.guardianAlternativeNumber} newVal={newData.studentSpecificField?.guardianAlternativeNumber || newData.guardianAlternativeNumber} />
           </div>
 
           <div className="space-y-1">
-            <h4 className="text-sm font-black text-slate-400 uppercase tracking-tighter mb-2">Address</h4>
-            <ComparisonRow label="House" oldVal={oldData.address?.houseName} newVal={newData.address?.houseName} />
-            <ComparisonRow label="Place" oldVal={oldData.address?.place} newVal={newData.address?.place} />
-            <ComparisonRow label="Location Point" oldVal={oldData.address?.locationPoint} newVal={newData.address?.locationPoint} />
-            <ComparisonRow label="Post Office" oldVal={oldData.address?.postOffice} newVal={newData.address?.postOffice} />
-            <ComparisonRow label="District" oldVal={oldData.address?.district} newVal={newData.address?.district} />
-            <ComparisonRow label="State" oldVal={oldData.address?.state} newVal={newData.address?.state} />
-            <ComparisonRow label="PIN" oldVal={oldData.address?.pin} newVal={newData.address?.pin} />
+            <h4 className="text-sm font-black text-slate-400 uppercase tracking-tighter mb-2">Address Details</h4>
+            <ComparisonRow label="House" oldVal={oldData.address?.houseName || oldData.houseName} newVal={newData.address?.houseName || newData.houseName} />
+            <ComparisonRow label="Place" oldVal={oldData.address?.place || oldData.place} newVal={newData.address?.place || newData.place} />
+            <ComparisonRow label="Location Point" oldVal={oldData.address?.locationPoint || oldData.locationPoint} newVal={newData.address?.locationPoint || newData.locationPoint} />
+            <ComparisonRow label="Post Office" oldVal={oldData.address?.postOffice || oldData.postOffice} newVal={newData.address?.postOffice || newData.postOffice} />
+            <ComparisonRow label="District" oldVal={oldData.address?.district || oldData.district} newVal={newData.address?.district || newData.district} />
+            <ComparisonRow label="State" oldVal={oldData.address?.state || oldData.state} newVal={newData.address?.state || newData.state} />
+            <ComparisonRow label="PIN" oldVal={oldData.address?.pin || oldData.pin} newVal={newData.address?.pin || newData.pin} />
           </div>
 
           <div className="space-y-1">
-            <h4 className="text-sm font-black text-slate-400 uppercase tracking-tighter mb-2">Student Specific</h4>
-            <ComparisonRow label="Blood Group" oldVal={oldData.bloodGroup} newVal={newData.studentSpecificField?.bloodGroup} />
-            <ComparisonRow label="Aadhar" oldVal={oldData.aadharNo} newVal={newData.studentSpecificField?.aadharNo} />
-            <ComparisonRow label="Guardian" oldVal={oldData.guardianName} newVal={newData.studentSpecificField?.guardianName} />
-            <ComparisonRow label="Relationship" oldVal={oldData.relationship} newVal={newData.studentSpecificField?.relationship} />
-            <ComparisonRow label="G. Contact" oldVal={oldData.guardianContactNumber} newVal={newData.studentSpecificField?.guardianContactNumber} />
-            <ComparisonRow label="G. Alt. Contact" oldVal={oldData.guardianAlternativeNumber} newVal={newData.studentSpecificField?.guardianAlternativeNumber} />
+            <h4 className="text-sm font-black text-slate-400 uppercase tracking-tighter mb-2">Academic Information</h4>
+            <ComparisonRow label="Admission No" oldVal={oldData.studentSpecificField?.admissionNumber || oldData.admissionNumber} newVal={newData.studentSpecificField?.admissionNumber || newData.admissionNumber} />
+            <ComparisonRow label="Islamic Qual." oldVal={oldData.studentSpecificField?.islamicQualification || oldData.islamicQualification} newVal={newData.studentSpecificField?.islamicQualification || newData.islamicQualification} />
+            <ComparisonRow label="Academic Qual." oldVal={oldData.studentSpecificField?.academicQualification || oldData.academicQualification} newVal={newData.studentSpecificField?.academicQualification || newData.academicQualification} />
           </div>
         </div>
 

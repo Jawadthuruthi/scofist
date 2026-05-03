@@ -113,6 +113,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         "batchName",
         "className",
         "status",
+        "updatedAt",
       ].includes(column.accessorKey);
     }
     return true;

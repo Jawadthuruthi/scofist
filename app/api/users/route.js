@@ -492,6 +492,7 @@ export async function PUT(req) {
     // Update Student-specific fields
     if (user.roles.includes("Student")) {
       const studentFields = [
+        "admissionNumber",
         "admissionClassId",
         "admissionDate",
         "aadharNo",
