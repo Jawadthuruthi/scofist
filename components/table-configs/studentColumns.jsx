@@ -1,7 +1,7 @@
 import React from "react";
 import { formatDateShort } from "@/lib/utils";
 
-export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColumns = [] }) => {
+export const getStudentColumns = ({ classes, pageTitle, onNameClick, onProfileRequestClick, excludeColumns = [] }) => {
     return [
         {
             id: "select",
@@ -240,7 +240,37 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, excludeColu
             accessorKey: "updatedAt",
             header: "Last Updated On",
             cell: ({ row }) => {
-                const updatedAt = row.original.updatedAt;
+                const student = row.original;
+                const updatedAt = student.updatedAt;
+                const status = student.profileUpdateStatus;
+
+                if (status === "Pending") {
+                    return (
+                        <div className="flex flex-col items-center gap-1">
+                            <span className="text-[10px] text-muted-foreground">{formatDateShort(updatedAt)}</span>
+                            <button 
+                                className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold px-2 py-0.5 rounded transition-colors shadow-sm uppercase tracking-wider"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onProfileRequestClick) onProfileRequestClick(student);
+                                }}
+                            >
+                                Requested
+                            </button>
+                            <span className="text-[10px] text-blue-600 font-medium">{formatDateShort(student.profileRequestDate)}</span>
+                        </div>
+                    );
+                }
+
+                if (status === "Verified") {
+                    return (
+                        <div className="flex flex-col">
+                            <span className="text-green-600 font-bold text-xs uppercase tracking-tight">Verified</span>
+                            <span className="text-xs text-muted-foreground">{formatDateShort(updatedAt)}</span>
+                        </div>
+                    );
+                }
+
                 return (
                     <span className="text-xs">
                         {formatDateShort(updatedAt)}

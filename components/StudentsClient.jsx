@@ -8,10 +8,14 @@ import StudentProfileDialog from "@/components/StudentProfileDialog";
 import { getStudentFormFields } from "@/lib/studentFormConfig";
 
 import { getStudentColumns } from "@/components/table-configs/studentColumns";
+import ProfileComparisonDialog from "./ProfileComparisonDialog";
 
 export default function StudentsClient({ batches, classes, activeRole, apiKey, isReadOnly = false, pageTitle, excludedColumns = [], filterTitle, lastStudentId }) {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [comparisonStudent, setComparisonStudent] = useState(null);
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Use shared column configuration
   const columnsConfig = getStudentColumns({
@@ -20,6 +24,10 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
     onNameClick: (student) => {
       setSelectedStudent(student);
       setIsProfileOpen(true);
+    },
+    onProfileRequestClick: (student) => {
+      setComparisonStudent(student);
+      setIsComparisonOpen(true);
     },
     excludeColumns: ["remarks"]
   });
@@ -121,6 +129,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         subTitle="Organize and Oversee Students"
       />
       <DataTableComponent
+        key={refreshKey}
         resource="users"
         initialData={[]}
         columnsConfig={filteredColumnsConfig}
@@ -152,6 +161,13 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         classes={classes}
         batches={batches}
         apiKey={apiKey}
+      />
+
+      <ProfileComparisonDialog
+        student={comparisonStudent}
+        open={isComparisonOpen}
+        onClose={() => setIsComparisonOpen(false)}
+        onActionComplete={() => setRefreshKey(prev => prev + 1)}
       />
     </>
   );

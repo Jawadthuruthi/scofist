@@ -187,6 +187,9 @@ export async function GET(req) {
         profilePic: user.profilePic,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+        profileUpdateStatus: user.profileUpdateStatus,
+        pendingProfileUpdate: user.pendingProfileUpdate,
+        profileRequestDate: user.profileRequestDate,
 
         // Address fields
         houseName: address.houseName,

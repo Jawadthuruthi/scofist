@@ -18,7 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "@/components/Header";
-import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera } from "lucide-react";
+import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, HelpCircle, Megaphone, Edit2 } from "lucide-react";
+import ProfileEditModal from "./ProfileEditModal";
 import html2canvas from "html2canvas";
 import { cn, formatDateForDisplay, formatMonthYear, formatDateShort, formatDate } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
@@ -576,6 +577,7 @@ export default function StudentDashboard({
   showKinship = false,
 }) {
   const [currentUser, setCurrentUser] = useState(user);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const detailsRef = useRef(null);
 
   const handleTabChange = (tabId) => {
@@ -1235,6 +1237,17 @@ export default function StudentDashboard({
                     {currentUser.studentSpecificField.status}
                   </div>
                 )}
+                {!hideHeader && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2 bg-white/10 hover:bg-white/20 border-white/20 text-white gap-2 h-8 px-4 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
+                    onClick={() => setIsEditModalOpen(true)}
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                    Edit Profile
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -1264,7 +1277,7 @@ export default function StudentDashboard({
           </div>
 
           {/* Status Badge for Desktop View */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex flex-col items-end gap-2">
             {currentUser?.studentSpecificField?.status && (
               <div className={cn(
                 "px-4 py-2.5 rounded-2xl border-2 font-bold text-xs uppercase tracking-widest backdrop-blur-md shadow-2xl flex items-center gap-3 transition-all duration-500 hover:scale-105",
@@ -1283,6 +1296,17 @@ export default function StudentDashboard({
                 {currentUser.studentSpecificField.status}
               </div>
             )}
+            {!hideHeader && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="bg-white/10 hover:bg-white/20 border-white/20 text-white gap-2 h-8 px-4 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95"
+                onClick={() => setIsEditModalOpen(true)}
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+                Edit Profile
+              </Button>
+            )}
           </div>
         </div>
         
@@ -1291,83 +1315,39 @@ export default function StudentDashboard({
         <div className="absolute bottom-0 left-0 -ml-16 -mb-16 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl"></div>
       </div>
 
-      {/* Navigation Cards Grid - Row 1 */}
-      <div className="no-print grid grid-cols-3 md:grid-cols-5 gap-3 mb-3">
+      {/* Navigation Cards Grid */}
+      <div className="no-print grid grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
         {[
           { id: "PROFILE", label: "My Profile", icon: User, color: "blue" },
           { id: "ATTENDANCE", label: "Attendance", icon: Calendar, color: "rose" },
           { id: "FINANCE", label: "Finance", icon: IndianRupee, color: "emerald" },
           { id: "LIBRARY", label: "Library", icon: BookOpen, color: "amber" },
           { id: "MARKS", label: "Marks", icon: FileText, color: "indigo" },
+          { id: "NOTIFICATIONS", label: "Notifications", icon: Bell, color: "cyan" },
+          { id: "DOWNLOADS", label: "Downloads", icon: Download, color: "teal" },
+          { id: "LEAVES", label: "Leaves", icon: Plane, color: "violet" },
+          { id: "REMARKS", label: "Remarks", icon: MessageSquare, color: "orange" },
+          { id: "AWARDS", label: "Awards", icon: Trophy, color: "yellow" },
+          { id: "QUIZ", label: "Quiz", icon: HelpCircle, color: "purple" },
+          { id: "UPDATES", label: "Updates", icon: Megaphone, color: "pink" },
         ].map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           
-          // Color mapping to avoid dynamic class construction issues with Tailwind JIT
+          // Color mapping for all navigation items
           const colorStyles = {
-            blue: {
-              activeBorder: "border-blue-500",
-              activeBg: "bg-blue-50/50 dark:bg-blue-900/10",
-              iconActiveBg: "bg-blue-500",
-              iconInactiveBg: "bg-blue-100 dark:bg-blue-900/20",
-              iconInactiveText: "text-blue-600",
-              labelActive: "text-blue-700 dark:text-blue-300",
-              bottomBar: "bg-blue-500"
-            },
-            emerald: {
-              activeBorder: "border-emerald-500",
-              activeBg: "bg-emerald-50/50 dark:bg-emerald-900/10",
-              iconActiveBg: "bg-emerald-500",
-              iconInactiveBg: "bg-emerald-100 dark:bg-emerald-900/20",
-              iconInactiveText: "text-emerald-600",
-              labelActive: "text-emerald-700 dark:text-emerald-300",
-              bottomBar: "bg-emerald-500"
-            },
-            amber: {
-              activeBorder: "border-amber-500",
-              activeBg: "bg-amber-50/50 dark:bg-amber-900/10",
-              iconActiveBg: "bg-amber-500",
-              iconInactiveBg: "bg-amber-100 dark:bg-amber-900/20",
-              iconInactiveText: "text-amber-600",
-              labelActive: "text-amber-700 dark:text-amber-300",
-              bottomBar: "bg-amber-500"
-            },
-            rose: {
-              activeBorder: "border-rose-500",
-              activeBg: "bg-rose-50/50 dark:bg-rose-900/10",
-              iconActiveBg: "bg-rose-500",
-              iconInactiveBg: "bg-rose-100 dark:bg-rose-900/20",
-              iconInactiveText: "text-rose-600",
-              labelActive: "text-rose-700 dark:text-rose-300",
-              bottomBar: "bg-rose-500"
-            },
-            indigo: {
-              activeBorder: "border-indigo-500",
-              activeBg: "bg-indigo-50/50 dark:bg-indigo-900/10",
-              iconActiveBg: "bg-indigo-500",
-              iconInactiveBg: "bg-indigo-100 dark:bg-indigo-900/20",
-              iconInactiveText: "text-indigo-600",
-              labelActive: "text-indigo-700 dark:text-indigo-300",
-              bottomBar: "bg-indigo-500"
-            },
-            orange: {
-              activeBorder: "border-orange-500",
-              activeBg: "bg-orange-50/50 dark:bg-orange-900/10",
-              iconActiveBg: "bg-orange-500",
-              iconInactiveBg: "bg-orange-100 dark:bg-orange-900/20",
-              iconInactiveText: "text-orange-600",
-              labelActive: "text-orange-700 dark:text-orange-300",
-              bottomBar: "bg-orange-500"
-            },
-            violet: {
-              activeBorder: "border-violet-500",
-              activeBg: "bg-violet-50/50 dark:bg-violet-900/10",
-              iconActiveBg: "bg-violet-500",
-              iconInactiveBg: "bg-violet-100 dark:bg-violet-900/20",
-              iconInactiveText: "text-violet-600",
-              labelActive: "text-violet-700 dark:text-violet-300",
-              bottomBar: "bg-violet-500"
-            }
+            blue: { activeBorder: "border-blue-500", activeBg: "bg-blue-50/50 dark:bg-blue-900/10", iconActiveBg: "bg-blue-500", iconInactiveBg: "bg-blue-100 dark:bg-blue-900/20", iconInactiveText: "text-blue-600", labelActive: "text-blue-700 dark:text-blue-300", bottomBar: "bg-blue-500" },
+            emerald: { activeBorder: "border-emerald-500", activeBg: "bg-emerald-50/50 dark:bg-emerald-900/10", iconActiveBg: "bg-emerald-500", iconInactiveBg: "bg-emerald-100 dark:bg-emerald-900/20", iconInactiveText: "text-emerald-600", labelActive: "text-emerald-700 dark:text-emerald-300", bottomBar: "bg-emerald-500" },
+            amber: { activeBorder: "border-amber-500", activeBg: "bg-amber-50/50 dark:bg-amber-900/10", iconActiveBg: "bg-amber-500", iconInactiveBg: "bg-amber-100 dark:bg-amber-900/20", iconInactiveText: "text-amber-600", labelActive: "text-amber-700 dark:text-amber-300", bottomBar: "bg-amber-500" },
+            rose: { activeBorder: "border-rose-500", activeBg: "bg-rose-50/50 dark:bg-rose-900/10", iconActiveBg: "bg-rose-500", iconInactiveBg: "bg-rose-100 dark:bg-rose-900/20", iconInactiveText: "text-rose-600", labelActive: "text-rose-700 dark:text-rose-300", bottomBar: "bg-rose-500" },
+            indigo: { activeBorder: "border-indigo-500", activeBg: "bg-indigo-50/50 dark:bg-indigo-900/10", iconActiveBg: "bg-indigo-500", iconInactiveBg: "bg-indigo-100 dark:bg-indigo-900/20", iconInactiveText: "text-indigo-600", labelActive: "text-indigo-700 dark:text-indigo-300", bottomBar: "bg-indigo-500" },
+            orange: { activeBorder: "border-orange-500", activeBg: "bg-orange-50/50 dark:bg-orange-900/10", iconActiveBg: "bg-orange-500", iconInactiveBg: "bg-orange-100 dark:bg-orange-900/20", iconInactiveText: "text-orange-600", labelActive: "text-orange-700 dark:text-orange-300", bottomBar: "bg-orange-500" },
+            violet: { activeBorder: "border-violet-500", activeBg: "bg-violet-50/50 dark:bg-violet-900/10", iconActiveBg: "bg-violet-500", iconInactiveBg: "bg-violet-100 dark:bg-violet-900/20", iconInactiveText: "text-violet-600", labelActive: "text-violet-700 dark:text-violet-300", bottomBar: "bg-violet-500" },
+            cyan: { activeBorder: "border-cyan-500", activeBg: "bg-cyan-50/50 dark:bg-cyan-900/10", iconActiveBg: "bg-cyan-500", iconInactiveBg: "bg-cyan-100 dark:bg-cyan-900/20", iconInactiveText: "text-cyan-600", labelActive: "text-cyan-700 dark:text-cyan-300", bottomBar: "bg-cyan-500" },
+            teal: { activeBorder: "border-teal-500", activeBg: "bg-teal-50/50 dark:bg-teal-900/10", iconActiveBg: "bg-teal-500", iconInactiveBg: "bg-teal-100 dark:bg-teal-900/20", iconInactiveText: "text-teal-600", labelActive: "text-teal-700 dark:text-teal-300", bottomBar: "bg-teal-500" },
+            yellow: { activeBorder: "border-yellow-500", activeBg: "bg-yellow-50/50 dark:bg-yellow-900/10", iconActiveBg: "bg-yellow-500", iconInactiveBg: "bg-yellow-100 dark:bg-yellow-900/20", iconInactiveText: "text-yellow-600", labelActive: "text-yellow-700 dark:text-yellow-300", bottomBar: "bg-yellow-500" },
+            purple: { activeBorder: "border-purple-500", activeBg: "bg-purple-50/50 dark:bg-purple-900/10", iconActiveBg: "bg-purple-500", iconInactiveBg: "bg-purple-100 dark:bg-purple-900/20", iconInactiveText: "text-purple-600", labelActive: "text-purple-700 dark:text-purple-300", bottomBar: "bg-purple-500" },
+            pink: { activeBorder: "border-pink-500", activeBg: "bg-pink-50/50 dark:bg-pink-900/10", iconActiveBg: "bg-pink-500", iconInactiveBg: "bg-pink-100 dark:bg-pink-900/20", iconInactiveText: "text-pink-600", labelActive: "text-pink-700 dark:text-pink-300", bottomBar: "bg-pink-500" },
           };
 
           const s = colorStyles[item.color];
@@ -1398,45 +1378,6 @@ export default function StudentDashboard({
                 {isActive && (
                   <div className={`absolute bottom-0 left-0 w-full h-1 ${s.bottomBar}`}></div>
                 )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Navigation Cards Grid - Row 2 */}
-      <div className="no-print grid grid-cols-3 md:grid-cols-5 gap-3 mb-8">
-        {[
-          { id: "NOTIFICATIONS", label: "Notifications", icon: Bell, color: "cyan" },
-          { id: "DOWNLOADS", label: "Downloads", icon: Download, color: "teal" },
-          { id: "LEAVES", label: "Leaves", icon: Plane, color: "violet" },
-          { id: "REMARKS", label: "Remarks", icon: MessageSquare, color: "orange" },
-          { id: "AWARDS", label: "Awards", icon: Trophy, color: "yellow" },
-        ].map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          const colorStyles2 = {
-            cyan: { activeBorder: "border-cyan-500", activeBg: "bg-cyan-50/50 dark:bg-cyan-900/10", iconActiveBg: "bg-cyan-500", iconInactiveBg: "bg-cyan-100 dark:bg-cyan-900/20", iconInactiveText: "text-cyan-600", labelActive: "text-cyan-700 dark:text-cyan-300", bottomBar: "bg-cyan-500" },
-            teal: { activeBorder: "border-teal-500", activeBg: "bg-teal-50/50 dark:bg-teal-900/10", iconActiveBg: "bg-teal-500", iconInactiveBg: "bg-teal-100 dark:bg-teal-900/20", iconInactiveText: "text-teal-600", labelActive: "text-teal-700 dark:text-teal-300", bottomBar: "bg-teal-500" },
-            violet: { activeBorder: "border-violet-500", activeBg: "bg-violet-50/50 dark:bg-violet-900/10", iconActiveBg: "bg-violet-500", iconInactiveBg: "bg-violet-100 dark:bg-violet-900/20", iconInactiveText: "text-violet-600", labelActive: "text-violet-700 dark:text-violet-300", bottomBar: "bg-violet-500" },
-            orange: { activeBorder: "border-orange-500", activeBg: "bg-orange-50/50 dark:bg-orange-900/10", iconActiveBg: "bg-orange-500", iconInactiveBg: "bg-orange-100 dark:bg-orange-900/20", iconInactiveText: "text-orange-600", labelActive: "text-orange-700 dark:text-orange-300", bottomBar: "bg-orange-500" },
-            yellow: { activeBorder: "border-yellow-500", activeBg: "bg-yellow-50/50 dark:bg-yellow-900/10", iconActiveBg: "bg-yellow-500", iconInactiveBg: "bg-yellow-100 dark:bg-yellow-900/20", iconInactiveText: "text-yellow-600", labelActive: "text-yellow-700 dark:text-yellow-300", bottomBar: "bg-yellow-500" },
-          };
-          const s = colorStyles2[item.color];
-          return (
-            <Card
-              key={item.id}
-              className={`cursor-pointer transition-all duration-300 border-2 hover:shadow-lg group relative overflow-hidden ${
-                isActive ? `${s.activeBorder} ${s.activeBg}` : "border-transparent bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-800"
-              }`}
-              onClick={() => handleTabChange(item.id)}
-            >
-              <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
-                <div className={`p-3 rounded-xl transition-all duration-300 ${isActive ? `${s.iconActiveBg} text-white shadow-lg scale-110` : `${s.iconInactiveBg} ${s.iconInactiveText} group-hover:scale-110`}`}>
-                  <Icon className="h-6 w-6" />
-                </div>
-                <span className={`text-sm font-bold tracking-wide ${isActive ? s.labelActive : "text-slate-600 dark:text-slate-400"}`}>{item.label}</span>
-                {isActive && <div className={`absolute bottom-0 left-0 w-full h-1 ${s.bottomBar}`}></div>}
               </CardContent>
             </Card>
           );
@@ -2614,6 +2555,46 @@ export default function StudentDashboard({
           </CardContent>
         </Card>
       )}
+
+      {activeTab === "QUIZ" && (
+        <Card className="flex flex-col card-print-break mt-5">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <HelpCircle className="h-5 w-5 text-purple-500" />
+              Quiz
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1">
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <div className="p-5 rounded-2xl bg-purple-100 dark:bg-purple-900/20 mb-4">
+                <HelpCircle className="h-10 w-10 text-purple-500 opacity-60" />
+              </div>
+              <p className="text-base font-semibold text-purple-700 dark:text-purple-300 mb-1">Quizzes Coming Soon</p>
+              <p className="text-sm text-muted-foreground">Interactive quizzes and assessments will be available here soon.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "UPDATES" && (
+        <Card className="flex flex-col card-print-break mt-5">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <Megaphone className="h-5 w-5 text-pink-500" />
+              Updates
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1">
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <div className="p-5 rounded-2xl bg-pink-100 dark:bg-pink-900/20 mb-4">
+                <Megaphone className="h-10 w-10 text-pink-500 opacity-60" />
+              </div>
+              <p className="text-base font-semibold text-pink-700 dark:text-pink-300 mb-1">No New Updates</p>
+              <p className="text-sm text-muted-foreground">Check back here for the latest news and announcements.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
           </>
         )}
       <div className="fixed bottom-4 right-4 no-print">
@@ -2624,6 +2605,12 @@ export default function StudentDashboard({
       </div>
       </div>
     </div>
+    
+    <ProfileEditModal 
+      user={currentUser} 
+      open={isEditModalOpen} 
+      onClose={() => setIsEditModalOpen(false)} 
+    />
   </>
   );
 }

@@ -235,6 +235,19 @@ const userSchema = new Schema(
     },
     studentSpecificField: studentSpecificSchema,
     familyOtherDetails: { type: String, trim: true },
+    pendingProfileUpdate: {
+      type: Schema.Types.Mixed,
+      default: null
+    },
+    profileUpdateStatus: {
+      type: String,
+      enum: ["None", "Pending", "Verified"],
+      default: "None"
+    },
+    profileRequestDate: {
+      type: Date,
+      default: null
+    },
   },
   {
     timestamps: true,
