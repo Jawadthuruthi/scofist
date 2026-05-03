@@ -214,17 +214,28 @@ export default function ProfileEditModal({ user, open, onClose, onSuccess }) {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-1 text-primary">Academic Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="admissionNumber">Admission Number</Label>
-                <Input id="admissionNumber" name="studentSpecificField.admissionNumber" value={formData.studentSpecificField.admissionNumber} onChange={handleChange} />
-              </div>
+              {/* Admission Number removed as per request */}
               <div className="space-y-2">
                 <Label htmlFor="islamicQualification">Islamic Qualification</Label>
-                <Input id="islamicQualification" name="studentSpecificField.islamicQualification" value={formData.studentSpecificField.islamicQualification} onChange={handleChange} />
+                <Input 
+                  id="islamicQualification" 
+                  name="studentSpecificField.islamicQualification" 
+                  value={formData.studentSpecificField.islamicQualification} 
+                  onChange={handleChange} 
+                  disabled={user?.status !== "Graduated"}
+                  placeholder={user?.status !== "Graduated" ? "Only editable for graduated students" : ""}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="academicQualification">Academic Qualification</Label>
-                <Input id="academicQualification" name="studentSpecificField.academicQualification" value={formData.studentSpecificField.academicQualification} onChange={handleChange} />
+                <Input 
+                  id="academicQualification" 
+                  name="studentSpecificField.academicQualification" 
+                  value={formData.studentSpecificField.academicQualification} 
+                  onChange={handleChange} 
+                  disabled={user?.status !== "Graduated"}
+                  placeholder={user?.status !== "Graduated" ? "Only editable for graduated students" : ""}
+                />
               </div>
             </div>
           </div>

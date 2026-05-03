@@ -1313,10 +1313,37 @@ export default function StudentDashboard({
                   Edit Profile
                 </Button>
                 {currentUser?.profileUpdateStatus === "Pending" && (
-                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-300 animate-pulse flex items-center gap-1 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
-                    <Clock className="h-2.5 w-2.5" />
-                    Requested
-                  </span>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-300 animate-pulse flex items-center gap-1 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
+                      <Clock className="h-2.5 w-2.5" />
+                      Requested
+                    </span>
+                    {currentUser.profileRequestDate && (
+                      <span className="text-[9px] text-blue-300/60 font-medium">{formatDateShort(currentUser.profileRequestDate)}</span>
+                    )}
+                  </div>
+                )}
+                {currentUser?.profileUpdateStatus === "Verified" && (
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-green-300 flex items-center gap-1 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
+                      <CheckCircle className="h-2.5 w-2.5" />
+                      Approved
+                    </span>
+                    {currentUser.profileActionDate && (
+                      <span className="text-[9px] text-green-300/60 font-medium">{formatDateShort(currentUser.profileActionDate)}</span>
+                    )}
+                  </div>
+                )}
+                {currentUser?.profileUpdateStatus === "Rejected" && (
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-red-300 flex items-center gap-1 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
+                      <XCircle className="h-2.5 w-2.5" />
+                      Rejected
+                    </span>
+                    {currentUser.profileActionDate && (
+                      <span className="text-[9px] text-red-300/60 font-medium">{formatDateShort(currentUser.profileActionDate)}</span>
+                    )}
+                  </div>
                 )}
               </div>
             )}

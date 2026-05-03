@@ -242,10 +242,14 @@ const userSchema = new Schema(
     },
     profileUpdateStatus: {
       type: String,
-      enum: ["None", "Pending", "Verified"],
+      enum: ["None", "Pending", "Verified", "Rejected"],
       default: "None"
     },
     profileRequestDate: {
+      type: Date,
+      default: null
+    },
+    profileActionDate: {
       type: Date,
       default: null
     },

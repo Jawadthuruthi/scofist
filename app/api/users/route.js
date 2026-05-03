@@ -78,6 +78,12 @@ export async function GET(req) {
       }
     }
 
+    if (filterParams.profileUpdateStatus) {
+      query.profileUpdateStatus = {
+        $in: filterParams.profileUpdateStatus.split(",").map((s) => s.trim()),
+      };
+    }
+
     if (filterParams.isVerified) {
       const isVerified = filterParams.isVerified === "true";
       query["studentSpecificField.isVerified"] = isVerified ? true : { $ne: true };

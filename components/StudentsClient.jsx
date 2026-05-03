@@ -70,6 +70,15 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         { label: "Dropped Out", value: "Dropped Out" },
       ],
     },
+    {
+      id: "profileUpdateStatus",
+      label: "Review Status",
+      inputType: "select",
+      options: [
+        { label: "Verified", value: "Verified" },
+        { label: "Requested", value: "Pending" },
+      ],
+    },
   ] : [
     { id: "name", label: "Name" },
     { id: "_id", label: "ID" },
@@ -93,6 +102,15 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         { label: "Active", value: "Active" },
         { label: "Graduated", value: "Graduated" },
         { label: "Dropped Out", value: "Dropped Out" },
+      ],
+    },
+    {
+      id: "profileUpdateStatus",
+      label: "Review Status",
+      inputType: "select",
+      options: [
+        { label: "Verified", value: "Verified" },
+        { label: "Requested", value: "Pending" },
       ],
     },
   ];
@@ -152,6 +170,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         readOnly={activeRole !== "College Admin" || isReadOnly}
         tableHeight="calc(100vh - 200px)"
         enableClickToEdit={true}
+        clickToEditExcludeColumns={["_id", "select", "serialNo", "actions", "updatedAt"]}
         formClassName="sm:max-w-4xl"
       />
 

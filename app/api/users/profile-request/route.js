@@ -34,7 +34,7 @@ export async function POST(req) {
   try {
     await connectToDB();
     const body = await req.json();
-    const { userId, action } = body;
+    const { userId, action, approvedFields } = body;
 
     if (!userId) {
       return NextResponse.json({ message: "userId is required" }, { status: 400 });
@@ -46,36 +46,53 @@ export async function POST(req) {
     }
 
     if (action === "approve") {
-      const changes = user.pendingProfileUpdate;
-      if (!changes) {
+      const pendingChanges = user.pendingProfileUpdate;
+      if (!pendingChanges) {
         return NextResponse.json({ message: "No pending changes found" }, { status: 400 });
       }
 
-      // Deep merge logic or simple field update
+      // If specific fields are provided, only update those
+      const changesToApply = {};
+      if (approvedFields && Array.from(approvedFields).length > 0) {
+        approvedFields.forEach(fieldPath => {
+          // Resolve value from pendingChanges
+          const parts = fieldPath.split('.');
+          let val = pendingChanges;
+          for (const part of parts) {
+            val = val?.[part];
+          }
+          if (val !== undefined) {
+            changesToApply[fieldPath] = val;
+          }
+        });
+      } else {
+        // Fallback to all changes if none specified (old behavior)
+        // Map top level fields
+        ["name", "email", "contactNumber", "alternativeNumber", "dateOfBirth"].forEach((field) => {
+          if (pendingChanges[field] !== undefined) changesToApply[field] = pendingChanges[field];
+        });
+
+        // Map studentSpecificField
+        if (pendingChanges.studentSpecificField) {
+          for (const [key, value] of Object.entries(pendingChanges.studentSpecificField)) {
+            changesToApply[`studentSpecificField.${key}`] = value;
+          }
+        }
+
+        // Map address
+        if (pendingChanges.address) {
+          for (const [key, value] of Object.entries(pendingChanges.address)) {
+            changesToApply[`address.${key}`] = value;
+          }
+        }
+      }
+
       const updateObj = {
+        ...changesToApply,
         profileUpdateStatus: "Verified",
         pendingProfileUpdate: null,
+        profileActionDate: new Date()
       };
-
-      // Map top level fields
-      const topLevelFields = ["name", "email", "contactNumber", "alternativeNumber", "dateOfBirth"];
-      topLevelFields.forEach((field) => {
-        if (changes[field]) updateObj[field] = changes[field];
-      });
-
-      // Map studentSpecificField
-      if (changes.studentSpecificField) {
-        for (const [key, value] of Object.entries(changes.studentSpecificField)) {
-          updateObj[`studentSpecificField.${key}`] = value;
-        }
-      }
-
-      // Map address
-      if (changes.address) {
-        for (const [key, value] of Object.entries(changes.address)) {
-          updateObj[`address.${key}`] = value;
-        }
-      }
 
       await User.updateOne({ _id: userId }, { $set: updateObj });
       return NextResponse.json({ message: "Profile update approved and applied" });
@@ -85,7 +102,8 @@ export async function POST(req) {
         { 
           $set: { 
             pendingProfileUpdate: null,
-            profileUpdateStatus: "None"
+            profileUpdateStatus: "Rejected",
+            profileActionDate: new Date()
           } 
         }
       );
