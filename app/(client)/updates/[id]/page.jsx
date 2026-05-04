@@ -4,11 +4,11 @@ import Settings from "@/models/Settings";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, ChevronLeft, Share2 } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { notFound } from "next/navigation";
+import ShareButton from "@/components/ShareButton";
 
 export async function generateMetadata({ params }) {
   const { id } = params;
@@ -107,11 +107,10 @@ export default async function UpdateDetailPage({ params }) {
             <div className="text-gray-500 font-medium">
               Shared by {institutionName} Admin
             </div>
-            {/* Simple Share Button - In a real app we'd use Web Share API */}
-            <Button variant="outline" className="rounded-full flex items-center gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
-              <Share2 className="w-4 h-4" />
-              Share this Update
-            </Button>
+            <ShareButton 
+              title={update.heading} 
+              text={update.news} 
+            />
           </div>
         </article>
       </main>
