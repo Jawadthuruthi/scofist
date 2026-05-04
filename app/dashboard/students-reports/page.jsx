@@ -12,6 +12,10 @@ const API_ENDPOINTS = [
         pathname: "classes",
         searchParams: "projection=_id,name,batchId,subjects",
     },
+    {
+        pathname: "updates",
+        searchParams: "limit=10",
+    },
 ];
 
 const StudentsReportsPage = async () => {
@@ -30,7 +34,7 @@ const StudentsReportsPage = async () => {
             );
         }
 
-        const [batches, classes] = await Promise.all(
+        const [batches, classes, updates] = await Promise.all(
             API_ENDPOINTS.map((endpoint) =>
                 fetchData(endpoint.pathname, endpoint.searchParams)
             )
@@ -41,6 +45,7 @@ const StudentsReportsPage = async () => {
                 batches={batches}
                 classes={classes}
                 apiKey={apiKey}
+                updates={updates}
             />
         );
     } catch (error) {

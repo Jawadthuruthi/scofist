@@ -28,7 +28,7 @@ const BarcodeScanner = dynamic(() => import("@/components/BarcodeScanner"), {
     ),
 });
 
-export default function StudentsReportClient({ batches, classes, apiKey }) {
+export default function StudentsReportClient({ batches, classes, apiKey, updates }) {
     const [selectedBatch, setSelectedBatch] = useState("");
     const [selectedClass, setSelectedClass] = useState("");
     const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -538,6 +538,7 @@ export default function StudentsReportClient({ batches, classes, apiKey }) {
                             apiKey={apiKey}
                             classes={classes}
                             batches={batches}
+                            updates={updates}
                             hideHeader={true}
                             showKinship={true}
                         />
