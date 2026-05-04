@@ -1,12 +1,12 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
-export default function PublicHeader({ logo, name, rightLogo, rightName }) {
-  // If no logos are provided, we might want to hide the header entirely on some pages
-  // but for now we'll just hide the image elements.
+export default function PublicHeader({ logo, name, rightLogo, rightName, centered = false }) {
+  // If no logos are provided, show a minimalist header with just the name
   if (!logo && !rightLogo) {
     return (
       <header className="w-full py-2 px-6 shadow bg-white/80 backdrop-blur-md sticky top-0 z-50 min-h-[4rem] flex items-center">
-        <div className="max-w-7xl mx-auto w-full flex justify-between items-center">
+        <div className={cn("max-w-7xl mx-auto w-full flex items-center", centered ? "justify-center" : "justify-between")}>
           <Link href="/" className="text-emerald-800 font-bold hover:text-emerald-600 transition-colors">
             {name || "Home"}
           </Link>
@@ -17,8 +17,8 @@ export default function PublicHeader({ logo, name, rightLogo, rightName }) {
 
   return (
     <header className="w-full py-2 px-6 shadow bg-white/80 backdrop-blur-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        {/* Institution Logo (Left) */}
+      <div className={cn("max-w-7xl mx-auto flex items-center", centered ? "justify-center" : "justify-between")}>
+        {/* Institution Logo */}
         <div className="flex items-center">
           {logo ? (
             <Link href="/" className="flex items-center">
@@ -35,8 +35,8 @@ export default function PublicHeader({ logo, name, rightLogo, rightName }) {
           )}
         </div>
 
-        {/* Organisation Logo (Right) - Optional */}
-        {rightLogo && (
+        {/* Organisation Logo (Right) - Hidden if centered is true */}
+        {!centered && rightLogo && (
           <div className="flex items-center">
             <img
               src={rightLogo}

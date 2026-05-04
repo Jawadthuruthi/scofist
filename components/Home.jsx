@@ -43,8 +43,7 @@ export default function Home({ settings }) {
         <PublicHeader 
           logo={institutionLogo} 
           name={institutionName} 
-          rightLogo={orgLogo}
-          rightName={orgName}
+          centered={true}
         />
 
         {/* Hero Section */}

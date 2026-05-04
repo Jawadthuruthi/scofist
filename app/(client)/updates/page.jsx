@@ -42,6 +42,7 @@ export default async function UpdatesPage() {
         name={institutionName} 
         rightLogo={null}
         rightName={orgName}
+        centered={true}
       />
 
       <main className="flex-1">
