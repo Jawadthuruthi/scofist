@@ -7,7 +7,7 @@ import Link from "next/link";
 export default function UpdateCard({ update }) {
   return (
     <Link href={`/updates/${update._id}`}>
-      <Card className="group overflow-hidden border-none shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col bg-white rounded-2xl cursor-pointer h-full">
+      <Card className="group overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col bg-white dark:bg-slate-900 rounded-2xl cursor-pointer h-full">
         {update.image?.url ? (
           <div className="relative aspect-[16/10] overflow-hidden">
             <Image

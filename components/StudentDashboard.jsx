@@ -21,6 +21,8 @@ import {
 import Header from "@/components/Header";
 import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, HelpCircle, Megaphone, Edit2, CheckCircle, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import UpdateCard from "@/components/UpdateCard";
 import ProfileEditModal from "./ProfileEditModal";
 import html2canvas from "html2canvas";
 import { cn, formatDateForDisplay, formatMonthYear, formatDateShort, formatDate } from "@/lib/utils";
@@ -575,6 +577,7 @@ export default function StudentDashboard({
   classes,
   batches,
   attendanceData: initialData,
+  updates = [],
   hideHeader = false,
   showKinship = false,
 }) {
@@ -2617,20 +2620,31 @@ export default function StudentDashboard({
       )}
 
       {activeTab === "UPDATES" && (
-        <Card className="flex flex-col card-print-break mt-5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className="flex flex-col card-print-break mt-5 border-pink-100 dark:border-pink-900 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 border-b mb-4">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
               <Megaphone className="h-5 w-5 text-pink-500" />
-              Updates
+              Latest Updates
             </CardTitle>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              {updates?.length || 0} Total Updates
+            </div>
           </CardHeader>
           <CardContent className="flex-1">
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-              <div className="p-5 rounded-2xl bg-pink-100 dark:bg-pink-900/20 mb-4">
-                <Megaphone className="h-10 w-10 text-pink-500 opacity-60" />
-              </div>
-              <p className="text-base font-semibold text-pink-700 dark:text-pink-300 mb-1">No New Updates</p>
-              <p className="text-sm text-muted-foreground">Check back here for the latest news and announcements.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {updates && updates.length > 0 ? (
+                updates.map((update, idx) => (
+                  <UpdateCard key={update._id || idx} update={update} />
+                ))
+              ) : (
+                <div className="col-span-full flex flex-col items-center justify-center py-16 text-muted-foreground">
+                  <div className="p-5 rounded-2xl bg-pink-100 dark:bg-pink-900/20 mb-4">
+                    <Megaphone className="h-10 w-10 text-pink-500 opacity-60" />
+                  </div>
+                  <p className="text-base font-semibold text-pink-700 dark:text-pink-300 mb-1">No Updates Available</p>
+                  <p className="text-sm text-muted-foreground text-center max-w-xs">There are no institutional updates or news items at this time. Check back later!</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

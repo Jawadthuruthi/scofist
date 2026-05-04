@@ -46,6 +46,11 @@ const API_ENDPOINTS = [
     searchParams: `date=${istTime.toISOString().split("T")[0]}`,
     key: "teachersLeaveRecord",
   },
+  {
+    pathname: "updates",
+    searchParams: "limit=10",
+    key: "updates",
+  },
 ];
 
 export default async function DashboardPage() {
@@ -78,6 +83,7 @@ export default async function DashboardPage() {
       settings,
       leaveRecords,
       teachersLeaveRecord,
+      updatesData,
     ] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
         fetchData(
@@ -96,7 +102,8 @@ export default async function DashboardPage() {
     if (activeRole === "Student") {
       const headersList = headers();
       const user = JSON.parse(headersList.get("x-user"));
-      return <StudentDashboard user={user} apiKey={apiKey} classes={classes} batches={batches} />;
+      const updates = Array.isArray(updatesData) ? updatesData : updatesData?.updates || [];
+      return <StudentDashboard user={user} apiKey={apiKey} classes={classes} batches={batches} updates={updates} />;
     }
 
     return (
