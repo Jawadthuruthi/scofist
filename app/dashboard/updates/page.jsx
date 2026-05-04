@@ -8,11 +8,18 @@ export default async function UpdatesPage() {
     const apiKey = process.env.API_KEY;
     const data = await fetchData("updates", "", 0);
     const initialUpdates = data?.updates || [];
+    
+    const settingsData = await fetchData("settings", "", 0);
+    const initialUpdatesLogo = settingsData?.settings?.institution?.updatesLogo || null;
 
     return (
       <>
         <Header title="UPDATES" subTitle="Stay Informed with Latest Updates" />
-        <UpdatesManagement apiKey={apiKey} initialUpdates={initialUpdates} />
+        <UpdatesManagement 
+          apiKey={apiKey} 
+          initialUpdates={initialUpdates} 
+          initialUpdatesLogo={initialUpdatesLogo}
+        />
       </>
     );
   } catch (error) {

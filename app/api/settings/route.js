@@ -46,6 +46,7 @@ export async function POST(req, res) {
         tagline: data.tagline ?? existingSettings?.institution?.tagline,
         logo: data.logo ?? existingSettings?.institution?.logo,
         institutionPhoto: data.institutionPhoto ?? existingSettings?.institution?.institutionPhoto,
+        updatesLogo: data.updatesLogo ?? existingSettings?.institution?.updatesLogo,
         address: data.address ?? existingSettings?.institution?.address,
         contact: {
           primaryPhone:
@@ -207,14 +208,32 @@ export async function POST(req, res) {
   }
 }
 
-export async function PUT(req, res) {
+export async function PUT(req) {
   try {
     await connectToDB();
-    const data = await req.json();
+    
+    let data = {};
+    const contentType = req.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      try {
+        data = await req.json();
+      } catch (e) {
+        console.error("Error parsing JSON body:", e);
+        // Fallback to empty object if JSON parsing fails
+      }
+    }
+
     console.log("Settings PUT received data:", JSON.stringify(data, null, 2));
 
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json(
+        { message: "No data provided for update." },
+        { status: 400 }
+      );
+    }
+
     // Fetch existing settings first
-    const existingSettings = await Settings.findOne({}).lean(); // 🔧 ADD .lean() to get plain object
+    const existingSettings = await Settings.findOne({}).lean();
 
     if (!existingSettings) {
       return NextResponse.json(
@@ -272,7 +291,8 @@ export async function PUT(req, res) {
       data.secondaryPhone ||
       data.email ||
       data.website ||
-      data.institutionPhoto
+      data.institutionPhoto ||
+      data.updatesLogo
     ) {
       updateData.institution = {
         name: data.name ?? existingSettings?.institution?.name,
@@ -280,6 +300,8 @@ export async function PUT(req, res) {
         logo: data.logo ?? existingSettings?.institution?.logo,
         institutionPhoto:
           data.institutionPhoto ?? existingSettings?.institution?.institutionPhoto,
+        updatesLogo:
+          data.updatesLogo ?? existingSettings?.institution?.updatesLogo,
         address: data.address ?? existingSettings?.institution?.address,
         contact: {
           primaryPhone:

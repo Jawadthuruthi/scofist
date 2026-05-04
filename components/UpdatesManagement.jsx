@@ -3,8 +3,8 @@ import * as React from "react";
 import FormComponent from "./FormComponent";
 import useCrud from "@/hooks/use-crud";
 import { format } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Trash2, Edit2, Plus, Calendar as CalendarIcon } from "lucide-react";
 import Image from "next/image";
 import {
@@ -13,7 +13,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog";
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import ImageUploader from "@/components/ImageUploader";
+import axios from "axios";
+import { toast } from "sonner";
 
 const formFields = [
   {
@@ -39,15 +52,15 @@ const formFields = [
   },
   {
     name: "news",
-    label: "News Content",
+    label: "Update Content",
     inputType: "textarea",
-    placeholder: "Enter news content",
+    placeholder: "Enter update content",
     rows: 5,
     className: "col-span-2",
   },
 ];
 
-export default function UpdatesManagement({ apiKey, initialUpdates = [] }) {
+export default function UpdatesManagement({ apiKey, initialUpdates = [], initialUpdatesLogo = null }) {
   const { useFetchItems, useDeleteItem } = useCrud("updates", apiKey);
   const { data: updatesData, isLoading } = useFetchItems(0, 100, {}, {
     initialData: { updates: initialUpdates },
@@ -55,17 +68,123 @@ export default function UpdatesManagement({ apiKey, initialUpdates = [] }) {
   const deleteItem = useDeleteItem();
   const [editingItem, setEditingItem] = React.useState(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [updatesLogo, setUpdatesLogo] = React.useState(initialUpdatesLogo);
+  const [isUpdatingLogo, setIsUpdatingLogo] = React.useState(false);
+  const [itemToDelete, setItemToDelete] = React.useState(null);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false);
+
+  // Sync state with initial data when it changes
+  React.useEffect(() => {
+    setUpdatesLogo(initialUpdatesLogo);
+  }, [initialUpdatesLogo]);
 
   const updates = updatesData?.updates || [];
 
-  const handleDelete = async (id) => {
-    if (confirm("Are you sure you want to delete this update?")) {
-      await deleteItem.mutateAsync({ ids: [id] });
+  const handleLogoUpdate = async (image) => {
+    try {
+      setIsUpdatingLogo(true);
+      const response = await axios.put("/api/settings", {
+        updatesLogo: image,
+      });
+      setUpdatesLogo(image);
+      toast.success("Updates logo updated successfully!");
+    } catch (error) {
+      console.error("Error updating logo:", error);
+      toast.error("Failed to update logo");
+    } finally {
+      setIsUpdatingLogo(false);
     }
+  };
+
+  const handleDelete = async () => {
+    if (itemToDelete) {
+      await deleteItem.mutateAsync({ ids: [itemToDelete._id] });
+      setItemToDelete(null);
+      setIsDeleteAlertOpen(false);
+      toast.success("Update deleted successfully");
+    }
+  };
+
+  const confirmDelete = (item) => {
+    setItemToDelete(item);
+    setIsDeleteAlertOpen(true);
   };
 
   return (
     <div className="space-y-6 p-4 md:p-6">
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold">Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600">
+              This action cannot be undone. This will permanently delete the update
+              <span className="font-semibold text-gray-900 block mt-1">"{itemToDelete?.heading}"</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700 text-white rounded-full"
+            >
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <Card className="bg-emerald-50/50 border-emerald-100 shadow-sm overflow-hidden">
+        <div className="bg-emerald-600/5 px-6 py-3 border-b border-emerald-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <CardTitle className="text-sm font-bold text-emerald-800 uppercase tracking-wider">Updates Section Branding</CardTitle>
+          </div>
+          {updatesLogo?.url && (
+            <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold uppercase">
+              Logo Active
+            </span>
+          )}
+        </div>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800 mb-1">Upload Section Logo</h4>
+                <p className="text-xs text-gray-500">This logo will be displayed prominently in the header of the public updates page.</p>
+              </div>
+              <div className="w-full max-w-[280px]">
+                <ImageUploader
+                  value={updatesLogo}
+                  onChange={handleLogoUpdate}
+                  disabled={isUpdatingLogo}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-800 mb-1">Live Preview</h4>
+              <div className="aspect-[21/9] w-full bg-emerald-800 rounded-xl border border-emerald-700/30 flex items-center justify-center p-6 shadow-inner overflow-hidden relative group">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
+                {updatesLogo?.url ? (
+                  <img 
+                    src={updatesLogo.url} 
+                    alt="Updates Header Preview" 
+                    className="h-full w-auto object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-110"
+                  />
+                ) : (
+                  <div className="text-emerald-300/50 flex flex-col items-center gap-2">
+                    <Plus className="w-8 h-8 opacity-20" />
+                    <span className="text-xs font-medium uppercase tracking-widest opacity-40">No Logo Set</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-[10px] text-center text-emerald-600 font-medium italic">
+                * This is how the logo will appear in the emerald header column.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold text-gray-800">Latest Updates</h2>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -93,60 +212,71 @@ export default function UpdatesManagement({ apiKey, initialUpdates = [] }) {
         </Dialog>
       </div>
 
-      <div className="grid gap-4 max-w-3xl">
+      <div className="flex flex-col gap-6 w-full">
         {updates.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
-            <p className="text-gray-500">No updates found. Start by adding one!</p>
+          <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+            <p className="text-gray-500 font-medium">No updates found. Start by adding one!</p>
           </div>
         ) : (
           updates.map((update) => (
-            <Card key={update._id} className="overflow-hidden hover:shadow-md transition-shadow">
+            <Card key={update._id} className="overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 bg-white rounded-xl group">
               <div className="flex flex-col md:flex-row">
                 {update.image?.url && (
-                  <div className="relative w-full md:w-48 h-48 md:h-auto">
+                  <div className="relative w-full md:w-48 h-40 md:h-auto overflow-hidden flex-shrink-0">
                     <Image
                       src={update.image.url}
                       alt={update.heading}
                       fill
-                      className="object-cover"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
                 )}
-                <div className="flex-1 p-4 md:p-6">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-bold text-gray-900 leading-tight">
-                      {update.heading}
-                    </h3>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditingItem({
-                            ...update,
-                            date: update.date ? new Date(update.date).toISOString().split("T")[0] : "",
-                          });
-                          setIsDialogOpen(true);
-                        }}
-                      >
-                        <Edit2 className="w-4 h-4 text-blue-600" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(update._id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </Button>
+                <div className="flex-1 p-4 md:p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="space-y-0.5 flex-1">
+                        <div className="flex items-center gap-1.5 text-emerald-600 text-[9px] font-bold uppercase tracking-widest">
+                          <CalendarIcon className="w-2.5 h-2.5" />
+                          {update.date ? format(new Date(update.date), "PPP") : "Recent Update"}
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 leading-tight group-hover:text-emerald-700 transition-colors line-clamp-1">
+                          {update.heading}
+                        </h3>
+                      </div>
+                      <div className="flex gap-1.5 ml-3">
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-7 w-7 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 border-none"
+                          onClick={() => {
+                            setEditingItem({
+                              ...update,
+                              date: update.date ? new Date(update.date).toISOString().split("T")[0] : "",
+                            });
+                            setIsDialogOpen(true);
+                          }}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-7 w-7 rounded-full bg-red-50 text-red-600 hover:bg-red-100 border-none"
+                          onClick={() => confirmDelete(update)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
+                    <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap line-clamp-2">
+                      {update.news}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-3 font-medium">
-                    <CalendarIcon className="w-4 h-4" />
-                    {update.date ? format(new Date(update.date), "PPP") : "No date"}
+                  
+                  <div className="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between text-[9px] text-gray-400">
+                    <span>ID: {update._id}</span>
+                    <span className="font-medium text-emerald-600/40 uppercase tracking-widest">Orchid Update</span>
                   </div>
-                  <p className="text-gray-600 text-sm line-clamp-3 whitespace-pre-wrap">
-                    {update.news}
-                  </p>
                 </div>
               </div>
             </Card>

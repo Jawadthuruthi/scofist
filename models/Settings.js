@@ -58,6 +58,19 @@ const SettingsSchema = new Schema(
           type: String,
         },
       },
+      updatesLogo: {
+        url: {
+          type: String,
+          trim: true,
+          validate: {
+            validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+            message: "Invalid URL format",
+          },
+        },
+        publicId: {
+          type: String,
+        },
+      },
     },
     spark: {
       name: { type: String, trim: true },
