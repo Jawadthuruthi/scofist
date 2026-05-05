@@ -277,6 +277,7 @@ export default function FormComponent({
   resource,
   returnBack = false,
   hideSubmitOn,
+  onSuccess,
 }) {
   const [customizedFormField, setCustomizedFormField] =
     React.useState(formFields);
@@ -312,9 +313,11 @@ export default function FormComponent({
           data: { ids: [data._id], ...values },
         });
         toast.success("Updated successfully!");
+        if (onSuccess) onSuccess();
       } else {
         await addItem.mutateAsync(values);
         toast.success("Saved successfully!");
+        if (onSuccess) onSuccess();
       }
       if (returnBack) {
         router.back();

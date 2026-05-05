@@ -98,7 +98,7 @@ export default function UpdatesManagement({ apiKey, initialUpdates = [], initial
 
   const handleDelete = async () => {
     if (itemToDelete) {
-      await deleteItem.mutateAsync({ ids: [itemToDelete._id] });
+      await deleteItem.mutateAsync({ data: { ids: [itemToDelete._id] } });
       setItemToDelete(null);
       setIsDeleteAlertOpen(false);
       toast.success("Update deleted successfully");
@@ -187,7 +187,13 @@ export default function UpdatesManagement({ apiKey, initialUpdates = [], initial
 
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold text-gray-800">Latest Updates</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog 
+          open={isDialogOpen} 
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) setEditingItem(null);
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
