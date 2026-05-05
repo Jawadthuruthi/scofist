@@ -41,8 +41,7 @@ export default function Home({ settings }) {
       <div className="relative z-10 flex flex-col min-h-screen">
         {/* Header - Server Rendered */}
         <PublicHeader 
-          logo={institutionLogo} 
-          name={institutionName} 
+          centerLogo={institutionLogo} 
           centered={true}
         />
 
