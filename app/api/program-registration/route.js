@@ -6,6 +6,7 @@ import Program from "@/models/Program";
 import Participant from "@/models/Participant";
 import Team from "@/models/Team";
 import mongoose from "mongoose";
+import { getYear } from "@/lib/getYear";
 
 // Helpers
 const toId = (v) =>
@@ -59,6 +60,7 @@ export async function GET(request) {
       // EARLY FILTERING - Most restrictive filters first
       {
         $match: {
+          year: await getYear(request),
           ...(programId && {
             programId: new mongoose.Types.ObjectId(programId),
           }),
@@ -424,10 +426,12 @@ export async function POST(request) {
         totalMarks: 0,
       }));
 
+      const activeYear = await getYear(request);
       const reg = await ProgramRegistration.create({
         programId,
         teamId,
         participants: participantData,
+        year: activeYear,
       });
       createdRegs.push(reg);
 

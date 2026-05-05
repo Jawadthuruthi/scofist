@@ -18,8 +18,13 @@ const teamSchema = new Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true,
       uppercase: true,
+    },
+    year: {
+      type: String,
+      required: true,
+      index: true,
+      default: "2025 november",
     },
     leaderId: {
       type: String,
@@ -54,6 +59,9 @@ const teamSchema = new Schema(
 if (process.env.NODE_ENV === "development") {
   delete models.Team;
 }
+
+teamSchema.index({ name: 1, year: 1 }, { unique: true });
+teamSchema.index({ _id: 1, year: 1 }, { unique: true });
 
 const Team = models.Team || model("Team", teamSchema);
 

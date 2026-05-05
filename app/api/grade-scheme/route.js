@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import GradeScheme from "@/models/GradeScheme";
+import { getYear } from "@/lib/getYear";
 
 // Helper function to validate mark range
 function validateMarkRange(markRange) {
@@ -29,7 +30,7 @@ function validateMarkRange(markRange) {
 }
 
 // Helper function to check for overlapping ranges
-async function checkForOverlappingRanges(markRange, excludeId = null) {
+async function checkForOverlappingRanges(markRange, activeYear, excludeId = null) {
   const validation = validateMarkRange(markRange);
   if (!validation.isValid) {
     return { hasOverlap: false, error: validation.error };
@@ -37,8 +38,9 @@ async function checkForOverlappingRanges(markRange, excludeId = null) {
 
   const { min: newMin, max: newMax } = validation;
 
-  // Get all existing grade schemes
-  const query = excludeId ? { _id: { $ne: excludeId } } : {};
+  // Get all existing grade schemes for this year
+  const query = { year: activeYear };
+  if (excludeId) query._id = { $ne: excludeId };
   const existingSchemes = await GradeScheme.find(query, { markRange: 1 });
 
   for (const scheme of existingSchemes) {
@@ -104,6 +106,9 @@ export async function GET(req, res) {
     if (filterParams.points) {
       query.points = parseFloat(filterParams.points);
     }
+
+    // Add year to query
+    query.year = await getYear(req);
 
     // Execute query with pagination
     const gradeSchemes = await GradeScheme.find(query, projections)
@@ -173,7 +178,8 @@ export async function POST(req, res) {
     }
 
     // Check for overlapping ranges
-    const overlapCheck = await checkForOverlappingRanges(data.markRange);
+    const activeYear = await getYear(req);
+    const overlapCheck = await checkForOverlappingRanges(data.markRange, activeYear);
     if (overlapCheck.hasOverlap) {
       return NextResponse.json(
         { message: overlapCheck.error },
@@ -186,6 +192,7 @@ export async function POST(req, res) {
       markRange: data.markRange.trim(),
       grade: data.grade.trim().toUpperCase(),
       points: parseFloat(data.points),
+      year: activeYear,
     });
 
     return NextResponse.json(
@@ -223,8 +230,10 @@ export async function PUT(req, res) {
       }
 
       // Check for overlapping ranges (excluding current scheme)
+      const activeYear = await getYear(req);
       const overlapCheck = await checkForOverlappingRanges(
         updateData.markRange,
+        activeYear,
         gradeSchemeId
       );
       if (overlapCheck.hasOverlap) {

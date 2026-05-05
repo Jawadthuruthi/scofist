@@ -177,6 +177,9 @@ export async function POST(req, res) {
           existingSettings?.festival?.resultPosters ??
           [],
       },
+      years: data.years ?? existingSettings?.years ?? ["2025 november"],
+      activeYear:
+        data.activeYear ?? existingSettings?.activeYear ?? "2025 november",
     };
 
     if (existingSettings) {
@@ -483,6 +486,13 @@ export async function PUT(req) {
           existingSettings?.festival?.resultPosters ??
           [],
       };
+    }
+
+    if (data.years) {
+      updateData.years = data.years;
+    }
+    if (data.activeYear) {
+      updateData.activeYear = data.activeYear;
     }
 
     const updatedSettings = await Settings.findByIdAndUpdate(

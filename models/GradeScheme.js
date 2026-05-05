@@ -24,6 +24,12 @@ const GradeSchemeSchema = new Schema(
       required: true,
       min: [0, "Points must be a positive value"],
     },
+    year: {
+      type: String,
+      required: true,
+      index: true,
+      default: "2025 november",
+    },
   },
   {
     timestamps: true,

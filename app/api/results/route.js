@@ -3,6 +3,7 @@ import connectToDB from "@/lib/db";
 import Result from "@/models/Result";
 import ProgramRegistration from "@/models/ProgramRegistration";
 import GradeScheme from "@/models/GradeScheme";
+import { getYear } from "@/lib/getYear";
 
 // Helper function to calculate grade from marks
 function calculateGrade(totalMarks, gradeSchemes) {
@@ -50,6 +51,9 @@ export async function GET(request) {
       query.isResultDeclared = isResultDeclared === "true";
     }
     if (resultNumber) query.resultNumber = parseInt(resultNumber);
+
+    // Add year to query
+    query.year = await getYear(request);
 
     // Get all results with program and division details
     const results = await Result.find(query)
@@ -229,7 +233,8 @@ export async function POST(request) {
     });
 
     // Create or update result
-    let result = await Result.findOne({ programId });
+    const activeYear = await getYear(request);
+    let result = await Result.findOne({ programId, year: activeYear });
     if (result) {
       result.participants = participants;
       result.isResultDeclared = false; // Reset declaration status
@@ -239,6 +244,7 @@ export async function POST(request) {
         programId,
         participants,
         isResultDeclared: false,
+        year: activeYear,
       });
     }
 
@@ -312,9 +318,11 @@ export async function PUT(request) {
     if (newDeclarationStatus && !result.isResultDeclared) {
       // DECLARING RESULT - Find gaps first, then assign new number
 
-      // Get all declared results sorted by result number
+      // Get all declared results sorted by result number for this year
+      const activeYear = await getYear(request);
       const allDeclaredResults = await Result.find({
         resultNumber: { $ne: null },
+        year: activeYear,
       })
         .sort({ resultNumber: 1 })
         .select("resultNumber");

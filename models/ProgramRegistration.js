@@ -15,6 +15,12 @@ const programRegistrationSchema = new Schema(
       type: String,
       ref: "Team",
     },
+    year: {
+      type: String,
+      required: true,
+      index: true,
+      default: "2025 november",
+    },
     participants: [
       {
         id: {
@@ -48,7 +54,7 @@ const programRegistrationSchema = new Schema(
   }
 );
 
-programRegistrationSchema.index({ programId: 1, teamId: 1 }, { unique: true }); // Prevent duplicate registrations
+programRegistrationSchema.index({ programId: 1, teamId: 1, year: 1 }, { unique: true }); // Prevent duplicate registrations
 programRegistrationSchema.index({ "participants.id": 1 }); // For participant queries
 programRegistrationSchema.index({ "participants.totalMarks": 1 }); // For status filtering
 programRegistrationSchema.index({ "participants.codeLetter": 1 }); // For code letter filtering

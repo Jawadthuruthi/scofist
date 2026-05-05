@@ -7,6 +7,7 @@ import Participant from "@/models/Participant";
 import ProgramRegistration from "@/models/ProgramRegistration";
 import Schedule from "@/models/Schedule";
 import Result from "@/models/Result";
+import { getYear } from "@/lib/getYear";
 
 export async function GET(req, res) {
   try {
@@ -62,6 +63,9 @@ export async function GET(req, res) {
     if (filterParams.maxParticipants) {
       query.maxParticipants = parseInt(filterParams.maxParticipants);
     }
+
+    // Add year to query
+    query.year = await getYear(req);
 
     // Execute query with pagination
     const programs = await Program.find(query, projections)
@@ -160,6 +164,11 @@ export async function POST(req, res) {
         { message: "Maximum participants must be at least 1" },
         { status: 400 }
       );
+    }
+
+    // Ensure year is set
+    if (!data.year) {
+      data.year = await getYear(req);
     }
 
     // Create new program

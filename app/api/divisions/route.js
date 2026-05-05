@@ -5,6 +5,7 @@ import Division from "@/models/Division";
 import Program from "@/models/Program";
 import Result from "@/models/Result";
 import Participant from "@/models/Participant";
+import { getYear } from "@/lib/getYear";
 
 async function assignChestNumbers(
   divisionId,
@@ -85,6 +86,9 @@ export async function GET(req, res) {
       query.participantsId = { $in: filterParams.participantsId };
     }
 
+    // Add year to query
+    query.year = await getYear(req);
+
     // Execute query with pagination
     const divisions = await Division.find(query, projections)
       .populate("subDivisions", ["_id", "name"])
@@ -129,6 +133,11 @@ export async function POST(req, res) {
   try {
     await connectToDB();
     const data = await req.json();
+
+    // Ensure year is set
+    if (!data.year) {
+      data.year = await getYear(req);
+    }
 
     // Create new division
     const divisions = await Division.create(data);

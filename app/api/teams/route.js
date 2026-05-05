@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import Team from "@/models/Team";
 import apiResponse from "@/lib/apiResponse";
+import { getYear } from "@/lib/getYear";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,9 @@ export async function GET(req) {
     if (name) {
       query.name = { $regex: name, $options: "i" };
     }
+
+    // Add year to query
+    query.year = await getYear(req);
 
     const projections = {};
     if (projectionParam) {
@@ -69,6 +73,11 @@ export async function POST(req) {
   try {
     await connectToDB();
     const data = await req.json();
+
+    // Ensure year is set
+    if (!data.year) {
+      data.year = await getYear(req);
+    }
 
     const team = await Team.create(data);
 

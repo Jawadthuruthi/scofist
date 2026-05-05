@@ -3,6 +3,7 @@ import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import Schedule from "@/models/Schedule";
 import Program from "@/models/Program";
+import { getYear } from "@/lib/getYear";
 
 // Helper function to format time for display (12-hour format)
 const formatTimeForDisplay = (time24) => {
@@ -107,6 +108,9 @@ export async function GET(req, res) {
     if (filterParams.isPublished !== undefined) {
       query.isPublished = filterParams.isPublished === "true";
     }
+
+    // Add year to query
+    query.year = await getYear(req);
 
     // Execute query with pagination
     const schedules = await Schedule.find(query, projections)
@@ -297,6 +301,11 @@ export async function POST(req, res) {
           { status: 409 }
         );
       }
+    }
+
+    // Ensure year is set
+    if (!scheduleData.year) {
+      scheduleData.year = await getYear(req);
     }
 
     // Create new schedule (without status field)

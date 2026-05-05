@@ -30,6 +30,12 @@ const participantSchema = new Schema(
       trim: true,
       uppercase: true,
     },
+    year: {
+      type: String,
+      required: true,
+      index: true,
+      default: "2025 november",
+    },
     chestNumber: {
       type: Number,
     },
@@ -83,6 +89,7 @@ const participantSchema = new Schema(
 );
 
 participantSchema.index({ "programs.id": 1 }, { unique: true, sparse: true });
+participantSchema.index({ _id: 1, year: 1 }, { unique: true });
 
 const Participant =
   models.Participant || model("Participant", participantSchema);

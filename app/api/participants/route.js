@@ -7,6 +7,7 @@ import User from "@/models/User";
 import Team from "@/models/Team";
 import ProgramRegistration from "@/models/ProgramRegistration";
 import Result from "@/models/Result";
+import { getYear } from "@/lib/getYear";
 
 export async function assignChestNumbers(divisionId, participantCount) {
   try {
@@ -128,6 +129,10 @@ export async function GET(req, res) {
     if (filterParams.chestNumber) {
       query.chestNumber = parseInt(filterParams.chestNumber);
     }
+
+    // Add year to query
+    const activeYear = await getYear(req);
+    query.year = activeYear;
 
     // Handle non-responders filter at database level
     if (filterParams.nonResponders === "true") {
@@ -631,14 +636,17 @@ export async function POST(req, res) {
     }
 
     // Check if any participants already exist
+    const activeYear = await getYear(req);
+    const participantIdsWithYear = participantIds.map(id => `${id}-${activeYear}`);
+
     const existingParticipants = await Participant.find({
-      _id: { $in: participantIds },
+      _id: { $in: participantIdsWithYear },
     });
     if (existingParticipants.length > 0) {
       const existingIds = existingParticipants.map((p) => p._id);
 
       return NextResponse.json(
-        { message: `Participants already exist: ${existingIds.join(", ")}` },
+        { message: `Participants already exist for this year: ${existingIds.join(", ")}` },
         { status: 400 }
       );
     }
@@ -656,7 +664,7 @@ export async function POST(req, res) {
 
     // Create participant documents with assigned chest numbers
     const participantsToCreate = users.map((user, index) => ({
-      _id: user._id,
+      _id: `${user._id}-${activeYear}`,
       name: user.name,
       batchId,
       teamId,
@@ -665,6 +673,7 @@ export async function POST(req, res) {
       stagePoints,
       offStagePoints,
       programs: [],
+      year: activeYear,
     }));
 
     // Create all participants first

@@ -19,8 +19,13 @@ const divisionSchema = new Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true,
       uppercase: true,
+    },
+    year: {
+      type: String,
+      required: true,
+      index: true,
+      default: "2025 november",
     },
     type: {
       type: String,
@@ -150,6 +155,9 @@ divisionSchema.pre("findOneAndUpdate", async function (next) {
 
   next();
 });
+
+divisionSchema.index({ name: 1, year: 1 }, { unique: true });
+divisionSchema.index({ _id: 1, year: 1 }, { unique: true });
 
 const Division = models?.Division || model("Division", divisionSchema);
 

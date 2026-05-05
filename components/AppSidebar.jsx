@@ -72,6 +72,7 @@ import {
 import { cn } from "@/lib/utils";
 import Cookies from "js-cookie";
 import { usePathname } from "next/navigation";
+import YearSwitcher from "./YearSwitcher";
 
 // Menu items.
 const items = [
@@ -797,9 +798,12 @@ export function AppSidebar({ roles, activeRole, user }) {
             <X className="w-5 h-5" />
           </Button>
         </div>
-        <div className="mx-4">
+        <div className="mx-4 mt-4 mb-2">
           <ComboBox roles={roles} role={role} />
         </div>
+        {(role === "Program Committee" || role === "Program Leader") && (
+          <YearSwitcher />
+        )}
         <SidebarGroup className="px-4">
           <SidebarGroupContent>
             <SidebarMenu>

@@ -411,11 +411,13 @@ const SettingsSchema = new Schema(
         },
       ],
     },
-    gatePass: {
-      maxValidity: {
-        type: Number,
-        default: 15,
-      },
+    years: {
+      type: [String],
+      default: ["2025 november"],
+    },
+    activeYear: {
+      type: String,
+      default: "2025 november",
     },
   },
   { timestamps: true }

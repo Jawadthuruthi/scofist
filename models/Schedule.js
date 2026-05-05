@@ -27,6 +27,12 @@ const scheduleSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    year: {
+      type: String,
+      required: true,
+      index: true,
+      default: "2025 november",
+    },
   },
   { timestamps: true }
 );

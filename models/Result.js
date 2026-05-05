@@ -8,7 +8,12 @@ const resultSchema = new Schema(
       type: String,
       ref: "Program",
       required: true,
-      unique: true,
+    },
+    year: {
+      type: String,
+      required: true,
+      index: true,
+      default: "2025 november",
     },
     participants: [
       {
@@ -53,6 +58,8 @@ const resultSchema = new Schema(
   },
   { timestamps: true }
 );
+
+resultSchema.index({ programId: 1, year: 1 }, { unique: true });
 
 const Result = models.Result || model("Result", resultSchema);
 

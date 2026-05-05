@@ -10,6 +10,12 @@ const programSchema = new Schema(
       trim: true,
       uppercase: true,
     },
+    year: {
+      type: String,
+      required: true,
+      index: true,
+      default: "2025 november",
+    },
     rules: {
       type: String,
       trim: true,
@@ -47,7 +53,7 @@ const programSchema = new Schema(
   { timestamps: true }
 );
 
-programSchema.index({ name: 1, divisionId: 1 }, { unique: true });
+programSchema.index({ name: 1, divisionId: 1, year: 1 }, { unique: true });
 
 const Program = models?.Program || model("Program", programSchema);
 
