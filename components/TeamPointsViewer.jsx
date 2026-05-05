@@ -312,7 +312,7 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
                             </div>
                             
                             <div 
-                              className={`w-full rounded-t-[2rem] md:rounded-t-[3rem] border-t-8 border-l border-r border-b-0 relative overflow-hidden transition-all ease-out shadow-2xl flex-shrink-0`}
+                              className={`w-full rounded-t-[2rem] md:rounded-t-[3rem] border-t-8 border-l border-r border-b-0 relative overflow-hidden transition-all ease-out shadow-2xl flex-shrink-0 flex flex-col items-center justify-center`}
                               style={{ 
                                 height: revealedTeams.has(team._id) ? `${heightPercentage}%` : '0%',
                                 transitionDuration: `${revealDuration}ms`,
@@ -321,16 +321,23 @@ export default function TeamPointsViewer({ isOpen, onClose, onNavigate, apiKey, 
                                 borderColor: team.color
                               }}
                             >
+                              {/* Team Name inside the bar */}
+                              <div className={`absolute bottom-8 left-0 right-0 flex items-center justify-center transition-opacity duration-1000 ${revealedTeams.has(team._id) ? 'opacity-100' : 'opacity-0'}`}>
+                                <span 
+                                  className="text-white/90 font-black uppercase tracking-[0.2em] text-xl md:text-3xl lg:text-5xl whitespace-nowrap drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                                  style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+                                >
+                                  {team.name}
+                                </span>
+                              </div>
 
                               <div className="absolute inset-0 bg-white/5 box-border border-x border-white/10 opacity-50 group-hover:opacity-100 transition-opacity" />
                               <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/30 to-transparent mix-blend-overlay" />
                             </div>
                           </div>
      
-                          <div className="mt-8 mb-4 shrink-0 z-10 w-full text-center">
-                             <span className={`text-sm md:text-3xl lg:text-4xl font-black uppercase tracking-widest block text-balance min-w-full drop-shadow-lg ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
-                               {team.name}
-                             </span>
+                          <div className="mt-8 mb-4 shrink-0 z-10 w-full text-center h-4 md:h-12">
+                             {/* Team name moved inside bar */}
                           </div>
                         </div>
                       );
