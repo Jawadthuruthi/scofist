@@ -69,9 +69,7 @@ export default async function UpdatesPage() {
                   className="h-20 md:h-36 w-auto object-contain drop-shadow-2xl"
                 />
               )}
-              <p className="text-[8px] md:text-[10px] opacity-80 font-medium max-w-2xl mx-auto leading-none -mt-1 md:-mt-1.5 uppercase tracking-tighter">
-                Stay connected with our campus news and announcements.
-              </p>
+
             </div>
 
             {/* Organisation Logo (Right) - Increased size */}

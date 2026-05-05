@@ -5,7 +5,7 @@ import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, ChevronLeft } from "lucide-react";
-import Image from "next/image";
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ShareButton from "@/components/ShareButton";
@@ -55,21 +55,23 @@ export default async function UpdateDetailPage({ params }) {
 
   const institutionLogo = settings?.institution?.logo?.url;
   const institutionName = settings?.institution?.name || "Sadiya Dawa College";
+  const orgLogo = settings?.org?.logo?.url;
+  const orgName = settings?.org?.name || "Organisation";
+  const updatesLogo = settings?.institution?.updatesLogo?.url;
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <PublicHeader logo={institutionLogo} name={institutionName} />
+      <PublicHeader 
+        logo={institutionLogo} 
+        name={institutionName} 
+        centerLogo={updatesLogo}
+        rightLogo={orgLogo}
+        rightName={orgName}
+      />
 
       <main className="flex-1">
         <article className="max-w-4xl mx-auto py-12 px-6">
-          {/* Back Button */}
-          <Link 
-            href="/updates" 
-            className="inline-flex items-center gap-2 text-emerald-600 font-bold mb-8 hover:gap-3 transition-all group"
-          >
-            <ChevronLeft className="w-5 h-5" />
-            Back to Updates
-          </Link>
+
 
           {/* Header Info */}
           <header className="mb-10">
@@ -84,13 +86,11 @@ export default async function UpdateDetailPage({ params }) {
 
           {/* Featured Image */}
           {update.image?.url && (
-            <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-2xl mb-12 border border-gray-100">
-              <Image
+            <div className="w-full rounded-3xl overflow-hidden shadow-2xl mb-12 border border-gray-100">
+              <img
                 src={update.image.url}
                 alt={update.heading}
-                fill
-                className="object-cover"
-                priority
+                className="w-full h-auto object-contain"
               />
             </div>
           )}
@@ -110,7 +110,19 @@ export default async function UpdateDetailPage({ params }) {
             <ShareButton 
               title={update.heading} 
               text={update.news} 
+              imageUrl={update.image?.url}
             />
+          </div>
+
+          {/* Back Button - Moved to bottom */}
+          <div className="mt-12 flex justify-center">
+            <Link 
+              href="/updates" 
+              className="inline-flex items-center gap-2 text-emerald-600 font-bold hover:gap-3 transition-all group"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              Back to Updates
+            </Link>
           </div>
         </article>
       </main>
