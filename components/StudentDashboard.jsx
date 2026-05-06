@@ -214,7 +214,8 @@ function DownloadsTabContent({ apiKey }) {
   return (
     <div className="space-y-4">
       {/* Sub-tab Switcher */}
-      <div className="flex gap-2 border-b pb-3">
+      <div className="flex gap-2 border-b pb-3 overflow-x-auto no-scrollbar">
+
         {subTabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeSubTab === tab.id;
@@ -239,8 +240,9 @@ function DownloadsTabContent({ apiKey }) {
       {activeSubTab === "PAPERS" && (
         papersLoading ? <LoadingState /> :
         !papers.length ? <EmptyState icon={FileText} color="text-teal-500" label="Question Papers" /> :
-        <div className="rounded-md border overflow-hidden">
-          <Table>
+        <div className="rounded-md border overflow-hidden overflow-x-auto">
+          <Table className="min-w-[500px]">
+
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="py-3 text-xs font-bold uppercase w-[50px]">No</TableHead>
@@ -287,8 +289,9 @@ function DownloadsTabContent({ apiKey }) {
       {activeSubTab === "SYLLABUS" && (
         syllabusLoading ? <LoadingState /> :
         !syllabuses.length ? <EmptyState icon={FileText} color="text-indigo-500" label="Syllabuses" /> :
-        <div className="rounded-md border overflow-hidden">
-          <Table>
+        <div className="rounded-md border overflow-hidden overflow-x-auto">
+          <Table className="min-w-[400px]">
+
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="py-3 text-xs font-bold uppercase w-[50px]">No</TableHead>
@@ -333,8 +336,9 @@ function DownloadsTabContent({ apiKey }) {
       {activeSubTab === "BOOKS" && (
         booksLoading ? <LoadingState /> :
         !books.length ? <EmptyState icon={BookOpen} color="text-amber-500" label="Books" /> :
-        <div className="rounded-md border overflow-hidden">
-          <Table>
+        <div className="rounded-md border overflow-hidden overflow-x-auto">
+          <Table className="min-w-[380px]">
+
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="py-3 text-xs font-bold uppercase w-[50px]">No</TableHead>
