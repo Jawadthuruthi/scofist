@@ -23,22 +23,38 @@ export async function GET(request) {
           select: "name",
         },
       })
-      .populate({
-        path: "participants.id",
-        select: "name chestNumber teamId _id",
-        populate: {
-          path: "teamId",
-          select: "name color",
-        },
-      })
       .lean();
+
+    // Manual fallback for participants if populate failed
+    const participantIdsToFetch = new Set();
+    results.forEach(res => {
+      res.participants.forEach(p => {
+        if (!p.id || typeof p.id === 'string') {
+          const pid = p.id?._id || p.id;
+          if (pid) participantIdsToFetch.add(pid);
+        }
+      });
+    });
+
+    let manualParticipantMap = {};
+    if (participantIdsToFetch.size > 0) {
+      const manualParticipants = await Participant.find({ 
+        _id: { $in: Array.from(participantIdsToFetch) } 
+      }).populate('teamId', 'name color').lean();
+      
+      manualParticipants.forEach(p => {
+        manualParticipantMap[String(p._id)] = p;
+      });
+    }
 
     // Collect all unique user IDs for winners
     const userIds = new Set();
     results.forEach((res) => {
       res.participants.forEach((p) => {
-        if (p.rank >= 1 && p.rank <= 3 && p.id && p.id._id) {
-          userIds.add(p.id._id);
+        const participantDoc = p.id && typeof p.id === 'object' && p.id.name ? p.id : manualParticipantMap[String(p.id?._id || p.id)];
+        if (p.rank >= 1 && p.rank <= 3 && participantDoc) {
+          const userId = String(participantDoc._id).split("-")[0];
+          userIds.add(userId);
         }
       });
     });
@@ -51,7 +67,7 @@ export async function GET(request) {
 
     const userProfileMap = {};
     users.forEach((u) => {
-      userProfileMap[u._id] = u.profilePic?.url || null;
+      userProfileMap[String(u._id)] = u.profilePic?.url || null;
     });
 
     const winnersMap = new Map();
@@ -76,16 +92,18 @@ export async function GET(request) {
 
       // Only take ranks 1 to 3
       res.participants.forEach((p) => {
-        if (!p.id || p.rank < 1 || p.rank > 3) return;
-        const participantObj = p.id;
+        const participantObj = (p.id && typeof p.id === 'object' && p.id.name) ? p.id : manualParticipantMap[String(p.id?._id || p.id)];
+        if (!participantObj || p.rank < 1 || p.rank > 3) return;
         
+        const userId = String(participantObj._id).split("-")[0];
+
         programData.winners.push({
           _id: participantObj._id,
           name: participantObj.name,
           chestNumber: participantObj.chestNumber || "N/A",
           teamName: participantObj.teamId?.name || "Unknown",
           teamColor: participantObj.teamId?.color || "#808080",
-          profilePic: userProfileMap[participantObj._id] || null,
+          profilePic: userProfileMap[userId] || null,
           rank: p.rank,
           points: p.points,
           grade: p.grade,

@@ -519,7 +519,6 @@ export async function GET(req, res) {
 
     // Regular participant fetching (non-filtered, non-sorted by points)
     const participants = await Participant.find(query, projections)
-      .populate("_id", ["_id", "name", "profilePic"])
       .populate("batchId", ["_id", "name"])
       .populate("teamId", ["_id", "name"])
       .populate("divisionId", ["_id", "name"])
@@ -539,14 +538,22 @@ export async function GET(req, res) {
       .sort(sortCriteria)
       .collation({ locale: "en_US", numericOrdering: true });
 
+    // Fetch profile pics for participants (participant._id is "userId-year")
+    const userIds = participants.map((p) => String(p._id).split("-")[0]).filter(Boolean);
+    const users = await User.find({ _id: { $in: userIds } }, "profilePic").lean();
+    const profilePicMap = {};
+    users.forEach((u) => { profilePicMap[String(u._id)] = u.profilePic?.url || null; });
+
     const total = await Participant.countDocuments(query);
 
     console.log(filterParams);
 
-    const formattedParticipants = participants.map((participant) => ({
+    const formattedParticipants = participants.map((participant) => {
+      const userId = String(participant._id).split("-")[0];
+      return {
       ...participant.toObject(),
-      _id: participant._id?._id,
-      profilePic: participant._id?.profilePic,
+      _id: participant._id,
+      profilePic: profilePicMap[userId] || null,
       batchId: participant.batchId?._id,
       batchName: participant.batchId?.name || "Unknown",
       teamId: participant.teamId?._id,
@@ -571,7 +578,8 @@ export async function GET(req, res) {
         divisionId: program?.id?.divisionId?._id,
         divisionType: program?.id?.divisionId?.type,
       })),
-    }));
+    };
+    });
 
     return NextResponse.json(
       {

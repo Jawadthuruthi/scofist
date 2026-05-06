@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 
@@ -145,7 +145,7 @@ export default async function BatchesPage() {
           title="BATCHES MANAGEMENT"
           subTitle="Organize and Oversee Batches"
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="batches"
           initialData={[]}
           columnsConfig={columnsConfig}

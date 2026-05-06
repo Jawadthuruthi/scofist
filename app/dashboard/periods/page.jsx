@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 
@@ -83,7 +83,7 @@ export default async function PeriodsPage() {
           title="PERIODS MANAGEMENT"
           subTitle="Organize and Oversee Periods"
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="periods"
           initialData={[]}
           columnsConfig={columnsConfig}

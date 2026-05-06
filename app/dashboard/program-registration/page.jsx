@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions, parseUser } from "@/lib/utils";
@@ -254,7 +254,7 @@ export default async function ProgramRegistrationPage() {
               : ""
           }
         />
-        <DataTableComponent
+        <DynamicDataTable
           apiEndpoint="program-registration"
           resource="registrations"
           initialData={[]}

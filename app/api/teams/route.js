@@ -31,6 +31,8 @@ export async function GET(req) {
       });
     }
 
+    const sortByPoints = url.searchParams.get("sortByPoints") === "true";
+
     const total = await Team.countDocuments(query);
     const teams = await Team.find(query, projections)
       .populate("leaderId", "name")
@@ -40,10 +42,15 @@ export async function GET(req) {
 
     const formattedTeams = teams.map((team) => ({
       ...team,
+      totalPoints: (team.stagePoints || 0) + (team.offStagePoints || 0),
       leaderName: team.leaderId?.name || "N/A",
       color: team.color || "#808080",
       membersCount: team.membersId?.length || 0,
     }));
+
+    if (sortByPoints) {
+      formattedTeams.sort((a, b) => b.totalPoints - a.totalPoints);
+    }
 
     return NextResponse.json(
       {

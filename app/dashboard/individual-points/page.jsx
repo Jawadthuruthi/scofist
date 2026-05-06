@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
@@ -82,7 +82,7 @@ export default async function IndividualPointsPage() {
           title="INDIVIDUAL POINTS"
           subTitle={`Participant result after ${results?.length} results.`}
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="participants"
           initialData={[]}
           columnsConfig={columnsConfig}

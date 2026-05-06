@@ -1,4 +1,4 @@
-import ResultComponent from "@/components/ResultComponent";
+import ResultComponentWrapper from "@/components/ResultComponentWrapper";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, parseUser } from "@/lib/utils";
@@ -43,7 +43,7 @@ export default async function ResultPage() {
           subTitle="Manage and Declare Competition Results"
         />
         <div className="p-4">
-          <ResultComponent
+          <ResultComponentWrapper
             programs={sortedPrograms}
             divisions={divisions}
             apiKey={apiKey}

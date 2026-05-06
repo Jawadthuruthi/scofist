@@ -3,7 +3,7 @@ import Header from "@/components/Header";
 import AdvancedDataTableComponent from "@/components/AdvancedDataTableComponent";
 import { fetchData, formatOptions, parseUser } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 
 export default async function RegistrationStatusPage() {
   try {
@@ -143,7 +143,7 @@ export default async function RegistrationStatusPage() {
               : "View Your Team's Registration Status"
           }
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="unregisteredPrograms"
           apiEndpoint="program-registration/unregistered"
           printTitle="Unregistered Programs"

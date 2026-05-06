@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
@@ -67,15 +67,16 @@ export default async function WinnersListPage() {
     return (
       <>
         <Header title="WINNERS LIST" subTitle="View Winners List" />
-        <DataTableComponent
+        <DynamicDataTable
           resource="results"
           initialData={[]}
           columnsConfig={columnsConfig}
           apiKey={apiKey}
-          limit={20}
+          limit={100}
           readOnly={true}
+          filterType="api"
           apiFilters={{
-            isResultDeclared: true,
+            isResultDeclared: "true",
           }}
           filterConfig={filterConfig}
           isFestival={true}

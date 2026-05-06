@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions, OPERATORS } from "@/lib/utils";
@@ -159,7 +159,7 @@ export default async function GroupsPage() {
           title="GROUPS MANAGEMENT"
           subTitle="Organize and Oversee Groups"
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="groups"
           apiEndpoint="literary/groups"
           initialData={groups}

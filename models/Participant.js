@@ -11,11 +11,10 @@ const participantSchema = new Schema(
     _id: {
       type: String,
       required: true,
-      uppercase: true,
       trim: true,
       match: [
-        /^[A-Z0-9-]+$/,
-        "Participant ID must only contain uppercase letters, numbers, and hyphens (-).",
+        /^[a-zA-Z0-9-\s]+$/,
+        "Participant ID must only contain letters, numbers, hyphens (-), and spaces.",
       ],
       ref: "User",
     },
@@ -91,7 +90,6 @@ const participantSchema = new Schema(
 participantSchema.index({ "programs.id": 1 }, { unique: true, sparse: true });
 participantSchema.index({ _id: 1, year: 1 }, { unique: true });
 
-const Participant =
-  models.Participant || model("Participant", participantSchema);
-
+if (models.Participant) delete models.Participant;
+const Participant = model("Participant", participantSchema);
 export default Participant;

@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData } from "@/lib/utils";
@@ -50,15 +50,15 @@ export default async function TeamPointsPage() {
           title="TEAM POINTS"
           subTitle={`Team result after ${results?.length} results.`}
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="teams"
           initialData={[]}
           columnsConfig={columnsConfig}
           apiKey={apiKey}
           filterConfig={filterConfig}
-          limit={20}
+          limit={100}
           readOnly={true}
-          apiFilters={{ sortByPoints: true }}
+          apiFilters={{ sortByPoints: "true" }}
         />
       </>
     );

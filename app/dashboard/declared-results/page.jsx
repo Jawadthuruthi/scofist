@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
@@ -43,7 +43,7 @@ export default async function DeclaredResultsPage() {
           title="DECLARED RESULTS"
           subTitle="View and Manage Declared Results"
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="results"
           initialData={[]}
           columnsConfig={columnsConfig}

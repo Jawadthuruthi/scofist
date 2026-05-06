@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { cookies } from "next/headers";
@@ -117,7 +117,7 @@ export default async function GradeSchemePage() {
           title="GRADE SCHEME MANAGEMENT"
           subTitle="Define and Manage Grading Standards"
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="gradeSchemes"
           apiEndpoint="grade-scheme"
           initialData={[]}

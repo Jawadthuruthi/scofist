@@ -1,5 +1,5 @@
 // app/dashboard/pending-codeletters/page.jsx
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
@@ -81,7 +81,7 @@ export default async function PendingCodeLettersPage() {
           title="PENDING CODE LETTERS"
           subTitle="Programs with no team registrations"
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="pending-codeletters"
           apiEndpoint="pending-codeletters"
           columnsConfig={columnsConfig}

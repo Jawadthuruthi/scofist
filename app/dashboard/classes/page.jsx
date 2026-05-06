@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
@@ -131,7 +131,7 @@ export default async function ClassesPage() {
           title="CLASSES MANAGEMENT"
           subTitle="Organize and Oversee Classes"
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="classes"
           initialData={[]}
           columnsConfig={columnsConfig}

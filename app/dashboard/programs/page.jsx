@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
@@ -163,7 +163,7 @@ export default async function ProgramsPage() {
           title="PROGRAMS MANAGEMENT"
           subTitle="Organize and Oversee Programs"
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="programs"
           initialData={[]}
           columnsConfig={filteredColumnsConfig}
@@ -176,7 +176,7 @@ export default async function ProgramsPage() {
           editSuccessMessage={statusMessages.edit}
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
-          limit={20}
+          limit={1000}
           readOnly={activeRole !== "Program Committee"}
           isFestival={true}
         />

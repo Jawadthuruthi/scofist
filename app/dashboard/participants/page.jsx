@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions, parseUser } from "@/lib/utils";
@@ -217,7 +217,7 @@ export default async function ParticipantsPage() {
           title="PARTICIPANTS MANAGEMENT"
           subTitle="Organize and Oversee Participants"
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="participants"
           initialData={[]}
           columnsConfig={filteredColumnsConfig}
@@ -231,7 +231,7 @@ export default async function ParticipantsPage() {
           editSuccessMessage={statusMessages.edit}
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
-          limit={20}
+          limit={1000}
           readOnly={activeRole !== "Program Committee"}
           apiFilters={
             activeRole === "Program Leader"

@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
@@ -66,7 +66,7 @@ export default async function NonRespondersPage() {
           title="NON-RESPONDERS"
           subTitle="Participants without code letters for registered programs"
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="participants"
           initialData={[]}
           columnsConfig={columnsConfig}

@@ -1,5 +1,5 @@
 // app/dashboard/undeclared-results/page.jsx
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
@@ -99,7 +99,7 @@ export default async function UndeclaredResultsPage() {
           title="UNDECLARED RESULTS"
           subTitle="Evaluated programs ready for result declaration"
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="undeclared-results"
           apiEndpoint="undeclared-results"
           columnsConfig={columnsConfig}

@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import FinanceStats from "./_components/FinanceStats";
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import { Loader2, IndianRupee } from "lucide-react";
 
 export default function FinancePage() {
@@ -149,7 +149,7 @@ export default function FinancePage() {
 
       <FinanceStats summary={summary} />
 
-      <DataTableComponent
+      <DynamicDataTable
         resource="finance"
         apiEndpoint="/api/finance"
         columnsConfig={columnsConfig}

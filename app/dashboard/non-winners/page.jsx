@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
@@ -58,7 +58,7 @@ export default async function NonWinnersPage() {
     return (
       <>
         <Header title="NON-WINNERS" subTitle="View Non-Winning Participants" />
-        <DataTableComponent
+        <DynamicDataTable
           resource="participants"
           initialData={[]}
           columnsConfig={columnsConfig}

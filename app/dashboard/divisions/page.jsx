@@ -1,4 +1,4 @@
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
@@ -160,7 +160,7 @@ export default async function DivisionsPage() {
           title="DIVISIONS MANAGEMENT"
           subTitle="Organize and Oversee Divisions"
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="divisions"
           initialData={[]}
           columnsConfig={filteredColumnsConfig}

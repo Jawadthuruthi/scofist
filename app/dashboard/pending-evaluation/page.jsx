@@ -1,5 +1,5 @@
 // app/dashboard/pending-evaluation/page.jsx
-import DataTableComponent from "@/components/DataTableComponent";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
@@ -85,7 +85,7 @@ export default async function PendingEvaluationPage() {
           title="PENDING EVALUATION"
           subTitle="Programs with code letters assigned but not evaluated"
         />
-        <DataTableComponent
+        <DynamicDataTable
           resource="pending-evaluation"
           apiEndpoint="pending-evaluation"
           columnsConfig={columnsConfig}

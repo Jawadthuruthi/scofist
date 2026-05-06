@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
-import Result from "@/models/Result";
-import ProgramRegistration from "@/models/ProgramRegistration";
-import GradeScheme from "@/models/GradeScheme";
+import Result from "@/models/Result.js";
+import ProgramRegistration from "@/models/ProgramRegistration.js";
+import GradeScheme from "@/models/GradeScheme.js";
+import Program from "@/models/Program.js";
+import Division from "@/models/Division.js";
+import Participant from "@/models/Participant.js";
+import Team from "@/models/Team.js";
 import { getYear } from "@/lib/getYear";
 
 // Helper function to calculate grade from marks
@@ -56,6 +60,7 @@ export async function GET(request) {
     query.year = await getYear(request);
 
     // Get all results with program and division details
+    // Use .lean() to prevent Mongoose from casting string IDs to null
     const results = await Result.find(query)
       .populate({
         path: "programId",
@@ -65,16 +70,31 @@ export async function GET(request) {
           select: "name type",
         },
       })
-      .populate({
-        path: "participants.id",
-        select: "name age chestNumber teamId",
-        populate: {
-          path: "teamId",
-          select: "name color",
-        },
-      })
       .sort({ resultNumber: 1 })
-      .skip(skip);
+      .skip(skip)
+      .lean();
+
+    // Manual fallback for participants if populate failed
+    const participantIdsToFetch = new Set();
+    results.forEach(res => {
+      res.participants.forEach(p => {
+        if (!p.id || typeof p.id === 'string') {
+          const pid = p.id?._id || p.id;
+          if (pid) participantIdsToFetch.add(pid);
+        }
+      });
+    });
+
+    let manualParticipantMap = {};
+    if (participantIdsToFetch.size > 0) {
+      const manualParticipants = await Participant.find({ 
+        _id: { $in: Array.from(participantIdsToFetch) } 
+      }).populate('teamId', 'name color').lean();
+      
+      manualParticipants.forEach(p => {
+        manualParticipantMap[String(p._id)] = p;
+      });
+    }
 
     // Filter results based on additional criteria
     let filteredResults = results.filter((result) => {
@@ -93,6 +113,10 @@ export async function GET(request) {
         return false;
       }
 
+      if (rank && !result.participants.some(p => p.rank == parseInt(rank))) {
+        return false;
+      }
+
       return true;
     });
 
@@ -100,15 +124,20 @@ export async function GET(request) {
     const userIds = new Set();
     results.forEach(res => {
       res.participants.forEach(p => {
-        if (p.id) userIds.add(p.id._id || p.id);
+        const participantDoc = p.id && typeof p.id === 'object' ? p.id : manualParticipantMap[String(p.id?._id || p.id)];
+        if (participantDoc) {
+          const participantId = participantDoc._id;
+          const userId = String(participantId).split("-")[0];
+          userIds.add(userId);
+        }
       });
     });
 
-    const User = (await import("@/models/User")).default;
+    const User = (await import("@/models/User.js")).default;
     const users = await User.find({ _id: { $in: Array.from(userIds) } }, "profilePic").lean();
     const userProfileMap = {};
     users.forEach(u => {
-      userProfileMap[u._id] = u.profilePic?.url || null;
+      userProfileMap[String(u._id)] = u.profilePic?.url || null;
     });
 
     const formattedResults = filteredResults.map((result, index) => ({
@@ -120,16 +149,33 @@ export async function GET(request) {
       pointScheme: result.programId.pointScheme,
       divisionId: result.programId.divisionId?._id,
       divisionName: result.programId.divisionId?.name,
-      participants: result.participants.map((p) => ({
-        ...p.toObject(),
-        participantDetails: {
-          ...p.id.toObject(),
-          profilePic: userProfileMap[p.id._id || p.id] || null
-        },
-      })),
+      participants: result.participants.map((p) => {
+        const participantDoc = (p.id && typeof p.id === 'object' && p.id.name) 
+          ? p.id 
+          : manualParticipantMap[String(p.id?._id || p.id)];
+        
+        const participantId = participantDoc?._id || p.id?._id || p.id;
+        const userId = participantId ? String(participantId).split("-")[0] : null;
+        
+        return {
+          ...p,
+          participantDetails: participantDoc
+            ? {
+                ...participantDoc,
+                profilePic: userId ? userProfileMap[userId] || null : null,
+              }
+            : null,
+        };
+      }),
       winners: result.participants
         ?.filter((p) => p.rank < 4 && (!rank || p.rank == rank))
-        .map((p) => `${p.rank}. ${p.id.name}`),
+        .map((p) => {
+          const pDoc = (p.id && typeof p.id === 'object' && p.id.name) 
+            ? p.id 
+            : manualParticipantMap[String(p.id?._id || p.id)];
+          return `${p.rank}. ${pDoc?.name || "Unknown"}`;
+        }),
+
       isResultDeclared: result.isResultDeclared,
       resultNumber: result.resultNumber,
       createdAt: result.createdAt,
