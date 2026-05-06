@@ -50,6 +50,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { saveAs } from "file-saver";
+
 
 
 
@@ -78,7 +80,12 @@ const ProfileField = ({ label, subLabel, value, isBold }) =>
   ) : null;
 
 function DownloadsTabContent({ apiKey }) {
+  React.useEffect(() => {
+    console.log("DownloadsTabContent initialized with apiKey:", apiKey ? "Present" : "Missing");
+  }, [apiKey]);
+
   const [activeSubTab, setActiveSubTab] = React.useState("PAPERS");
+
 
   // -- Question Papers --
   const [papers, setPapers] = React.useState([]);
@@ -123,19 +130,63 @@ function DownloadsTabContent({ apiKey }) {
     }
   }, [activeSubTab, apiKey]);
 
-  // Open Cloudinary URL directly — no proxy needed for public Cloudinary files
-  const handleOpen = (fileUrl) => {
+  const [downloadingId, setDownloadingId] = React.useState(null);
+
+  const handleDownload = async (fileUrl, filename, downloadId) => {
     if (!fileUrl) return;
-    let url = fileUrl;
-    // Force PDF transformation for Cloudinary images if they want it in PDF format
-    if (url.includes("cloudinary.com") && !url.toLowerCase().endsWith(".pdf")) {
-      const parts = url.split("/upload/");
-      if (parts.length === 2) {
-        url = `${parts[0]}/upload/f_pdf/${parts[1].replace(/\.[^/.]+$/, ".pdf")}`;
+    setDownloadingId(downloadId);
+    console.log("[Download] Starting:", filename);
+    console.log("[Download] apiKey present:", !!apiKey);
+    console.log("[Download] fileUrl:", fileUrl);
+    try {
+      let url = fileUrl;
+      // Force PDF transformation only for Cloudinary images (avoiding raw files like .docx)
+      if (url.includes("cloudinary.com") && url.includes("/image/upload/") && !url.toLowerCase().endsWith(".pdf")) {
+        const parts = url.split("/upload/");
+        if (parts.length === 2) {
+          url = `${parts[0]}/upload/f_pdf/${parts[1].replace(/\.[^/.]+$/, ".pdf")}`;
+        }
       }
+
+      const proxyUrl = `/api/download-file?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+      console.log("[Download] proxyUrl:", proxyUrl);
+
+      const response = await fetch(proxyUrl, {
+        headers: { "api-key": apiKey || "" }
+      });
+
+      console.log("[Download] response.status:", response.status);
+      console.log("[Download] response.ok:", response.ok);
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        console.error("[Download] Error status:", response.status);
+        console.error("[Download] Error content-type:", response.headers.get("content-type"));
+        console.error("[Download] Error body:", errorText.substring(0, 500));
+
+        let errorMessage = `Server error (${response.status})`;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          // not JSON
+        }
+        throw new Error(errorMessage);
+      }
+
+      const blob = await response.blob();
+      console.log("[Download] Blob size:", blob.size, "type:", blob.type);
+      saveAs(blob, filename);
+      toast.success("Download started!");
+    } catch (error) {
+      console.error("Download failed:", error);
+      toast.error(error.message || "Failed to download file");
+    } finally {
+
+      setDownloadingId(null);
     }
-    window.open(url, "_blank", "noopener,noreferrer");
   };
+
 
   const subTabs = [
     { id: "PAPERS", label: "Question Papers", icon: FileText, color: "text-teal-600 dark:text-teal-400", activeBg: "bg-teal-50 dark:bg-teal-900/20 border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300" },
@@ -209,10 +260,22 @@ function DownloadsTabContent({ apiKey }) {
                   <TableCell className="py-2.5 text-sm">Sem {d.semester}</TableCell>
                   <TableCell className="py-2.5 text-sm font-semibold text-teal-700 dark:text-teal-300">{d.subject}</TableCell>
                   <TableCell className="py-2.5 text-right">
-                    <Button size="sm" variant="outline" className="text-teal-600 border-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20" onClick={() => handleOpen(d.fileUrl)}>
-                      <Download className="h-3.5 w-3.5 mr-1" />Open
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-teal-600 border-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20" 
+                      onClick={() => handleDownload(d.fileUrl, `${d.subject}_${d.course}_Year${d.year}_Sem${d.semester}.pdf`.replace(/\s+/g, "_"), d._id)}
+                      disabled={downloadingId === d._id}
+                    >
+                      {downloadingId === d._id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5 mr-1" />
+                      )}
+                      {downloadingId === d._id ? "Wait..." : "Download"}
                     </Button>
                   </TableCell>
+
                 </TableRow>
               ))}
             </TableBody>
@@ -243,10 +306,22 @@ function DownloadsTabContent({ apiKey }) {
                   <TableCell className="py-2.5 text-sm">{s.year}</TableCell>
                   <TableCell className="py-2.5 text-sm font-semibold text-indigo-700 dark:text-indigo-300">{s.fileName || "Syllabus"}</TableCell>
                   <TableCell className="py-2.5 text-right">
-                    <Button size="sm" variant="outline" className="text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20" onClick={() => handleOpen(s.fileUrl)}>
-                      <Download className="h-3.5 w-3.5 mr-1" />Open
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20" 
+                      onClick={() => handleDownload(s.fileUrl, `${s.course}_Year${s.year}_Syllabus.pdf`.replace(/\s+/g, "_"), s._id)}
+                      disabled={downloadingId === s._id}
+                    >
+                      {downloadingId === s._id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5 mr-1" />
+                      )}
+                      {downloadingId === s._id ? "Wait..." : "Download"}
                     </Button>
                   </TableCell>
+
                 </TableRow>
               ))}
             </TableBody>
@@ -275,10 +350,22 @@ function DownloadsTabContent({ apiKey }) {
                   <TableCell className="py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-300">{b.name}</TableCell>
                   <TableCell className="py-2.5 text-sm">{b.course || "—"}</TableCell>
                   <TableCell className="py-2.5 text-right">
-                    <Button size="sm" variant="outline" className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20" onClick={() => handleOpen(b.fileUrl)}>
-                      <Download className="h-3.5 w-3.5 mr-1" />Open
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20" 
+                      onClick={() => handleDownload(b.fileUrl, `${b.name}.pdf`.replace(/\s+/g, "_"), b._id)}
+                      disabled={downloadingId === b._id}
+                    >
+                      {downloadingId === b._id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5 mr-1" />
+                      )}
+                      {downloadingId === b._id ? "Wait..." : "Download"}
                     </Button>
                   </TableCell>
+
                 </TableRow>
               ))}
             </TableBody>

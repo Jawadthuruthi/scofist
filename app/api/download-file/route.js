@@ -68,15 +68,20 @@ export async function GET(req) {
     );
 
     // Return the file with proper headers for download
+    // Use RFC 5987 encoding (filename*) to support Unicode/Arabic filenames in HTTP headers
+    const encodedFilename = encodeURIComponent(filename).replace(/'/g, "%27");
+    const asciiFilename = filename.replace(/[^\x00-\x7F]/g, "_"); // ASCII fallback for older clients
+
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Disposition": `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`,
         "Content-Length": buffer.byteLength.toString(),
         "Cache-Control": "no-cache",
       },
     });
+
   } catch (error) {
     console.error("Download error:", error);
     return NextResponse.json(

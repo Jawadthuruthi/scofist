@@ -194,24 +194,28 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
     }
   };
 
-  const handleDownload = async (fileUrl, subject, downloadId) => {
+  const handleDownload = async (download, downloadId) => {
+    const { fileUrl, subject, course, year, semester } = download;
     setDownloadingId(downloadId);
     try {
-      // Extract the actual filename from Cloudinary URL
-      // Example: https://res.cloudinary.com/.../downloads/file_ia0po8.pdf
-      const urlParts = fileUrl.split("/");
-      const cloudinaryFilename = urlParts[urlParts.length - 1];
+      let url = fileUrl;
+      // Force PDF transformation only for Cloudinary images (avoiding raw files like .docx)
+      if (url.includes("cloudinary.com") && url.includes("/image/upload/") && !url.toLowerCase().endsWith(".pdf")) {
+        const parts = url.split("/upload/");
+        if (parts.length === 2) {
+          url = `${parts[0]}/upload/f_pdf/${parts[1].replace(/\.[^/.]+$/, ".pdf")}`;
+        }
+      }
+
 
       // Generate clean filename with subject name, enforcing PDF extension
-      const filename = `${subject.replace(/\s+/g, "_")}.pdf`;
-
-      console.log("Downloading:", {
-        cloudinaryUrl: fileUrl,
-        finalFilename: filename,
-      });
+      const filename = `${subject}_${course}_Year${year}_Sem${semester}.pdf`.replace(/\s+/g, "_");
 
       // Use API proxy route to avoid CORS issues
-      const proxyUrl = `/api/download-file?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(filename)}`;
+      const proxyUrl = `/api/download-file?url=${encodeURIComponent(
+        url
+      )}&filename=${encodeURIComponent(filename)}`;
+
 
       // Fetch through proxy
       const response = await fetch(proxyUrl, {
@@ -500,11 +504,11 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                               variant="outline"
                               onClick={() =>
                                 handleDownload(
-                                  download.fileUrl,
-                                  download.subject,
+                                  download,
                                   download._id
                                 )
                               }
+
                               disabled={downloadingId === download._id}
                             >
                               {downloadingId === download._id ? (

@@ -183,11 +183,22 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
   const handleDownload = async (fileUrl, course, year, downloadId) => {
     setDownloadingId(downloadId);
     try {
-      const filename = `${course}_${year}_syllabus.pdf`;
+      let url = fileUrl;
+      // Force PDF transformation only for Cloudinary images (avoiding raw files like .docx)
+      if (url.includes("cloudinary.com") && url.includes("/image/upload/") && !url.toLowerCase().endsWith(".pdf")) {
+        const parts = url.split("/upload/");
+        if (parts.length === 2) {
+          url = `${parts[0]}/upload/f_pdf/${parts[1].replace(/\.[^/.]+$/, ".pdf")}`;
+        }
+      }
+
+
+      const filename = `${course}_Year${year}_Syllabus.pdf`.replace(/\s+/g, "_");
 
       const proxyUrl = `/api/download-file?url=${encodeURIComponent(
-        fileUrl
+        url
       )}&filename=${encodeURIComponent(filename)}`;
+
 
       const response = await fetch(proxyUrl, {
         headers: {

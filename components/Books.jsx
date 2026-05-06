@@ -177,10 +177,21 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
   const handleDownload = async (book, downloadId) => {
     setDownloadingId(downloadId);
     try {
-      const filename = `${book.course}_${book.name}_book.pdf`;
+      let url = book.fileUrl;
+      // Force PDF transformation only for Cloudinary images (avoiding raw files like .docx)
+      if (url.includes("cloudinary.com") && url.includes("/image/upload/") && !url.toLowerCase().endsWith(".pdf")) {
+        const parts = url.split("/upload/");
+        if (parts.length === 2) {
+          url = `${parts[0]}/upload/f_pdf/${parts[1].replace(/\.[^/.]+$/, ".pdf")}`;
+        }
+      }
+
+
+      const filename = `${book.name}.pdf`.replace(/\s+/g, "_");
       const proxyUrl = `/api/download-file?url=${encodeURIComponent(
-        book.fileUrl
+        url
       )}&filename=${encodeURIComponent(filename)}`;
+
       const response = await fetch(proxyUrl, {
         headers: {
           "api-key": apiKey,
