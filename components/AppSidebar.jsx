@@ -646,7 +646,10 @@ function ComboBox({ roles, role }) {
                 <CommandItem
                   key={role}
                   value={role}
-                  className={cn(value === role && "bg-accent text-accent-foreground")}
+                  className={cn(
+                    "data-[selected='true']:bg-transparent data-[selected='true']:text-foreground",
+                    value === role && "bg-accent text-accent-foreground !bg-accent !text-accent-foreground"
+                  )}
                   onSelect={(currentValue) => {
                     setValue(currentValue === value ? "" : currentValue);
                     setOpen(false);
@@ -798,7 +801,7 @@ export function AppSidebar({ roles, activeRole, user }) {
             <X className="w-5 h-5" />
           </Button>
         </div>
-        <div className="mx-4 mt-4 mb-2">
+        <div className="mx-4">
           <ComboBox roles={roles} role={role} />
         </div>
         {(role === "Program Committee" || role === "Program Leader") && (
