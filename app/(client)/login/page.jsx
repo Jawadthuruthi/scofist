@@ -55,6 +55,28 @@ export default function LoginPage() {
     fetchSettings();
   }, []);
 
+  // Auto-redirect for OTP Sent
+  useEffect(() => {
+    if (otpSentSuccess) {
+      const timer = setTimeout(() => {
+        setOtpSentSuccess(false);
+        router.push(`/otp?email=${encodeURIComponent(email)}`);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpSentSuccess, email, router]);
+
+  // Auto-redirect for Student Login Success
+  useEffect(() => {
+    if (loginSuccess) {
+      const timer = setTimeout(() => {
+        setLoginSuccess(false);
+        router.push("/dashboard");
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [loginSuccess, router]);
+
   const handleSendOTP = async (e) => {
     e.preventDefault();
     setFormErrors(prev => ({ ...prev, otp: "" }));
@@ -142,6 +164,7 @@ export default function LoginPage() {
                       type="email"
                       placeholder="you@example.com"
                       required
+                      autoFocus
                       className={`pl-10 ${formErrors.otp ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}

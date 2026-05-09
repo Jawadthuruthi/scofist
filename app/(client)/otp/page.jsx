@@ -45,6 +45,27 @@ export default function OTPVerification() {
     }
   }, [countdown]);
 
+  // Auto-close Resend Success Dialog
+  useEffect(() => {
+    if (resendSuccess) {
+      const timer = setTimeout(() => {
+        setResendSuccess(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendSuccess]);
+
+  // Auto-redirect for Verification Success
+  useEffect(() => {
+    if (verifySuccess) {
+      const timer = setTimeout(() => {
+        setVerifySuccess(false);
+        router.push("/dashboard");
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [verifySuccess, router]);
+
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -146,6 +167,7 @@ export default function OTPVerification() {
                 maxLength={6}
                 value={otp}
                 onChange={(value) => setOtp(value)}
+                autoFocus
                 className="mx-auto"
               >
                 <InputOTPGroup>
@@ -241,15 +263,7 @@ export default function OTPVerification() {
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-col gap-2 mt-2">
-            <AlertDialogAction 
-              onClick={() => {
-                setVerifySuccess(false);
-                router.push("/dashboard");
-              }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-blue-500/25"
-            >
-              Go to Dashboard
-            </AlertDialogAction>
+            {/* Auto-redirecting... */}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
