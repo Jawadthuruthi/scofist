@@ -50,6 +50,7 @@ const AbsenteesDialog = ({
   day,
   periodNumber,
   absenteesList,
+  useShortName = false,
 }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -63,7 +64,7 @@ const AbsenteesDialog = ({
               ? `Subject: ${cellData.subjectId.name}`
               : ""}
             {" • Class: "}
-            {cellData?.classId?.name || ""}
+            {useShortName ? (cellData?.classId?.shortname || cellData?.classId?.name || "") : (cellData?.classId?.name || "")}
             {cellData?.classId?.batchId?.name
               ? ` (${cellData.classId.batchId.name})`
               : ""}
@@ -111,6 +112,7 @@ const TimeTableComponent = ({
   attendances = [],
   classes = [],
   teachersLeaveRecord = [],
+  useShortName = false,
 }) => {
   const timeTableRef = useRef(null);
   const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
@@ -320,7 +322,7 @@ const TimeTableComponent = ({
                               {cellData.subjectId?.name || ""}
                             </p>
                             <p className="text-xxs text-accent-foreground whitespace-nowrap print:whitespace-normal">
-                              {cellData.classId?.name || ""}
+                              {useShortName ? (cellData.classId?.shortname || cellData.classId?.name || "") : (cellData.classId?.name || "")}
                             </p>
 
                             {/* Attendance badge */}
@@ -364,7 +366,7 @@ const TimeTableComponent = ({
                 <TableRow key={classItem?._id} className="hover:bg-accent/50">
                   <TableCell className="border font-medium bg-accent sticky left-0 z-10">
                     <div className="flex items-center text-xs whitespace-nowrap gap-2">
-                      {classItem.name}
+                      {useShortName ? (classItem.shortname || classItem.name) : classItem.name}
                     </div>
                   </TableCell>
                   {periods.map((period) => {
@@ -485,6 +487,7 @@ const TimeTableComponent = ({
         day={currentDialogData.day}
         periodNumber={currentDialogData.periodNumber}
         absenteesList={currentAbsenteesList}
+        useShortName={useShortName}
       />
 
       {!hidePrintButton && (
