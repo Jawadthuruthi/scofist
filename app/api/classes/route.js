@@ -2,6 +2,8 @@ import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import Class from "@/models/Class";
 import { NextResponse } from "next/server";
+ 
+export const dynamic = "force-dynamic";
 
 export async function GET(req, res) {
   try {
@@ -57,18 +59,19 @@ export async function GET(req, res) {
       .skip(page * limit)
       .limit(limit)
       .sort({ _id: 1 })
-      .collation({ locale: "en_US", numericOrdering: true });
+      .collation({ locale: "en_US", numericOrdering: true })
+      .lean();
+
     // Get total count for pagination info
     const total = await Class.countDocuments(query);
 
     const formattedClasses = classes.map((cls) => ({
-      ...cls._doc,
-      batchId: cls.batchId?._id,
-      teacherId: cls.teacherId?._id,
+      ...cls,
+      shortname: cls.shortname,
       batchName: cls.batchId?.name,
       teacherName: cls.teacherId?.name,
-      subjectIds: cls.subjects.map((subject) => subject?._id),
-      subjectsName: cls.subjects.map((subject) => subject.name),
+      subjectsName: (cls.subjects || []).map((subject) => subject?.name || ""),
+      subjectIds: (cls.subjects || []).map((subject) => subject?._id || subject),
     }));
 
     // Custom sort order
@@ -127,10 +130,11 @@ export async function POST(req, res) {
   try {
     await connectToDB();
 
-    const { _id, name, batchId, teacherId, subjectIds } = await req.json();
+    const { _id, name, shortname, batchId, teacherId, subjectIds } = await req.json();
     const newClass = await Class.create({
       _id,
       name,
+      shortname,
       batchId,
       teacherId,
       subjects: subjectIds,
@@ -148,15 +152,30 @@ export async function PUT(req, res) {
   try {
     await connectToDB();
 
-    const body = await req.json();
-    const { ids, name, batchId, teacherId, subjectIds } = body;
+    const rawBody = await req.json();
+    console.log("DEBUG: Class PUT rawBody:", JSON.stringify(rawBody, null, 2));
+    const body = rawBody.data || rawBody;
+    console.log("DEBUG: Class PUT body:", JSON.stringify(body, null, 2));
+    const { ids, name, shortname, batchId, teacherId, subjectIds } = body;
+
+    if (!ids || !ids.length) {
+      return NextResponse.json({ message: "No IDs provided" }, { status: 400 });
+    }
 
     const _id = ids[0];
 
     if (ids.length > 1) {
       const updatedClasses = await Class.updateMany(
         { _id: { $in: ids } },
-        { $set: { name, batchId, teacherId, subjects: subjectIds } }
+        {
+          $set: {
+            name,
+            shortname,
+            batchId,
+            teacherId,
+            subjects: subjectIds,
+          },
+        }
       );
       return NextResponse.json(
         { updatedClasses, message: "Classes Updated successfully!" },
@@ -164,22 +183,27 @@ export async function PUT(req, res) {
       );
     }
 
-    const existingClass = await Class.findById(_id);
-    if (!existingClass) {
+    // Direct update with strict: false to ensure the new field is saved
+    const updatedClass = await Class.findOneAndUpdate(
+      { _id },
+      { 
+        $set: { 
+          name, 
+          shortname, 
+          batchId, 
+          teacherId, 
+          subjects: subjectIds 
+        } 
+      },
+      { new: true, runValidators: true, strict: false }
+    );
+
+    if (!updatedClass) {
       return NextResponse.json({ message: "Class not found" }, { status: 404 });
     }
 
-    Object.assign(existingClass, {
-      name,
-      batchId,
-      teacherId,
-      subjects: subjectIds,
-    });
-
-    await existingClass.save();
-
     return NextResponse.json(
-      { message: "Class Updated successfully!" },
+      { updatedClass, message: "Class Updated successfully!" },
       { status: 200 }
     );
   } catch (error) {

@@ -23,6 +23,11 @@ const classSchema = new Schema(
       minlength: [2, "Class name must be at least 2 characters"],
       maxlength: [50, "Class name cannot exceed 50 characters"],
     },
+    shortname: {
+      type: String,
+      trim: true,
+      uppercase: true,
+    },
     batchId: {
       type: String,
       required: [true, "Batch is required"],
@@ -43,6 +48,11 @@ const classSchema = new Schema(
     timestamps: true,
   }
 );
+
+// Force model reload in development to ensure schema changes like 'shortname' are picked up
+if (process.env.NODE_ENV === "development") {
+  delete models.Class;
+}
 
 const Class = models?.Class || model("Class", classSchema);
 export default Class;

@@ -196,6 +196,13 @@ const useTableColumns = (columnConfig, onCellClick) => {
         );
       };
     }
+ 
+    // Handle shortname specifically
+    if (col.accessorKey === "shortname") {
+      columnDefinition.cell = ({ row }) => (
+        <span className="font-medium uppercase">{row.original.shortname || "-"}</span>
+      );
+    }
 
     // Apply clickable name formatting if accessorKey is "name"
     if (col.accessorKey === "name" && col.type?.includes("clickableApprovedName")) {

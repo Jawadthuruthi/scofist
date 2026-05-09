@@ -37,6 +37,7 @@ const columnsConfig = [
   },
   { accessorKey: "_id", header: "Class ID" },
   { accessorKey: "name", header: "Name" },
+  { accessorKey: "shortname", header: "Short Name" },
   { accessorKey: "batchName", header: "Batch" },
   { accessorKey: "teacherName", header: "Teacher" },
   { accessorKey: "subjectsName", header: "Subjects", type: ["array"] },
@@ -83,6 +84,17 @@ export default async function ClassesPage() {
         validators: {
           minLength: 3,
           minLengthMessage: "Name must be at least 3 characters long",
+        },
+      },
+      {
+        name: "shortname",
+        label: "Short Name",
+        type: "text",
+        placeholder: "Short name (e.g., 10-A)",
+        required: true,
+        validators: {
+          minLength: 2,
+          minLengthMessage: "Short name must be at least 2 characters long",
         },
       },
       {
@@ -162,4 +174,5 @@ export default async function ClassesPage() {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
