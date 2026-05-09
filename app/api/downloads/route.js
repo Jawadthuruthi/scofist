@@ -15,7 +15,13 @@ export async function GET(req, res) {
 
     const query = {};
     if (searchParams.year) {
-      query.year = searchParams.year;
+      // The year field on Download is an academic year number (1–5).
+      // The global fetchItems helper may inject the active-year cookie which is
+      // a festival session string like "2025 november" — ignore those.
+      const parsedYear = parseInt(searchParams.year, 10);
+      if (!isNaN(parsedYear)) {
+        query.year = parsedYear;
+      }
     }
 
     if (searchParams.semester) {

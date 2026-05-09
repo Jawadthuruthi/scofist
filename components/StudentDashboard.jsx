@@ -131,6 +131,7 @@ function DownloadsTabContent({ apiKey }) {
   }, [activeSubTab, apiKey]);
 
   const [downloadingId, setDownloadingId] = React.useState(null);
+  const [previewItem, setPreviewItem] = React.useState(null); // { url, title }
 
   const handleDownload = async (fileUrl, filename, downloadId) => {
     if (!fileUrl) return;
@@ -213,6 +214,23 @@ function DownloadsTabContent({ apiKey }) {
 
   return (
     <div className="space-y-4">
+      {/* PDF Preview Dialog */}
+      <Dialog open={!!previewItem} onOpenChange={(open) => !open && setPreviewItem(null)}>
+        <DialogContent className="max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-4 py-3 border-b shrink-0">
+            <DialogTitle className="text-sm font-semibold truncate">{previewItem?.title || "Preview"}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {previewItem?.url && (
+              <iframe
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewItem.url)}&embedded=true`}
+                className="w-full h-full border-0"
+                title={previewItem?.title || "Document Preview"}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Sub-tab Switcher */}
       <div className="flex gap-2 border-b pb-3 overflow-x-auto no-scrollbar">
 
@@ -262,20 +280,31 @@ function DownloadsTabContent({ apiKey }) {
                   <TableCell className="py-2.5 text-sm">Sem {d.semester}</TableCell>
                   <TableCell className="py-2.5 text-sm font-semibold text-teal-700 dark:text-teal-300">{d.subject}</TableCell>
                   <TableCell className="py-2.5 text-right">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="text-teal-600 border-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20" 
-                      onClick={() => handleDownload(d.fileUrl, `${d.subject}_${d.course}_Year${d.year}_Sem${d.semester}.pdf`.replace(/\s+/g, "_"), d._id)}
-                      disabled={downloadingId === d._id}
-                    >
-                      {downloadingId === d._id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                      ) : (
-                        <Download className="h-3.5 w-3.5 mr-1" />
-                      )}
-                      {downloadingId === d._id ? "Wait..." : "Download"}
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 h-8 w-8 p-0"
+                        title="Preview"
+                        onClick={() => setPreviewItem({ url: d.fileUrl, title: `${d.subject} — ${d.course} Year ${d.year} Sem ${d.semester}` })}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-teal-600 border-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20" 
+                        onClick={() => handleDownload(d.fileUrl, `${d.subject}_${d.course}_Year${d.year}_Sem${d.semester}.pdf`.replace(/\s+/g, "_"), d._id)}
+                        disabled={downloadingId === d._id}
+                      >
+                        {downloadingId === d._id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5 mr-1" />
+                        )}
+                        {downloadingId === d._id ? "Wait..." : "Download"}
+                      </Button>
+                    </div>
                   </TableCell>
 
                 </TableRow>
@@ -309,20 +338,31 @@ function DownloadsTabContent({ apiKey }) {
                   <TableCell className="py-2.5 text-sm">{s.year}</TableCell>
                   <TableCell className="py-2.5 text-sm font-semibold text-indigo-700 dark:text-indigo-300">{s.fileName || "Syllabus"}</TableCell>
                   <TableCell className="py-2.5 text-right">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20" 
-                      onClick={() => handleDownload(s.fileUrl, `${s.course}_Year${s.year}_Syllabus.pdf`.replace(/\s+/g, "_"), s._id)}
-                      disabled={downloadingId === s._id}
-                    >
-                      {downloadingId === s._id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                      ) : (
-                        <Download className="h-3.5 w-3.5 mr-1" />
-                      )}
-                      {downloadingId === s._id ? "Wait..." : "Download"}
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 h-8 w-8 p-0"
+                        title="Preview"
+                        onClick={() => setPreviewItem({ url: s.fileUrl, title: `${s.fileName || 'Syllabus'} — ${s.course} Year ${s.year}` })}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20" 
+                        onClick={() => handleDownload(s.fileUrl, `${s.course}_Year${s.year}_Syllabus.pdf`.replace(/\s+/g, "_"), s._id)}
+                        disabled={downloadingId === s._id}
+                      >
+                        {downloadingId === s._id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5 mr-1" />
+                        )}
+                        {downloadingId === s._id ? "Wait..." : "Download"}
+                      </Button>
+                    </div>
                   </TableCell>
 
                 </TableRow>
@@ -354,20 +394,31 @@ function DownloadsTabContent({ apiKey }) {
                   <TableCell className="py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-300">{b.name}</TableCell>
                   <TableCell className="py-2.5 text-sm">{b.course || "—"}</TableCell>
                   <TableCell className="py-2.5 text-right">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20" 
-                      onClick={() => handleDownload(b.fileUrl, `${b.name}.pdf`.replace(/\s+/g, "_"), b._id)}
-                      disabled={downloadingId === b._id}
-                    >
-                      {downloadingId === b._id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                      ) : (
-                        <Download className="h-3.5 w-3.5 mr-1" />
-                      )}
-                      {downloadingId === b._id ? "Wait..." : "Download"}
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 h-8 w-8 p-0"
+                        title="Preview"
+                        onClick={() => setPreviewItem({ url: b.fileUrl, title: b.name })}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20" 
+                        onClick={() => handleDownload(b.fileUrl, `${b.name}.pdf`.replace(/\s+/g, "_"), b._id)}
+                        disabled={downloadingId === b._id}
+                      >
+                        {downloadingId === b._id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5 mr-1" />
+                        )}
+                        {downloadingId === b._id ? "Wait..." : "Download"}
+                      </Button>
+                    </div>
                   </TableCell>
 
                 </TableRow>

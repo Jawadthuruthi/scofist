@@ -43,7 +43,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Upload, Download as DownloadIcon, Loader, Trash2, Pencil } from "lucide-react";
+import { Upload, Download as DownloadIcon, Loader, Trash2, Pencil, Eye } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
@@ -60,6 +60,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
   const [uploading, setUploading] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [previewItem, setPreviewItem] = useState(null); // { url, title }
   const [filterYear, setFilterYear] = useState(null);
   const [filterSemester, setFilterSemester] = useState(null);
   const [filterCourse, setFilterCourse] = useState(null);
@@ -501,6 +502,15 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                           <div className="flex justify-end gap-2">
                             <Button
                               size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              title="Preview"
+                              onClick={() => setPreviewItem({ url: download.fileUrl, title: `${download.subject} — ${download.course} Year ${download.year} Sem ${download.semester}` })}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
                               variant="outline"
                               onClick={() =>
                                 handleDownload(
@@ -599,6 +609,23 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
         onSave={handleUpdate}
         loading={updateDownload.isPending}
       />
+      {/* PDF Preview Dialog */}
+      <Dialog open={!!previewItem} onOpenChange={(open) => !open && setPreviewItem(null)}>
+        <DialogContent className="max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-4 py-3 border-b shrink-0">
+            <DialogTitle className="text-sm font-semibold truncate">{previewItem?.title || "Preview"}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {previewItem?.url && (
+              <iframe
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewItem.url)}&embedded=true`}
+                className="w-full h-full border-0"
+                title={previewItem?.title || "Document Preview"}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
