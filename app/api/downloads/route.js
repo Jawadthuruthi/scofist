@@ -16,11 +16,12 @@ export async function GET(req, res) {
     const query = {};
     if (searchParams.year) {
       // The year field on Download is an academic year number (1–5).
-      // The global fetchItems helper may inject the active-year cookie which is
-      // a festival session string like "2025 november" — ignore those.
-      const parsedYear = parseInt(searchParams.year, 10);
-      if (!isNaN(parsedYear)) {
-        query.year = parsedYear;
+      // The global fetchItems helper injects the active-year cookie which is a
+      // festival session string like "2025 november". We must reject those.
+      // NOTE: parseInt("2025 november") returns 2025 (not NaN!), so we use a
+      // pure-digits regex to ensure only actual numeric strings are applied.
+      if (/^\d+$/.test(searchParams.year)) {
+        query.year = parseInt(searchParams.year, 10);
       }
     }
 

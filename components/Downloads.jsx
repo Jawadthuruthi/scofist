@@ -71,9 +71,9 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
     apiKey
   );
   const fetchDownloadsQuery = useFetchItems(
-    null,
-    null,
-    { year: filterYear, semester: filterSemester, course: filterCourse },
+    0,
+    1000,
+    {},
     {}
   );
   const addDownload = useAddItem();
@@ -272,8 +272,14 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
   };
 
   const filteredDownloads = useMemo(() => {
-    return fetchDownloadsQuery.data?.downloads || initialDownloads;
-  }, [fetchDownloadsQuery.data, initialDownloads]);
+    const all = fetchDownloadsQuery.data?.downloads || initialDownloads;
+    return all.filter((d) => {
+      if (filterCourse && d.course !== filterCourse) return false;
+      if (filterYear && String(d.year) !== String(filterYear)) return false;
+      if (filterSemester && String(d.semester) !== String(filterSemester)) return false;
+      return true;
+    });
+  }, [fetchDownloadsQuery.data, initialDownloads, filterCourse, filterYear, filterSemester]);
 
   const years = [1, 2, 3, 4, 5];
   const semesters = [1, 2];
@@ -422,15 +428,18 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
                 <Label>Filter by Course</Label>
-                <Select value={filterCourse} onValueChange={setFilterCourse}>
+                <Select
+                  value={filterCourse ?? "all"}
+                  onValueChange={(v) => setFilterCourse(v === "all" ? null : v)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="All Courses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={null}>All Courses</SelectItem>
+                    <SelectItem value="all">All Courses</SelectItem>
                     {courses.map((s) => (
-                      <SelectItem key={s} value={String(s)}>
-                        Course {s}
+                      <SelectItem key={s} value={s}>
+                        {s}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -438,12 +447,15 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
               </div>
               <div className="space-y-2">
                 <Label>Filter by Year</Label>
-                <Select value={filterYear} onValueChange={setFilterYear}>
+                <Select
+                  value={filterYear ?? "all"}
+                  onValueChange={(v) => setFilterYear(v === "all" ? null : v)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="All Years" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={null}>All Years</SelectItem>
+                    <SelectItem value="all">All Years</SelectItem>
                     {years.map((y) => (
                       <SelectItem key={y} value={String(y)}>
                         Year {y}
@@ -455,14 +467,14 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
               <div className="space-y-2">
                 <Label>Filter by Semester</Label>
                 <Select
-                  value={filterSemester}
-                  onValueChange={setFilterSemester}
+                  value={filterSemester ?? "all"}
+                  onValueChange={(v) => setFilterSemester(v === "all" ? null : v)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All Semesters" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={null}>All Semesters</SelectItem>
+                    <SelectItem value="all">All Semesters</SelectItem>
                     {semesters.map((s) => (
                       <SelectItem key={s} value={String(s)}>
                         Semester {s}
