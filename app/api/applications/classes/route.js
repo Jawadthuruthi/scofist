@@ -2,6 +2,7 @@ import apiResponse from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import ApplicationForm from "@/models/ApplicationForm";
 import { NextResponse } from "next/server";
+import { sortClasses } from "@/lib/utils";
 
 export async function GET(req) {
   try {
@@ -14,7 +15,7 @@ export async function GET(req) {
     const defaults = ["+1", "Degree"];
     const allUniqueClasses = Array.from(new Set([...defaults, ...distinctClasses]))
       .filter(Boolean)
-      .sort();
+      .sort((a, b) => sortClasses({ name: a }, { name: b }));
 
     return NextResponse.json(
       {

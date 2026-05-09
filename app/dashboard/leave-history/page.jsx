@@ -3,7 +3,7 @@ import LeaveHistory from "@/components/LeaveHistory";
 import connectToDB from "@/lib/db";
 import Class from "@/models/Class";
 import User from "@/models/User";
-import { parseUser } from "@/lib/utils";
+import { parseUser, sortClasses } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
 
 export default async function LeaveHistoryPage() {
@@ -29,6 +29,7 @@ export default async function LeaveHistoryPage() {
             teacherClassId = teacherClass?._id || null;
         } else {
             classesData = await Class.find({}).select("_id name").lean();
+            classesData.sort((a, b) => sortClasses(a, b));
         }
 
         // If teacher, only fetch students in their class. Otherwise, fetch all active students.

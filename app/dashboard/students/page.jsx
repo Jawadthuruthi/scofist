@@ -5,6 +5,7 @@ import connectToDB from "@/lib/db";
 import Batch from "@/models/Batch.js";
 import Class from "@/models/Class.js";
 import User from "@/models/User.js";
+import { sortClasses } from "@/lib/utils";
 
 export default async function BatchesPage() {
   try {
@@ -29,39 +30,7 @@ export default async function BatchesPage() {
     
     const lastStudentId = lastStudent?._id || "None";
 
-    const classOrder = [
-      "PLUS ONE A",
-      "PLUS ONE B",
-      "PLUS TWO",
-      "DEGREE FIRST YEAR",
-      "DEGREE SECOND YEAR",
-      "DEGREE THIRD YEAR",
-      "PG FIRST YEAR",
-      "PG SECOND YEAR",
-      "8TH STD",
-      "9TH STD",
-      "10TH STD",
-      "11TH STD",
-      "12TH STD",
-    ].map((name) => name.replace(/\s/g, "").toUpperCase());
-
-    classesData.sort((a, b) => {
-      const nameA = a.name.trim().toUpperCase().replace(/\s/g, "");
-      const nameB = b.name.trim().toUpperCase().replace(/\s/g, "");
-      const indexA = classOrder.indexOf(nameA);
-      const indexB = classOrder.indexOf(nameB);
-
-      if (indexA !== -1 && indexB !== -1) {
-        return indexA - indexB;
-      }
-      if (indexA !== -1) {
-        return -1;
-      }
-      if (indexB !== -1) {
-        return 1;
-      }
-      return a.name.localeCompare(b.name);
-    });
+    classesData.sort((a, b) => sortClasses(a, b));
 
     const batches = JSON.parse(JSON.stringify(batchesData));
     const classes = JSON.parse(JSON.stringify(classesData));

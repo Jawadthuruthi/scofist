@@ -86,6 +86,7 @@ const BarcodeScanner = dynamic(() => import("./BarcodeScanner"), {
 const StudentsFund = ({
   batches = [],
   students = [],
+  classes = [],
   apiKey,
   teacherId,
   department,
@@ -119,6 +120,7 @@ const StudentsFund = ({
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [clearOnNextInput, setClearOnNextInput] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   const printRef = useRef();
   const allStudentsFundRef = useRef();
@@ -254,6 +256,26 @@ const StudentsFund = ({
   const availableStudents = useMemo(() => {
     return students.filter((student) => student.batchId === selectedBatch);
   }, [selectedBatch]);
+
+  const searchResults = useMemo(() => {
+    const term = lookupSearchTerm.trim().toLowerCase();
+    if (!term || term.length < 1 || !showSearchResults) return [];
+
+    return students.filter(s => 
+      s.name.toLowerCase().includes(term) || 
+      String(s._id).toLowerCase().includes(term) ||
+      (s.studentSpecificField?.admissionNumber && 
+       String(s.studentSpecificField.admissionNumber).toLowerCase().includes(term))
+    ).map(s => {
+      const batch = batches.find(b => b._id === s.batchId);
+      // Use the className and batchName already provided by the API if lookup fails
+      return {
+        ...s,
+        batchName: batch?.name || s.batchName || "No Batch",
+        className: s.className || "No Class"
+      };
+    });
+  }, [lookupSearchTerm, students, batches, classes, showSearchResults]);
 
   const transactionsWithBalance = useMemo(() => {
     let currentBalance = studentBalance;
@@ -665,7 +687,7 @@ const StudentsFund = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden bg-card">
+          <Card className="w-full border-primary/20 shadow-sm relative bg-card">
             <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
             <CardHeader className="bg-muted/10 pb-4 pt-4 border-b">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -677,44 +699,91 @@ const StudentsFund = ({
               </CardDescription>
               <div className="flex gap-2 mt-4 w-full">
                 <div className="relative flex-1">
-                  <Input
-                    autoFocus
-                    placeholder="Search by Student ID or Name..."
-                    value={lookupSearchTerm}
-                    onChange={(e) => {
-                      if (clearOnNextInput) {
-                        const oldVal = lookupSearchTerm;
-                        const newVal = e.target.value;
-                        let typed = newVal;
-                        if (newVal.length > oldVal.length && newVal.startsWith(oldVal)) {
-                          typed = newVal.slice(oldVal.length);
+                    <Input
+                      autoFocus
+                      placeholder="Search by Student ID or Name..."
+                      value={lookupSearchTerm}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (clearOnNextInput) {
+                          const oldVal = lookupSearchTerm;
+                          let typed = val;
+                          if (val.length > oldVal.length && val.startsWith(oldVal)) {
+                            typed = val.slice(oldVal.length);
+                          }
+                          setLookupSearchTerm(typed);
+                          setClearOnNextInput(false);
+                        } else {
+                          setLookupSearchTerm(val);
                         }
-                        setLookupSearchTerm(typed);
-                        setClearOnNextInput(false);
-                      } else {
-                        setLookupSearchTerm(e.target.value);
-                      }
-                    }}
-                    onFocus={(e) => e.target.select()}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleStudentLookup();
-                    }}
-                    className="w-full pr-10"
-                  />
-                  {lookupSearchTerm && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-transparent"
-                      onClick={() => {
-                        setLookupSearchTerm("");
-                        setSelectedStudents([]);
-                        setSelectedBatch("");
+                        setShowSearchResults(true);
                       }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
+                      onFocus={(e) => {
+                        e.target.select();
+                        setShowSearchResults(true);
+                      }}
+                      onBlur={() => {
+                        // Delay closing to allow clicking on results
+                        setTimeout(() => setShowSearchResults(false), 200);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          if (searchResults.length === 1) {
+                            handleStudentLookup(searchResults[0]._id);
+                            setShowSearchResults(false);
+                          } else {
+                            handleStudentLookup();
+                          }
+                        }
+                      }}
+                      className="w-full pr-10"
+                    />
+                    {lookupSearchTerm && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-transparent"
+                        onClick={() => {
+                          setLookupSearchTerm("");
+                          setSelectedStudents([]);
+                          setSelectedBatch("");
+                          setShowSearchResults(false);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+
+                    {/* Search Results Dropdown */}
+                    {showSearchResults && searchResults.length > 0 && (
+                      <div className="absolute z-[999] left-0 right-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-[400px] overflow-y-auto">
+                        {searchResults.map((student) => (
+                          <div
+                            key={student._id}
+                            className="flex items-center gap-3 p-3 hover:bg-accent cursor-pointer border-b last:border-0"
+                            onMouseDown={(e) => {
+                              e.preventDefault(); // Prevent blur
+                              handleStudentLookup(student._id);
+                              setShowSearchResults(false);
+                            }}
+                          >
+                            <Avatar className="h-10 w-10 border">
+                              <AvatarImage src={student.profilePic?.url} />
+                              <AvatarFallback>{student.name?.[0]}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0 text-sm">
+                              <div className="font-medium truncate">{student.name}</div>
+                              <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+                                <span>ID: {student._id}</span>
+                              </div>
+                              <div className="text-[11px] text-primary/70 font-semibold truncate">
+                                {student.className} • {student.batchName}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                 </div>
                 <Button
                   onClick={() => {

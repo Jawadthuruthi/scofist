@@ -7,7 +7,7 @@ const API_ENDPOINTS = [
   {
     pathname: "users",
     searchParams:
-      "projection=_id,name,role,profilePic,studentSpecificField.batchId,studentSpecificField.admissionNumber&roles=Student",
+      "projection=_id,name,role,profilePic,studentSpecificField.batchId,studentSpecificField.classId,studentSpecificField.admissionNumber&roles=Student",
   },
   {
     pathname: "batches",
@@ -39,7 +39,9 @@ const StudentsFundPage = async () => {
         const cls = classes?.find((cls) => cls.batchId === batch._id);
         return {
           ...batch,
-          name: cls ? `${batch.name} (${cls.name})` : batch.name,
+          name: cls 
+            ? `${batch.name} (${cls.name})${batch.endYear ? ` (${batch.endYear})` : ""}` 
+            : `${batch.name}${batch.endYear ? ` (${batch.endYear})` : ""}`,
         };
       });
 
@@ -51,6 +53,7 @@ const StudentsFundPage = async () => {
       <StudentsFund
         batches={formattedBatches}
         students={students}
+        classes={classes}
         role={activeRole}
         teacherId={user?.userId}
         apiKey={apiKey}

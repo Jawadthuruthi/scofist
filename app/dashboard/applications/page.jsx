@@ -6,6 +6,7 @@ import Batch from "@/models/Batch";
 import Class from "@/models/Class";
 import User from "@/models/User";
 import ApplicationsClient from "@/components/ApplicationsClient";
+import { sortClasses } from "@/lib/utils";
 
 export default async function ApplicationsPage() {
   try {
@@ -28,6 +29,8 @@ export default async function ApplicationsPage() {
       .lean();
     
     const lastStudentId = lastStudent?._id || "None";
+    
+    classesData.sort((a, b) => sortClasses(a, b));
 
     const batches = JSON.parse(JSON.stringify(batchesData));
     const classes = JSON.parse(JSON.stringify(classesData));
