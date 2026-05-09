@@ -773,6 +773,7 @@ const LazyTimeTable = memo(
     classes,
     teachersLeaveRecord,
     useShortName = false,
+    hideEmptyClassRows = false,
   }) => (
     <Suspense fallback={<ChartSkeleton height="400px" />}>
       <TimeTableComponent
@@ -785,6 +786,7 @@ const LazyTimeTable = memo(
         classes={classes}
         teachersLeaveRecord={teachersLeaveRecord}
         useShortName={useShortName}
+        hideEmptyClassRows={hideEmptyClassRows}
       />
     </Suspense>
   )
@@ -1105,6 +1107,7 @@ export default function Dashboard({
                   classes={sortedClasses}
                   teachersLeaveRecord={liveTeachersLeaveRecord}
                   useShortName={true}
+                  hideEmptyClassRows={true}
                 />
               </CardContent>
             </Card>
