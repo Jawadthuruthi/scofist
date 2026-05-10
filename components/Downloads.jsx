@@ -179,10 +179,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
       // Refresh downloads list
       await fetchDownloadsQuery.refetch();
 
-      // Reset form
-      setCourse("");
-      setYear("");
-      setSemester("");
+      // Reset form (persisting course, year, semester as requested)
       setSubject("");
       setFile(null);
 
@@ -301,7 +298,24 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                 Upload question papers for students to download
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent
+              className="space-y-4"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (e.defaultPrevented) return;
+                  const target = e.target;
+                  if (
+                    target.tagName === "BUTTON" ||
+                    target.closest("button") ||
+                    target.tagName === "A" ||
+                    target.closest('[role="button"]')
+                  ) {
+                    return;
+                  }
+                  handleUpload();
+                }
+              }}
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="course">Course</Label>
