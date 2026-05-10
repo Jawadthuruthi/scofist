@@ -149,4 +149,4 @@ export default async function GradeSchemePage() {
   }
 }
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";

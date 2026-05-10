@@ -31,4 +31,4 @@ export default async function LeaveRegisterPage() {
   }
 }
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";

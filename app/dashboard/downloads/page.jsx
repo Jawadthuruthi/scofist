@@ -32,4 +32,4 @@ const DownloadsPage = async () => {
 
 export default DownloadsPage;
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";

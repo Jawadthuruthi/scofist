@@ -2,7 +2,9 @@ import MasjidDashboard from "@/components/masjid-attendance/MasjidDashboard";
 import { headers } from "next/headers";
 import connectDB from "@/lib/db";
 import Class from "@/models/Class";
-import { sortClasses } from "@/lib/utils";
+import { sortClasses, parseUser } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
 
 const MasjidAttendancePage = async () => {
     const apiKey = process.env.API_KEY;

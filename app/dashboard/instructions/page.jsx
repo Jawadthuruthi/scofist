@@ -41,4 +41,4 @@ export default async function InstructionsPage() {
   }
 }
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";

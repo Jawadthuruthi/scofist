@@ -3,10 +3,11 @@ import IdentityCards from "@/components/IdentityCards";
 import { fetchData } from "@/lib/utils";
 import { headers } from "next/headers";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+
 const identityCardsPage = async () => {
   try {
-    const headersList = headers();
+    const headersList = await headers();
     const userHeader = headersList.get("x-user");
     const user = userHeader ? JSON.parse(userHeader) : null;
     const activeRole = headersList.get("x-active-role") || (user?.roles?.[0]);
