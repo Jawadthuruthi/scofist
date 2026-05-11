@@ -56,6 +56,11 @@ const pages = [
     path: "/dashboard/batches",
     allowedRoles: ["College Admin"],
   },
+  {
+    title: "Debtors",
+    path: "/dashboard/debtors",
+    allowedRoles: ["Org Admin"],
+  },
 
   {
     title: "Spark Finance",

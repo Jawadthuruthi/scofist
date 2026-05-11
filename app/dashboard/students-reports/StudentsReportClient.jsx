@@ -44,6 +44,7 @@ export default function StudentsReportClient({ batches, classes, apiKey, updates
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
     const [searchFocused, setSearchFocused] = useState(false);
+    const [debtBalances, setDebtBalances] = useState([]);
 
     // Filter classes based on selected batch
     const filteredClasses = useMemo(() => {
@@ -148,12 +149,13 @@ export default function StudentsReportClient({ batches, classes, apiKey, updates
         const fetchFullProfile = async () => {
             if (!selectedStudentId) {
                 setSelectedStudentData(null);
+                setDebtBalances([]);
                 return;
             }
 
             setLoadingProfile(true);
             try {
-                const response = await fetch(`/api/users/profile`, {
+                const profilePromise = fetch(`/api/users/profile`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -161,7 +163,30 @@ export default function StudentsReportClient({ batches, classes, apiKey, updates
                     },
                     body: JSON.stringify({ userId: selectedStudentId }),
                 });
-                const data = await response.json();
+
+                const debtsPromise = fetch(`/api/debtors?studentId=${selectedStudentId}`, {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "api-key": apiKey,
+                    }
+                });
+
+                const [profileRes, debtsRes] = await Promise.all([profilePromise, debtsPromise]);
+                
+                let debts = [];
+                if (debtsRes.ok) {
+                    const debtsData = await debtsRes.json();
+                    debts = (debtsData.debts || [])
+                      .filter(d => (d.totalAmount - (d.payments || []).reduce((s, p) => s + p.amount, 0)) > 0)
+                      .map(d => ({
+                        category: d.category,
+                        year: d.year,
+                        balance: d.totalAmount - (d.payments || []).reduce((s, p) => s + p.amount, 0),
+                      }));
+                }
+                setDebtBalances(debts);
+
+                const data = await profileRes.json();
                 if (data.user) {
                     setSelectedStudentData(data.user);
                 } else {
@@ -541,6 +566,7 @@ export default function StudentsReportClient({ batches, classes, apiKey, updates
                             updates={updates}
                             hideHeader={true}
                             showKinship={true}
+                            debtBalances={debtBalances}
                         />
                     </div>
                 ) : lookupError ? (

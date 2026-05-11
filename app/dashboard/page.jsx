@@ -102,8 +102,23 @@ export default async function DashboardPage() {
     if (activeRole === "Student") {
       const headersList = headers();
       const user = JSON.parse(headersList.get("x-user"));
+      const userId = user._id || user.id;
+      
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const debtsRaw = await fetch(`${baseUrl}/api/debtors?studentId=${userId}`)
+        .then(r => r.json())
+        .catch(() => ({ debts: [] }));
+
+      const debtBalances = (debtsRaw.debts || [])
+        .filter(d => (d.totalAmount - (d.payments || []).reduce((s, p) => s + p.amount, 0)) > 0)
+        .map(d => ({
+          category: d.category,
+          year: d.year,
+          balance: d.totalAmount - (d.payments || []).reduce((s, p) => s + p.amount, 0),
+        }));
+
       const updates = Array.isArray(updatesData) ? updatesData : updatesData?.updates || [];
-      return <StudentDashboard user={user} apiKey={apiKey} classes={classes} batches={batches} updates={updates} />;
+      return <StudentDashboard user={user} apiKey={apiKey} classes={classes} batches={batches} updates={updates} debtBalances={debtBalances} />;
     }
 
     return (

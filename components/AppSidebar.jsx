@@ -122,6 +122,12 @@ const items = [
     allowedRoles: ["College Admin", "Org Admin", "Stationary", "IT Lab"],
   },
   {
+    title: "Debtors",
+    url: "/dashboard/debtors",
+    icon: AlertTriangle,
+    allowedRoles: ["Org Admin"],
+  },
+  {
     title: "Applications",
     url: "/dashboard/applications",
     icon: FolderCheck,

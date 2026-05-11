@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "@/components/Header";
-import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, HelpCircle, Megaphone, Edit2, CheckCircle, XCircle } from "lucide-react";
+import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, HelpCircle, Megaphone, Edit2, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import UpdateCard from "@/components/UpdateCard";
@@ -722,6 +722,7 @@ export default function StudentDashboard({
   updates = [],
   hideHeader = false,
   showKinship = false,
+  debtBalances = [],
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -1807,6 +1808,7 @@ export default function StudentDashboard({
       )}
 
       {activeTab === "FINANCE" && (
+        <div className="space-y-6">
         <Card className="bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900 card-print-break shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
@@ -2034,6 +2036,36 @@ export default function StudentDashboard({
 
           </CardContent>
         </Card>
+
+        {/* Debt Balance by Category */}
+        {debtBalances?.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-sm font-bold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-500" /> Pending Dues
+            </h3>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Year</TableHead>
+                    <TableHead className="text-right">Balance Due</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {debtBalances.map((d, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-semibold">{d.category}</TableCell>
+                      <TableCell>{d.year}</TableCell>
+                      <TableCell className="text-right font-bold text-red-600">₹{d.balance.toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
+      </div>
       )}
 
       {activeTab === "LIBRARY" && (
