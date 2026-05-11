@@ -295,7 +295,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
             <CardHeader>
               <CardTitle>Upload previous year question papers</CardTitle>
               <CardDescription>
-                Upload question papers for students to download
+                Upload question papers for students
               </CardDescription>
             </CardHeader>
             <CardContent
@@ -549,13 +549,13 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                             >
                               {downloadingId === download._id ? (
                                 <>
-                                  <Loader className="mr-2 h-4 w-4 animate-spin" />
-                                  Downloading...
+                                  <Loader className="h-4 w-4 sm:mr-2 animate-spin" />
+                                  <span className="hidden sm:inline">Downloading...</span>
                                 </>
                               ) : (
                                 <>
-                                  <DownloadIcon className="mr-2 h-4 w-4" />
-                                  Download
+                                  <DownloadIcon className="h-4 w-4 sm:mr-2" />
+                                  <span className="hidden sm:inline">Download</span>
                                 </>
                               )}
                             </Button>

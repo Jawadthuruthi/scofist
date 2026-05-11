@@ -41,7 +41,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
     0,
     0,
     {
-      teacherId: role === "Teacher" ? teacherId : null,
+      ...(role === "Teacher" ? { teacherId: teacherId } : {}),
       projection: "_id,name",
     },
     {
@@ -79,14 +79,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
   );
 
   const classes = useMemo(() => {
-    return (
-      fetchClassQuery.data?.classes?.filter((cls) => {
-        if (role === "Teacher") {
-          return cls.teacherId === teacherId;
-        }
-        return true;
-      }) || []
-    );
+    return fetchClassQuery.data?.classes || [];
   }, [fetchClassQuery.data]);
 
   const students = useMemo(() => {

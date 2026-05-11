@@ -254,7 +254,7 @@ const ClassCard = memo(
         ).length || 0;
 
       const foundBatch = batches?.find(
-        (batch) => batch._id === classData.batchId
+        (batch) => String(batch._id) === String(classData.batchId?._id || classData.batchId)
       );
 
       const filteredAttendance =
@@ -856,8 +856,11 @@ export default function Dashboard({
     );
     const activeBatches =
       batches?.filter((batch) => batch.status === "Active") || [];
-    const activeBatchIds = new Set(activeBatches.map(b => b._id));
-    const activeClasses = sortedClasses.filter(cls => activeBatchIds.has(cls.batchId));
+    const activeBatchIds = new Set(activeBatches.map(b => String(b._id)));
+    const activeClasses = sortedClasses.filter(cls => {
+      const clsBatchId = cls.batchId?._id || cls.batchId;
+      return activeBatchIds.has(String(clsBatchId));
+    });
 
     return {
       students,
