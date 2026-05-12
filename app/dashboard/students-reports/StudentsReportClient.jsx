@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Header from "@/components/Header";
 import { Users, Loader2, Search, ScanBarcode, X } from "lucide-react";
 import StudentDashboard from "@/components/StudentDashboard";
-import { formatOptions } from "@/lib/utils";
+import { formatOptions, sortClasses } from "@/lib/utils";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
 
@@ -50,7 +50,10 @@ export default function StudentsReportClient({ batches, classes, apiKey, updates
     // Filter classes based on selected batch
     const filteredClasses = useMemo(() => {
         if (!selectedBatch) return classes;
-        return classes.filter((c) => c.batchId === selectedBatch);
+        return classes.filter((c) => {
+            const bId = (c.batchId && typeof c.batchId === 'object') ? c.batchId._id : c.batchId;
+            return String(bId) === String(selectedBatch);
+        });
     }, [selectedBatch, classes]);
 
     // Fetch students when filters change
@@ -60,21 +63,14 @@ export default function StudentsReportClient({ batches, classes, apiKey, updates
             try {
                 const params = new URLSearchParams();
                 params.append("roles", "Student");
+                params.append("limit", "1000");
                 params.append("projection", "_id,name,batchId,classId,studentSpecificField,profilePic,contactNumber,email,dateOfBirth,address");
 
                 if (selectedClass && selectedClass !== "none") {
                     params.append("classId", selectedClass);
-                }
-                if (selectedBatch && selectedBatch !== "none") {
+                    params.append("status", "Active");
+                } else if (selectedBatch && selectedBatch !== "none") {
                     params.append("batchId", selectedBatch);
-                }
-
-                if (!selectedClass || selectedClass === "none") {
-                    if (!selectedBatch || selectedBatch === "none") {
-                        setStudents([]);
-                        setLoadingStudents(false);
-                        return;
-                    }
                 }
 
                 const response = await fetch(`/api/users?${params.toString()}`, {
@@ -213,10 +209,6 @@ export default function StudentsReportClient({ batches, classes, apiKey, updates
 
     const handleClassChange = (value) => {
         const val = value === "none" ? "" : value;
-        const targetClass = classes.find(c => c._id === val);
-        if (targetClass && targetClass.batchId && !selectedBatch) {
-            setSelectedBatch(targetClass.batchId);
-        }
         setSelectedClass(val);
         setSelectedStudentId("");
         setSelectedStudentData(null);
@@ -457,16 +449,19 @@ export default function StudentsReportClient({ batches, classes, apiKey, updates
                             }}
                             disabled={isLookingUp}
                             variant={lookupSearchTerm.trim() ? "default" : "outline"}
-                            className={!lookupSearchTerm.trim() ? "bg-foreground text-white hover:bg-foreground/90 hover:text-white border-none" : ""}
+                            className={!lookupSearchTerm.trim() ? "bg-foreground text-background hover:opacity-90 transition-all border-none shrink-0 shadow-sm" : ""}
+                            size={!lookupSearchTerm.trim() ? "icon" : "default"}
                         >
                             {isLookingUp ? (
-                                <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
+                                <Loader2 className={`h-4 w-4 animate-spin ${lookupSearchTerm.trim() ? "sm:mr-2" : ""}`} />
                             ) : lookupSearchTerm.trim() ? (
                                 <Search className="h-4 w-4 sm:mr-2" />
                             ) : (
-                                <ScanBarcode className="h-4 w-4 sm:mr-2" />
+                                <ScanBarcode className="h-5 w-5" />
                             )}
-                            <span className="hidden sm:inline">{lookupSearchTerm.trim() ? "Search" : "Scan"}</span>
+                            {lookupSearchTerm.trim() && (
+                                <span className="hidden sm:inline">Search</span>
+                            )}
                         </Button>
                     </div>
                 </CardHeader>
@@ -515,22 +510,18 @@ export default function StudentsReportClient({ batches, classes, apiKey, updates
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Select Class</label>
-                    <Select
-                        onValueChange={handleClassChange}
+                    <ComboBox
+                        items={[
+                            { value: "", label: "None" },
+                            ...formatOptions([...filteredClasses].sort(sortClasses)).map(c => ({
+                                value: c._id,
+                                label: c.shortname ? `${c.name} (${c.shortname})` : c.name
+                            }))
+                        ]}
                         value={selectedClass}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select Class" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            {formatOptions(filteredClasses).map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                        onSelect={handleClassChange}
+                        placeholder="Select Class"
+                    />
                 </div>
 
                 <div className="space-y-2 col-span-2 md:col-span-1">

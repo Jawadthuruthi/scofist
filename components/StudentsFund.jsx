@@ -795,16 +795,19 @@ const StudentsFund = ({
                   }}
                   disabled={isLookingUp}
                   variant={lookupSearchTerm.trim() ? "default" : "outline"}
-                  className={!lookupSearchTerm.trim() ? "bg-foreground text-background hover:bg-foreground/90 border-none" : ""}
+                  className={!lookupSearchTerm.trim() ? "bg-foreground text-background hover:opacity-90 transition-all border-none shrink-0 shadow-sm" : ""}
+                  size={!lookupSearchTerm.trim() ? "icon" : "default"}
                 >
                   {isLookingUp ? (
-                    <Loader className="h-4 w-4 animate-spin sm:mr-2" />
+                    <Loader className={`h-4 w-4 animate-spin ${lookupSearchTerm.trim() ? "sm:mr-2" : ""}`} />
                   ) : lookupSearchTerm.trim() ? (
                     <Search className="h-4 w-4 sm:mr-2" />
                   ) : (
-                    <ScanBarcode className="h-4 w-4 sm:mr-2" />
+                    <ScanBarcode className="h-5 w-5" />
                   )}
-                  <span className="hidden sm:inline">{lookupSearchTerm.trim() ? "Search" : "Scan"}</span>
+                  {lookupSearchTerm.trim() && (
+                    <span className="hidden sm:inline">Search</span>
+                  )}
                 </Button>
               </div>
             </CardHeader>
