@@ -121,6 +121,10 @@ export default function StudentCouponClient({ apiKey }) {
     const [hasLookedUp, setHasLookedUp] = useState(false);
     const [lookupSelectedCouponIds, setLookupSelectedCouponIds] = useState([]);
     const [showLookupScanner, setShowLookupScanner] = useState(false);
+    
+    // Search Results State for Dropdown
+    const [searchResults, setSearchResults] = useState([]);
+    const [showSearchResults, setShowSearchResults] = useState(false);
 
     // Filter State
     const [filterMode, setFilterMode] = useState("year"); // "year" or "date"
@@ -180,6 +184,27 @@ export default function StudentCouponClient({ apiKey }) {
         global: lookupSearchTerm,
         roles: ["Student"]
     }, { enabled: false });
+
+    useEffect(() => {
+        const term = lookupSearchTerm.trim().toLowerCase();
+        if (!term || !showSearchResults) {
+            setSearchResults([]);
+            return;
+        }
+        const delayDebounceFn = setTimeout(() => {
+            setIsLookingUp(true);
+            fetch(`/api/users?global=${term}&roles=Student`, { headers: { "api-key": apiKey }})
+                .then(res => res.json())
+                .then(data => {
+                    if (data.users) setSearchResults(data.users);
+                    else setSearchResults([]);
+                })
+                .catch(() => setSearchResults([]))
+                .finally(() => setIsLookingUp(false));
+        }, 300);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [lookupSearchTerm, showSearchResults, apiKey]);
 
     const lookupCouponsQuery = useFetchItems(0, 0, {
         studentId: lookupStudent?._id
@@ -260,6 +285,10 @@ export default function StudentCouponClient({ apiKey }) {
     // Fetch Batches (Shared)
     const { data: batchesData } = useFetchBatches(0, 1000, {}, { enabled: !!apiKey });
     const allBatches = batchesData?.batches || [];
+
+    // Fetch Classes (Shared)
+    const { data: classesData } = useFetchClasses(0, 1000, {}, { enabled: !!apiKey });
+    const allClasses = classesData?.classes || [];
 
     // Filter out restricted batches (First, Second, Third, Fourth)
     const batches = useMemo(() => {
@@ -956,9 +985,29 @@ export default function StudentCouponClient({ apiKey }) {
                                 <Input
                                     placeholder="Search by Student ID or Name..."
                                     value={lookupSearchTerm}
-                                    onChange={(e) => setLookupSearchTerm(e.target.value)}
+                                    onChange={(e) => {
+                                        setLookupSearchTerm(e.target.value);
+                                        setShowSearchResults(true);
+                                    }}
+                                    onFocus={(e) => {
+                                        e.target.select();
+                                        setShowSearchResults(true);
+                                    }}
+                                    onBlur={() => {
+                                        setTimeout(() => setShowSearchResults(false), 200);
+                                    }}
                                     onKeyDown={(e) => {
-                                        if (e.key === "Enter") handleLookupSearch();
+                                        if (e.key === "Enter") {
+                                            if (searchResults.length === 1) {
+                                                const s = searchResults[0];
+                                                setLookupStudent(s);
+                                                setHasLookedUp(true);
+                                                setLookupSearchTerm(s.name);
+                                                setShowSearchResults(false);
+                                            } else {
+                                                handleLookupSearch();
+                                            }
+                                        }
                                     }}
                                     className="w-full pr-10 bg-white"
                                 />
@@ -972,10 +1021,51 @@ export default function StudentCouponClient({ apiKey }) {
                                             setHasLookedUp(false);
                                             setLookupStudent(null);
                                             setLookupSelectedCouponIds([]);
+                                            setShowSearchResults(false);
                                         }}
                                     >
                                         <X className="h-4 w-4" />
                                     </Button>
+                                )}
+                                
+                                {/* Search Results Dropdown */}
+                                {showSearchResults && searchResults.length > 0 && (
+                                    <div className="absolute z-[999] left-0 right-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-[400px] overflow-y-auto">
+                                        {searchResults.map((student) => {
+                                            const batch = allBatches.find(b => b._id === (student.studentSpecificField?.batchId || student.batchId));
+                                            const cls = allClasses.find(c => c._id === (student.studentSpecificField?.classId || student.classId));
+                                            const batchName = batch?.name || "No Batch";
+                                            const className = cls?.name || "No Class";
+                                            
+                                            return (
+                                                <div
+                                                    key={student._id}
+                                                    className="flex items-center gap-3 p-3 hover:bg-accent cursor-pointer border-b last:border-0"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault(); // Prevent blur
+                                                        setLookupStudent(student);
+                                                        setHasLookedUp(true);
+                                                        setLookupSearchTerm(student.name);
+                                                        setShowSearchResults(false);
+                                                    }}
+                                                >
+                                                    <Avatar className="h-10 w-10 border">
+                                                        <AvatarImage src={student.profilePic?.url} />
+                                                        <AvatarFallback>{student.name?.[0]}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="flex-1 min-w-0 text-sm">
+                                                        <div className="font-medium truncate">{student.name}</div>
+                                                        <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+                                                            <span>ID: {student._id}</span>
+                                                        </div>
+                                                        <div className="text-[11px] text-primary/70 font-semibold truncate">
+                                                            {className} • {batchName}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 )}
                             </div>
                             <Button

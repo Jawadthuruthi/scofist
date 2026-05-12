@@ -14,7 +14,7 @@ const studentsFundSchema = new Schema(
     },
     department: {
       type: String,
-      enum: ["Stationary", "IT Lab"],
+      enum: [],
       // Required only if fundType is 'Department'
     },
     fundType: {

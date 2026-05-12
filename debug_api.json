@@ -1,14 +1,22 @@
 {
   "recordFilters": {},
-  "dateFilter": null,
+  "dateFilter": {
+    "start": "2026-04-30T18:30:00.000Z",
+    "end": "2026-05-31T18:29:59.999Z"
+  },
   "sampleUsers": [
     {
-      "_id": "118",
-      "name": "ABDULLA K K",
+      "_id": "3",
+      "name": "AMEEN ABDULLA",
+      "attendanceRecords": []
+    },
+    {
+      "_id": "6",
+      "name": "BADRUDDEEN",
       "attendanceRecords": []
     }
   ],
-  "totalFormattedUsers": 1,
+  "totalFormattedUsers": 995,
   "totalRecordsForFirstUser": 0,
   "originalRecordsCount": 0
 }

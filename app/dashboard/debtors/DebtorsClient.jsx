@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +19,8 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { IndianRupee, Plus, Trash2, BadgeIndianRupee, X, Loader2, Filter, Printer, Edit, AlertCircle, Columns } from "lucide-react";
+import { IndianRupee, Plus, Trash2, BadgeIndianRupee, X, Loader2, Filter, Printer, Edit, AlertCircle, Columns, Users, Tags, Search } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
@@ -27,11 +28,12 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ComboBox } from "@/components/ui/combobox";
 
 const statusColor = (status) => {
-  if (status === "Paid")    return "bg-green-100 text-green-700 border-green-300";
-  if (status === "Partial") return "bg-yellow-100 text-yellow-700 border-yellow-300";
-  return "bg-red-100 text-red-700 border-red-300";
+  if (status === "Paid")    return "bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-300 dark:border-green-800";
+  if (status === "Partial") return "bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 border-orange-300 dark:border-orange-800";
+  return "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-red-300 dark:border-red-800";
 };
 
 export default function DebtorsClient({ batches, classes, categories: initialCategories, apiKey }) {
@@ -45,25 +47,47 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
   // Filters
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState("All");
+  const [filterCategory, setFilterCategory] = useState("All");
   const [filterFromDate, setFilterFromDate] = useState("");
   const [filterToDate, setFilterToDate] = useState("");
+  
+  const [lookupSearchTerm, setLookupSearchTerm] = useState("");
+  const [lookupStudent, setLookupStudent] = useState(null);
+  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [hasLookedUp, setHasLookedUp] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
+  // Total Collected Date Range State
+  const [collectedFrom, setCollectedFrom] = useState("");
+  const [collectedTo, setCollectedTo] = useState("");
+  const [collectedCategory, setCollectedCategory] = useState("All");
+  const [balanceCategory, setBalanceCategory] = useState("All");
   
   // Local Filter State for Dialog
   const [tempBatch, setTempBatch] = useState("");
   const [tempClass, setTempClass] = useState("");
   const [tempStatus, setTempStatus] = useState("All");
+  const [tempCategory, setTempCategory] = useState("All");
   const [tempFromDate, setTempFromDate] = useState("");
   const [tempToDate, setTempToDate] = useState("");
 
   // Column Visibility
   const [visibleCols, setVisibleCols] = useState({
-    student: true, category: true, year: true, total: true, paid: true, balance: true, status: true,
+    slNo: true, studentId: true, student: true, category: true, year: true, total: true, paid: true, balance: true, status: true,
   });
+
+  // Popup states
+  const [paidDetailsOpen, setPaidDetailsOpen] = useState(false);
+  const [paidDetailsDebt, setPaidDetailsDebt] = useState(null);
+  const [studentsWiseOpen, setStudentsWiseOpen] = useState(false);
+  const [categoryWiseOpen, setCategoryWiseOpen] = useState(false);
 
   const handleOpenFilter = () => {
     setTempBatch(selectedBatch);
     setTempClass(selectedClass);
     setTempStatus(filterStatus);
+    setTempCategory(filterCategory);
     setTempFromDate(filterFromDate);
     setTempToDate(filterToDate);
     setFilterOpen(true);
@@ -73,9 +97,70 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
     setSelectedBatch(tempBatch);
     setSelectedClass(tempClass);
     setFilterStatus(tempStatus);
+    setFilterCategory(tempCategory);
     setFilterFromDate(tempFromDate);
     setFilterToDate(tempToDate);
     setFilterOpen(false);
+  };
+
+  useEffect(() => {
+    const term = lookupSearchTerm.trim().toLowerCase();
+    if (!term || !showSearchResults) {
+      setSearchResults([]);
+      return;
+    }
+    const delayDebounceFn = setTimeout(() => {
+      setIsLookingUp(true);
+      fetch(`/api/users?lookup=${term}&roles=Student`, { headers: { "api-key": apiKey }})
+        .then(res => res.json())
+        .then(data => {
+            if (data.users) setSearchResults(data.users);
+            else setSearchResults([]);
+        })
+        .catch(() => setSearchResults([]))
+        .finally(() => setIsLookingUp(false));
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [lookupSearchTerm, showSearchResults, apiKey]);
+
+  const handleLookupSearch = async () => {
+    if (!lookupSearchTerm.trim()) { toast.error("Enter student ID or name"); return; }
+    if (searchResults.length > 0) {
+        const searchLower = lookupSearchTerm.toLowerCase();
+        const exactMatch = searchResults.find(u => 
+            String(u.studentSpecificField?.admissionNumber || "").toLowerCase() === searchLower ||
+            String(u._id).toLowerCase() === searchLower || 
+            String(u.name).toLowerCase() === searchLower
+        );
+        setLookupStudent(exactMatch || searchResults[0]);
+        setHasLookedUp(true);
+        setLookupSearchTerm((exactMatch || searchResults[0]).name);
+        setShowSearchResults(false);
+        return;
+    }
+    
+    setIsLookingUp(true);
+    try {
+      const res = await fetch(`/api/users?lookup=${lookupSearchTerm}&roles=Student`, { headers: { "api-key": apiKey }});
+      const data = await res.json();
+      if (data.users && data.users.length > 0) {
+        const searchLower = lookupSearchTerm.toLowerCase();
+        const exactMatch = data.users.find(u => 
+            String(u.studentSpecificField?.admissionNumber || "").toLowerCase() === searchLower ||
+            String(u._id).toLowerCase() === searchLower || 
+            String(u.name).toLowerCase() === searchLower
+        );
+        setLookupStudent(exactMatch || data.users[0]);
+        setHasLookedUp(true);
+        setLookupSearchTerm((exactMatch || data.users[0]).name);
+        setShowSearchResults(false);
+      } else {
+        toast.error("No student found");
+      }
+    } finally {
+      setIsLookingUp(false);
+    }
   };
 
   // Add Debt Dialog
@@ -113,7 +198,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
     const sClass = selectedClass === "none" ? "" : selectedClass;
     if (!sBatch && !sClass) { setStudents([]); return; }
     
-    const params = new URLSearchParams({ roles: "Student", projection: "id,name" });
+    const params = new URLSearchParams({ roles: "Student", projection: "id,name,studentSpecificField.admissionNumber" });
     if (sBatch) params.append("batchId", sBatch);
     if (sClass) params.append("classId", sClass);
     if (sClass && !sBatch) params.append("status", "Active");
@@ -126,11 +211,11 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
 
   // Fetch students for Add Debt Popup
   useEffect(() => {
+    if (!addOpen) return;
     const aBatch = addBatch === "none" ? "" : addBatch;
     const aClass = addClass === "none" ? "" : addClass;
-    if (!aBatch && !aClass) { setAddStudents([]); return; }
     
-    const params = new URLSearchParams({ roles: "Student", projection: "id,name" });
+    const params = new URLSearchParams({ roles: "Student", projection: "id,name,studentSpecificField.admissionNumber" });
     if (aBatch) params.append("batchId", aBatch);
     if (aClass) params.append("classId", aClass);
     if (aClass && !aBatch) params.append("status", "Active");
@@ -139,7 +224,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
       .then((r) => r.json())
       .then((d) => setAddStudents(d.users || d || []))
       .catch(() => setAddStudents([]));
-  }, [addBatch, addClass, apiKey]);
+  }, [addBatch, addClass, apiKey, addOpen]);
 
   // Fetch debts
   const fetchDebts = useCallback(async () => {
@@ -283,15 +368,28 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
   };
 
   const studentName = (id) => {
+    if (typeof id === "object" && id !== null) return id.name;
     let st = students.find((s) => (s._id || s.id) === id) || addStudents.find((s) => (s._id || s.id) === id);
     return st?.name || id;
   };
 
+  const getStudentAdmissionNo = (id) => {
+    if (typeof id === "object" && id !== null) return id.studentSpecificField?.admissionNumber || id._id;
+    let st = students.find((s) => (s._id || s.id) === id) || addStudents.find((s) => (s._id || s.id) === id);
+    return st?.studentSpecificField?.admissionNumber || (st?._id || st?.id) || id;
+  };
+
   const filteredDebts = debts.filter(d => {
+    if (hasLookedUp && lookupStudent) {
+        const sId = typeof d.studentId === "object" && d.studentId !== null ? d.studentId._id : d.studentId;
+        if (sId !== lookupStudent._id) return false;
+    }
+
     const paid = (d.payments || []).reduce((s, p) => s + p.amount, 0);
     const status = paid >= d.totalAmount ? "Paid" : paid > 0 ? "Partial" : "Pending";
     
     if (filterStatus !== "All" && status !== filterStatus) return false;
+    if (filterCategory !== "All" && d.category !== filterCategory) return false;
     
     const dDate = d.createdAt ? d.createdAt.substring(0, 10) : null;
     if (filterFromDate && dDate && dDate < filterFromDate) return false;
@@ -300,14 +398,283 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
     return true;
   });
 
+  const totalCollected = useMemo(() => {
+    let total = 0;
+    filteredDebts.forEach(d => {
+      if (collectedCategory !== "All" && d.category !== collectedCategory) return;
+      (d.payments || []).forEach(p => {
+        if (!p.amount) return;
+        const pDate = p.date ? new Date(p.date).toISOString().substring(0, 10) : null;
+        if (collectedFrom && pDate && pDate < collectedFrom) return;
+        if (collectedTo && pDate && pDate > collectedTo) return;
+        total += p.amount;
+      });
+    });
+    return total;
+  }, [filteredDebts, collectedFrom, collectedTo, collectedCategory]);
+
+  const totalBalance = useMemo(() => {
+    let balance = 0;
+    filteredDebts.forEach(d => {
+      if (balanceCategory !== "All" && d.category !== balanceCategory) return;
+      const paid = (d.payments || []).reduce((s, p) => s + p.amount, 0);
+      balance += (d.totalAmount - paid);
+    });
+    return balance;
+  }, [filteredDebts, balanceCategory]);
+
+  const studentsWiseData = useMemo(() => {
+    const map = {};
+    filteredDebts.forEach(d => {
+      const sId = typeof d.studentId === "object" && d.studentId !== null ? d.studentId._id : d.studentId;
+      if (!map[sId]) map[sId] = { studentId: d.studentId, total: 0, paid: 0, balance: 0 };
+      const paid = (d.payments || []).reduce((s, p) => s + p.amount, 0);
+      map[sId].total += d.totalAmount;
+      map[sId].paid += paid;
+      map[sId].balance += (d.totalAmount - paid);
+    });
+    return Object.values(map).sort((a, b) => b.balance - a.balance);
+  }, [filteredDebts]);
+
+  const categoryWiseData = useMemo(() => {
+    const map = {};
+    filteredDebts.forEach(d => {
+      if (!map[d.category]) map[d.category] = { category: d.category, count: 0, total: 0, paid: 0, balance: 0 };
+      const paid = (d.payments || []).reduce((s, p) => s + p.amount, 0);
+      map[d.category].count += 1;
+      map[d.category].total += d.totalAmount;
+      map[d.category].paid += paid;
+      map[d.category].balance += (d.totalAmount - paid);
+    });
+    return Object.values(map).sort((a, b) => b.balance - a.balance);
+  }, [filteredDebts]);
+
   return (
     <div className="p-2 space-y-4">
+      {/* Top Cards: Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-2">
+        
+        {/* Left Column */}
+        <div className="flex flex-col gap-2 h-full">
+            {/* Student Lookup Card */}
+            <Card className="w-full shadow-sm flex-1 flex flex-col justify-center">
+                <CardHeader className="bg-muted/10 pb-6 pt-6 flex-1 rounded-t-xl">
+                <CardTitle className="text-lg flex items-center gap-2">
+                    <Search className="w-5 h-5 text-primary" />
+                    Student Lookup
+                </CardTitle>
+                <div className="flex gap-2 mt-4 w-full max-w-2xl">
+                    <div className="relative flex-1">
+                        <Input
+                            placeholder="Search by Student ID or Name..."
+                            value={lookupSearchTerm}
+                            onChange={(e) => {
+                                setLookupSearchTerm(e.target.value);
+                                setShowSearchResults(true);
+                            }}
+                            onFocus={(e) => {
+                                e.target.select();
+                                setShowSearchResults(true);
+                            }}
+                            onBlur={() => {
+                                setTimeout(() => setShowSearchResults(false), 200);
+                            }}
+                            onKeyDown={(e) => { 
+                                if (e.key === "Enter") {
+                                    if (searchResults.length === 1) {
+                                        const s = searchResults[0];
+                                        setLookupStudent(s);
+                                        setHasLookedUp(true);
+                                        setLookupSearchTerm(s.name);
+                                        setShowSearchResults(false);
+                                    } else {
+                                        handleLookupSearch();
+                                    }
+                                }
+                            }}
+                            className="w-full pr-10 bg-background"
+                        />
+                        {(hasLookedUp || lookupSearchTerm) && (
+                            <Button
+                                variant="ghost" size="icon"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-transparent"
+                                onClick={() => {
+                                    setLookupSearchTerm(""); setHasLookedUp(false); setLookupStudent(null); setShowSearchResults(false);
+                                }}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        )}
+                        
+                        {/* Search Results Dropdown */}
+                        {showSearchResults && searchResults.length > 0 && (
+                            <div className="absolute z-[999] left-0 right-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-[400px] overflow-y-auto">
+                                {searchResults.map((student) => {
+                                    const batch = batches.find(b => b._id === (student.studentSpecificField?.batchId || student.batchId));
+                                    const cls = classes.find(c => c._id === (student.studentSpecificField?.classId || student.classId));
+                                    const batchName = batch?.name || "No Batch";
+                                    const className = cls?.name || "No Class";
+                                    
+                                    return (
+                                        <div
+                                            key={student._id}
+                                            className="flex items-center gap-3 p-3 hover:bg-accent cursor-pointer border-b last:border-0"
+                                            onMouseDown={(e) => {
+                                                e.preventDefault(); // Prevent blur
+                                                setLookupStudent(student);
+                                                setHasLookedUp(true);
+                                                setLookupSearchTerm(student.name);
+                                                setShowSearchResults(false);
+                                            }}
+                                        >
+                                            <Avatar className="h-10 w-10 border">
+                                                <AvatarImage src={student.profilePic?.url} />
+                                                <AvatarFallback>{student.name?.[0]}</AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-1 min-w-0 text-sm">
+                                                <div className="font-medium truncate">{student.name}</div>
+                                                <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+                                                    <span>ID: {student.studentSpecificField?.admissionNumber || student._id}</span>
+                                                </div>
+                                                <div className="text-[11px] text-primary/70 font-semibold truncate">
+                                                    {className} • {batchName}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                    <Button
+                        onClick={() => lookupSearchTerm ? handleLookupSearch() : {}}
+                        disabled={isLookingUp}
+                        className="bg-black text-white hover:bg-white hover:text-black border border-black h-10 w-10 p-0 flex items-center justify-center shrink-0"
+                    >
+                        {isLookingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    </Button>
+                </div>
+            </CardHeader>
+        </Card>
+
+        {/* Total Debt Balance Card */}
+        <Card className="w-full border-red-500/20 shadow-sm bg-red-500/5 flex-1 flex flex-col justify-center">
+            <CardContent className="h-full pt-4 pb-4 flex flex-col justify-center items-center relative gap-2">
+                <div className="w-full max-w-sm bg-background/50 backdrop-blur-sm px-2 py-1 rounded-md border border-red-500/20 relative">
+                    <div className="space-y-0.5">
+                        <Label className="text-xs text-muted-foreground">Category</Label>
+                        <Select value={balanceCategory} onValueChange={setBalanceCategory}>
+                          <SelectTrigger className="h-8 bg-background"><SelectValue placeholder="All Categories" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="All">All Categories</SelectItem>
+                            {categories.map((c) => <SelectItem key={c._id || c.name} value={c.name}>{c.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                    </div>
+                    {balanceCategory !== "All" && (
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute -top-3 -right-3 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 shadow-sm z-10" 
+                            onClick={() => setBalanceCategory("All")}
+                            title="Clear Filter"
+                        >
+                            <X className="h-3 w-3" />
+                        </Button>
+                    )}
+                </div>
+
+                <div className="flex flex-col items-center space-y-1">
+                    <div className="text-sm md:text-base font-semibold uppercase tracking-widest text-muted-foreground text-center">
+                        Total Debt Balance
+                    </div>
+                    <div className="text-4xl md:text-5xl font-bold text-red-600 tabular-nums">
+                        ₹{totalBalance.toLocaleString()}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+      </div>
+
+        {/* Right Column: Total Amount Summary Card */}
+        <Card className="w-full border-green-500/20 shadow-sm bg-green-500/5 h-full">
+            <CardContent className="h-full pt-6 pb-6 flex flex-col justify-center items-center relative gap-4">
+                <div className="w-full max-w-sm grid grid-cols-2 gap-2 bg-background/50 backdrop-blur-sm p-2 rounded-md border border-green-500/20 relative">
+                    <div className="space-y-0.5">
+                        <Label className="text-xs text-muted-foreground">From Date</Label>
+                        <Input type="date" value={collectedFrom} onChange={e => setCollectedFrom(e.target.value)} />
+                    </div>
+                    <div className="space-y-0.5">
+                        <Label className="text-xs text-muted-foreground">To Date</Label>
+                        <Input type="date" value={collectedTo} onChange={e => setCollectedTo(e.target.value)} />
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                        <Label className="text-xs text-muted-foreground">Category</Label>
+                        <Select value={collectedCategory} onValueChange={setCollectedCategory}>
+                          <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="All Categories" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="All">All Categories</SelectItem>
+                            {categories.map((c) => <SelectItem key={c._id || c.name} value={c.name}>{c.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                    </div>
+                    {(collectedFrom || collectedTo || collectedCategory !== "All") && (
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute -top-3 -right-3 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 shadow-sm z-10" 
+                            onClick={() => { setCollectedFrom(""); setCollectedTo(""); setCollectedCategory("All"); }}
+                            title="Clear Filters"
+                        >
+                            <X className="h-3 w-3" />
+                        </Button>
+                    )}
+                </div>
+
+                <div className="flex flex-col items-center space-y-2 mt-2">
+                    <div className="text-sm md:text-base font-semibold uppercase tracking-widest text-muted-foreground text-center">
+                        Total Collected Amount
+                    </div>
+                    <div className="text-4xl md:text-5xl font-bold text-green-600 tabular-nums">
+                        ₹{totalCollected.toLocaleString()}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+      </div>
+
+      {hasLookedUp && lookupStudent && (
+          <Card className="w-full border-primary/20 shadow-sm relative overflow-hidden bg-card mb-2">
+              <CardContent className="pt-6">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start md:items-center gap-4 bg-muted/20 p-4 rounded-lg border">
+                      <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border shadow-sm flex-shrink-0">
+                          <AvatarImage src={lookupStudent.profilePic?.url} />
+                          <AvatarFallback className="text-lg font-medium text-primary bg-primary/10">
+                              {lookupStudent.name?.charAt(0)}
+                          </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 space-y-1 text-center sm:text-left">
+                          <h3 className="text-xl font-bold tracking-tight">{lookupStudent.name}</h3>
+                          <div className="text-sm text-muted-foreground flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1">
+                              <div><span className="font-medium mr-1">ID:</span> {lookupStudent._id}</div>
+                          </div>
+                      </div>
+                      <div className="hidden sm:block text-right self-start md:self-center">
+                          <Badge variant={lookupStudent.studentSpecificField?.status === "Active" ? "outline" : "secondary"} className={lookupStudent.studentSpecificField?.status === "Active" ? "bg-green-50 text-green-700 border-green-200" : ""}>
+                              {lookupStudent.studentSpecificField?.status || "Unknown"}
+                          </Badge>
+                      </div>
+                  </div>
+              </CardContent>
+          </Card>
+      )}
+
       {/* Header Row */}
       <div className="flex flex-wrap gap-3 items-end no-print">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
-              <Columns className="h-4 w-4 mr-1" /> Columns
+              <Columns className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Columns</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
@@ -338,7 +705,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
         <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" size="sm" onClick={handleOpenFilter}>
-              <Filter className="h-4 w-4 mr-1" /> Filter Data
+              <Filter className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Filter Data</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-sm">
@@ -381,6 +748,17 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
                 </Select>
               </div>
 
+              <div className="space-y-1">
+                <Label>Category</Label>
+                <Select value={tempCategory} onValueChange={setTempCategory}>
+                  <SelectTrigger><SelectValue placeholder="Any Category" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All</SelectItem>
+                    {categories.map((c) => <SelectItem key={c._id || c.name} value={c.name}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label>From Date</Label>
@@ -398,7 +776,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
               </div>
 
               <Button variant="ghost" className="w-full text-xs" onClick={() => {
-                setTempStatus("All"); setTempFromDate(""); setTempToDate("");
+                setTempStatus("All"); setTempCategory("All"); setTempFromDate(""); setTempToDate("");
               }}>Clear Additional Filters</Button>
             </div>
           </DialogContent>
@@ -411,15 +789,21 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
         )}
 
         <div className="flex gap-2 ml-auto">
+          <Button variant="outline" size="sm" onClick={() => setStudentsWiseOpen(true)}>
+            <Users className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Students Wise</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setCategoryWiseOpen(true)}>
+            <Tags className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Category Wise</span>
+          </Button>
           <Button
             className="bg-blue-600 hover:bg-blue-700 text-white"
             onClick={() => setAddOpen(true)}
             size="sm"
           >
-            <Plus className="h-4 w-4 mr-1" /> Add Debt
+            <Plus className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Add Debt</span>
           </Button>
           <Button variant="default" size="sm" onClick={() => window.print()}>
-            <Printer className="h-4 w-4 mr-1" /> Print
+            <Printer className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Print</span>
           </Button>
         </div>
       </div>
@@ -447,6 +831,8 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
                     }} 
                   />
                 </TableHead>
+                {visibleCols.slNo && <TableHead>Sl No</TableHead>}
+                {visibleCols.studentId && <TableHead>Student ID</TableHead>}
                 {visibleCols.student && <TableHead>Student</TableHead>}
                 {visibleCols.category && <TableHead>Category</TableHead>}
                 {visibleCols.year && <TableHead>Year</TableHead>}
@@ -473,12 +859,27 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
                         }}
                       />
                     </TableCell>
+                    {visibleCols.slNo && <TableCell>{i + 1}</TableCell>}
+                    {visibleCols.studentId && <TableCell>{getStudentAdmissionNo(debt.studentId)}</TableCell>}
                     {visibleCols.student && <TableCell className="font-medium">{studentName(debt.studentId)}</TableCell>}
                     {visibleCols.category && <TableCell>{debt.category}</TableCell>}
                     {visibleCols.year && <TableCell>{debt.year}</TableCell>}
                     {visibleCols.total && <TableCell className="text-right">₹{debt.totalAmount.toLocaleString()}</TableCell>}
-                    {visibleCols.paid && <TableCell className="text-right text-green-600">₹{paid.toLocaleString()}</TableCell>}
-                    {visibleCols.balance && <TableCell className="text-right font-bold text-red-600">₹{balance.toLocaleString()}</TableCell>}
+                    {visibleCols.paid && (
+                      <TableCell className="text-right text-green-600 dark:text-green-400">
+                        {paid > 0 ? (
+                          <button 
+                            className="underline hover:text-green-800 dark:hover:text-green-300 focus:outline-none"
+                            onClick={() => { setPaidDetailsDebt(debt); setPaidDetailsOpen(true); }}
+                          >
+                            ₹{paid.toLocaleString()}
+                          </button>
+                        ) : (
+                          <span>₹0</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleCols.balance && <TableCell className="text-right font-bold text-red-600 dark:text-red-400">₹{balance.toLocaleString()}</TableCell>}
                     {visibleCols.status && (
                       <TableCell>
                         <Badge variant="outline" className={statusColor(status)}>{status}</Badge>
@@ -538,12 +939,15 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
             </div>
             <div className="space-y-1">
               <Label>Student *</Label>
-              <Select value={addForm.studentId} onValueChange={(v) => setAddForm((p) => ({ ...p, studentId: v }))} disabled={(!addBatch || addBatch === "none") && (!addClass || addClass === "none")}>
-                <SelectTrigger><SelectValue placeholder="Select Student" /></SelectTrigger>
-                <SelectContent>
-                  {addStudents.map((s) => <SelectItem key={s._id || s.id} value={s._id || s.id}>{s.name} ({s._id || s.id})</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <ComboBox
+                items={addStudents.map(s => ({
+                  value: s._id || s.id,
+                  label: `${s.name} (${s.studentSpecificField?.admissionNumber || s._id || s.id})`
+                }))}
+                value={addForm.studentId}
+                onSelect={(v) => setAddForm((p) => ({ ...p, studentId: v }))}
+                placeholder="Select Student"
+              />
             </div>
             <div className="space-y-1">
               <Label>Category *</Label>
@@ -679,6 +1083,116 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
               </DialogFooter>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Paid Details Dialog */}
+      <Dialog open={paidDetailsOpen} onOpenChange={setPaidDetailsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Payment Details</DialogTitle></DialogHeader>
+          {paidDetailsDebt && (
+            <div className="space-y-4">
+              <div className="text-sm">
+                Student: <b>{studentName(paidDetailsDebt.studentId)}</b><br/>
+                Category: <b>{paidDetailsDebt.category}</b>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Note</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(paidDetailsDebt.payments || []).map((p, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell>{p.date ? new Date(p.date).toLocaleDateString() : "-"}</TableCell>
+                      <TableCell className="text-right text-green-600 font-medium">₹{p.amount.toLocaleString()}</TableCell>
+                      <TableCell>{p.note || "-"}</TableCell>
+                    </TableRow>
+                  ))}
+                  {(paidDetailsDebt.payments || []).length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-muted-foreground">No payments recorded</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Students Wise Dialog */}
+      <Dialog open={studentsWiseOpen} onOpenChange={setStudentsWiseOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader className="flex flex-row items-center justify-between">
+            <DialogTitle>Students Wise Summary</DialogTitle>
+          </DialogHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-16">Sl No</TableHead>
+                <TableHead>Student ID</TableHead>
+                <TableHead>Student Name</TableHead>
+                <TableHead className="text-right">Total Debt</TableHead>
+                <TableHead className="text-right">Total Paid</TableHead>
+                <TableHead className="text-right">Balance</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {studentsWiseData.map((d, idx) => (
+                <TableRow key={idx}>
+                  <TableCell>{idx + 1}</TableCell>
+                  <TableCell>{getStudentAdmissionNo(d.studentId)}</TableCell>
+                  <TableCell className="font-medium">{studentName(d.studentId)}</TableCell>
+                  <TableCell className="text-right">₹{d.total.toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-green-600 dark:text-green-400">₹{d.paid.toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-bold text-red-600 dark:text-red-400">₹{d.balance.toLocaleString()}</TableCell>
+                </TableRow>
+              ))}
+              {studentsWiseData.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">No data available</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Wise Dialog */}
+      <Dialog open={categoryWiseOpen} onOpenChange={setCategoryWiseOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Category Wise Summary</DialogTitle></DialogHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Category</TableHead>
+                <TableHead className="text-right">Records</TableHead>
+                <TableHead className="text-right">Total Debt</TableHead>
+                <TableHead className="text-right">Total Paid</TableHead>
+                <TableHead className="text-right">Balance</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {categoryWiseData.map((d, idx) => (
+                <TableRow key={idx}>
+                  <TableCell className="font-medium">{d.category}</TableCell>
+                  <TableCell className="text-right">{d.count}</TableCell>
+                  <TableCell className="text-right">₹{d.total.toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-green-600">₹{d.paid.toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-bold text-red-600">₹{d.balance.toLocaleString()}</TableCell>
+                </TableRow>
+              ))}
+              {categoryWiseData.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">No data available</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </DialogContent>
       </Dialog>
     </div>

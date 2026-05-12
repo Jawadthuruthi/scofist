@@ -119,7 +119,7 @@ const items = [
     title: "Accounts",
     url: "/dashboard/accounts",
     icon: FileText,
-    allowedRoles: ["College Admin", "Org Admin", "Stationary", "IT Lab"],
+    allowedRoles: ["College Admin", "Org Admin"],
   },
   {
     title: "Debtors",
@@ -148,7 +148,7 @@ const items = [
   {
     title: "Students Fund",
     url: "/dashboard/students-fund",
-    allowedRoles: ["Teacher", "IT Lab", "Stationary"],
+    allowedRoles: ["Teacher"],
     icon: CreditCard,
   },
   {
@@ -667,9 +667,7 @@ function ComboBox({ roles, role }) {
                     } catch (error) {
                       console.error("Error setting cookie:", error);
                     }
-                    if (currentValue === "Stationary" || currentValue === "IT Lab") {
-                      window.location.href = "/dashboard/students-fund";
-                    } else if (currentValue === "Librarian") {
+ if (currentValue === "Librarian") {
                       window.location.href = "/dashboard/library-dashboard";
                     } else if (currentValue === "Gate Keeper") {
                       window.location.href = "/dashboard/gate-pass";
@@ -690,9 +688,10 @@ function ComboBox({ roles, role }) {
 }
 
 export function AppSidebar({ roles, activeRole, user }) {
+  const filteredRoles = roles?.filter(r => r !== "Stationary" && r !== "IT Lab") || [];
   const sidebarRef = useRef(null);
   const { setOpen, setOpenMobile } = useSidebar();
-  const [role, setRole] = useState(activeRole || roles[0] || "");
+  const [role, setRole] = useState(activeRole || filteredRoles[0] || "");
   const pathname = usePathname();
 
   // Close sidebar on outside click
@@ -728,8 +727,7 @@ export function AppSidebar({ roles, activeRole, user }) {
       "Program Leader",
       "Finance",
       "Literary Leader",
-      "Stationary",
-      "IT Lab",
+
       "Spark Admin",
       "Librarian",
       "Gate Keeper",
@@ -808,7 +806,7 @@ export function AppSidebar({ roles, activeRole, user }) {
           </Button>
         </div>
         <div className="mx-4">
-          <ComboBox roles={roles} role={role} />
+          <ComboBox roles={filteredRoles} role={role} />
         </div>
         {(role === "Program Committee" || role === "Program Leader") && (
           <YearSwitcher />

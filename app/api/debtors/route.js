@@ -23,7 +23,10 @@ export async function GET(req) {
     if (category)  query.category  = category;
     if (year)      query.year      = year;
 
-    const debts = await Debtor.find(query).sort({ createdAt: -1 }).lean({ virtuals: true });
+    const debts = await Debtor.find(query)
+      .populate("studentId", "name studentSpecificField.admissionNumber")
+      .sort({ createdAt: -1 })
+      .lean({ virtuals: true });
     return NextResponse.json({ success: true, debts });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

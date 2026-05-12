@@ -18,8 +18,6 @@ const ROLES = [
   "Program Leader",
   "Finance",
   "Literary Leader",
-  "Stationary",
-  "IT Lab",
   "Spark Admin",
   "Librarian",
 ];

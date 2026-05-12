@@ -834,10 +834,6 @@ export default function StudentDashboard({
             
             if (roles.includes("Teacher")) {
               label = "Students Fund";
-            } else if (roles.includes("Stationary")) {
-              label = "Stationary Fund";
-            } else if (roles.includes("IT Lab")) {
-              label = "IT Lab Fund";
             } else if (roles.length > 0) {
               label = "Staff Fund";
             }

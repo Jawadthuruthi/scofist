@@ -43,7 +43,7 @@ export default async function DebtorsPage() {
       <div className="flex flex-col space-y-2">
         <Header
           title="DEBTORS"
-          subTitle="Manage student debt records by batch, class and category"
+          subTitle="Manage student debt records"
         />
         <DebtorsClient
           batches={batches}

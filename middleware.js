@@ -239,12 +239,12 @@ const pages = [
   {
     title: "Accounts",
     path: "/dashboard/accounts",
-    allowedRoles: ["College Admin", "Org Admin", "Stationary", "IT Lab"],
+    allowedRoles: ["College Admin", "Org Admin"],
   },
   {
     title: "Students Fund",
     path: "/dashboard/students-fund",
-    allowedRoles: ["Teacher", "Stationary", "IT Lab"],
+    allowedRoles: ["Teacher"],
   },
   {
     title: "Student Coupon Fund",
@@ -468,18 +468,7 @@ const pages = [
     path: "/dashboard/program-management/reset",
     allowedRoles: ["Program Committee"],
   },
-  {
-    title: "Stationary",
-    path: "/dashboard/stationary",
-    pattern: /^\/dashboard\/stationary(?:\/[^/]+)?$/,
-    allowedRoles: ["Stationary"],
-  },
-  {
-    title: "IT Lab",
-    path: "/dashboard/it-lab",
-    pattern: /^\/dashboard\/it-lab(?:\/[^/]+)?$/,
-    allowedRoles: ["IT Lab"],
-  },
+
   {
     title: "Academic Calendar",
     path: "/dashboard/academic-calendar",
@@ -526,11 +515,7 @@ async function handleLoginPageRequest(req) {
       return NextResponse.redirect(new URL("/dashboard/my-periods", req.url));
     }
 
-    if (activeRole === "Stationary" || activeRole === "IT Lab") {
-      return NextResponse.redirect(
-        new URL("/dashboard/students-fund", req.url)
-      );
-    }
+
 
     if (activeRole === "Librarian") {
       return NextResponse.redirect(
@@ -822,14 +807,7 @@ function prepareResponse(req, token, user) {
 
   // Now validate access
   if (!isUserAllowed(activeRole, req.nextUrl.pathname)) {
-    if (
-      (activeRole === "Stationary" || activeRole === "IT Lab") &&
-      req.nextUrl.pathname === "/dashboard"
-    ) {
-      return NextResponse.redirect(
-        new URL("/dashboard/students-fund", req.url)
-      );
-    }
+
     if (activeRole === "Librarian" && req.nextUrl.pathname === "/dashboard") {
       return NextResponse.redirect(
         new URL("/dashboard/library-dashboard", req.url)

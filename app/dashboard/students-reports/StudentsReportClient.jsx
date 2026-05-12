@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ComboBox } from "@/components/ui/combobox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Header from "@/components/Header";
 import { Users, Loader2, Search, ScanBarcode, X } from "lucide-react";
 import StudentDashboard from "@/components/StudentDashboard";
@@ -411,28 +412,36 @@ export default function StudentsReportClient({ batches, classes, apiKey, updates
                                 </Button>
                             )}
                             {showSuggestions && searchFocused && suggestions.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border rounded-md shadow-lg overflow-hidden max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-200">
+                                <div className="absolute z-[999] left-0 right-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-[400px] overflow-y-auto">
                                     {suggestions.map((student) => {
                                         const batch = batches.find(b => b._id === (student.batchId || student.studentSpecificField?.batchId));
                                         const cls = classes.find(c => c._id === (student.classId || student.studentSpecificField?.classId));
+                                        const batchName = batch?.name || "No Batch";
+                                        const className = cls?.name || "No Class";
                                         
                                         return (
-                                            <button
+                                            <div
                                                 key={student._id}
-                                                className="w-full text-left px-4 py-3 hover:bg-muted flex flex-col gap-0.5 border-b last:border-0 transition-colors"
-                                                onClick={() => selectStudent(student)}
+                                                className="flex items-center gap-3 p-3 hover:bg-accent cursor-pointer border-b last:border-0 transition-colors"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault(); // Prevent blur
+                                                    selectStudent(student);
+                                                }}
                                             >
-                                                <span className="font-semibold text-sm">{student.name}</span>
-                                                <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                                                    <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider">
-                                                        {student._id}
-                                                    </span>
-                                                    <span>•</span>
-                                                    <span>{cls?.name || "Unknown Class"}</span>
-                                                    <span>•</span>
-                                                    <span>{batch?.name || "Unknown Batch"}</span>
-                                                </span>
-                                            </button>
+                                                <Avatar className="h-10 w-10 border">
+                                                    <AvatarImage src={student.profilePic?.url} />
+                                                    <AvatarFallback>{student.name?.[0]}</AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex-1 min-w-0 text-sm">
+                                                    <div className="font-medium truncate">{student.name}</div>
+                                                    <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+                                                        <span>ID: {student._id}</span>
+                                                    </div>
+                                                    <div className="text-[11px] text-primary/70 font-semibold truncate">
+                                                        {className} • {batchName}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         );
                                     })}
                                 </div>

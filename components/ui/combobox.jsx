@@ -26,7 +26,7 @@ export function ComboBox({ items, value, onSelect, placeholder = "Select item...
     const selectedLabel = items.find((item) => item.value === value)?.label
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={setOpen} modal={true}>
             <PopoverTrigger asChild>
                 <Button
                     variant="outline"
@@ -38,10 +38,13 @@ export function ComboBox({ items, value, onSelect, placeholder = "Select item...
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[300px] p-0">
+            <PopoverContent 
+                className="w-[400px] p-0" 
+                onWheel={(e) => e.stopPropagation()}
+            >
                 <Command>
                     <CommandInput placeholder={`Search...`} />
-                    <CommandList>
+                    <CommandList className="max-h-[300px] overflow-y-auto">
                         <CommandEmpty>No item found.</CommandEmpty>
                         <CommandGroup>
                             {items.map((item) => (

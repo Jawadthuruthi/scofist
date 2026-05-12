@@ -51,8 +51,6 @@ const AVAILABLE_ROLES = [
   'Program Leader',
   'Finance',
   'Literary Leader',
-  'Stationary',
-  'IT Lab',
   'Spark Admin',
   'Library Manager',
   'Librarian',
@@ -342,7 +340,7 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
 
   // Standard Roles
   const allStandardRoles = [...new Set((users || []).flatMap(u => u.roles || []))]
-    .filter(role => role !== 'Teacher' && role !== 'Student')
+    .filter(role => role !== 'Teacher' && role !== 'Student' && role !== 'Stationary' && role !== 'IT Lab')
     .sort();
 
   allStandardRoles.forEach(roleName => {
