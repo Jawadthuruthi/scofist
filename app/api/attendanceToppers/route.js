@@ -1,7 +1,7 @@
-import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import StudentAttendance from "@/models/StudentAttendance";
 import { NextResponse } from "next/server";
+import { apiResponse } from "@/lib/apiResponse";
 
 export async function GET(req, res) {
   try {

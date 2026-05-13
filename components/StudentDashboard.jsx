@@ -431,15 +431,21 @@ function DownloadsTabContent({ apiKey }) {
   );
 }
 
-function AwardPoster({ award, currentUser }) {
+function AwardPoster({ award, currentUser, festSettings }) {
   const Icon = award.icon;
   const posterRef = React.useRef(null);
   const [isExporting, setIsExporting] = React.useState(false);
+
+  const orgLogo = festSettings?.org?.logo?.url;
+  const instLogo = festSettings?.institution?.logo?.url;
 
   const colorMap = {
     amber: "from-amber-400 via-yellow-500 to-amber-600",
     emerald: "from-emerald-400 via-teal-500 to-emerald-600",
     yellow: "from-yellow-400 via-amber-500 to-yellow-600",
+    gold: "from-yellow-300 via-amber-400 to-yellow-600",
+    silver: "from-slate-300 via-slate-400 to-slate-500",
+    bronze: "from-amber-600 via-orange-700 to-amber-800",
     indigo: "from-indigo-400 via-blue-500 to-indigo-600",
     rose: "from-rose-400 via-pink-500 to-rose-600",
   };
@@ -478,14 +484,32 @@ function AwardPoster({ award, currentUser }) {
         ref={posterRef}
         className="group relative flex flex-col items-center p-8 rounded-[2.5rem] border shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 w-full max-w-sm"
       >
-        {/* Decorative background circle */}
-        <div className={`absolute -top-12 -right-12 w-48 h-48 rounded-full blur-3xl opacity-10 bg-gradient-to-br ${bgGradient}`} />
+        {/* Background Decorative Elements */}
+        <div className={`absolute top-0 left-0 w-full h-32 bg-gradient-to-b ${bgGradient} opacity-10`} />
         
-        {/* Trophy/Icon at top right */}
-        <Icon className="absolute top-6 right-6 h-10 w-10 text-zinc-200 dark:text-zinc-800 opacity-50 group-hover:opacity-100 transition-opacity" />
+        {/* Logos for Best Reader */}
+        {award.type === "BEST READER" && (
+            <>
+                {orgLogo && (
+                    <div className="absolute top-6 left-6 w-10 h-10 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                        <img src={orgLogo} alt="Org" className="w-full h-full object-contain" />
+                    </div>
+                )}
+                {instLogo && (
+                    <div className="absolute top-6 right-6 w-10 h-10 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                        <img src={instLogo} alt="Inst" className="w-full h-full object-contain" />
+                    </div>
+                )}
+            </>
+        )}
+
+        {/* Trophy/Icon at top right - Hidden if logos are present to avoid overlap */}
+        {award.type !== "BEST READER" && Icon && (
+            <Icon className="absolute top-6 right-6 h-10 w-10 text-zinc-200 dark:text-zinc-800 opacity-50 group-hover:opacity-100 transition-opacity" />
+        )}
         
         {/* Profile Pic with rank border */}
-        <div className="relative mb-8">
+        <div className="relative mb-8 z-10">
             <div className={`w-36 h-36 rounded-full p-1.5 bg-gradient-to-br ${bgGradient} shadow-xl`}>
                 <div className="w-full h-full rounded-full border-[6px] border-white dark:border-zinc-900 overflow-hidden bg-zinc-100 dark:bg-zinc-800">
                     {currentUser?.profilePic?.url ? (
@@ -499,22 +523,48 @@ function AwardPoster({ award, currentUser }) {
             </div>
             {/* Badge */}
             <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-6 py-1.5 rounded-full text-xs font-black tracking-[0.2em] text-white shadow-xl uppercase bg-gradient-to-r ${bgGradient} border-2 border-white dark:border-zinc-900`}>
-              Winner
+              {award.rankLabel || "Winner"}
             </div>
         </div>
 
         <div className="text-center space-y-3 pb-4">
-            <h4 className={`text-[10px] font-black tracking-[0.3em] uppercase opacity-70 ${award.color === 'amber' ? 'text-amber-600' : award.color === 'emerald' ? 'text-emerald-600' : 'text-yellow-600'}`}>
-                {award.type}
-            </h4>
-            <h3 className="text-3xl font-black tracking-tight leading-tight text-zinc-900 dark:text-white">
-                {award.title}
+            {award.type && !["ATTENDANCE TOPPER", "BEST READER"].includes(award.type) && (
+                <h4 className={`text-[10px] font-black tracking-[0.3em] uppercase opacity-70 ${
+                  award.color === 'amber' ? 'text-amber-600' :
+                  award.color === 'emerald' ? 'text-emerald-600' :
+                  award.color === 'gold' ? 'text-yellow-600' :
+                  award.color === 'silver' ? 'text-slate-500' :
+                  award.color === 'bronze' ? 'text-amber-700' :
+                  award.color === 'indigo' ? 'text-indigo-600' :
+                  'text-yellow-600'
+                }`}>
+                    {award.type}
+                </h4>
+            )}
+            <h3 className="text-3xl font-black tracking-tight leading-tight text-zinc-900 dark:text-white whitespace-pre-line">
+                {award.title?.includes("of the Month") ? (
+                  <>
+                    {award.title.replace("of the Month", "").trim()}
+                    <span className="block text-xl opacity-80 mt-1">of the Month</span>
+                  </>
+                ) : (award.title || "Achievement")}
             </h3>
             {award.subtitle && (
                 <p className="text-base font-bold text-zinc-500 dark:text-zinc-400">{award.subtitle}</p>
             )}
+            {award.extraInfo && (
+                <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">{award.extraInfo}</p>
+            )}
             <div className="pt-6 flex flex-col items-center">
-                <div className={`px-6 py-2 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm font-black tracking-widest uppercase ${award.color === 'amber' ? 'text-amber-700' : award.color === 'emerald' ? 'text-emerald-700' : 'text-yellow-700'}`}>
+                <div className={`px-6 py-2 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm font-black tracking-widest uppercase ${
+                  award.color === 'amber' ? 'text-amber-700' :
+                  award.color === 'emerald' ? 'text-emerald-700' :
+                  award.color === 'gold' ? 'text-yellow-700' :
+                  award.color === 'silver' ? 'text-slate-600' :
+                  award.color === 'bronze' ? 'text-amber-800' :
+                  award.color === 'indigo' ? 'text-indigo-700' :
+                  'text-yellow-700'
+                }`}>
                     {award.period}
                 </div>
             </div>
@@ -523,9 +573,8 @@ function AwardPoster({ award, currentUser }) {
         {/* Shimmer effect */}
         <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
         
-        {/* Branding footer inside poster */}
-        <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 w-full flex justify-center opacity-30">
-           <span className="text-[10px] font-black tracking-widest uppercase">SCOFIST ACADEMY</span>
+        <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 w-full flex justify-center opacity-40">
+           <span className="text-[10px] font-black tracking-[0.4em] uppercase text-zinc-400">Congratulations...</span>
         </div>
       </div>
       
@@ -546,6 +595,7 @@ function AwardPoster({ award, currentUser }) {
 function AwardsTabContent({ currentUser, apiKey }) {
   const [awards, setAwards] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
+  const [festSettings, setFestSettings] = React.useState(null);
 
   React.useEffect(() => {
     const fetchAwards = async () => {
@@ -553,6 +603,18 @@ function AwardsTabContent({ currentUser, apiKey }) {
       const studentAwards = [];
       
       try {
+        // Fetch Settings first for branding
+        let currentFestSettings = null;
+        try {
+            const settingsRes = await fetch("/api/settings", { headers: { "api-key": apiKey } });
+            const settingsData = await settingsRes.json();
+            if (settingsData.success || settingsData.settings) {
+                currentFestSettings = settingsData.settings;
+            }
+        } catch (err) {
+            console.error("Settings fetch error:", err);
+        }
+
         const monthsToCheck = 36; // Check last 3 years
         
         // 1. Fetch Best Reader awards
@@ -562,18 +624,23 @@ function AwardsTabContent({ currentUser, apiKey }) {
             date.setMonth(date.getMonth() - m);
             const month = date.getMonth();
             const year = date.getFullYear();
+            const capturedDate = new Date(date);
             bestReaderPromises.push(
                 fetch(`/api/library/stats/best-reader?month=${month}&year=${year}`, { headers: { "api-key": apiKey } })
                     .then(r => r.json())
                     .then(res => {
-                        if (res.success && res.data?.student?._id === currentUser._id) {
+                        const bestReaderId = res.data?.student?._id;
+                        if (res.success && bestReaderId && String(bestReaderId) === String(currentUser._id)) {
                             studentAwards.push({
                                 type: "BEST READER",
                                 title: "Best Reader of the Month",
-                                period: formatMonthYear(date),
-                                date: new Date(year, month, 1),
+                                subtitle: "Library Achievement",
+                                extraInfo: `${res.data.count} books borrowed`,
+                                period: formatMonthYear(capturedDate),
+                                date: new Date(capturedDate.getFullYear(), capturedDate.getMonth(), 1),
                                 icon: BookOpen,
-                                color: "amber"
+                                color: "amber",
+                                rankLabel: "Best Reader"
                             });
                         }
                     })
@@ -581,7 +648,7 @@ function AwardsTabContent({ currentUser, apiKey }) {
             );
         }
 
-        // 2. Fetch Attendance Topper awards
+        // 2. Fetch Attendance Topper awards (one per completed month, per class)
         const attendancePromises = [];
         for (let m = 1; m <= monthsToCheck; m++) { // Start from 1 to skip current uncompleted month
             const date = new Date();
@@ -591,23 +658,27 @@ function AwardsTabContent({ currentUser, apiKey }) {
             
             const firstDay = formatDate(firstDayDate);
             const lastDay = formatDate(lastDayDate);
+            const capturedDate = new Date(date);
             
             attendancePromises.push(
-                fetch(`/api/attendanceToppers?startDate=${firstDay}&endDate=${lastDay}`, { headers: { "api-key": apiKey } })
+                fetch(`/api/attendanceToppers?startDate=${firstDay}&endDate=${lastDay}&limit=100`, { headers: { "api-key": apiKey } })
                     .then(r => r.json())
                     .then(res => {
                         if (res.success && res.attendanceToppers?.length > 0) {
-                            // res.attendanceToppers is an array of class results: [{ classId, className, students: [...] }, ...]
+                            // res.attendanceToppers is an array: [{ classId, className, students: [{studentId, attendancePercentage, ...}] }, ...]
                             res.attendanceToppers.forEach(classResult => {
-                                const isTopper = classResult.students.some(s => s.studentId === currentUser._id);
-                                if (isTopper) {
+                                const topperEntry = classResult.students.find(s => String(s.studentId) === String(currentUser._id));
+                                if (topperEntry) {
                                     studentAwards.push({
                                         type: "ATTENDANCE TOPPER",
                                         title: "Attendance Topper",
-                                        period: formatMonthYear(date),
-                                        date: new Date(date.getFullYear(), date.getMonth(), 1),
+                                        subtitle: classResult.className || "Class Topper",
+                                        extraInfo: topperEntry.attendancePercentage != null ? `${topperEntry.attendancePercentage}% Attendance` : undefined,
+                                        period: formatMonthYear(capturedDate),
+                                        date: new Date(capturedDate.getFullYear(), capturedDate.getMonth(), 1),
                                         icon: Calendar,
-                                        color: "emerald"
+                                        color: "emerald",
+                                        rankLabel: "Topper"
                                     });
                                 }
                             });
@@ -617,28 +688,59 @@ function AwardsTabContent({ currentUser, apiKey }) {
             );
         }
 
-        // 3. Fetch Program Winners & Runner Ups (Winner Posters)
+        // 3. Fetch Students Fest Awards (1st, 2nd, 3rd Place) from Winner Posters
         const winnersPromise = fetch(`/api/winner-posters`, { headers: { "api-key": apiKey } })
             .then(r => r.json())
             .then(res => {
                 if (res.success && res.programs) {
                     res.programs.forEach(prog => {
                         prog.winners.forEach(w => {
-                            if (w._id === currentUser._id) {
+                            // Robust matching: check by _id (participant ID == user ID) or by name
+                            const winnerId = String(w._id || "").split("-")[0];
+                            const isMatch =
+                                winnerId === String(currentUser._id) ||
+                                String(w._id) === String(currentUser._id) ||
+                                (w.name && currentUser.name &&
+                                 w.name.trim().toUpperCase() === currentUser.name.trim().toUpperCase());
+
+                            if (isMatch) {
                                 let awardInfo = null;
                                 if (w.rank === 1) {
-                                    awardInfo = { type: "CHAMPION", title: "First Place", color: "yellow", icon: Trophy };
+                                    awardInfo = {
+                                        type: "STUDENTS FEST",
+                                        title: "1st Place 🥇",
+                                        color: "gold",
+                                        icon: Trophy,
+                                        rankLabel: "1st Place"
+                                    };
                                 } else if (w.rank === 2) {
-                                    awardInfo = { type: "RUNNER UP", title: "Second Place", color: "rose", icon: Award };
+                                    awardInfo = {
+                                        type: "STUDENTS FEST",
+                                        title: "2nd Place 🥈",
+                                        color: "silver",
+                                        icon: Award,
+                                        rankLabel: "2nd Place"
+                                    };
                                 } else if (w.rank === 3) {
-                                    awardInfo = { type: "RUNNER UP", title: "Third Place", color: "rose", icon: Award };
+                                    awardInfo = {
+                                        type: "STUDENTS FEST",
+                                        title: "3rd Place 🥉",
+                                        color: "bronze",
+                                        icon: Award,
+                                        rankLabel: "3rd Place"
+                                    };
                                 }
 
                                 if (awardInfo) {
+                                    const festName = currentFestSettings?.festival?.festivalInfo?.name || "STUDENTS FEST";
+                                    const festYear = currentFestSettings?.festival?.festivalInfo?.year || "";
+                                    
                                     studentAwards.push({
                                         ...awardInfo,
+                                        type: `${festName} ${festYear}`.trim().toUpperCase(),
                                         subtitle: prog.name,
-                                        period: prog.division,
+                                        extraInfo: `Team: ${w.teamName} | Grade: ${w.grade || 'N/A'} | Points: ${w.points || 0}`,
+                                        period: prog.division || "Competition Result",
                                         date: new Date(),
                                     });
                                 }
@@ -672,11 +774,43 @@ function AwardsTabContent({ currentUser, apiKey }) {
             })
             .catch(() => null);
 
-        await Promise.all([...bestReaderPromises, ...attendancePromises, winnersPromise, individualToppersPromise]);
+        // 5. Fetch Academic Toppers (Marks Toppers)
+        const marksToppersPromise = fetch(`/api/marks/toppers`, { headers: { "api-key": apiKey } })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    res.data.forEach(examGroup => {
+                        const topperEntry = examGroup.toppers.find(t => String(t.studentId) === String(currentUser._id));
+                        if (topperEntry) {
+                            studentAwards.push({
+                                type: "MARKS TOPPER",
+                                title: "Academic Excellence",
+                                subtitle: `${examGroup.examName}`,
+                                extraInfo: `Score: ${topperEntry.total} (${topperEntry.percentage}%)`,
+                                period: examGroup.className,
+                                date: new Date(),
+                                icon: Trophy,
+                                color: "indigo",
+                                rankLabel: "Topper"
+                            });
+                        }
+                    });
+                }
+            })
+            .catch(() => null);
+
+        await Promise.all([
+            ...bestReaderPromises, 
+            ...attendancePromises, 
+            winnersPromise, 
+            individualToppersPromise,
+            marksToppersPromise
+        ]);
         
         // Sort awards by date descending
         studentAwards.sort((a, b) => b.date - a.date);
         setAwards(studentAwards);
+        setFestSettings(currentFestSettings);
       } catch (e) {
         console.error("Awards fetch error:", e);
       } finally {
@@ -707,7 +841,7 @@ function AwardsTabContent({ currentUser, apiKey }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-4">
       {awards.map((award, idx) => (
-        <AwardPoster key={idx} award={award} currentUser={currentUser} />
+        <AwardPoster key={idx} award={award} currentUser={currentUser} festSettings={festSettings} />
       ))}
     </div>
   );

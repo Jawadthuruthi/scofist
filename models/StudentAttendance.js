@@ -85,8 +85,8 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
 
   if (batchId) {
     matchConditions["attendanceRecords.batchId"] = batchId;
-  } else {
-    // If no specific batch is provided, find active batches
+  } else if (!startDate && !endDate) {
+    // Only filter by active batches if no specific date range is provided
     const activeBatches = await Batch.find({ status: "Active" }, { _id: 1 });
     if (activeBatches.length > 0) {
       matchConditions["attendanceRecords.batchId"] = {
@@ -188,13 +188,13 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
   if (allStudents.length === 0) {
     return {
       toppers: [],
+      matchConditions,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
         total: 0,
         totalPages: 0,
       },
-      highestPercentage: null,
     };
   }
 
@@ -256,13 +256,15 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
     "8TH STD",
     "9TH STD",
     "10TH STD",
+    "11TH STD",
+    "12TH STD",
   ].map((name) => name.replace(/\s+/g, "").toUpperCase());
 
   classResults.sort((a, b) => {
     const rawNameA = allClassMap[String(a.classId)];
     const rawNameB = allClassMap[String(b.classId)];
-    const nameA = rawNameA.trim().toUpperCase().replace(/\s+/g, "");
-    const nameB = rawNameB.trim().toUpperCase().replace(/\s+/g, "");
+    const nameA = String(rawNameA || "").trim().toUpperCase().replace(/\s+/g, "");
+    const nameB = String(rawNameB || "").trim().toUpperCase().replace(/\s+/g, "");
 
     const indexA = classOrder.indexOf(nameA);
     const indexB = classOrder.indexOf(nameB);
@@ -329,6 +331,7 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
 
   return {
     toppers,
+    matchConditions,
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),
@@ -338,8 +341,9 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
   };
 };
 
-const StudentAttendance =
-  models.StudentAttendance ||
-  model("StudentAttendance", studentAttendanceSchema);
+if (models.StudentAttendance) {
+  delete models.StudentAttendance;
+}
+const StudentAttendance = model("StudentAttendance", studentAttendanceSchema);
 
 export default StudentAttendance;
