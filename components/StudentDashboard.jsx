@@ -298,11 +298,13 @@ function DownloadsTabContent({ apiKey }) {
                         disabled={downloadingId === d._id}
                       >
                         {downloadingId === d._id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                          <Loader2 className="h-3.5 w-3.5 animate-spin sm:mr-1" />
                         ) : (
-                          <Download className="h-3.5 w-3.5 mr-1" />
+                          <Download className="h-3.5 w-3.5 sm:mr-1" />
                         )}
-                        {downloadingId === d._id ? "Wait..." : "Download"}
+                        <span className="hidden sm:inline">
+                          {downloadingId === d._id ? "Wait..." : "Download"}
+                        </span>
                       </Button>
                     </div>
                   </TableCell>
@@ -356,11 +358,13 @@ function DownloadsTabContent({ apiKey }) {
                         disabled={downloadingId === s._id}
                       >
                         {downloadingId === s._id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                          <Loader2 className="h-3.5 w-3.5 animate-spin sm:mr-1" />
                         ) : (
-                          <Download className="h-3.5 w-3.5 mr-1" />
+                          <Download className="h-3.5 w-3.5 sm:mr-1" />
                         )}
-                        {downloadingId === s._id ? "Wait..." : "Download"}
+                        <span className="hidden sm:inline">
+                          {downloadingId === s._id ? "Wait..." : "Download"}
+                        </span>
                       </Button>
                     </div>
                   </TableCell>
@@ -412,11 +416,13 @@ function DownloadsTabContent({ apiKey }) {
                         disabled={downloadingId === b._id}
                       >
                         {downloadingId === b._id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                          <Loader2 className="h-3.5 w-3.5 animate-spin sm:mr-1" />
                         ) : (
-                          <Download className="h-3.5 w-3.5 mr-1" />
+                          <Download className="h-3.5 w-3.5 sm:mr-1" />
                         )}
-                        {downloadingId === b._id ? "Wait..." : "Download"}
+                        <span className="hidden sm:inline">
+                          {downloadingId === b._id ? "Wait..." : "Download"}
+                        </span>
                       </Button>
                     </div>
                   </TableCell>
