@@ -39,8 +39,10 @@ const useTableColumns = (columnConfig, onCellClick) => {
 
     // Handle Serial Number Column (Dynamically generated)
     if (col.type?.includes("serialNo")) {
-      columnDefinition.cell = ({ row }) => {
-        return <div className="font-medium">{row.index + 1}</div>;
+      columnDefinition.cell = ({ row, table }) => {
+        const sortedRows = table.getSortedRowModel().flatRows;
+        const index = sortedRows.findIndex((r) => r.id === row.id);
+        return <div className="font-medium">{index + 1}</div>;
       };
     }
 

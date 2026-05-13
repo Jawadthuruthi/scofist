@@ -365,7 +365,6 @@ export default function SettingsClient({
             resource="settings"
             title="General"
             description="Customize Your System Settings"
-            hideSubmitOn={{ field: "isWorkingDay", value: true }}
           />
           <FormComponent
             formFields={institutionFormField}

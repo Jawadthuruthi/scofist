@@ -98,6 +98,7 @@ export default async function PeriodsPage() {
           filterConfig={filterConfig}
           limit={20}
           enableSearch={true}
+          defaultSorting={[{ id: "periodNumber", desc: false }]}
         />
       </>
     );

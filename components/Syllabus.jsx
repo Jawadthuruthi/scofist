@@ -35,7 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Upload, Download as DownloadIcon, Loader, Trash2, Pencil } from "lucide-react";
+import { Upload, Download as DownloadIcon, Loader, Trash2, Pencil, Eye } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -57,8 +57,9 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
   const [uploading, setUploading] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [filterYear, setFilterYear] = useState(null);
-  const [filterCourse, setFilterCourse] = useState(null);
+  const [filterYear, setFilterYear] = useState("all");
+  const [filterCourse, setFilterCourse] = useState("all");
+  const [previewItem, setPreviewItem] = useState(null);
 
   const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } = useCrud(
     "syllabus",
@@ -67,7 +68,10 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
   const fetchSyllabusQuery = useFetchItems(
     null,
     null,
-    { year: filterYear, course: filterCourse },
+    { 
+      year: filterYear === "all" ? "" : filterYear, 
+      course: filterCourse === "all" ? "" : filterCourse 
+    },
     { initialData: { syllabuses: initialSyllabus } }
   );
   const addSyllabus = useAddItem();
@@ -367,10 +371,10 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
                     <SelectValue placeholder="All Courses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={null}>All Courses</SelectItem>
+                    <SelectItem value="all">All Courses</SelectItem>
                     {courses.map((s) => (
                       <SelectItem key={s} value={String(s)}>
-                        Course {s}
+                        {s}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -383,7 +387,7 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
                     <SelectValue placeholder="All Years" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={null}>All Years</SelectItem>
+                    <SelectItem value="all">All Years</SelectItem>
                     {years.map((y) => (
                       <SelectItem key={y} value={String(y)}>
                         Year {y}
@@ -421,6 +425,15 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
                           <div className="flex justify-end gap-2">
                             <Button
                               size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              title="Preview"
+                              onClick={() => setPreviewItem({ url: syllabus.fileUrl, title: `${syllabus.course} Year ${syllabus.year} Syllabus` })}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
                               variant="outline"
                               onClick={() =>
                                 handleDownload(
@@ -434,13 +447,13 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
                             >
                               {downloadingId === syllabus._id ? (
                                 <>
-                                  <Loader className="mr-2 h-4 w-4 animate-spin" />
-                                  Downloading...
+                                  <Loader className="h-4 w-4 sm:mr-2 animate-spin" />
+                                  <span className="hidden sm:inline">Downloading...</span>
                                 </>
                               ) : (
                                 <>
-                                  <DownloadIcon className="mr-2 h-4 w-4" />
-                                  Download
+                                  <DownloadIcon className="h-4 w-4 sm:mr-2" />
+                                  <span className="hidden sm:inline">Download</span>
                                 </>
                               )}
                             </Button>
@@ -545,6 +558,23 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
               Save Changes
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* PDF Preview Dialog */}
+      <Dialog open={!!previewItem} onOpenChange={(open) => !open && setPreviewItem(null)}>
+        <DialogContent className="max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-4 py-3 border-b shrink-0">
+            <DialogTitle className="text-sm font-semibold truncate">{previewItem?.title || "Preview"}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {previewItem?.url && (
+              <iframe
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewItem.url)}&embedded=true`}
+                className="w-full h-full border-0"
+                title={previewItem?.title || "Document Preview"}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </>
