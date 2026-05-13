@@ -1192,15 +1192,22 @@ export default function StudentDashboard({
     }
   };
 
+  const displayFunds = useMemo(() => {
+    const list = [...(pendingFunds || [])];
+    (debtBalances || []).forEach(d => {
+      list.push({
+        label: d.category,
+        subLabel: d.year,
+        value: -d.balance, // Show as negative for debt
+        isDebt: true
+      });
+    });
+    return list.filter(item => item.value !== 0);
+  }, [pendingFunds, debtBalances]);
+
   const totalPending = useMemo(() => {
-    if (!pendingFunds) return 0;
-    return pendingFunds.reduce((acc, item) => {
-      if (typeof item.value === 'number') {
-        return acc + item.value;
-      }
-      return acc;
-    }, 0);
-  }, [pendingFunds]);
+    return displayFunds.reduce((acc, item) => acc + (item.value || 0), 0);
+  }, [displayFunds]);
 
 
   return (
@@ -1819,7 +1826,7 @@ export default function StudentDashboard({
                   <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
                   <span className="ml-2 text-sm text-muted-foreground">Loading financial records...</span>
                 </div>
-              ) : pendingFunds && pendingFunds.filter(item => item.value !== 0).length > 0 ? (
+              ) : displayFunds && displayFunds.length > 0 ? (
                 <Table>
                   <TableHeader className="bg-muted/50 sticky top-0 z-10">
                     <TableRow>
@@ -1829,7 +1836,7 @@ export default function StudentDashboard({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingFunds.filter(item => item.value !== 0).map((item, index) => (
+                    {displayFunds.map((item, index) => (
                       <TableRow key={index} className="group hover:bg-muted/30 transition-colors">
                         <TableCell className="py-2 text-muted-foreground font-medium">{index + 1}</TableCell>
                         <TableCell className="py-2">
@@ -2033,34 +2040,7 @@ export default function StudentDashboard({
           </CardContent>
         </Card>
 
-        {/* Debt Balance by Category */}
-        {debtBalances?.length > 0 && (
-          <div className="mt-6">
-            <h3 className="text-sm font-bold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-500" /> Pending Dues
-            </h3>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader className="bg-muted/50">
-                  <TableRow>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Year</TableHead>
-                    <TableHead className="text-right">Balance Due</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {debtBalances.map((d, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-semibold">{d.category}</TableCell>
-                      <TableCell>{d.year}</TableCell>
-                      <TableCell className="text-right font-bold text-red-600">₹{d.balance.toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        )}
+
       </div>
       )}
 
