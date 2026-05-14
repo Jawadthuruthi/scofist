@@ -31,6 +31,7 @@ import {
 const AttendanceSheet = ({ apiKey, userId, userRole }) => {
     const [classes, setClasses] = useState([]);
     const [subjects, setSubjects] = useState([]);
+    const [allSubjects, setAllSubjects] = useState([]);
 
     const [filters, setFilters] = useState({
         year: new Date().getFullYear(),
@@ -50,27 +51,73 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
         "x-user-id": userId
     });
 
-    // 1. Fetch Metadata (Classes)
+    // 1. Fetch Metadata (Classes & Subjects)
     useEffect(() => {
-        const fetchClasses = async () => {
+        const fetchMetadata = async () => {
             try {
-                const res = await axios.get("/api/classes", { headers: getHeaders() });
-                setClasses(res.data.classes || []);
+                const [classesRes, subjectsRes] = await Promise.all([
+                    axios.get("/api/classes", { headers: getHeaders() }),
+                    axios.get("/api/subjects", { 
+                        headers: getHeaders(),
+                        params: { projection: "_id,name" }
+                    })
+                ]);
+                setClasses(classesRes.data.classes || []);
+                setAllSubjects(subjectsRes.data.subjects || []);
             } catch (error) {
-                toast.error("Failed to fetch classes");
+                console.error("Metadata fetch error:", error);
+                toast.error("Failed to fetch initial data");
             }
         };
-        if (apiKey) fetchClasses();
+        if (apiKey) fetchMetadata();
     }, [apiKey]);
 
     // 2. Fetch Subjects when Class changes
     useEffect(() => {
-        if (filters.classId) {
-            const cls = classes.find(c => c._id === filters.classId);
-            setSubjects(cls?.subjects || []);
-            setFilters(prev => ({ ...prev, subjectId: "" })); // Reset subject
-        }
-    }, [filters.classId, classes]);
+        const fetchSubjects = async () => {
+            if (filters.classId) {
+                const cls = classes.find(c => c._id === filters.classId);
+                
+                // Collect current subjects from class data
+                const currentSubjects = [
+                    ...(cls?.coreSubjects || []), 
+                    ...(cls?.majorSubjects || [])
+                ].map(s => {
+                    if (typeof s === 'string') {
+                        const found = allSubjects.find(sub => sub._id === s);
+                        return found || { _id: s, name: s };
+                    }
+                    return s;
+                });
+
+                try {
+                    // Fetch historical subjects from attendance records
+                    const histRes = await axios.get(`/api/classes/historical-subjects?classId=${filters.classId}`, {
+                        headers: getHeaders()
+                    });
+                    const historicalSubjects = histRes.data.subjects || [];
+
+                    // Combine current and historical subjects
+                    const combined = [...currentSubjects, ...historicalSubjects];
+
+                    // Remove duplicates based on _id
+                    const uniqueSubjects = combined.filter((s, index, self) => 
+                        s && s._id && index === self.findIndex((t) => t._id === s._id)
+                    );
+                    
+                    setSubjects(uniqueSubjects);
+                } catch (error) {
+                    console.error("Error fetching historical subjects:", error);
+                    // Fallback to current subjects only if API fails
+                    setSubjects(currentSubjects);
+                }
+                
+                setFilters(prev => ({ ...prev, subjectId: "" })); // Reset subject
+            }
+        };
+
+        fetchSubjects();
+    }, [filters.classId, classes, allSubjects]);
 
     // 3. Calculate Date Headers
     useEffect(() => {
@@ -184,7 +231,11 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                 <Select value={filters.subjectId} onValueChange={(v) => setFilters(prev => ({ ...prev, subjectId: v }))} disabled={!filters.classId}>
                     <SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger>
                     <SelectContent>
-                        {subjects.map(s => <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>)}
+                        {subjects.map(s => (
+                            <SelectItem key={s._id || `s-${s}`} value={s._id || s}>
+                                {s.name || s}
+                            </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
 
@@ -208,7 +259,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                             <TableHead className="w-[50px] sticky left-0 bg-secondary z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">Sl.No</TableHead>
                             <TableHead className="min-w-[150px] sticky left-[50px] bg-secondary z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">Student Name</TableHead>
                             {daysInMonth.map(day => (
-                                <TableHead key={day} className={`text-center min-w-[30px] px-1 ${day.getDay() === 5 ? 'bg-red-50 text-red-600 print:bg-red-100' : ''}`}>
+                                <TableHead key={day.toISOString()} className={`text-center min-w-[30px] px-1 ${day.getDay() === 5 ? 'bg-red-50 text-red-600 print:bg-red-100' : ''}`}>
                                     <div className="flex flex-col items-center">
                                         <span className="text-xs font-bold">{day.getDate()}</span>
                                         <span className="text-[9px] uppercase">{day.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>

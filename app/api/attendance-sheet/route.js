@@ -41,18 +41,73 @@ export async function GET(request) {
         const endDate = new Date(year, month + 1, 0); // Last day of month
         endDate.setHours(23, 59, 59, 999);
 
-        // 1. Fetch Students
-        const students = await User.find({
-            $or: [
-                { "studentSpecificField.classId": classId },
-                { "studentSpecificField.subjectTypeAssignments": { 
-                    $in: [`${classId}:CORE`, `${classId}:MAJOR`] 
-                  } 
-                }
-            ],
-            "studentSpecificField.status": "Active",
+        // 1. Get Class Details to determine subject type (CORE or MAJOR)
+        const classDoc = await Class.findById(classId).select("coreSubjects majorSubjects").lean();
+        if (!classDoc) {
+            return NextResponse.json({ message: "Class not found" }, { status: 404 });
+        }
+
+        const isCore = (classDoc.coreSubjects || []).includes(subjectId);
+        const isMajor = (classDoc.majorSubjects || []).includes(subjectId);
+        const subjectType = isCore ? "CORE" : isMajor ? "MAJOR" : null;
+
+        if (!subjectType) {
+            // This might happen for historical subjects that were once assigned but are no longer in core/major
+            // In this case, we default to the previous "all class students" logic
+            // but we'll try to find any student who was marked in the attendance for this subject
+        }
+
+        // 1.5 Fetch Students with specific assignment filtering
+        const assignmentKey = `${classId}:${subjectType}`;
+        let studentQuery = {
             roles: "Student",
-        }).select("name _id studentSpecificField.batchId").sort({ _id: 1 });
+            "studentSpecificField.status": "Active",
+            $or: [
+                // Case 1: Student has specific assignment for this class/type
+                { "studentSpecificField.subjectTypeAssignments": assignmentKey },
+                // Case 2: Student is primarily in this class AND has NO specific assignments for this class (default to all)
+                { 
+                    "studentSpecificField.classId": classId,
+                    "studentSpecificField.subjectTypeAssignments": { 
+                        $not: { $regex: new RegExp(`^${classId}:`) } 
+                    }
+                }
+            ]
+        };
+
+        // If subjectType is null (historical subject), filter students by actual attendance records
+        if (!subjectType) {
+            // Find unique student IDs who have attendance for this class/subject in the range
+            const historicalRecordStudentIds = await Attendance.distinct("attendanceData.studentId", {
+                classId,
+                subjectId,
+                date: { $gte: startDate, $lte: endDate }
+            });
+
+            if (historicalRecordStudentIds.length > 0) {
+                studentQuery = { _id: { $in: historicalRecordStudentIds } };
+            } else {
+                // If no records in this month, show all who have EVER had a record for this class/subject
+                // to at least show the names if someone was marked but not in this specific month (rare but possible)
+                const anyHistoricalIds = await Attendance.distinct("attendanceData.studentId", {
+                    classId,
+                    subjectId
+                });
+                if (anyHistoricalIds.length > 0) {
+                    studentQuery = { _id: { $in: anyHistoricalIds } };
+                } else {
+                    // Total fallback (shouldn't happen if historical subjects are fetched correctly)
+                    studentQuery.$or = [
+                        { "studentSpecificField.classId": classId },
+                        { "studentSpecificField.subjectTypeAssignments": { $regex: new RegExp(`^${classId}:`) } }
+                    ];
+                }
+            }
+        }
+
+        const students = await User.find(studentQuery)
+            .select("name _id studentSpecificField.batchId studentSpecificField.subjectTypeAssignments")
+            .sort({ _id: 1 });
 
         // 2. Fetch Attendance Records for the range
         const attendanceRecords = await Attendance.find({
