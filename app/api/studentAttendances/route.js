@@ -295,12 +295,14 @@ export async function GET(req, res) {
           records = records.filter(r => new Date(r.date) <= dateFilter.end);
         }
         
-        // Filter for CORE and MAJOR subjects only
+        // Filter for CORE and MAJOR subjects if they are defined, otherwise show all
         records = records.filter(r => {
           const cId = r.classId?._id?.toString() || r.classId?.toString();
           const sId = r.subjectId?._id?.toString() || r.subjectId?.toString();
           const subjects = classSubjectMap[cId];
           if (!subjects) return false;
+          // If class has no CORE/MAJOR subjects assigned, allow all subjects for that class
+          if (subjects.core.length === 0 && subjects.major.length === 0) return true;
           return subjects.core.includes(sId) || subjects.major.includes(sId);
         });
         
@@ -366,7 +368,14 @@ export async function GET(req, res) {
           $expr: {
             $or: [
               { $in: ["$attendanceRecords.subjectId", "$recordClassDetails.coreSubjects"] },
-              { $in: ["$attendanceRecords.subjectId", "$recordClassDetails.majorSubjects"] }
+              { $in: ["$attendanceRecords.subjectId", "$recordClassDetails.majorSubjects"] },
+              // If both are empty, allow all records for this class
+              {
+                $and: [
+                  { $eq: [{ $size: { $ifNull: ["$recordClassDetails.coreSubjects", []] } }, 0] },
+                  { $eq: [{ $size: { $ifNull: ["$recordClassDetails.majorSubjects", []] } }, 0] }
+                ]
+              }
             ]
           }
         }
