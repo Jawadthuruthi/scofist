@@ -49,7 +49,7 @@ import {
 import { Progress } from "./ui/progress"; // Import Progress component
 
 // Hooks and Utils
-import { DAYS } from "@/lib/utils";
+import { DAYS, parseDate } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
 import { useReactToPrint } from "react-to-print";
 import { Input } from "./ui/input";
@@ -143,7 +143,9 @@ const TimetableSlot = ({
           ? "bg-blue-300/50 print:bg-inherit"
           : leaveReason
             ? "bg-red-100/50 print:bg-inherit"
-            : ""
+            : cellData?._fromHistory
+              ? "bg-orange-50/50 border-dashed print:bg-inherit"
+              : ""
         } border text-center cursor-pointer transition-colors whitespace-nowrap print:whitespace-normal print:max-w-32 print:p-1`}
       onClick={() => {
         onCellClick(periodNumber, day);
@@ -159,13 +161,18 @@ const TimetableSlot = ({
           </p>
           <p className="text-xxs text-accent-foreground">
             {(category === "class" && selectedClass) || category === "date"
-              ? cellData.teacherId?.name || ""
-              : cellData.classId?.name || ""}
+              ? (cellData.teacherId?.name || cellData.teacherId || "")
+              : (cellData.classId?.name || cellData.classId || "")}
           </p>
-          {leaveReason && !isAttendanceMarked && (
+          {cellData?._fromHistory && (
+            <p className="text-[8px] text-orange-500 font-bold opacity-70">
+              {cellData._historyDate}
+            </p>
+          )}
+          {leaveReason && (
             <div className="flex items-center gap-1 text-xxs text-muted-foreground justify-center mt-1">
               <AlertCircle className="text-red-500 h-3 w-3" />
-              <span>{leaveReason}</span>
+              <span className="truncate max-w-[100px]" title={leaveReason}>{leaveReason}</span>
             </div>
           )}
           {isAttendanceMarked && absenteesList.length > 0 && (
@@ -271,10 +278,16 @@ const TimeTablesManagements = ({
   const [saveTotal, setSaveTotal] = useState(0);
   const [saveCompleted, setSaveCompleted] = useState(false);
 
+  // Helper to safely get string ID from object or string
+  const getStrId = useCallback((val) => {
+    if (!val) return "";
+    return (val._id || val.id || val).toString();
+  }, []);
+
   const day = useMemo(
     () =>
       date
-        ? new Date(date).toLocaleDateString("en-US", { weekday: "long" })
+        ? parseDate(date).toLocaleDateString("en-US", { weekday: "long" })
         : "",
     [date]
   );
@@ -297,12 +310,12 @@ const TimeTablesManagements = ({
   const endDate = new Date();
 
   const fetchAttendanceQuery = useFetchAttendance(0, 0, {
-    startDate: startDate.toISOString().split("T")[0],
-    endDate: endDate.toISOString().split("T")[0],
+    startDate: category === "date" && date ? date : new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
+    day: category === "date" ? day : undefined,
     classId: category === "class" && selectedClass ? selectedClass : undefined,
     teacherId:
       category === "teacher" && selectedTeacher ? selectedTeacher : undefined,
-    date: category === "date" && date ? date : undefined,
   });
 
   const leaveRecordQuery = useFetchTeachersLeaveRecord(
@@ -325,6 +338,23 @@ const TimeTablesManagements = ({
 
   const attendanceData = fetchAttendanceQuery.data?.attendances || [];
   const leaveRecords = leaveRecordQuery.data?.teachersLeaveRecord || [];
+
+  // Optimized historical map for fast lookups
+  const historicalMap = useMemo(() => {
+    const map = {};
+    // Process in chronological order so later ones (more recent) overwrite earlier ones
+    [...attendanceData]
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .forEach((a) => {
+        const classId = getStrId(a.classId);
+        const key = `${classId}_${a.periodNumber}_${a.day}`;
+        map[key] = {
+          ...a,
+          _historyDate: new Date(a.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
+        };
+      });
+    return map;
+  }, [attendanceData]);
 
   // Queries for data fetching
   const fetchQuery = useMemo(() => {
@@ -490,7 +520,11 @@ const TimeTablesManagements = ({
 
       setTimeTableData(timeSlotsByTeacher);
     } else if (category === "date" && date) {
-      const timeSlotsByDate = newData.reduce(
+      // Use allTimeTablesQuery if available to ensure we have data for all classes, 
+      // falling back to fetchItemsQuery if not.
+      const sourceData = allTimeTablesQuery.data?.timeTables || fetchItemsQuery.data?.timeTables || [];
+      
+      const timeSlotsByDate = sourceData.reduce(
         (acc, timeTable) => {
           const slots = timeTable.timeSlots.filter((slot) => slot.day === day);
           const classId = timeTable.classId;
@@ -508,7 +542,7 @@ const TimeTablesManagements = ({
       // For class view, just use the first timetable
       setTimeTableData(newData[0] || { timeSlots: [] });
     }
-  }, [fetchItemsQuery.data, category, selectedTeacher, day]);
+  }, [fetchItemsQuery.data, allTimeTablesQuery.data, category, selectedTeacher, day, date]);
 
   // Check for conflicts when form values change
   useEffect(() => {
@@ -575,12 +609,12 @@ const TimeTablesManagements = ({
   const getCellData = useCallback(
     (periodNumber, day, classId) => {
       // First check pending changes for the specific class
-      const targetClassId = classId || selectedClass;
+      const targetClassId = (classId || selectedClass)?.toString();
       const pendingChange = pendingChanges.find(
         (change) =>
           change.timeSlots.periodNumber === periodNumber &&
           change.timeSlots.day === day &&
-          change.classId === targetClassId // Only show pending changes for this class
+          change.classId?.toString() === targetClassId // Only show pending changes for this class
       );
 
       if (pendingChange) {
@@ -610,21 +644,35 @@ const TimeTablesManagements = ({
       }
 
       // If no pending change, check existing data
-      const existingSlot = timeTableData.timeSlots?.find(
-        (slot) =>
-          slot.periodNumber === periodNumber &&
-          slot.day === day &&
-          (!classId || slot.classId?._id === classId)
-      );
+      // Use allTimeTablesQuery for a more comprehensive source in date view
+      const sourceTimeTables = category === "date" 
+        ? (allTimeTablesQuery.data?.timeTables || []) 
+        : (timeTableData.timeSlots ? [timeTableData] : []);
+
+      let existingSlot;
+      if (category === "date") {
+        const targetTimeTable = sourceTimeTables.find(
+          (tt) => (tt.classId?._id || tt.classId)?.toString() === targetClassId
+        );
+        existingSlot = targetTimeTable?.timeSlots?.find(
+          (slot) => slot.periodNumber === periodNumber && slot.day === day
+        );
+      } else {
+        existingSlot = timeTableData.timeSlots?.find(
+          (slot) =>
+            slot.periodNumber === periodNumber &&
+            slot.day === day &&
+            (!targetClassId || getStrId(slot.classId) === getStrId(targetClassId))
+        );
+      }
 
       // FOR DATE VIEW: If attendance exists, use the data from attendance (Teacher/Subject)
       if (category === "date" && date) {
-        const targetClassId = classId || selectedClass;
         const markedAttendance = attendanceData.find(
           (attendance) =>
             attendance.periodNumber === periodNumber &&
             attendance.day === day &&
-            (attendance.classId?._id === targetClassId || attendance.classId === targetClassId)
+            (attendance.classId?._id || attendance.classId)?.toString() === targetClassId
         );
 
         if (markedAttendance) {
@@ -636,6 +684,43 @@ const TimeTablesManagements = ({
             teacherId: markedAttendance.teacherId,
             classId: markedAttendance.classId,
             _fromAttendance: true,
+            leaveReason: markedAttendance.leaveReason,
+          };
+        }
+
+        // FALLBACK: If no attendance but a leave record exists (even if timetable reset)
+        const leaveRecord = leaveRecords.find(
+          (record) =>
+            record.periodNumber === periodNumber &&
+            (record.classId?._id || record.classId)?.toString() === targetClassId
+        );
+
+        if (leaveRecord) {
+          return {
+            ...existingSlot,
+            periodNumber,
+            day,
+            teacherId: leaveRecord.teacherId,
+            classId: leaveRecord.classId,
+            leaveReason: leaveRecord.leaveReason,
+            _fromLeaveRecord: true,
+          };
+        }
+
+        // SMART FALLBACK: If still blank, use the optimized historical map
+        const historyKey = `${targetClassId}_${periodNumber}_${day}`;
+        const historicalRecord = historicalMap[historyKey];
+
+        if (historicalRecord && (!date || new Date(historicalRecord.date).toISOString().split('T')[0] !== date)) {
+          return {
+            ...existingSlot,
+            periodNumber,
+            day,
+            subjectId: historicalRecord.subjectId,
+            teacherId: historicalRecord.teacherId,
+            classId: historicalRecord.classId,
+            _fromHistory: true,
+            _historyDate: historicalRecord._historyDate,
           };
         }
       }
@@ -644,11 +729,18 @@ const TimeTablesManagements = ({
     },
     [
       timeTableData.timeSlots,
+      allTimeTablesQuery.data?.timeTables,
       pendingChanges,
       subjects,
       teachers,
       classes,
       selectedClass,
+      category,
+      date,
+      day,
+      attendanceData,
+      leaveRecords,
+      historicalMap,
     ]
   );
 
@@ -1088,7 +1180,9 @@ const TimeTablesManagements = ({
                       const markedAttendance = attendanceData.filter(
                         (attendance) =>
                           attendance.periodNumber === period.periodNumber &&
-                          attendance.day === day
+                          attendance.day === day &&
+                          (!selectedClass || getStrId(attendance.classId) === getStrId(selectedClass)) &&
+                          (!selectedTeacher || getStrId(attendance.teacherId) === getStrId(selectedTeacher))
                       );
                       const absentees = markedAttendance?.map(
                         (attendance) => ({
@@ -1105,7 +1199,7 @@ const TimeTablesManagements = ({
                       const leaveReason = leaveRecords.find((record) => {
                         const recordDay = new Date(record.date).toLocaleDateString("en-US", { weekday: "long" });
                         return (
-                          record.teacherId === cellData?.teacherId?._id &&
+                          getStrId(record.teacherId) === getStrId(cellData?.teacherId) &&
                           record.periodNumber === period.periodNumber &&
                           recordDay === day
                         );
@@ -1124,7 +1218,7 @@ const TimeTablesManagements = ({
                           absentees={absentees}
                           showAbsenteesDialog={showAbsenteesDialog}
                           isPendingChange={isPending}
-                          leaveReason={leaveReason}
+                          leaveReason={cellData?.leaveReason || leaveReason}
                         />
                       );
                     })}
@@ -1146,11 +1240,12 @@ const TimeTablesManagements = ({
                         day,
                         classItem?._id
                       );
+                      const targetDateStr = date;
                       const markedAttendance = attendanceData.filter(
                         (attendance) =>
                           attendance.periodNumber === period.periodNumber &&
-                          attendance.day === day &&
-                          attendance.classId?._id === classItem?._id
+                          getStrId(attendance.classId) === getStrId(classItem) &&
+                          (!targetDateStr || new Date(attendance.date).toISOString().split('T')[0] === targetDateStr)
                       );
                       const absentees = markedAttendance.map(
                         (attendance) => ({
@@ -1169,14 +1264,14 @@ const TimeTablesManagements = ({
                         // Check if we are in Date view (no day matching needed as strict date query is used or day is just one day) or Weekly view
                         if (category === "date") {
                           return (
-                            record.teacherId === cellData?.teacherId?._id &&
+                            getStrId(record.teacherId) === getStrId(cellData?.teacherId) &&
                             record.periodNumber === period.periodNumber
                             // Date filtering already done by API query
                           );
                         }
                         const recordDay = new Date(record.date).toLocaleDateString("en-US", { weekday: "long" });
                         return (
-                          record.teacherId === cellData?.teacherId?._id &&
+                          getStrId(record.teacherId) === getStrId(cellData?.teacherId) &&
                           record.periodNumber === period.periodNumber &&
                           recordDay === day
                         );
@@ -1195,7 +1290,7 @@ const TimeTablesManagements = ({
                           absentees={absentees}
                           showAbsenteesDialog={showAbsenteesDialog}
                           isPendingChange={isPending}
-                          leaveReason={leaveReason}
+                          leaveReason={cellData?.leaveReason || leaveReason}
                         />
                       );
                     })}

@@ -13,9 +13,11 @@ const extractQueryParams = (url) => {
   const page = parseInt(
     url.searchParams.get("page") || DEFAULT_PAGE.toString()
   );
-  const limit = parseInt(
-    url.searchParams.get("limit") || DEFAULT_LIMIT.toString()
-  );
+  const limitParam = url.searchParams.get("limit");
+  const limit = limitParam === "0" ? Infinity : (parseInt(limitParam) || DEFAULT_LIMIT);
+    
+  // Convert to number for DB operations
+  const dbLimit = limit === Infinity ? 0 : limit;
 
   const filterParams = {};
   const projections = {};
@@ -134,8 +136,8 @@ export async function GET(req, res) {
         })
         .populate("timeSlots.subjectId", "name")
         .populate("timeSlots.teacherId", "name")
-        .skip(page * limit)
-        .limit(limit > 0 ? limit : undefined)
+        .skip(limit === Infinity ? 0 : (page * limit))
+        .limit(limit === Infinity ? 0 : limit)
         .sort({ updatedAt: -1 })
         .lean(),
       TimeTable.countDocuments(query),

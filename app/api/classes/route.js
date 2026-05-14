@@ -11,8 +11,8 @@ export async function GET(req, res) {
 
     // Parse URL to get search params
     const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
+    const limitParam = url.searchParams.get("limit");
+    const limit = limitParam === "0" ? Infinity : (parseInt(limitParam) || Infinity);
 
     // Build filter object from query parameters
     const filterParams = {};
@@ -57,8 +57,8 @@ export async function GET(req, res) {
       .populate("teacherId", "name")
       .populate("coreSubjects", "name")
       .populate("majorSubjects", "name")
-      .skip(page * limit)
-      .limit(limit)
+      .skip(limit === Infinity ? 0 : (page * limit))
+      .limit(limit === Infinity ? 0 : limit)
       .sort({ _id: 1 })
       .collation({ locale: "en_US", numericOrdering: true })
       .lean();

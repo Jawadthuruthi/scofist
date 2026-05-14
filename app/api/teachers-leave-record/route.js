@@ -43,9 +43,12 @@ export async function GET(req) {
 
     console.log("Teachers Leave Record Query:", query);
 
-    const teachersLeaveRecord = await TeachersLeaveRecord.find(query).sort({
-      createdAt: -1,
-    });
+    const teachersLeaveRecord = await TeachersLeaveRecord.find(query)
+      .populate("teacherId", "name")
+      .populate("classId", "name")
+      .sort({
+        createdAt: -1,
+      });
 
     return NextResponse.json({ teachersLeaveRecord }, { status: 200 });
   } catch (error) {

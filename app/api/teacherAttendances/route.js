@@ -30,7 +30,8 @@ export async function GET(req, res) {
     const url = new URL(req.url);
     const filterParams = Object.fromEntries(url.searchParams.entries());
     const page = parseInt(filterParams.page || "0");
-    const limit = parseInt(filterParams.limit) || Infinity;
+    const limitParam = filterParams.limit;
+    const limit = limitParam === "0" ? Infinity : (parseInt(limitParam) || Infinity);
 
     // 1. Fetch relevant teachers
     const teacherQuery = { roles: "Teacher" };
@@ -126,11 +127,25 @@ export async function GET(req, res) {
 
     const formattedData = allTeachers.map(teacher => {
       const records = [];
-      const periodTracker = new Set(); // To prevent duplicates in synthesis
       const teacherId = teacher._id.toString();
       const teacherSchedules = scheduleMap[teacherId] || {};
       const teacherLookups = lookupMap[teacherId] || {};
+      const processedKeys = new Set();
 
+      // 1. First, include ALL actual marked attendance records for this teacher in the range
+      // This ensures history is visible even if the TimeTable was reset/deleted.
+      Object.entries(teacherLookups).forEach(([key, actual]) => {
+        const actualDate = new Date(actual.date);
+        if (actualDate >= startDate && actualDate <= endDate) {
+          records.push({
+            ...actual,
+            date: actual.date
+          });
+          processedKeys.add(key);
+        }
+      });
+
+      // 2. Then, synthesize missing records from the current TimeTable schedule
       let curr = new Date(startDate);
       while (curr <= endDate) {
         const dayName = WEEKDAYS[curr.getUTCDay()];
@@ -139,11 +154,7 @@ export async function GET(req, res) {
 
         // Determine if this day is a working day
         const isHoliday = holidayMap.has(dateString);
-        
-        // Manual override for specific dates (Admin request: April 1-10 2026)
         const isImplicitHoliday = dateString >= "2026-04-01" && dateString <= "2026-04-10";
-
-        // Respect the global Setting toggle for the entire range as requested
         const isWorkingDay = !isHoliday && !isImplicitHoliday && isTodayGlobalWorking;
 
         daySlots.forEach(slot => {
@@ -159,22 +170,8 @@ export async function GET(req, res) {
           
           const key = `${dateString}_${String(slot.classId)}_${String(slot.subjectId)}_${slot.periodNumber}`;
           
-          // Deduplication: Only process this slot if we haven't added it for this teacher
-          if (periodTracker.has(key)) return;
-          periodTracker.add(key);
-
-          const actual = teacherLookups[key];
-
-          if (actual) {
-            // Include actual marked attendance (present or absent)
-            records.push({
-              ...actual,
-              date: actual.date
-            });
-          } else if (isWorkingDay && dateString <= todayDS) {
-            // Use <= todayDS to include today's scheduled classes in statistics
-            // even if they haven't been marked yet. This ensures "Total Class" 
-            // remains consistent during resets.
+          // Only add synthetic record if we haven't already added an actual record for this slot
+          if (!processedKeys.has(key) && isWorkingDay && dateString <= todayDS) {
             records.push({
               _id: `synth_${teacher._id}_${dateString}_${slot.periodNumber}`,
               teacherId: teacher._id,
@@ -185,6 +182,7 @@ export async function GET(req, res) {
               present: false,
               synthetic: true
             });
+            processedKeys.add(key);
           }
         });
         // UTC increment
@@ -241,7 +239,7 @@ export async function GET(req, res) {
 
     const paginatedData = limit === Infinity 
       ? formattedData 
-      : formattedData.slice(page * limit, (page + 1) * limit);
+      : formattedData.slice((page * limit), ((page + 1) * limit));
 
     return NextResponse.json(
       {

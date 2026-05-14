@@ -7,6 +7,7 @@ import {
 } from "@/lib/teacherAttendanceService";
 import Attendance from "@/models/Attendance";
 import StudentAttendance from "@/models/StudentAttendance";
+import TeachersLeaveRecord from "@/models/TeachersLeaveRecord";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
@@ -17,7 +18,8 @@ export async function GET(req, res) {
     // Parse URL to get search params
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "0");
-    const limit = parseInt(url.searchParams.get("limit")) || Infinity;
+    const limitParam = url.searchParams.get("limit");
+    const limit = limitParam === "0" ? Infinity : (parseInt(limitParam) || Infinity);
 
     // Build filter object from query parameters
     const filterParams = {};
@@ -56,7 +58,16 @@ export async function GET(req, res) {
       query.periodNumber = parseInt(filterParams.periodNumber);
     }
     if (filterParams.date) {
-      query.date = new Date(filterParams.date);
+      const targetDate = new Date(filterParams.date);
+      const startOfDay = new Date(targetDate);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+      
+      query.date = {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      };
     } else if (filterParams.startDate && filterParams.endDate) {
       query.date = {
         $gte: new Date(`${filterParams.startDate}T00:00:00.000Z`),
@@ -82,8 +93,8 @@ export async function GET(req, res) {
 
     // Execute query with pagination
     let queryPromise = Attendance.find(query, projections)
-      .skip(page * limit)
-      .limit(limit)
+      .skip(limit === Infinity ? 0 : (page * limit))
+      .limit(limit === Infinity ? 0 : limit)
       .sort({ date: -1 });
 
     // Only populate if the fields are in projections (or projections is empty)
@@ -105,20 +116,61 @@ export async function GET(req, res) {
     }
 
     const attendances = await queryPromise;
+    const getStrId = (v) => (v?._id || v || "").toString();
+
+    // Fetch leave records for these teachers/classes/periods on this date
+    let leaveMap = {};
+    try {
+      const leaveQuery = {};
+      if (query.date) leaveQuery.date = query.date;
+      
+      const leaveRecords = await TeachersLeaveRecord.find(leaveQuery).lean();
+      
+      const getDS = (d) => {
+        const date = new Date(d);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      leaveRecords.forEach(lr => {
+        const dateKey = getDS(lr.date);
+        const key = `${getStrId(lr.teacherId)}_${getStrId(lr.classId)}_${lr.periodNumber}_${dateKey}`;
+        leaveMap[key] = lr.leaveReason;
+      });
+    } catch (e) {
+      console.error("Error fetching leave records for join:", e);
+    }
 
     let formattedAttendances = attendances.map((attendance) => {
       const attendanceObj = attendance.toObject ? attendance.toObject() : attendance;
-      if (attendanceObj.attendanceData) {
-        return {
-          ...attendanceObj,
-          attendanceData: attendanceObj.attendanceData.map((student) => ({
-            ...student,
-            studentId: student.studentId?._id || student.studentId,
-            studentName: student.studentId?.name,
-          })),
-        };
-      }
-      return attendanceObj;
+      
+      const getDS = (d) => {
+        const date = new Date(d);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      // Join leaveReason
+      const dateKey = getDS(attendanceObj.date);
+      const leaveKey = `${getStrId(attendanceObj.teacherId)}_${getStrId(attendanceObj.classId)}_${attendanceObj.periodNumber}_${dateKey}`;
+      
+      const baseObj = attendanceObj.attendanceData ? {
+        ...attendanceObj,
+        attendanceData: attendanceObj.attendanceData.map((student) => ({
+          ...student,
+          studentId: student.studentId?._id || student.studentId,
+          studentName: student.studentId?.name,
+        })),
+      } : attendanceObj;
+
+      return {
+        ...baseObj,
+        leaveReason: leaveMap[leaveKey] || null
+      };
     });
 
     // Enhanced processing for absentee tracking if requested
