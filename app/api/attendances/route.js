@@ -251,6 +251,10 @@ export async function POST(req, res) {
     // Create new attendance record
     let newAttendance;
     try {
+      // Ensure batchId is a string if it's an object
+      if (body.batchId && typeof body.batchId === 'object' && body.batchId._id) {
+        body.batchId = body.batchId._id.toString();
+      }
       newAttendance = await Attendance.create(body);
     } catch (createError) {
       console.error("❌ Attendance Creation/Validation Error:", {
@@ -295,7 +299,7 @@ export async function POST(req, res) {
               $push: {
                 attendanceRecords: {
                   classId: newAttendance.classId,
-                  batchId: newAttendance.batchId,
+                  batchId: typeof newAttendance.batchId === 'object' && newAttendance.batchId?._id ? newAttendance.batchId._id.toString() : newAttendance.batchId,
                   subjectId: newAttendance.subjectId,
                   teacherId: newAttendance.teacherId, // Sync teacherId
                   periodNumber: newAttendance.periodNumber,
@@ -367,27 +371,55 @@ export async function PUT(req, res) {
     });
 
     if (data.attendanceData) {
-      const bulkOps = updatedAttendance.attendanceData.map((student) => {
-        return {
-          updateOne: {
-            filter: {
+      for (const student of updatedAttendance.attendanceData) {
+        // Check if this student already has this attendance record in their history
+        const existingRecord = await StudentAttendance.findOne({
+          studentId: student.studentId,
+          attendanceRecords: {
+            $elemMatch: {
+              date: new Date(updatedAttendance.date),
+              classId: updatedAttendance.classId,
+              periodNumber: updatedAttendance.periodNumber,
+              subjectId: updatedAttendance.subjectId,
+            },
+          },
+        });
+
+        if (existingRecord) {
+          // UPDATE existing record
+          await StudentAttendance.updateOne(
+            {
               studentId: student.studentId,
               "attendanceRecords.date": updatedAttendance.date,
               "attendanceRecords.classId": updatedAttendance.classId,
-              "attendanceRecords.batchId": updatedAttendance.batchId,
               "attendanceRecords.subjectId": updatedAttendance.subjectId,
               "attendanceRecords.periodNumber": updatedAttendance.periodNumber,
             },
-            update: {
+            {
               $set: { "attendanceRecords.$.present": student.present },
+            }
+          );
+        } else {
+          // PUSH new record if missing (e.g. student added after initial attendance was saved)
+          await StudentAttendance.updateOne(
+            { studentId: student.studentId },
+            {
+              $push: {
+                attendanceRecords: {
+                  classId: updatedAttendance.classId,
+                  batchId: typeof updatedAttendance.batchId === 'object' && updatedAttendance.batchId?._id ? updatedAttendance.batchId._id.toString() : updatedAttendance.batchId,
+                  subjectId: updatedAttendance.subjectId,
+                  teacherId: updatedAttendance.teacherId,
+                  periodNumber: updatedAttendance.periodNumber,
+                  day: updatedAttendance.day,
+                  date: updatedAttendance.date,
+                  present: student.present,
+                },
+              },
             },
-          },
-        };
-      });
-
-      // Execute the bulk operation if there are students
-      if (bulkOps.length > 0) {
-        await StudentAttendance.bulkWrite(bulkOps);
+            { upsert: true }
+          );
+        }
       }
     }
     // Sync teacher attendance after update

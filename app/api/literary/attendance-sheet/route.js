@@ -43,13 +43,25 @@ export async function GET(request) {
         let students = [];
         if (category === "ALL") {
             students = await User.find({
-                "studentSpecificField.classId": categoryId,
+                $or: [
+                    { "studentSpecificField.classId": categoryId },
+                    { "studentSpecificField.subjectTypeAssignments": { 
+                        $in: [`${categoryId}:CORE`, `${categoryId}:MAJOR`] 
+                      } 
+                    }
+                ],
                 "studentSpecificField.status": "Active",
                 roles: "Student",
             }).select("name _id studentSpecificField.batchId").sort({ _id: 1 });
         } else if (category === "GROUP" || category === "BOTH") {
             students = await User.find({
-                "studentSpecificField.classId": categoryId,
+                $or: [
+                    { "studentSpecificField.classId": categoryId },
+                    { "studentSpecificField.subjectTypeAssignments": { 
+                        $in: [`${categoryId}:CORE`, `${categoryId}:MAJOR`] 
+                      } 
+                    }
+                ],
                 "studentSpecificField.status": "Active",
                 roles: "Student",
             }).select("name _id").sort({ _id: 1 });

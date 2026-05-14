@@ -83,9 +83,15 @@ attendanceSchema.pre("save", async function (next) {
       return next();
     }
 
-    // Get all students in this class
-    const classStudents = await models.User.find({
-      "studentSpecificField.classId": this.classId,
+    // Get all students in this class OR assigned to CORE/MAJOR subjects in this class
+    const classStudents = await User.find({
+      $or: [
+        { "studentSpecificField.classId": this.classId },
+        { "studentSpecificField.subjectTypeAssignments": { 
+            $in: [`${this.classId}:CORE`, `${this.classId}:MAJOR`] 
+          } 
+        }
+      ],
       roles: { $in: ["Student"] },
     }).select("_id");
 
@@ -107,6 +113,11 @@ attendanceSchema.pre("save", async function (next) {
     next(error);
   }
 });
+
+// Force model reload in development
+if (process.env.NODE_ENV === "development") {
+  delete models.Attendance;
+}
 
 const Attendance = models.Attendance || model("Attendance", attendanceSchema);
 export default Attendance;

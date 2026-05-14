@@ -163,6 +163,36 @@ function FieldRenderer({ field, form, apiKey, data }) {
   const depValue = useWatch({ control: form.control, name: depName });
   const thisValue = useWatch({ control: form.control, name: field.name });
 
+  // Auto-selection logic for fields like subjectTypeAssignments
+  const autoSelectValue = useWatch({ control: form.control, name: field.autoSelectFrom });
+  const prevAutoSelectValue = React.useRef(autoSelectValue);
+
+  React.useEffect(() => {
+    // Only run if autoSelectFrom is defined and the source value changed
+    if (field.autoSelectFrom && autoSelectValue && autoSelectValue !== prevAutoSelectValue.current) {
+      const currentValues = Array.isArray(thisValue) ? thisValue : [];
+      
+      // Determine what to add
+      const coreVal = `${autoSelectValue}:CORE`;
+      const majorVal = `${autoSelectValue}:MAJOR`;
+      
+      // Determine what to remove (the previous class's assignments if any)
+      let newValues = [...currentValues];
+      if (prevAutoSelectValue.current) {
+        const prevCore = `${prevAutoSelectValue.current}:CORE`;
+        const prevMajor = `${prevAutoSelectValue.current}:MAJOR`;
+        newValues = newValues.filter(v => v !== prevCore && v !== prevMajor);
+      }
+      
+      // Add new ones if not present
+      if (!newValues.includes(coreVal)) newValues.push(coreVal);
+      if (!newValues.includes(majorVal)) newValues.push(majorVal);
+      
+      form.setValue(field.name, newValues, { shouldDirty: true });
+      prevAutoSelectValue.current = autoSelectValue;
+    }
+  }, [autoSelectValue, field.autoSelectFrom, field.name, form, thisValue]);
+
   const watchedValues = {};
   const multipleFilters = field.filters || (field.filter ? [field.filter] : []);
   multipleFilters.forEach((filter) => {

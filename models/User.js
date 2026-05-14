@@ -120,6 +120,10 @@ const studentSpecificSchema = new Schema({
     trim: true,
     ref: "Batch",
   },
+  subjectTypeAssignments: {
+    type: [String],
+    default: ["CORE", "MAJOR"],
+  },
   familyDetails: [FamilyDetailSchema],
 }, { _id: false });
 

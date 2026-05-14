@@ -48,6 +48,13 @@ export async function GET(req) {
         $in: filterParams.classId.split(",").map((id) => id.trim()),
       };
     }
+    if (filterParams.attendanceClassId) {
+      const attClassId = filterParams.attendanceClassId;
+      query.$or = [
+        { "studentSpecificField.classId": attClassId },
+        { "studentSpecificField.subjectTypeAssignments": { $in: [`${attClassId}:CORE`, `${attClassId}:MAJOR`] } }
+      ];
+    }
     if (filterParams.batchId) {
       query["studentSpecificField.batchId"] = {
         $in: filterParams.batchId.split(",").map((id) => id.trim()),
@@ -234,8 +241,8 @@ export async function GET(req) {
         droppedOutDate: studentSpecificField.droppedOutDate,
         droppedOutClass: studentSpecificField.droppedOutClass,
         droppedOutReason: studentSpecificField.droppedOutReason,
-        droppedOutReason: studentSpecificField.droppedOutReason,
         graduatedYear: studentSpecificField.graduatedYear,
+        subjectTypeAssignments: studentSpecificField.subjectTypeAssignments || [],
         isVerified: studentSpecificField.isVerified,
         verifiedAt: studentSpecificField.verifiedAt,
         familyDetails: studentSpecificField.familyDetails || u.studentSpecificField?.familyDetails || [],
@@ -336,6 +343,7 @@ export async function POST(req, res) {
       classId,
       familyDetails,
       familyOtherDetails,
+      subjectTypeAssignments,
     } = body;
 
     // Build user object efficiently
@@ -383,6 +391,7 @@ export async function POST(req, res) {
         status,
         batchId,
         classId,
+        subjectTypeAssignments,
         familyDetails: familyDetails?.map(m => ({
           position: m.position,
           name: m.name,
@@ -457,7 +466,14 @@ export async function PUT(req) {
     ];
     simpleFields.forEach((field) => {
       if (updateFields[field] !== undefined) {
-        user[field] = updateFields[field] || undefined;
+        // Only update if the value is not an empty string or null for required fields
+        if (["dateOfBirth", "name", "roles"].includes(field)) {
+          if (updateFields[field] !== "" && updateFields[field] !== null) {
+            user[field] = updateFields[field];
+          }
+        } else {
+          user[field] = updateFields[field] || undefined;
+        }
       }
     });
 
@@ -511,6 +527,7 @@ export async function PUT(req) {
         "academicQualification",
         "batchId",
         "classId",
+        "subjectTypeAssignments",
         "status",
         "isVerified",
         "verifiedAt",

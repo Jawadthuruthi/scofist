@@ -37,7 +37,13 @@ const classSchema = new Schema(
       type: String,
       ref: "User",
     },
-    subjects: [
+    coreSubjects: [
+      {
+        type: String,
+        ref: "Subject",
+      },
+    ],
+    majorSubjects: [
       {
         type: String,
         ref: "Subject",

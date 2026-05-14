@@ -43,7 +43,13 @@ export async function GET(request) {
 
         // 1. Fetch Students
         const students = await User.find({
-            "studentSpecificField.classId": classId,
+            $or: [
+                { "studentSpecificField.classId": classId },
+                { "studentSpecificField.subjectTypeAssignments": { 
+                    $in: [`${classId}:CORE`, `${classId}:MAJOR`] 
+                  } 
+                }
+            ],
             "studentSpecificField.status": "Active",
             roles: "Student",
         }).select("name _id studentSpecificField.batchId").sort({ _id: 1 });

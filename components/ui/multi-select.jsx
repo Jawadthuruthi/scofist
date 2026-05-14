@@ -53,7 +53,7 @@ export const MultiSelect = React.forwardRef(
       className,
       disableSearch = false,
       multiSelect = true,
-      value = multiSelect ? [] : "",
+      value,
       freeSolo = false,
       showSelectedCount = false,
       freeSoloValidator = null, // Function to validate free solo input
@@ -69,7 +69,11 @@ export const MultiSelect = React.forwardRef(
     },
     ref
   ) => {
-    const [selectedValues, setSelectedValues] = React.useState(value);
+    // Use a memoized default value to avoid recreation on every render
+    const defaultValue = React.useMemo(() => (multiSelect ? [] : ""), [multiSelect]);
+    const effectiveValue = value ?? defaultValue;
+
+    const [selectedValues, setSelectedValues] = React.useState(effectiveValue);
     const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
     const [isAnimating, setIsAnimating] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState("");
@@ -81,8 +85,20 @@ export const MultiSelect = React.forwardRef(
     }, [options]);
 
     React.useEffect(() => {
-      setSelectedValues(value);
-    }, [value]);
+      // Only update if the value actually changed to avoid infinite loops
+      // Simple reference check first, then content check for arrays
+      if (value !== undefined && value !== null) {
+        if (multiSelect && Array.isArray(value)) {
+          if (JSON.stringify(value) !== JSON.stringify(selectedValues)) {
+            setSelectedValues(value);
+          }
+        } else if (value !== selectedValues) {
+          setSelectedValues(value);
+        }
+      } else if (selectedValues !== defaultValue) {
+        setSelectedValues(defaultValue);
+      }
+    }, [value, multiSelect, defaultValue, selectedValues]);
 
     // Filter options based on search query
     const filteredOptions = React.useMemo(() => {

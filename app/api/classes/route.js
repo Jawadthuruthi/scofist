@@ -55,7 +55,8 @@ export async function GET(req, res) {
     const classes = await Class.find(query, projections)
       .populate("batchId", "name")
       .populate("teacherId", "name")
-      .populate("subjects", "name")
+      .populate("coreSubjects", "name")
+      .populate("majorSubjects", "name")
       .skip(page * limit)
       .limit(limit)
       .sort({ _id: 1 })
@@ -70,8 +71,19 @@ export async function GET(req, res) {
       shortname: cls.shortname,
       batchName: cls.batchId?.name,
       teacherName: cls.teacherId?.name,
-      subjectsName: (cls.subjects || []).map((subject) => subject?.name || ""),
-      subjectIds: (cls.subjects || []).map((subject) => subject?._id || subject),
+      coreSubjectsName: (cls.coreSubjects || []).map((subject) => subject?.name || ""),
+      coreSubjectIds: (cls.coreSubjects || []).map((subject) => subject?._id || subject),
+      majorSubjectsName: (cls.majorSubjects || []).map((subject) => subject?.name || ""),
+      majorSubjectIds: (cls.majorSubjects || []).map((subject) => subject?._id || subject),
+      // Keep old fields for backward compatibility
+      subjectsName: [
+        ...(cls.coreSubjects || []).map((s) => s?.name || ""),
+        ...(cls.majorSubjects || []).map((s) => s?.name || ""),
+      ],
+      subjectIds: [
+        ...(cls.coreSubjects || []).map((s) => s?._id || s),
+        ...(cls.majorSubjects || []).map((s) => s?._id || s),
+      ],
     }));
 
     // Classes are already sorted by _id in the MongoDB query.
@@ -99,14 +111,15 @@ export async function POST(req, res) {
   try {
     await connectToDB();
 
-    const { _id, name, shortname, batchId, teacherId, subjectIds } = await req.json();
+    const { _id, name, shortname, batchId, teacherId, coreSubjectIds, majorSubjectIds } = await req.json();
     const newClass = await Class.create({
       _id,
       name,
       shortname,
       batchId,
       teacherId,
-      subjects: subjectIds,
+      coreSubjects: coreSubjectIds,
+      majorSubjects: majorSubjectIds,
     });
     return NextResponse.json(
       { newClass, message: "Class created successfully!" },
@@ -125,7 +138,7 @@ export async function PUT(req, res) {
     console.log("DEBUG: Class PUT rawBody:", JSON.stringify(rawBody, null, 2));
     const body = rawBody.data || rawBody;
     console.log("DEBUG: Class PUT body:", JSON.stringify(body, null, 2));
-    const { ids, name, shortname, batchId, teacherId, subjectIds } = body;
+    const { ids, name, shortname, batchId, teacherId, coreSubjectIds, majorSubjectIds } = body;
 
     if (!ids || !ids.length) {
       return NextResponse.json({ message: "No IDs provided" }, { status: 400 });
@@ -142,7 +155,8 @@ export async function PUT(req, res) {
             shortname,
             batchId,
             teacherId,
-            subjects: subjectIds,
+            coreSubjects: coreSubjectIds,
+            majorSubjects: majorSubjectIds,
           },
         }
       );
@@ -161,7 +175,8 @@ export async function PUT(req, res) {
           shortname, 
           batchId, 
           teacherId, 
-          subjects: subjectIds 
+          coreSubjects: coreSubjectIds,
+          majorSubjects: majorSubjectIds 
         } 
       },
       { new: true, runValidators: true, strict: false }

@@ -12,7 +12,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "classes",
-    searchParams: "projection=_id,name,batchId,subjects",
+    searchParams: "projection=_id,name,batchId,coreSubjects,majorSubjects",
   },
   {
     pathname: "subjects",
@@ -46,22 +46,22 @@ const AttendanceTrackingPage = async () => {
       name: c.batchName ? `${c.name} (${c.batchName})` : c.name,
     }));
 
-    // Map subjects to their classes
+    // Map subjects to their classes (both core and major)
     const subjectClassMap = {};
     classes.forEach(cls => {
-      if (cls.subjects && Array.isArray(cls.subjects)) {
-        cls.subjects.forEach(subjectId => {
-          if (!subjectClassMap[subjectId]) {
-            subjectClassMap[subjectId] = [];
-          }
-          // Handle both object (populated) and string (ID) cases
-          const sId = typeof subjectId === 'object' ? subjectId._id : subjectId;
+      const allSubjects = [...(cls.coreSubjects || []), ...(cls.majorSubjects || [])];
+      allSubjects.forEach(subjectId => {
+        // Handle both object (populated) and string (ID) cases
+        const sId = typeof subjectId === 'object' ? subjectId._id : subjectId;
+        if (sId) {
           if (!subjectClassMap[sId]) {
             subjectClassMap[sId] = [];
           }
-          subjectClassMap[sId].push(cls._id);
-        });
-      }
+          if (!subjectClassMap[sId].includes(cls._id)) {
+            subjectClassMap[sId].push(cls._id);
+          }
+        }
+      });
     });
 
     const formattedSubjects = formatOptions(subjects).map(subject => ({

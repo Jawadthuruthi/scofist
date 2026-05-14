@@ -1789,9 +1789,12 @@ const DataTableComponent = ({
                                     </div>
                                   ) : (
                                     <div className="flex flex-col gap-0.5">
-                                      <span className="font-medium">{rec.teacherName || "—"}</span>
+                                      <span className="font-bold text-sm">{rec.teacherName || "—"}</span>
+                                      <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-tight">
+                                        {rec.className || "—"}
+                                      </span>
                                       {rec.leaveReason && (
-                                        <span className="text-[10px] text-orange-500 font-medium leading-tight">
+                                        <span className="text-[10px] text-orange-500 font-medium leading-tight mt-0.5">
                                           {rec.leaveReason}
                                         </span>
                                       )}

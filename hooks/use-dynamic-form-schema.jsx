@@ -114,11 +114,11 @@ export function useDynamicFormSchema(formFields = null) {
 
         case "date":
           fieldSchema = required
-            ? z.union([z.date(), z.string()], {
+            ? z.union([z.date(), z.string().min(1, `${displayName} is required`)], {
               required_error: `${displayName} is required`,
               invalid_type_error: `${displayName} must be a valid date`,
             })
-            : z.union([z.date(), z.string()]).optional();
+            : z.union([z.date(), z.string()]).optional().or(z.literal(""));
 
           if (validators.minDate) {
             fieldSchema = fieldSchema.refine(

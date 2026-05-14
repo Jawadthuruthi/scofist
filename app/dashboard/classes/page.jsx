@@ -40,7 +40,8 @@ const columnsConfig = [
   { accessorKey: "shortname", header: "Short Name" },
   { accessorKey: "batchName", header: "Batch" },
   { accessorKey: "teacherName", header: "Teacher" },
-  { accessorKey: "subjectsName", header: "Subjects", type: ["array"] },
+  { accessorKey: "coreSubjectsName", header: "Core Subjects", type: ["array"] },
+  { accessorKey: "majorSubjectsName", header: "Major Subjects", type: ["array"] },
 ];
 
 const statusMessages = {
@@ -113,8 +114,15 @@ export default async function ClassesPage() {
         options: formatOptions(teachers),
       },
       {
-        name: "subjectIds",
-        label: "Assign Subjects",
+        name: "coreSubjectIds",
+        label: "Assign Core Subjects",
+        type: "array",
+        inputType: "multiSelect",
+        options: formatOptions(subjects),
+      },
+      {
+        name: "majorSubjectIds",
+        label: "Assign Major Subjects",
         type: "array",
         inputType: "multiSelect",
         options: formatOptions(subjects),

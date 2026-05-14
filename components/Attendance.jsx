@@ -101,11 +101,11 @@ const Attendance = ({ apiKey, teacherId }) => {
   );
 
   const studentsQuery = useFetchUsers(
-    null,
-    null,
+    0,
+    1000,
     {
       roles: ["Student"],
-      classId,
+      attendanceClassId: classId,
       status: "Active",
     },
     {
@@ -338,6 +338,44 @@ const Attendance = ({ apiKey, teacherId }) => {
     return historicalAttendanceQuery.data.attendances.absenteeTracking;
   }, [historicalAttendanceQuery.data, students]);
 
+  // Memoize filtered students based on subject type assignments
+  const filteredStudents = useMemo(() => {
+    if (!students.length || !classDetails || !subjectId) return students;
+
+    const isCore = (classDetails.coreSubjects || []).some(
+      (s) => (typeof s === "object" ? s._id : s) === subjectId
+    );
+    const isMajor = (classDetails.majorSubjects || []).some(
+      (s) => (typeof s === "object" ? s._id : s) === subjectId
+    );
+
+    return students.filter((student) => {
+      const assignments = student.subjectTypeAssignments || [];
+      const studentClassId = student.studentSpecificField?.classId || student.classId;
+
+      // 1. If student is assigned specifically to this class:type, include them
+      if (isCore && assignments.includes(`${classId}:CORE`)) return true;
+      if (isMajor && assignments.includes(`${classId}:MAJOR`)) return true;
+
+      // 2. If student belongs to this class and NO assignments are specified for this type, include them by default
+      const hasCoreAssignment = assignments.some(a => a.endsWith(':CORE'));
+      const hasMajorAssignment = assignments.some(a => a.endsWith(':MAJOR'));
+
+      if (studentClassId === classId) {
+        if (isCore && !hasCoreAssignment) return true;
+        if (isMajor && !hasMajorAssignment) return true;
+      }
+
+      // 3. Backward compatibility: if no assignments at all, show for both by default
+      if (assignments.length === 0) return true;
+
+      // 4. If the subject is neither core nor major in this class, show everyone from the primary class
+      if (!isCore && !isMajor) return true;
+
+      return false;
+    });
+  }, [students, classDetails, subjectId, classId]);
+
   // Memoize attendance toggle handler
   const toggleAttendance = useCallback((studentId) => {
     setAttendance((prev) => ({
@@ -348,15 +386,15 @@ const Attendance = ({ apiKey, teacherId }) => {
 
   // Memoize attendance statistics
   const attendanceStats = useMemo(() => {
-    const total = students.length;
-    const present = Object.values(attendance).filter(Boolean).length;
+    const total = filteredStudents.length;
+    const present = filteredStudents.filter(st => attendance[st._id]).length;
     const absent = total - present;
     const presentPercentage =
       total > 0 ? Math.round((present / total) * 100) : 0;
     const absentPercentage = total > 0 ? Math.round((absent / total) * 100) : 0;
 
     return { total, present, absent, presentPercentage, absentPercentage };
-  }, [students.length, attendance]);
+  }, [filteredStudents, attendance]);
 
   // Memoize absentee info lookup
   const getStudentAbsenteeInfo = useCallback(
@@ -400,7 +438,7 @@ const Attendance = ({ apiKey, teacherId }) => {
     try {
       setSaving(true);
 
-      const attendanceData = students.map((student) => ({
+      const attendanceData = filteredStudents.map((student) => ({
         studentId: student._id,
         present: attendance[student._id] ?? false,
       }));
@@ -436,7 +474,7 @@ const Attendance = ({ apiKey, teacherId }) => {
     }
   }, [
     saving,
-    students,
+    filteredStudents,
     attendance,
     classId,
     batchId,
@@ -468,7 +506,7 @@ const Attendance = ({ apiKey, teacherId }) => {
 
       // Reset attendance based on leave status
       const resetAttendance = initializeAttendance(
-        students,
+        filteredStudents,
         studentLeaveStatus
       );
       setAttendance(resetAttendance);
@@ -575,8 +613,8 @@ const Attendance = ({ apiKey, teacherId }) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {students.length > 0 ? (
-              students.map((student, index) => {
+            {filteredStudents.length > 0 ? (
+              filteredStudents.map((student, index) => {
                 const absenteeInfo = getStudentAbsenteeInfo(student._id);
                 const hasAbsenceHistory = absenteeInfo?.continuousAbsences > 0;
                 const isPresent = attendance[student._id];
@@ -657,7 +695,7 @@ const Attendance = ({ apiKey, teacherId }) => {
         </Button>
         <Button
           onClick={handleSaveAttendance}
-          disabled={saving || !students.length}
+          disabled={saving || !filteredStudents.length}
         >
           {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
           <Save className="mr-2 h-4 w-4" />

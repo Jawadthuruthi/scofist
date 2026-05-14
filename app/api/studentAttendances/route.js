@@ -2,6 +2,7 @@ import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import StudentAttendance from "@/models/StudentAttendance";
 import User from "@/models/User";
+import Class from "@/models/Class";
 import { NextResponse } from "next/server";
 
 export async function GET(req, res) {
@@ -62,7 +63,13 @@ export async function GET(req, res) {
       
       if (filterParams.classId) {
         const classIds = filterParams.classId.split(',').map(s => s.trim());
-        userQuery["studentSpecificField.classId"] = { $in: classIds };
+        userQuery.$or = [
+          { "studentSpecificField.classId": { $in: classIds } },
+          { "studentSpecificField.subjectTypeAssignments": { 
+              $in: classIds.flatMap(id => [`${id}:CORE`, `${id}:MAJOR`]) 
+            } 
+          }
+        ];
         userQuery["studentSpecificField.status"] = "Active"; // filter by class only for active students
       }
       
@@ -136,6 +143,16 @@ export async function GET(req, res) {
     }
 
     console.log("Filters:", { documentQuery, recordFilters, dateFilter });
+
+    // Fetch all classes to determine core/major subjects for filtering
+    const allClasses = await Class.find({}, "coreSubjects majorSubjects").lean();
+    const classSubjectMap = {};
+    allClasses.forEach(c => {
+      classSubjectMap[c._id] = {
+        core: (c.coreSubjects || []).map(s => s.toString()),
+        major: (c.majorSubjects || []).map(s => s.toString())
+      };
+    });
 
     // For better performance and to handle string IDs correctly, use aggregation with $lookup
     const pipeline = [
@@ -278,6 +295,15 @@ export async function GET(req, res) {
           records = records.filter(r => new Date(r.date) <= dateFilter.end);
         }
         
+        // Filter for CORE and MAJOR subjects only
+        records = records.filter(r => {
+          const cId = r.classId?._id?.toString() || r.classId?.toString();
+          const sId = r.subjectId?._id?.toString() || r.subjectId?.toString();
+          const subjects = classSubjectMap[cId];
+          if (!subjects) return false;
+          return subjects.core.includes(sId) || subjects.major.includes(sId);
+        });
+        
         return {
           _id: user._id,
           name: user.name,
@@ -325,6 +351,26 @@ export async function GET(req, res) {
     // If toppersOnly is true, calculate percentage and get the top student per class
     pipeline.push(
       { $unwind: "$attendanceRecords" },
+      // Filter for CORE and MAJOR subjects in aggregation
+      {
+        $lookup: {
+          from: "classes",
+          localField: "attendanceRecords.classId",
+          foreignField: "_id",
+          as: "recordClassDetails"
+        }
+      },
+      { $unwind: "$recordClassDetails" },
+      {
+        $match: {
+          $expr: {
+            $or: [
+              { $in: ["$attendanceRecords.subjectId", "$recordClassDetails.coreSubjects"] },
+              { $in: ["$attendanceRecords.subjectId", "$recordClassDetails.majorSubjects"] }
+            ]
+          }
+        }
+      },
       {
         $group: {
           _id: {
