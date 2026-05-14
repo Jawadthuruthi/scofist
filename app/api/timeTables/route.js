@@ -229,11 +229,20 @@ export async function DELETE(req, res) {
   try {
     await connectToDB();
 
-    const { ids } = await req.json();
+    const { ids, resetAll } = await req.json();
+    console.log("Delete request:", { ids, resetAll });
+
+    if (resetAll === true) {
+      const result = await TimeTable.deleteMany({});
+      return NextResponse.json(
+        { message: `All ${result.deletedCount} TimeTables cleared successfully!` },
+        { status: 200 }
+      );
+    }
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return NextResponse.json(
-        { message: "Valid IDs are required" },
+        { message: "Valid IDs or resetAll flag are required" },
         { status: 400 }
       );
     }

@@ -610,12 +610,37 @@ const TimeTablesManagements = ({
       }
 
       // If no pending change, check existing data
-      return timeTableData.timeSlots?.find(
+      const existingSlot = timeTableData.timeSlots?.find(
         (slot) =>
           slot.periodNumber === periodNumber &&
           slot.day === day &&
           (!classId || slot.classId?._id === classId)
       );
+
+      // FOR DATE VIEW: If attendance exists, use the data from attendance (Teacher/Subject)
+      if (category === "date" && date) {
+        const targetClassId = classId || selectedClass;
+        const markedAttendance = attendanceData.find(
+          (attendance) =>
+            attendance.periodNumber === periodNumber &&
+            attendance.day === day &&
+            (attendance.classId?._id === targetClassId || attendance.classId === targetClassId)
+        );
+
+        if (markedAttendance) {
+          return {
+            ...existingSlot,
+            periodNumber,
+            day,
+            subjectId: markedAttendance.subjectId,
+            teacherId: markedAttendance.teacherId,
+            classId: markedAttendance.classId,
+            _fromAttendance: true,
+          };
+        }
+      }
+
+      return existingSlot;
     },
     [
       timeTableData.timeSlots,
@@ -849,6 +874,32 @@ const TimeTablesManagements = ({
       console.error("Error resetting time table:", error.message);
       toast.error(
         `Error resetting time table: ${error.message || "Unknown error"}`
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResetAllTimetables = async () => {
+    try {
+      setIsSubmitting(true);
+
+      // Create a reset request for ALL classes
+      await deleteItem.mutateAsync({ data: { resetAll: true } });
+
+      // Clear all pending changes
+      setPendingChanges([]);
+      setHasPendingChanges(false);
+
+      toast.success("All time tables reset successfully!");
+
+      // Refresh data
+      fetchItemsQuery.refetch();
+      allTimeTablesQuery.refetch();
+    } catch (error) {
+      console.error("Error resetting all time tables:", error.message);
+      toast.error(
+        `Error resetting all time tables: ${error.message || "Unknown error"}`
       );
     } finally {
       setIsSubmitting(false);
@@ -1161,13 +1212,23 @@ const TimeTablesManagements = ({
 
       <div className="w-full flex justify-end gap-2 my-4 no-print">
         {category === "class" && selectedClass && (
-          <ConfirmationPopup
-            onClick={handleResetTimetable}
-            action="reset"
-            loading={isSubmitting}
-            title={"Reset Time Table"}
-            icon="Reset"
-          />
+          <div className="flex gap-2">
+            <ConfirmationPopup
+              onClick={handleResetAllTimetables}
+              action="reset all classes"
+              loading={isSubmitting}
+              title={"Reset All Time Tables"}
+              icon={<div className="flex items-center gap-2"><AlertCircle className="h-4 w-4" /> Reset All</div>}
+              triggerClass="bg-red-600 hover:bg-red-700 text-white"
+            />
+            <ConfirmationPopup
+              onClick={handleResetTimetable}
+              action="reset"
+              loading={isSubmitting}
+              title={"Reset Class Time Table"}
+              icon="Reset"
+            />
+          </div>
         )}
         <Button onClick={handlePrint} className="btn-print">Print</Button>
       </div>
