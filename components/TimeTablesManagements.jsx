@@ -156,13 +156,13 @@ const TimetableSlot = ({
     >
       {hasData ? (
         <div className="flex flex-col items-center justify-center relative">
-          <p className="font-medium text-xxs">
-            {cellData.subjectId?.name || ""}
+          <p className="font-medium text-xxs truncate">
+            {cellData.subjectId?.name || (typeof cellData.subjectId === 'string' ? cellData.subjectId : "")}
           </p>
           <p className="text-xxs text-accent-foreground">
             {(category === "class" && selectedClass) || category === "date"
-              ? (cellData.teacherId?.name || cellData.teacherId || "")
-              : (cellData.classId?.name || cellData.classId || "")}
+              ? (cellData.teacherId?.name || (typeof cellData.teacherId === 'string' ? cellData.teacherId : ""))
+              : (cellData.classId?.name || (typeof cellData.classId === 'string' ? cellData.classId : ""))}
           </p>
           {cellData?._fromHistory && (
             <p className="text-[8px] text-orange-500 font-bold opacity-70">
@@ -310,8 +310,10 @@ const TimeTablesManagements = ({
   const endDate = new Date();
 
   const fetchAttendanceQuery = useFetchAttendance(0, 0, {
-    startDate: category === "date" && date ? date : new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split("T")[0],
-    endDate: new Date().toISOString().split("T")[0],
+    startDate: category === "date" && date 
+      ? new Date(new Date(date).setDate(new Date(date).getDate() - 30)).toISOString().split("T")[0]
+      : new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split("T")[0],
+    endDate: category === "date" && date ? date : new Date().toISOString().split("T")[0],
     day: category === "date" ? day : undefined,
     classId: category === "class" && selectedClass ? selectedClass : undefined,
     teacherId:

@@ -333,10 +333,12 @@ const TimeTableComponent = ({
                         {cellData ? (
                           <div className="flex flex-col items-center justify-center">
                             <p className="font-medium text-xxs whitespace-nowrap print:whitespace-normal">
-                              {cellData.subjectId?.name || ""}
+                              {cellData.subjectId?.name || (typeof cellData.subjectId === 'string' ? cellData.subjectId : "")}
                             </p>
                             <p className="text-xxs text-accent-foreground whitespace-nowrap print:whitespace-normal">
-                              {useShortName ? (cellData.classId?.shortname || cellData.classId?.name || "") : (cellData.classId?.name || "")}
+                              {useShortName 
+                                 ? (cellData.classId?.shortname || cellData.classId?.name || (typeof cellData.classId === 'string' ? cellData.classId : "")) 
+                                 : (cellData.classId?.name || (typeof cellData.classId === 'string' ? cellData.classId : ""))}
                             </p>
 
                             {/* Attendance badge */}
@@ -446,12 +448,12 @@ const TimeTableComponent = ({
                       >
                         {!!cellData ? (
                           <div className="flex flex-col items-center justify-center">
-                            <p className="font-medium text-xxs whitespace-nowrap print:whitespace-normal">
-                              {cellData.teacherId?.name || ""}
-                            </p>
-                            <p className="text-xxs text-accent-foreground whitespace-nowrap print:whitespace-normal">
-                              {cellData.subjectId?.name || ""}
-                            </p>
+                             <p className="font-medium text-xxs whitespace-nowrap print:whitespace-normal">
+                               {cellData.teacherId?.name || (typeof cellData.teacherId === 'string' ? cellData.teacherId : "")}
+                             </p>
+                             <p className="text-xxs text-accent-foreground whitespace-nowrap print:whitespace-normal">
+                               {cellData.subjectId?.name || (typeof cellData.subjectId === 'string' ? cellData.subjectId : "")}
+                             </p>
 
                             {/* Attendance badge */}
                             {isAttendanceMarked &&
