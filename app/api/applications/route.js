@@ -46,7 +46,7 @@ export async function GET(req, res) {
     const applications = await ApplicationForm.find(query, projections)
       .skip(page * limit)
       .limit(limit)
-      .sort({ _id: -1 });
+      .sort({ createdAt: -1 });
 
     // Get total count for pagination info
     const total = await ApplicationForm.countDocuments(query);

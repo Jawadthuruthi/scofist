@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import useDataFilter from "@/hooks/use-data-filter";
 import dynamic from "next/dynamic";
-import { Loader, Search, X, Trophy, FileSpreadsheet, Printer } from "lucide-react";
+import { Loader, Search, X, Trophy, FileSpreadsheet, Printer, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
@@ -164,6 +164,8 @@ const DataTableComponent = ({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [toppersOnly, setToppersOnly] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successConfig, setSuccessConfig] = useState({ title: "", message: "" });
   
   // State for cell detail drill-down
   const [detailView, setDetailView] = useState(null); // { student, col, title }
@@ -182,6 +184,15 @@ const DataTableComponent = ({
   const isFetchingRef = useRef(false);
   const loaderRef = useRef(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (showSuccess) {
+      const timer = setTimeout(() => {
+        setShowSuccess(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess]);
 
   const isMobile = useIsMobile();
 
@@ -808,8 +819,11 @@ const DataTableComponent = ({
           return String(a._id).localeCompare(String(b._id), undefined, { numeric: true });
         });
       } else {
-        // Default sort by _id descending so newest records appear first if no other sorting is active
+        // Default sort by createdAt descending so newest records appear first
         baseData = [...baseData].sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          if (dateB !== dateA) return dateB - dateA;
           return String(b._id).localeCompare(String(a._id), undefined, { numeric: true, sensitivity: 'base' });
         });
       }
@@ -913,7 +927,9 @@ const DataTableComponent = ({
       await fetchItemsQuery.refetch();
       router.refresh();
       if (onSuccess) onSuccess();
-      toast.success(createSuccessMessage);
+      // toast.success(createSuccessMessage);
+      setSuccessConfig({ title: "Success!", message: createSuccessMessage });
+      setShowSuccess(true);
       return true;
     } catch (error) {
       handleError(error);
@@ -956,7 +972,9 @@ const DataTableComponent = ({
       
       router.refresh();
       if (onSuccess) onSuccess();
-      toast.success(editSuccessMessage);
+      // toast.success(editSuccessMessage);
+      setSuccessConfig({ title: "Success!", message: editSuccessMessage });
+      setShowSuccess(true);
 
       return true;
     } catch (error) {
@@ -987,7 +1005,9 @@ const DataTableComponent = ({
       await fetchItemsQuery.refetch();
       router.refresh();
       if (onSuccess) onSuccess();
-      toast.success(deleteSuccessMessage);
+      // toast.success(deleteSuccessMessage);
+      setSuccessConfig({ title: "Deleted!", message: deleteSuccessMessage });
+      setShowSuccess(true);
       return true;
     } catch (error) {
       handleError(error);
@@ -1811,6 +1831,22 @@ const DataTableComponent = ({
                 </Table>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Success Popup */}
+      <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex flex-col items-center justify-center py-6 space-y-4 text-center">
+            <div className="rounded-full bg-emerald-100 p-3 animate-in zoom-in duration-300">
+              <CheckCircle2 className="h-12 w-12 text-emerald-600" />
+            </div>
+            <div className="space-y-2">
+              <DialogTitle className="text-xl font-bold text-emerald-900">{successConfig.title}</DialogTitle>
+              <p className="text-muted-foreground whitespace-pre-wrap">
+                {successConfig.message}
+              </p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

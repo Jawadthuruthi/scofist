@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Upload, ChevronsUpDown, Check } from "lucide-react";
+import { CalendarIcon, Loader2, Upload, ChevronsUpDown, Check, CheckCircle2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -89,6 +89,17 @@ export default function ApplicationForm({ trigger }) {
   const [uploading, setUploading] = useState(false);
   const [dobInput, setDobInput] = useState("");
   const [availableClasses, setAvailableClasses] = useState(["+1", "Degree"]);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (submitted) {
+      const timer = setTimeout(() => {
+        setOpen(false);
+        setSubmitted(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [submitted]);
 
   useEffect(() => {
     fetch("/api/applications/classes")
@@ -110,7 +121,7 @@ export default function ApplicationForm({ trigger }) {
         place: "",
         postOffice: "",
         district: "",
-        state: "Kerala",
+        state: "",
         pin: "",
       },
       guardianName: "",
@@ -198,10 +209,10 @@ export default function ApplicationForm({ trigger }) {
         throw new Error(data.message || "Failed to submit application");
       }
 
-      toast.success("Application submitted successfully!");
-      setOpen(false);
+      setSubmitted(true);
       form.reset();
       setFile(null);
+      setDobInput("");
     } catch (error) {
       console.error("Submission error:", error);
       toast.error(`Error: ${error.message}`);
@@ -253,15 +264,32 @@ export default function ApplicationForm({ trigger }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(val) => {
+      setOpen(val);
+      if (!val) setSubmitted(false);
+    }}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>New Student Application</DialogTitle>
-        </DialogHeader>
+      <DialogContent className={cn("max-h-[90vh] overflow-y-auto", submitted ? "max-w-md" : "max-w-4xl")}>
+        {submitted ? (
+          <div className="flex flex-col items-center justify-center py-10 space-y-4 text-center">
+            <div className="rounded-full bg-emerald-100 p-4 animate-in zoom-in duration-300">
+              <CheckCircle2 className="h-16 w-16 text-emerald-600" />
+            </div>
+            <div className="space-y-2">
+              <DialogTitle className="text-2xl font-bold text-emerald-900">Application Submitted!</DialogTitle>
+              <p className="text-muted-foreground">
+                Your application has been received successfully. We will review your details and contact you soon.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>New Student Application</DialogTitle>
+            </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Personal Details */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Personal Details</h3>
@@ -295,9 +323,14 @@ export default function ApplicationForm({ trigger }) {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Full Name</FormLabel>
+                      <FormLabel>Full Name <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="John Doe" {...field} />
+                        <Input 
+                          placeholder="FULL NAME AS PER AADHAR CARD" 
+                          {...field} 
+                          className="uppercase"
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -309,7 +342,7 @@ export default function ApplicationForm({ trigger }) {
                   name="dateOfBirth"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Date of Birth</FormLabel>
+                      <FormLabel>Date of Birth <span className="text-red-500">*</span></FormLabel>
                       <div className="flex gap-2">
                         <FormControl>
                           <Input
@@ -389,9 +422,11 @@ export default function ApplicationForm({ trigger }) {
                       </FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="12-digit Aadhar number"
+                          placeholder="12- DIGIT AADHAR NUMBER"
                           maxLength={12}
                           {...field}
+                          className="uppercase"
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                         />
                       </FormControl>
                       <FormMessage />
@@ -446,7 +481,12 @@ export default function ApplicationForm({ trigger }) {
                           <span className="text-gray-400">(Optional)</span>
                         </FormLabel>
                         <FormControl>
-                          <Input placeholder="Darul Huda" {...field} />
+                          <Input 
+                            placeholder="HOUSE NAME" 
+                            {...field} 
+                            className="uppercase"
+                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -462,7 +502,12 @@ export default function ApplicationForm({ trigger }) {
                           Place <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
-                          <Input placeholder="Calicut" {...field} />
+                          <Input 
+                            placeholder="PLACE" 
+                            {...field} 
+                            className="uppercase"
+                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -479,7 +524,12 @@ export default function ApplicationForm({ trigger }) {
                           <span className="text-gray-400">(Optional)</span>
                         </FormLabel>
                         <FormControl>
-                          <Input placeholder="PO Calicut" {...field} />
+                          <Input 
+                            placeholder="POST OFFICE" 
+                            {...field} 
+                            className="uppercase"
+                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -495,7 +545,12 @@ export default function ApplicationForm({ trigger }) {
                           District <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
-                          <Input placeholder="Kozhikode" {...field} />
+                          <Input 
+                            placeholder="DISTRICT" 
+                            {...field} 
+                            className="uppercase"
+                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -512,9 +567,10 @@ export default function ApplicationForm({ trigger }) {
                         </FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="Kerala"
+                            placeholder="STATE"
                             {...field}
-                            value={field.value || "Kerala"}
+                            className="uppercase"
+                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                           />
                         </FormControl>
                         <FormMessage />
@@ -532,9 +588,11 @@ export default function ApplicationForm({ trigger }) {
                         </FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="673001"
+                            placeholder="6 DIGIT PIN CODE"
                             {...field}
                             maxLength={6}
+                            className="uppercase"
+                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                           />
                         </FormControl>
                         <FormMessage />
@@ -554,9 +612,14 @@ export default function ApplicationForm({ trigger }) {
                   name="guardianName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Guardian Name</FormLabel>
+                      <FormLabel>Guardian Name <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input 
+                          placeholder="GUARDIAN NAME"
+                          {...field} 
+                          className="uppercase"
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -567,9 +630,14 @@ export default function ApplicationForm({ trigger }) {
                   name="relationship"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Relationship</FormLabel>
+                      <FormLabel>Relationship <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="Father" {...field} />
+                        <Input 
+                          placeholder="RELATIONSHIP" 
+                          {...field} 
+                          className="uppercase"
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -580,9 +648,15 @@ export default function ApplicationForm({ trigger }) {
                   name="guardianContactNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Contact Number</FormLabel>
+                      <FormLabel>Contact Number <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <Input type="tel" {...field} />
+                        <Input 
+                          type="tel" 
+                          placeholder="CONTACT NUMBER"
+                          {...field} 
+                          className="uppercase"
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -595,7 +669,13 @@ export default function ApplicationForm({ trigger }) {
                     <FormItem>
                       <FormLabel>Alt. Contact Number</FormLabel>
                       <FormControl>
-                        <Input type="tel" {...field} />
+                        <Input 
+                          type="tel" 
+                          placeholder="ALT. CONTACT NUMBER"
+                          {...field} 
+                          className="uppercase"
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -671,7 +751,11 @@ export default function ApplicationForm({ trigger }) {
                         <FormItem>
                           <FormLabel>SSLC Reg. Number</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input 
+                              {...field} 
+                              className="uppercase"
+                              onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -717,7 +801,12 @@ export default function ApplicationForm({ trigger }) {
                     <FormItem>
                       <FormLabel>Islamic Qualification</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. 5th Standard" {...field} />
+                        <Input 
+                          placeholder="e.g. 5th Standard" 
+                          {...field} 
+                          className="uppercase"
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -731,7 +820,12 @@ export default function ApplicationForm({ trigger }) {
                     <FormItem>
                       <FormLabel>Academic Qualification</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. 10th Standard" {...field} />
+                        <Input 
+                          placeholder="e.g. 10th Standard" 
+                          {...field} 
+                          className="uppercase"
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -755,6 +849,8 @@ export default function ApplicationForm({ trigger }) {
             </div>
           </form>
         </Form>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );

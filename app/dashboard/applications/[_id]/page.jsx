@@ -9,7 +9,13 @@ import { useReactToPrint } from "react-to-print";
 import { useSearchParams } from "next/navigation";
 import { useParams } from "next/navigation";
 import useCrud from "@/hooks/use-crud";
-import { Loader } from "lucide-react";
+import { Loader, CheckCircle2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const ApplicationDisplayPage = () => {
   const printRef = useRef();
@@ -34,10 +40,22 @@ const ApplicationDisplayPage = () => {
 
   const updateApplication = useUpdateItem();
 
-  const applicationData = useMemo(
+  const applicationData = React.useMemo(
     () => fetchApplicationQuery.data?.applicationForm || fetchApplicationQuery.data,
     [fetchApplicationQuery.data]
   );
+
+  const [showSuccess, setShowSuccess] = React.useState(false);
+  const [successMsg, setSuccessMsg] = React.useState("");
+
+  React.useEffect(() => {
+    if (showSuccess) {
+      const timer = setTimeout(() => {
+        setShowSuccess(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -73,12 +91,16 @@ const ApplicationDisplayPage = () => {
       .slice(0, 2);
   };
 
-  const handleApprove = async () => {
+   const handleApprove = async () => {
     await updateApplication.mutateAsync({ data: { id: _id, status: "Approved" } });
+    setSuccessMsg("Application has been approved successfully!");
+    setShowSuccess(true);
   };
 
   const handleReject = async () => {
     await updateApplication.mutateAsync({ data: { id: _id, status: "Rejected" } });
+    setSuccessMsg("Application has been rejected.");
+    setShowSuccess(true);
   };
 
   return (
@@ -443,6 +465,23 @@ const ApplicationDisplayPage = () => {
           }
         }
       `}</style>
+
+      {/* Success Popup */}
+      <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex flex-col items-center justify-center py-6 space-y-4 text-center">
+            <div className="rounded-full bg-emerald-100 p-3 animate-in zoom-in duration-300">
+              <CheckCircle2 className="h-12 w-12 text-emerald-600" />
+            </div>
+            <div className="space-y-2">
+              <DialogTitle className="text-xl font-bold text-emerald-900">Success!</DialogTitle>
+              <p className="text-muted-foreground">
+                {successMsg}
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
