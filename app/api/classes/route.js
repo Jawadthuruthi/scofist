@@ -11,6 +11,7 @@ export async function GET(req, res) {
 
     // Parse URL to get search params
     const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get("page") || "0");
     const limitParam = url.searchParams.get("limit");
     const limit = limitParam === "0" ? Infinity : (parseInt(limitParam) || Infinity);
 
