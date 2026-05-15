@@ -137,7 +137,7 @@ const TimetableSlot = ({
 
   return (
     <TableCell
-      className={`${isAttendanceMarked
+      className={`${(isAttendanceMarked && hasData)
         ? "bg-green-300/50 print:bg-inherit"
         : isPendingChange
           ? "bg-blue-300/50 print:bg-inherit"
@@ -149,7 +149,7 @@ const TimetableSlot = ({
         } border text-center cursor-pointer transition-colors whitespace-nowrap print:whitespace-normal print:max-w-32 print:p-1`}
       onClick={() => {
         onCellClick(periodNumber, day);
-        if (isAttendanceMarked && category !== "class") {
+        if (isAttendanceMarked && hasData && category !== "class") {
           showAbsenteesDialog(periodNumber, day, cellData, absenteesList);
         }
       }}
@@ -1182,7 +1182,9 @@ const TimeTablesManagements = ({
                           attendance.periodNumber === period.periodNumber &&
                           attendance.day === day &&
                           (!selectedClass || getStrId(attendance.classId) === getStrId(selectedClass)) &&
-                          (!selectedTeacher || getStrId(attendance.teacherId) === getStrId(selectedTeacher))
+                          (!selectedTeacher || getStrId(attendance.teacherId) === getStrId(selectedTeacher)) &&
+                          (!cellData?.subjectId || getStrId(attendance.subjectId) === getStrId(cellData.subjectId)) &&
+                          (!cellData?.teacherId || getStrId(attendance.teacherId) === getStrId(cellData.teacherId))
                       );
                       const absentees = markedAttendance?.map(
                         (attendance) => ({
@@ -1245,7 +1247,9 @@ const TimeTablesManagements = ({
                         (attendance) =>
                           attendance.periodNumber === period.periodNumber &&
                           getStrId(attendance.classId) === getStrId(classItem) &&
-                          (!targetDateStr || new Date(attendance.date).toISOString().split('T')[0] === targetDateStr)
+                          (!targetDateStr || new Date(attendance.date).toISOString().split('T')[0] === targetDateStr) &&
+                          (!cellData?.subjectId || getStrId(attendance.subjectId) === getStrId(cellData.subjectId)) &&
+                          (!cellData?.teacherId || getStrId(attendance.teacherId) === getStrId(cellData.teacherId))
                       );
                       const absentees = markedAttendance.map(
                         (attendance) => ({
@@ -1305,17 +1309,22 @@ const TimeTablesManagements = ({
         </div>
       )}
 
-      <div className="w-full flex justify-end gap-2 my-4 no-print">
-        {category === "class" && selectedClass && (
-          <div className="flex gap-2">
+      <div className="w-full flex justify-between items-center gap-2 my-4 no-print">
+        <div>
+          {category === "class" && selectedClass && (
             <ConfirmationPopup
               onClick={handleResetAllTimetables}
               action="reset all classes"
               loading={isSubmitting}
-              title={"Reset All Time Tables"}
-              icon={<div className="flex items-center gap-2"><AlertCircle className="h-4 w-4" /> Reset All</div>}
+              title={"Reset All Classes Time Table"}
+              confirmText="RESET ALL"
+              icon={<div className="flex items-center gap-2"><AlertCircle className="h-4 w-4" /> Reset All Classes</div>}
               triggerClass="bg-red-600 hover:bg-red-700 text-white"
             />
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {category === "class" && selectedClass && (
             <ConfirmationPopup
               onClick={handleResetTimetable}
               action="reset"
@@ -1323,9 +1332,9 @@ const TimeTablesManagements = ({
               title={"Reset Class Time Table"}
               icon="Reset"
             />
-          </div>
-        )}
-        <Button onClick={handlePrint} className="btn-print">Print</Button>
+          )}
+          <Button onClick={handlePrint} className="btn-print">Print</Button>
+        </div>
       </div>
 
       {/* Absentees Dialog */}

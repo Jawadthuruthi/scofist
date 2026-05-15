@@ -280,7 +280,8 @@ const TimeTableComponent = ({
                       (attendance) =>
                         attendance.periodNumber === period.periodNumber &&
                         attendance.day === day &&
-                        attendance.teacherId?._id === teacherId
+                        attendance.teacherId?._id === teacherId &&
+                        (!cellData?.subjectId || (attendance.subjectId?._id || attendance.subjectId) === (cellData.subjectId?._id || cellData.subjectId))
                     );
 
                     // Prepare absentees list
@@ -312,7 +313,7 @@ const TimeTableComponent = ({
                     return (
                       <TableCell
                         onClick={() => {
-                          if (isAttendanceMarked) {
+                          if (isAttendanceMarked && cellData) {
                             showAbsenteesDialog(
                               period.periodNumber,
                               day,
@@ -322,7 +323,7 @@ const TimeTableComponent = ({
                           }
                         }}
                         key={period?._id}
-                        className={`${isAttendanceMarked
+                        className={`${(isAttendanceMarked && cellData)
                           ? "bg-green-300/50 print:bg-inherit"
                           : leaveRecord
                             ? "bg-red-100/50 print:bg-inherit"
@@ -392,7 +393,9 @@ const TimeTableComponent = ({
                       (attendance) =>
                         attendance.periodNumber === period.periodNumber &&
                         attendance.day === currentDay &&
-                        attendance.classId?._id === classItem?._id
+                        attendance.classId?._id === classItem?._id &&
+                        (!cellData?.subjectId || (attendance.subjectId?._id || attendance.subjectId) === (cellData.subjectId?._id || cellData.subjectId)) &&
+                        (!cellData?.teacherId || (attendance.teacherId?._id || attendance.teacherId) === (cellData.teacherId?._id || cellData.teacherId))
                     );
                     const absentees = markedAttendance.map((attendance) => ({
                       absentees: attendance?.attendanceData?.filter(
@@ -424,7 +427,7 @@ const TimeTableComponent = ({
                     return (
                       <TableCell
                         onClick={() => {
-                          if (isAttendanceMarked) {
+                          if (isAttendanceMarked && cellData) {
                             showAbsenteesDialog(
                               period.periodNumber,
                               currentDay,
@@ -434,7 +437,7 @@ const TimeTableComponent = ({
                           }
                         }}
                         key={period?._id}
-                        className={`${isAttendanceMarked
+                        className={`${(isAttendanceMarked && cellData)
                           ? "bg-green-300/50 print:bg-inherit"
                           : leaveRecord
                             ? "bg-red-100/50 print:bg-inherit"
