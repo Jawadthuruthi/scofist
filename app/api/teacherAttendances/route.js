@@ -81,7 +81,9 @@ export async function GET(req, res) {
     const holidayMap = new Map();
     holidays.forEach(h => holidayMap.set(getDS(h.date), true));
 
-    const isTodayGlobalWorking = settings?.general?.isWorkingDay !== false;
+    // 6. Synthesize Attendance History
+    const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const todayDS = getDS(new Date());
 
     // 3. Pre-process schedule into a high-performance map
     const scheduleMap = {};
@@ -103,6 +105,8 @@ export async function GET(req, res) {
       });
     });
 
+    const isTodayGlobalWorking = settings?.general?.isWorkingDay !== false;
+
     // 5. Fetch and map ALL actual marked attendance for these teachers
     const teacherIds = allTeachers.map(t => t._id.toString());
     const existingAttendances = await TeacherAttendance.find({
@@ -120,10 +124,6 @@ export async function GET(req, res) {
         lookupMap[tId][key] = r;
       });
     });
-
-    // 6. Synthesize Attendance History
-    const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const todayDS = getDS(new Date());
 
     const formattedData = allTeachers.map(teacher => {
       const records = [];
@@ -155,9 +155,14 @@ export async function GET(req, res) {
         // Determine if this day is a working day
         const isHoliday = holidayMap.has(dateString);
         const isImplicitHoliday = dateString >= "2026-04-01" && dateString <= "2026-04-10";
-        const isWorkingDay = !isHoliday && !isImplicitHoliday && isTodayGlobalWorking;
+        const isWorkingDay = !isHoliday && !isImplicitHoliday;
+        // For today, the global toggle is the final truth. For other days, use the holiday calendar.
+        const isEffectivelyWorking = (dateString === todayDS) ? isTodayGlobalWorking : isWorkingDay;
 
         daySlots.forEach(slot => {
+          // Filter: Only include slots with subjects, UNLESS it is today (as requested)
+          if (!slot.subjectId && dateString !== todayDS) return;
+
           // Apply filters
           if (filterParams.classId) {
              const classIds = String(filterParams.classId).split(',').map(s => s.trim());
@@ -171,7 +176,7 @@ export async function GET(req, res) {
           const key = `${dateString}_${String(slot.classId)}_${String(slot.subjectId)}_${slot.periodNumber}`;
           
           // Only add synthetic record if we haven't already added an actual record for this slot
-          if (!processedKeys.has(key) && isWorkingDay && dateString <= todayDS) {
+          if (!processedKeys.has(key) && isEffectivelyWorking && dateString <= todayDS) {
             records.push({
               _id: `synth_${teacher._id}_${dateString}_${slot.periodNumber}`,
               teacherId: teacher._id,

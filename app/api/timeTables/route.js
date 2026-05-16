@@ -40,24 +40,19 @@ const extractQueryParams = (url) => {
 
 // Process a single timetable update to prevent duplicating code
 const processSingleUpdate = async (item) => {
-  const { _id, classId, timeSlots } = item;
+  const { classId, timeSlots } = item;
 
   // Input validation
   if (!classId) {
     throw new Error("Class ID is required");
   }
 
-  const filter = _id ? { _id } : { classId };
+  // Always find by classId to avoid stale _id issues (e.g., after a reset)
+  // Each class should have exactly one TimeTable document
+  const existingTimeTable = await TimeTable.findOne({ classId });
   let updatedTimeTable;
 
-  if (_id) {
-    // Transaction-like operation: First remove existing slot, then add new one
-    const existingTimeTable = await TimeTable.findOne(filter);
-
-    if (!existingTimeTable) {
-      return null; // Skip this item if timetable not found
-    }
-
+  if (existingTimeTable) {
     // Remove slot with same day and period
     existingTimeTable.timeSlots = existingTimeTable.timeSlots.filter(
       (slot) =>
@@ -71,29 +66,11 @@ const processSingleUpdate = async (item) => {
     existingTimeTable.timeSlots.push(timeSlots);
     updatedTimeTable = await existingTimeTable.save();
   } else {
-    // Check if a timetable already exists for this class
-    const existingTimeTable = await TimeTable.findOne({ classId });
-
-    if (existingTimeTable) {
-      // Remove slot with same day and period if exists
-      existingTimeTable.timeSlots = existingTimeTable.timeSlots.filter(
-        (slot) =>
-          !(
-            slot.day === timeSlots.day &&
-            slot.periodNumber === timeSlots.periodNumber
-          )
-      );
-
-      // Add new slot
-      existingTimeTable.timeSlots.push(timeSlots);
-      updatedTimeTable = await existingTimeTable.save();
-    } else {
-      // Create new document
-      updatedTimeTable = await TimeTable.create({
-        classId,
-        timeSlots: [timeSlots],
-      });
-    }
+    // Create new document for this class
+    updatedTimeTable = await TimeTable.create({
+      classId,
+      timeSlots: [timeSlots],
+    });
   }
 
   return updatedTimeTable;

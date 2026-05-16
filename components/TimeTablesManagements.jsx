@@ -542,9 +542,29 @@ const TimeTablesManagements = ({
       setTimeTableData(timeSlotsByDate || { timeSlots: [] });
     } else {
       // For class view, just use the first timetable
-      setTimeTableData(newData[0] || { timeSlots: [] });
+      const classTimeTable = newData[0];
+      if (classTimeTable && classTimeTable.timeSlots) {
+        const classId = classTimeTable.classId;
+        setTimeTableData({
+          ...classTimeTable,
+          timeSlots: classTimeTable.timeSlots.map((slot) => ({
+            ...slot,
+            classId,
+          })),
+        });
+      } else {
+        setTimeTableData(classTimeTable || { timeSlots: [] });
+      }
     }
-  }, [fetchItemsQuery.data, allTimeTablesQuery.data, category, selectedTeacher, day, date]);
+  }, [
+    fetchItemsQuery.data,
+    allTimeTablesQuery.data,
+    category,
+    selectedTeacher,
+    selectedClass,
+    day,
+    date,
+  ]);
 
   // Check for conflicts when form values change
   useEffect(() => {
@@ -611,7 +631,9 @@ const TimeTablesManagements = ({
   const getCellData = useCallback(
     (periodNumber, day, classId) => {
       // First check pending changes for the specific class
-      const targetClassId = (classId || selectedClass)?.toString();
+      const targetClassId = (
+        classId || (category === "class" ? selectedClass : undefined)
+      )?.toString();
       const pendingChange = pendingChanges.find(
         (change) =>
           change.timeSlots.periodNumber === periodNumber &&
@@ -897,6 +919,7 @@ const TimeTablesManagements = ({
       }
 
       setSaveCompleted(true);
+      const isComplete = processedCount === changes.length;
 
       // Close dialog after a delay
       setTimeout(() => {
@@ -905,7 +928,13 @@ const TimeTablesManagements = ({
         setHasPendingChanges(false);
       }, 1500);
 
-      toast.success("All timetable changes saved successfully!");
+      if (isComplete) {
+        toast.success("All timetable changes saved successfully!");
+      } else {
+        toast.warning(
+          `Saved ${processedCount} of ${changes.length} changes. Some items may have failed.`
+        );
+      }
 
       // Refresh data
       fetchItemsQuery.refetch();
@@ -959,6 +988,9 @@ const TimeTablesManagements = ({
         setHasPendingChanges(false);
       }
 
+      // Clear local timetable data to prevent stale ID issues
+      setTimeTableData({ timeSlots: [] });
+
       toast.success("Time table reset successfully!");
 
       // Refresh data
@@ -984,6 +1016,9 @@ const TimeTablesManagements = ({
       // Clear all pending changes
       setPendingChanges([]);
       setHasPendingChanges(false);
+
+      // Clear local timetable data
+      setTimeTableData({ timeSlots: [] });
 
       toast.success("All time tables reset successfully!");
 
@@ -1218,11 +1253,11 @@ const TimeTablesManagements = ({
                           category={category}
                           selectedClass={selectedClass}
                           onCellClick={handleCellClick}
-                          isAttendanceMarked={markedAttendance?.length > 0}
-                          absentees={absentees}
+                          isAttendanceMarked={false}
+                          absentees={[]}
                           showAbsenteesDialog={showAbsenteesDialog}
                           isPendingChange={isPending}
-                          leaveReason={cellData?.leaveReason || leaveReason}
+                          leaveReason={null}
                         />
                       );
                     })}

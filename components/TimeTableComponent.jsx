@@ -294,21 +294,8 @@ const TimeTableComponent = ({
                     const absenteesList =
                       absentees?.flatMap((item) => item.absentees || []) ||
                       [];
-                    const isAttendanceMarked = markedAttendance?.length > 0;
-
-                    const leaveRecord = teachersLeaveRecord.find((record) => {
-                      const recordDate = new Date(record.date);
-                      const recordDay = recordDate.toLocaleDateString("en-US", { weekday: "long" });
-                      const recordDateStr = recordDate.toISOString().split('T')[0];
-                      const todayDateStr = new Date().toISOString().split('T')[0];
-
-                      return (
-                        record.periodNumber === period.periodNumber &&
-                        record.teacherId === teacherId &&
-                        day === recordDay &&
-                        recordDateStr === todayDateStr
-                      );
-                    });
+                    const isAttendanceMarked = false;
+                    const leaveRecord = null;
 
                     return (
                       <TableCell
