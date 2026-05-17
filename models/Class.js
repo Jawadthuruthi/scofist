@@ -1,7 +1,7 @@
 import { model, models, Schema } from "mongoose";
-import User from "./User";
-import Batch from "./Batch";
-import Subject from "./Subject";
+import User from "./User.js";
+import Batch from "./Batch.js";
+import Subject from "./Subject.js";
 
 const classSchema = new Schema(
   {

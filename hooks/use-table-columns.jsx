@@ -284,15 +284,26 @@ const useTableColumns = (columnConfig, onCellClick) => {
     if (col.type?.includes("badge")) {
       columnDefinition.cell = ({ row }) => {
         const status = row.getValue(col.accessorKey);
+        let displayStatus = status;
+        if (status === "Active") {
+          displayStatus = "Acivated";
+        } else if (status === "Stopped Out") {
+          displayStatus = "Accelerated";
+        }
+
         let color;
-        switch (status?.toLowerCase()) {
+        switch (displayStatus?.toLowerCase()) {
           case "active":
+          case "activated":
+          case "acivated":
             color = "bg-green-200 text-green-800";
             break;
           case "graduated":
             color = "bg-blue-200 text-blue-800";
             break;
           case "dropped out":
+          case "stopped out":
+          case "accelerated":
             color = "bg-red-200 text-red-800";
             break;
           case "approved":
@@ -319,7 +330,7 @@ const useTableColumns = (columnConfig, onCellClick) => {
               }
             }}
           >
-            {status}
+            {displayStatus}
           </span>
         );
       };

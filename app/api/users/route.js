@@ -544,15 +544,11 @@ export async function PUT(req) {
 
       // Handle kinship fields explicitly at their correct levels
       if (updateFields.familyDetails !== undefined) {
-        user.studentSpecificField.familyDetails = updateFields.familyDetails;
-        user.markModified("studentSpecificField.familyDetails");
+        user.set("studentSpecificField.familyDetails", updateFields.familyDetails);
       }
       if (updateFields.familyOtherDetails !== undefined) {
         user.familyOtherDetails = updateFields.familyOtherDetails;
-        user.markModified("familyOtherDetails");
       }
-
-      user.markModified("studentSpecificField");
 
       // Handle Dropped Out or Graduated fields
       if (updateFields.status === "Dropped Out") {
@@ -568,13 +564,7 @@ export async function PUT(req) {
           user.set(`studentSpecificField.graduatedYear`, updateFields.graduatedYear);
         }
       }
-      
-      user.markModified("studentSpecificField");
     }
-
-    // Force Mongoose to detect changes in nested object
-    user.markModified("studentSpecificField");
-    user.markModified("studentSpecificField.familyDetails");
 
     // Save the user
     await user.save();
@@ -587,15 +577,9 @@ export async function PUT(req) {
     console.error("Error updating user:", error);
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
-      return NextResponse.json(
-        { message: `User with this ${field} already exists` },
-        { status: 409 }
-      );
+      return apiResponse.conflict(`User with this ${field} already exists`, { field });
     }
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    );
+    return apiResponse.error(error);
   }
 }
 

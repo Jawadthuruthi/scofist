@@ -1,5 +1,5 @@
 import { Schema, model, models } from "mongoose";
-import User from "./User";
+import User from "./User.js";
 
 const batchSchema = new Schema(
   {
@@ -48,8 +48,8 @@ const batchSchema = new Schema(
     ],
     status: {
       type: String,
-      enum: ["Active", "Graduated", "Stopped Out"],
-      default: "Active",
+      enum: ["Active", "Activated", "Acivated", "Graduated", "Stopped Out", "Accelerated"],
+      default: "Acivated",
     },
   },
   {

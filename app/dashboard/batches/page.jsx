@@ -103,12 +103,12 @@ const formFields = [
     label: "Status",
     type: "text",
     inputType: "select",
-    defaultValue: "Active",
+    defaultValue: "Acivated",
     required: true,
     options: [
-      { label: "Active", value: "Active" },
+      { label: "Acivated", value: "Acivated" },
       { label: "Graduated", value: "Graduated" },
-      { label: "Stopped Out", value: "Stopped Out" },
+      { label: "Accelerated", value: "Accelerated" },
     ],
   },
 ];
@@ -121,9 +121,9 @@ const filterConfig = [
     label: "Status",
     inputType: "select",
     options: [
-      { label: "Active", value: "Active" },
+      { label: "Acivated", value: "Acivated" },
       { label: "Graduated", value: "Graduated" },
-      { label: "Stopped Out", value: "Stopped Out" },
+      { label: "Accelerated", value: "Accelerated" },
     ],
   },
 ];
