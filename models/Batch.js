@@ -19,7 +19,6 @@ const batchSchema = new Schema(
       unique: true,
       trim: true,
       uppercase: true,
-      match: [/^[A-Z0-9\-_]+$/, "Invalid batch name format"],
       index: true,
     },
     startYear: {
@@ -49,7 +48,7 @@ const batchSchema = new Schema(
     ],
     status: {
       type: String,
-      enum: ["Active", "Graduated"],
+      enum: ["Active", "Graduated", "Stopped Out"],
       default: "Active",
     },
   },

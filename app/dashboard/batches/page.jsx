@@ -54,9 +54,6 @@ const formFields = [
     validators: {
       minLength: 3,
       minLengthMessage: "Name must be at least 3 characters long",
-      pattern: "^[A-Z0-9\\-_]+$",
-      patternMessage:
-        "Name must only contain uppercase letters, numbers, hyphens (-), and underscores (_)",
     },
   },
   {
@@ -111,6 +108,7 @@ const formFields = [
     options: [
       { label: "Active", value: "Active" },
       { label: "Graduated", value: "Graduated" },
+      { label: "Stopped Out", value: "Stopped Out" },
     ],
   },
 ];
@@ -125,6 +123,7 @@ const filterConfig = [
     options: [
       { label: "Active", value: "Active" },
       { label: "Graduated", value: "Graduated" },
+      { label: "Stopped Out", value: "Stopped Out" },
     ],
   },
 ];
