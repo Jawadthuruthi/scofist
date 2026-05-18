@@ -818,6 +818,11 @@ const DataTableComponent = ({
           if (classCompare !== 0) return classCompare;
           return String(a._id).localeCompare(String(b._id), undefined, { numeric: true });
         });
+      } else if (resource === "users") {
+        // Default sort by ID descending so newest/highest IDs appear first
+        baseData = [...baseData].sort((a, b) => {
+          return String(b._id).localeCompare(String(a._id), undefined, { numeric: true, sensitivity: 'base' });
+        });
       } else {
         // Default sort by createdAt descending so newest records appear first
         baseData = [...baseData].sort((a, b) => {

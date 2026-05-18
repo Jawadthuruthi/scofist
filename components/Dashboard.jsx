@@ -248,10 +248,30 @@ const ClassCard = memo(
     const [open, setOpen] = useState(false);
     const { classStudents, classBatch, attendanceStats } = useMemo(() => {
       const filteredStudents =
-        students?.filter(
-          (student) =>
-            student.className === classData.name && student.status === "Active"
-        ).length || 0;
+        students?.filter((student) => {
+          const studentClassId =
+            student.studentSpecificField?.classId ||
+            student.classId?._id ||
+            student.classId;
+          const studentBatchId =
+            student.studentSpecificField?.batchId ||
+            student.batchId?._id ||
+            student.batchId;
+          const targetBatchId = classData.batchId?._id || classData.batchId;
+          
+          const studentStatus = student.studentSpecificField?.status || student.status;
+
+          // If classId is available, it uniquely identifies the class.
+          // If not, fallback to matching both className and batchId.
+          const isClassMatch = studentClassId 
+            ? String(studentClassId) === String(classData._id)
+            : (student.className === classData.name && String(studentBatchId) === String(targetBatchId));
+
+          return (
+            isClassMatch &&
+            studentStatus === "Active"
+          );
+        }).length || 0;
 
       const foundBatch = batches?.find(
         (batch) => String(batch._id) === String(classData.batchId?._id || classData.batchId)

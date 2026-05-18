@@ -30,7 +30,8 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, onProfileRe
         {
             accessorKey: "_id",
             header: pageTitle === "ADMISSION REGISTER" ? <div>Student<br />ID</div> : "Student ID",
-            type: ["sortable"]
+            type: ["sortable"],
+            sortingFn: "alphanumeric"
         },
         {
             accessorKey: "name",

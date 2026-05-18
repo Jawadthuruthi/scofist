@@ -48,6 +48,7 @@ const useTableColumns = (columnConfig, onCellClick) => {
 
     // Apply sorting if type includes "sortable"
     if (col.type?.includes("sortable")) {
+      columnDefinition.sortingFn = col.sortingFn || "alphanumeric";
       columnDefinition.header = ({ column }) => (
         <div className="flex items-center ">
           <span>{col.header}</span>

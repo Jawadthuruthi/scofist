@@ -137,6 +137,8 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
     return true;
   });
 
+  const defaultSorting = useMemo(() => [{ id: "_id", desc: true }], []);
+
   return (
     <>
       <Header
@@ -162,7 +164,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         editSuccessMessage={statusMessages.edit}
         deleteSuccessMessage={statusMessages.delete}
         filterConfig={filterConfig}
-        limit={1000}
+        limit={100000}
         apiFilters={apiFilters}
         filterTitle={filterTitle || "Students"}
         printTitle={pageTitle || "Students"}
@@ -173,6 +175,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         enableClickToEdit={true}
         clickToEditExcludeColumns={["_id", "select", "serialNo", "actions", "updatedAt"]}
         formClassName="sm:max-w-4xl"
+        defaultSorting={defaultSorting}
       />
 
       <StudentProfileDialog

@@ -153,6 +153,15 @@ export async function GET(req) {
       ];
     }
 
+    // Determine sort direction (default to descending for _id)
+    const sortParam = url.searchParams.get("sort");
+    let sortDirection = -1;
+    if (sortParam === "asc") {
+      sortDirection = 1;
+    } else if (sortParam === "desc") {
+      sortDirection = -1;
+    }
+
     // Use lean for better performance when appropriate
     let usersQuery = User.find(query, projections)
       .populate("studentSpecificField.batchId")
@@ -160,7 +169,7 @@ export async function GET(req) {
       .populate("studentSpecificField.admissionClassId", "name")
       .skip(page * limit)
       .limit(limit)
-      .sort({ _id: 1 })
+      .sort({ _id: sortDirection })
       .collation({ locale: "en_US", numericOrdering: true });
 
     if (url.searchParams.get("populate") === "funds") {
