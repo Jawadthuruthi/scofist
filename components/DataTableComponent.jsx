@@ -948,7 +948,13 @@ const DataTableComponent = ({
       await fetchItemsQuery.refetch();
       router.refresh();
       if (onSuccess) onSuccess();
-      triggerSuccessPopup("Success!", createSuccessMessage);
+      
+      // Close the create form immediately to prevent animation overlapping
+      setIsCreateOpen(false);
+      setTimeout(() => {
+        triggerSuccessPopup("Success!", createSuccessMessage);
+      }, 300);
+
       return true;
     } catch (error) {
       handleError(error);
@@ -994,7 +1000,12 @@ const DataTableComponent = ({
       
       router.refresh();
       if (onSuccess) onSuccess();
-      triggerSuccessPopup("Success!", editSuccessMessage);
+      
+      // Close the edit form immediately to prevent animation overlapping
+      setIsEditOpen(false);
+      setTimeout(() => {
+        triggerSuccessPopup("Success!", editSuccessMessage);
+      }, 300);
 
       return true;
     } catch (error) {
@@ -1026,7 +1037,12 @@ const DataTableComponent = ({
       await fetchItemsQuery.refetch();
       router.refresh();
       if (onSuccess) onSuccess();
-      triggerSuccessPopup("Deleted!", deleteSuccessMessage);
+      
+      // Delay success popup slightly so the delete confirmation dialog closes completely first
+      setTimeout(() => {
+        triggerSuccessPopup("Deleted!", deleteSuccessMessage);
+      }, 300);
+
       return true;
     } catch (error) {
       handleError(error);
