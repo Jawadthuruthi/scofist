@@ -122,6 +122,16 @@ export async function POST(req, res) {
       coreSubjects: coreSubjectIds,
       majorSubjects: majorSubjectIds,
     });
+
+    if (newClass && batchId) {
+      await User.updateMany(
+        { roles: "Student", "studentSpecificField.batchId": batchId },
+        { $set: { "studentSpecificField.classId": _id } }
+      );
+    }
+
+    await syncStudentClasses();
+
     return NextResponse.json(
       { newClass, message: "Class created successfully!" },
       { status: 200 }
@@ -161,6 +171,16 @@ export async function PUT(req, res) {
           },
         }
       );
+
+      if (batchId) {
+        await User.updateMany(
+          { roles: "Student", "studentSpecificField.batchId": batchId },
+          { $set: { "studentSpecificField.classId": ids[0] } }
+        );
+      }
+
+      await syncStudentClasses();
+
       return NextResponse.json(
         { updatedClasses, message: "Classes Updated successfully!" },
         { status: 200 }
@@ -187,6 +207,15 @@ export async function PUT(req, res) {
       return NextResponse.json({ message: "Class not found" }, { status: 404 });
     }
 
+    if (batchId) {
+      await User.updateMany(
+        { roles: "Student", "studentSpecificField.batchId": batchId },
+        { $set: { "studentSpecificField.classId": _id } }
+      );
+    }
+
+    await syncStudentClasses();
+
     return NextResponse.json(
       { updatedClass, message: "Class Updated successfully!" },
       { status: 200 }
@@ -204,17 +233,61 @@ export async function DELETE(req, res) {
     const _id = ids[0];
     if (ids.length > 1) {
       const deletedClasses = await Class.deleteMany({ _id: { $in: ids } });
+      await syncStudentClasses();
       return NextResponse.json(
         { deletedClasses, message: "Classes deleted successfully!" },
         { status: 200 }
       );
     }
     const deletedClass = await Class.findByIdAndDelete(_id);
+    await syncStudentClasses();
     return NextResponse.json(
       { deletedClass, message: "Class deleted successfully!" },
       { status: 200 }
     );
   } catch (error) {
     return apiResponse.error(error);
+  }
+}
+
+async function syncStudentClasses() {
+  try {
+    const UserModel = Class.db.model("User");
+    const classes = await Class.find({}).lean();
+    const batchToClassMap = {};
+    classes.forEach((cls) => {
+      if (cls.batchId) {
+        batchToClassMap[cls.batchId] = cls._id;
+      }
+    });
+
+    const students = await UserModel.find({ roles: "Student" }).select("_id studentSpecificField.batchId studentSpecificField.classId").lean();
+
+    const bulkOps = [];
+    students.forEach((student) => {
+      const currentBatchId = student.studentSpecificField?.batchId;
+      const currentClassId = student.studentSpecificField?.classId;
+      const expectedClassId = currentBatchId ? batchToClassMap[currentBatchId] : null;
+
+      if (currentClassId !== expectedClassId) {
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: student._id },
+            update: { 
+              $set: { 
+                "studentSpecificField.classId": expectedClassId || null 
+              } 
+            }
+          }
+        });
+      }
+    });
+
+    if (bulkOps.length > 0) {
+      console.log(`[Sync] Updating ${bulkOps.length} student class assignments...`);
+      await UserModel.bulkWrite(bulkOps);
+    }
+  } catch (error) {
+    console.error("Error in syncStudentClasses:", error);
   }
 }

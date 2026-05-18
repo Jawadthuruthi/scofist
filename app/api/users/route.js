@@ -10,6 +10,9 @@ export async function GET(req) {
   try {
     await connectToDB();
 
+    // Dynamically sync student classes to clean up any stale assignments immediately
+    await syncStudentClasses();
+
     // Parse URL to get search params
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "0");
@@ -668,5 +671,47 @@ export async function DELETE(req, res) {
   } catch (error) {
     console.error("Error deleting user:", error);
     return apiResponse.error(error);
+  }
+}
+
+async function syncStudentClasses() {
+  try {
+    const ClassModel = User.db.model("Class");
+    const classes = await ClassModel.find({}).lean();
+    const batchToClassMap = {};
+    classes.forEach((cls) => {
+      if (cls.batchId) {
+        batchToClassMap[cls.batchId] = cls._id;
+      }
+    });
+
+    const students = await User.find({ roles: "Student" }).select("_id studentSpecificField.batchId studentSpecificField.classId").lean();
+
+    const bulkOps = [];
+    students.forEach((student) => {
+      const currentBatchId = student.studentSpecificField?.batchId;
+      const currentClassId = student.studentSpecificField?.classId;
+      const expectedClassId = currentBatchId ? batchToClassMap[currentBatchId] : null;
+
+      if (currentClassId !== expectedClassId) {
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: student._id },
+            update: { 
+              $set: { 
+                "studentSpecificField.classId": expectedClassId || null 
+              } 
+            }
+          }
+        });
+      }
+    });
+
+    if (bulkOps.length > 0) {
+      console.log(`[Sync] Updating ${bulkOps.length} student class assignments...`);
+      await User.bulkWrite(bulkOps);
+    }
+  } catch (error) {
+    console.error("Error in syncStudentClasses:", error);
   }
 }

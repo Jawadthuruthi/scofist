@@ -167,6 +167,18 @@ const DataTableComponent = ({
   const [toppersOnly, setToppersOnly] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successConfig, setSuccessConfig] = useState({ title: "", message: "" });
+  const lastSuccessShowRef = useRef(0);
+
+  const triggerSuccessPopup = useCallback((title, message) => {
+    const now = Date.now();
+    if (now - lastSuccessShowRef.current < 2000) {
+      console.log("[SuccessPopup] Ignored duplicate trigger within 2 seconds");
+      return;
+    }
+    lastSuccessShowRef.current = now;
+    setSuccessConfig({ title, message });
+    setShowSuccess(true);
+  }, []);
   
   // State for cell detail drill-down
   const [detailView, setDetailView] = useState(null); // { student, col, title }
@@ -936,9 +948,7 @@ const DataTableComponent = ({
       await fetchItemsQuery.refetch();
       router.refresh();
       if (onSuccess) onSuccess();
-      // toast.success(createSuccessMessage);
-      setSuccessConfig({ title: "Success!", message: createSuccessMessage });
-      setShowSuccess(true);
+      triggerSuccessPopup("Success!", createSuccessMessage);
       return true;
     } catch (error) {
       handleError(error);
@@ -984,9 +994,7 @@ const DataTableComponent = ({
       
       router.refresh();
       if (onSuccess) onSuccess();
-      // toast.success(editSuccessMessage);
-      setSuccessConfig({ title: "Success!", message: editSuccessMessage });
-      setShowSuccess(true);
+      triggerSuccessPopup("Success!", editSuccessMessage);
 
       return true;
     } catch (error) {
@@ -1018,9 +1026,7 @@ const DataTableComponent = ({
       await fetchItemsQuery.refetch();
       router.refresh();
       if (onSuccess) onSuccess();
-      // toast.success(deleteSuccessMessage);
-      setSuccessConfig({ title: "Deleted!", message: deleteSuccessMessage });
-      setShowSuccess(true);
+      triggerSuccessPopup("Deleted!", deleteSuccessMessage);
       return true;
     } catch (error) {
       handleError(error);

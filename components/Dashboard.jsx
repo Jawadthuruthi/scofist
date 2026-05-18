@@ -245,8 +245,10 @@ ErrorAlert.displayName = "ErrorAlert";
 // ===== CLASS CARD COMPONENT =====
 const ClassCard = memo(
   ({ classData, students, batches, attendances, leaveStudents }) => {
-    const [open, setOpen] = useState(false);
-    const { classStudents, classBatch, attendanceStats } = useMemo(() => {
+    const [activeOpen, setActiveOpen] = useState(false);
+    const [leaveOpen, setLeaveOpen] = useState(false);
+
+    const { classStudentsList, classBatch, attendanceStats } = useMemo(() => {
       const filteredStudents =
         students?.filter((student) => {
           const studentClassId =
@@ -271,7 +273,11 @@ const ClassCard = memo(
             isClassMatch &&
             studentStatus === "Active"
           );
-        }).length || 0;
+        }) || [];
+
+      const sortedStudents = [...filteredStudents].sort((a, b) => 
+        String(a._id).localeCompare(String(b._id), undefined, { numeric: true })
+      );
 
       const foundBatch = batches?.find(
         (batch) => String(batch._id) === String(classData.batchId?._id || classData.batchId)
@@ -285,7 +291,7 @@ const ClassCard = memo(
       const stats = calculateAttendancePercentage(filteredAttendance);
 
       return {
-        classStudents: filteredStudents,
+        classStudentsList: sortedStudents,
         classBatch: foundBatch,
         attendanceStats: stats,
       };
@@ -299,7 +305,7 @@ const ClassCard = memo(
       });
     }, [leaveStudents]);
 
-    const presentStudents = classStudents - (leaveStudents?.length || 0);
+    const presentStudents = classStudentsList.length - (leaveStudents?.length || 0);
 
     return (
       <>
@@ -307,15 +313,17 @@ const ClassCard = memo(
           className="overflow-hidden hover:border-primary/50 transition-all focus-within:outline-none focus-within:ring-2 focus-within:ring-primary"
           role="region"
           aria-labelledby={`class-${classData._id}`}
-          onClick={() => setOpen(true)}
         >
-          <CardHeader className="pb-2 bg-muted/30">
+          <CardHeader 
+            className="pb-2 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors duration-200 group/header"
+            onClick={() => setActiveOpen(true)}
+          >
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle id={`class-${classData._id}`} className="text-lg">
+                <CardTitle id={`class-${classData._id}`} className="text-lg group-hover/header:text-primary transition-colors">
                   {classData.name}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="group-hover/header:text-primary/80 transition-colors">
                   {classBatch
                     ? `${classBatch.name} (${classBatch.academicYear})`
                     : "N/A"}
@@ -325,19 +333,29 @@ const ClassCard = memo(
           </CardHeader>
           <CardContent className="pt-4">
             <div className="text-sm space-y-3">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Students:</span>
-                <span className="font-medium">{classStudents || "N/A"}</span>
+              <div 
+                className="flex justify-between items-center hover:bg-muted/60 hover:text-primary cursor-pointer p-1.5 rounded-md transition-all group"
+                onClick={() => setActiveOpen(true)}
+              >
+                <span className="text-muted-foreground group-hover:text-primary font-medium">Students:</span>
+                <span className="font-semibold text-primary underline decoration-dotted group-hover:underline group-hover:scale-105 transition-all">
+                  {classStudentsList.length}
+                </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Present:</span>
-                <span className="font-medium">{presentStudents || "N/A"}</span>
+              <div className="flex justify-between items-center p-1.5">
+                <span className="text-muted-foreground font-medium">Present:</span>
+                <span className="font-semibold">{presentStudents}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">On Leave:</span>
-                <span className="font-medium">{leaveStudents.length}</span>
+              <div 
+                className="flex justify-between items-center hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 cursor-pointer p-1.5 rounded-md transition-all group"
+                onClick={() => setLeaveOpen(true)}
+              >
+                <span className="text-muted-foreground group-hover:text-red-500 font-medium">On Leave:</span>
+                <span className="font-semibold text-red-500 underline decoration-dotted group-hover:underline group-hover:scale-105 transition-all">
+                  {leaveStudents.length}
+                </span>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 pt-1">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">
                     Today's Attendance:
@@ -355,24 +373,70 @@ const ClassCard = memo(
             </div>
           </CardContent>
         </Card>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent>
+
+        {/* Active Students Popup */}
+        <Dialog open={activeOpen} onOpenChange={setActiveOpen}>
+          <DialogContent className="max-w-md max-h-[75vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>Absentees</DialogTitle>
+              <DialogTitle className="flex items-center space-x-2 text-xl font-bold">
+                <Users className="h-5 w-5 text-primary" />
+                <span>Active Students - {classData.name}</span>
+              </DialogTitle>
               <DialogDescription>
-                {classData.name}'s absentees'
+                List of all active students in {classData.name} ({classStudentsList.length} students)
               </DialogDescription>
             </DialogHeader>
-            <div className="text-sm border rounded-md p-2 max-h-60 overflow-y-auto bg-muted/10">
-              {sortedLeaveStudents.length > 0 ? sortedLeaveStudents.map((std, index) => {
-                const displayId = std.studentId?._id || std.studentId || "";
-                return (
-                  <div key={index} id={`classIndex-${index}`} className="flex justify-between py-1 border-b last:border-0 hover:bg-muted/50 px-1">
-                    <div className="font-medium">{index + 1}. {std.studentName}</div>
-                    {displayId && <div className="text-xs text-muted-foreground bg-white border px-1.5 py-0.5 rounded shadow-sm">{displayId}</div>}
+            <div className="text-sm border rounded-md p-2 max-h-80 overflow-y-auto bg-muted/10 space-y-1 flex-1">
+              {classStudentsList.length > 0 ? (
+                classStudentsList.map((student, index) => (
+                  <div key={student._id} className="flex justify-between items-center py-2 px-3 border-b last:border-0 hover:bg-muted/50 rounded transition-colors">
+                    <div className="font-semibold text-slate-700 dark:text-slate-200">
+                      {index + 1}. {student.name}
+                    </div>
+                    <div className="text-xs font-mono text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm">
+                      {student._id}
+                    </div>
                   </div>
-                );
-              }) : <div className="text-muted-foreground text-center py-2">No absentees</div>}
+                ))
+              ) : (
+                <div className="text-muted-foreground text-center py-6">No active students found</div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Leave Students Popup */}
+        <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
+          <DialogContent className="max-w-md max-h-[75vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2 text-xl font-bold">
+                <Users className="h-5 w-5 text-red-500" />
+                <span>On Leave Students - {classData.name}</span>
+              </DialogTitle>
+              <DialogDescription>
+                Students on leave today in {classData.name} ({sortedLeaveStudents.length} students)
+              </DialogDescription>
+            </DialogHeader>
+            <div className="text-sm border rounded-md p-2 max-h-80 overflow-y-auto bg-muted/10 space-y-1 flex-1">
+              {sortedLeaveStudents.length > 0 ? (
+                sortedLeaveStudents.map((std, index) => {
+                  const displayId = std.studentId?._id || std.studentId || "";
+                  return (
+                    <div key={index} className="flex justify-between items-center py-2 px-3 border-b last:border-0 hover:bg-muted/50 rounded transition-colors">
+                      <div className="font-semibold text-red-600 dark:text-red-400">
+                        {index + 1}. {std.studentName}
+                      </div>
+                      {displayId && (
+                        <div className="text-xs font-mono text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm">
+                          {displayId}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-muted-foreground text-center py-6">No students on leave today</div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -606,9 +670,19 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
           </DialogHeader>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-2">
             {dashboardData.activeClasses.map((classData) => {
-              const leaveStudents = dashboardData.leaveRecords?.filter(
-                (record) => record.classId === classData._id
-              ) || [];
+              const leaveStudents = dashboardData.leaveRecords?.filter((record) => {
+                const student = dashboardData.students.find(
+                  (s) => String(s._id) === String(record.studentId?._id || record.studentId)
+                );
+                if (!student) return false;
+
+                const studentClassId =
+                  student.studentSpecificField?.classId ||
+                  student.classId?._id ||
+                  student.classId;
+
+                return String(studentClassId) === String(classData._id);
+              }) || [];
 
               return (
                 <ClassCard
