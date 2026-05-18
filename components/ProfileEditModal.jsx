@@ -140,9 +140,9 @@ export default function ProfileEditModal({ user, open, onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* Contact Information Section */}
+          {/* Contact Details Section */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-1 text-primary">Contact Information</h3>
+            <h3 className="text-lg font-semibold border-b pb-1 text-primary">Contact Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -210,10 +210,10 @@ export default function ProfileEditModal({ user, open, onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* Academic Information Section - Only shown for graduated students */}
+          {/* Academic Details Section - Only shown for graduated students */}
           {(user?.studentSpecificField?.status === "Graduated" || user?.status === "Graduated") && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold border-b pb-1 text-primary">Academic Information</h3>
+              <h3 className="text-lg font-semibold border-b pb-1 text-primary">Academic Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Admission Number removed as per request */}
                 <div className="space-y-2">

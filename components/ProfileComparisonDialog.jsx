@@ -214,7 +214,7 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
           </div>
 
           <div className="space-y-1">
-            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-2 border-l-4 border-primary">Contact Information</h4>
+            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-2 border-l-4 border-primary">Contact Details</h4>
             <ComparisonRow label="Email" fieldPath="email" oldVal={oldData.email} newVal={newData.email ?? oldData.email} />
             <ComparisonRow label="Contact" fieldPath="contactNumber" oldVal={oldData.contactNumber} newVal={newData.contactNumber ?? oldData.contactNumber} />
             <ComparisonRow label="Alt. Contact" fieldPath="alternativeNumber" oldVal={oldData.alternativeNumber} newVal={newData.alternativeNumber ?? oldData.alternativeNumber} />
@@ -237,7 +237,7 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
 
           {student.status === "Graduated" && (
             <div className="space-y-1">
-              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-2 border-l-4 border-primary">Academic Information</h4>
+              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-2 border-l-4 border-primary">Academic Details</h4>
               <ComparisonRow label="Admission No" fieldPath="studentSpecificField.admissionNumber" oldVal={oldData.studentSpecificField?.admissionNumber || oldData.admissionNumber} newVal={newData.studentSpecificField?.admissionNumber ?? (oldData.studentSpecificField?.admissionNumber || oldData.admissionNumber)} />
               <ComparisonRow label="Islamic Qual." fieldPath="studentSpecificField.islamicQualification" oldVal={oldData.studentSpecificField?.islamicQualification || oldData.islamicQualification} newVal={newData.studentSpecificField?.islamicQualification ?? (oldData.studentSpecificField?.islamicQualification || oldData.islamicQualification)} />
               <ComparisonRow label="Academic Qual." fieldPath="studentSpecificField.academicQualification" oldVal={oldData.studentSpecificField?.academicQualification || oldData.academicQualification} newVal={newData.studentSpecificField?.academicQualification ?? (oldData.studentSpecificField?.academicQualification || oldData.academicQualification)} />

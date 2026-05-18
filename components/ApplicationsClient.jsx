@@ -445,6 +445,7 @@ export default function ApplicationsClient({ batches, classes, apiKey, lastStude
         apiKey={apiKey}
         hideButton={true}
         className="sm:max-w-4xl"
+        capitalizeInputs={true}
       />
     </>
   );

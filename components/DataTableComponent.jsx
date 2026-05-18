@@ -144,6 +144,7 @@ const DataTableComponent = ({
   enableClickToEdit = false,
   clickToEditExcludeColumns = ["_id", "select", "serialNo", "actions"],
   refetchInterval = 0,
+  capitalizeInputs = false,
 }) => {
   const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
@@ -184,6 +185,7 @@ const DataTableComponent = ({
   const isFetchingRef = useRef(false);
   const loaderRef = useRef(null);
   const router = useRouter();
+  const mutationLockRef = useRef(false);
 
   useEffect(() => {
     if (showSuccess) {
@@ -916,7 +918,9 @@ const DataTableComponent = ({
 
   // FIXED: Form submission handler with proper state management
   const handleSubmit = async (values) => {
+    if (mutationLockRef.current) return false;
     try {
+      mutationLockRef.current = true;
       setLoading(true);
       const filteredValues = Object.fromEntries(
         Object.entries(values).filter(([_, value]) => Boolean(value))
@@ -941,12 +945,15 @@ const DataTableComponent = ({
       throw error;
     } finally {
       setLoading(false);
+      mutationLockRef.current = false;
     }
   };
 
   // FIXED: Edit handler with proper state management
   const handleEdit = async (values) => {
+    if (mutationLockRef.current) return false;
     try {
+      mutationLockRef.current = true;
       setLoading(true);
       const payload = {
         data: {
@@ -988,6 +995,7 @@ const DataTableComponent = ({
       throw error;
     } finally {
       setLoading(false);
+      mutationLockRef.current = false;
     }
   };
 
@@ -1059,6 +1067,7 @@ const DataTableComponent = ({
             apiKey={apiKey}
             triggerVariant="outline"
             className={formClassName}
+            capitalizeInputs={capitalizeInputs}
           />
         )}
       {!!selectedData?.length && (!readOnly || enableDelete) && (
@@ -1082,6 +1091,7 @@ const DataTableComponent = ({
           triggerClass="bg-blue-600 hover:bg-blue-700 text-white rounded-md h-9 w-9 p-0 flex items-center justify-center shrink-0"
           triggerText=""
           className={formClassName}
+          capitalizeInputs={capitalizeInputs}
         />
       )}
       {table.getRowModel().rows?.length > 0 && (
@@ -1190,6 +1200,7 @@ const DataTableComponent = ({
                   triggerClass="h-9 w-9 p-0 flex items-center justify-center shrink-0"
                   triggerVariant="outline"
                   className={formClassName}
+                  capitalizeInputs={capitalizeInputs}
                 />
               )}
               {!!selectedData?.length && (!readOnly || enableDelete) && (
@@ -1211,6 +1222,7 @@ const DataTableComponent = ({
                   triggerClass="bg-blue-600 hover:bg-blue-700 text-white rounded-md h-9 w-9 p-0 flex items-center justify-center shrink-0"
                   triggerText=""
                   className={formClassName}
+                  capitalizeInputs={capitalizeInputs}
                 />
               )}
               

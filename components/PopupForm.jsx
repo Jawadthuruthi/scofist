@@ -146,18 +146,18 @@ const SectionNavigation = ({
 );
 
 // New component to render a single field and handle data population
-const PopulatedField = ({ field, form, apiKey, data }) => {
+const PopulatedField = ({ field, form, apiKey, data, capitalizeInputs }) => {
   const dependentValue = field.filter?.dependentField
     ? useWatch({ control: form.control, name: field.filter.dependentField })
     : null;
 
   const populatedField = usePopulateFormField(field, apiKey, dependentValue);
 
-  return <FieldRenderer field={populatedField} form={form} apiKey={apiKey} data={data} />;
+  return <FieldRenderer field={populatedField} form={form} apiKey={apiKey} data={data} capitalizeInputs={capitalizeInputs} />;
 };
 
 /* ---------- FieldRenderer: simplified for direct rendering ---------- */
-function FieldRenderer({ field, form, apiKey, data }) {
+function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
   const depName =
     field.conditionalRender?.dependentField || field.filter?.dependentField;
   const depValue = useWatch({ control: form.control, name: depName });
@@ -359,13 +359,21 @@ function FieldRenderer({ field, form, apiKey, data }) {
                   />
                 ) : fieldToRender.inputType === "async-text" ? (
                   <AsyncInput
-                    value={formField.value}
-                    onChange={formField.onChange}
+                    value={((capitalizeInputs && fieldToRender.name !== "email" && fieldToRender.type !== "email" && typeof formField.value === "string") ? formField.value.toUpperCase() : formField.value)}
+                    onChange={(e) => {
+                      const val = e && e.target ? e.target.value : e;
+                      const uppercaseVal = typeof val === "string" ? val.toUpperCase() : val;
+                      if (e && e.target) {
+                        e.target.value = uppercaseVal;
+                      }
+                      formField.onChange(uppercaseVal);
+                    }}
                     placeholder={fieldToRender.placeholder}
                     disabled={fieldToRender.disabled}
                     readOnly={(data?._id && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
                     asyncProps={fieldToRender.asyncProps}
                     autoFocus={fieldToRender.autoFocus}
+                    className={capitalizeInputs && fieldToRender.name !== "email" ? "uppercase" : ""}
                     {...formField}
                   />
                 ) : (
@@ -374,7 +382,17 @@ function FieldRenderer({ field, form, apiKey, data }) {
                     placeholder={fieldToRender.placeholder}
                     readOnly={(data?._id && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
                     autoFocus={fieldToRender.autoFocus}
+                    className={capitalizeInputs && fieldToRender.name !== "email" ? "uppercase" : ""}
                     {...formField}
+                    value={((capitalizeInputs && fieldToRender.name !== "email" && fieldToRender.type !== "email" && typeof formField.value === "string") ? formField.value.toUpperCase() : formField.value)}
+                    onChange={(e) => {
+                      const val = e && e.target ? e.target.value : e;
+                      const uppercaseVal = typeof val === "string" ? val.toUpperCase() : val;
+                      if (e && e.target) {
+                        e.target.value = uppercaseVal;
+                      }
+                      formField.onChange(uppercaseVal);
+                    }}
                   />
                 )}
               </div>
@@ -414,7 +432,7 @@ function FieldRenderer({ field, form, apiKey, data }) {
   );
 }
 
-const FormFields = ({ form, fields, apiKey, data }) =>
+const FormFields = ({ form, fields, apiKey, data, capitalizeInputs }) =>
   fields.map((field, idx) => (
     <PopulatedField
       key={field.name ?? idx}
@@ -422,6 +440,7 @@ const FormFields = ({ form, fields, apiKey, data }) =>
       form={form}
       apiKey={apiKey}
       data={data}
+      capitalizeInputs={capitalizeInputs}
     />
   ));
 
@@ -434,6 +453,7 @@ const FormContent = ({
   loading,
   apiKey,
   submitButtonClass,
+  capitalizeInputs,
 }) => {
   const sectionRefs = React.useRef([]);
 
@@ -445,7 +465,7 @@ const FormContent = ({
     }, {});
   }, [formFields]);
 
-  const sectionOrder = Object.keys(sections);
+  const sectionOrder = React.useMemo(() => Object.keys(sections), [sections]);
   const [activeSectionIndex, setActiveSectionIndex] = React.useState(0);
   const totalSections = sectionOrder.length;
   const progress = ((activeSectionIndex + 1) / totalSections) * 100;
@@ -460,19 +480,38 @@ const FormContent = ({
     }
   }, [activeSectionIndex]);
 
+  React.useEffect(() => {
+    const currentSectionName = sectionOrder[activeSectionIndex];
+    if (currentSectionName === "Contact Details") {
+      setTimeout(() => {
+        const emailInput = document.querySelector('input[name="email"]');
+        if (emailInput) {
+          emailInput.focus();
+        }
+      }, 100);
+    } else if (currentSectionName === "Address Details") {
+      setTimeout(() => {
+        const houseNameInput = document.querySelector('input[name="houseName"]');
+        if (houseNameInput) {
+          houseNameInput.focus();
+        }
+      }, 100);
+    }
+  }, [activeSectionIndex, sectionOrder]);
+
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(
           (validatedValues) => handleSubmit(validatedValues),
           (errors) => {
-            console.error("DEBUG: Full Validation Errors (Stringify):", JSON.stringify(errors, null, 2));
+            console.warn("DEBUG: Full Validation Errors (Stringify):", JSON.stringify(errors, (key, val) => key === 'ref' ? undefined : val, 2));
             // Format for easy reading
             const formattedErrors = Object.entries(errors).reduce((acc, [key, err]) => {
               acc[key] = err?.message || (typeof err === "string" ? err : "Invalid value");
               return acc;
             }, {});
-            console.error("Formatted Validation Errors:", formattedErrors);
+            console.warn("Formatted Validation Errors:", formattedErrors);
             const errorMessages = Object.values(formattedErrors).join(", ");
             toast.error(`Please fill all required fields correctly. Errors: ${errorMessages}`);
           }
@@ -511,6 +550,7 @@ const FormContent = ({
                 fields={sections[section]}
                 apiKey={apiKey}
                 data={data}
+                capitalizeInputs={capitalizeInputs}
               />
               {/* Navigation buttons inline with last input */}
               <div className="flex items-end gap-2 pb-1">
@@ -575,6 +615,7 @@ export default function PopupForm({
   triggerClass,
   triggerText,
   triggerVariant,
+  capitalizeInputs = false,
 }) {
   // Use either external state (if provided) or internal state
   const isControlled = externalOpen !== undefined;
@@ -590,6 +631,7 @@ export default function PopupForm({
   };
 
   const [loading, setLoading] = React.useState(false);
+  const isSubmittingRef = React.useRef(false);
 
   // Custom form fields to handle object nesting
   const customFormFields = React.useMemo(() => {
@@ -622,9 +664,23 @@ export default function PopupForm({
 
   const { schema } = useDynamicFormSchema(customFormFields);
 
+  const customDefaultValues = React.useMemo(() => {
+    const defaults = getDefaultValues(data, customFormFields);
+    if (capitalizeInputs) {
+      Object.keys(defaults).forEach(key => {
+        const fieldConfig = customFormFields.find(f => f.name === key);
+        const isTextInput = !fieldConfig || (!fieldConfig.inputType && fieldConfig.type !== "date") || fieldConfig.inputType === "async-text";
+        if (key !== "email" && typeof defaults[key] === "string" && isTextInput) {
+          defaults[key] = defaults[key].toUpperCase();
+        }
+      });
+    }
+    return defaults;
+  }, [data, customFormFields, capitalizeInputs]);
+
   const form = useForm({
     resolver: zodResolver(schema),
-    defaultValues: getDefaultValues(data, customFormFields),
+    defaultValues: customDefaultValues,
   });
 
   const prevOpen = React.useRef(open);
@@ -637,14 +693,18 @@ export default function PopupForm({
     // Only reset if it just opened, just closed, or data identity fundamentally changed
     // This prevents periodic background refetches from randomly wiping out all typed form inputs
     if (open !== prevOpen.current || currentDataId !== prevDataId.current) {
-      form.reset(getDefaultValues(data, customFormFields));
+      form.reset(customDefaultValues);
       prevOpen.current = open;
       prevDataId.current = currentDataId;
+      isSubmittingRef.current = false;
     }
-  }, [open, data, customFormFields, form]);
+  }, [open, data, customDefaultValues, form]);
 
   const handleSubmit = React.useCallback(async (passedValues) => {
+    if (isSubmittingRef.current) return;
+    let didSubmitSuccessfully = false;
     try {
+      isSubmittingRef.current = true;
       setLoading(true);
       // Use passed values if available (from form.handleSubmit), otherwise fallback to current values
       const values = passedValues || form.getValues();
@@ -652,10 +712,11 @@ export default function PopupForm({
       const success = await onSubmit(values);
 
       if (success !== false) {
+        didSubmitSuccessfully = true;
         // Wait for the dialog animation to complete before resetting and closing
         handleOpenChange(false);
         setTimeout(() => {
-          form.reset(getDefaultValues(data, customFormFields));
+          form.reset(customDefaultValues);
         }, 150);
       }
     } catch (error) {
@@ -675,8 +736,11 @@ export default function PopupForm({
       }
     } finally {
       setLoading(false);
+      if (!didSubmitSuccessfully) {
+        isSubmittingRef.current = false;
+      }
     }
-  }, [form, customFormFields, onSubmit, handleOpenChange]);
+  }, [form, customFormFields, onSubmit, handleOpenChange, customDefaultValues]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -704,6 +768,7 @@ export default function PopupForm({
           loading={loading}
           apiKey={apiKey}
           submitButtonClass={submitButtonClass}
+          capitalizeInputs={capitalizeInputs}
         />
       </DialogContent>
     </Dialog>

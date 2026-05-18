@@ -176,6 +176,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         clickToEditExcludeColumns={["_id", "select", "serialNo", "actions", "updatedAt"]}
         formClassName="sm:max-w-4xl"
         defaultSorting={defaultSorting}
+        capitalizeInputs={true}
       />
 
       <StudentProfileDialog
