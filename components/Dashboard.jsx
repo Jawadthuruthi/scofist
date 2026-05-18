@@ -855,7 +855,7 @@ export default function Dashboard({
       (student) => student.status === "Graduated"
     );
     const activeBatches =
-      batches?.filter((batch) => batch.status === "Active") || [];
+      batches?.filter((batch) => ["Active", "Activated", "Acivated"].includes(batch.status)) || [];
     const activeBatchIds = new Set(activeBatches.map(b => String(b._id)));
     const activeClasses = sortedClasses.filter(cls => {
       const clsBatchId = cls.batchId?._id || cls.batchId;
