@@ -189,7 +189,7 @@ const DataTableComponent = ({
     if (showSuccess) {
       const timer = setTimeout(() => {
         setShowSuccess(false);
-      }, 2000);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [showSuccess]);
@@ -1836,7 +1836,7 @@ const DataTableComponent = ({
       </Dialog>
       {/* Success Popup */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md w-[85vw] rounded-2xl">
           <div className="flex flex-col items-center justify-center py-6 space-y-4 text-center">
             <div className="rounded-full bg-emerald-100 p-3 animate-in zoom-in duration-300">
               <CheckCircle2 className="h-12 w-12 text-emerald-600" />
