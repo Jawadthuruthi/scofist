@@ -6,7 +6,7 @@ import { fetchData, formatOptions } from "@/lib/utils";
 const API_ENDPOINTS = [
   {
     pathname: "batches",
-    searchParams: "projection=_id,name,students",
+    searchParams: "projection=_id,name,students,startYear,endYear",
   },
   {
     pathname: "users",
@@ -60,6 +60,13 @@ export default async function ClassesPage() {
       )
     );
 
+    const sortedBatches = [...(batches || [])].sort((a, b) => {
+      const yearA = a.startYear || a.endYear || 0;
+      const yearB = b.startYear || b.endYear || 0;
+      if (yearA !== yearB) return yearB - yearA;
+      return (b.name || "").localeCompare(a.name || "");
+    });
+
     const formFields = [
       {
         name: "_id",
@@ -104,7 +111,7 @@ export default async function ClassesPage() {
         type: "text",
         inputType: "select",
         required: true,
-        options: formatOptions(batches),
+        options: formatOptions(sortedBatches),
       },
       {
         name: "teacherId",
@@ -135,7 +142,7 @@ export default async function ClassesPage() {
         id: "batchId",
         label: "Select a batch",
         inputType: "select",
-        options: formatOptions(batches),
+        options: formatOptions(sortedBatches),
       },
       {
         id: "teacherId",
