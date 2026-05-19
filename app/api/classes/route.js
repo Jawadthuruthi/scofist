@@ -1,8 +1,9 @@
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import Class from "@/models/Class";
+import User from "@/models/User";
 import { NextResponse } from "next/server";
- 
+
 export const dynamic = "force-dynamic";
 
 export async function GET(req, res) {
