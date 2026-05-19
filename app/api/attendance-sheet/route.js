@@ -26,103 +26,118 @@ export async function GET(request) {
 
         const { searchParams } = new URL(request.url);
         const classId = searchParams.get("classId");
+        const batchId = searchParams.get("batchId");
         const subjectId = searchParams.get("subjectId");
         const month = parseInt(searchParams.get("month"));
         const year = parseInt(searchParams.get("year"));
 
-        if (!classId || !subjectId || isNaN(month) || isNaN(year)) {
+        if ((!classId && !batchId) || !subjectId || isNaN(month) || isNaN(year)) {
             return NextResponse.json({ message: "Missing required params" }, { status: 400 });
         }
-
-        // Role check: Teachers can only view assigned classes (simplified: check if they are a Teacher)
-        // For now, allow viewing if they have access to the page, strict filtering can be added if needed.
 
         const startDate = new Date(year, month, 1);
         const endDate = new Date(year, month + 1, 0); // Last day of month
         endDate.setHours(23, 59, 59, 999);
 
-        // 1. Get Class Details to determine subject type (CORE or MAJOR)
-        const classDoc = await Class.findById(classId).select("coreSubjects majorSubjects").lean();
-        if (!classDoc) {
-            return NextResponse.json({ message: "Class not found" }, { status: 404 });
-        }
+        let students = [];
 
-        const isCore = (classDoc.coreSubjects || []).includes(subjectId);
-        const isMajor = (classDoc.majorSubjects || []).includes(subjectId);
-        const subjectType = isCore ? "CORE" : isMajor ? "MAJOR" : null;
+        if (classId) {
+            // 1. Get Class Details to determine subject type (CORE or MAJOR)
+            const classDoc = await Class.findById(classId).select("coreSubjects majorSubjects").lean();
+            if (!classDoc) {
+                return NextResponse.json({ message: "Class not found" }, { status: 404 });
+            }
 
-        if (!subjectType) {
-            // This might happen for historical subjects that were once assigned but are no longer in core/major
-            // In this case, we default to the previous "all class students" logic
-            // but we'll try to find any student who was marked in the attendance for this subject
-        }
+            const isCore = (classDoc.coreSubjects || []).includes(subjectId);
+            const isMajor = (classDoc.majorSubjects || []).includes(subjectId);
+            const subjectType = isCore ? "CORE" : isMajor ? "MAJOR" : null;
 
-        // 1.5 Fetch Students with specific assignment filtering
-        const assignmentKey = `${classId}:${subjectType}`;
-        let studentQuery = {
-            roles: "Student",
-            "studentSpecificField.status": "Active",
-            $or: [
-                // Case 1: Student has specific assignment for this class/type
-                { "studentSpecificField.subjectTypeAssignments": assignmentKey },
-                // Case 2: Student is primarily in this class AND has NO specific assignments for this class (default to all)
-                { 
-                    "studentSpecificField.classId": classId,
-                    "studentSpecificField.subjectTypeAssignments": { 
-                        $not: { $regex: new RegExp(`^${classId}:`) } 
+            // 1.5 Fetch Students with specific assignment filtering
+            const assignmentKey = `${classId}:${subjectType}`;
+            let studentQuery = {
+                roles: "Student",
+                "studentSpecificField.status": "Active",
+                $or: [
+                    // Case 1: Student has specific assignment for this class/type
+                    { "studentSpecificField.subjectTypeAssignments": assignmentKey },
+                    // Case 2: Student is primarily in this class AND has NO specific assignments for this class (default to all)
+                    { 
+                        "studentSpecificField.classId": classId,
+                        "studentSpecificField.subjectTypeAssignments": { 
+                            $not: { $regex: new RegExp(`^${classId}:`) } 
+                        }
+                    }
+                ]
+            };
+
+            // If subjectType is null (historical subject), filter students by actual attendance records
+            if (!subjectType) {
+                // Find unique student IDs who have attendance for this class/subject in the range
+                const historicalRecordStudentIds = await Attendance.distinct("attendanceData.studentId", {
+                    classId,
+                    subjectId,
+                    date: { $gte: startDate, $lte: endDate }
+                });
+
+                if (historicalRecordStudentIds.length > 0) {
+                    studentQuery = { _id: { $in: historicalRecordStudentIds } };
+                } else {
+                    // If no records in this month, show all who have EVER had a record for this class/subject
+                    const anyHistoricalIds = await Attendance.distinct("attendanceData.studentId", {
+                        classId,
+                        subjectId
+                    });
+                    if (anyHistoricalIds.length > 0) {
+                        studentQuery = { _id: { $in: anyHistoricalIds } };
+                    } else {
+                        // Total fallback
+                        studentQuery.$or = [
+                            { "studentSpecificField.classId": classId },
+                            { "studentSpecificField.subjectTypeAssignments": { $regex: new RegExp(`^${classId}:`) } }
+                        ];
                     }
                 }
-            ]
-        };
-
-        // If subjectType is null (historical subject), filter students by actual attendance records
-        if (!subjectType) {
-            // Find unique student IDs who have attendance for this class/subject in the range
-            const historicalRecordStudentIds = await Attendance.distinct("attendanceData.studentId", {
-                classId,
-                subjectId,
-                date: { $gte: startDate, $lte: endDate }
-            });
-
-            if (historicalRecordStudentIds.length > 0) {
-                studentQuery = { _id: { $in: historicalRecordStudentIds } };
-            } else {
-                // If no records in this month, show all who have EVER had a record for this class/subject
-                // to at least show the names if someone was marked but not in this specific month (rare but possible)
-                const anyHistoricalIds = await Attendance.distinct("attendanceData.studentId", {
-                    classId,
-                    subjectId
-                });
-                if (anyHistoricalIds.length > 0) {
-                    studentQuery = { _id: { $in: anyHistoricalIds } };
-                } else {
-                    // Total fallback (shouldn't happen if historical subjects are fetched correctly)
-                    studentQuery.$or = [
-                        { "studentSpecificField.classId": classId },
-                        { "studentSpecificField.subjectTypeAssignments": { $regex: new RegExp(`^${classId}:`) } }
-                    ];
-                }
             }
+
+            if (batchId) {
+                studentQuery["studentSpecificField.batchId"] = batchId;
+            }
+
+            students = await User.find(studentQuery)
+                .select("name _id studentSpecificField.classId studentSpecificField.batchId studentSpecificField.subjectTypeAssignments")
+                .sort({ _id: 1 });
+        } else {
+            // Fetch all active students in the batch
+            students = await User.find({
+                roles: "Student",
+                "studentSpecificField.status": "Active",
+                "studentSpecificField.batchId": batchId
+            })
+            .select("name _id studentSpecificField.classId studentSpecificField.batchId studentSpecificField.subjectTypeAssignments")
+            .sort({ _id: 1 });
         }
 
-        const students = await User.find(studentQuery)
-            .select("name _id studentSpecificField.batchId studentSpecificField.subjectTypeAssignments")
-            .sort({ _id: 1 });
-
         // 2. Fetch Attendance Records for the range
-        const attendanceRecords = await Attendance.find({
-            classId,
+        const attendanceQuery = {
             subjectId,
             date: { $gte: startDate, $lte: endDate },
-        }).populate("teacherId", "name");
+        };
+        if (classId) {
+            attendanceQuery.classId = classId;
+        } else {
+            attendanceQuery.batchId = batchId;
+        }
 
-        // 2.5 Fetch Leave Records for the range
+        const attendanceRecords = await Attendance.find(attendanceQuery).populate("teacherId", "name");
+
+        // 2.5 Fetch Leave Records for the range using the student list
+        const studentIds = students.map(s => s._id);
         const leaveRecords = await LeaveRecord.find({
-            classId,
+            studentId: { $in: studentIds },
             dateOfLeave: { $lte: endDate },
             $or: [
                 { dateOfArrival: { $gte: startDate } },
-                { arrivedDate: { $gte: startDate } } // Depending on how you want to treating open leaves
+                { arrivedDate: { $gte: startDate } }
             ]
         });
 

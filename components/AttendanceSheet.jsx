@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/tooltip";
 
 const AttendanceSheet = ({ apiKey, userId, userRole }) => {
+    const [batches, setBatches] = useState([]);
     const [classes, setClasses] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [allSubjects, setAllSubjects] = useState([]);
@@ -36,6 +37,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
     const [filters, setFilters] = useState({
         year: new Date().getFullYear(),
         month: new Date().getMonth(),
+        batchId: "",
         classId: "",
         subjectId: "",
     });
@@ -44,6 +46,31 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
     const [data, setData] = useState({ students: [], attendanceMap: {}, leavesMap: {} });
     const [daysInMonth, setDaysInMonth] = useState([]);
 
+    const filteredClasses = filters.batchId
+        ? classes.filter(c => {
+            const bId = c.batchId && typeof c.batchId === 'object' ? c.batchId._id : c.batchId;
+            return bId === filters.batchId;
+          })
+        : classes;
+
+    const handleBatchChange = (batchId) => {
+        const targetBatchId = batchId === "none" ? "" : batchId;
+        setFilters(prev => ({
+            ...prev,
+            batchId: targetBatchId,
+            classId: "",
+            subjectId: ""
+        }));
+    };
+
+    const handleClassChange = (classId) => {
+        const targetClassId = classId === "none" ? "" : classId;
+        setFilters(prev => ({
+            ...prev,
+            classId: targetClassId,
+            subjectId: ""
+        }));
+    };
 
     // helper for headers
     const getHeaders = () => ({
@@ -51,19 +78,21 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
         "x-user-id": userId
     });
 
-    // 1. Fetch Metadata (Classes & Subjects)
+    // 1. Fetch Metadata (Batches, Classes & Subjects)
     useEffect(() => {
         const fetchMetadata = async () => {
             try {
-                const [classesRes, subjectsRes] = await Promise.all([
+                const [classesRes, subjectsRes, batchesRes] = await Promise.all([
                     axios.get("/api/classes", { headers: getHeaders() }),
                     axios.get("/api/subjects", { 
                         headers: getHeaders(),
                         params: { projection: "_id,name" }
-                    })
+                    }),
+                    axios.get("/api/batches", { headers: getHeaders() })
                 ]);
                 setClasses(classesRes.data.classes || []);
                 setAllSubjects(subjectsRes.data.subjects || []);
+                setBatches(batchesRes.data.batches || []);
             } catch (error) {
                 console.error("Metadata fetch error:", error);
                 toast.error("Failed to fetch initial data");
@@ -72,7 +101,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
         if (apiKey) fetchMetadata();
     }, [apiKey]);
 
-    // 2. Fetch Subjects when Class changes
+    // 2. Fetch Subjects when Class or Batch changes
     useEffect(() => {
         const fetchSubjects = async () => {
             if (filters.classId) {
@@ -113,11 +142,40 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                 }
                 
                 setFilters(prev => ({ ...prev, subjectId: "" })); // Reset subject
+            } else if (filters.batchId) {
+                // Collect subjects from all classes in the batch
+                const batchClasses = classes.filter(c => {
+                    const bId = c.batchId && typeof c.batchId === 'object' ? c.batchId._id : c.batchId;
+                    return bId === filters.batchId;
+                });
+                
+                const collectedSubjects = [];
+                batchClasses.forEach(cls => {
+                    [...(cls.coreSubjects || []), ...(cls.majorSubjects || [])].forEach(s => {
+                        let subjectObj = s;
+                        if (typeof s === 'string') {
+                            subjectObj = allSubjects.find(sub => sub._id === s) || { _id: s, name: s };
+                        }
+                        if (subjectObj && subjectObj._id) {
+                            collectedSubjects.push(subjectObj);
+                        }
+                    });
+                });
+
+                // Remove duplicates
+                const uniqueSubjects = collectedSubjects.filter((s, index, self) => 
+                    s && s._id && index === self.findIndex((t) => t._id === s._id)
+                );
+
+                setSubjects(uniqueSubjects);
+                setFilters(prev => ({ ...prev, subjectId: "" })); // Reset subject
+            } else {
+                setSubjects([]);
             }
         };
 
         fetchSubjects();
-    }, [filters.classId, classes, allSubjects]);
+    }, [filters.classId, filters.batchId, classes, allSubjects]);
 
     // 3. Calculate Date Headers
     useEffect(() => {
@@ -132,23 +190,29 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
 
     // 4. Fetch Attendance Data
     const loadAttendance = async () => {
-        if (!filters.classId || !filters.subjectId) {
-            toast.error("Please select Class and Subject");
+        if ((!filters.classId && !filters.batchId) || !filters.subjectId) {
+            toast.error("Please select Batch/Class and Subject");
             return;
         }
 
         setLoading(true);
 
-
         try {
+            const params = {
+                subjectId: filters.subjectId,
+                month: filters.month,
+                year: filters.year
+            };
+            if (filters.classId) {
+                params.classId = filters.classId;
+            }
+            if (filters.batchId) {
+                params.batchId = filters.batchId;
+            }
+
             const res = await axios.get("/api/attendance-sheet", {
                 headers: getHeaders(),
-                params: {
-                    classId: filters.classId,
-                    subjectId: filters.subjectId,
-                    month: filters.month,
-                    year: filters.year
-                }
+                params
             });
             setData(res.data);
         } catch (error) {
@@ -192,14 +256,24 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                 <div className="flex items-center gap-6 text-sm font-semibold uppercase tracking-wider mt-1 text-black print:text-black">
                     <span>{new Date(0, filters.month).toLocaleString('default', { month: 'long' })} {filters.year}</span>
                     <span>•</span>
-                    <span>{classes.find(c => c._id === filters.classId)?.name || 'Class'}</span>
-                    <span>•</span>
+                    {filters.batchId && (
+                        <>
+                            <span>{batches.find(b => b._id === filters.batchId)?.name || 'Batch'}</span>
+                            <span>•</span>
+                        </>
+                    )}
+                    {filters.classId && (
+                        <>
+                            <span>{classes.find(c => c._id === filters.classId)?.name || 'Class'}</span>
+                            <span>•</span>
+                        </>
+                    )}
                     <span>{subjects.find(s => s._id === filters.subjectId)?.name || 'Subject'}</span>
                 </div>
             </div>
 
             {/* Filters - Hidden in Print */}
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6 print:hidden">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6 print:hidden">
                 <Select value={filters.year.toString()} onValueChange={(v) => setFilters(prev => ({ ...prev, year: parseInt(v) }))}>
                     <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
                     <SelectContent>
@@ -221,14 +295,27 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                     </SelectContent>
                 </Select>
 
-                <Select value={filters.classId} onValueChange={(v) => setFilters(prev => ({ ...prev, classId: v }))}>
+                <Select value={filters.batchId || "none"} onValueChange={handleBatchChange}>
+                    <SelectTrigger><SelectValue placeholder="Select Batch" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="none">All/No Batch</SelectItem>
+                        {batches.map(b => (
+                            <SelectItem key={b._id} value={b._id}>
+                                {b.name} {b.academicYear ? `(${b.academicYear})` : ""}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                <Select value={filters.classId || "none"} onValueChange={handleClassChange}>
                     <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
                     <SelectContent>
+                        <SelectItem value="none">All/No Class</SelectItem>
                         {classes.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
                     </SelectContent>
                 </Select>
 
-                <Select value={filters.subjectId} onValueChange={(v) => setFilters(prev => ({ ...prev, subjectId: v }))} disabled={!filters.classId}>
+                <Select value={filters.subjectId} onValueChange={(v) => setFilters(prev => ({ ...prev, subjectId: v }))} disabled={!filters.classId && !filters.batchId}>
                     <SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger>
                     <SelectContent>
                         {subjects.map(s => (
@@ -282,7 +369,14 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                         {index + 1}
                                     </TableCell>
                                     <TableCell className="sticky left-[50px] bg-background group-hover:bg-muted/50 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">
-                                        {student.name}
+                                        <div className="flex flex-col">
+                                            <span>{student.name}</span>
+                                            {filters.batchId && !filters.classId && student.studentSpecificField?.classId && (
+                                                <span className="text-[10px] text-muted-foreground font-normal">
+                                                    {classes.find(c => c._id === student.studentSpecificField.classId)?.name || ""}
+                                                </span>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     {daysInMonth.map(day => {
                                         const dateKey = day.getDate();
