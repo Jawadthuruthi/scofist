@@ -24,6 +24,7 @@ import { Clock, User, Loader } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 const LeaveRegister = ({ apiKey, role, teacherId }) => {
   const [selectedClass, setSelectedClass] = useState("");
@@ -54,7 +55,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
     0,
     {
       classId: selectedClass,
-      projection: "_id,name,email",
+      projection: "_id,name,email,profilePic",
       roles: "Student",
       status: "Active",
     },
@@ -256,18 +257,10 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
           </TableHeader>
           <TableBody>
             {students?.length > 0 ? (
-              students
-                .sort((a, b) => {
-                  const statsA = studentLeaveStats[a._id] || {};
-                  const statsB = studentLeaveStats[b._id] || {};
-
-                  const isActiveA = statsA.pendingLeaves > 0 || statsA.overdueLeaves > 0;
-                  const isActiveB = statsB.pendingLeaves > 0 || statsB.overdueLeaves > 0;
-
-                  if (isActiveA && !isActiveB) return -1;
-                  if (!isActiveA && isActiveB) return 1;
-                  return 0;
-                })
+              [...students]
+                .sort((a, b) =>
+                  String(a._id).localeCompare(String(b._id), undefined, { numeric: true })
+                )
                 .map((student, index) => {
                   const stats = studentLeaveStats[student._id] || {};
                   const latestRecord = stats.latestRecord;
@@ -293,27 +286,40 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                         {index + 1}
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
-                          <div
-                            className={`font-medium text-xs ${stats.pendingLeaves > 0 || stats.overdueLeaves > 0
-                              ? "text-red-900 dark:text-red-100"
-                              : ""
-                              }`}
-                          >
-                            {student.name}
-                          </div>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8 border border-muted">
+                            <AvatarImage src={student.profilePic?.url} alt={student.name} />
+                            <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
+                              {student.name?.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border">
+                                {student._id}
+                              </span>
+                              <span
+                                className={`font-semibold text-xs ${stats.pendingLeaves > 0 || stats.overdueLeaves > 0
+                                  ? "text-red-900 dark:text-red-100"
+                                  : ""
+                                  }`}
+                              >
+                                {student.name}
+                              </span>
+                            </div>
 
-                          <div className="flex items-center gap-2 text-xs">
-                            <span
-                              className={`${stats.pendingLeaves > 0 ||
-                                stats.overdueLeaves > 0
-                                ? "text-red-700 dark:text-red-300"
-                                : "text-muted-foreground"
-                                }`}
-                            >
-                              {stats.totalLeaves || 0}{" "}
-                              {stats.totalLeaves <= 1 ? "leave" : "leaves"}
-                            </span>
+                            <div className="flex items-center gap-2 text-xs">
+                              <span
+                                className={`${stats.pendingLeaves > 0 ||
+                                  stats.overdueLeaves > 0
+                                  ? "text-red-700 dark:text-red-300"
+                                  : "text-muted-foreground"
+                                  }`}
+                              >
+                                {stats.totalLeaves || 0}{" "}
+                                {stats.totalLeaves <= 1 ? "leave" : "leaves"}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </TableCell>
