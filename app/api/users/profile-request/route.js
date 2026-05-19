@@ -113,6 +113,20 @@ export async function POST(req) {
     return NextResponse.json({ message: "Invalid action" }, { status: 400 });
   } catch (error) {
     console.error("Error processing profile request:", error);
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || "field";
+      return NextResponse.json(
+        { message: `A user with this ${field} already exists.` },
+        { status: 400 }
+      );
+    }
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors || {}).map((err) => err.message);
+      return NextResponse.json(
+        { message: messages.join(", ") },
+        { status: 400 }
+      );
+    }
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }
