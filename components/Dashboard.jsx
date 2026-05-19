@@ -951,10 +951,17 @@ export default function Dashboard({
     const activeBatches =
       batches?.filter((batch) => ["Active", "Activated", "Acivated"].includes(batch.status)) || [];
     const activeBatchIds = new Set(activeBatches.map(b => String(b._id)));
-    const activeClasses = sortedClasses.filter(cls => {
-      const clsBatchId = cls.batchId?._id || cls.batchId;
-      return activeBatchIds.has(String(clsBatchId));
-    });
+    const activeClasses = sortedClasses
+      .filter((cls) => {
+        const clsBatchId = cls.batchId?._id || cls.batchId;
+        return activeBatchIds.has(String(clsBatchId));
+      })
+      .sort((a, b) =>
+        String(a._id || "").localeCompare(String(b._id || ""), undefined, {
+          numeric: true,
+        })
+      );
+
 
     return {
       students,
