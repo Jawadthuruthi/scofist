@@ -305,6 +305,7 @@ const useTableColumns = (columnConfig, onCellClick) => {
           case "dropped out":
           case "stopped out":
           case "accelerated":
+          case "closed":
             color = "bg-red-200 text-red-800";
             break;
           case "approved":

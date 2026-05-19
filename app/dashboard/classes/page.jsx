@@ -42,6 +42,7 @@ const columnsConfig = [
   { accessorKey: "teacherName", header: "Teacher" },
   { accessorKey: "coreSubjectsName", header: "Core Subjects", type: ["array"] },
   { accessorKey: "majorSubjectsName", header: "Major Subjects", type: ["array"] },
+  { accessorKey: "status", header: "Status", type: ["badge"] },
 ];
 
 const statusMessages = {
@@ -134,6 +135,18 @@ export default async function ClassesPage() {
         inputType: "multiSelect",
         options: formatOptions(subjects),
       },
+      {
+        name: "status",
+        label: "Status",
+        type: "text",
+        inputType: "select",
+        required: true,
+        options: [
+          { label: "Active", value: "Active" },
+          { label: "Closed", value: "Closed" },
+        ],
+        defaultValue: "Active",
+      },
     ];
 
     const filterConfig = [
@@ -149,6 +162,15 @@ export default async function ClassesPage() {
         label: "Select a teacher",
         inputType: "select",
         options: formatOptions(teachers),
+      },
+      {
+        id: "status",
+        label: "Select status",
+        inputType: "select",
+        options: [
+          { label: "Active", value: "Active" },
+          { label: "Closed", value: "Closed" },
+        ],
       },
     ];
 

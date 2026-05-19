@@ -52,6 +52,9 @@ export async function GET(req, res) {
     if (filterParams.teacherId) {
       query.teacherId = filterParams.teacherId;
     }
+    if (filterParams.status) {
+      query.status = filterParams.status;
+    }
 
     // Execute query with pagination
     const classes = await Class.find(query, projections)
@@ -73,6 +76,7 @@ export async function GET(req, res) {
       shortname: cls.shortname,
       batchName: cls.batchId?.name,
       teacherName: cls.teacherId?.name,
+      status: cls.status || "Active",
       coreSubjectsName: (cls.coreSubjects || []).map((subject) => subject?.name || ""),
       coreSubjectIds: (cls.coreSubjects || []).map((subject) => subject?._id || subject),
       majorSubjectsName: (cls.majorSubjects || []).map((subject) => subject?.name || ""),
@@ -113,7 +117,7 @@ export async function POST(req, res) {
   try {
     await connectToDB();
 
-    const { _id, name, shortname, batchId, teacherId, coreSubjectIds, majorSubjectIds } = await req.json();
+    const { _id, name, shortname, batchId, teacherId, coreSubjectIds, majorSubjectIds, status } = await req.json();
     const newClass = await Class.create({
       _id,
       name,
@@ -122,6 +126,7 @@ export async function POST(req, res) {
       teacherId,
       coreSubjects: coreSubjectIds,
       majorSubjects: majorSubjectIds,
+      status: status || "Active",
     });
 
     if (newClass && batchId) {
@@ -150,7 +155,7 @@ export async function PUT(req, res) {
     console.log("DEBUG: Class PUT rawBody:", JSON.stringify(rawBody, null, 2));
     const body = rawBody.data || rawBody;
     console.log("DEBUG: Class PUT body:", JSON.stringify(body, null, 2));
-    const { ids, name, shortname, batchId, teacherId, coreSubjectIds, majorSubjectIds } = body;
+    const { ids, name, shortname, batchId, teacherId, coreSubjectIds, majorSubjectIds, status } = body;
 
     if (!ids || !ids.length) {
       return NextResponse.json({ message: "No IDs provided" }, { status: 400 });
@@ -169,6 +174,7 @@ export async function PUT(req, res) {
             teacherId,
             coreSubjects: coreSubjectIds,
             majorSubjects: majorSubjectIds,
+            status,
           },
         }
       );
@@ -198,7 +204,8 @@ export async function PUT(req, res) {
           batchId, 
           teacherId, 
           coreSubjects: coreSubjectIds,
-          majorSubjects: majorSubjectIds 
+          majorSubjects: majorSubjectIds,
+          status 
         } 
       },
       { new: true, runValidators: true, strict: false }

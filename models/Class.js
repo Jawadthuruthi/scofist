@@ -49,6 +49,12 @@ const classSchema = new Schema(
         ref: "Subject",
       },
     ],
+    status: {
+      type: String,
+      enum: ["Active", "Closed"],
+      default: "Active",
+      required: [true, "Status is required"],
+    },
   },
   {
     timestamps: true,

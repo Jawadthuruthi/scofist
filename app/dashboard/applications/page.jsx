@@ -20,7 +20,7 @@ export default async function ApplicationsPage() {
     }
 
     const batchesData = await Batch.find({}).select("_id name startYear endYear").sort({ startYear: -1, endYear: -1 }).lean();
-    const classesData = await Class.find({}).select("_id name").lean();
+    const classesData = await Class.find({}).select("_id name status").lean();
 
     // Fetch the last student ID
     const lastStudent = await User.findOne({ roles: "Student" })
