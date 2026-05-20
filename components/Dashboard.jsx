@@ -954,7 +954,9 @@ export default function Dashboard({
     const activeClasses = sortedClasses
       .filter((cls) => {
         const clsBatchId = cls.batchId?._id || cls.batchId;
-        return activeBatchIds.has(String(clsBatchId));
+        const isBatchActive = activeBatchIds.has(String(clsBatchId));
+        const isClassActive = cls.status === "Active" || !cls.status;
+        return isBatchActive && isClassActive;
       })
       .sort((a, b) =>
         String(a._id || "").localeCompare(String(b._id || ""), undefined, {
@@ -1208,10 +1210,10 @@ export default function Dashboard({
                   timeTable={timeTable}
                   periods={periods}
                   attendances={attendances}
-                  classes={sortedClasses}
+                  classes={dashboardData.activeClasses}
                   teachersLeaveRecord={liveTeachersLeaveRecord}
                   useShortName={true}
-                  hideEmptyClassRows={true}
+                  hideEmptyClassRows={false}
                 />
               </CardContent>
             </Card>
