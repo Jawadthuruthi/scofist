@@ -9,17 +9,26 @@ export async function POST(req, res) {
     await connectToDB();
     const { userId } = await req.json();
 
-    // Try to find in standard User collection
-    let user = await User.findById(userId).lean();
-    let email = user?.email || (userId.includes('@') ? userId : null);
-
-    // Find custom roles for this user's email
+    let user = null;
     let customRoleNames = [];
-    if (email) {
-      const customRoles = await CustomRole.find({
-        "members.email": email.toLowerCase()
-      }).select("name").lean();
-      customRoleNames = customRoles.map(r => r.name);
+
+    if (userId.includes("@")) {
+      const emailLower = userId.toLowerCase();
+      const [userDoc, customRoles] = await Promise.all([
+        User.findOne({ email: emailLower }).lean(),
+        CustomRole.find({ "members.email": emailLower }).select("name").lean(),
+      ]);
+      user = userDoc;
+      customRoleNames = customRoles.map((r) => r.name);
+    } else {
+      user = await User.findById(userId).lean();
+      const email = user?.email;
+      if (email) {
+        const customRoles = await CustomRole.find({
+          "members.email": email.toLowerCase(),
+        }).select("name").lean();
+        customRoleNames = customRoles.map((r) => r.name);
+      }
     }
 
     if (!user) {
@@ -28,9 +37,9 @@ export async function POST(req, res) {
         user = {
           _id: userId,
           userId: userId,
-          name: userId.split('@')[0].toUpperCase(),
+          name: userId.split("@")[0].toUpperCase(),
           email: userId,
-          roles: customRoleNames
+          roles: customRoleNames,
         };
       } else {
         return NextResponse.json({ user: null }, { status: 404 });
@@ -39,7 +48,7 @@ export async function POST(req, res) {
       // Merge custom roles into existing user object
       const allRoles = new Set([
         ...(user.roles || []),
-        ...customRoleNames
+        ...customRoleNames,
       ]);
       user.roles = Array.from(allRoles);
     }

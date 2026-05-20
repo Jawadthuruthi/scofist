@@ -4,6 +4,8 @@ import withPWA from "next-pwa";
 // trigger restart 7
 const nextConfig = {
   reactStrictMode: true,
+  compress: true,
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       {
@@ -11,6 +13,9 @@ const nextConfig = {
         hostname: "res.cloudinary.com",
       },
     ],
+  },
+  experimental: {
+    optimizePackageImports: ["lucide-react", "recharts", "date-fns", "lodash"],
   },
 };
 

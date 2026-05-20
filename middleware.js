@@ -7,7 +7,9 @@ const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
 
 // Cache configuration
 const userCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes for user cache
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes maximum TTL
+const CACHE_SOFT_TTL = 5 * 60 * 1000; // 5 minutes soft TTL for stale-while-revalidate
+const CACHE_MAX_SIZE = 1000; // Prevent unbounded cache growth
 
 // Pages
 const pages = [
@@ -481,7 +483,19 @@ const pages = [
   },
 ];
 
-export async function middleware(req) {
+// Pre-compile pages map/array for O(1) lookup
+const exactPagesMap = new Map();
+const patternPages = [];
+
+pages.forEach((page) => {
+  if (page.pattern) {
+    patternPages.push(page);
+  } else {
+    exactPagesMap.set(page.path, page.allowedRoles);
+  }
+});
+
+export async function middleware(req, event) {
   if (req.nextUrl.pathname === "/") {
     return NextResponse.next();
   }
@@ -494,7 +508,7 @@ export async function middleware(req) {
   }
 
   // Handle regular authentication for dashboard routes
-  return handleAuthRequest(req);
+  return handleAuthRequest(req, event);
 }
 
 async function handleLoginPageRequest(req) {
@@ -595,7 +609,7 @@ async function handleApiRequest(req) {
   return NextResponse.next();
 }
 
-async function handleAuthRequest(req) {
+async function handleAuthRequest(req, event) {
   const isE2ETest = req.headers.get("x-e2e-test") === "true";
 
   if (isE2ETest) {
@@ -644,10 +658,30 @@ async function handleAuthRequest(req) {
     }
 
     // Check cache first
-    const cachedUser = getUserFromCache(effectiveUserId);
+    const cachedEntry = getUserFromCache(effectiveUserId);
 
-    if (cachedUser) {
-      return prepareResponse(req, activeToken, cachedUser);
+    if (cachedEntry) {
+      const { user, timestamp } = cachedEntry;
+      const now = Date.now();
+      
+      // If the cached item is stale but not expired, trigger background revalidation
+      if (now - timestamp > CACHE_SOFT_TTL) {
+        const revalidatePromise = fetchUserProfile(effectiveUserId, process.env.API_KEY, req.nextUrl.origin)
+          .then((updatedUser) => {
+            if (updatedUser) {
+              storeUserInCache(effectiveUserId, updatedUser);
+            }
+          })
+          .catch((err) => {
+            console.error("Background cache revalidation failed:", err.message);
+          });
+
+        if (event && typeof event.waitUntil === "function") {
+          event.waitUntil(revalidatePromise);
+        }
+      }
+
+      return prepareResponse(req, activeToken, user);
     }
 
     try {
@@ -678,21 +712,21 @@ async function handleAuthRequest(req) {
 function isUserAllowed(activeRole, path) {
   if (!activeRole) return false;
 
-  const page = pages.find(
-    (page) => page.path === path || (page.pattern && page.pattern.test(path))
-  );
-
-  // If no specific page rule found, and it's a dashboard subpath, 
-  // we might want to be careful. But for the main dashboard, let's be explicit.
   if (path === "/dashboard") {
     return true; // Any authenticated role can see the dashboard
   }
 
-  // Check if user has the required role
-  const allowedRoles = page?.allowedRoles || [];
+  let allowedRoles = exactPagesMap.get(path);
+  if (!allowedRoles) {
+    const matchedPage = patternPages.find((p) => p.pattern.test(path));
+    if (matchedPage) {
+      allowedRoles = matchedPage.allowedRoles;
+    }
+  }
 
-  // If it's a custom role (not one of the known standard ones), 
-  // we might allow it access to certain things by default or if explicitly allowed.
+  if (!allowedRoles) return false;
+
+  // Check if user has the required role
   return allowedRoles.includes(activeRole);
 }
 
@@ -710,7 +744,7 @@ function getUserFromCache(userId) {
   const cached = userCache.get(userId);
   if (!cached) return null;
 
-  const { user, timestamp, ttl } = cached;
+  const { timestamp, ttl } = cached;
   const now = Date.now();
 
   if (now - timestamp > ttl) {
@@ -718,10 +752,22 @@ function getUserFromCache(userId) {
     return null;
   }
 
-  return user;
+  // Move to the end of Map to maintain LRU order
+  userCache.delete(userId);
+  userCache.set(userId, cached);
+
+  return cached;
 }
 
 function storeUserInCache(userId, user, customTtl = CACHE_TTL) {
+  // Enforce size limit (LRU eviction)
+  if (userCache.size >= CACHE_MAX_SIZE) {
+    const oldestKey = userCache.keys().next().value;
+    if (oldestKey) {
+      userCache.delete(oldestKey);
+    }
+  }
+
   userCache.set(userId, {
     user,
     timestamp: Date.now(),
