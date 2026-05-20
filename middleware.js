@@ -7,7 +7,7 @@ const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
 
 // Cache configuration
 const userCache = new Map();
-const CACHE_TTL = 30 * 1000; // 30 seconds for user cache
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes for user cache
 
 // Pages
 const pages = [
@@ -509,7 +509,6 @@ async function handleLoginPageRequest(req) {
   try {
     // Verify JWT token to check if it's valid
     const { payload } = await jwtVerify(token, SECRET_KEY);
-    console.log(payload);
 
     if (activeRole === "Teacher") {
       return NextResponse.redirect(new URL("/dashboard/my-periods", req.url));
