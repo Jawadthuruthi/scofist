@@ -480,24 +480,7 @@ const FormContent = ({
     }
   }, [activeSectionIndex]);
 
-  React.useEffect(() => {
-    const currentSectionName = sectionOrder[activeSectionIndex];
-    if (currentSectionName === "Contact Details") {
-      setTimeout(() => {
-        const emailInput = document.querySelector('input[name="email"]');
-        if (emailInput) {
-          emailInput.focus();
-        }
-      }, 100);
-    } else if (currentSectionName === "Address Details") {
-      setTimeout(() => {
-        const houseNameInput = document.querySelector('input[name="houseName"]');
-        if (houseNameInput) {
-          houseNameInput.focus();
-        }
-      }, 100);
-    }
-  }, [activeSectionIndex, sectionOrder]);
+
 
   return (
     <Form {...form}>
@@ -708,7 +691,6 @@ export default function PopupForm({
       setLoading(true);
       // Use passed values if available (from form.handleSubmit), otherwise fallback to current values
       const values = passedValues || form.getValues();
-      console.log("Form values being submitted:", values);
       const success = await onSubmit(values);
 
       if (success !== false) {

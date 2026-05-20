@@ -10,9 +10,6 @@ export async function GET(req) {
   try {
     await connectToDB();
 
-    // Dynamically sync student classes to clean up any stale assignments immediately
-    await syncStudentClasses();
-
     // Parse URL to get search params
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "0");

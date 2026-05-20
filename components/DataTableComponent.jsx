@@ -399,9 +399,7 @@ const DataTableComponent = ({
     }
   }, [fetchItemsQuery.data, page, resource, isFilterChanged, data.length]);
 
-  useEffect(() => {
-    console.log("Page changed:", page, "Has next page:", hasNextPage);
-  }, [page, hasNextPage]);
+
 
   // Loading states
   const isInitialLoading =
@@ -412,15 +410,9 @@ const DataTableComponent = ({
 
   const fetchNextPage = useCallback(() => {
     if (!hasNextPage || isLoadingMore || isFetchingRef.current) {
-      console.log("Skipping fetch:", {
-        hasNextPage,
-        isLoadingMore,
-        isFetching: isFetchingRef.current,
-      });
       return;
     }
 
-    console.log(`Fetching next page: ${page + 1}`);
     isFetchingRef.current = true;
     setIsFetchingNextPage(true);
     setPage((prevPage) => prevPage + 1);
@@ -481,14 +473,9 @@ const DataTableComponent = ({
   useEffect(() => {
     if (!isApiFiltering && hasNextPage && !isLoadingMore && hasFilters) {
       const displayedRows = filteredData.length;
-      const minRequiredRows = Math.min(limit, 10); // Don't be too aggressive
+      const minRequiredRows = Math.min(limit, 10);
 
-      // Only fetch more if we have very few displayed rows
       if (displayedRows < minRequiredRows) {
-        console.log("Fetching more for client filter:", {
-          displayedRows,
-          minRequiredRows,
-        });
         fetchNextPage();
       }
     }
@@ -505,7 +492,6 @@ const DataTableComponent = ({
   // FIXED: Handle API filtering with proper state reset
   const handleApiFilter = useCallback(() => {
     if (isApiFiltering) {
-      console.log("Triggering API filter");
       setIsFilterChanged(true);
       setPage(0);
       setHasNextPage(true);
@@ -946,7 +932,6 @@ const DataTableComponent = ({
       setPage(0);
       setData([]);
       await fetchItemsQuery.refetch();
-      router.refresh();
       if (onSuccess) onSuccess();
       
       // Close the create form immediately to prevent animation overlapping
@@ -978,27 +963,17 @@ const DataTableComponent = ({
           ...getApiProps(additionalProps),
         },
       };
-      console.log("Team Update Payload:", JSON.stringify(payload, null, 2));
       
-      const response = await updateData.mutateAsync(payload);
-      console.log("Team Update Response (Full):", JSON.stringify(response, null, 2));
-      
-      if (response.team) {
-        console.log("Updated Team Color in Response:", response.team.color);
-      }
+      await updateData.mutateAsync(payload);
       
       table.resetRowSelection();
 
-      // FIXED: Force a deep refresh by clearing local state and refetching with cache buster
+      // FIXED: Force a deep refresh by clearing local state and refetching
       setIsFilterChanged(true);
       setPage(0);
       setData([]);
       
-      // Perform refresh immediately without artificial delay
-      const result = await fetchItemsQuery.refetch();
-      console.log("Refetch result length:", result.data?.[resource]?.length);
-      
-      router.refresh();
+      await fetchItemsQuery.refetch();
       if (onSuccess) onSuccess();
       
       // Close the edit form immediately to prevent animation overlapping
@@ -1035,7 +1010,6 @@ const DataTableComponent = ({
       setPage(0);
       setData([]);
       await fetchItemsQuery.refetch();
-      router.refresh();
       if (onSuccess) onSuccess();
       
       // Delay success popup slightly so the delete confirmation dialog closes completely first
