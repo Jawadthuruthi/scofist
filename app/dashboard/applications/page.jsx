@@ -30,7 +30,7 @@ export default async function ApplicationsPage() {
     
     const lastStudentId = lastStudent?._id || "None";
     
-    classesData.sort((a, b) => sortClasses(a, b));
+    classesData.sort((a, b) => a._id.localeCompare(b._id, undefined, { numeric: true, sensitivity: 'base' }));
 
     const batches = JSON.parse(JSON.stringify(batchesData));
     const classes = JSON.parse(JSON.stringify(classesData));
