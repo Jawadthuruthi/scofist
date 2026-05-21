@@ -9,12 +9,20 @@ const MarkSchema = new mongoose.Schema(
                 name: { type: String, required: true },
                 maxMark: { type: Number, default: 100 },
                 passMark: { type: Number, default: 40 },
+                subColumns: [
+                    {
+                        name: { type: String, required: true },
+                        maxMark: { type: Number, default: 100 },
+                        passMark: { type: Number, default: 40 },
+                    }
+                ],
             },
         ],
         students: [
             {
                 studentId: { type: String, ref: "User" }, // String, matches User _id type
-                marks: { type: Map, of: Number },
+                marks: { type: mongoose.Schema.Types.Mixed },
+                manualRemark: { type: String, default: "" },
             },
         ],
         gradingScale: [

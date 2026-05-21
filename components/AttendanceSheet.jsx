@@ -311,7 +311,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                     <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="none">All/No Class</SelectItem>
-                        {classes.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
+                        {filteredClasses.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
                     </SelectContent>
                 </Select>
 

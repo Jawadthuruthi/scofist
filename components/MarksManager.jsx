@@ -33,7 +33,9 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 
-export default function MarksManager() {
+export default function MarksManager({ apiKey }) {
+    const [batches, setBatches] = useState([]);
+    const [selectedBatch, setSelectedBatch] = useState("");
     const [classes, setClasses] = useState([]);
     const [selectedClass, setSelectedClass] = useState("");
     const [selectedClassName, setSelectedClassName] = useState("");
@@ -62,10 +64,16 @@ export default function MarksManager() {
     const activeRole = Cookies.get("active-role");
 
     useEffect(() => {
-        fetch("/api/classes")
-            .then((r) => r.json())
-            .then((d) => setClasses(d.classes || []));
-    }, []);
+        if (!apiKey) return;
+        const reqHeaders = { "api-key": apiKey };
+        Promise.all([
+            fetch("/api/classes", { headers: reqHeaders }).then((r) => r.json()),
+            fetch("/api/batches", { headers: reqHeaders }).then((r) => r.json())
+        ]).then(([classesData, batchesData]) => {
+            setClasses(classesData.classes || []);
+            setBatches(batchesData.batches || []);
+        }).catch(err => console.error("Failed to fetch initial data", err));
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (!selectedClass) return;
@@ -411,6 +419,14 @@ export default function MarksManager() {
 
     const resultViewStats = computeResultStats(resultExam);
 
+    const filteredClasses = selectedBatch
+        ? classes.filter(c => {
+            const bId = c.batchId && typeof c.batchId === 'object' ? c.batchId._id : c.batchId;
+            return bId === selectedBatch;
+          })
+        : classes;
+
+
     return (
         <div className="space-y-6">
             {/* ── All controls in one row */}
@@ -434,13 +450,39 @@ export default function MarksManager() {
                         </Select>
                     </div>
 
+                    {/* Select Batch */}
+                    <div className="flex-1 sm:w-40">
+                        <label className="text-sm font-medium mb-1 block">Select Batch</label>
+                        <Select
+                            value={selectedBatch || "none"}
+                            onValueChange={(val) => {
+                                setSelectedBatch(val === "none" ? "" : val);
+                                setSelectedClass(""); // reset class when batch changes
+                            }}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select Batch" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">All/No Batch</SelectItem>
+                                {batches.map(b => (
+                                    <SelectItem key={b._id} value={b._id}>
+                                        {b.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     {/* Select Class */}
                     <div className="flex-1 sm:w-48">
                         <label className="text-sm font-medium mb-1 block">Select Class</label>
                         <Select
+                            value={selectedClass || "none"}
                             onValueChange={(val) => {
-                                setSelectedClass(val);
-                                const cls = classes.find((c) => c._id === val);
+                                const targetClass = val === "none" ? "" : val;
+                                setSelectedClass(targetClass);
+                                const cls = classes.find((c) => c._id === targetClass);
                                 setSelectedClassName(cls?.name || "");
                             }}
                         >
@@ -448,7 +490,8 @@ export default function MarksManager() {
                                 <SelectValue placeholder="Choose class..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {classes.map((cls) => (
+                                <SelectItem value="none">All/No Class</SelectItem>
+                                {filteredClasses.map((cls) => (
                                     <SelectItem key={cls._id} value={cls._id}>
                                         {cls.name}
                                     </SelectItem>
@@ -710,18 +753,44 @@ export default function MarksManager() {
                                             </td>
                                             <td className="p-2 font-medium border">{stat.studentId}</td>
                                             <td className="p-2 font-medium border">{stat.studentName}</td>
-                                            {(resultExam.subjects || []).map((subj, i) => (
-                                                <td key={i} className="p-2 text-center border">
-                                                    {stat.marksMap[typeof subj === 'string' ? subj : subj.name] ?? "-"}
-                                                </td>
-                                            ))}
+                                            {(resultExam.subjects || []).map((subj, i) => {
+                                                const subjName = typeof subj === 'string' ? subj : subj.name;
+                                                const markVal = stat.marksMap[subjName];
+                                                
+                                                if (subj.subColumns && subj.subColumns.length > 0) {
+                                                    const subjTotal = subj.subColumns.reduce((sum, sc, j) => sum + (Number(markVal?.[j]) || 0), 0);
+                                                    return (
+                                                        <React.Fragment key={i}>
+                                                            {subj.subColumns.map((sc, j) => {
+                                                                const val = markVal?.[j] ?? "-";
+                                                                const isFailed = val !== "-" && Number(val) < (Number(sc.passMark) || 0);
+                                                                return (
+                                                                    <td key={`${i}-${j}`} className={`p-2 text-center border ${isFailed ? 'text-red-600 font-bold' : ''}`}>
+                                                                        {val}
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                            <td className="p-2 text-center font-semibold text-blue-800 bg-blue-50/30 border">
+                                                                {subjTotal}
+                                                            </td>
+                                                        </React.Fragment>
+                                                    );
+                                                }
+                                                
+                                                const isFailed = markVal !== "-" && markVal != null && Number(markVal) < (Number(subj.passMark) || 0);
+                                                return (
+                                                    <td key={i} className={`p-2 text-center border ${isFailed ? 'text-red-600 font-bold' : ''}`}>
+                                                        {typeof markVal === 'object' ? '-' : (markVal ?? "-")}
+                                                    </td>
+                                                );
+                                            })}
                                             <td className="p-2 text-center font-bold border text-blue-700 dark:text-blue-300 print:text-black">
                                                 {stat.total}
                                             </td>
                                             <td className="p-2 text-center font-bold border text-green-700 dark:text-green-300 print:text-black">
                                                 {stat.percentage}%
                                             </td>
-                                            <td className={`p-2 text-center font-bold border ${stat.remark === "Pass" ? "text-green-600 print:text-green-700" : stat.remark === "Fail" ? "text-red-600 print:text-red-700" : "text-blue-600 print:text-blue-700"}`}>
+                                            <td className={`p-2 text-center font-bold border ${stat.remark === "Pass" ? "text-green-600 print:text-green-700" : stat.remark === "Failed" ? "text-red-600 print:text-red-700" : "text-blue-600 print:text-blue-700"}`}>
                                                 {stat.remark}
                                             </td>
                                         </tr>
@@ -856,19 +925,19 @@ export default function MarksManager() {
                                         const stat = stats.find((s) => s.studentId === st._id);
                                         return (
                                             <tr key={st._id} className="hover:bg-muted/30 border-b">
-                                                <td className="p-2 text-center text-muted-foreground">
+                                                <td className="p-2 text-center text-muted-foreground border">
                                                     {idx + 1}
                                                 </td>
-                                                <td className="p-1 text-muted-foreground truncate max-w-[50px]">
+                                                <td className="p-1 text-muted-foreground truncate max-w-[50px] border">
                                                     {st._id}
                                                 </td>
-                                                <td className="p-1 font-medium">{st.name}</td>
+                                                <td className="p-1 font-medium border">{st.name}</td>
                                                 {subjects.map((_, i) => {
                                                     // Filter for teachers: only show selected subject
                                                     if (activeRole === "Teacher" && selectedSubjectIndex !== null && selectedSubjectIndex !== i) return null;
 
                                                     return (
-                                                        <td key={i} className="p-1 text-center">
+                                                        <td key={i} className="p-1 text-center border">
                                                             <Input
                                                                 id={`mark-${idx}-${i}`}
                                                                 type="number"
@@ -908,14 +977,14 @@ export default function MarksManager() {
                                                         </td>
                                                     );
                                                 })}
-                                                {activeRole !== "Teacher" && <td />}
-                                                <td className="p-2 text-center font-semibold text-blue-700 dark:text-blue-300">
+                                                {activeRole !== "Teacher" && <td className="border" />}
+                                                <td className="p-2 text-center font-semibold text-blue-700 dark:text-blue-300 border">
                                                     {stat?.total ?? 0}
                                                 </td>
-                                                <td className="p-2 text-center font-semibold text-green-700 dark:text-green-300">
+                                                <td className="p-2 text-center font-semibold text-green-700 dark:text-green-300 border">
                                                     {stat?.percentage ?? 0}%
                                                 </td>
-                                                <td className="p-2 text-center font-semibold text-yellow-700 dark:text-yellow-300">
+                                                <td className="p-2 text-center font-semibold text-yellow-700 dark:text-yellow-300 border">
                                                     {stat?.rank ?? "-"}
                                                 </td>
                                                 <td className={`p-2 text-center font-bold ${stat?.remark === "Pass" ? "text-green-600" : stat?.remark === "Fail" ? "text-red-600" : "text-blue-600"}`}>

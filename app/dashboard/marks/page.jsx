@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import MarksManager from "@/components/MarksManager";
@@ -7,6 +7,7 @@ import { FileSpreadsheet } from "lucide-react";
 export default async function MarksPage() {
     const cookieStore = await cookies();
     const activeRole = cookieStore.get("active-role")?.value;
+    const apiKey = process.env.API_KEY;
 
     const allowedRoles = ["College Admin", "Teacher"];
     if (!allowedRoles.includes(activeRole))
@@ -26,8 +27,9 @@ export default async function MarksPage() {
                 icon={<FileSpreadsheet className="h-5 w-5 text-muted-foreground" />}
             />
             <div className="px-4">
-                <MarksManager />
+                <MarksManager apiKey={apiKey} />
             </div>
         </div>
     );
 }
+
