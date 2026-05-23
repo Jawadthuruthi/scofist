@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import StudentProfileDialog from "@/components/StudentProfileDialog";
 import { getStudentFormFields } from "@/lib/studentFormConfig";
 import { Button } from "@/components/ui/button";
-import { Loader, RefreshCcw } from "lucide-react";
+import { Loader, RefreshCcw, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 
 import { getStudentColumns } from "@/components/table-configs/studentColumns";
@@ -186,10 +186,11 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
           pageTitle !== "ADMISSION REGISTER" ? (
             <Button 
               variant="outline" 
-              className="h-9 px-3 shrink-0 print:hidden" 
+              className="h-9 px-3 shrink-0 print:hidden gap-2" 
               onClick={() => setIsRequestsOpen(true)}
             >
-              Requests
+              <ClipboardList className="h-4 w-4" />
+              <span className="hidden md:inline">Requests</span>
             </Button>
           ) : null
         }

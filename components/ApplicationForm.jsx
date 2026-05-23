@@ -263,6 +263,26 @@ export default function ApplicationForm({ trigger }) {
     onChange(parsed || undefined);
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') {
+        return;
+      }
+      e.preventDefault();
+      const formElement = e.currentTarget;
+      const focusableElements = Array.from(
+        formElement.querySelectorAll(
+          'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), button[type="submit"]:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter(el => el.offsetParent !== null); // Ensure element is visible
+
+      const index = focusableElements.indexOf(e.target);
+      if (index > -1 && index < focusableElements.length - 1) {
+        focusableElements[index + 1].focus();
+      }
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(val) => {
       setOpen(val);
@@ -289,7 +309,7 @@ export default function ApplicationForm({ trigger }) {
             </DialogHeader>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onKeyDown={handleKeyDown} onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Personal Details */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Personal Details</h3>

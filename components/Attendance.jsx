@@ -374,6 +374,10 @@ const Attendance = ({ apiKey, teacherId }) => {
       if (!isCore && !isMajor) return true;
 
       return false;
+    }).sort((a, b) => {
+      const idA = a.studentSpecificField?.admissionNumber || a.admissionNumber || a._id;
+      const idB = b.studentSpecificField?.admissionNumber || b.admissionNumber || b._id;
+      return String(idA).localeCompare(String(idB), undefined, { numeric: true, sensitivity: 'base' });
     });
   }, [students, classDetails, subjectId, classId]);
 

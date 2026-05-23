@@ -1228,6 +1228,8 @@ const DataTableComponent = ({
                 <div className="shrink-0">{additionalProps.customActions}</div>
               )}
               
+              {customTopRightButtons}
+              
               <Button onClick={handleExportExcel} className="h-9 w-9 p-0 flex items-center justify-center bg-green-600 text-white hover:bg-green-700 border-0 shrink-0">
                 <FileSpreadsheet className="h-4 w-4" />
               </Button>
