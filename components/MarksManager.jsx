@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,7 +40,7 @@ export default function MarksManager({ apiKey }) {
     const [selectedClass, setSelectedClass] = useState("");
     const [selectedClassName, setSelectedClassName] = useState("");
     const [examName, setExamName] = useState("");
-    const [subjects, setSubjects] = useState([{ name: "", maxMark: 100, passMark: 40 }]);
+    const [subjects, setSubjects] = useState([{ name: "", maxMark: 100, passMark: 40, subColumns: [] }]);
     const [students, setStudents] = useState([]);
     const [marksData, setMarksData] = useState({});
     const [savedExams, setSavedExams] = useState([]);
@@ -54,7 +54,7 @@ export default function MarksManager({ apiKey }) {
 
     const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
     const [editingSubjectIndex, setEditingSubjectIndex] = useState(null);
-    const [subjectForm, setSubjectForm] = useState({ name: "", maxMark: 100, passMark: 40 });
+    const [subjectForm, setSubjectForm] = useState({ name: "", maxMark: 100, passMark: 40, subColumns: [] });
     const [subjectToDeleteIndex, setSubjectToDeleteIndex] = useState(null);
 
     const [gradingScale, setGradingScale] = useState([]);
@@ -102,7 +102,7 @@ export default function MarksManager({ apiKey }) {
         setSelectedExam(null);
         setResultExam(null);
         setExamName("");
-        setSubjects([{ name: "", maxMark: 100, passMark: 40 }]);
+        setSubjects([{ name: "", maxMark: 100, passMark: 40, subColumns: [] }]);
         setGradingScale([]);
         setExamReady(false);
         setSelectedSubjectIndex(null);
@@ -113,12 +113,16 @@ export default function MarksManager({ apiKey }) {
         setSelectedExam(exam);
         setExamName(exam.examName);
         const examSubjects = exam.subjects?.length
-            ? exam.subjects.map((s) => (typeof s === "string" ? { name: s, maxMark: 100, passMark: 40 } : s))
-            : [{ name: "", maxMark: 100, passMark: 40 }];
+            ? exam.subjects.map((s) =>
+                typeof s === "string"
+                    ? { name: s, maxMark: 100, passMark: 40, subColumns: [] }
+                    : { ...s, subColumns: s.subColumns || [] }
+            )
+            : [{ name: "", maxMark: 100, passMark: 40, subColumns: [] }];
         setSubjects(examSubjects);
         setGradingScale(exam.gradingScale || []);
         const md = {};
-        exam.students.forEach((entry) => {
+        (exam.students || []).forEach((entry) => {
             const sid = entry.studentId?._id || entry.studentId;
             let marksObj = {};
             if (entry.marks instanceof Map) {
@@ -129,7 +133,18 @@ export default function MarksManager({ apiKey }) {
             md[sid] = {};
             examSubjects.forEach((subj, i) => {
                 const key = subj.name || `col${i}`;
-                if (marksObj[key] !== undefined) md[sid][i] = marksObj[key];
+                const val = marksObj[key];
+                if (subj.subColumns && subj.subColumns.length > 0) {
+                    // Deserialize { CE: 45, TE: 38 } → { 0: 45, 1: 38 }
+                    if (val && typeof val === 'object') {
+                        md[sid][i] = subj.subColumns.reduce((acc, sc, j) => {
+                            if (val[sc.name] !== undefined) acc[j] = val[sc.name];
+                            return acc;
+                        }, {});
+                    }
+                } else {
+                    if (val !== undefined) md[sid][i] = val;
+                }
             });
         });
         setMarksData(md);
@@ -169,10 +184,10 @@ export default function MarksManager({ apiKey }) {
     const openSubjectDialog = (index = null) => {
         if (index !== null) {
             setEditingSubjectIndex(index);
-            setSubjectForm(subjects[index]);
+            setSubjectForm({ ...subjects[index], subColumns: subjects[index].subColumns || [] });
         } else {
             setEditingSubjectIndex(null);
-            setSubjectForm({ name: "", maxMark: 100, passMark: 40 });
+            setSubjectForm({ name: "", maxMark: 100, passMark: 40, subColumns: [] });
         }
         setIsSubjectDialogOpen(true);
     };
@@ -182,12 +197,20 @@ export default function MarksManager({ apiKey }) {
             toast.error("Subject name is required");
             return;
         }
+        const hasSubs = (subjectForm.subColumns || []).length > 0;
+        const finalSubject = hasSubs
+            ? {
+                ...subjectForm,
+                maxMark: subjectForm.subColumns.reduce((s, sc) => s + (Number(sc.maxMark) || 0), 0),
+                passMark: subjectForm.subColumns.reduce((s, sc) => s + (Number(sc.passMark) || 0), 0),
+              }
+            : subjectForm;
         setSubjects((prev) => {
             const updated = [...prev];
             if (editingSubjectIndex !== null) {
-                updated[editingSubjectIndex] = subjectForm;
+                updated[editingSubjectIndex] = finalSubject;
             } else {
-                updated.push(subjectForm);
+                updated.push(finalSubject);
             }
             return updated;
         });
@@ -219,51 +242,75 @@ export default function MarksManager({ apiKey }) {
         setSubjectToDeleteIndex(null);
     };
 
-    const handleMarkChange = (studentId, index, value) => {
-        const maxMark = subjects[index]?.maxMark || 100;
-        let finalValue = value === "" ? "" : Number(value);
-        if (finalValue !== "" && finalValue > maxMark) {
-            finalValue = maxMark;
+    const handleMarkChange = (studentId, subjIdx, value, subColIdx = null) => {
+        if (subColIdx === null) {
+            // Simple subject — single mark
+            const maxMark = subjects[subjIdx]?.maxMark || 100;
+            let finalValue = value === "" ? "" : Number(value);
+            if (finalValue !== "" && finalValue > maxMark) finalValue = maxMark;
+            setMarksData((prev) => ({
+                ...prev,
+                [studentId]: { ...prev[studentId], [subjIdx]: finalValue },
+            }));
+        } else {
+            // Sub-column mark
+            const sc = subjects[subjIdx]?.subColumns?.[subColIdx];
+            const maxMark = sc?.maxMark || 100;
+            let finalValue = value === "" ? "" : Number(value);
+            if (finalValue !== "" && finalValue > maxMark) finalValue = maxMark;
+            setMarksData((prev) => {
+                const prevSubj = prev[studentId]?.[subjIdx];
+                const prevObj = (prevSubj && typeof prevSubj === 'object') ? prevSubj : {};
+                return {
+                    ...prev,
+                    [studentId]: {
+                        ...prev[studentId],
+                        [subjIdx]: { ...prevObj, [subColIdx]: finalValue },
+                    },
+                };
+            });
         }
-        setMarksData((prev) => ({
-            ...prev,
-            [studentId]: { ...prev[studentId], [index]: finalValue },
-        }));
     };
 
     const computeStats = () => {
-        // Use only the selected subject for teachers if one is selected
         const currentSubjects = (activeRole === "Teacher" && selectedSubjectIndex !== null)
             ? [subjects[selectedSubjectIndex]]
             : subjects;
-
-        // Map back to original indices in subjects array to read from marksData
         const currentIndices = (activeRole === "Teacher" && selectedSubjectIndex !== null)
             ? [selectedSubjectIndex]
             : subjects.map((_, i) => i);
 
         const totals = students.map((st) => {
-            const total = currentIndices.reduce(
-                (sum, origIdx) => sum + (Number(marksData[st._id]?.[origIdx]) || 0),
-                0
-            );
-            const maxTotal = currentSubjects.reduce((sum, s) => sum + (Number(s.maxMark) || 0), 0);
-            const percentage =
-                maxTotal > 0 ? ((total / maxTotal) * 100).toFixed(1) : "0.0";
+            let total = 0;
+            let maxTotal = 0;
+            let hasFailed = false;
 
-            // Check if student passed relevant subjects
-            const hasFailed = currentSubjects.some((subj, i) => {
-                const origIdx = currentIndices[i];
-                const mark = marksData[st._id]?.[origIdx] || 0;
-                return mark < (Number(subj.passMark) || 0);
+            currentIndices.forEach((origIdx, i) => {
+                const subj = currentSubjects[i];
+                const markVal = marksData[st._id]?.[origIdx];
+
+                if (subj.subColumns && subj.subColumns.length > 0) {
+                    subj.subColumns.forEach((sc, j) => {
+                        const v = (markVal && typeof markVal === 'object') ? (Number(markVal[j]) || 0) : 0;
+                        total += v;
+                        maxTotal += Number(sc.maxMark) || 0;
+                        // Fail if ANY sub-column mark is below its pass mark
+                        if (v < (Number(sc.passMark) || 0)) hasFailed = true;
+                    });
+                } else {
+                    const v = Number(markVal) || 0;
+                    total += v;
+                    maxTotal += Number(subj.maxMark) || 0;
+                    if (v < (Number(subj.passMark) || 0)) hasFailed = true;
+                }
             });
 
+            const percentage = maxTotal > 0 ? ((total / maxTotal) * 100).toFixed(1) : "0.0";
             let remark = hasFailed ? "Fail" : "Pass";
             if (gradingScale?.length > 0) {
                 const matched = gradingScale.find(g => Number(percentage) >= g.min && Number(percentage) <= g.max);
                 if (matched) remark = matched.remark;
             }
-
             return { studentId: st._id, total, percentage, remark };
         });
         const sorted = [...totals].sort((a, b) => Number(b.total) - Number(a.total));
@@ -274,6 +321,7 @@ export default function MarksManager({ apiKey }) {
     };
 
     const stats = computeStats();
+    const hasAnySubCols = subjects.some(s => (s.subColumns || []).length > 0);
 
     const saveMarks = async () => {
         setSavingMarks(true);
@@ -291,8 +339,21 @@ export default function MarksManager({ apiKey }) {
             students: students.map((st) => ({
                 studentId: st._id,
                 marks: validatedSubjects.reduce((acc, subj, i) => {
-                    const val = marksData[st._id]?.[i];
-                    if (val !== undefined) acc[subj.name] = val;
+                    if (subj.subColumns && subj.subColumns.length > 0) {
+                        // Serialize { 0: v, 1: v } → { CE: v, TE: v }
+                        const markObj = marksData[st._id]?.[i];
+                        if (markObj && typeof markObj === 'object') {
+                            const scData = subj.subColumns.reduce((scAcc, sc, j) => {
+                                const v = markObj[j];
+                                if (v !== undefined && v !== "") scAcc[sc.name] = v;
+                                return scAcc;
+                            }, {});
+                            if (Object.keys(scData).length > 0) acc[subj.name] = scData;
+                        }
+                    } else {
+                        const val = marksData[st._id]?.[i];
+                        if (val !== undefined && val !== "") acc[subj.name] = val;
+                    }
                     return acc;
                 }, {}),
             })),
@@ -375,7 +436,12 @@ export default function MarksManager({ apiKey }) {
     const computeResultStats = (exam) => {
         if (!exam) return [];
         const examStudents = exam.students || [];
-        const examSubjects = exam.subjects || [];
+        const examSubjects = (exam.subjects || []).map(s =>
+            typeof s === "string"
+                ? { name: s, maxMark: 100, passMark: 40, subColumns: [] }
+                : { ...s, subColumns: s.subColumns || [] }
+        );
+
         const totals = examStudents.map((entry) => {
             let marksMap = {};
             if (entry.marks instanceof Map) {
@@ -383,37 +449,43 @@ export default function MarksManager({ apiKey }) {
             } else if (entry.marks && typeof entry.marks === "object") {
                 marksMap = entry.marks;
             }
-            const total = examSubjects.reduce(
-                (sum, subj, i) => {
-                    const sName = typeof subj === "string" ? subj : subj.name;
-                    return sum + (marksMap[sName || `col${i}`] || 0);
-                },
-                0
-            );
-            const maxTotal = examSubjects.reduce((sum, s) => sum + (Number(s.maxMark) || 100), 0);
-            const percentage =
-                maxTotal > 0 ? ((total / maxTotal) * 100).toFixed(1) : "0.0";
 
-            const hasFailed = examSubjects.some((subj, i) => {
-                const sName = typeof subj === "string" ? subj : subj.name;
-                const mark = marksMap[sName || `col${i}`] || 0;
-                const pMark = typeof subj === "string" ? 40 : (Number(subj.passMark) || 40);
-                return mark < pMark;
+            let total = 0;
+            let maxTotal = 0;
+            let hasFailed = false;
+
+            examSubjects.forEach((subj) => {
+                const val = marksMap[subj.name];
+                if (subj.subColumns && subj.subColumns.length > 0) {
+                    // val is { CE: 45, TE: 38 }
+                    subj.subColumns.forEach((sc) => {
+                        const scVal = (val && typeof val === 'object') ? (Number(val[sc.name]) || 0) : 0;
+                        total += scVal;
+                        maxTotal += Number(sc.maxMark) || 0;
+                        if (scVal < (Number(sc.passMark) || 0)) hasFailed = true;
+                    });
+                } else {
+                    const markVal = Number(val) || 0;
+                    total += markVal;
+                    maxTotal += Number(subj.maxMark) || 100;
+                    if (markVal < (Number(subj.passMark) || 0)) hasFailed = true;
+                }
             });
 
+            const percentage = maxTotal > 0 ? ((total / maxTotal) * 100).toFixed(1) : "0.0";
             let remark = hasFailed ? "Fail" : "Pass";
             if (exam.gradingScale?.length > 0) {
-                const matched = exam.gradingScale.find(g => percentage >= g.min && percentage <= g.max);
+                const matched = exam.gradingScale.find(g => Number(percentage) >= g.min && Number(percentage) <= g.max);
                 if (matched) remark = matched.remark;
             }
-
             return {
                 studentId: entry.studentId?._id,
                 studentName: entry.studentId?.name,
                 total,
                 percentage,
                 marksMap,
-                remark
+                remark,
+                examSubjects,
             };
         });
         const sorted = [...totals].sort((a, b) => Number(b.total) - Number(a.total));
@@ -426,6 +498,7 @@ export default function MarksManager({ apiKey }) {
     };
 
     const resultViewStats = computeResultStats(resultExam);
+    const hasAnySubColsResult = (resultExam?.subjects || []).some(s => (s.subColumns || []).length > 0);
 
     const filteredClasses = classes;
 
@@ -519,14 +592,10 @@ export default function MarksManager({ apiKey }) {
                                 }
                             }}
                         >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select exam..." />
-                            </SelectTrigger>
+                            <SelectTrigger><SelectValue placeholder="Select exam..." /></SelectTrigger>
                             <SelectContent>
                                 {savedExams.map((exam) => (
-                                    <SelectItem key={exam._id} value={exam._id}>
-                                        {exam.examName}
-                                    </SelectItem>
+                                    <SelectItem key={exam._id} value={exam._id}>{exam.examName}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -541,7 +610,7 @@ export default function MarksManager({ apiKey }) {
                                             setIsAddingNewExam(true);
                                             setSelectedExam(null);
                                             setExamName("");
-                                            setGradingScale([]); // Reset to empty for brand new exams
+                                            setGradingScale([]);
                                             return;
                                         }
                                         const exam = savedExams.find((e) => e._id === val);
@@ -550,47 +619,34 @@ export default function MarksManager({ apiKey }) {
                                         } else {
                                             setSelectedExam(null);
                                             setExamName("");
-                                            setSubjects([{ name: "", maxMark: 100, passMark: 40 }]);
+                                            setSubjects([{ name: "", maxMark: 100, passMark: 40, subColumns: [] }]);
                                             setGradingScale([]);
                                             setExamReady(false);
                                         }
                                     }}
                                 >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select exam..." />
-                                    </SelectTrigger>
+                                    <SelectTrigger><SelectValue placeholder="Select exam..." /></SelectTrigger>
                                     <SelectContent>
                                         {activeRole !== "Teacher" && (
-                                            <SelectItem value="NEW_EXAM" className="font-semibold text-primary">
-                                                + Add New Exam
-                                            </SelectItem>
+                                            <SelectItem value="NEW_EXAM" className="font-semibold text-primary">+ Add New Exam</SelectItem>
                                         )}
                                         {savedExams.map((exam) => (
-                                            <SelectItem key={exam._id} value={exam._id}>
-                                                {exam.examName}
-                                            </SelectItem>
+                                            <SelectItem key={exam._id} value={exam._id}>{exam.examName}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             ) : (
                                 <div className="flex gap-1 items-center">
                                     <Input
+                                        autoFocus
                                         placeholder="e.g. First Term Exam"
                                         value={examName}
                                         onChange={(e) => setExamName(e.target.value)}
-                                        onKeyDown={(e) =>
-                                            e.key === "Enter" && !examReady && handleOpenTable()
-                                        }
+                                        onKeyDown={(e) => e.key === "Enter" && !examReady && handleOpenTable()}
                                         className="flex-1"
                                     />
                                     {isAddingNewExam && !examReady && (
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-8 w-8"
-                                            onClick={() => setIsAddingNewExam(false)}
-                                            title="Back to dropdown"
-                                        >
+                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setIsAddingNewExam(false)} title="Back to dropdown">
                                             <X className="w-3 h-3" />
                                         </Button>
                                     )}
@@ -599,7 +655,6 @@ export default function MarksManager({ apiKey }) {
                         </>
                     )}
                 </div>
-
                 {/* Subject Selection for Teachers */}
                 {!showResult && examReady && activeRole === "Teacher" && (
                     <div className="w-full sm:w-48">
@@ -608,14 +663,10 @@ export default function MarksManager({ apiKey }) {
                             value={selectedSubjectIndex !== null ? selectedSubjectIndex.toString() : ""}
                             onValueChange={(val) => setSelectedSubjectIndex(val === "" ? null : Number(val))}
                         >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select subject..." />
-                            </SelectTrigger>
+                            <SelectTrigger><SelectValue placeholder="Select subject..." /></SelectTrigger>
                             <SelectContent>
                                 {subjects.map((subj, i) => (
-                                    <SelectItem key={i} value={i.toString()}>
-                                        {subj.name || `Subject ${i + 1}`}
-                                    </SelectItem>
+                                    <SelectItem key={i} value={i.toString()}>{subj.name || `Subject ${i + 1}`}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -624,11 +675,7 @@ export default function MarksManager({ apiKey }) {
 
                 {/* Marks Entry button */}
                 {!showResult && !examReady && (
-                    <Button
-                        className="self-end w-full sm:w-auto"
-                        onClick={handleOpenTable}
-                        disabled={!selectedClass || !examName.trim()}
-                    >
+                    <Button className="self-end w-full sm:w-auto" onClick={handleOpenTable} disabled={!selectedClass || !examName.trim()}>
                         <Save className="w-4 h-4 mr-2" />
                         Marks Entry
                     </Button>
@@ -712,25 +759,50 @@ export default function MarksManager({ apiKey }) {
                             <table className="w-full text-sm border-collapse">
                                 <thead className="bg-muted/60 print:bg-gray-100">
                                     <tr>
-                                        <th className="p-3 text-center border font-bold">Rank</th>
-                                        <th className="p-3 text-left border font-bold w-20">Adm. No</th>
-                                        <th className="p-3 text-left border font-bold">Student</th>
-                                        {(resultExam.subjects || []).map((s, i) => (
-                                            <th key={i} className="p-3 text-center border font-bold">
-                                                {typeof s === 'string' ? s : (s.name || `Col ${i + 1}`)}
-                                                {s.maxMark && <div className="text-[10px] font-normal opacity-70">Max: {s.maxMark}</div>}
-                                            </th>
-                                        ))}
-                                        <th className="p-3 text-center border font-bold bg-blue-50 dark:bg-blue-950 text-blue-900 print:text-black">
-                                            Total
-                                        </th>
-                                        <th className="p-3 text-center border font-bold bg-green-50 dark:bg-green-950 text-green-900 print:text-black">
-                                            %
-                                        </th>
-                                        <th className="p-3 text-center border font-bold bg-slate-50 dark:bg-slate-900 text-slate-900 print:text-black">
-                                            Remark
-                                        </th>
+                                        <th className="p-3 text-center border font-bold" rowSpan={hasAnySubColsResult ? 2 : 1}>Rank</th>
+                                        <th className="p-3 text-left border font-bold w-20" rowSpan={hasAnySubColsResult ? 2 : 1}>Adm. No</th>
+                                        <th className="p-3 text-left border font-bold" rowSpan={hasAnySubColsResult ? 2 : 1}>Student</th>
+                                        {(resultExam.subjects || []).map((s, i) => {
+                                            const scs = s.subColumns || [];
+                                            if (scs.length > 0) {
+                                                return (
+                                                    <th key={i} colSpan={scs.length + 1} className="p-2 text-center border font-bold bg-muted/30">
+                                                        {s.name || `Col ${i + 1}`}
+                                                    </th>
+                                                );
+                                            }
+                                            return (
+                                                <th key={i} rowSpan={hasAnySubColsResult ? 2 : 1} className="p-3 text-center border font-bold">
+                                                    {typeof s === 'string' ? s : (s.name || `Col ${i + 1}`)}
+                                                    {s.maxMark && <div className="text-[10px] font-normal opacity-70">Max: {s.maxMark}</div>}
+                                                </th>
+                                            );
+                                        })}
+                                        <th className="p-3 text-center border font-bold bg-blue-50 dark:bg-blue-950 text-blue-900 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>Total</th>
+                                        <th className="p-3 text-center border font-bold bg-green-50 dark:bg-green-950 text-green-900 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>%</th>
+                                        <th className="p-3 text-center border font-bold bg-slate-50 dark:bg-slate-900 text-slate-900 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>Remark</th>
                                     </tr>
+                                    {hasAnySubColsResult && (
+                                        <tr>
+                                            {(resultExam.subjects || []).map((s, i) => {
+                                                const scs = s.subColumns || [];
+                                                if (scs.length > 0) {
+                                                    return (
+                                                        <React.Fragment key={i}>
+                                                            {scs.map((sc, j) => (
+                                                                <th key={`${i}-${j}`} className="p-2 text-center border font-bold text-xs">
+                                                                    <div>{sc.name}</div>
+                                                                    <div className="text-[9px] font-normal opacity-70">({sc.passMark}/{sc.maxMark})</div>
+                                                                </th>
+                                                            ))}
+                                                            <th key={`${i}-sub`} className="p-2 text-center border font-bold text-xs bg-blue-50/50 dark:bg-blue-950/50">Sub Total</th>
+                                                        </React.Fragment>
+                                                    );
+                                                }
+                                                return null;
+                                            })}
+                                        </tr>
+                                    )}
                                 </thead>
                                 <tbody>
                                     {resultViewStats.map((stat) => (
@@ -758,29 +830,28 @@ export default function MarksManager({ apiKey }) {
                                             <td className="p-2 font-medium border">{stat.studentName}</td>
                                             {(resultExam.subjects || []).map((subj, i) => {
                                                 const subjName = typeof subj === 'string' ? subj : subj.name;
+                                                const scs = subj.subColumns || [];
                                                 const markVal = stat.marksMap[subjName];
-                                                
-                                                if (subj.subColumns && subj.subColumns.length > 0) {
-                                                    const subjTotal = subj.subColumns.reduce((sum, sc, j) => sum + (Number(markVal?.[j]) || 0), 0);
+                                                if (scs.length > 0) {
+                                                    const subjTotal = scs.reduce((sum, sc) => {
+                                                        return sum + ((markVal && typeof markVal === 'object') ? (Number(markVal[sc.name]) || 0) : 0);
+                                                    }, 0);
                                                     return (
                                                         <React.Fragment key={i}>
-                                                            {subj.subColumns.map((sc, j) => {
-                                                                const val = markVal?.[j] ?? "-";
-                                                                const isFailed = val !== "-" && Number(val) < (Number(sc.passMark) || 0);
+                                                            {scs.map((sc, j) => {
+                                                                const val = (markVal && typeof markVal === 'object') ? markVal[sc.name] : undefined;
+                                                                const isFailed = val !== undefined && val !== "" && Number(val) < (Number(sc.passMark) || 0);
                                                                 return (
                                                                     <td key={`${i}-${j}`} className={`p-2 text-center border ${isFailed ? 'text-red-600 font-bold' : ''}`}>
-                                                                        {val}
+                                                                        {val ?? "-"}
                                                                     </td>
                                                                 );
                                                             })}
-                                                            <td className="p-2 text-center font-semibold text-blue-800 bg-blue-50/30 border">
-                                                                {subjTotal}
-                                                            </td>
+                                                            <td className="p-2 text-center font-semibold text-blue-800 bg-blue-50/30 border">{subjTotal || "-"}</td>
                                                         </React.Fragment>
                                                     );
                                                 }
-                                                
-                                                const isFailed = markVal !== "-" && markVal != null && Number(markVal) < (Number(subj.passMark) || 0);
+                                                const isFailed = markVal !== undefined && markVal !== null && typeof markVal !== 'object' && Number(markVal) < (Number(subj.passMark) || 0);
                                                 return (
                                                     <td key={i} className={`p-2 text-center border ${isFailed ? 'text-red-600 font-bold' : ''}`}>
                                                         {typeof markVal === 'object' ? '-' : (markVal ?? "-")}
@@ -839,6 +910,11 @@ export default function MarksManager({ apiKey }) {
             )}
 
             {/* ── Marks Entry Table */}
+            {examReady && !showResult && students.length === 0 && (
+                <div className="p-10 text-center border rounded bg-muted/20 text-muted-foreground mt-4">
+                    <p className="font-medium">No students found in the selected class.</p>
+                </div>
+            )}
             {examReady && !showResult && students.length > 0 && (
                 activeRole !== "Teacher" || selectedSubjectIndex !== null ? (
                     <div className="space-y-3">
@@ -846,153 +922,176 @@ export default function MarksManager({ apiKey }) {
                             <table className="w-full text-sm">
                                 <thead className="bg-muted">
                                     <tr>
-                                        <th className="p-3 text-center border-b w-12">Sl No</th>
-                                        <th className="p-1 text-left border-b w-[50px]">Adm. No</th>
-                                        <th className="p-1 text-left border-b min-w-[80px]">Name</th>
+                                        <th className="p-3 text-center border w-12" rowSpan={hasAnySubCols ? 2 : 1}>Sl No</th>
+                                        <th className="p-1 text-left border w-[50px]" rowSpan={hasAnySubCols ? 2 : 1}>Adm. No</th>
+                                        <th className="p-1 text-left border min-w-[80px]" rowSpan={hasAnySubCols ? 2 : 1}>Name</th>
                                         {subjects.map((subj, i) => {
-                                            // Filter for teachers: only show selected subject
                                             if (activeRole === "Teacher" && selectedSubjectIndex !== null && selectedSubjectIndex !== i) return null;
-
+                                            const scs = subj.subColumns || [];
+                                            if (scs.length > 0) {
+                                                return (
+                                                    <th key={i} colSpan={scs.length + 1} className="p-1 text-center border">
+                                                        <div className="flex flex-col items-center gap-1 group">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="text-xs font-semibold truncate max-w-[120px]">{subj.name || `Sub ${i + 1}`}</span>
+                                                                {activeRole !== "Teacher" && (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <Edit className="w-3 h-3 cursor-pointer text-muted-foreground hover:text-primary transition-colors" onClick={() => openSubjectDialog(i)} />
+                                                                        <Trash2 className="w-3 h-3 cursor-pointer text-red-500 hover:text-red-700 transition-colors" onClick={(e) => { e.stopPropagation(); if (subjects.length <= 1) { toast.error("At least one subject is required."); return; } setSubjectToDeleteIndex(i); }} />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </th>
+                                                );
+                                            }
                                             return (
-                                                <th key={i} className="p-1 text-center border-b w-auto">
+                                                <th key={i} rowSpan={hasAnySubCols ? 2 : 1} className="p-1 text-center border w-auto">
                                                     <div className="flex flex-col items-center gap-1 group">
                                                         <div className="flex items-center gap-1.5">
-                                                            <span className="text-xs font-semibold truncate max-w-[80px]">
-                                                                {subj.name || `Sub ${i + 1}`}
-                                                            </span>
+                                                            <span className="text-xs font-semibold truncate max-w-[80px]">{subj.name || `Sub ${i + 1}`}</span>
                                                             {activeRole !== "Teacher" && (
                                                                 <div className="flex items-center gap-1">
-                                                                    <Edit
-                                                                        className="w-3 h-3 cursor-pointer text-muted-foreground hover:text-primary transition-colors"
-                                                                        onClick={() => openSubjectDialog(i)}
-                                                                    />
-                                                                    <Trash2
-                                                                        className="w-3 h-3 cursor-pointer text-red-500 hover:text-red-700 transition-colors"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            if (subjects.length <= 1) {
-                                                                                toast.error("At least one subject is required.");
-                                                                                return;
-                                                                            }
-                                                                            setSubjectToDeleteIndex(i);
-                                                                        }}
-                                                                    />
+                                                                    <Edit className="w-3 h-3 cursor-pointer text-muted-foreground hover:text-primary transition-colors" onClick={() => openSubjectDialog(i)} />
+                                                                    <Trash2 className="w-3 h-3 cursor-pointer text-red-500 hover:text-red-700 transition-colors" onClick={(e) => { e.stopPropagation(); if (subjects.length <= 1) { toast.error("At least one subject is required."); return; } setSubjectToDeleteIndex(i); }} />
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div className="text-[9px] text-muted-foreground leading-none">
-                                                            ({subj.passMark}/{subj.maxMark})
-                                                        </div>
+                                                        <div className="text-[9px] text-muted-foreground leading-none">({subj.passMark}/{subj.maxMark})</div>
                                                     </div>
                                                 </th>
                                             );
                                         })}
                                         {activeRole !== "Teacher" && (
-                                            <th className="p-2 border-b w-10">
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-7 w-7"
-                                                    onClick={() => openSubjectDialog()}
-                                                    title="Add subject column"
-                                                >
+                                            <th className="p-2 border w-10" rowSpan={hasAnySubCols ? 2 : 1}>
+                                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openSubjectDialog()} title="Add subject column">
                                                     <Plus className="w-4 h-4 text-primary" />
                                                 </Button>
                                             </th>
                                         )}
-                                        <th className="p-3 text-center border-b bg-blue-50 dark:bg-blue-950 min-w-[60px]">
-                                            Total
-                                        </th>
-                                        <th className="p-3 text-center border-b bg-green-50 dark:bg-green-950 min-w-[60px]">
-                                            %
-                                        </th>
-                                        <th className="p-3 text-center border-b bg-yellow-50 dark:bg-yellow-950 min-w-[60px]">
-                                            Rank
-                                        </th>
+                                        <th className="p-3 text-center border bg-blue-50 dark:bg-blue-950 min-w-[60px]" rowSpan={hasAnySubCols ? 2 : 1}>Total</th>
+                                        <th className="p-3 text-center border bg-green-50 dark:bg-green-950 min-w-[60px]" rowSpan={hasAnySubCols ? 2 : 1}>%</th>
+                                        <th className="p-3 text-center border bg-yellow-50 dark:bg-yellow-950 min-w-[60px]" rowSpan={hasAnySubCols ? 2 : 1}>Rank</th>
                                         <th
-                                            className={`p-3 text-center border-b bg-slate-50 dark:bg-slate-900 min-w-[70px] ${activeRole !== "Teacher" ? "cursor-pointer hover:bg-slate-100 transition-colors group" : ""}`}
+                                            className={`p-3 text-center border bg-slate-50 dark:bg-slate-900 min-w-[70px] ${activeRole !== "Teacher" ? "cursor-pointer hover:bg-slate-100 transition-colors group" : ""}`}
                                             onClick={() => activeRole !== "Teacher" && setIsGradingDialogOpen(true)}
                                             title={activeRole !== "Teacher" ? "Click to change remark settings" : ""}
+                                            rowSpan={hasAnySubCols ? 2 : 1}
                                         >
                                             <div className="flex items-center justify-center gap-1">
                                                 Remark
-                                                {activeRole !== "Teacher" && (
-                                                    <Settings className="w-3 h-3 text-muted-foreground group-hover:text-primary" />
-                                                )}
+                                                {activeRole !== "Teacher" && <Settings className="w-3 h-3 text-muted-foreground group-hover:text-primary" />}
                                             </div>
                                         </th>
                                     </tr>
+                                    {hasAnySubCols && (
+                                        <tr>
+                                            {subjects.map((subj, i) => {
+                                                if (activeRole === "Teacher" && selectedSubjectIndex !== null && selectedSubjectIndex !== i) return null;
+                                                const scs = subj.subColumns || [];
+                                                if (scs.length > 0) {
+                                                    return (
+                                                        <React.Fragment key={i}>
+                                                            {scs.map((sc, j) => (
+                                                                <th key={`${i}-${j}`} className="p-1 text-center border text-xs font-semibold">
+                                                                    <div>{sc.name}</div>
+                                                                    <div className="text-[9px] text-muted-foreground">({sc.passMark}/{sc.maxMark})</div>
+                                                                </th>
+                                                            ))}
+                                                            <th key={`${i}-sub`} className="p-1 text-center border text-xs font-semibold bg-blue-50/50 dark:bg-blue-950/50 min-w-[50px]">Sub Total</th>
+                                                        </React.Fragment>
+                                                    );
+                                                }
+                                                return null;
+                                            })}
+                                        </tr>
+                                    )}
                                 </thead>
                                 <tbody>
                                     {students.map((st, idx) => {
                                         const stat = stats.find((s) => s.studentId === st._id);
                                         return (
-                                            <tr key={st._id} className="hover:bg-muted/30 border-b">
-                                                <td className="p-2 text-center text-muted-foreground border">
-                                                    {idx + 1}
-                                                </td>
-                                                <td className="p-1 text-muted-foreground truncate max-w-[50px] border">
-                                                    {st._id}
-                                                </td>
+                                            <tr key={st._id} className="hover:bg-muted/30 border">
+                                                <td className="p-2 text-center text-muted-foreground border">{idx + 1}</td>
+                                                <td className="p-1 text-muted-foreground truncate max-w-[50px] border">{st._id}</td>
                                                 <td className="p-1 font-medium border">{st.name}</td>
-                                                {subjects.map((_, i) => {
-                                                    // Filter for teachers: only show selected subject
+                                                {subjects.map((subj, i) => {
                                                     if (activeRole === "Teacher" && selectedSubjectIndex !== null && selectedSubjectIndex !== i) return null;
-
-                                                    return (
-                                                        <td key={i} className="p-1 text-center border">
-                                                            <Input
-                                                                id={`mark-${idx}-${i}`}
-                                                                type="number"
-                                                                min={0}
-                                                                max={subjects[i]?.maxMark || 100}
-                                                                className="w-14 mx-auto text-center h-7 text-xs"
-                                                                value={marksData[st._id]?.[i] ?? ""}
-                                                                onChange={(e) =>
-                                                                    handleMarkChange(st._id, i, e.target.value)
-                                                                }
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === "Enter") {
-                                                                        e.preventDefault();
-                                                                        // For teachers, find the next visible student since only one column is shown
-                                                                        if (activeRole === "Teacher" && selectedSubjectIndex !== null) {
-                                                                            const nextRow = document.getElementById(
-                                                                                `mark-${idx + 1}-${i}`
-                                                                            );
-                                                                            if (nextRow) nextRow.focus();
-                                                                            return;
+                                                    const scs = subj.subColumns || [];
+                                                    if (scs.length > 0) {
+                                                        const markObj = marksData[st._id]?.[i];
+                                                        const subjTotal = scs.reduce((sum, _, j) => sum + ((markObj && typeof markObj === 'object') ? (Number(markObj[j]) || 0) : 0), 0);
+                                                        return (
+                                                            <React.Fragment key={i}>
+                                                                {scs.map((sc, j) => {
+                                                                    const val = (markObj && typeof markObj === 'object') ? markObj[j] : undefined;
+                                                                    const isFailed = val !== undefined && val !== "" && Number(val) < (Number(sc.passMark) || 0);
+                                                                    return (
+                                                                        <td key={`${i}-${j}`} className="p-1 text-center border">
+                                                                            <Input
+                                                                                id={`mark-${idx}-${i}-${j}`}
+                                                                                type="number" min={0} max={sc.maxMark || 100}
+                                                                                className={`w-14 mx-auto text-center h-7 text-xs ${isFailed ? "text-red-600 font-bold" : ""}`}
+                                                                                value={val ?? ""}
+                                                                                onChange={(e) => handleMarkChange(st._id, i, e.target.value, j)}
+                                                                                onKeyDown={(e) => {
+                                                                                    if (e.key === "Enter") {
+                                                                                        e.preventDefault();
+                                                                                        const nextSub = document.getElementById(`mark-${idx}-${i}-${j + 1}`);
+                                                                                        if (nextSub) { nextSub.focus(); return; }
+                                                                                        const nextSubj = document.getElementById(`mark-${idx}-${i + 1}-0`);
+                                                                                        if (nextSubj) { nextSubj.focus(); return; }
+                                                                                        const nextSimple = document.getElementById(`mark-${idx}-${i + 1}`);
+                                                                                        if (nextSimple) { nextSimple.focus(); return; }
+                                                                                        const nextRow = document.getElementById(`mark-${idx + 1}-${i}-0`);
+                                                                                        if (nextRow) nextRow.focus();
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                        </td>
+                                                                    );
+                                                                })}
+                                                                <td className="p-2 text-center font-semibold text-blue-700 dark:text-blue-300 border bg-blue-50/30 dark:bg-blue-950/30">
+                                                                    {subjTotal || "-"}
+                                                                </td>
+                                                            </React.Fragment>
+                                                        );
+                                                    }
+                                                    return (() => {
+                                                        const val = marksData[st._id]?.[i];
+                                                        const isFailed = val !== undefined && val !== "" && Number(val) < (Number(subj.passMark) || 0);
+                                                        return (
+                                                            <td key={i} className="p-1 text-center border">
+                                                                <Input
+                                                                    id={`mark-${idx}-${i}`}
+                                                                    type="number" min={0} max={subj.maxMark || 100}
+                                                                    className={`w-14 mx-auto text-center h-7 text-xs ${isFailed ? "text-red-600 font-bold" : ""}`}
+                                                                    value={val ?? ""}
+                                                                    onChange={(e) => handleMarkChange(st._id, i, e.target.value)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === "Enter") {
+                                                                            e.preventDefault();
+                                                                            if (activeRole === "Teacher" && selectedSubjectIndex !== null) {
+                                                                                const nextRow = document.getElementById(`mark-${idx + 1}-${i}`);
+                                                                                if (nextRow) nextRow.focus();
+                                                                                return;
+                                                                            }
+                                                                            const nextCol = document.getElementById(`mark-${idx}-${i + 1}`);
+                                                                            if (nextCol) { nextCol.focus(); }
+                                                                            else { const nextRow = document.getElementById(`mark-${idx + 1}-0`); if (nextRow) nextRow.focus(); }
                                                                         }
-
-                                                                        const nextCol = document.getElementById(
-                                                                            `mark-${idx}-${i + 1}`
-                                                                        );
-                                                                        if (nextCol) {
-                                                                            nextCol.focus();
-                                                                        } else {
-                                                                            const nextRow = document.getElementById(
-                                                                                `mark-${idx + 1}-0`
-                                                                            );
-                                                                            if (nextRow) nextRow.focus();
-                                                                        }
-                                                                    }
-                                                                }}
-                                                            />
-                                                        </td>
-                                                    );
+                                                                    }}
+                                                                />
+                                                            </td>
+                                                        );
+                                                    })();
                                                 })}
                                                 {activeRole !== "Teacher" && <td className="border" />}
-                                                <td className="p-2 text-center font-semibold text-blue-700 dark:text-blue-300 border">
-                                                    {stat?.total ?? 0}
-                                                </td>
-                                                <td className="p-2 text-center font-semibold text-green-700 dark:text-green-300 border">
-                                                    {stat?.percentage ?? 0}%
-                                                </td>
-                                                <td className="p-2 text-center font-semibold text-yellow-700 dark:text-yellow-300 border">
-                                                    {stat?.rank ?? "-"}
-                                                </td>
-                                                <td className={`p-2 text-center font-bold ${stat?.remark === "Pass" ? "text-green-600" : stat?.remark === "Fail" ? "text-red-600" : "text-blue-600"}`}>
-                                                    {stat?.remark ?? "-"}
-                                                </td>
+                                                <td className="p-2 text-center font-semibold text-blue-700 dark:text-blue-300 border">{stat?.total ?? 0}</td>
+                                                <td className="p-2 text-center font-semibold text-green-700 dark:text-green-300 border">{stat?.percentage ?? 0}%</td>
+
+                                                <td className="p-2 text-center font-semibold text-yellow-700 dark:text-yellow-300 border">{stat?.rank ?? "-"}</td>
+                                                <td className={`p-2 text-center font-bold ${stat?.remark === "Pass" ? "text-green-600" : stat?.remark === "Fail" ? "text-red-600" : "text-blue-600"}`}>{stat?.remark ?? "-"}</td>
                                             </tr>
                                         );
                                     })}
@@ -1017,7 +1116,7 @@ export default function MarksManager({ apiKey }) {
                 )
             )}
             <Dialog open={isSubjectDialogOpen} onOpenChange={setIsSubjectDialogOpen}>
-                <DialogContent className="sm:max-w-[400px]">
+                <DialogContent className="sm:max-w-[480px]">
                     <DialogHeader>
                         <DialogTitle>{editingSubjectIndex !== null ? "Edit Subject" : "Add New Subject"}</DialogTitle>
                     </DialogHeader>
@@ -1030,24 +1129,64 @@ export default function MarksManager({ apiKey }) {
                                 onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value.toUpperCase() })}
                             />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <label className="text-sm font-medium">Maximum Mark</label>
-                                <Input
-                                    type="number"
-                                    value={subjectForm.maxMark}
-                                    onChange={(e) => setSubjectForm({ ...subjectForm, maxMark: Number(e.target.value) })}
-                                />
+                        {/* Sub Columns */}
+                        <div className="grid gap-2">
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-medium">Sub Columns <span className="text-xs text-muted-foreground font-normal">(e.g. CE, TE)</span></label>
+                                <Button
+                                    type="button" variant="outline" size="sm" className="h-7 text-xs"
+                                    onClick={() => setSubjectForm(prev => ({ ...prev, subColumns: [...(prev.subColumns || []), { name: "", maxMark: 50, passMark: 20 }] }))}
+                                >
+                                    <Plus className="w-3 h-3 mr-1" /> Add
+                                </Button>
                             </div>
-                            <div className="grid gap-2">
-                                <label className="text-sm font-medium">Pass Mark</label>
-                                <Input
-                                    type="number"
-                                    value={subjectForm.passMark}
-                                    onChange={(e) => setSubjectForm({ ...subjectForm, passMark: Number(e.target.value) })}
-                                />
-                            </div>
+                            {(subjectForm.subColumns || []).length === 0 ? (
+                                <p className="text-xs text-muted-foreground">No sub-columns — single mark input per subject.</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    <div className="grid grid-cols-[1fr_52px_52px_32px] gap-1 text-[10px] text-muted-foreground font-medium px-1">
+                                        <span>Name</span><span className="text-center">Max</span><span className="text-center">Pass</span><span />
+                                    </div>
+                                    <div className="space-y-1.5 max-h-[180px] overflow-y-auto">
+                                        {(subjectForm.subColumns || []).map((sc, j) => (
+                                            <div key={j} className="grid grid-cols-[1fr_52px_52px_32px] gap-1 items-center">
+                                                <Input placeholder="CE" className="h-8 text-xs" value={sc.name}
+                                                    onChange={(e) => { const u = [...(subjectForm.subColumns || [])]; u[j] = { ...u[j], name: e.target.value.toUpperCase() }; setSubjectForm(p => ({ ...p, subColumns: u })); }}
+                                                />
+                                                <Input type="number" placeholder="Max" className="h-8 text-xs text-center" value={sc.maxMark}
+                                                    onChange={(e) => { const u = [...(subjectForm.subColumns || [])]; u[j] = { ...u[j], maxMark: Number(e.target.value) }; setSubjectForm(p => ({ ...p, subColumns: u })); }}
+                                                />
+                                                <Input type="number" placeholder="Pass" className="h-8 text-xs text-center" value={sc.passMark}
+                                                    onChange={(e) => { const u = [...(subjectForm.subColumns || [])]; u[j] = { ...u[j], passMark: Number(e.target.value) }; setSubjectForm(p => ({ ...p, subColumns: u })); }}
+                                                />
+                                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600"
+                                                    onClick={() => { const u = (subjectForm.subColumns || []).filter((_, k) => k !== j); setSubjectForm(p => ({ ...p, subColumns: u })); }}
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground border-t pt-1.5 flex gap-4">
+                                        <span>Auto Max: <strong>{(subjectForm.subColumns || []).reduce((s, sc) => s + (Number(sc.maxMark) || 0), 0)}</strong></span>
+                                        <span>Auto Pass: <strong>{(subjectForm.subColumns || []).reduce((s, sc) => s + (Number(sc.passMark) || 0), 0)}</strong></span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
+                        {/* Max/Pass marks — only when no sub-columns */}
+                        {(subjectForm.subColumns || []).length === 0 && (
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-medium">Maximum Mark</label>
+                                    <Input type="number" value={subjectForm.maxMark} onChange={(e) => setSubjectForm({ ...subjectForm, maxMark: Number(e.target.value) })} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-medium">Pass Mark</label>
+                                    <Input type="number" value={subjectForm.passMark} onChange={(e) => setSubjectForm({ ...subjectForm, passMark: Number(e.target.value) })} />
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <DialogFooter className="flex justify-between items-center sm:justify-between">
                         {editingSubjectIndex !== null && subjects.length > 1 ? (
