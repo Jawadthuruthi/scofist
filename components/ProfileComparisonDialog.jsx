@@ -73,11 +73,7 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
           .map(([path, _]) => path);
       }
 
-      // If no actions were taken at all, warn the user
-      if (!overrideFields && actionsTakenCount === 0) {
-        toast.error("Please select an action (Approve/Reject) for at least one field");
-        return;
-      }
+
 
       // If everything was rejected, switch the action to "reject" for the API
       // so it sets the status correctly as Rejected

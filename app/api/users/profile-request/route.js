@@ -53,7 +53,7 @@ export async function POST(req) {
 
       // If specific fields are provided, only update those
       const changesToApply = {};
-      if (approvedFields && Array.from(approvedFields).length > 0) {
+      if (approvedFields !== undefined) {
         approvedFields.forEach(fieldPath => {
           // Resolve value from pendingChanges
           const parts = fieldPath.split('.');

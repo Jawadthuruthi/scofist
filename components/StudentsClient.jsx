@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 import { getStudentColumns } from "@/components/table-configs/studentColumns";
 import ProfileComparisonDialog from "./ProfileComparisonDialog";
+import PendingRequestsDialog from "@/components/PendingRequestsDialog";
 
 export default function StudentsClient({ batches, classes, activeRole, apiKey, isReadOnly = false, pageTitle, excludedColumns = [], filterTitle, lastStudentId }) {
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -19,6 +20,7 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
   const [comparisonStudent, setComparisonStudent] = useState(null);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isRequestsOpen, setIsRequestsOpen] = useState(false);
 
   // Use shared column configuration
   const columnsConfig = getStudentColumns({
@@ -180,6 +182,17 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         formClassName="sm:max-w-4xl"
         defaultSorting={defaultSorting}
         capitalizeInputs={true}
+        customTopRightButtons={
+          pageTitle !== "ADMISSION REGISTER" ? (
+            <Button 
+              variant="outline" 
+              className="h-9 px-3 shrink-0 print:hidden" 
+              onClick={() => setIsRequestsOpen(true)}
+            >
+              Requests
+            </Button>
+          ) : null
+        }
       />
 
       <StudentProfileDialog
@@ -196,6 +209,17 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
         open={isComparisonOpen}
         onClose={() => setIsComparisonOpen(false)}
         onActionComplete={() => setRefreshKey(prev => prev + 1)}
+      />
+
+      <PendingRequestsDialog
+        open={isRequestsOpen}
+        onClose={() => setIsRequestsOpen(false)}
+        apiKey={apiKey}
+        onView={(student) => {
+          setIsRequestsOpen(false);
+          setComparisonStudent(student);
+          setIsComparisonOpen(true);
+        }}
       />
     </>
   );

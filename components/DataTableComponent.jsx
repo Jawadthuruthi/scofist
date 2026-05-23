@@ -145,6 +145,7 @@ const DataTableComponent = ({
   clickToEditExcludeColumns = ["_id", "select", "serialNo", "actions"],
   refetchInterval = 0,
   capitalizeInputs = false,
+  customTopRightButtons = null,
 }) => {
   const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
@@ -1092,6 +1093,7 @@ const DataTableComponent = ({
       )}
       {table.getRowModel().rows?.length > 0 && (
         <>
+          {customTopRightButtons}
           <Button onClick={handleExportExcel} className="print:hidden bg-green-600 text-white hover:bg-green-700 h-9 px-3 gap-2 shrink-0">
             <FileSpreadsheet className="h-4 w-4" />
             <span className="hidden md:inline">Excel</span>

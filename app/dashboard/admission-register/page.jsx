@@ -45,7 +45,7 @@ export default async function AdmissionRegisterPage() {
                 pageTitle="ADMISSION REGISTER"
                 filterTitle="Admission Register"
                 lastStudentId={lastStudentId}
-                excludedColumns={["email", "batchName", "className", "bloodGroup", "roles", "status", "guardianContactNumber", "guardianAlternativeNumber", "contactNumber", "alternativeNumber", "aadharNo", "profilePic", "admissionClassName", "serialNo", "liabilities"]}
+                excludedColumns={["email", "batchName", "className", "bloodGroup", "roles", "status", "guardianContactNumber", "guardianAlternativeNumber", "contactNumber", "alternativeNumber", "aadharNo", "profilePic", "admissionClassName", "serialNo", "liabilities", "updatedAt"]}
             />
         );
     } catch (error) {
