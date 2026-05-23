@@ -275,9 +275,11 @@ const ClassCard = memo(
           );
         }) || [];
 
-      const sortedStudents = [...filteredStudents].sort((a, b) => 
-        String(a._id).localeCompare(String(b._id), undefined, { numeric: true })
-      );
+      const sortedStudents = [...filteredStudents].sort((a, b) => {
+        const idA = a.studentSpecificField?.admissionNumber || a.admissionNumber || a._id;
+        const idB = b.studentSpecificField?.admissionNumber || b.admissionNumber || b._id;
+        return String(idA).localeCompare(String(idB), undefined, { numeric: true });
+      });
 
       const foundBatch = batches?.find(
         (batch) => String(batch._id) === String(classData.batchId?._id || classData.batchId)

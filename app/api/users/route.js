@@ -154,13 +154,18 @@ export async function GET(req) {
       ];
     }
 
-    // Determine sort direction (default to descending for _id)
+    // Determine sort direction (default to descending, but ascending for students)
     const sortParam = url.searchParams.get("sort");
-    let sortDirection = -1;
+    let sortDirection = (filterParams.roles && filterParams.roles.includes("Student")) ? 1 : -1;
     if (sortParam === "asc") {
       sortDirection = 1;
     } else if (sortParam === "desc") {
       sortDirection = -1;
+    }
+
+    let sortConfig = { _id: sortDirection };
+    if (filterParams.roles && filterParams.roles.includes("Student")) {
+      sortConfig = { "studentSpecificField.admissionNumber": sortDirection, _id: sortDirection };
     }
 
     // Use lean for better performance when appropriate
@@ -170,7 +175,7 @@ export async function GET(req) {
       .populate("studentSpecificField.admissionClassId", "name")
       .skip(page * limit)
       .limit(limit)
-      .sort({ _id: sortDirection })
+      .sort(sortConfig)
       .collation({ locale: "en_US", numericOrdering: true });
 
     if (url.searchParams.get("populate") === "funds") {

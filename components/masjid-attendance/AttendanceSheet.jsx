@@ -55,10 +55,14 @@ const AttendanceSheet = ({
         }
     );
 
-    const students = useMemo(
-        () => studentsQuery.data?.users || [],
-        [studentsQuery.data]
-    );
+    const students = useMemo(() => {
+        const list = studentsQuery.data?.users || [];
+        return [...list].sort((a, b) => {
+            const idA = a.studentSpecificField?.admissionNumber || a.admissionNumber || a._id;
+            const idB = b.studentSpecificField?.admissionNumber || b.admissionNumber || b._id;
+            return String(idA).localeCompare(String(idB), undefined, { numeric: true });
+        });
+    }, [studentsQuery.data]);
 
     // Fetch existing attendance for current day/prayer
     const {
