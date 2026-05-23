@@ -252,9 +252,15 @@ const StudentsFund = ({
     }
   }, [showConfirmDialog]);
 
-  // Filter students based on selected batch
+  // Filter students based on selected batch, sorted by admission number ascending
   const availableStudents = useMemo(() => {
-    return students.filter((student) => student.batchId === selectedBatch);
+    return students
+      .filter((student) => student.batchId === selectedBatch)
+      .sort((a, b) => {
+        const aVal = String(a.studentSpecificField?.admissionNumber ?? a.admissionNumber ?? a._id ?? "");
+        const bVal = String(b.studentSpecificField?.admissionNumber ?? b.admissionNumber ?? b._id ?? "");
+        return aVal.localeCompare(bVal, undefined, { numeric: true, sensitivity: 'base' });
+      });
   }, [selectedBatch]);
 
   const searchResults = useMemo(() => {

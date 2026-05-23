@@ -347,7 +347,7 @@ export default function StudentCouponClient({ apiKey }) {
 
     // We use enabled: !!apiKey to automatically trigger fetch for dropdown
     const { data: detailsUsersData, refetch: refetchDetailsUsers, isFetching: isFetchingUsers } = useFetchUsers(0, 1000, detailsStudentFilters, { enabled: !!apiKey });
-    const detailsStudents = detailsUsersData?.users || [];
+    const detailsStudents = [...(detailsUsersData?.users || [])].sort((a, b) => String(a._id).localeCompare(String(b._id), undefined, { numeric: true, sensitivity: 'base' }));
 
     // Fetch Coupons for Pre-filling
     const { data: allCouponsForYearData, refetch: refetchAllCoupons } = useFetchItems(0, 0, {
@@ -430,7 +430,7 @@ export default function StudentCouponClient({ apiKey }) {
             // No, bad for perf.
 
             // Let's assume we start blank or fetch fresh.
-            setBulkStudents(students);
+            setBulkStudents([...students].sort((a, b) => String(a._id).localeCompare(String(b._id), undefined, { numeric: true, sensitivity: 'base' })));
 
             // Initialize coupon numbers map
             // Ideally we should pre-fill from DB. 
@@ -543,7 +543,7 @@ export default function StudentCouponClient({ apiKey }) {
         })
     };
     const { data: paymentUsersData } = useFetchUsers(0, 1000, paymentStudentFilters, { enabled: !!apiKey });
-    const paymentStudents = paymentUsersData?.users || [];
+    const paymentStudents = [...(paymentUsersData?.users || [])].sort((a, b) => String(a._id).localeCompare(String(b._id), undefined, { numeric: true, sensitivity: 'base' }));
 
     const {
         register: registerPayment,

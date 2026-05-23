@@ -336,11 +336,17 @@ const StudentFamilies = ({ apiKey }) => {
 
 
   const filteredStudents = useMemo(() => {
-    if (!searchTerm) return students;
-    return students.filter(s => 
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      s._id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const list = !searchTerm
+      ? students
+      : students.filter(s =>
+          s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          s._id.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    return [...list].sort((a, b) => {
+      const aVal = String(a.studentSpecificField?.admissionNumber ?? a.admissionNumber ?? a._id ?? "");
+      const bVal = String(b.studentSpecificField?.admissionNumber ?? b.admissionNumber ?? b._id ?? "");
+      return aVal.localeCompare(bVal, undefined, { numeric: true, sensitivity: 'base' });
+    });
   }, [students, searchTerm]);
 
   return (
