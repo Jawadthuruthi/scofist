@@ -182,8 +182,18 @@ const StudentsFund = ({
       if (!selectedBatch) return;
       
       // 1. Batch Filtering: studentId is populated with studentSpecificField.batchId
-      const studentBatchId = studentFund.studentId?.studentSpecificField?.batchId;
-      if (studentBatchId !== selectedBatch) return;
+      const s = studentFund.studentId?.studentSpecificField;
+      const studentBatchId = s?.batchId;
+      let belongsToBatch = studentBatchId === selectedBatch;
+      
+      if (!belongsToBatch && s?.classId && classes) {
+        const studentClass = classes.find(c => c._id === s.classId);
+        if (studentClass && studentClass.batchId === selectedBatch) {
+          belongsToBatch = true;
+        }
+      }
+      
+      if (!belongsToBatch) return;
 
       // 2. Zero-Balance Filtering: Hide zero balance students
       if ((studentFund.balance || 0) === 0) return;
@@ -201,7 +211,7 @@ const StudentsFund = ({
     });
 
     return Array.from(uniqueStudentsMap.values());
-  }, [fetchStudentFundQuery.data, selectedBatch, department]);
+  }, [fetchStudentFundQuery.data, selectedBatch, department, classes]);
 
   const allStudentBalance = useMemo(() => {
     return allStudentsFund.reduce((total, studentFund) => {
@@ -255,13 +265,26 @@ const StudentsFund = ({
   // Filter students based on selected batch, sorted by admission number ascending
   const availableStudents = useMemo(() => {
     return students
-      .filter((student) => student.batchId === selectedBatch)
+      .filter(
+        (student) => {
+          const s = student?.studentSpecificField;
+          if (s?.batchId === selectedBatch) return true;
+          
+          if (s?.classId && classes) {
+            const studentClass = classes.find((c) => c._id === s.classId);
+            if (studentClass && studentClass.batchId === selectedBatch) {
+              return true;
+            }
+          }
+          return false;
+        }
+      )
       .sort((a, b) => {
         const aVal = String(a.studentSpecificField?.admissionNumber ?? a.admissionNumber ?? a._id ?? "");
         const bVal = String(b.studentSpecificField?.admissionNumber ?? b.admissionNumber ?? b._id ?? "");
         return aVal.localeCompare(bVal, undefined, { numeric: true, sensitivity: 'base' });
       });
-  }, [selectedBatch]);
+  }, [students, classes, selectedBatch]);
 
   const searchResults = useMemo(() => {
     const term = lookupSearchTerm.trim().toLowerCase();
