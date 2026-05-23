@@ -550,6 +550,9 @@ export async function PUT(req) {
       
       if (!user.studentSpecificField) user.studentSpecificField = {};
       
+      // Capture oldClassId BEFORE it gets overwritten in the loop below
+      const oldClassId = user.studentSpecificField?.classId;
+      
       // Handle standard student fields using Mongoose's formal schema tracking
       studentFields.forEach((field) => {
         if (updateFields[field] !== undefined) {
@@ -559,11 +562,10 @@ export async function PUT(req) {
 
       // Auto-sync subjectTypeAssignments when classId changes
       if (updateFields.classId !== undefined) {
-        const oldClassId = user.studentSpecificField?.classId;
         const newClassId = updateFields.classId;
 
         // Only recompute if classId actually changed
-        if (newClassId && oldClassId !== newClassId) {
+        if (newClassId && String(oldClassId) !== String(newClassId)) {
           // Full reset — only the new class's two tags, all old entries removed
           user.set("studentSpecificField.subjectTypeAssignments", [
             `${newClassId}:CORE`,
