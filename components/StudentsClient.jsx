@@ -6,6 +6,9 @@ import { formatOptions } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import StudentProfileDialog from "@/components/StudentProfileDialog";
 import { getStudentFormFields } from "@/lib/studentFormConfig";
+import { Button } from "@/components/ui/button";
+import { Loader, RefreshCcw } from "lucide-react";
+import { toast } from "sonner";
 
 import { getStudentColumns } from "@/components/table-configs/studentColumns";
 import ProfileComparisonDialog from "./ProfileComparisonDialog";
@@ -16,6 +19,31 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
   const [comparisonStudent, setComparisonStudent] = useState(null);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncAssignments = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    try {
+      const res = await fetch("/api/users/sync-subject-assignments", {
+        method: "POST",
+        headers: { "api-key": apiKey },
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Subject assignments synced!");
+        setRefreshKey((prev) => prev + 1);
+      } else {
+        toast.error(data.message || "Failed to sync assignments.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Network error while syncing assignments.");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Use shared column configuration
   const columnsConfig = getStudentColumns({
@@ -148,6 +176,24 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
             : "STUDENTS MANAGEMENT")
         }
         subTitle="Organize and Oversee Students"
+        rightAction={
+          activeRole === "College Admin" && !isReadOnly ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncAssignments}
+              disabled={isSyncing}
+              title="Set every active student's Subject Type Assignments to match their assigned class"
+            >
+              {isSyncing ? (
+                <Loader className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCcw className="h-4 w-4 mr-2" />
+              )}
+              Sync Assignments
+            </Button>
+          ) : null
+        }
       />
       <DataTableComponent
         key={refreshKey}

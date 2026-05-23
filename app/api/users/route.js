@@ -2,6 +2,7 @@ import { apiResponse } from "@/lib/apiResponse";
 import cloudinary from "@/lib/cloudinary";
 import connectToDB from "@/lib/db";
 import User from "@/models/User";
+import Class from "@/models/Class";
 import "@/models/StudentCoupon"; // Ensure schema is registered
 import { NextResponse } from "next/server";
 
@@ -550,6 +551,21 @@ export async function PUT(req) {
           user.set(`studentSpecificField.${field}`, updateFields[field]);
         }
       });
+
+      // Auto-sync subjectTypeAssignments when classId changes
+      if (updateFields.classId !== undefined) {
+        const oldClassId = user.studentSpecificField?.classId;
+        const newClassId = updateFields.classId;
+
+        // Only recompute if classId actually changed
+        if (newClassId && oldClassId !== newClassId) {
+          // Full reset — only the new class's two tags, all old entries removed
+          user.set("studentSpecificField.subjectTypeAssignments", [
+            `${newClassId}:CORE`,
+            `${newClassId}:MAJOR`,
+          ]);
+        }
+      }
 
       // Handle kinship fields explicitly at their correct levels
       if (updateFields.familyDetails !== undefined) {
