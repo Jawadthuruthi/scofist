@@ -43,7 +43,7 @@ export async function GET(request) {
 
         if (classId) {
             // 1. Get Class Details to determine subject type (CORE or MAJOR)
-            const classDoc = await Class.findById(classId).select("coreSubjects majorSubjects").lean();
+            const classDoc = await Class.findById(classId).select("coreSubjects majorSubjects batchId").lean();
             if (!classDoc) {
                 return NextResponse.json({ message: "Class not found" }, { status: 404 });
             }
@@ -51,6 +51,8 @@ export async function GET(request) {
             const isCore = (classDoc.coreSubjects || []).includes(subjectId);
             const isMajor = (classDoc.majorSubjects || []).includes(subjectId);
             const subjectType = isCore ? "CORE" : isMajor ? "MAJOR" : null;
+            
+            const isHistoricalBatch = batchId && classDoc.batchId && String(classDoc.batchId) !== String(batchId);
 
             // 1.5 Fetch Students with specific assignment filtering
             const assignmentKey = `${classId}:${subjectType}`;
@@ -70,9 +72,24 @@ export async function GET(request) {
                 ]
             };
 
-            // If subjectType is null (historical subject), filter students by actual attendance records
-            if (!subjectType) {
-                // Find unique student IDs who have attendance for this class/subject in the range
+            if (isHistoricalBatch) {
+                // If it's a historical batch, current students don't match. 
+                // Find students who actually had attendance in this class/batch.
+                const historicalIds = await Attendance.distinct("attendanceData.studentId", {
+                    classId,
+                    batchId
+                });
+                if (historicalIds.length > 0) {
+                    studentQuery = { _id: { $in: historicalIds } };
+                } else {
+                    // Fallback: all students in the batch
+                    studentQuery = { 
+                        roles: "Student",
+                        "studentSpecificField.batchId": batchId 
+                    };
+                }
+            } else if (!subjectType) {
+                // If subjectType is null (historical subject), filter students by actual attendance records
                 const historicalRecordStudentIds = await Attendance.distinct("attendanceData.studentId", {
                     classId,
                     subjectId,
@@ -89,17 +106,11 @@ export async function GET(request) {
                     });
                     if (anyHistoricalIds.length > 0) {
                         studentQuery = { _id: { $in: anyHistoricalIds } };
-                    } else {
-                        // Total fallback
-                        studentQuery.$or = [
-                            { "studentSpecificField.classId": classId },
-                            { "studentSpecificField.subjectTypeAssignments": { $regex: new RegExp(`^${classId}:`) } }
-                        ];
                     }
                 }
             }
 
-            if (batchId) {
+            if (batchId && !isHistoricalBatch) {
                 studentQuery["studentSpecificField.batchId"] = batchId;
             }
 

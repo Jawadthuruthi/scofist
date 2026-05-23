@@ -73,11 +73,19 @@ export default function MarksManager({ apiKey }) {
             setClasses(classesData.classes || []);
             setBatches(batchesData.batches || []);
         }).catch(err => console.error("Failed to fetch initial data", err));
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (!selectedClass) return;
-        fetch(`/api/users?roles=Student&classId=${selectedClass}&status=Active`)
+
+        let fetchUrl = `/api/users?roles=Student&status=Active`;
+        if (selectedBatch) {
+            fetchUrl = `/api/users?roles=Student&batchId=${selectedBatch}`;
+        } else {
+            fetchUrl = `/api/users?roles=Student&classId=${selectedClass}&status=Active`;
+        }
+
+        fetch(fetchUrl)
             .then((r) => r.json())
             .then((d) => {
                 const s = d.users || [];
@@ -419,12 +427,7 @@ export default function MarksManager({ apiKey }) {
 
     const resultViewStats = computeResultStats(resultExam);
 
-    const filteredClasses = selectedBatch
-        ? classes.filter(c => {
-            const bId = c.batchId && typeof c.batchId === 'object' ? c.batchId._id : c.batchId;
-            return bId === selectedBatch;
-          })
-        : classes;
+    const filteredClasses = classes;
 
 
     return (

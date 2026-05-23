@@ -46,12 +46,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
     const [data, setData] = useState({ students: [], attendanceMap: {}, leavesMap: {} });
     const [daysInMonth, setDaysInMonth] = useState([]);
 
-    const filteredClasses = filters.batchId
-        ? classes.filter(c => {
-            const bId = c.batchId && typeof c.batchId === 'object' ? c.batchId._id : c.batchId;
-            return bId === filters.batchId;
-          })
-        : classes;
+    const filteredClasses = classes;
 
     const handleBatchChange = (batchId) => {
         const targetBatchId = batchId === "none" ? "" : batchId;
