@@ -24,11 +24,17 @@ const TimeTablePage = async () => {
   try {
     const apiKey = process.env.API_KEY;
 
-    const [periods, subjects, teachers, classes] = await Promise.all(
+    let [periods, subjects, teachers, classes] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
         fetchData(endpoint.pathname, endpoint.searchParams)
       )
     );
+
+    if (teachers && teachers.length > 0) {
+      teachers = [...teachers].sort((a, b) => {
+        return String(a._id).localeCompare(String(b._id), undefined, { numeric: true });
+      });
+    }
 
     return (
       <>
