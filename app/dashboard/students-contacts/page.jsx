@@ -5,14 +5,31 @@ import { fetchData } from "@/lib/utils";
 
 const StudentsContactsPage = async () => {
   try {
-    const classes = await fetchData("classes", "projection=_id,name");
+    const [classes, batches] = await Promise.all([
+      fetchData("classes", "projection=_id,name,status,batchId"),
+      fetchData("batches", "projection=_id,name,status"),
+    ]);
+
+    const activeBatchIds = new Set(
+      (batches || [])
+        .filter((b) => ["Active", "Activated", "Acivated"].includes(b.status))
+        .map((b) => String(b._id))
+    );
+
+    const activeClasses = (classes || []).filter((cls) => {
+      const clsBatchId = cls.batchId?._id || cls.batchId;
+      const isBatchActive = activeBatchIds.has(String(clsBatchId));
+      const isClassActive = cls.status === "Active" || !cls.status;
+      return isBatchActive && isClassActive;
+    });
+
     return (
       <>
         <Header
           title="STUDENTS CONTACTS"
           subTitle="Browse The List Of Students Contacts By Class"
         />
-        <StudentsContactsTable data={classes} apiKey={process.env.API_KEY} />
+        <StudentsContactsTable data={activeClasses} apiKey={process.env.API_KEY} />
       </>
     );
   } catch (error) {

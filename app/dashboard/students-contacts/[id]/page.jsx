@@ -35,10 +35,18 @@ const apiKey = process.env.API_KEY;
 const StudentsContactsListPage = async ({ params }) => {
   try {
     const { id } = await params;
-    const data = await fetchData(
+    let data = await fetchData(
       "users",
-      `projection=_id,name,profilePic,contactNumber,alternativeNumber,studentSpecificField.guardianName,studentSpecificField.relationship,studentSpecificField.guardianContactNumber,studentSpecificField.guardianAlternativeNumber&classId=${id}&roles=Student&status=Active`
+      `projection=_id,name,profilePic,contactNumber,alternativeNumber,studentSpecificField.guardianName,studentSpecificField.relationship,studentSpecificField.guardianContactNumber,studentSpecificField.guardianAlternativeNumber,admissionNumber,studentSpecificField.admissionNumber&classId=${id}&roles=Student&status=Active`
     );
+
+    if (data && data.length > 0) {
+      data = [...data].sort((a, b) => {
+        const idA = a.studentSpecificField?.admissionNumber || a.admissionNumber || a._id;
+        const idB = b.studentSpecificField?.admissionNumber || b.admissionNumber || b._id;
+        return String(idA).localeCompare(String(idB), undefined, { numeric: true });
+      });
+    }
 
     return (
       <>

@@ -252,10 +252,12 @@ const ClassCard = memo(
       const filteredStudents =
         students?.filter((student) => {
           const studentClassId =
+            student.studentSpecificField?.classId?._id ||
             student.studentSpecificField?.classId ||
             student.classId?._id ||
             student.classId;
           const studentBatchId =
+            student.studentSpecificField?.batchId?._id ||
             student.studentSpecificField?.batchId ||
             student.batchId?._id ||
             student.batchId;
@@ -679,6 +681,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
                 if (!student) return false;
 
                 const studentClassId =
+                  student.studentSpecificField?.classId?._id ||
                   student.studentSpecificField?.classId ||
                   student.classId?._id ||
                   student.classId;
@@ -945,10 +948,10 @@ export default function Dashboard({
   // Memoized dashboard data
   const dashboardData = useMemo(() => {
     const activeStudents = students.filter(
-      (student) => student.status === "Active"
+      (student) => (student.studentSpecificField?.status || student.status) === "Active"
     );
     const graduatedStudents = students.filter(
-      (student) => student.status === "Graduated"
+      (student) => (student.studentSpecificField?.status || student.status) === "Graduated"
     );
     const activeBatches =
       batches?.filter((batch) => ["Active", "Activated", "Acivated"].includes(batch.status)) || [];
