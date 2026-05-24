@@ -236,8 +236,12 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
       const params = new URLSearchParams();
       if (sBatch) params.append("batchId", sBatch);
       if (sClass) params.append("classId", sClass);
+      params.append("t", Date.now().toString());
       
-      const res = await fetch(`/api/debtors?${params.toString()}`, { headers: { "api-key": apiKey } });
+      const res = await fetch(`/api/debtors?${params.toString()}`, { 
+        headers: { "api-key": apiKey },
+        cache: "no-store"
+      });
       const data = await res.json();
       setDebts(data.debts || []);
       setSelectedDebts([]); // reset selection
@@ -278,7 +282,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
         });
         setAddForm({ studentId: "", category: "", year: new Date().getFullYear().toString(), totalAmount: "", note: "" });
         setAddBatch(""); setAddClass("");
-        if (selectedBatch === addBatch && selectedClass === addClass) fetchDebts();
+        fetchDebts();
       } else {
         toast.error(data.error || "Failed to add debt");
       }
