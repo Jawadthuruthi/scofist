@@ -183,11 +183,12 @@ const StudentsFund = ({
       
       // 1. Batch Filtering: studentId is populated with studentSpecificField.batchId
       const s = studentFund.studentId?.studentSpecificField;
-      const studentBatchId = s?.batchId;
+      const studentBatchId = studentFund.studentId?.batchId || s?.batchId?._id || s?.batchId;
       let belongsToBatch = studentBatchId === selectedBatch;
       
-      if (!belongsToBatch && s?.classId && classes) {
-        const studentClass = classes.find(c => c._id === s.classId);
+      const studentClassId = studentFund.studentId?.classId || s?.classId?._id || s?.classId;
+      if (!belongsToBatch && studentClassId && classes) {
+        const studentClass = classes.find(c => c._id === studentClassId);
         if (studentClass && studentClass.batchId === selectedBatch) {
           belongsToBatch = true;
         }
@@ -267,11 +268,12 @@ const StudentsFund = ({
     return students
       .filter(
         (student) => {
-          const s = student?.studentSpecificField;
-          if (s?.batchId === selectedBatch) return true;
+          const batchId = student.batchId || student.studentSpecificField?.batchId?._id || student.studentSpecificField?.batchId;
+          if (batchId === selectedBatch) return true;
           
-          if (s?.classId && classes) {
-            const studentClass = classes.find((c) => c._id === s.classId);
+          const classId = student.classId || student.studentSpecificField?.classId?._id || student.studentSpecificField?.classId;
+          if (classId && classes) {
+            const studentClass = classes.find((c) => c._id === classId);
             if (studentClass && studentClass.batchId === selectedBatch) {
               return true;
             }

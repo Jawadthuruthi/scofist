@@ -276,6 +276,8 @@ export async function GET(req) {
         funds: user.funds,
         coupons: user.coupons,
         pendingRentals: user.rentals,
+        studentSpecificField: user.studentSpecificField,
+        teacherSpecificField: user.teacherSpecificField,
       };
     });
 
