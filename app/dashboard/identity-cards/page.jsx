@@ -12,12 +12,20 @@ const identityCardsPage = async () => {
     const user = userHeader ? JSON.parse(userHeader) : null;
     const activeRole = headersList.get("x-active-role") || (user?.roles?.[0]);
 
-    const [students, settings, classes, teachers] = await Promise.all([
+    let [students, settings, classes, teachers] = await Promise.all([
       fetchData("users", "roles=Student&status=Active"),
       fetchData("settings"),
       fetchData("classes"),
       fetchData("users", "roles=Teacher"),
     ]);
+
+    if (students && students.length > 0) {
+      students = [...students].sort((a, b) => {
+        const idA = a.studentSpecificField?.admissionNumber || a.admissionNumber || a._id;
+        const idB = b.studentSpecificField?.admissionNumber || b.admissionNumber || b._id;
+        return String(idA).localeCompare(String(idB), undefined, { numeric: true });
+      });
+    }
 
     return (
       <IdentityCards
