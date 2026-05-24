@@ -74,7 +74,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
 
   // Column Visibility
   const [visibleCols, setVisibleCols] = useState({
-    slNo: true, studentId: true, student: true, category: true, year: true, total: true, paid: true, balance: true, status: true,
+    slNo: true, studentId: true, student: true, batch: true, category: true, year: true, total: true, paid: true, balance: true, status: true,
   });
 
   // Popup states
@@ -198,7 +198,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
     const sClass = selectedClass === "none" ? "" : selectedClass;
     if (!sBatch && !sClass) { setStudents([]); return; }
     
-    const params = new URLSearchParams({ roles: "Student", projection: "id,name,studentSpecificField.admissionNumber" });
+    const params = new URLSearchParams({ roles: "Student", projection: "id,name,studentSpecificField.admissionNumber,studentSpecificField.batchId,studentSpecificField.classId,batchId,classId" });
     if (sBatch) params.append("batchId", sBatch);
     if (sClass) params.append("classId", sClass);
     if (sClass && !sBatch) params.append("status", "Active");
@@ -215,7 +215,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
     const aBatch = addBatch === "none" ? "" : addBatch;
     const aClass = addClass === "none" ? "" : addClass;
     
-    const params = new URLSearchParams({ roles: "Student", projection: "id,name,studentSpecificField.admissionNumber" });
+    const params = new URLSearchParams({ roles: "Student", projection: "id,name,studentSpecificField.admissionNumber,studentSpecificField.batchId,studentSpecificField.classId,batchId,classId" });
     if (aBatch) params.append("batchId", aBatch);
     if (aClass) params.append("classId", aClass);
     if (aClass && !aBatch) params.append("status", "Active");
@@ -257,8 +257,17 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
   // Add Debt Submit
   const handleAddDebt = async (e) => {
     e.preventDefault();
-    const aBatch = addBatch === "none" ? "" : addBatch;
-    const aClass = addClass === "none" ? "" : addClass;
+    let finalBatch = addBatch === "none" ? "" : addBatch;
+    let finalClass = addClass === "none" ? "" : addClass;
+
+    if (!finalBatch || !finalClass) {
+        const student = addStudents.find((s) => (s._id || s.id) === addForm.studentId);
+        if (student) {
+            if (!finalBatch) finalBatch = student.studentSpecificField?.batchId || student.batchId || "";
+            if (!finalClass) finalClass = student.studentSpecificField?.classId || student.classId || "";
+        }
+    }
+
     if (!addForm.studentId || !addForm.category || !addForm.totalAmount) {
       toast.error("Fill all required fields");
       return;
@@ -268,7 +277,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
       const res = await fetch("/api/debtors", {
         method: "POST",
         headers: { "Content-Type": "application/json", "api-key": apiKey },
-        body: JSON.stringify({ ...addForm, batchId: aBatch, classId: aClass }),
+        body: JSON.stringify({ ...addForm, batchId: finalBatch, classId: finalClass }),
       });
       const data = await res.json();
       if (data.success) {
@@ -779,9 +788,9 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
                 <Button className="flex-1" onClick={applyFilter}>Apply</Button>
               </div>
 
-              <Button variant="ghost" className="w-full text-xs" onClick={() => {
-                setTempStatus("All"); setTempCategory("All"); setTempFromDate(""); setTempToDate("");
-              }}>Clear Additional Filters</Button>
+              <Button variant="outline" className="w-full text-xs" onClick={() => {
+                setTempBatch("none"); setTempClass("none"); setTempStatus("All"); setTempCategory("All"); setTempFromDate(""); setTempToDate("");
+              }}>Clear All Filters</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -838,6 +847,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
                 {visibleCols.slNo && <TableHead>Sl No</TableHead>}
                 {visibleCols.studentId && <TableHead>Student ID</TableHead>}
                 {visibleCols.student && <TableHead>Student</TableHead>}
+                {visibleCols.batch && <TableHead>Batch</TableHead>}
                 {visibleCols.category && <TableHead>Category</TableHead>}
                 {visibleCols.year && <TableHead>Year</TableHead>}
                 {visibleCols.total && <TableHead className="text-right">Total</TableHead>}
@@ -866,6 +876,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
                     {visibleCols.slNo && <TableCell>{i + 1}</TableCell>}
                     {visibleCols.studentId && <TableCell>{getStudentAdmissionNo(debt.studentId)}</TableCell>}
                     {visibleCols.student && <TableCell className="font-medium">{studentName(debt.studentId)}</TableCell>}
+                    {visibleCols.batch && <TableCell>{batches.find(b => (b._id || b.id) === (debt.batchId?._id || debt.batchId))?.name || "-"}</TableCell>}
                     {visibleCols.category && <TableCell>{debt.category}</TableCell>}
                     {visibleCols.year && <TableCell>{debt.year}</TableCell>}
                     {visibleCols.total && <TableCell className="text-right">₹{debt.totalAmount.toLocaleString()}</TableCell>}
