@@ -453,6 +453,7 @@ const FormContent = ({
   loading,
   apiKey,
   submitButtonClass,
+  buttonContainerClass,
   capitalizeInputs,
 }) => {
   const sectionRefs = React.useRef([]);
@@ -557,7 +558,7 @@ const FormContent = ({
                 capitalizeInputs={capitalizeInputs}
               />
               {/* Navigation buttons inline with last input */}
-              <div className="flex items-end gap-2 pb-1">
+              <div className={`flex items-end gap-2 pb-1 ${buttonContainerClass || ""}`}>
                 {activeSectionIndex > 0 && (
                   <Button
                     type="button"
@@ -619,6 +620,7 @@ export default function PopupForm({
   triggerClass,
   triggerText,
   triggerVariant,
+  buttonContainerClass,
   capitalizeInputs = false,
 }) {
   // Use either external state (if provided) or internal state
@@ -771,6 +773,7 @@ export default function PopupForm({
           loading={loading}
           apiKey={apiKey}
           submitButtonClass={submitButtonClass}
+          buttonContainerClass={buttonContainerClass}
           capitalizeInputs={capitalizeInputs}
         />
       </DialogContent>

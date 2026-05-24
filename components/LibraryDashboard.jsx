@@ -66,6 +66,8 @@ export default function LibraryDashboard({
     const [pendingRentalsPopupOpen, setPendingRentalsPopupOpen] = useState(false);
     const [totalBooksPopupOpen, setTotalBooksPopupOpen] = useState(false);
     const [availableBooksPopupOpen, setAvailableBooksPopupOpen] = useState(false);
+    const [deleteErrorPopupOpen, setDeleteErrorPopupOpen] = useState(false);
+    const [confirmDialog, setConfirmDialog] = useState({ open: false, title: "", message: "", onConfirm: null });
 
     // --- Lookup State ---
     const [studentSearchId, setStudentSearchId] = useState("");
@@ -456,6 +458,7 @@ export default function LibraryDashboard({
                         trigger={<span className="text-red-500 font-bold hover:underline cursor-pointer">Pending</span>}
                         className="sm:max-w-[250px]"
                         submitButtonClass="w-full"
+                        buttonContainerClass="md:col-span-2"
                     />
                 );
             },
@@ -549,78 +552,91 @@ export default function LibraryDashboard({
         }
     };
 
-    const handleDeleteBook = async (id) => {
-        if (!confirm("Are you sure?")) return;
-        setLoading(true);
-        try {
-            const res = await fetch(`/api/library/books?id=${id}`, {
-                method: "DELETE",
-            });
-            if (res.ok) {
-                router.refresh();
+    const handleDeleteBook = (id) => {
+        setConfirmDialog({
+            open: true,
+            title: "Delete Book",
+            message: "Are you sure you want to delete this book?",
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    const res = await fetch(`/api/library/books?id=${id}`, { method: "DELETE" });
+                    if (res.ok) router.refresh();
+                } catch (error) { console.error(error); } 
+                finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
+        });
     };
 
-    const handleBulkDelete = async () => {
-        if (!confirm(`Delete ${selectedIds.length} books?`)) return;
-        setLoading(true);
-        try {
-            // Sequential delete for multiple items since backend bulk delete is not implemented
-            for (const id of selectedIds) {
-                await fetch(`/api/library/books?id=${id}`, {
-                    method: "DELETE",
-                });
+    const handleBulkDelete = () => {
+        setConfirmDialog({
+            open: true,
+            title: "Delete Books",
+            message: `Are you sure you want to delete ${selectedIds.length} books?`,
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    for (const id of selectedIds) {
+                        await fetch(`/api/library/books?id=${id}`, { method: "DELETE" });
+                    }
+                    router.refresh();
+                    setRowSelection({});
+                } catch (error) { console.error(error); } 
+                finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
-            router.refresh();
-            setRowSelection({});
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
+        });
     };
 
-    const handleBulkDeleteRental = async () => {
-        if (!confirm(`Delete ${selectedIds.length} rentals?`)) return;
-        setLoading(true);
-        try {
-            for (const id of selectedIds) {
-                await fetch(`/api/rental?id=${id}`, {
-                    method: "DELETE",
-                });
-            }
-            router.refresh();
-            setRowSelection({});
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
+    const handleBulkDeleteRental = () => {
+        const hasPending = selectedIds.some((id) => {
+            const rental = initialRentals.find((r) => r._id === id);
+            return rental && !rental.receivedDate;
+        });
+
+        if (hasPending) {
+            setDeleteErrorPopupOpen(true);
+            return;
         }
+
+        setConfirmDialog({
+            open: true,
+            title: "Delete Rentals",
+            message: `Are you sure you want to delete ${selectedIds.length} rentals?`,
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    for (const id of selectedIds) {
+                        await fetch(`/api/rental?id=${id}`, { method: "DELETE" });
+                    }
+                    router.refresh();
+                    setRowSelection({});
+                } catch (error) { console.error(error); } 
+                finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
+            }
+        });
     };
 
-    const handleBulkReturn = async () => {
-        if (!confirm(`Return ${selectedIds.length} items?`)) return;
-        setLoading(true);
-        try {
-            for (const id of selectedIds) {
-                await fetch("/api/rental", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ _id: id, receivedDate: new Date() }),
-                });
+    const handleBulkReturn = () => {
+        setConfirmDialog({
+            open: true,
+            title: "Return Items",
+            message: `Are you sure you want to return ${selectedIds.length} items?`,
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    for (const id of selectedIds) {
+                        await fetch("/api/rental", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ _id: id, receivedDate: new Date() }),
+                        });
+                    }
+                    router.refresh();
+                    setRowSelection({});
+                } catch (error) { console.error(error); } 
+                finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
             }
-            router.refresh();
-            setRowSelection({});
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
+        });
     };
 
     const handleCreateRental = async (data) => {
@@ -721,21 +737,26 @@ export default function LibraryDashboard({
         }
     };
 
-    const handleDeleteRental = async (id) => {
-        if (!confirm("Are you sure?")) return;
-        setLoading(true);
-        try {
-            const res = await fetch(`/api/rental?id=${id}`, {
-                method: "DELETE",
-            });
-            if (res.ok) {
-                router.refresh();
-            }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
+    const handleDeleteRental = (id) => {
+        const rental = initialRentals.find((r) => r._id === id);
+        if (rental && !rental.receivedDate) {
+            setDeleteErrorPopupOpen(true);
+            return;
         }
+
+        setConfirmDialog({
+            open: true,
+            title: "Delete Rental",
+            message: "Are you sure you want to delete this rental?",
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    const res = await fetch(`/api/rental?id=${id}`, { method: "DELETE" });
+                    if (res.ok) router.refresh();
+                } catch (error) { console.error(error); } 
+                finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
+            }
+        });
     };
 
     // --- Lookup Handlers ---
@@ -807,6 +828,31 @@ export default function LibraryDashboard({
     };
 
     // --- Views ---
+
+    const renderConfirmDialog = () => (
+        <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>
+            <DialogContent className="sm:max-w-md text-center">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center justify-center gap-2 text-xl font-bold">
+                        {confirmDialog.title}
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="py-6 text-center">
+                    <p className="text-muted-foreground text-lg">{confirmDialog.message}</p>
+                </div>
+                <div className="flex justify-center gap-4 pb-2">
+                    <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))} disabled={loading} className="w-24">
+                        Cancel
+                    </Button>
+                    <Button variant="destructive" onClick={() => {
+                        if (confirmDialog.onConfirm) confirmDialog.onConfirm();
+                    }} disabled={loading} className="w-24">
+                        {loading ? "..." : "Confirm"}
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
 
     if (view === "dashboard") {
         return (
@@ -1062,6 +1108,7 @@ export default function LibraryDashboard({
                                                                         trigger={<span className="text-red-500 font-bold hover:underline cursor-pointer">Pending</span>}
                                                                         className="sm:max-w-[250px]"
                                                                         submitButtonClass="w-full"
+                                                                        buttonContainerClass="md:col-span-2"
                                                                     />
                                                                 )}
                                                             </TableCell>
@@ -1147,6 +1194,7 @@ export default function LibraryDashboard({
                                                                         trigger={<span className="text-red-500 font-bold hover:underline cursor-pointer">Pending</span>}
                                                                         className="sm:max-w-[250px]"
                                                                         submitButtonClass="w-full"
+                                                                        buttonContainerClass="md:col-span-2"
                                                                     />
                                                                 )}
                                                             </TableCell>
@@ -1376,6 +1424,7 @@ export default function LibraryDashboard({
                         </div>
                     </DialogContent>
                 </Dialog>
+                {renderConfirmDialog()}
             </div>
         );
     }
@@ -1485,6 +1534,7 @@ export default function LibraryDashboard({
                     }
                 />
                 <BarcodeSheet ref={barcodeSheetRef} books={initialBooks.filter(b => selectedIds.includes(b._id))} />
+                {renderConfirmDialog()}
             </div>
         );
     }
@@ -1544,6 +1594,28 @@ export default function LibraryDashboard({
                         </div>
                     }
                 />
+                
+                <Dialog open={deleteErrorPopupOpen} onOpenChange={setDeleteErrorPopupOpen}>
+                    <DialogContent className="sm:max-w-md text-center border-red-500/20">
+                        <DialogHeader>
+                            <DialogTitle className="text-red-500 flex items-center justify-center gap-2">
+                                <AlertCircle className="h-5 w-5" />
+                                Action Prevented
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="py-6 text-center">
+                            <p className="text-muted-foreground text-lg">
+                                Pending books can not be deleted.
+                            </p>
+                        </div>
+                        <div className="flex justify-center pb-2">
+                            <Button variant="outline" onClick={() => setDeleteErrorPopupOpen(false)} className="w-24">
+                                Close
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+                {renderConfirmDialog()}
             </div>
         );
     }

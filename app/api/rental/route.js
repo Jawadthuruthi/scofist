@@ -157,6 +157,10 @@ export async function DELETE(req) {
             return NextResponse.json({ success: false, msg: "Rental not found", data: {} }, { status: 404 });
         }
 
+        if (!deletedRental.receivedDate && deletedRental.bookId) {
+            await LibraryBook.findByIdAndUpdate(deletedRental.bookId, { status: "Available" });
+        }
+
         return NextResponse.json({ success: true, msg: "Rental deleted successfully", data: {} }, { status: 200 });
     } catch (error) {
         return NextResponse.json({ success: false, msg: error.message, data: {} }, { status: 500 });
