@@ -53,23 +53,48 @@ const processSingleUpdate = async (item) => {
   let updatedTimeTable;
 
   if (existingTimeTable) {
-    // Remove slot with same day and period
-    existingTimeTable.timeSlots = existingTimeTable.timeSlots.filter(
+    const now = new Date();
+    // Instead of deleting the old slot, we set its validTo to now
+    let slotUpdated = false;
+    
+    // Find the currently active slot for this period and day
+    const activeOldSlotIndex = existingTimeTable.timeSlots.findIndex(
       (slot) =>
-        !(
-          slot.day === timeSlots.day &&
-          slot.periodNumber === timeSlots.periodNumber
-        )
+        slot.day === timeSlots.day &&
+        slot.periodNumber === timeSlots.periodNumber &&
+        !slot.validTo // Ensure we only invalidate the currently active one
     );
 
-    // Add new slot
-    existingTimeTable.timeSlots.push(timeSlots);
+    if (activeOldSlotIndex !== -1) {
+      // If the subject or teacher didn't change, we shouldn't create a new record
+      const oldSlot = existingTimeTable.timeSlots[activeOldSlotIndex];
+      const sameSubject = (oldSlot.subjectId?.toString() || "") === (timeSlots.subjectId?.toString() || "");
+      const sameTeacher = (oldSlot.teacherId?.toString() || "") === (timeSlots.teacherId?.toString() || "");
+      
+      if (sameSubject && sameTeacher) {
+        return existingTimeTable; // No changes needed
+      }
+      
+      // Invalidate old slot
+      existingTimeTable.timeSlots[activeOldSlotIndex].validTo = now;
+      slotUpdated = true;
+    }
+
+    // Add new slot with validFrom
+    existingTimeTable.timeSlots.push({
+      ...timeSlots,
+      validFrom: now,
+    });
+    
     updatedTimeTable = await existingTimeTable.save();
   } else {
     // Create new document for this class
     updatedTimeTable = await TimeTable.create({
       classId,
-      timeSlots: [timeSlots],
+      timeSlots: [{
+        ...timeSlots,
+        validFrom: new Date(),
+      }],
     });
   }
 

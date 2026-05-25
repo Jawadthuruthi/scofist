@@ -100,7 +100,9 @@ export async function GET(req, res) {
           classId: tt.classId,
           subjectId: slot.subjectId,
           periodNumber: slot.periodNumber,
-          day: slot.day
+          day: slot.day,
+          validFrom: slot.validFrom || tt.updatedAt || tt.createdAt,
+          validTo: slot.validTo
         });
       });
     });
@@ -175,8 +177,11 @@ export async function GET(req, res) {
           
           const key = `${dateString}_${String(slot.classId)}_${String(slot.subjectId)}_${slot.periodNumber}`;
           
+          const validFromDS = slot.validFrom ? getDS(slot.validFrom) : null;
+          const validToDS = slot.validTo ? getDS(slot.validTo) : null;
+          
           // Only add synthetic record if we haven't already added an actual record for this slot
-          if (!processedKeys.has(key) && isEffectivelyWorking && dateString <= todayDS) {
+          if (!processedKeys.has(key) && isEffectivelyWorking && dateString <= todayDS && (!validFromDS || dateString >= validFromDS) && (!validToDS || dateString < validToDS)) {
             records.push({
               _id: `synth_${teacher._id}_${dateString}_${slot.periodNumber}`,
               teacherId: teacher._id,

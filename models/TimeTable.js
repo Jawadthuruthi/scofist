@@ -29,6 +29,12 @@ const timeTableSchema = new Schema(
           type: String,
           required: true,
         },
+        validFrom: {
+          type: Date,
+        },
+        validTo: {
+          type: Date,
+        },
       },
     ],
   },

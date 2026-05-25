@@ -79,7 +79,9 @@ export async function GET(req) {
                         classId: tt.classId,
                         subjectId: slot.subjectId,
                         periodNumber: slot.periodNumber,
-                        day: slot.day
+                        day: slot.day,
+                        validFrom: slot.validFrom || tt.updatedAt || tt.createdAt,
+                        validTo: slot.validTo
                     });
                 }
             });
@@ -114,6 +116,9 @@ export async function GET(req) {
                 processedKeys.add(key);
 
                 const actual = markedMap.get(key);
+                const validFromDS = slot.validFrom ? getDS(slot.validFrom) : null;
+                const validToDS = slot.validTo ? getDS(slot.validTo) : null;
+
                 if (actual) {
                     records.push({
                         date: actual.date,
@@ -125,7 +130,7 @@ export async function GET(req) {
                         present: true,
                         synthetic: false
                     });
-                } else if (isWorkingDay && dateDS <= todayDS) {
+                } else if (isWorkingDay && dateDS <= todayDS && (!validFromDS || dateDS >= validFromDS) && (!validToDS || dateDS < validToDS)) {
                     // This is an "Absent" record (scheduled but not marked)
                     records.push({
                         date: new Date(curr),

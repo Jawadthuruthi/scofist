@@ -311,7 +311,7 @@ const TimeTablesManagements = ({
 
   const fetchAttendanceQuery = useFetchAttendance(0, 0, {
     startDate: category === "date" && date 
-      ? new Date(new Date(date).setDate(new Date(date).getDate() - 30)).toISOString().split("T")[0]
+      ? date
       : new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split("T")[0],
     endDate: category === "date" && date ? date : new Date().toISOString().split("T")[0],
     day: category === "date" ? day : undefined,
@@ -507,7 +507,7 @@ const TimeTablesManagements = ({
       const timeSlotsByTeacher = newData.reduce(
         (acc, timeTable) => {
           const slots = timeTable.timeSlots.filter(
-            (slot) => slot.teacherId?._id === selectedTeacher
+            (slot) => slot.teacherId?._id === selectedTeacher && !slot.validTo
           );
           const classId = timeTable.classId;
           return {
@@ -528,7 +528,17 @@ const TimeTablesManagements = ({
       
       const timeSlotsByDate = sourceData.reduce(
         (acc, timeTable) => {
-          const slots = timeTable.timeSlots.filter((slot) => slot.day === day);
+          const slots = timeTable.timeSlots.filter((slot) => {
+            if (slot.day !== day) return false;
+            
+            const validFromDS = slot.validFrom ? new Date(slot.validFrom).toISOString().split('T')[0] : null;
+            const validToDS = slot.validTo ? new Date(slot.validTo).toISOString().split('T')[0] : null;
+            
+            const isStarted = !validFromDS || validFromDS <= date;
+            const isNotEnded = !validToDS || validToDS > date;
+            
+            return isStarted && isNotEnded;
+          });
           const classId = timeTable.classId;
           return {
             timeSlots: [
@@ -541,13 +551,13 @@ const TimeTablesManagements = ({
       );
       setTimeTableData(timeSlotsByDate || { timeSlots: [] });
     } else {
-      // For class view, just use the first timetable
       const classTimeTable = newData[0];
       if (classTimeTable && classTimeTable.timeSlots) {
         const classId = classTimeTable.classId;
+        const activeSlots = classTimeTable.timeSlots.filter(slot => !slot.validTo);
         setTimeTableData({
           ...classTimeTable,
-          timeSlots: classTimeTable.timeSlots.map((slot) => ({
+          timeSlots: activeSlots.map((slot) => ({
             ...slot,
             classId,
           })),
@@ -678,15 +688,31 @@ const TimeTablesManagements = ({
         const targetTimeTable = sourceTimeTables.find(
           (tt) => (tt.classId?._id || tt.classId)?.toString() === targetClassId
         );
-        existingSlot = targetTimeTable?.timeSlots?.find(
-          (slot) => slot.periodNumber === periodNumber && slot.day === day
-        );
+        
+        // Find the slot that was active on this specific date
+        existingSlot = targetTimeTable?.timeSlots?.find((slot) => {
+          if (slot.periodNumber !== periodNumber || slot.day !== day) return false;
+          
+          if (!date) return !slot.validTo; // If no date selected, show current
+          
+          const effectiveValidFrom = slot.validFrom || targetTimeTable.updatedAt || targetTimeTable.createdAt;
+          const validFromDS = effectiveValidFrom ? new Date(effectiveValidFrom).toISOString().split('T')[0] : null;
+          const validToDS = slot.validTo ? new Date(slot.validTo).toISOString().split('T')[0] : null;
+          
+          // Slot is valid if it was created before/on this date AND (not yet invalidated OR invalidated after this date)
+          const isStarted = !validFromDS || validFromDS <= date;
+          const isNotEnded = !validToDS || validToDS > date;
+          
+          return isStarted && isNotEnded;
+        });
       } else {
+        // For standard views, only show currently active slots (no validTo date)
         existingSlot = timeTableData.timeSlots?.find(
           (slot) =>
             slot.periodNumber === periodNumber &&
             slot.day === day &&
-            (!targetClassId || getStrId(slot.classId) === getStrId(targetClassId))
+            (!targetClassId || getStrId(slot.classId) === getStrId(targetClassId)) &&
+            !slot.validTo
         );
       }
 
@@ -696,7 +722,8 @@ const TimeTablesManagements = ({
           (attendance) =>
             attendance.periodNumber === periodNumber &&
             attendance.day === day &&
-            (attendance.classId?._id || attendance.classId)?.toString() === targetClassId
+            (attendance.classId?._id || attendance.classId)?.toString() === targetClassId &&
+            new Date(attendance.date).toISOString().split('T')[0] === date
         );
 
         if (markedAttendance) {
@@ -731,22 +758,6 @@ const TimeTablesManagements = ({
           };
         }
 
-        // SMART FALLBACK: If still blank, use the optimized historical map
-        const historyKey = `${targetClassId}_${periodNumber}_${day}`;
-        const historicalRecord = historicalMap[historyKey];
-
-        if (historicalRecord && (!date || new Date(historicalRecord.date).toISOString().split('T')[0] !== date)) {
-          return {
-            ...existingSlot,
-            periodNumber,
-            day,
-            subjectId: historicalRecord.subjectId,
-            teacherId: historicalRecord.teacherId,
-            classId: historicalRecord.classId,
-            _fromHistory: true,
-            _historyDate: historicalRecord._historyDate,
-          };
-        }
       }
 
       return existingSlot;
