@@ -10,10 +10,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Save, Plus, Printer, Trophy, Edit, Settings, X } from "lucide-react";
+import { Trash2, Save, Plus, Printer, Trophy, Edit, Settings, X, User } from "lucide-react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { useReactToPrint } from "react-to-print";
+import { ComboBox } from "@/components/ui/combobox";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -51,6 +52,9 @@ export default function MarksManager({ apiKey }) {
     const [resultExam, setResultExam] = useState(null);
     const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(null);
     const [isAddingNewExam, setIsAddingNewExam] = useState(false);
+    const [resultType, setResultType] = useState("class-wise");
+    const [selectedStudentForIndividual, setSelectedStudentForIndividual] = useState("");
+    const [institutionName, setInstitutionName] = useState("");
 
     const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
     const [editingSubjectIndex, setEditingSubjectIndex] = useState(null);
@@ -68,12 +72,16 @@ export default function MarksManager({ apiKey }) {
         const reqHeaders = { "api-key": apiKey };
         Promise.all([
             fetch("/api/classes", { headers: reqHeaders }).then((r) => r.json()),
-            fetch("/api/batches", { headers: reqHeaders }).then((r) => r.json())
-        ]).then(([classesData, batchesData]) => {
+            fetch("/api/batches", { headers: reqHeaders }).then((r) => r.json()),
+            fetch("/api/settings", { headers: reqHeaders }).then((r) => r.json()).catch(() => ({}))
+        ]).then(([classesData, batchesData, settingsData]) => {
             setClasses(classesData.classes || []);
             setBatches(batchesData.batches || []);
+            if (settingsData?.settings?.institution?.name) {
+                setInstitutionName(settingsData.settings.institution.name);
+            }
         }).catch(err => console.error("Failed to fetch initial data", err));
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (!selectedClass) return;
@@ -107,6 +115,8 @@ export default function MarksManager({ apiKey }) {
         setExamReady(false);
         setSelectedSubjectIndex(null);
         setIsAddingNewExam(false);
+        setResultType("class-wise");
+        setSelectedStudentForIndividual("");
     }, [selectedClass]);
 
     const loadExam = (exam) => {
@@ -151,6 +161,8 @@ export default function MarksManager({ apiKey }) {
         setExamReady(true);
         setShowResult(false);
         setSelectedSubjectIndex(null);
+        setResultType("class-wise");
+        setSelectedStudentForIndividual("");
     };
 
     const handleOpenTable = () => {
@@ -655,6 +667,43 @@ export default function MarksManager({ apiKey }) {
                         </>
                     )}
                 </div>
+
+                {/* Result Type Dropdown */}
+                {showResult && resultExam && (
+                    <div className="w-full sm:w-48">
+                        <label className="text-sm font-medium mb-1 block">Result Type</label>
+                        <Select
+                            value={resultType}
+                            onValueChange={(val) => {
+                                setResultType(val);
+                                if (val === "class-wise") setSelectedStudentForIndividual("");
+                            }}
+                        >
+                            <SelectTrigger><SelectValue placeholder="Type..." /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="class-wise">Class Wise</SelectItem>
+                                <SelectItem value="individual">Individual</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+
+                {/* Select Student for Individual View */}
+                {showResult && resultType === "individual" && resultExam && (
+                    <div className="w-full sm:w-64">
+                        <label className="text-sm font-medium mb-1 block">Select Student</label>
+                        <ComboBox
+                            items={resultViewStats.map(st => ({
+                                value: st.studentId,
+                                label: `${st.studentName} (${st.studentId})`
+                            }))}
+                            value={selectedStudentForIndividual}
+                            onSelect={setSelectedStudentForIndividual}
+                            placeholder="Search student..."
+                        />
+                    </div>
+                )}
+
                 {/* Subject Selection for Teachers */}
                 {!showResult && examReady && activeRole === "Teacher" && (
                     <div className="w-full sm:w-48">
@@ -748,159 +797,298 @@ export default function MarksManager({ apiKey }) {
                         )}
                     </div>
                     {resultExam ? (
-                        <div ref={printRef} className="p-0 sm:p-4 bg-white dark:bg-transparent">
-                            {/* PDF/Print Header (Visible only in print) */}
-                            <div className="hidden print:block text-center mb-6">
-                                <h1 className="text-2xl font-bold uppercase mb-1">{resultExam.examName}</h1>
-                                <p className="text-gray-600 text-lg">{selectedClassName}</p>
-                                <div className="mt-2 border-b-2 border-black w-32 mx-auto"></div>
-                            </div>
+                        resultType === "class-wise" ? (
+                            <div ref={printRef} className="p-0 sm:p-4 bg-white dark:bg-transparent">
+                                {/* PDF/Print Header (Visible only in print) */}
+                                <div className="hidden print:block text-center mb-6">
+                                    <h1 className="text-2xl font-bold uppercase mb-1">{resultExam.examName}</h1>
+                                    <p className="text-gray-600 text-lg">{selectedClassName}</p>
+                                    <div className="mt-2 border-b-2 border-black w-32 mx-auto"></div>
+                                </div>
 
-                            <table className="w-full text-sm border-collapse">
-                                <thead className="bg-muted/60 print:bg-gray-100">
-                                    <tr>
-                                        <th className="p-3 text-center border font-bold" rowSpan={hasAnySubColsResult ? 2 : 1}>Rank</th>
-                                        <th className="p-3 text-left border font-bold w-20" rowSpan={hasAnySubColsResult ? 2 : 1}>Adm. No</th>
-                                        <th className="p-3 text-left border font-bold" rowSpan={hasAnySubColsResult ? 2 : 1}>Student</th>
-                                        {(resultExam.subjects || []).map((s, i) => {
-                                            const scs = s.subColumns || [];
-                                            if (scs.length > 0) {
-                                                return (
-                                                    <th key={i} colSpan={scs.length + 1} className="p-2 text-center border font-bold bg-muted/30">
-                                                        {s.name || `Col ${i + 1}`}
-                                                    </th>
-                                                );
-                                            }
-                                            return (
-                                                <th key={i} rowSpan={hasAnySubColsResult ? 2 : 1} className="p-3 text-center border font-bold">
-                                                    {typeof s === 'string' ? s : (s.name || `Col ${i + 1}`)}
-                                                    {s.maxMark && <div className="text-[10px] font-normal opacity-70">Max: {s.maxMark}</div>}
-                                                </th>
-                                            );
-                                        })}
-                                        <th className="p-3 text-center border font-bold bg-blue-50 dark:bg-blue-950 text-blue-900 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>Total</th>
-                                        <th className="p-3 text-center border font-bold bg-green-50 dark:bg-green-950 text-green-900 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>%</th>
-                                        <th className="p-3 text-center border font-bold bg-slate-50 dark:bg-slate-900 text-slate-900 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>Remark</th>
-                                    </tr>
-                                    {hasAnySubColsResult && (
+                                <table className="w-full text-sm border-collapse">
+                                    <thead className="bg-muted/60 print:bg-gray-100">
                                         <tr>
+                                            <th className="p-3 text-center border font-bold" rowSpan={hasAnySubColsResult ? 2 : 1}>Rank</th>
+                                            <th className="p-3 text-left border font-bold w-20" rowSpan={hasAnySubColsResult ? 2 : 1}>Adm. No</th>
+                                            <th className="p-3 text-left border font-bold" rowSpan={hasAnySubColsResult ? 2 : 1}>Student</th>
                                             {(resultExam.subjects || []).map((s, i) => {
                                                 const scs = s.subColumns || [];
                                                 if (scs.length > 0) {
                                                     return (
-                                                        <React.Fragment key={i}>
-                                                            {scs.map((sc, j) => (
-                                                                <th key={`${i}-${j}`} className="p-2 text-center border font-bold text-xs">
-                                                                    <div>{sc.name}</div>
-                                                                    <div className="text-[9px] font-normal opacity-70">({sc.passMark}/{sc.maxMark})</div>
-                                                                </th>
-                                                            ))}
-                                                            <th key={`${i}-sub`} className="p-2 text-center border font-bold text-xs bg-blue-50/50 dark:bg-blue-950/50">Sub Total</th>
-                                                        </React.Fragment>
+                                                        <th key={i} colSpan={scs.length + 1} className="p-2 text-center border font-bold bg-muted/30">
+                                                            {s.name || `Col ${i + 1}`}
+                                                        </th>
                                                     );
                                                 }
-                                                return null;
-                                            })}
-                                        </tr>
-                                    )}
-                                </thead>
-                                <tbody>
-                                    {resultViewStats.map((stat) => (
-                                        <tr
-                                            key={stat.studentId}
-                                            className={`border ${stat.rank === 1
-                                                ? "bg-yellow-50 dark:bg-yellow-950/30"
-                                                : stat.rank === 2
-                                                    ? "bg-slate-50 dark:bg-slate-800/30"
-                                                    : stat.rank === 3
-                                                        ? "bg-orange-50 dark:bg-orange-950/30"
-                                                        : "hover:bg-muted/30"
-                                                }`}
-                                        >
-                                            <td className="p-2 text-center font-bold text-lg border">
-                                                {stat.rank === 1
-                                                    ? "🥇"
-                                                    : stat.rank === 2
-                                                        ? "🥈"
-                                                        : stat.rank === 3
-                                                            ? "🥉"
-                                                            : stat.rank}
-                                            </td>
-                                            <td className="p-2 font-medium border">{stat.studentId}</td>
-                                            <td className="p-2 font-medium border">{stat.studentName}</td>
-                                            {(resultExam.subjects || []).map((subj, i) => {
-                                                const subjName = typeof subj === 'string' ? subj : subj.name;
-                                                const scs = subj.subColumns || [];
-                                                const markVal = stat.marksMap[subjName];
-                                                if (scs.length > 0) {
-                                                    const subjTotal = scs.reduce((sum, sc) => {
-                                                        return sum + ((markVal && typeof markVal === 'object') ? (Number(markVal[sc.name]) || 0) : 0);
-                                                    }, 0);
-                                                    return (
-                                                        <React.Fragment key={i}>
-                                                            {scs.map((sc, j) => {
-                                                                const val = (markVal && typeof markVal === 'object') ? markVal[sc.name] : undefined;
-                                                                const isFailed = val !== undefined && val !== "" && Number(val) < (Number(sc.passMark) || 0);
-                                                                return (
-                                                                    <td key={`${i}-${j}`} className={`p-2 text-center border ${isFailed ? 'text-red-600 font-bold' : ''}`}>
-                                                                        {val ?? "-"}
-                                                                    </td>
-                                                                );
-                                                            })}
-                                                            <td className="p-2 text-center font-semibold text-blue-800 bg-blue-50/30 border">{subjTotal || "-"}</td>
-                                                        </React.Fragment>
-                                                    );
-                                                }
-                                                const isFailed = markVal !== undefined && markVal !== null && typeof markVal !== 'object' && Number(markVal) < (Number(subj.passMark) || 0);
                                                 return (
-                                                    <td key={i} className={`p-2 text-center border ${isFailed ? 'text-red-600 font-bold' : ''}`}>
-                                                        {typeof markVal === 'object' ? '-' : (markVal ?? "-")}
-                                                    </td>
+                                                    <th key={i} rowSpan={hasAnySubColsResult ? 2 : 1} className="p-3 text-center border font-bold">
+                                                        {typeof s === 'string' ? s : (s.name || `Col ${i + 1}`)}
+                                                        {s.maxMark && <div className="text-[10px] font-normal opacity-70">Max: {s.maxMark}</div>}
+                                                    </th>
                                                 );
                                             })}
-                                            <td className="p-2 text-center font-bold border text-blue-700 dark:text-blue-300 print:text-black">
-                                                {stat.total}
-                                            </td>
-                                            <td className="p-2 text-center font-bold border text-green-700 dark:text-green-300 print:text-black">
-                                                {stat.percentage}%
-                                            </td>
-                                            <td className={`p-2 text-center font-bold border ${stat.remark === "Pass" ? "text-green-600 print:text-green-700" : stat.remark === "Failed" ? "text-red-600 print:text-red-700" : "text-blue-600 print:text-blue-700"}`}>
-                                                {stat.remark}
-                                            </td>
+                                            <th className="p-3 text-center border font-bold bg-blue-50 dark:bg-blue-950 text-blue-900 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>Total</th>
+                                            <th className="p-3 text-center border font-bold bg-green-50 dark:bg-green-950 text-green-900 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>%</th>
+                                            <th className="p-3 text-center border font-bold bg-slate-50 dark:bg-slate-900 text-slate-900 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>Remark</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                        {hasAnySubColsResult && (
+                                            <tr>
+                                                {(resultExam.subjects || []).map((s, i) => {
+                                                    const scs = s.subColumns || [];
+                                                    if (scs.length > 0) {
+                                                        return (
+                                                            <React.Fragment key={i}>
+                                                                {scs.map((sc, j) => (
+                                                                    <th key={`${i}-${j}`} className="p-2 text-center border font-bold text-xs">
+                                                                        <div>{sc.name}</div>
+                                                                        <div className="text-[9px] font-normal opacity-70">({sc.passMark}/{sc.maxMark})</div>
+                                                                    </th>
+                                                                ))}
+                                                                <th key={`${i}-sub`} className="p-2 text-center border font-bold text-xs bg-blue-50/50 dark:bg-blue-950/50">Sub Total</th>
+                                                            </React.Fragment>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })}
+                                            </tr>
+                                        )}
+                                    </thead>
+                                    <tbody>
+                                        {resultViewStats.map((stat) => (
+                                            <tr
+                                                key={stat.studentId}
+                                                className={`border ${stat.rank === 1
+                                                    ? "bg-yellow-50 dark:bg-yellow-950/30"
+                                                    : stat.rank === 2
+                                                        ? "bg-slate-50 dark:bg-slate-800/30"
+                                                        : stat.rank === 3
+                                                            ? "bg-orange-50 dark:bg-orange-950/30"
+                                                            : "hover:bg-muted/30"
+                                                    }`}
+                                            >
+                                                <td className="p-2 text-center font-bold text-lg border">
+                                                    {stat.rank === 1
+                                                        ? "🥇"
+                                                        : stat.rank === 2
+                                                            ? "🥈"
+                                                            : stat.rank === 3
+                                                                ? "🥉"
+                                                                : stat.rank}
+                                                </td>
+                                                <td className="p-2 font-medium border">{stat.studentId}</td>
+                                                <td className="p-2 font-medium border">{stat.studentName}</td>
+                                                {(resultExam.subjects || []).map((subj, i) => {
+                                                    const subjName = typeof subj === 'string' ? subj : subj.name;
+                                                    const scs = subj.subColumns || [];
+                                                    const markVal = stat.marksMap[subjName];
+                                                    if (scs.length > 0) {
+                                                        const subjTotal = scs.reduce((sum, sc) => {
+                                                            return sum + ((markVal && typeof markVal === 'object') ? (Number(markVal[sc.name]) || 0) : 0);
+                                                        }, 0);
+                                                        return (
+                                                            <React.Fragment key={i}>
+                                                                {scs.map((sc, j) => {
+                                                                    const val = (markVal && typeof markVal === 'object') ? markVal[sc.name] : undefined;
+                                                                    const isFailed = val !== undefined && val !== "" && Number(val) < (Number(sc.passMark) || 0);
+                                                                    return (
+                                                                        <td key={`${i}-${j}`} className={`p-2 text-center border ${isFailed ? 'text-red-600 font-bold' : ''}`}>
+                                                                            {val ?? "-"}
+                                                                        </td>
+                                                                    );
+                                                                })}
+                                                                <td className="p-2 text-center font-semibold text-blue-800 bg-blue-50/30 border">{subjTotal || "-"}</td>
+                                                            </React.Fragment>
+                                                        );
+                                                    }
+                                                    const isFailed = markVal !== undefined && markVal !== null && typeof markVal !== 'object' && Number(markVal) < (Number(subj.passMark) || 0);
+                                                    return (
+                                                        <td key={i} className={`p-2 text-center border ${isFailed ? 'text-red-600 font-bold' : ''}`}>
+                                                            {typeof markVal === 'object' ? '-' : (markVal ?? "-")}
+                                                        </td>
+                                                    );
+                                                })}
+                                                <td className="p-2 text-center font-bold border text-blue-700 dark:text-blue-300 print:text-black">
+                                                    {stat.total}
+                                                </td>
+                                                <td className="p-2 text-center font-bold border text-green-700 dark:text-green-300 print:text-black">
+                                                    {stat.percentage}%
+                                                </td>
+                                                <td className={`p-2 text-center font-bold border ${stat.remark === "Pass" ? "text-green-600 print:text-green-700" : stat.remark === "Failed" ? "text-red-600 print:text-red-700" : "text-blue-600 print:text-blue-700"}`}>
+                                                    {stat.remark}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
 
-                            <style jsx global>{`
-                                @media print {
-                                    @page {
-                                        size: auto;
-                                        margin: 10mm;
+                                <style jsx global>{`
+                                    @media print {
+                                        @page {
+                                            size: auto;
+                                            margin: 10mm;
+                                        }
+                                        body {
+                                            background: white !important;
+                                            padding: 0 !important;
+                                        }
+                                        table {
+                                            border-collapse: separate !important;
+                                            border-spacing: 2px !important;
+                                            border: none !important;
+                                        }
+                                        th, td {
+                                            border: 0.5pt solid black !important;
+                                            padding: 4px 8px !important;
+                                            line-height: 1.1 !important;
+                                            background-color: transparent !important;
+                                            -webkit-print-color-adjust: exact;
+                                            print-color-adjust: exact;
+                                        }
+                                        tr {
+                                            break-inside: avoid;
+                                        }
                                     }
-                                    body {
-                                        background: white !important;
-                                        padding: 0 !important;
-                                    }
-                                    table {
-                                        border-collapse: separate !important;
-                                        border-spacing: 2px !important;
-                                        border: none !important;
-                                    }
-                                    th, td {
-                                        border: 0.5pt solid black !important;
-                                        padding: 4px 8px !important;
-                                        line-height: 1.1 !important;
-                                        background-color: transparent !important;
-                                        -webkit-print-color-adjust: exact;
-                                        print-color-adjust: exact;
-                                    }
-                                    tr {
-                                        break-inside: avoid;
-                                    }
-                                }
-                            `}</style>
-                        </div>
+                                `}</style>
+                            </div>
+                        ) : (
+                            <div ref={printRef} className="p-4 sm:p-8 bg-white dark:bg-transparent flex justify-center">
+                                {selectedStudentForIndividual ? (
+                                    (() => {
+                                        const stat = resultViewStats.find(s => s.studentId === selectedStudentForIndividual);
+                                        if (!stat) return <div>Student not found.</div>;
+                                        return (
+                                            <div className="border-2 border-slate-200 dark:border-slate-800 rounded-xl p-8 w-full max-w-3xl shadow-lg bg-white dark:bg-slate-950 relative print-poster">
+                                                <div className="text-center mb-8 border-b pb-6">
+                                                    <h2 className="text-3xl font-bold uppercase tracking-wide text-primary">{institutionName || "SCOFIST COLLEGE"}</h2>
+                                                    <p className="text-muted-foreground mt-2 text-lg">
+                                                        {selectedClassName} {batches.find(b => b._id === selectedBatch)?.name || ""}
+                                                    </p>
+                                                    <p className="text-sm font-semibold mt-2 bg-muted inline-block px-4 py-1.5 rounded-full">
+                                                        {resultExam.examName}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-6 mb-8 bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border">
+                                                    <div className="w-24 h-24 rounded-full bg-muted border-4 border-white dark:border-slate-800 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                                                        {(() => {
+                                                            const studentObj = students.find(s => s._id === selectedStudentForIndividual || s.admissionNumber === selectedStudentForIndividual || s.admissionNumber === stat.studentId || s._id === stat.studentId);
+                                                            const photoUrl = studentObj?.profilePic?.url || studentObj?.photo?.url;
+                                                            if (photoUrl) {
+                                                                return <img src={photoUrl} alt="Student" className="w-full h-full object-cover" />;
+                                                            }
+                                                            return <User className="w-12 h-12 text-slate-400" />;
+                                                        })()}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <h3 className="text-2xl font-bold">{stat.studentName}</h3>
+                                                        <div className="text-muted-foreground flex gap-4 mt-2">
+                                                            <span>ID: <strong>{stat.studentId}</strong></span>
+                                                            <span>Rank: <strong>{stat.rank}</strong></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <table className="w-full text-left mb-6 border-collapse">
+                                                    <thead>
+                                                        <tr className="bg-muted/60">
+                                                            <th className="p-3 border font-bold">Subject</th>
+                                                            <th className="p-3 border text-center font-bold">Max Mark</th>
+                                                            <th className="p-3 border text-center font-bold">Marks Obtained</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {(resultExam.subjects || []).map((subj, i) => {
+                                                            const subjName = typeof subj === 'string' ? subj : subj.name;
+                                                            const scs = subj.subColumns || [];
+                                                            const markVal = stat.marksMap[subjName];
+                                                            
+                                                            if (scs.length > 0) {
+                                                                const subjTotal = scs.reduce((sum, sc) => {
+                                                                    return sum + ((markVal && typeof markVal === 'object') ? (Number(markVal[sc.name]) || 0) : 0);
+                                                                }, 0);
+                                                                
+                                                                return (
+                                                                    <React.Fragment key={i}>
+                                                                        <tr className="bg-slate-50 dark:bg-slate-900/50">
+                                                                            <td colSpan={3} className="p-2 border font-bold text-sm bg-muted/30">{subjName}</td>
+                                                                        </tr>
+                                                                        {scs.map((sc, j) => {
+                                                                            const val = (markVal && typeof markVal === 'object') ? markVal[sc.name] : undefined;
+                                                                            const isFailed = val !== undefined && val !== "" && Number(val) < (Number(sc.passMark) || 0);
+                                                                            return (
+                                                                                <tr key={`${i}-${j}`}>
+                                                                                    <td className="p-3 border pl-6 text-muted-foreground">{sc.name}</td>
+                                                                                    <td className="p-3 border text-center">{sc.maxMark}</td>
+                                                                                    <td className={`p-3 border text-center font-semibold ${isFailed ? 'text-red-600' : ''}`}>{val ?? "-"}</td>
+                                                                                </tr>
+                                                                            )
+                                                                        })}
+                                                                        <tr className="font-semibold bg-blue-50/30 dark:bg-blue-950/30">
+                                                                            <td className="p-3 border text-right" colSpan={2}>Sub Total ({subjName})</td>
+                                                                            <td className="p-3 border text-center text-blue-700 dark:text-blue-300">{subjTotal || "-"}</td>
+                                                                        </tr>
+                                                                    </React.Fragment>
+                                                                );
+                                                            }
+
+                                                            const isFailed = markVal !== undefined && markVal !== null && typeof markVal !== 'object' && Number(markVal) < (Number(subj.passMark) || 0);
+                                                            return (
+                                                                <tr key={i}>
+                                                                    <td className="p-3 border font-medium">{subjName}</td>
+                                                                    <td className="p-3 border text-center">{subj.maxMark || 100}</td>
+                                                                    <td className={`p-3 border text-center font-bold ${isFailed ? 'text-red-600' : ''}`}>
+                                                                        {typeof markVal === 'object' ? '-' : (markVal ?? "-")}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                                <div className="flex flex-col sm:flex-row justify-between items-center border-t-2 border-slate-200 dark:border-slate-800 pt-6 gap-4">
+                                                    <div className="text-xl">Total: <strong className="text-2xl">{stat.total}</strong></div>
+                                                    <div className="text-xl">Percentage: <strong className="text-2xl">{stat.percentage}%</strong></div>
+                                                    <div className="text-xl flex items-center gap-3">
+                                                        Grade / Remark: 
+                                                        <span className={`px-4 py-1.5 rounded text-white font-bold tracking-wide ${stat.remark === "Pass" ? "bg-green-600" : stat.remark === "Fail" || stat.remark === "Failed" ? "bg-red-600" : "bg-blue-600"}`}>
+                                                            {stat.remark}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <style jsx global>{`
+                                                    @media print {
+                                                        @page {
+                                                            size: A4 portrait;
+                                                            margin: 10mm;
+                                                        }
+                                                        html, body {
+                                                            width: 100%;
+                                                            height: 100%;
+                                                            margin: 0 !important;
+                                                            padding: 0 !important;
+                                                        }
+                                                        .print-poster {
+                                                            width: 100%;
+                                                            height: auto;
+                                                            page-break-inside: avoid;
+                                                            break-inside: avoid;
+                                                            page-break-after: avoid;
+                                                            page-break-before: avoid;
+                                                            box-shadow: none !important;
+                                                            border: 2px solid #e2e8f0 !important;
+                                                            margin: 0 auto !important;
+                                                        }
+                                                    }
+                                                `}</style>
+                                            </div>
+                                        );
+                                    })()
+                                ) : (
+                                    <div className="py-20 text-center text-muted-foreground w-full">
+                                        Please select a student from the dropdown to view their result.
+                                    </div>
+                                )}
+                            </div>
+                        )
                     ) : (
                         <div className="p-6 text-center text-sm text-muted-foreground">
                             Select an exam above to view results.
