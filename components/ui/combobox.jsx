@@ -49,8 +49,8 @@ export function ComboBox({ items, value, onSelect, placeholder = "Select item...
                         <CommandGroup>
                             {items.map((item) => (
                                 <CommandItem
-                                    key={item.value}
-                                    value={item.label} // Use label for searching
+                                    key={String(item.value)}
+                                    value={String(item.label)} // Use label for searching
                                     onSelect={(currentValue) => {
                                         // We want to pass back the ID (value), not the label
                                         // But command uses the value prop for filtering usually. 

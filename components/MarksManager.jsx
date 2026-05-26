@@ -55,6 +55,7 @@ export default function MarksManager({ apiKey }) {
     const [resultType, setResultType] = useState("class-wise");
     const [selectedStudentForIndividual, setSelectedStudentForIndividual] = useState("");
     const [institutionName, setInstitutionName] = useState("");
+    const [institutionData, setInstitutionData] = useState({});
 
     const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
     const [editingSubjectIndex, setEditingSubjectIndex] = useState(null);
@@ -76,9 +77,18 @@ export default function MarksManager({ apiKey }) {
             fetch("/api/settings", { headers: reqHeaders }).then((r) => r.json()).catch(() => ({}))
         ]).then(([classesData, batchesData, settingsData]) => {
             setClasses(classesData.classes || []);
-            setBatches(batchesData.batches || []);
-            if (settingsData?.settings?.institution?.name) {
-                setInstitutionName(settingsData.settings.institution.name);
+            setBatches(
+                (batchesData.batches || []).sort((a, b) => {
+                    const aYear = a.endYear || a.startYear || 0;
+                    const bYear = b.endYear || b.startYear || 0;
+                    if (aYear !== bYear) return bYear - aYear;
+                    return (b.name || "").localeCompare(a.name || "");
+                })
+            );
+            if (settingsData?.settings?.institution) {
+                const inst = settingsData.settings.institution;
+                setInstitutionName(inst.name || "");
+                setInstitutionData(inst);
             }
         }).catch(err => console.error("Failed to fetch initial data", err));
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -517,80 +527,88 @@ export default function MarksManager({ apiKey }) {
 
     return (
         <div className="space-y-6">
-            {/* ── All controls in one row */}
-            <div className="flex gap-4 flex-wrap items-end">
-                {/* Mode and Select Class - Side by side on mobile */}
-                <div className="flex gap-2 w-full sm:w-auto">
-                    {/* Mode */}
-                    <div className="flex-1 sm:w-40">
-                        <label className="text-sm font-medium mb-1 block">Mode</label>
-                        <Select
-                            value={showResult ? "result" : "entry"}
-                            onValueChange={(val) => setShowResult(val === "result")}
-                        >
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="entry">Marks Entry</SelectItem>
-                                <SelectItem value="result">Result View</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Select Batch */}
-                    <div className="flex-1 sm:w-40">
-                        <label className="text-sm font-medium mb-1 block">Select Batch</label>
-                        <Select
-                            value={selectedBatch || "none"}
-                            onValueChange={(val) => {
-                                setSelectedBatch(val === "none" ? "" : val);
-                                setSelectedClass(""); // reset class when batch changes
-                            }}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select Batch" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">All/No Batch</SelectItem>
-                                {batches.map(b => (
-                                    <SelectItem key={b._id} value={b._id}>
-                                        {b.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Select Class */}
-                    <div className="flex-1 sm:w-48">
-                        <label className="text-sm font-medium mb-1 block">Select Class</label>
-                        <Select
-                            value={selectedClass || "none"}
-                            onValueChange={(val) => {
-                                const targetClass = val === "none" ? "" : val;
-                                setSelectedClass(targetClass);
-                                const cls = classes.find((c) => c._id === targetClass);
-                                setSelectedClassName(cls?.name || "");
-                            }}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Choose class..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">All/No Class</SelectItem>
-                                {filteredClasses.map((cls) => (
-                                    <SelectItem key={cls._id} value={cls._id}>
-                                        {cls.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-end">
+                {/* Mode */}
+                <div className="col-span-1 order-1 md:order-1">
+                    <label className="text-sm font-medium mb-1 block">Mode</label>
+                    <Select
+                        value={showResult ? "result" : "entry"}
+                        onValueChange={(val) => setShowResult(val === "result")}
+                    >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="entry">Marks Entry</SelectItem>
+                            <SelectItem value="result">Result View</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
-                {/* Exam Name - Increased width */}
-                <div className="w-full md:w-80">
+                {/* Batch */}
+                <div className="col-span-1 order-2 md:order-2">
+                    <label className="text-sm font-medium mb-1 block">Batch</label>
+                    <Select
+                        value={selectedBatch || "none"}
+                        onValueChange={(val) => {
+                            setSelectedBatch(val === "none" ? "" : val);
+                            setSelectedClass(""); 
+                        }}
+                    >
+                        <SelectTrigger><SelectValue placeholder="Select Batch" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">All/No Batch</SelectItem>
+                            {[...batches].sort((a, b) => (b.endYear || 0) - (a.endYear || 0)).map(b => (
+                                <SelectItem key={b._id} value={b._id}>
+                                    {b.name}{b.endYear ? ` (${b.endYear})` : ''}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Class */}
+                <div className="col-span-1 order-3 md:order-3">
+                    <label className="text-sm font-medium mb-1 block">Class</label>
+                    <Select
+                        value={selectedClass || "none"}
+                        onValueChange={(val) => {
+                            const targetClass = val === "none" ? "" : val;
+                            setSelectedClass(targetClass);
+                            const cls = classes.find((c) => c._id === targetClass);
+                            setSelectedClassName(cls?.name || "");
+                        }}
+                    >
+                        <SelectTrigger><SelectValue placeholder="Choose class..." /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">All/No Class</SelectItem>
+                            {filteredClasses.map((cls) => (
+                                <SelectItem key={cls._id} value={cls._id}>{cls.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Result Type Dropdown */}
+                {showResult && resultExam && (
+                    <div className="col-span-1 order-4 md:order-5">
+                        <label className="text-sm font-medium mb-1 block">Result Type</label>
+                        <Select
+                            value={resultType}
+                            onValueChange={(val) => {
+                                setResultType(val);
+                                if (val === "class-wise") setSelectedStudentForIndividual("");
+                            }}
+                        >
+                            <SelectTrigger><SelectValue placeholder="Type..." /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="class-wise">Class Wise</SelectItem>
+                                <SelectItem value="individual">Individual</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+
+                {/* Exam Name */}
+                <div className="col-span-2 md:col-span-1 order-5 md:order-4 w-full">
                     <label className="text-sm font-medium mb-1 block">Exam Name</label>
                     {showResult ? (
                         <Select
@@ -612,7 +630,6 @@ export default function MarksManager({ apiKey }) {
                             </SelectContent>
                         </Select>
                     ) : (
-                        // Entry Mode
                         <>
                             {activeRole === "Teacher" || (activeRole !== "Teacher" && !isAddingNewExam && !examReady) ? (
                                 <Select
@@ -668,29 +685,9 @@ export default function MarksManager({ apiKey }) {
                     )}
                 </div>
 
-                {/* Result Type Dropdown */}
-                {showResult && resultExam && (
-                    <div className="w-full sm:w-48">
-                        <label className="text-sm font-medium mb-1 block">Result Type</label>
-                        <Select
-                            value={resultType}
-                            onValueChange={(val) => {
-                                setResultType(val);
-                                if (val === "class-wise") setSelectedStudentForIndividual("");
-                            }}
-                        >
-                            <SelectTrigger><SelectValue placeholder="Type..." /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="class-wise">Class Wise</SelectItem>
-                                <SelectItem value="individual">Individual</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
-
-                {/* Select Student for Individual View */}
+                {/* Select Student */}
                 {showResult && resultType === "individual" && resultExam && (
-                    <div className="w-full sm:w-64">
+                    <div className="col-span-2 md:col-span-1 order-6 w-full">
                         <label className="text-sm font-medium mb-1 block">Select Student</label>
                         <ComboBox
                             items={resultViewStats.map(st => ({
@@ -706,7 +703,7 @@ export default function MarksManager({ apiKey }) {
 
                 {/* Subject Selection for Teachers */}
                 {!showResult && examReady && activeRole === "Teacher" && (
-                    <div className="w-full sm:w-48">
+                    <div className="col-span-2 md:col-span-1 order-7 w-full">
                         <label className="text-sm font-medium mb-1 block">Subject</label>
                         <Select
                             value={selectedSubjectIndex !== null ? selectedSubjectIndex.toString() : ""}
@@ -724,10 +721,12 @@ export default function MarksManager({ apiKey }) {
 
                 {/* Marks Entry button */}
                 {!showResult && !examReady && (
-                    <Button className="self-end w-full sm:w-auto" onClick={handleOpenTable} disabled={!selectedClass || !examName.trim()}>
-                        <Save className="w-4 h-4 mr-2" />
-                        Marks Entry
-                    </Button>
+                    <div className="col-span-2 md:col-span-1 order-8 w-full sm:w-auto">
+                        <Button className="w-full sm:w-auto" onClick={handleOpenTable} disabled={!selectedClass || !examName.trim()}>
+                            <Save className="w-4 h-4 mr-2" />
+                            Marks Entry
+                        </Button>
+                    </div>
                 )}
             </div>
 
@@ -743,8 +742,8 @@ export default function MarksManager({ apiKey }) {
                             <div className="flex gap-2">
                                 <Button
                                     size="sm"
-                                    variant="outline"
-                                    className="h-8 py-0"
+                                    variant="default"
+                                    className="h-8 py-0 bg-foreground text-background hover:bg-foreground/90"
                                     onClick={handlePrint}
                                 >
                                     <Printer className="w-3.5 h-3.5 mr-1.5" />
@@ -800,10 +799,33 @@ export default function MarksManager({ apiKey }) {
                         resultType === "class-wise" ? (
                             <div ref={printRef} className="p-0 sm:p-4 bg-white dark:bg-transparent">
                                 {/* PDF/Print Header (Visible only in print) */}
-                                <div className="hidden print:block text-center mb-6">
-                                    <h1 className="text-2xl font-bold uppercase mb-1">{resultExam.examName}</h1>
-                                    <p className="text-gray-600 text-lg">{selectedClassName}</p>
-                                    <div className="mt-2 border-b-2 border-black w-32 mx-auto"></div>
+                                <div className="hidden print:block mb-4">
+                                    <div className="flex items-center justify-between px-6 py-4 border-b-2 border-gray-300">
+                                        {/* Left: Logo + Name */}
+                                        <div className="flex items-center gap-4">
+                                            {institutionData?.logo?.url && (
+                                                <img src={institutionData.logo.url} alt="Logo" className="w-16 h-16 object-contain" />
+                                            )}
+                                            <div>
+                                                <h1 className="text-xl font-bold text-gray-900">{institutionData?.name || institutionName || "INSTITUTION"}</h1>
+                                                {institutionData?.tagline && <p className="text-sm text-gray-600 italic">{institutionData.tagline}</p>}
+                                            </div>
+                                        </div>
+                                        {/* Right: Contact */}
+                                        <div className="text-right text-xs text-gray-600 space-y-0.5">
+                                            {institutionData?.address && <p>{institutionData.address}</p>}
+                                            {institutionData?.contact?.primaryPhone && <p>Phone: {institutionData.contact.primaryPhone}{institutionData?.contact?.secondaryPhone ? `, ${institutionData.contact.secondaryPhone}` : ""}</p>}
+                                            {institutionData?.contact?.email && <p>Email: {institutionData.contact.email}</p>}
+                                        </div>
+                                    </div>
+                                    <div className="bg-black text-white text-center py-1.5">
+                                        <h2 className="text-base font-semibold">{resultExam.examName} — Result</h2>
+                                    </div>
+                                    {selectedClassName && (
+                                        <div className="bg-gray-100 text-center py-1 border-b border-gray-300">
+                                            <p className="text-sm font-medium text-gray-700">{selectedClassName}{batches.find(b => b._id === selectedBatch) ? ` · ${batches.find(b => b._id === selectedBatch).name}${batches.find(b => b._id === selectedBatch).endYear ? ` (${batches.find(b => b._id === selectedBatch).endYear})` : ""}` : ""}</p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <table className="w-full text-sm border-collapse">
@@ -828,9 +850,9 @@ export default function MarksManager({ apiKey }) {
                                                     </th>
                                                 );
                                             })}
-                                            <th className="p-3 text-center border font-bold bg-blue-50 dark:bg-blue-950 text-blue-900 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>Total</th>
-                                            <th className="p-3 text-center border font-bold bg-green-50 dark:bg-green-950 text-green-900 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>%</th>
-                                            <th className="p-3 text-center border font-bold bg-slate-50 dark:bg-slate-900 text-slate-900 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>Remark</th>
+                                            <th className="p-3 text-center border font-bold bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-200 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>Total</th>
+                                            <th className="p-3 text-center border font-bold bg-green-50 dark:bg-green-950 text-green-900 dark:text-green-200 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>%</th>
+                                            <th className="p-3 text-center border font-bold bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 print:text-black" rowSpan={hasAnySubColsResult ? 2 : 1}>Remark</th>
                                         </tr>
                                         {hasAnySubColsResult && (
                                             <tr>
@@ -914,8 +936,8 @@ export default function MarksManager({ apiKey }) {
                                                 <td className="p-2 text-center font-bold border text-green-700 dark:text-green-300 print:text-black">
                                                     {stat.percentage}%
                                                 </td>
-                                                <td className={`p-2 text-center font-bold border ${stat.remark === "Pass" ? "text-green-600 print:text-green-700" : stat.remark === "Failed" ? "text-red-600 print:text-red-700" : "text-blue-600 print:text-blue-700"}`}>
-                                                    {stat.remark}
+                                                <td className={`p-2 text-center font-bold border ${stat.remark === "Pass" ? "text-green-600 print:text-green-700" : stat.remark === "Fail" || stat.remark === "Failed" ? "text-red-600 print:text-red-700" : "text-blue-600 print:text-blue-700"}`}>
+                                                    {stat.remark === "Pass" ? "Passed" : stat.remark === "Fail" ? "Failed" : stat.remark}
                                                 </td>
                                             </tr>
                                         ))}
@@ -933,9 +955,8 @@ export default function MarksManager({ apiKey }) {
                                             padding: 0 !important;
                                         }
                                         table {
-                                            border-collapse: separate !important;
-                                            border-spacing: 2px !important;
-                                            border: none !important;
+                                            border-collapse: collapse !important;
+                                            border-spacing: 0 !important;
                                         }
                                         th, td {
                                             border: 0.5pt solid black !important;
@@ -952,42 +973,59 @@ export default function MarksManager({ apiKey }) {
                                 `}</style>
                             </div>
                         ) : (
-                            <div ref={printRef} className="p-4 sm:p-8 bg-white dark:bg-transparent flex justify-center">
+                            <div ref={printRef} className="p-2 sm:p-8 bg-white dark:bg-transparent flex justify-center">
                                 {selectedStudentForIndividual ? (
                                     (() => {
                                         const stat = resultViewStats.find(s => s.studentId === selectedStudentForIndividual);
                                         if (!stat) return <div>Student not found.</div>;
                                         return (
-                                            <div className="border-2 border-slate-200 dark:border-slate-800 rounded-xl p-8 w-full max-w-3xl shadow-lg bg-white dark:bg-slate-950 relative print-poster">
-                                                <div className="text-center mb-8 border-b pb-6">
-                                                    <h2 className="text-3xl font-bold uppercase tracking-wide text-primary">{institutionName || "SCOFIST COLLEGE"}</h2>
-                                                    <p className="text-muted-foreground mt-2 text-lg">
-                                                        {selectedClassName} {batches.find(b => b._id === selectedBatch)?.name || ""}
+                                            <div className="border-2 border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-8 w-full max-w-3xl shadow-lg bg-white dark:bg-slate-950 relative print-poster">
+                                                <div className="text-center mb-6 border-b pb-4">
+                                                    <div className="flex items-center justify-center gap-3 mb-2">
+                                                        {institutionData?.logo?.url && (
+                                                            <img
+                                                                src={institutionData.logo.url}
+                                                                alt="Institution Logo"
+                                                                className="w-10 h-10 sm:w-16 sm:h-16 object-contain shrink-0"
+                                                            />
+                                                        )}
+                                                        <div className="text-center min-w-0">
+                                                            <h2 className="text-base sm:text-2xl font-bold uppercase tracking-wide text-primary leading-tight break-words">
+                                                                {institutionData?.name || institutionName || "INSTITUTION"}
+                                                            </h2>
+                                                            {institutionData?.tagline && (
+                                                                <p className="text-xs sm:text-sm text-muted-foreground italic mt-0.5">{institutionData.tagline}</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-muted-foreground text-sm sm:text-base">
+                                                        {selectedClassName} {batches.find(b => b._id === selectedBatch) ? `${batches.find(b => b._id === selectedBatch).name}${batches.find(b => b._id === selectedBatch).endYear ? ` (${batches.find(b => b._id === selectedBatch).endYear})` : ''}` : ""}
                                                     </p>
-                                                    <p className="text-sm font-semibold mt-2 bg-muted inline-block px-4 py-1.5 rounded-full">
+                                                    <p className="text-xs sm:text-sm font-semibold mt-2 bg-muted inline-block px-3 py-1 rounded-full">
                                                         {resultExam.examName}
                                                     </p>
                                                 </div>
-                                                <div className="flex items-center gap-6 mb-8 bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border">
-                                                    <div className="w-24 h-24 rounded-full bg-muted border-4 border-white dark:border-slate-800 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                                                <div className="flex items-center gap-3 sm:gap-6 mb-6 bg-slate-50 dark:bg-slate-900 p-3 sm:p-6 rounded-lg border">
+                                                    <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-muted border-4 border-white dark:border-slate-800 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
                                                         {(() => {
                                                             const studentObj = students.find(s => s._id === selectedStudentForIndividual || s.admissionNumber === selectedStudentForIndividual || s.admissionNumber === stat.studentId || s._id === stat.studentId);
                                                             const photoUrl = studentObj?.profilePic?.url || studentObj?.photo?.url;
                                                             if (photoUrl) {
                                                                 return <img src={photoUrl} alt="Student" className="w-full h-full object-cover" />;
                                                             }
-                                                            return <User className="w-12 h-12 text-slate-400" />;
+                                                            return <User className="w-8 h-8 sm:w-12 sm:h-12 text-slate-400" />;
                                                         })()}
                                                     </div>
-                                                    <div className="flex-1">
-                                                        <h3 className="text-2xl font-bold">{stat.studentName}</h3>
-                                                        <div className="text-muted-foreground flex gap-4 mt-2">
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="text-lg sm:text-2xl font-bold break-words">{stat.studentName}</h3>
+                                                        <div className="text-muted-foreground flex flex-wrap gap-2 sm:gap-4 mt-1 text-sm">
                                                             <span>ID: <strong>{stat.studentId}</strong></span>
                                                             <span>Rank: <strong>{stat.rank}</strong></span>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <table className="w-full text-left mb-6 border-collapse">
+                                                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                                                <table className="w-full text-left mb-6 border-collapse text-sm">
                                                     <thead>
                                                         <tr className="bg-muted/60">
                                                             <th className="p-3 border font-bold">Subject</th>
@@ -1043,13 +1081,14 @@ export default function MarksManager({ apiKey }) {
                                                         })}
                                                     </tbody>
                                                 </table>
-                                                <div className="flex flex-col sm:flex-row justify-between items-center border-t-2 border-slate-200 dark:border-slate-800 pt-6 gap-4">
-                                                    <div className="text-xl">Total: <strong className="text-2xl">{stat.total}</strong></div>
-                                                    <div className="text-xl">Percentage: <strong className="text-2xl">{stat.percentage}%</strong></div>
-                                                    <div className="text-xl flex items-center gap-3">
-                                                        Grade / Remark: 
-                                                        <span className={`px-4 py-1.5 rounded text-white font-bold tracking-wide ${stat.remark === "Pass" ? "bg-green-600" : stat.remark === "Fail" || stat.remark === "Failed" ? "bg-red-600" : "bg-blue-600"}`}>
-                                                            {stat.remark}
+                                                </div>
+                                                <div className="flex flex-wrap justify-between items-center border-t-2 border-slate-200 dark:border-slate-800 pt-4 gap-3 text-sm sm:text-base">
+                                                    <div>Total: <strong className="text-lg sm:text-2xl">{stat.total}</strong></div>
+                                                    <div>Percentage: <strong className="text-lg sm:text-2xl">{stat.percentage}%</strong></div>
+                                                    <div className="flex items-center gap-2">
+                                                        Remark:
+                                                        <span className={`px-3 py-1 rounded text-white font-bold text-sm ${stat.remark === "Pass" ? "bg-green-600" : stat.remark === "Fail" || stat.remark === "Failed" ? "bg-red-600" : "bg-blue-600"}`}>
+                                                            {stat.remark === "Pass" ? "Passed" : stat.remark === "Fail" ? "Failed" : stat.remark}
                                                         </span>
                                                     </div>
                                                 </div>

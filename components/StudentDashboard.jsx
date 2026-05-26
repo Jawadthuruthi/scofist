@@ -2446,9 +2446,16 @@ export default function StudentDashboard({
                       let studentTotal = 0;
                       let maxTotal = 0;
                       exam.subjects.forEach(subject => {
-                        const m = studentMarks.marks?.[subject.name] || 0;
-                        studentTotal += typeof m === 'number' ? m : 0;
-                        maxTotal += subject.maxMark || 100;
+                        const m = studentMarks.marks?.[subject.name];
+                        if (subject.subColumns && subject.subColumns.length > 0) {
+                            subject.subColumns.forEach(sc => {
+                                studentTotal += (m && typeof m === 'object') ? (Number(m[sc.name]) || 0) : 0;
+                                maxTotal += Number(sc.maxMark) || 0;
+                            });
+                        } else {
+                            studentTotal += Number(m) || 0;
+                            maxTotal += subject.maxMark || 100;
+                        }
                       });
                       const percentage = maxTotal > 0 ? ((studentTotal / maxTotal) * 100).toFixed(2) : 0;
 
@@ -2456,8 +2463,14 @@ export default function StudentDashboard({
                       const allStudentTotals = exam.students.map(s => {
                         let total = 0;
                         exam.subjects.forEach(subject => {
-                          const m = s.marks?.[subject.name] || 0;
-                          total += typeof m === 'number' ? m : 0;
+                          const m = s.marks?.[subject.name];
+                          if (subject.subColumns && subject.subColumns.length > 0) {
+                              subject.subColumns.forEach(sc => {
+                                  total += (m && typeof m === 'object') ? (Number(m[sc.name]) || 0) : 0;
+                              });
+                          } else {
+                              total += Number(m) || 0;
+                          }
                         });
                         return { studentId: s.studentId?._id || s.studentId, total };
                       });
@@ -2482,16 +2495,44 @@ export default function StudentDashboard({
                               </TableHeader>
                               <TableBody>
                                 {exam.subjects.map((subject, sIndex) => {
-                                  const mark = studentMarks.marks?.[subject.name] ?? "N/A";
-                                  const isPass = typeof mark === 'number' && mark >= (subject.passMark || 40);
+                                  const rawMark = studentMarks.marks?.[subject.name];
+                                  let markTotal = 0;
+                                  let maxMarkTotal = subject.maxMark || 100;
+                                  let isPass = true;
+                                  const hasSubCols = subject.subColumns && subject.subColumns.length > 0;
+                                  
+                                  if (hasSubCols) {
+                                      maxMarkTotal = 0;
+                                      subject.subColumns.forEach(sc => {
+                                          const scVal = (rawMark && typeof rawMark === 'object') ? (Number(rawMark[sc.name]) || 0) : 0;
+                                          markTotal += scVal;
+                                          maxMarkTotal += Number(sc.maxMark) || 0;
+                                          if (scVal < (Number(sc.passMark) || 0)) isPass = false;
+                                      });
+                                  } else {
+                                      markTotal = Number(rawMark) || 0;
+                                      if (markTotal < (subject.passMark || 40)) isPass = false;
+                                  }
+                                  
+                                  const displayMark = (rawMark === undefined || rawMark === null) ? "N/A" : markTotal;
+
                                   return (
                                     <TableRow key={`${subject.name}-${sIndex}`}>
-                                      <TableCell className="py-2 text-sm font-medium">{subject.name}</TableCell>
+                                      <TableCell className="py-2 text-sm font-medium">
+                                          {subject.name}
+                                          {hasSubCols && (
+                                              <div className="flex gap-1 text-[10px] text-muted-foreground mt-0.5">
+                                                  {subject.subColumns.map(sc => (
+                                                      <span key={sc.name}>{sc.name}: {(rawMark && typeof rawMark === 'object') ? (rawMark[sc.name] ?? "-") : "-"}</span>
+                                                  ))}
+                                              </div>
+                                          )}
+                                      </TableCell>
                                       <TableCell className="py-2 text-sm text-center">
-                                        {mark} <span className="text-xs text-muted-foreground">/ {subject.maxMark}</span>
+                                        <span className="font-semibold">{displayMark}</span> <span className="text-xs text-muted-foreground">/ {maxMarkTotal}</span>
                                       </TableCell>
                                       <TableCell className="py-2 text-center">
-                                        {typeof mark === 'number' ? (
+                                        {displayMark !== "N/A" ? (
                                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${isPass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                             {isPass ? 'Pass' : 'Fail'}
                                           </span>

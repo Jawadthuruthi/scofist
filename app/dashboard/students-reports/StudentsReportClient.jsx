@@ -29,7 +29,7 @@ const BarcodeScanner = dynamic(() => import("@/components/BarcodeScanner"), {
     ),
 });
 
-export default function StudentsReportClient({ batches, classes, apiKey, updates }) {
+export default function StudentsReportClient({ batches = [], classes = [], apiKey, updates = [] }) {
     const [selectedBatch, setSelectedBatch] = useState("");
     const [selectedClass, setSelectedClass] = useState("");
     const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -47,8 +47,8 @@ export default function StudentsReportClient({ batches, classes, apiKey, updates
     const [searchFocused, setSearchFocused] = useState(false);
     const [debtBalances, setDebtBalances] = useState([]);
 
-    // Filter classes based on selected batch
     const filteredClasses = useMemo(() => {
+        if (!Array.isArray(classes)) return [];
         if (!selectedBatch) return classes;
         return classes.filter((c) => {
             const bId = (c.batchId && typeof c.batchId === 'object') ? c.batchId._id : c.batchId;
@@ -499,7 +499,7 @@ export default function StudentsReportClient({ batches, classes, apiKey, updates
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="none">None</SelectItem>
-                            {batches.map((batch) => (
+                            {Array.isArray(batches) && batches.map((batch) => (
                                 <SelectItem key={batch._id} value={batch._id}>
                                     {batch.name} ({batch.startYear})
                                 </SelectItem>
