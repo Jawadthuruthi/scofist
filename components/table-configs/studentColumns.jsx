@@ -73,6 +73,37 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, onProfileRe
         { accessorKey: "batchName", header: "Batch" },
         { accessorKey: "className", header: "Class" },
         {
+            accessorKey: "subjectTypeAssignments",
+            header: "Subject Assignment",
+            cell: ({ row }) => {
+                const assignments = row.original.subjectTypeAssignments ||
+                    row.original.studentSpecificField?.subjectTypeAssignments || [];
+                if (!assignments.length) return <span className="text-muted-foreground text-xs">—</span>;
+                return (
+                    <div className="flex flex-col gap-0.5">
+                        {assignments.map((assignment, idx) => {
+                            const colonIdx = assignment.lastIndexOf(":");
+                            let label;
+                            if (colonIdx !== -1) {
+                                const classId = assignment.slice(0, colonIdx);
+                                const type = assignment.slice(colonIdx + 1).toUpperCase();
+                                const classObj = classes?.find((c) => c._id === classId);
+                                const shortName = classObj?.shortname || classObj?.name || classId;
+                                label = `${shortName} ${type}`;
+                            } else {
+                                label = assignment.toUpperCase();
+                            }
+                            return (
+                                <span key={idx} className="text-xs font-medium text-foreground">
+                                    {label}
+                                </span>
+                            );
+                        })}
+                    </div>
+                );
+            },
+        },
+        {
             accessorKey: "admissionClassName",
             header: pageTitle === "ADMISSION REGISTER" ? <div>Admission<br />Class</div> : "Admission Class"
         },
