@@ -72,7 +72,7 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, onProfileRe
         { accessorKey: "aadharNo", header: "Aadhar Number" },
         { accessorKey: "batchName", header: "Batch" },
         { accessorKey: "className", header: "Class" },
-        {
+        ...(pageTitle !== "ADMISSION REGISTER" ? [{
             accessorKey: "subjectTypeAssignments",
             header: "Subject Assignment",
             cell: ({ row }) => {
@@ -102,7 +102,7 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, onProfileRe
                     </div>
                 );
             },
-        },
+        }] : []),
         {
             accessorKey: "admissionClassName",
             header: pageTitle === "ADMISSION REGISTER" ? <div>Admission<br />Class</div> : "Admission Class"
