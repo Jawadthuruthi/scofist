@@ -2477,19 +2477,34 @@ export default function StudentDashboard({
                       allStudentTotals.sort((a, b) => b.total - a.total);
                       const rank = allStudentTotals.findIndex(s => s.studentId === currentUser._id) + 1;
 
+                      // Collect all unique sub-column names for this exam
+                      const subColNames = [];
+                      exam.subjects.forEach(subject => {
+                        if (subject.subColumns && subject.subColumns.length > 0) {
+                          subject.subColumns.forEach(sc => {
+                            if (!subColNames.includes(sc.name)) {
+                              subColNames.push(sc.name);
+                            }
+                          });
+                        }
+                      });
+
                       return (
                         <div key={exam._id} className="space-y-1 print-exam-card">
                           <div className="rounded-md border overflow-hidden">
                             <Table>
                               <TableHeader className="bg-muted/50">
                                 <TableRow>
-                                  <TableHead colSpan={3} className="text-center font-bold text-sm h-10 bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300">
+                                  <TableHead colSpan={3 + subColNames.length} className="text-center font-bold text-sm h-10 bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300">
                                     {exam.examName}
                                   </TableHead>
                                 </TableRow>
                                 <TableRow className="bg-muted/30">
                                   <TableHead className="py-2 text-xs">Subject</TableHead>
-                                  <TableHead className="py-2 text-xs text-center">Marks</TableHead>
+                                  {subColNames.map(name => (
+                                    <TableHead key={name} className="py-2 text-xs text-center">{name}</TableHead>
+                                  ))}
+                                  <TableHead className="py-2 text-xs text-center">Total</TableHead>
                                   <TableHead className="py-2 text-xs text-center">Result</TableHead>
                                 </TableRow>
                               </TableHeader>
@@ -2520,14 +2535,22 @@ export default function StudentDashboard({
                                     <TableRow key={`${subject.name}-${sIndex}`}>
                                       <TableCell className="py-2 text-sm font-medium">
                                           {subject.name}
-                                          {hasSubCols && (
-                                              <div className="flex gap-1 text-[10px] text-muted-foreground mt-0.5">
-                                                  {subject.subColumns.map(sc => (
-                                                      <span key={sc.name}>{sc.name}: {(rawMark && typeof rawMark === 'object') ? (rawMark[sc.name] ?? "-") : "-"}</span>
-                                                  ))}
-                                              </div>
-                                          )}
                                       </TableCell>
+                                      {subColNames.map(name => {
+                                        let val = "-";
+                                        if (hasSubCols) {
+                                          const sc = subject.subColumns.find(col => col.name === name);
+                                          if (sc) {
+                                            const scVal = (rawMark && typeof rawMark === 'object') ? rawMark[sc.name] : undefined;
+                                            val = scVal !== undefined ? scVal : "-";
+                                          }
+                                        }
+                                        return (
+                                          <TableCell key={name} className="py-2 text-sm text-center">
+                                            {val}
+                                          </TableCell>
+                                        );
+                                      })}
                                       <TableCell className="py-2 text-sm text-center">
                                         <span className="font-semibold">{displayMark}</span> <span className="text-xs text-muted-foreground">/ {maxMarkTotal}</span>
                                       </TableCell>
@@ -2543,7 +2566,7 @@ export default function StudentDashboard({
                                 })}
                                 {/* Summary Row */}
                                 <TableRow className="bg-indigo-50/30 dark:bg-indigo-950/20 font-bold border-t-2">
-                                  <TableCell className="py-2 text-sm text-indigo-700 dark:text-indigo-300">SUMMARY</TableCell>
+                                  <TableCell colSpan={1 + subColNames.length} className="py-2 text-sm text-indigo-700 dark:text-indigo-300">SUMMARY</TableCell>
                                   <TableCell className="py-2 text-sm text-center">
                                     <div className="flex flex-col">
                                       <span>{studentTotal} / {maxTotal}</span>

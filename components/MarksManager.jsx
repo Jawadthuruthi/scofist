@@ -1120,7 +1120,7 @@ export default function MarksManager({ apiKey }) {
                                                                         <div className="text-[9px] font-normal opacity-70">({sc.passMark}/{sc.maxMark})</div>
                                                                     </th>
                                                                 ))}
-                                                                <th key={`${i}-sub`} className="p-2 text-center border font-bold text-xs bg-blue-50/50 dark:bg-blue-950/50 text-foreground">Sub Total</th>
+                                                                <th key={`${i}-sub`} className="p-2 text-center border font-bold text-xs bg-blue-50/50 dark:bg-blue-950/50 text-foreground">Total</th>
                                                             </React.Fragment>
                                                         );
                                                     }
@@ -1204,6 +1204,19 @@ export default function MarksManager({ apiKey }) {
                                     (() => {
                                         const stat = resultViewStats.find(s => s.studentId === selectedStudentForIndividual);
                                         if (!stat) return <div>Student not found.</div>;
+
+                                        // Collect all unique sub-column names for this exam
+                                        const uniqueSubColNames = [];
+                                        (resultExam.subjects || []).forEach(subj => {
+                                            if (subj.subColumns && subj.subColumns.length > 0) {
+                                                subj.subColumns.forEach(sc => {
+                                                    if (!uniqueSubColNames.includes(sc.name)) {
+                                                        uniqueSubColNames.push(sc.name);
+                                                    }
+                                                });
+                                            }
+                                        });
+
                                         return (
                                             <div className="border-2 border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-8 w-full max-w-3xl shadow-lg bg-white dark:bg-slate-950 relative print-poster">
                                                 <div className="text-center mb-6 border-b pb-4">
@@ -1245,62 +1258,105 @@ export default function MarksManager({ apiKey }) {
                                                     </div>
                                                 </div>
                                                 <div className="overflow-x-auto print:overflow-visible -mx-4 sm:mx-0 print:mx-0">
-                                                    <table className="w-full text-left mb-6 border-collapse text-sm">
-                                                        <thead>
-                                                            <tr className="bg-muted/60">
-                                                                <th className="p-3 border font-bold">Subject</th>
-                                                                <th className="p-3 border text-center font-bold">Max Mark</th>
-                                                                <th className="p-3 border text-center font-bold">Marks Obtained</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {(resultExam.subjects || []).map((subj, i) => {
-                                                                const subjName = typeof subj === "string" ? subj : subj.name;
-                                                                const scs = subj.subColumns || [];
-                                                                const markVal = stat.marksMap[subjName];
+                                                    {uniqueSubColNames.length > 0 ? (
+                                                        <table className="w-full text-left mb-6 border-collapse text-sm">
+                                                            <thead>
+                                                                <tr className="bg-muted/60">
+                                                                    <th className="p-3 border font-bold">Subject</th>
+                                                                    {uniqueSubColNames.map(name => (
+                                                                        <th key={name} className="p-3 border text-center font-bold">{name}</th>
+                                                                    ))}
+                                                                    <th className="p-3 border text-center font-bold">Total</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {(resultExam.subjects || []).map((subj, i) => {
+                                                                    const subjName = typeof subj === "string" ? subj : subj.name;
+                                                                    const scs = subj.subColumns || [];
+                                                                    const markVal = stat.marksMap[subjName];
+                                                                    let subjTotal = 0;
+                                                                    let maxMarkTotal = subj.maxMark || 100;
+                                                                    let isFailed = false;
 
-                                                                if (scs.length > 0) {
-                                                                    const subjTotal = scs.reduce((sum, sc) => {
-                                                                        return sum + ((markVal && typeof markVal === "object") ? (Number(markVal[sc.name]) || 0) : 0);
-                                                                    }, 0);
+                                                                    if (scs.length > 0) {
+                                                                        subjTotal = 0;
+                                                                        maxMarkTotal = 0;
+                                                                        scs.forEach(sc => {
+                                                                            const val = (markVal && typeof markVal === "object") ? (Number(markVal[sc.name]) || 0) : 0;
+                                                                            subjTotal += val;
+                                                                            maxMarkTotal += Number(sc.maxMark) || 0;
+                                                                            if (val < (Number(sc.passMark) || 0)) isFailed = true;
+                                                                        });
+                                                                    } else {
+                                                                        subjTotal = Number(markVal) || 0;
+                                                                        if (subjTotal < (Number(subj.passMark) || 40)) isFailed = true;
+                                                                    }
+
+                                                                    const displayMark = (markVal === undefined || markVal === null) ? "N/A" : subjTotal;
+
                                                                     return (
-                                                                        <React.Fragment key={i}>
-                                                                            <tr className="bg-slate-50 dark:bg-slate-900/50">
-                                                                                <td colSpan={3} className="p-2 border font-bold text-sm bg-muted/30">{subjName}</td>
-                                                                            </tr>
-                                                                            {scs.map((sc, j) => {
-                                                                                const val = (markVal && typeof markVal === "object") ? markVal[sc.name] : undefined;
-                                                                                const isFailed = val !== undefined && val !== "" && Number(val) < (Number(sc.passMark) || 0);
+                                                                        <tr key={i}>
+                                                                            <td className="p-3 border font-medium">{subjName}</td>
+                                                                            {uniqueSubColNames.map(name => {
+                                                                                let val = "-";
+                                                                                let subFailed = false;
+                                                                                if (scs.length > 0) {
+                                                                                    const sc = scs.find(col => col.name === name);
+                                                                                    if (sc) {
+                                                                                        const scVal = (markVal && typeof markVal === "object") ? markVal[sc.name] : undefined;
+                                                                                        val = scVal !== undefined ? scVal : "-";
+                                                                                        if (scVal !== undefined && Number(scVal) < (Number(sc.passMark) || 0)) {
+                                                                                            subFailed = true;
+                                                                                        }
+                                                                                    }
+                                                                                }
                                                                                 return (
-                                                                                    <tr key={`${i}-${j}`}>
-                                                                                        <td className="p-3 border pl-6 text-muted-foreground">{sc.name}</td>
-                                                                                        <td className="p-3 border text-center">{sc.maxMark}</td>
-                                                                                        <td className={`p-3 border text-center font-semibold ${isFailed ? "text-red-600" : ""}`}>{val ?? "-"}</td>
-                                                                                    </tr>
+                                                                                    <td key={name} className={`p-3 border text-center ${subFailed ? "text-red-600 font-bold" : ""}`}>
+                                                                                        {val}
+                                                                                    </td>
                                                                                 );
                                                                             })}
-                                                                            <tr className="font-semibold bg-blue-50/30 dark:bg-blue-950/30">
-                                                                                <td className="p-3 border text-right" colSpan={2}>Sub Total ({subjName})</td>
-                                                                                <td className="p-3 border text-center text-blue-700 dark:text-blue-300">{subjTotal || "-"}</td>
-                                                                            </tr>
-                                                                        </React.Fragment>
+                                                                            <td className={`p-3 border text-center font-bold ${isFailed ? "text-red-600" : ""}`}>
+                                                                                {displayMark !== "N/A" ? (
+                                                                                    <>
+                                                                                        <span className="font-semibold">{displayMark}</span>{" "}
+                                                                                        <span className="text-xs text-muted-foreground">/ {maxMarkTotal}</span>
+                                                                                    </>
+                                                                                ) : "-"}
+                                                                            </td>
+                                                                        </tr>
                                                                     );
-                                                                }
-
-                                                                const isFailed = markVal !== undefined && markVal !== null && typeof markVal !== "object" && Number(markVal) < (Number(subj.passMark) || 0);
-                                                                return (
-                                                                    <tr key={i}>
-                                                                        <td className="p-3 border font-medium">{subjName}</td>
-                                                                        <td className="p-3 border text-center">{subj.maxMark || 100}</td>
-                                                                        <td className={`p-3 border text-center font-bold ${isFailed ? "text-red-600" : ""}`}>
-                                                                            {typeof markVal === "object" ? "-" : (markVal ?? "-")}
-                                                                        </td>
-                                                                    </tr>
-                                                                );
-                                                            })}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                    ) : (
+                                                        <table className="w-full text-left mb-6 border-collapse text-sm">
+                                                            <thead>
+                                                                <tr className="bg-muted/60">
+                                                                    <th className="p-3 border font-bold">Subject</th>
+                                                                    <th className="p-3 border text-center font-bold">Max Mark</th>
+                                                                    <th className="p-3 border text-center font-bold">Marks Obtained</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {(resultExam.subjects || []).map((subj, i) => {
+                                                                    const subjName = typeof subj === "string" ? subj : subj.name;
+                                                                    const markVal = stat.marksMap[subjName];
+                                                                    const isFailed = markVal !== undefined && markVal !== null && typeof markVal !== "object" && Number(markVal) < (Number(subj.passMark) || 40);
+                                                                    return (
+                                                                        <tr key={i}>
+                                                                            <td className="p-3 border font-medium">{subjName}</td>
+                                                                            <td className="p-3 border text-center">{subj.maxMark || 100}</td>
+                                                                            <td className={`p-3 border text-center font-bold ${isFailed ? "text-red-600" : ""}`}>
+                                                                                {typeof markVal === "object" ? "-" : (markVal ?? "-")}
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                    )}
+                                                 </div>
                                                 <div className="flex flex-wrap justify-between items-center border-t-2 border-slate-200 dark:border-slate-800 pt-4 gap-3 text-sm sm:text-base">
                                                     <div>Total: <strong className="text-lg sm:text-2xl">{stat.total}</strong></div>
                                                     <div>Percentage: <strong className="text-lg sm:text-2xl">{stat.percentage}%</strong></div>
@@ -1429,7 +1485,7 @@ export default function MarksManager({ apiKey }) {
                                                                     <div className="text-[9px] text-muted-foreground">({sc.passMark}/{sc.maxMark})</div>
                                                                 </th>
                                                             ))}
-                                                            <th key={`${i}-sub`} className="p-1 text-center border text-xs font-semibold bg-blue-50/50 dark:bg-blue-950/50 min-w-[50px]">Sub Total</th>
+                                                            <th key={`${i}-sub`} className="p-1 text-center border text-xs font-semibold bg-blue-50/50 dark:bg-blue-950/50 min-w-[50px]">Total</th>
                                                         </React.Fragment>
                                                     );
                                                 }
