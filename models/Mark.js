@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 const MarkSchema = new mongoose.Schema(
     {
         examName: { type: String, required: true },
-        classId: { type: String, ref: "Class", required: true }, // String, matches User/Class _id type
+        classId: { type: String, ref: "Class", required: false }, // kept for backward compat
+        classIds: [{ type: String }], // multi-class support
         subjects: [
             {
                 name: { type: String, required: true },

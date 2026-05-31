@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,7 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Save, Plus, Printer, Trophy, Edit, Settings, X, User } from "lucide-react";
+import { Trash2, Save, Plus, Printer, Trophy, Edit, Settings, X, User, Check, ChevronsUpDown, Search } from "lucide-react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { useReactToPrint } from "react-to-print";
@@ -34,17 +34,111 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 
+// ─── Multi-Select Dropdown ────────────────────────────────────────────────────
+function MultiSelect({ options = [], selected = [], onChange, placeholder = "Select...", disabled = false }) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState("");
+    const ref = useRef(null);
+
+    useEffect(() => {
+        const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+        document.addEventListener("mousedown", handleClick);
+        return () => document.removeEventListener("mousedown", handleClick);
+    }, []);
+
+    const filtered = options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()));
+    const selectedLabels = options.filter(o => selected.includes(o.value)).map(o => o.label);
+
+    const toggle = (value) => {
+        if (selected.includes(value)) onChange(selected.filter(v => v !== value));
+        else onChange([...selected, value]);
+    };
+
+    return (
+        <div ref={ref} className="relative">
+            <button
+                type="button"
+                disabled={disabled}
+                onClick={() => setOpen(o => !o)}
+                className={`flex items-center justify-between w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-9 ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-accent/30"}`}
+            >
+                <span className={`truncate flex-1 text-left ${selectedLabels.length === 0 ? "text-muted-foreground" : ""}`}>
+                    {selectedLabels.length === 0
+                        ? placeholder
+                        : selectedLabels.length <= 2
+                            ? selectedLabels.join(", ")
+                            : `${selectedLabels.slice(0, 2).join(", ")} +${selectedLabels.length - 2} more`}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </button>
+            {open && (
+                <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md animate-in fade-in-0 zoom-in-95">
+                    <div className="flex items-center gap-2 px-2 py-1.5 border-b">
+                        <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <input
+                            autoFocus
+                            className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+                            placeholder="Search..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                        />
+                        {search && <button onClick={() => setSearch("")}><X className="h-3 w-3 text-muted-foreground" /></button>}
+                    </div>
+                    <div className="max-h-52 overflow-y-auto py-1">
+                        {filtered.length === 0 ? (
+                            <div className="py-6 text-center text-xs text-muted-foreground">No results</div>
+                        ) : filtered.map(o => (
+                            <button
+                                key={o.value}
+                                type="button"
+                                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-accent rounded-sm"
+                                onClick={() => toggle(o.value)}
+                            >
+                                <div className={`h-4 w-4 rounded border flex items-center justify-center ${selected.includes(o.value) ? "bg-primary border-primary" : "border-input"}`}>
+                                    {selected.includes(o.value) && <Check className="h-3 w-3 text-primary-foreground" />}
+                                </div>
+                                <span className="flex-1 text-left truncate">{o.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                    {selected.length > 0 && (
+                        <div className="border-t px-2 py-1.5">
+                            <button
+                                type="button"
+                                className="text-xs text-muted-foreground hover:text-destructive w-full text-left"
+                                onClick={() => onChange([])}
+                            >Clear all</button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function MarksManager({ apiKey }) {
     const [batches, setBatches] = useState([]);
-    const [selectedBatch, setSelectedBatch] = useState("");
     const [classes, setClasses] = useState([]);
-    const [selectedClass, setSelectedClass] = useState("");
-    const [selectedClassName, setSelectedClassName] = useState("");
+
+    // ── Multi-select filters (for fetching students / creating a new exam)
+    const [selectedBatches, setSelectedBatches] = useState([]);
+    const [selectedClasses, setSelectedClasses] = useState([]);
+
+    // ── All available students fetched from selected batches/classes
+    const [availableStudents, setAvailableStudents] = useState([]);
+    // ── Students hand-picked by admin for the new exam
+    const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+    // ── Students used in the marks table (locked after "Open Marks Table")
+    const [students, setStudents] = useState([]);
+
     const [examName, setExamName] = useState("");
     const [subjects, setSubjects] = useState([{ name: "", maxMark: 100, passMark: 40, subColumns: [] }]);
-    const [students, setStudents] = useState([]);
     const [marksData, setMarksData] = useState({});
-    const [savedExams, setSavedExams] = useState([]);
+
+    // ── All saved exams (loaded on mount, always available regardless of class filter)
+    const [allExams, setAllExams] = useState([]);
+
     const [selectedExam, setSelectedExam] = useState(null);
     const [examReady, setExamReady] = useState(false);
     const [savingMarks, setSavingMarks] = useState(false);
@@ -69,14 +163,27 @@ export default function MarksManager({ apiKey }) {
     const printRef = useRef(null);
     const activeRole = Cookies.get("active-role");
 
+    // ── Refresh all exams helper
+    const refreshAllExams = useCallback(async () => {
+        try {
+            const res = await fetch("/api/marks");
+            const d = await res.json();
+            setAllExams(d.data || []);
+        } catch (e) {
+            console.error("Failed to refresh exams", e);
+        }
+    }, []);
+
+    // ── Initial load: classes, batches, institution settings, all exams
     useEffect(() => {
         if (!apiKey) return;
         const reqHeaders = { "api-key": apiKey };
         Promise.all([
-            fetch("/api/classes", { headers: reqHeaders }).then((r) => r.json()),
-            fetch("/api/batches", { headers: reqHeaders }).then((r) => r.json()),
-            fetch("/api/settings", { headers: reqHeaders }).then((r) => r.json()).catch(() => ({}))
-        ]).then(([classesData, batchesData, settingsData]) => {
+            fetch("/api/classes", { headers: reqHeaders }).then(r => r.json()),
+            fetch("/api/batches", { headers: reqHeaders }).then(r => r.json()),
+            fetch("/api/settings", { headers: reqHeaders }).then(r => r.json()).catch(() => ({})),
+            fetch("/api/marks").then(r => r.json()).catch(() => ({ data: [] })),
+        ]).then(([classesData, batchesData, settingsData, marksData]) => {
             setClasses(classesData.classes || []);
             setBatches(
                 (batchesData.batches || []).sort((a, b) => {
@@ -91,50 +198,48 @@ export default function MarksManager({ apiKey }) {
                 setInstitutionName(inst.name || "");
                 setInstitutionData(inst);
             }
+            setAllExams(marksData.data || []);
         }).catch(err => console.error("Failed to fetch initial data", err));
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // ── Fetch students whenever selected batches or classes change
     useEffect(() => {
-        if (!selectedClass) return;
-
-        let fetchUrl = `/api/users?roles=Student&status=Active`;
-        if (selectedBatch) {
-            fetchUrl = `/api/users?roles=Student&batchId=${selectedBatch}`;
-        } else {
-            fetchUrl = `/api/users?roles=Student&classId=${selectedClass}&status=Active`;
+        if (selectedBatches.length === 0 && selectedClasses.length === 0) {
+            setAvailableStudents([]);
+            setSelectedStudentIds([]);
+            return;
         }
 
-        fetch(fetchUrl)
-            .then((r) => r.json())
-            .then((d) => {
-                const s = d.users || [];
-                setStudents(s);
-                const init = {};
-                s.forEach((st) => (init[st._id] = {}));
-                setMarksData(init);
+        // Build fetch URLs for each selection
+        const promises = [];
+        selectedBatches.forEach(batchId => {
+            promises.push(
+                fetch(`/api/users?roles=Student&batchId=${batchId}`).then(r => r.json())
+            );
+        });
+        selectedClasses.forEach(classId => {
+            promises.push(
+                fetch(`/api/users?roles=Student&classId=${classId}&status=Active`).then(r => r.json())
+            );
+        });
+
+        Promise.all(promises).then(results => {
+            const map = new Map();
+            results.forEach(d => {
+                (d.users || []).forEach(u => map.set(u._id, u));
             });
-
-        fetch(`/api/marks?classId=${selectedClass}`)
-            .then((r) => r.json())
-            .then((d) => setSavedExams(d.data || []));
-
-        setSelectedExam(null);
-        setResultExam(null);
-        setExamName("");
-        setSubjects([{ name: "", maxMark: 100, passMark: 40, subColumns: [] }]);
-        setGradingScale([]);
-        setExamReady(false);
-        setSelectedSubjectIndex(null);
-        setIsAddingNewExam(false);
-        setResultType("class-wise");
-        setSelectedStudentForIndividual("");
-    }, [selectedClass]);
+            const merged = Array.from(map.values());
+            setAvailableStudents(merged);
+            // Default: all students selected
+            setSelectedStudentIds(merged.map(u => u._id));
+        }).catch(err => console.error("Failed to fetch students", err));
+    }, [selectedBatches, selectedClasses]);
 
     const loadExam = (exam) => {
         setSelectedExam(exam);
         setExamName(exam.examName);
         const examSubjects = exam.subjects?.length
-            ? exam.subjects.map((s) =>
+            ? exam.subjects.map(s =>
                 typeof s === "string"
                     ? { name: s, maxMark: 100, passMark: 40, subColumns: [] }
                     : { ...s, subColumns: s.subColumns || [] }
@@ -142,8 +247,19 @@ export default function MarksManager({ apiKey }) {
             : [{ name: "", maxMark: 100, passMark: 40, subColumns: [] }];
         setSubjects(examSubjects);
         setGradingScale(exam.gradingScale || []);
+
+        // Load students from the saved exam (independent of class filter)
+        const examStudents = (exam.students || []).map(entry => {
+            const sid = entry.studentId;
+            if (sid && typeof sid === "object") return sid; // populated
+            return { _id: sid, name: sid }; // fallback
+        }).filter(Boolean);
+        setStudents(examStudents);
+        setAvailableStudents(examStudents);
+        setSelectedStudentIds(examStudents.map(s => s._id));
+
         const md = {};
-        (exam.students || []).forEach((entry) => {
+        (exam.students || []).forEach(entry => {
             const sid = entry.studentId?._id || entry.studentId;
             let marksObj = {};
             if (entry.marks instanceof Map) {
@@ -156,8 +272,7 @@ export default function MarksManager({ apiKey }) {
                 const key = subj.name || `col${i}`;
                 const val = marksObj[key];
                 if (subj.subColumns && subj.subColumns.length > 0) {
-                    // Deserialize { CE: 45, TE: 38 } → { 0: 45, 1: 38 }
-                    if (val && typeof val === 'object') {
+                    if (val && typeof val === "object") {
                         md[sid][i] = subj.subColumns.reduce((acc, sc, j) => {
                             if (val[sc.name] !== undefined) acc[j] = val[sc.name];
                             return acc;
@@ -174,13 +289,23 @@ export default function MarksManager({ apiKey }) {
         setSelectedSubjectIndex(null);
         setResultType("class-wise");
         setSelectedStudentForIndividual("");
+        setIsAddingNewExam(false);
     };
 
     const handleOpenTable = () => {
-        if (!selectedClass || !examName.trim()) {
-            alert("Please select a class and enter an exam name.");
+        if (!examName.trim()) {
+            alert("Please enter an exam name.");
             return;
         }
+        const pickedStudents = availableStudents.filter(s => selectedStudentIds.includes(s._id));
+        if (pickedStudents.length === 0) {
+            alert("Please select at least one student.");
+            return;
+        }
+        setStudents(pickedStudents);
+        const init = {};
+        pickedStudents.forEach(st => (init[st._id] = {}));
+        setMarksData(init);
         setExamReady(true);
         setShowResult(false);
     };
@@ -192,9 +317,7 @@ export default function MarksManager({ apiKey }) {
             if (data.success) {
                 toast.success("Exam deleted successfully!");
                 setResultExam(null);
-                fetch(`/api/marks?classId=${selectedClass}`)
-                    .then((r) => r.json())
-                    .then((d) => setSavedExams(d.data || []));
+                await refreshAllExams();
             } else {
                 toast.error(data.message || "Failed to delete exam");
             }
@@ -228,7 +351,7 @@ export default function MarksManager({ apiKey }) {
                 passMark: subjectForm.subColumns.reduce((s, sc) => s + (Number(sc.passMark) || 0), 0),
               }
             : subjectForm;
-        setSubjects((prev) => {
+        setSubjects(prev => {
             const updated = [...prev];
             if (editingSubjectIndex !== null) {
                 updated[editingSubjectIndex] = finalSubject;
@@ -243,47 +366,38 @@ export default function MarksManager({ apiKey }) {
     const confirmRemoveSubject = () => {
         if (subjectToDeleteIndex === null) return;
         const index = subjectToDeleteIndex;
-        const removedKey = subjects[index].name;
-        setSubjects((prev) => prev.filter((_, i) => i !== index));
-        if (removedKey) {
-            const updated = { ...marksData };
-            Object.keys(updated).forEach((id) => {
-                const newRow = {};
-                let offset = 0;
-                for (let j = 0; j <= subjects.length; j++) {
-                    if (j === index) {
-                        offset = 1; continue;
-                    }
-                    if (updated[id][j] !== undefined) {
-                        newRow[j - offset] = updated[id][j];
-                    }
-                }
-                updated[id] = newRow;
-            });
-            setMarksData(updated);
-        }
+        setSubjects(prev => prev.filter((_, i) => i !== index));
+        const updated = { ...marksData };
+        Object.keys(updated).forEach(id => {
+            const newRow = {};
+            let offset = 0;
+            for (let j = 0; j <= subjects.length; j++) {
+                if (j === index) { offset = 1; continue; }
+                if (updated[id][j] !== undefined) newRow[j - offset] = updated[id][j];
+            }
+            updated[id] = newRow;
+        });
+        setMarksData(updated);
         setSubjectToDeleteIndex(null);
     };
 
     const handleMarkChange = (studentId, subjIdx, value, subColIdx = null) => {
         if (subColIdx === null) {
-            // Simple subject — single mark
             const maxMark = subjects[subjIdx]?.maxMark || 100;
             let finalValue = value === "" ? "" : Number(value);
             if (finalValue !== "" && finalValue > maxMark) finalValue = maxMark;
-            setMarksData((prev) => ({
+            setMarksData(prev => ({
                 ...prev,
                 [studentId]: { ...prev[studentId], [subjIdx]: finalValue },
             }));
         } else {
-            // Sub-column mark
             const sc = subjects[subjIdx]?.subColumns?.[subColIdx];
             const maxMark = sc?.maxMark || 100;
             let finalValue = value === "" ? "" : Number(value);
             if (finalValue !== "" && finalValue > maxMark) finalValue = maxMark;
-            setMarksData((prev) => {
+            setMarksData(prev => {
                 const prevSubj = prev[studentId]?.[subjIdx];
-                const prevObj = (prevSubj && typeof prevSubj === 'object') ? prevSubj : {};
+                const prevObj = (prevSubj && typeof prevSubj === "object") ? prevSubj : {};
                 return {
                     ...prev,
                     [studentId]: {
@@ -295,6 +409,23 @@ export default function MarksManager({ apiKey }) {
         }
     };
 
+    // Combine loaded students (from loaded exam) and fetched availableStudents (from current batch/class selections)
+    const studentPool = [];
+    const seenIds = new Set();
+    students.forEach(s => {
+        if (s && s._id && !seenIds.has(s._id)) {
+            studentPool.push(s);
+            seenIds.add(s._id);
+        }
+    });
+    availableStudents.forEach(s => {
+        if (s && s._id && !seenIds.has(s._id)) {
+            studentPool.push(s);
+            seenIds.add(s._id);
+        }
+    });
+    const activeStudents = studentPool.filter(st => selectedStudentIds.includes(st._id));
+
     const computeStats = () => {
         const currentSubjects = (activeRole === "Teacher" && selectedSubjectIndex !== null)
             ? [subjects[selectedSubjectIndex]]
@@ -303,7 +434,7 @@ export default function MarksManager({ apiKey }) {
             ? [selectedSubjectIndex]
             : subjects.map((_, i) => i);
 
-        const totals = students.map((st) => {
+        const totals = activeStudents.map(st => {
             let total = 0;
             let maxTotal = 0;
             let hasFailed = false;
@@ -314,10 +445,9 @@ export default function MarksManager({ apiKey }) {
 
                 if (subj.subColumns && subj.subColumns.length > 0) {
                     subj.subColumns.forEach((sc, j) => {
-                        const v = (markVal && typeof markVal === 'object') ? (Number(markVal[j]) || 0) : 0;
+                        const v = (markVal && typeof markVal === "object") ? (Number(markVal[j]) || 0) : 0;
                         total += v;
                         maxTotal += Number(sc.maxMark) || 0;
-                        // Fail if ANY sub-column mark is below its pass mark
                         if (v < (Number(sc.passMark) || 0)) hasFailed = true;
                     });
                 } else {
@@ -337,9 +467,9 @@ export default function MarksManager({ apiKey }) {
             return { studentId: st._id, total, percentage, remark };
         });
         const sorted = [...totals].sort((a, b) => Number(b.total) - Number(a.total));
-        return totals.map((t) => ({
+        return totals.map(t => ({
             ...t,
-            rank: sorted.findIndex((s) => s.studentId === t.studentId) + 1,
+            rank: sorted.findIndex(s => s.studentId === t.studentId) + 1,
         }));
     };
 
@@ -348,24 +478,33 @@ export default function MarksManager({ apiKey }) {
 
     const saveMarks = async () => {
         setSavingMarks(true);
-        // Ensure all subjects have a name to avoid Mongoose validation errors
         const validatedSubjects = subjects.map((s, i) => ({
             ...s,
-            name: s.name.trim() || `Subject ${i + 1}`
+            name: s.name.trim() || `Subject ${i + 1}`,
         }));
+
+        // Build classIds from current selections
+        const classIds = [...new Set([...selectedClasses, ...selectedBatches])];
+        // Also include class IDs from the existing exam if editing
+        if (selectedExam?.classIds?.length) {
+            selectedExam.classIds.forEach(id => { if (!classIds.includes(id)) classIds.push(id); });
+        }
+        if (selectedExam?.classId && !classIds.includes(selectedExam.classId)) {
+            classIds.push(selectedExam.classId);
+        }
 
         const payload = {
             examName,
-            classId: selectedClass,
+            classIds,
+            classId: classIds[0] || selectedExam?.classId || "",
             subjects: validatedSubjects,
             gradingScale,
-            students: students.map((st) => ({
+            students: activeStudents.map(st => ({
                 studentId: st._id,
                 marks: validatedSubjects.reduce((acc, subj, i) => {
                     if (subj.subColumns && subj.subColumns.length > 0) {
-                        // Serialize { 0: v, 1: v } → { CE: v, TE: v }
                         const markObj = marksData[st._id]?.[i];
-                        if (markObj && typeof markObj === 'object') {
+                        if (markObj && typeof markObj === "object") {
                             const scData = subj.subColumns.reduce((scAcc, sc, j) => {
                                 const v = markObj[j];
                                 if (v !== undefined && v !== "") scAcc[sc.name] = v;
@@ -396,18 +535,14 @@ export default function MarksManager({ apiKey }) {
                 setShowSavedPopup(true);
                 setTimeout(() => setShowSavedPopup(false), 2500);
                 const savedId = data.data?._id || selectedExam?._id;
-                fetch(`/api/marks?classId=${selectedClass}`)
-                    .then((r) => r.json())
-                    .then((d) => {
-                        const exams = d.data || [];
-                        setSavedExams(exams);
-                        const thisExam = exams.find((e) => e._id === savedId);
-                        if (thisExam) {
-                            setResultExam(thisExam);
-                            // Also update current subjects/marks if needed
-                            setSubjects(thisExam.subjects);
-                        }
-                    });
+                await refreshAllExams();
+                const updated = await fetch("/api/marks").then(r => r.json());
+                const exams = updated.data || [];
+                const thisExam = exams.find(e => e._id === savedId);
+                if (thisExam) {
+                    setResultExam(thisExam);
+                    setSubjects(thisExam.subjects);
+                }
                 if (!selectedExam) setSelectedExam(data.data);
             } else {
                 toast.error(data.message || "Failed to save marks");
@@ -428,20 +563,13 @@ export default function MarksManager({ apiKey }) {
             const res = await fetch(`/api/marks/${activeExamId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    gradingScale,
-                    // Send existing data to satisfy schema if needed, but the API should handle partial updates if implemented well.
-                    // Assuming partial update is supported as it's a Mongoose PUT.
-                }),
+                body: JSON.stringify({ gradingScale }),
             });
             const data = await res.json();
             if (data.success) {
                 toast.success("Grading settings saved!");
-                // Refresh exams to get updated scale everywhere
-                const r = await fetch(`/api/marks?classId=${selectedClass}`);
-                const d = await r.json();
-                setSavedExams(d.data || []);
-                setIsGradingDialogOpen(false); // Close dialog on success
+                await refreshAllExams();
+                setIsGradingDialogOpen(false);
             } else {
                 toast.error(data.message || "Failed to save settings");
             }
@@ -452,9 +580,23 @@ export default function MarksManager({ apiKey }) {
         setSavingMarks(false);
     };
 
+    // Derive a display label for the class/batch context of a result exam
+    const getExamContextLabel = (exam) => {
+        if (!exam) return "";
+        const ids = exam.classIds?.length ? exam.classIds : (exam.classId ? [exam.classId] : []);
+        const labels = ids.map(id => {
+            const cls = classes.find(c => c._id === id);
+            if (cls) return cls.name;
+            const bat = batches.find(b => b._id === id);
+            if (bat) return `${bat.name}${bat.endYear ? ` (${bat.endYear})` : ""}`;
+            return null;
+        }).filter(Boolean);
+        return labels.join(", ");
+    };
+
     const handlePrint = useReactToPrint({
         contentRef: printRef,
-        documentTitle: `${examName} - ${selectedClassName}`,
+        documentTitle: `${resultExam?.examName || examName} — Result`,
     });
 
     const computeResultStats = (exam) => {
@@ -466,7 +608,7 @@ export default function MarksManager({ apiKey }) {
                 : { ...s, subColumns: s.subColumns || [] }
         );
 
-        const totals = examStudents.map((entry) => {
+        const totals = examStudents.map(entry => {
             let marksMap = {};
             if (entry.marks instanceof Map) {
                 marksMap = Object.fromEntries(entry.marks);
@@ -478,12 +620,11 @@ export default function MarksManager({ apiKey }) {
             let maxTotal = 0;
             let hasFailed = false;
 
-            examSubjects.forEach((subj) => {
+            examSubjects.forEach(subj => {
                 const val = marksMap[subj.name];
                 if (subj.subColumns && subj.subColumns.length > 0) {
-                    // val is { CE: 45, TE: 38 }
-                    subj.subColumns.forEach((sc) => {
-                        const scVal = (val && typeof val === 'object') ? (Number(val[sc.name]) || 0) : 0;
+                    subj.subColumns.forEach(sc => {
+                        const scVal = (val && typeof val === "object") ? (Number(val[sc.name]) || 0) : 0;
                         total += scVal;
                         maxTotal += Number(sc.maxMark) || 0;
                         if (scVal < (Number(sc.passMark) || 0)) hasFailed = true;
@@ -503,8 +644,8 @@ export default function MarksManager({ apiKey }) {
                 if (matched) remark = matched.remark;
             }
             return {
-                studentId: entry.studentId?._id,
-                studentName: entry.studentId?.name,
+                studentId: entry.studentId?._id || entry.studentId,
+                studentName: entry.studentId?.name || entry.studentId,
                 total,
                 percentage,
                 marksMap,
@@ -514,9 +655,9 @@ export default function MarksManager({ apiKey }) {
         });
         const sorted = [...totals].sort((a, b) => Number(b.total) - Number(a.total));
         return totals
-            .map((t) => ({
+            .map(t => ({
                 ...t,
-                rank: sorted.findIndex((s) => s.studentId === t.studentId) + 1,
+                rank: sorted.findIndex(s => s.studentId === t.studentId) + 1,
             }))
             .sort((a, b) => a.rank - b.rank);
     };
@@ -524,8 +665,18 @@ export default function MarksManager({ apiKey }) {
     const resultViewStats = computeResultStats(resultExam);
     const hasAnySubColsResult = (resultExam?.subjects || []).some(s => (s.subColumns || []).length > 0);
 
-    const filteredClasses = classes;
+    // ── Class options filtered by selected batches
+    const filteredClasses = selectedBatches.length > 0
+        ? classes.filter(c => {
+            // If class has a batchId field, filter by it
+            return selectedBatches.some(bId => c.batchId === bId || (Array.isArray(c.batchIds) && c.batchIds.includes(bId)));
+        })
+        : classes;
 
+    // Use all classes if none match (fall back to show all)
+    const classOptions = (filteredClasses.length > 0 ? filteredClasses : classes).map(c => ({ value: c._id, label: c.name }));
+    const batchOptions = batches.map(b => ({ value: b._id, label: `${b.name}${b.endYear ? ` (${b.endYear})` : ""}` }));
+    const studentOptions = availableStudents.map(s => ({ value: s._id, label: `${s.name} (${s._id})` }));
 
     return (
         <div className="space-y-6">
@@ -543,210 +694,298 @@ export default function MarksManager({ apiKey }) {
                     </div>
                 </div>
             )}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-end print:hidden">
-                {/* Mode */}
-                <div className="col-span-1 order-1 md:order-1">
-                    <label className="text-sm font-medium mb-1 block">Mode</label>
-                    <Select
-                        value={showResult ? "result" : "entry"}
-                        onValueChange={(val) => setShowResult(val === "result")}
-                    >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="entry">Marks Entry</SelectItem>
-                            <SelectItem value="result">Result View</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
 
-                {/* Batch */}
-                <div className="col-span-1 order-2 md:order-2">
-                    <label className="text-sm font-medium mb-1 block">Batch</label>
-                    <Select
-                        value={selectedBatch || "none"}
-                        onValueChange={(val) => {
-                            setSelectedBatch(val === "none" ? "" : val);
-                            setSelectedClass(""); 
-                        }}
-                    >
-                        <SelectTrigger><SelectValue placeholder="Select Batch" /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">All/No Batch</SelectItem>
-                            {[...batches].sort((a, b) => (b.endYear || 0) - (a.endYear || 0)).map(b => (
-                                <SelectItem key={b._id} value={b._id}>
-                                    {b.name}{b.endYear ? ` (${b.endYear})` : ''}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+            {/* ── Top Control Bar ────────────────────────────────────────────── */}
+            <div className="space-y-3 print:hidden">
+                {!showResult ? (
+                    // Marks Entry Controls
+                    activeRole === "Teacher" ? (
+                        // Teacher: mode, exam name, subject
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                            {/* Mode */}
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Mode</label>
+                                <Select
+                                    value="entry"
+                                    onValueChange={val => {
+                                        if (val === "result") {
+                                            setShowResult(true);
+                                            setResultExam(null);
+                                            setResultType("class-wise");
+                                            setSelectedStudentForIndividual("");
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="entry">Marks Entry</SelectItem>
+                                        <SelectItem value="result">Result View</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-                {/* Class */}
-                <div className="col-span-1 order-3 md:order-3">
-                    <label className="text-sm font-medium mb-1 block">Class</label>
-                    <Select
-                        value={selectedClass || "none"}
-                        onValueChange={(val) => {
-                            const targetClass = val === "none" ? "" : val;
-                            setSelectedClass(targetClass);
-                            const cls = classes.find((c) => c._id === targetClass);
-                            setSelectedClassName(cls?.name || "");
-                        }}
-                    >
-                        <SelectTrigger><SelectValue placeholder="Choose class..." /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">All/No Class</SelectItem>
-                            {filteredClasses.map((cls) => (
-                                <SelectItem key={cls._id} value={cls._id}>{cls.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                {/* Result Type Dropdown */}
-                {showResult && resultExam && (
-                    <div className="col-span-1 order-4 md:order-5">
-                        <label className="text-sm font-medium mb-1 block">Result Type</label>
-                        <Select
-                            value={resultType}
-                            onValueChange={(val) => {
-                                setResultType(val);
-                                if (val === "class-wise") setSelectedStudentForIndividual("");
-                            }}
-                        >
-                            <SelectTrigger><SelectValue placeholder="Type..." /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="class-wise">Class Wise</SelectItem>
-                                <SelectItem value="individual">Individual</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
-
-                {/* Exam Name */}
-                <div className="col-span-2 md:col-span-1 order-5 md:order-4 w-full">
-                    <label className="text-sm font-medium mb-1 block">Exam Name</label>
-                    {showResult ? (
-                        <Select
-                            value={resultExam?._id || ""}
-                            onValueChange={(val) => {
-                                const exam = savedExams.find((e) => e._id === val);
-                                setResultExam(exam || null);
-                                if (exam && activeRole !== "Teacher") {
-                                    setExamName(exam.examName);
-                                    setGradingScale(exam.gradingScale || []);
-                                }
-                            }}
-                        >
-                            <SelectTrigger><SelectValue placeholder="Select exam..." /></SelectTrigger>
-                            <SelectContent>
-                                {savedExams.map((exam) => (
-                                    <SelectItem key={exam._id} value={exam._id}>{exam.examName}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    ) : (
-                        <>
-                            {activeRole === "Teacher" || (activeRole !== "Teacher" && !isAddingNewExam && !examReady) ? (
+                            {/* Exam Name */}
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Exam Name</label>
                                 <Select
                                     value={selectedExam?._id || ""}
-                                    onValueChange={(val) => {
-                                        if (val === "NEW_EXAM") {
-                                            setIsAddingNewExam(true);
-                                            setSelectedExam(null);
-                                            setExamName("");
-                                            setGradingScale([]);
-                                            return;
-                                        }
-                                        const exam = savedExams.find((e) => e._id === val);
-                                        if (exam) {
-                                            loadExam(exam);
-                                        } else {
-                                            setSelectedExam(null);
-                                            setExamName("");
-                                            setSubjects([{ name: "", maxMark: 100, passMark: 40, subColumns: [] }]);
-                                            setGradingScale([]);
-                                            setExamReady(false);
-                                        }
+                                    onValueChange={val => {
+                                        const exam = allExams.find(e => e._id === val);
+                                        if (exam) { loadExam(exam); }
+                                        else { setSelectedExam(null); setExamName(""); setSubjects([{ name: "", maxMark: 100, passMark: 40, subColumns: [] }]); setGradingScale([]); setExamReady(false); }
                                     }}
                                 >
                                     <SelectTrigger><SelectValue placeholder="Select exam..." /></SelectTrigger>
                                     <SelectContent>
-                                        {activeRole !== "Teacher" && (
-                                            <SelectItem value="NEW_EXAM" className="font-semibold text-primary">+ Add New Exam</SelectItem>
-                                        )}
-                                        {savedExams.map((exam) => (
+                                        {allExams.map(exam => (
                                             <SelectItem key={exam._id} value={exam._id}>{exam.examName}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                            ) : (
-                                <div className="flex gap-1 items-center">
-                                    <Input
-                                        autoFocus
-                                        placeholder="e.g. First Term Exam"
-                                        value={examName}
-                                        onChange={(e) => setExamName(e.target.value)}
-                                        onKeyDown={(e) => e.key === "Enter" && !examReady && handleOpenTable()}
-                                        className="flex-1"
-                                    />
-                                    {isAddingNewExam && !examReady && (
-                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setIsAddingNewExam(false)} title="Back to dropdown">
-                                            <X className="w-3 h-3" />
-                                        </Button>
-                                    )}
+                            </div>
+
+                            {/* Subject */}
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Subject</label>
+                                <Select
+                                    disabled={!examReady || subjects.length === 0}
+                                    value={selectedSubjectIndex !== null ? selectedSubjectIndex.toString() : ""}
+                                    onValueChange={val => setSelectedSubjectIndex(val === "" ? null : Number(val))}
+                                >
+                                    <SelectTrigger><SelectValue placeholder={!examReady ? "Select exam first..." : "Select subject..."} /></SelectTrigger>
+                                    <SelectContent>
+                                        {subjects.map((subj, i) => (
+                                            <SelectItem key={i} value={i.toString()}>{subj.name || `Subject ${i + 1}`}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    ) : (
+                        // College Admin: mode, batch, class, students, exam name
+                        <div className="space-y-3">
+                            {/* Row 1: Mode, Batch, Class */}
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 items-end">
+                                {/* Mode */}
+                                <div className="col-span-1">
+                                    <label className="text-sm font-medium mb-1 block">Mode</label>
+                                    <Select
+                                        value="entry"
+                                        onValueChange={val => {
+                                            if (val === "result") {
+                                                setShowResult(true);
+                                                setResultExam(null);
+                                                setResultType("class-wise");
+                                                setSelectedStudentForIndividual("");
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="entry">Marks Entry</SelectItem>
+                                            <SelectItem value="result">Result View</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
-                            )}
-                        </>
-                    )}
-                </div>
 
-                {/* Select Student */}
-                {showResult && resultType === "individual" && resultExam && (
-                    <div className="col-span-2 md:col-span-1 order-6 w-full">
-                        <label className="text-sm font-medium mb-1 block">Select Student</label>
-                        <ComboBox
-                            items={resultViewStats.map(st => ({
-                                value: st.studentId,
-                                label: `${st.studentName} (${st.studentId})`
-                            }))}
-                            value={selectedStudentForIndividual}
-                            onSelect={setSelectedStudentForIndividual}
-                            placeholder="Search student..."
-                        />
+                                {/* Batch */}
+                                <div className="col-span-1">
+                                    <label className="text-sm font-medium mb-1 block">Batch(es)</label>
+                                    <MultiSelect
+                                        options={batchOptions}
+                                        selected={selectedBatches}
+                                        onChange={setSelectedBatches}
+                                        placeholder="Select batches..."
+                                    />
+                                </div>
+
+                                {/* Class */}
+                                <div className="col-span-2 md:col-span-1">
+                                    <label className="text-sm font-medium mb-1 block">Class(es)</label>
+                                    <MultiSelect
+                                        options={classOptions}
+                                        selected={selectedClasses}
+                                        onChange={setSelectedClasses}
+                                        placeholder="Select classes..."
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Row 2: Students, Exam Name */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+                                {/* Students */}
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block">
+                                        Students
+                                        {availableStudents.length > 0 && (
+                                            <span className="ml-1 text-[10px] text-muted-foreground font-normal">
+                                                ({selectedStudentIds.length}/{availableStudents.length})
+                                            </span>
+                                        )}
+                                    </label>
+                                    <MultiSelect
+                                        options={studentOptions}
+                                        selected={selectedStudentIds}
+                                        onChange={setSelectedStudentIds}
+                                        placeholder={availableStudents.length === 0 ? "Select class/batch..." : "Select students..."}
+                                        disabled={availableStudents.length === 0}
+                                    />
+                                </div>
+
+                                {/* Exam Name */}
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block">Exam Name</label>
+                                    <Select
+                                        value={isAddingNewExam ? "NEW_EXAM" : (selectedExam?._id || "")}
+                                        onValueChange={val => {
+                                            if (val === "NEW_EXAM") {
+                                                setIsAddingNewExam(true); setSelectedExam(null); setExamName(""); setGradingScale([]); setExamReady(false); setStudents([]); setMarksData({});
+                                                return;
+                                            }
+                                            const exam = allExams.find(e => e._id === val);
+                                            if (exam) { loadExam(exam); }
+                                            else { setSelectedExam(null); setIsAddingNewExam(false); setExamName(""); setSubjects([{ name: "", maxMark: 100, passMark: 40, subColumns: [] }]); setGradingScale([]); setExamReady(false); }
+                                        }}
+                                    >
+                                        <SelectTrigger><SelectValue placeholder="Select exam..." /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="NEW_EXAM" className="font-semibold text-primary">+ Add New Exam</SelectItem>
+                                            {allExams.map(exam => (
+                                                <SelectItem key={exam._id} value={exam._id}>{exam.examName}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                ) : (
+                    // Result View Controls: mode, exam name, result type, select student
+                    <div className={`grid grid-cols-2 gap-3 items-end ${resultType === "individual" ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+                        {/* Mode */}
+                        <div className="col-span-1 order-1 md:order-1">
+                            <label className="text-sm font-medium mb-1 block">Mode</label>
+                            <Select
+                                value="result"
+                                onValueChange={val => {
+                                    if (val === "entry") {
+                                        setShowResult(false);
+                                        setResultExam(null);
+                                        setResultType("class-wise");
+                                        setSelectedStudentForIndividual("");
+                                    }
+                                }}
+                            >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="entry">Marks Entry</SelectItem>
+                                    <SelectItem value="result">Result View</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Result Type */}
+                        <div className="col-span-1 order-2 md:order-3">
+                            <label className="text-sm font-medium mb-1 block">Result Type</label>
+                            <Select
+                                disabled={!resultExam}
+                                value={resultExam ? resultType : ""}
+                                onValueChange={val => {
+                                    setResultType(val);
+                                    if (val === "class-wise") setSelectedStudentForIndividual("");
+                                }}
+                            >
+                                <SelectTrigger><SelectValue placeholder="Type..." /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="class-wise">Class Wise</SelectItem>
+                                    <SelectItem value="individual">Individual</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Exam Name */}
+                        <div className="col-span-2 md:col-span-1 order-3 md:order-2">
+                            <label className="text-sm font-medium mb-1 block">Exam Name</label>
+                            <Select
+                                value={resultExam?._id || ""}
+                                onValueChange={val => {
+                                    const exam = allExams.find(e => e._id === val);
+                                    setResultExam(exam || null);
+                                    if (exam && activeRole !== "Teacher") {
+                                        setExamName(exam.examName);
+                                        setGradingScale(exam.gradingScale || []);
+                                    }
+                                    setResultType("class-wise");
+                                    setSelectedStudentForIndividual("");
+                                }}
+                            >
+                                <SelectTrigger><SelectValue placeholder="Select exam..." /></SelectTrigger>
+                                <SelectContent>
+                                    {allExams.map(exam => (
+                                        <SelectItem key={exam._id} value={exam._id}>{exam.examName}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Select Student */}
+                        {resultType === "individual" && (
+                            <div className="col-span-2 md:col-span-1 order-4 md:order-4">
+                                <label className="text-sm font-medium mb-1 block">Select Student</label>
+                                <ComboBox
+                                    items={resultViewStats.map(st => ({
+                                        value: st.studentId,
+                                        label: `${st.studentName} (${st.studentId})`
+                                    }))}
+                                    value={selectedStudentForIndividual}
+                                    onSelect={setSelectedStudentForIndividual}
+                                    placeholder="Search student..."
+                                />
+                            </div>
+                        )}
                     </div>
                 )}
 
-                {/* Subject Selection for Teachers */}
-                {!showResult && examReady && activeRole === "Teacher" && (
-                    <div className="col-span-2 md:col-span-1 order-7 w-full">
-                        <label className="text-sm font-medium mb-1 block">Subject</label>
-                        <Select
-                            value={selectedSubjectIndex !== null ? selectedSubjectIndex.toString() : ""}
-                            onValueChange={(val) => setSelectedSubjectIndex(val === "" ? null : Number(val))}
-                        >
-                            <SelectTrigger><SelectValue placeholder="Select subject..." /></SelectTrigger>
-                            <SelectContent>
-                                {subjects.map((subj, i) => (
-                                    <SelectItem key={i} value={i.toString()}>{subj.name || `Subject ${i + 1}`}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
-
-                {/* Marks Entry button */}
-                {!showResult && !examReady && (
-                    <div className="col-span-2 md:col-span-1 order-8 w-full sm:w-auto">
-                        <Button className="w-full sm:w-auto" onClick={handleOpenTable} disabled={!selectedClass || !examName.trim()}>
-                            <Save className="w-4 h-4 mr-2" />
-                            Marks Entry
-                        </Button>
+                {/* Extras/Secondary line for adding new exam or result configuration */}
+                {/* 1. Add New Exam Extra Inputs (College Admin in Mark Entry mode) */}
+                {!showResult && activeRole !== "Teacher" && isAddingNewExam && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end border border-dashed rounded-lg p-3 bg-muted/10">
+                        <div className="md:col-span-2">
+                            <label className="text-sm font-medium mb-1 block">New Exam Name</label>
+                            <div className="flex gap-2 items-center">
+                                <Input
+                                    autoFocus
+                                    placeholder="e.g. First Term Exam"
+                                    value={examName}
+                                    onChange={e => setExamName(e.target.value)}
+                                    onKeyDown={e => e.key === "Enter" && examName.trim() && handleOpenTable()}
+                                />
+                                <Button
+                                    size="icon" variant="ghost" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                                    onClick={() => { setIsAddingNewExam(false); setExamName(""); setSelectedBatches([]); setSelectedClasses([]); setAvailableStudents([]); setSelectedStudentIds([]); }}
+                                    title="Cancel"
+                                >
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        </div>
+                        <div>
+                            <Button
+                                onClick={handleOpenTable}
+                                disabled={!examName.trim() || selectedStudentIds.length === 0}
+                                className="w-full gap-2"
+                            >
+                                <Save className="w-4 h-4" />
+                                Open Marks Table
+                            </Button>
+                        </div>
                     </div>
                 )}
             </div>
 
-            {/* ── Results View */}
+
+
+            {/* ── Results View ──────────────────────────────────────────────── */}
             {showResult && (
                 <div className="rounded border overflow-x-auto print:overflow-visible">
                     <div className="bg-muted px-4 py-3 flex items-center justify-between print:hidden">
@@ -814,10 +1053,9 @@ export default function MarksManager({ apiKey }) {
                     {resultExam ? (
                         resultType === "class-wise" ? (
                             <div ref={printRef} className="p-0 sm:p-4 bg-white dark:bg-transparent">
-                                {/* PDF/Print Header (Visible only in print) */}
+                                {/* PDF/Print Header */}
                                 <div className="hidden print:block mb-4">
                                     <div className="flex items-center justify-between px-6 py-4 border-b-2 border-gray-300">
-                                        {/* Left: Logo + Name */}
                                         <div className="flex items-center gap-4">
                                             {institutionData?.logo?.url && (
                                                 <img src={institutionData.logo.url} alt="Logo" className="w-16 h-16 object-contain" />
@@ -827,7 +1065,6 @@ export default function MarksManager({ apiKey }) {
                                                 {institutionData?.tagline && <p className="text-sm text-gray-600 italic">{institutionData.tagline}</p>}
                                             </div>
                                         </div>
-                                        {/* Right: Contact */}
                                         <div className="text-right text-xs text-gray-600 space-y-0.5">
                                             {institutionData?.address && <p>{institutionData.address}</p>}
                                             {institutionData?.contact?.primaryPhone && <p>Phone: {institutionData.contact.primaryPhone}{institutionData?.contact?.secondaryPhone ? `, ${institutionData.contact.secondaryPhone}` : ""}</p>}
@@ -835,11 +1072,11 @@ export default function MarksManager({ apiKey }) {
                                         </div>
                                     </div>
                                     <div className="bg-black text-white text-center py-1.5">
-                                        <h2 className="text-base font-semibold">{resultExam.examName} — Result</h2>
+                                        <h2 className="text-base font-semibold">Result</h2>
                                     </div>
-                                    {selectedClassName && (
+                                    {getExamContextLabel(resultExam) && (
                                         <div className="bg-gray-100 text-center py-1 border-b border-gray-300">
-                                            <p className="text-sm font-medium text-gray-700">{selectedClassName}{batches.find(b => b._id === selectedBatch) ? ` · ${batches.find(b => b._id === selectedBatch).name}${batches.find(b => b._id === selectedBatch).endYear ? ` (${batches.find(b => b._id === selectedBatch).endYear})` : ""}` : ""}</p>
+                                            <p className="text-sm font-medium text-gray-700">{getExamContextLabel(resultExam)}</p>
                                         </div>
                                     )}
                                 </div>
@@ -861,7 +1098,7 @@ export default function MarksManager({ apiKey }) {
                                                 }
                                                 return (
                                                     <th key={i} rowSpan={hasAnySubColsResult ? 2 : 1} className="p-3 text-center border font-bold">
-                                                        {typeof s === 'string' ? s : (s.name || `Col ${i + 1}`)}
+                                                        {typeof s === "string" ? s : (s.name || `Col ${i + 1}`)}
                                                         {s.maxMark && <div className="text-[10px] font-normal opacity-70">Max: {s.maxMark}</div>}
                                                     </th>
                                                 );
@@ -883,7 +1120,7 @@ export default function MarksManager({ apiKey }) {
                                                                         <div className="text-[9px] font-normal opacity-70">({sc.passMark}/{sc.maxMark})</div>
                                                                     </th>
                                                                 ))}
-                                                                <th key={`${i}-sub`} className="p-2 text-center border font-bold text-xs bg-blue-50/50 dark:bg-blue-950/50">Sub Total</th>
+                                                                <th key={`${i}-sub`} className="p-2 text-center border font-bold text-xs bg-blue-50/50 dark:bg-blue-950/50 text-foreground">Sub Total</th>
                                                             </React.Fragment>
                                                         );
                                                     }
@@ -893,7 +1130,7 @@ export default function MarksManager({ apiKey }) {
                                         )}
                                     </thead>
                                     <tbody>
-                                        {resultViewStats.map((stat) => (
+                                        {resultViewStats.map(stat => (
                                             <tr
                                                 key={stat.studentId}
                                                 className={`border ${stat.rank === 1
@@ -906,31 +1143,25 @@ export default function MarksManager({ apiKey }) {
                                                     }`}
                                             >
                                                 <td className="p-2 text-center font-bold text-lg border">
-                                                    {stat.rank === 1
-                                                        ? "🥇"
-                                                        : stat.rank === 2
-                                                            ? "🥈"
-                                                            : stat.rank === 3
-                                                                ? "🥉"
-                                                                : stat.rank}
+                                                    {stat.rank === 1 ? "🥇" : stat.rank === 2 ? "🥈" : stat.rank === 3 ? "🥉" : stat.rank}
                                                 </td>
                                                 <td className="p-2 font-medium border">{stat.studentId}</td>
                                                 <td className="p-2 font-medium border">{stat.studentName}</td>
                                                 {(resultExam.subjects || []).map((subj, i) => {
-                                                    const subjName = typeof subj === 'string' ? subj : subj.name;
+                                                    const subjName = typeof subj === "string" ? subj : subj.name;
                                                     const scs = subj.subColumns || [];
                                                     const markVal = stat.marksMap[subjName];
                                                     if (scs.length > 0) {
                                                         const subjTotal = scs.reduce((sum, sc) => {
-                                                            return sum + ((markVal && typeof markVal === 'object') ? (Number(markVal[sc.name]) || 0) : 0);
+                                                            return sum + ((markVal && typeof markVal === "object") ? (Number(markVal[sc.name]) || 0) : 0);
                                                         }, 0);
                                                         return (
                                                             <React.Fragment key={i}>
                                                                 {scs.map((sc, j) => {
-                                                                    const val = (markVal && typeof markVal === 'object') ? markVal[sc.name] : undefined;
+                                                                    const val = (markVal && typeof markVal === "object") ? markVal[sc.name] : undefined;
                                                                     const isFailed = val !== undefined && val !== "" && Number(val) < (Number(sc.passMark) || 0);
                                                                     return (
-                                                                        <td key={`${i}-${j}`} className={`p-2 text-center border ${isFailed ? 'text-red-600 font-bold' : ''}`}>
+                                                                        <td key={`${i}-${j}`} className={`p-2 text-center border ${isFailed ? "text-red-600 font-bold" : ""}`}>
                                                                             {val ?? "-"}
                                                                         </td>
                                                                     );
@@ -939,19 +1170,15 @@ export default function MarksManager({ apiKey }) {
                                                             </React.Fragment>
                                                         );
                                                     }
-                                                    const isFailed = markVal !== undefined && markVal !== null && typeof markVal !== 'object' && Number(markVal) < (Number(subj.passMark) || 0);
+                                                    const isFailed = markVal !== undefined && markVal !== null && typeof markVal !== "object" && Number(markVal) < (Number(subj.passMark) || 0);
                                                     return (
-                                                        <td key={i} className={`p-2 text-center border ${isFailed ? 'text-red-600 font-bold' : ''}`}>
-                                                            {typeof markVal === 'object' ? '-' : (markVal ?? "-")}
+                                                        <td key={i} className={`p-2 text-center border ${isFailed ? "text-red-600 font-bold" : ""}`}>
+                                                            {typeof markVal === "object" ? "-" : (markVal ?? "-")}
                                                         </td>
                                                     );
                                                 })}
-                                                <td className="p-2 text-center font-bold border text-blue-700 dark:text-blue-300 print:text-black">
-                                                    {stat.total}
-                                                </td>
-                                                <td className="p-2 text-center font-bold border text-green-700 dark:text-green-300 print:text-black">
-                                                    {stat.percentage}%
-                                                </td>
+                                                <td className="p-2 text-center font-bold border text-blue-700 dark:text-blue-300 print:text-black">{stat.total}</td>
+                                                <td className="p-2 text-center font-bold border text-green-700 dark:text-green-300 print:text-black">{stat.percentage}%</td>
                                                 <td className={`p-2 text-center font-bold border ${stat.remark === "Pass" ? "text-green-600 print:text-green-700" : stat.remark === "Fail" || stat.remark === "Failed" ? "text-red-600 print:text-red-700" : "text-blue-600 print:text-blue-700"}`}>
                                                     {stat.remark === "Pass" ? "Passed" : stat.remark === "Fail" ? "Failed" : stat.remark}
                                                 </td>
@@ -962,42 +1189,12 @@ export default function MarksManager({ apiKey }) {
 
                                 <style jsx global>{`
                                     @media print {
-                                        @page {
-                                            size: auto;
-                                            margin: 10mm;
-                                        }
-                                        html, body {
-                                            width: 100% !important;
-                                            max-width: 100% !important;
-                                            min-width: 0 !important;
-                                            margin: 0 !important;
-                                            padding: 0 !important;
-                                            background: white !important;
-                                            overflow: visible !important;
-                                        }
-                                        * {
-                                            overflow: visible !important;
-                                            -webkit-overflow-scrolling: auto !important;
-                                        }
-                                        table {
-                                            width: 100% !important;
-                                            border-collapse: collapse !important;
-                                            border-spacing: 0 !important;
-                                            font-size: 9pt !important;
-                                        }
-                                        th, td {
-                                            border: 0.5pt solid black !important;
-                                            padding: 3px 6px !important;
-                                            line-height: 1.2 !important;
-                                            background-color: transparent !important;
-                                            -webkit-print-color-adjust: exact;
-                                            print-color-adjust: exact;
-                                            white-space: normal !important;
-                                            word-break: break-word !important;
-                                        }
-                                        tr {
-                                            break-inside: avoid;
-                                        }
+                                        @page { size: auto; margin: 10mm; }
+                                        html, body { width: 100% !important; max-width: 100% !important; min-width: 0 !important; margin: 0 !important; padding: 0 !important; background: white !important; overflow: visible !important; }
+                                        * { overflow: visible !important; -webkit-overflow-scrolling: auto !important; }
+                                        table { width: 100% !important; border-collapse: collapse !important; border-spacing: 0 !important; font-size: 9pt !important; }
+                                        th, td { border: 0.5pt solid black !important; padding: 3px 6px !important; line-height: 1.2 !important; background-color: transparent !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; white-space: normal !important; word-break: break-word !important; }
+                                        tr { break-inside: avoid; }
                                     }
                                 `}</style>
                             </div>
@@ -1012,11 +1209,7 @@ export default function MarksManager({ apiKey }) {
                                                 <div className="text-center mb-6 border-b pb-4">
                                                     <div className="flex items-center justify-center gap-3 mb-2">
                                                         {institutionData?.logo?.url && (
-                                                            <img
-                                                                src={institutionData.logo.url}
-                                                                alt="Institution Logo"
-                                                                className="w-10 h-10 sm:w-16 sm:h-16 object-contain shrink-0"
-                                                            />
+                                                            <img src={institutionData.logo.url} alt="Institution Logo" className="w-10 h-10 sm:w-16 sm:h-16 object-contain shrink-0" />
                                                         )}
                                                         <div className="text-center min-w-0">
                                                             <h2 className="text-base sm:text-2xl font-bold uppercase tracking-wide text-primary leading-tight break-words">
@@ -1027,9 +1220,9 @@ export default function MarksManager({ apiKey }) {
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <p className="text-muted-foreground text-sm sm:text-base">
-                                                        {selectedClassName} {batches.find(b => b._id === selectedBatch) ? `${batches.find(b => b._id === selectedBatch).name}${batches.find(b => b._id === selectedBatch).endYear ? ` (${batches.find(b => b._id === selectedBatch).endYear})` : ''}` : ""}
-                                                    </p>
+                                                    {getExamContextLabel(resultExam) && (
+                                                        <p className="text-muted-foreground text-sm sm:text-base">{getExamContextLabel(resultExam)}</p>
+                                                    )}
                                                     <p className="text-xs sm:text-sm font-semibold mt-2 bg-muted inline-block px-3 py-1 rounded-full">
                                                         {resultExam.examName}
                                                     </p>
@@ -1037,11 +1230,9 @@ export default function MarksManager({ apiKey }) {
                                                 <div className="flex items-center gap-3 sm:gap-6 mb-6 bg-slate-50 dark:bg-slate-900 p-3 sm:p-6 rounded-lg border">
                                                     <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-muted border-4 border-white dark:border-slate-800 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
                                                         {(() => {
-                                                            const studentObj = students.find(s => s._id === selectedStudentForIndividual || s.admissionNumber === selectedStudentForIndividual || s.admissionNumber === stat.studentId || s._id === stat.studentId);
+                                                            const studentObj = students.find(s => s._id === selectedStudentForIndividual || s._id === stat.studentId);
                                                             const photoUrl = studentObj?.profilePic?.url || studentObj?.photo?.url;
-                                                            if (photoUrl) {
-                                                                return <img src={photoUrl} alt="Student" className="w-full h-full object-cover" />;
-                                                            }
+                                                            if (photoUrl) return <img src={photoUrl} alt="Student" className="w-full h-full object-cover" />;
                                                             return <User className="w-8 h-8 sm:w-12 sm:h-12 text-slate-400" />;
                                                         })()}
                                                     </div>
@@ -1054,62 +1245,61 @@ export default function MarksManager({ apiKey }) {
                                                     </div>
                                                 </div>
                                                 <div className="overflow-x-auto print:overflow-visible -mx-4 sm:mx-0 print:mx-0">
-                                                <table className="w-full text-left mb-6 border-collapse text-sm">
-                                                    <thead>
-                                                        <tr className="bg-muted/60">
-                                                            <th className="p-3 border font-bold">Subject</th>
-                                                            <th className="p-3 border text-center font-bold">Max Mark</th>
-                                                            <th className="p-3 border text-center font-bold">Marks Obtained</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {(resultExam.subjects || []).map((subj, i) => {
-                                                            const subjName = typeof subj === 'string' ? subj : subj.name;
-                                                            const scs = subj.subColumns || [];
-                                                            const markVal = stat.marksMap[subjName];
-                                                            
-                                                            if (scs.length > 0) {
-                                                                const subjTotal = scs.reduce((sum, sc) => {
-                                                                    return sum + ((markVal && typeof markVal === 'object') ? (Number(markVal[sc.name]) || 0) : 0);
-                                                                }, 0);
-                                                                
-                                                                return (
-                                                                    <React.Fragment key={i}>
-                                                                        <tr className="bg-slate-50 dark:bg-slate-900/50">
-                                                                            <td colSpan={3} className="p-2 border font-bold text-sm bg-muted/30">{subjName}</td>
-                                                                        </tr>
-                                                                        {scs.map((sc, j) => {
-                                                                            const val = (markVal && typeof markVal === 'object') ? markVal[sc.name] : undefined;
-                                                                            const isFailed = val !== undefined && val !== "" && Number(val) < (Number(sc.passMark) || 0);
-                                                                            return (
-                                                                                <tr key={`${i}-${j}`}>
-                                                                                    <td className="p-3 border pl-6 text-muted-foreground">{sc.name}</td>
-                                                                                    <td className="p-3 border text-center">{sc.maxMark}</td>
-                                                                                    <td className={`p-3 border text-center font-semibold ${isFailed ? 'text-red-600' : ''}`}>{val ?? "-"}</td>
-                                                                                </tr>
-                                                                            )
-                                                                        })}
-                                                                        <tr className="font-semibold bg-blue-50/30 dark:bg-blue-950/30">
-                                                                            <td className="p-3 border text-right" colSpan={2}>Sub Total ({subjName})</td>
-                                                                            <td className="p-3 border text-center text-blue-700 dark:text-blue-300">{subjTotal || "-"}</td>
-                                                                        </tr>
-                                                                    </React.Fragment>
-                                                                );
-                                                            }
+                                                    <table className="w-full text-left mb-6 border-collapse text-sm">
+                                                        <thead>
+                                                            <tr className="bg-muted/60">
+                                                                <th className="p-3 border font-bold">Subject</th>
+                                                                <th className="p-3 border text-center font-bold">Max Mark</th>
+                                                                <th className="p-3 border text-center font-bold">Marks Obtained</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {(resultExam.subjects || []).map((subj, i) => {
+                                                                const subjName = typeof subj === "string" ? subj : subj.name;
+                                                                const scs = subj.subColumns || [];
+                                                                const markVal = stat.marksMap[subjName];
 
-                                                            const isFailed = markVal !== undefined && markVal !== null && typeof markVal !== 'object' && Number(markVal) < (Number(subj.passMark) || 0);
-                                                            return (
-                                                                <tr key={i}>
-                                                                    <td className="p-3 border font-medium">{subjName}</td>
-                                                                    <td className="p-3 border text-center">{subj.maxMark || 100}</td>
-                                                                    <td className={`p-3 border text-center font-bold ${isFailed ? 'text-red-600' : ''}`}>
-                                                                        {typeof markVal === 'object' ? '-' : (markVal ?? "-")}
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
+                                                                if (scs.length > 0) {
+                                                                    const subjTotal = scs.reduce((sum, sc) => {
+                                                                        return sum + ((markVal && typeof markVal === "object") ? (Number(markVal[sc.name]) || 0) : 0);
+                                                                    }, 0);
+                                                                    return (
+                                                                        <React.Fragment key={i}>
+                                                                            <tr className="bg-slate-50 dark:bg-slate-900/50">
+                                                                                <td colSpan={3} className="p-2 border font-bold text-sm bg-muted/30">{subjName}</td>
+                                                                            </tr>
+                                                                            {scs.map((sc, j) => {
+                                                                                const val = (markVal && typeof markVal === "object") ? markVal[sc.name] : undefined;
+                                                                                const isFailed = val !== undefined && val !== "" && Number(val) < (Number(sc.passMark) || 0);
+                                                                                return (
+                                                                                    <tr key={`${i}-${j}`}>
+                                                                                        <td className="p-3 border pl-6 text-muted-foreground">{sc.name}</td>
+                                                                                        <td className="p-3 border text-center">{sc.maxMark}</td>
+                                                                                        <td className={`p-3 border text-center font-semibold ${isFailed ? "text-red-600" : ""}`}>{val ?? "-"}</td>
+                                                                                    </tr>
+                                                                                );
+                                                                            })}
+                                                                            <tr className="font-semibold bg-blue-50/30 dark:bg-blue-950/30">
+                                                                                <td className="p-3 border text-right" colSpan={2}>Sub Total ({subjName})</td>
+                                                                                <td className="p-3 border text-center text-blue-700 dark:text-blue-300">{subjTotal || "-"}</td>
+                                                                            </tr>
+                                                                        </React.Fragment>
+                                                                    );
+                                                                }
+
+                                                                const isFailed = markVal !== undefined && markVal !== null && typeof markVal !== "object" && Number(markVal) < (Number(subj.passMark) || 0);
+                                                                return (
+                                                                    <tr key={i}>
+                                                                        <td className="p-3 border font-medium">{subjName}</td>
+                                                                        <td className="p-3 border text-center">{subj.maxMark || 100}</td>
+                                                                        <td className={`p-3 border text-center font-bold ${isFailed ? "text-red-600" : ""}`}>
+                                                                            {typeof markVal === "object" ? "-" : (markVal ?? "-")}
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
                                                 </div>
                                                 <div className="flex flex-wrap justify-between items-center border-t-2 border-slate-200 dark:border-slate-800 pt-4 gap-3 text-sm sm:text-base">
                                                     <div>Total: <strong className="text-lg sm:text-2xl">{stat.total}</strong></div>
@@ -1124,49 +1314,12 @@ export default function MarksManager({ apiKey }) {
 
                                                 <style jsx global>{`
                                                     @media print {
-                                                        @page {
-                                                            size: A4 portrait;
-                                                            margin: 10mm;
-                                                        }
-                                                        html, body {
-                                                            width: 100% !important;
-                                                            max-width: 100% !important;
-                                                            min-width: 0 !important;
-                                                            height: 100% !important;
-                                                            margin: 0 !important;
-                                                            padding: 0 !important;
-                                                            background: white !important;
-                                                            overflow: visible !important;
-                                                        }
-                                                        * {
-                                                            overflow: visible !important;
-                                                            -webkit-overflow-scrolling: auto !important;
-                                                        }
-                                                        table {
-                                                            width: 100% !important;
-                                                            border-collapse: collapse !important;
-                                                        }
-                                                        th, td {
-                                                            border: 0.5pt solid black !important;
-                                                            padding: 4px 6px !important;
-                                                            -webkit-print-color-adjust: exact;
-                                                            print-color-adjust: exact;
-                                                            white-space: normal !important;
-                                                            word-break: break-word !important;
-                                                        }
-                                                        .print-poster {
-                                                            width: 100% !important;
-                                                            max-width: 100% !important;
-                                                            height: auto !important;
-                                                            page-break-inside: avoid;
-                                                            break-inside: avoid;
-                                                            page-break-after: avoid;
-                                                            page-break-before: avoid;
-                                                            box-shadow: none !important;
-                                                            border: 2px solid #e2e8f0 !important;
-                                                            margin: 0 !important;
-                                                            padding: 16px !important;
-                                                        }
+                                                        @page { size: A4 portrait; margin: 10mm; }
+                                                        html, body { width: 100% !important; max-width: 100% !important; min-width: 0 !important; height: 100% !important; margin: 0 !important; padding: 0 !important; background: white !important; overflow: visible !important; }
+                                                        * { overflow: visible !important; -webkit-overflow-scrolling: auto !important; }
+                                                        table { width: 100% !important; border-collapse: collapse !important; }
+                                                        th, td { border: 0.5pt solid black !important; padding: 4px 6px !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; white-space: normal !important; word-break: break-word !important; }
+                                                        .print-poster { width: 100% !important; max-width: 100% !important; height: auto !important; page-break-inside: avoid; break-inside: avoid; page-break-after: avoid; page-break-before: avoid; box-shadow: none !important; border: 2px solid #e2e8f0 !important; margin: 0 !important; padding: 16px !important; }
                                                     }
                                                 `}</style>
                                             </div>
@@ -1187,13 +1340,13 @@ export default function MarksManager({ apiKey }) {
                 </div>
             )}
 
-            {/* ── Marks Entry Table */}
-            {examReady && !showResult && students.length === 0 && (
+            {/* ── Marks Entry Table ────────────────────────────────────────── */}
+            {examReady && !showResult && activeStudents.length === 0 && (
                 <div className="p-10 text-center border rounded bg-muted/20 text-muted-foreground mt-4">
-                    <p className="font-medium">No students found in the selected class.</p>
+                    <p className="font-medium">No students found for this exam.</p>
                 </div>
             )}
-            {examReady && !showResult && students.length > 0 && (
+            {examReady && !showResult && activeStudents.length > 0 && (
                 activeRole !== "Teacher" || selectedSubjectIndex !== null ? (
                     <div className="space-y-3">
                         <div className="overflow-x-auto rounded border" ref={printRef}>
@@ -1215,7 +1368,7 @@ export default function MarksManager({ apiKey }) {
                                                                 {activeRole !== "Teacher" && (
                                                                     <div className="flex items-center gap-1">
                                                                         <Edit className="w-3 h-3 cursor-pointer text-muted-foreground hover:text-primary transition-colors" onClick={() => openSubjectDialog(i)} />
-                                                                        <Trash2 className="w-3 h-3 cursor-pointer text-red-500 hover:text-red-700 transition-colors" onClick={(e) => { e.stopPropagation(); if (subjects.length <= 1) { toast.error("At least one subject is required."); return; } setSubjectToDeleteIndex(i); }} />
+                                                                        <Trash2 className="w-3 h-3 cursor-pointer text-red-500 hover:text-red-700 transition-colors" onClick={e => { e.stopPropagation(); if (subjects.length <= 1) { toast.error("At least one subject is required."); return; } setSubjectToDeleteIndex(i); }} />
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -1231,7 +1384,7 @@ export default function MarksManager({ apiKey }) {
                                                             {activeRole !== "Teacher" && (
                                                                 <div className="flex items-center gap-1">
                                                                     <Edit className="w-3 h-3 cursor-pointer text-muted-foreground hover:text-primary transition-colors" onClick={() => openSubjectDialog(i)} />
-                                                                    <Trash2 className="w-3 h-3 cursor-pointer text-red-500 hover:text-red-700 transition-colors" onClick={(e) => { e.stopPropagation(); if (subjects.length <= 1) { toast.error("At least one subject is required."); return; } setSubjectToDeleteIndex(i); }} />
+                                                                    <Trash2 className="w-3 h-3 cursor-pointer text-red-500 hover:text-red-700 transition-colors" onClick={e => { e.stopPropagation(); if (subjects.length <= 1) { toast.error("At least one subject is required."); return; } setSubjectToDeleteIndex(i); }} />
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1286,8 +1439,8 @@ export default function MarksManager({ apiKey }) {
                                     )}
                                 </thead>
                                 <tbody>
-                                    {students.map((st, idx) => {
-                                        const stat = stats.find((s) => s.studentId === st._id);
+                                    {activeStudents.map((st, idx) => {
+                                        const stat = stats.find(s => s.studentId === st._id);
                                         return (
                                             <tr key={st._id} className="hover:bg-muted/30 border">
                                                 <td className="p-2 text-center text-muted-foreground border">{idx + 1}</td>
@@ -1298,11 +1451,11 @@ export default function MarksManager({ apiKey }) {
                                                     const scs = subj.subColumns || [];
                                                     if (scs.length > 0) {
                                                         const markObj = marksData[st._id]?.[i];
-                                                        const subjTotal = scs.reduce((sum, _, j) => sum + ((markObj && typeof markObj === 'object') ? (Number(markObj[j]) || 0) : 0), 0);
+                                                        const subjTotal = scs.reduce((sum, _, j) => sum + ((markObj && typeof markObj === "object") ? (Number(markObj[j]) || 0) : 0), 0);
                                                         return (
                                                             <React.Fragment key={i}>
                                                                 {scs.map((sc, j) => {
-                                                                    const val = (markObj && typeof markObj === 'object') ? markObj[j] : undefined;
+                                                                    const val = (markObj && typeof markObj === "object") ? markObj[j] : undefined;
                                                                     const isFailed = val !== undefined && val !== "" && Number(val) < (Number(sc.passMark) || 0);
                                                                     return (
                                                                         <td key={`${i}-${j}`} className="p-1 text-center border">
@@ -1311,8 +1464,8 @@ export default function MarksManager({ apiKey }) {
                                                                                 type="number" min={0} max={sc.maxMark || 100}
                                                                                 className={`w-14 mx-auto text-center h-7 text-xs ${isFailed ? "text-red-600 font-bold" : ""}`}
                                                                                 value={val ?? ""}
-                                                                                onChange={(e) => handleMarkChange(st._id, i, e.target.value, j)}
-                                                                                onKeyDown={(e) => {
+                                                                                onChange={e => handleMarkChange(st._id, i, e.target.value, j)}
+                                                                                onKeyDown={e => {
                                                                                     if (e.key === "Enter") {
                                                                                         e.preventDefault();
                                                                                         const nextSub = document.getElementById(`mark-${idx}-${i}-${j + 1}`);
@@ -1345,8 +1498,8 @@ export default function MarksManager({ apiKey }) {
                                                                     type="number" min={0} max={subj.maxMark || 100}
                                                                     className={`w-14 mx-auto text-center h-7 text-xs ${isFailed ? "text-red-600 font-bold" : ""}`}
                                                                     value={val ?? ""}
-                                                                    onChange={(e) => handleMarkChange(st._id, i, e.target.value)}
-                                                                    onKeyDown={(e) => {
+                                                                    onChange={e => handleMarkChange(st._id, i, e.target.value)}
+                                                                    onKeyDown={e => {
                                                                         if (e.key === "Enter") {
                                                                             e.preventDefault();
                                                                             if (activeRole === "Teacher" && selectedSubjectIndex !== null) {
@@ -1367,7 +1520,6 @@ export default function MarksManager({ apiKey }) {
                                                 {activeRole !== "Teacher" && <td className="border" />}
                                                 <td className="p-2 text-center font-semibold text-blue-700 dark:text-blue-300 border">{stat?.total ?? 0}</td>
                                                 <td className="p-2 text-center font-semibold text-green-700 dark:text-green-300 border">{stat?.percentage ?? 0}%</td>
-
                                                 <td className="p-2 text-center font-semibold text-yellow-700 dark:text-yellow-300 border">{stat?.rank ?? "-"}</td>
                                                 <td className={`p-2 text-center font-bold ${stat?.remark === "Pass" ? "text-green-600" : stat?.remark === "Fail" ? "text-red-600" : "text-blue-600"}`}>{stat?.remark ?? "-"}</td>
                                             </tr>
@@ -1393,6 +1545,8 @@ export default function MarksManager({ apiKey }) {
                     )
                 )
             )}
+
+            {/* ── Subject Dialog ───────────────────────────────────────────── */}
             <Dialog open={isSubjectDialogOpen} onOpenChange={setIsSubjectDialogOpen}>
                 <DialogContent className="sm:max-w-[480px]">
                     <DialogHeader>
@@ -1404,10 +1558,9 @@ export default function MarksManager({ apiKey }) {
                             <Input
                                 placeholder="e.g. Mathematics"
                                 value={subjectForm.name}
-                                onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value.toUpperCase() })}
+                                onChange={e => setSubjectForm({ ...subjectForm, name: e.target.value.toUpperCase() })}
                             />
                         </div>
-                        {/* Sub Columns */}
                         <div className="grid gap-2">
                             <div className="flex items-center justify-between">
                                 <label className="text-sm font-medium">Sub Columns <span className="text-xs text-muted-foreground font-normal">(e.g. CE, TE)</span></label>
@@ -1429,13 +1582,13 @@ export default function MarksManager({ apiKey }) {
                                         {(subjectForm.subColumns || []).map((sc, j) => (
                                             <div key={j} className="grid grid-cols-[1fr_52px_52px_32px] gap-1 items-center">
                                                 <Input placeholder="CE" className="h-8 text-xs" value={sc.name}
-                                                    onChange={(e) => { const u = [...(subjectForm.subColumns || [])]; u[j] = { ...u[j], name: e.target.value.toUpperCase() }; setSubjectForm(p => ({ ...p, subColumns: u })); }}
+                                                    onChange={e => { const u = [...(subjectForm.subColumns || [])]; u[j] = { ...u[j], name: e.target.value.toUpperCase() }; setSubjectForm(p => ({ ...p, subColumns: u })); }}
                                                 />
                                                 <Input type="number" placeholder="Max" className="h-8 text-xs text-center" value={sc.maxMark}
-                                                    onChange={(e) => { const u = [...(subjectForm.subColumns || [])]; u[j] = { ...u[j], maxMark: Number(e.target.value) }; setSubjectForm(p => ({ ...p, subColumns: u })); }}
+                                                    onChange={e => { const u = [...(subjectForm.subColumns || [])]; u[j] = { ...u[j], maxMark: Number(e.target.value) }; setSubjectForm(p => ({ ...p, subColumns: u })); }}
                                                 />
                                                 <Input type="number" placeholder="Pass" className="h-8 text-xs text-center" value={sc.passMark}
-                                                    onChange={(e) => { const u = [...(subjectForm.subColumns || [])]; u[j] = { ...u[j], passMark: Number(e.target.value) }; setSubjectForm(p => ({ ...p, subColumns: u })); }}
+                                                    onChange={e => { const u = [...(subjectForm.subColumns || [])]; u[j] = { ...u[j], passMark: Number(e.target.value) }; setSubjectForm(p => ({ ...p, subColumns: u })); }}
                                                 />
                                                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600"
                                                     onClick={() => { const u = (subjectForm.subColumns || []).filter((_, k) => k !== j); setSubjectForm(p => ({ ...p, subColumns: u })); }}
@@ -1452,16 +1605,15 @@ export default function MarksManager({ apiKey }) {
                                 </div>
                             )}
                         </div>
-                        {/* Max/Pass marks — only when no sub-columns */}
                         {(subjectForm.subColumns || []).length === 0 && (
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <label className="text-sm font-medium">Maximum Mark</label>
-                                    <Input type="number" value={subjectForm.maxMark} onChange={(e) => setSubjectForm({ ...subjectForm, maxMark: Number(e.target.value) })} />
+                                    <Input type="number" value={subjectForm.maxMark} onChange={e => setSubjectForm({ ...subjectForm, maxMark: Number(e.target.value) })} />
                                 </div>
                                 <div className="grid gap-2">
                                     <label className="text-sm font-medium">Pass Mark</label>
-                                    <Input type="number" value={subjectForm.passMark} onChange={(e) => setSubjectForm({ ...subjectForm, passMark: Number(e.target.value) })} />
+                                    <Input type="number" value={subjectForm.passMark} onChange={e => setSubjectForm({ ...subjectForm, passMark: Number(e.target.value) })} />
                                 </div>
                             </div>
                         )}
@@ -1486,10 +1638,7 @@ export default function MarksManager({ apiKey }) {
                                     <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                                         <AlertDialogAction
-                                            onClick={() => {
-                                                setIsSubjectDialogOpen(false);
-                                                confirmRemoveSubject();
-                                            }}
+                                            onClick={() => { setIsSubjectDialogOpen(false); confirmRemoveSubject(); }}
                                             className="bg-red-500 hover:bg-red-600"
                                         >
                                             Confirm Delete
@@ -1506,7 +1655,7 @@ export default function MarksManager({ apiKey }) {
                 </DialogContent>
             </Dialog>
 
-            {/* Grading Scale Dialog */}
+            {/* ── Grading Scale Dialog ─────────────────────────────────────── */}
             <Dialog open={isGradingDialogOpen} onOpenChange={setIsGradingDialogOpen}>
                 <DialogContent className="sm:max-w-[450px]">
                     <DialogHeader>
@@ -1517,42 +1666,19 @@ export default function MarksManager({ apiKey }) {
                             {gradingScale.map((item, idx) => (
                                 <div key={idx} className="flex gap-2 items-center">
                                     <Input
-                                        type="number"
-                                        className="w-16 h-8 text-xs"
-                                        placeholder="Min"
-                                        value={item.min}
-                                        onChange={(e) => {
-                                            const updated = [...gradingScale];
-                                            updated[idx].min = Number(e.target.value);
-                                            setGradingScale(updated);
-                                        }}
+                                        type="number" className="w-16 h-8 text-xs" placeholder="Min" value={item.min}
+                                        onChange={e => { const updated = [...gradingScale]; updated[idx].min = Number(e.target.value); setGradingScale(updated); }}
                                     />
                                     <span className="text-muted-foreground">-</span>
                                     <Input
-                                        type="number"
-                                        className="w-16 h-8 text-xs"
-                                        placeholder="Max"
-                                        value={item.max}
-                                        onChange={(e) => {
-                                            const updated = [...gradingScale];
-                                            updated[idx].max = Number(e.target.value);
-                                            setGradingScale(updated);
-                                        }}
+                                        type="number" className="w-16 h-8 text-xs" placeholder="Max" value={item.max}
+                                        onChange={e => { const updated = [...gradingScale]; updated[idx].max = Number(e.target.value); setGradingScale(updated); }}
                                     />
                                     <Input
-                                        className="flex-1 h-8 text-xs"
-                                        placeholder="Remark (e.g. Good)"
-                                        value={item.remark}
-                                        onChange={(e) => {
-                                            const updated = [...gradingScale];
-                                            updated[idx].remark = e.target.value;
-                                            setGradingScale(updated);
-                                        }}
+                                        className="flex-1 h-8 text-xs" placeholder="Remark (e.g. Good)" value={item.remark}
+                                        onChange={e => { const updated = [...gradingScale]; updated[idx].remark = e.target.value; setGradingScale(updated); }}
                                     />
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-red-400"
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400"
                                         onClick={() => setGradingScale(prev => prev.filter((_, i) => i !== idx))}
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
@@ -1561,9 +1687,7 @@ export default function MarksManager({ apiKey }) {
                             ))}
                         </div>
                         <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full h-8 border-dashed"
+                            variant="outline" size="sm" className="w-full h-8 border-dashed"
                             onClick={() => setGradingScale(prev => [...prev, { min: 0, max: 100, remark: "" }])}
                         >
                             <Plus className="w-3 h-3 mr-2" />
@@ -1581,10 +1705,10 @@ export default function MarksManager({ apiKey }) {
                 </DialogContent>
             </Dialog>
 
-            {/* Global Subject Delete Confirmation */}
+            {/* ── Global Subject Delete Confirmation ──────────────────────── */}
             <AlertDialog
                 open={subjectToDeleteIndex !== null}
-                onOpenChange={(open) => !open && setSubjectToDeleteIndex(null)}
+                onOpenChange={open => !open && setSubjectToDeleteIndex(null)}
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -1596,10 +1720,7 @@ export default function MarksManager({ apiKey }) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel onClick={() => setSubjectToDeleteIndex(null)}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={confirmRemoveSubject}
-                            className="bg-red-500 hover:bg-red-600"
-                        >
+                        <AlertDialogAction onClick={confirmRemoveSubject} className="bg-red-500 hover:bg-red-600">
                             Delete Column
                         </AlertDialogAction>
                     </AlertDialogFooter>
