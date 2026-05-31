@@ -543,7 +543,7 @@ export default function MarksManager({ apiKey }) {
                     </div>
                 </div>
             )}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-end">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-end print:hidden">
                 {/* Mode */}
                 <div className="col-span-1 order-1 md:order-1">
                     <label className="text-sm font-medium mb-1 block">Mode</label>
@@ -748,8 +748,8 @@ export default function MarksManager({ apiKey }) {
 
             {/* ── Results View */}
             {showResult && (
-                <div className="rounded border overflow-x-auto">
-                    <div className="bg-muted px-4 py-3 flex items-center justify-between">
+                <div className="rounded border overflow-x-auto print:overflow-visible">
+                    <div className="bg-muted px-4 py-3 flex items-center justify-between print:hidden">
                         <div className="flex items-center gap-2">
                             <Trophy className="w-4 h-4 text-yellow-500" />
                             <span className="font-semibold text-sm">Results</span>
@@ -966,21 +966,34 @@ export default function MarksManager({ apiKey }) {
                                             size: auto;
                                             margin: 10mm;
                                         }
-                                        body {
-                                            background: white !important;
+                                        html, body {
+                                            width: 100% !important;
+                                            max-width: 100% !important;
+                                            min-width: 0 !important;
+                                            margin: 0 !important;
                                             padding: 0 !important;
+                                            background: white !important;
+                                            overflow: visible !important;
+                                        }
+                                        * {
+                                            overflow: visible !important;
+                                            -webkit-overflow-scrolling: auto !important;
                                         }
                                         table {
+                                            width: 100% !important;
                                             border-collapse: collapse !important;
                                             border-spacing: 0 !important;
+                                            font-size: 9pt !important;
                                         }
                                         th, td {
                                             border: 0.5pt solid black !important;
-                                            padding: 4px 8px !important;
-                                            line-height: 1.1 !important;
+                                            padding: 3px 6px !important;
+                                            line-height: 1.2 !important;
                                             background-color: transparent !important;
                                             -webkit-print-color-adjust: exact;
                                             print-color-adjust: exact;
+                                            white-space: normal !important;
+                                            word-break: break-word !important;
                                         }
                                         tr {
                                             break-inside: avoid;
@@ -1040,7 +1053,7 @@ export default function MarksManager({ apiKey }) {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                                                <div className="overflow-x-auto print:overflow-visible -mx-4 sm:mx-0 print:mx-0">
                                                 <table className="w-full text-left mb-6 border-collapse text-sm">
                                                     <thead>
                                                         <tr className="bg-muted/60">
@@ -1116,21 +1129,43 @@ export default function MarksManager({ apiKey }) {
                                                             margin: 10mm;
                                                         }
                                                         html, body {
-                                                            width: 100%;
-                                                            height: 100%;
+                                                            width: 100% !important;
+                                                            max-width: 100% !important;
+                                                            min-width: 0 !important;
+                                                            height: 100% !important;
                                                             margin: 0 !important;
                                                             padding: 0 !important;
+                                                            background: white !important;
+                                                            overflow: visible !important;
+                                                        }
+                                                        * {
+                                                            overflow: visible !important;
+                                                            -webkit-overflow-scrolling: auto !important;
+                                                        }
+                                                        table {
+                                                            width: 100% !important;
+                                                            border-collapse: collapse !important;
+                                                        }
+                                                        th, td {
+                                                            border: 0.5pt solid black !important;
+                                                            padding: 4px 6px !important;
+                                                            -webkit-print-color-adjust: exact;
+                                                            print-color-adjust: exact;
+                                                            white-space: normal !important;
+                                                            word-break: break-word !important;
                                                         }
                                                         .print-poster {
-                                                            width: 100%;
-                                                            height: auto;
+                                                            width: 100% !important;
+                                                            max-width: 100% !important;
+                                                            height: auto !important;
                                                             page-break-inside: avoid;
                                                             break-inside: avoid;
                                                             page-break-after: avoid;
                                                             page-break-before: avoid;
                                                             box-shadow: none !important;
                                                             border: 2px solid #e2e8f0 !important;
-                                                            margin: 0 auto !important;
+                                                            margin: 0 !important;
+                                                            padding: 16px !important;
                                                         }
                                                     }
                                                 `}</style>
