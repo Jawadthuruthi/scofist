@@ -170,6 +170,12 @@ const items = [
     allowedRoles: ["Teacher"],
   },
   {
+    title: "Masjid Attendance",
+    url: "/dashboard/masjid-attendance",
+    icon: ClipboardList,
+    allowedRoles: ["Teacher"],
+  },
+  {
     title: "Marks",
     url: "/dashboard/marks",
     icon: FileSpreadsheet,
@@ -179,12 +185,6 @@ const items = [
     title: "Remarks",
     url: "/dashboard/remarks",
     icon: MessageSquare,
-    allowedRoles: ["Teacher"],
-  },
-  {
-    title: "Masjid Attendance",
-    url: "/dashboard/masjid-attendance",
-    icon: ClipboardList,
     allowedRoles: ["Teacher"],
   },
   {

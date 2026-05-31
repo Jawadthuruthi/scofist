@@ -935,7 +935,7 @@ export default function MarksManager({ apiKey }) {
                                                                         </td>
                                                                     );
                                                                 })}
-                                                                <td className="p-2 text-center font-semibold text-blue-800 bg-blue-50/30 border">{subjTotal || "-"}</td>
+                                                                <td className="p-2 text-center font-semibold text-blue-800 dark:text-blue-300 bg-blue-50/30 dark:bg-blue-950/30 border">{subjTotal || "-"}</td>
                                                             </React.Fragment>
                                                         );
                                                     }
