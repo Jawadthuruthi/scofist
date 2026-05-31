@@ -28,10 +28,22 @@ export async function GET(request) {
         
         // Sum up all subject marks
         exam.subjects.forEach((subj) => {
-          total += Number(marks[subj.name] || 0);
+          const val = marks[subj.name];
+          if (subj.subColumns && subj.subColumns.length > 0) {
+            subj.subColumns.forEach((sc) => {
+              total += (val && typeof val === "object") ? (Number(val[sc.name]) || 0) : 0;
+            });
+          } else {
+            total += Number(val || 0);
+          }
         });
 
-        const maxTotal = exam.subjects.reduce((sum, s) => sum + (Number(s.maxMark) || 0), 0);
+        const maxTotal = exam.subjects.reduce((sum, s) => {
+          if (s.subColumns && s.subColumns.length > 0) {
+            return sum + s.subColumns.reduce((subSum, sc) => subSum + (Number(sc.maxMark) || 0), 0);
+          }
+          return sum + (Number(s.maxMark) || 0);
+        }, 0);
         const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
 
         return {

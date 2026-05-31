@@ -166,7 +166,7 @@ export default function MarksManager({ apiKey }) {
     // ── Refresh all exams helper
     const refreshAllExams = useCallback(async () => {
         try {
-            const res = await fetch("/api/marks");
+            const res = await fetch("/api/marks", { cache: "no-store" });
             const d = await res.json();
             setAllExams(d.data || []);
         } catch (e) {
@@ -182,7 +182,7 @@ export default function MarksManager({ apiKey }) {
             fetch("/api/classes", { headers: reqHeaders }).then(r => r.json()),
             fetch("/api/batches", { headers: reqHeaders }).then(r => r.json()),
             fetch("/api/settings", { headers: reqHeaders }).then(r => r.json()).catch(() => ({})),
-            fetch("/api/marks").then(r => r.json()).catch(() => ({ data: [] })),
+            fetch("/api/marks", { cache: "no-store" }).then(r => r.json()).catch(() => ({ data: [] })),
         ]).then(([classesData, batchesData, settingsData, marksData]) => {
             setClasses(classesData.classes || []);
             setBatches(
@@ -536,7 +536,7 @@ export default function MarksManager({ apiKey }) {
                 setTimeout(() => setShowSavedPopup(false), 2500);
                 const savedId = data.data?._id || selectedExam?._id;
                 await refreshAllExams();
-                const updated = await fetch("/api/marks").then(r => r.json());
+                const updated = await fetch("/api/marks", { cache: "no-store" }).then(r => r.json());
                 const exams = updated.data || [];
                 const thisExam = exams.find(e => e._id === savedId);
                 if (thisExam) {

@@ -612,7 +612,7 @@ function AwardsTabContent({ currentUser, apiKey }) {
         // Fetch Settings first for branding
         let currentFestSettings = null;
         try {
-            const settingsRes = await fetch("/api/settings", { headers: { "api-key": apiKey } });
+            const settingsRes = await fetch("/api/settings", { cache: "no-store", headers: { "api-key": apiKey } });
             const settingsData = await settingsRes.json();
             if (settingsData.success || settingsData.settings) {
                 currentFestSettings = settingsData.settings;
@@ -632,7 +632,7 @@ function AwardsTabContent({ currentUser, apiKey }) {
             const year = date.getFullYear();
             const capturedDate = new Date(date);
             bestReaderPromises.push(
-                fetch(`/api/library/stats/best-reader?month=${month}&year=${year}`, { headers: { "api-key": apiKey } })
+                fetch(`/api/library/stats/best-reader?month=${month}&year=${year}`, { cache: "no-store", headers: { "api-key": apiKey } })
                     .then(r => r.json())
                     .then(res => {
                         const bestReaderId = res.data?.student?._id;
@@ -667,7 +667,7 @@ function AwardsTabContent({ currentUser, apiKey }) {
             const capturedDate = new Date(date);
             
             attendancePromises.push(
-                fetch(`/api/attendanceToppers?startDate=${firstDay}&endDate=${lastDay}&limit=100`, { headers: { "api-key": apiKey } })
+                fetch(`/api/attendanceToppers?startDate=${firstDay}&endDate=${lastDay}&limit=100`, { cache: "no-store", headers: { "api-key": apiKey } })
                     .then(r => r.json())
                     .then(res => {
                         if (res.success && res.attendanceToppers?.length > 0) {
@@ -695,7 +695,7 @@ function AwardsTabContent({ currentUser, apiKey }) {
         }
 
         // 3. Fetch Students Fest Awards (1st, 2nd, 3rd Place) from Winner Posters
-        const winnersPromise = fetch(`/api/winner-posters`, { headers: { "api-key": apiKey } })
+        const winnersPromise = fetch(`/api/winner-posters`, { cache: "no-store", headers: { "api-key": apiKey } })
             .then(r => r.json())
             .then(res => {
                 if (res.success && res.programs) {
@@ -758,7 +758,7 @@ function AwardsTabContent({ currentUser, apiKey }) {
             .catch(() => null);
 
         // 4. Fetch Division Toppers (Individual Toppers)
-        const individualToppersPromise = fetch(`/api/individual-toppers`, { headers: { "api-key": apiKey } })
+        const individualToppersPromise = fetch(`/api/individual-toppers`, { cache: "no-store", headers: { "api-key": apiKey } })
             .then(r => r.json())
             .then(res => {
                 if (res.success && res.data) {
@@ -781,7 +781,7 @@ function AwardsTabContent({ currentUser, apiKey }) {
             .catch(() => null);
 
         // 5. Fetch Academic Toppers (Marks Toppers)
-        const marksToppersPromise = fetch(`/api/marks/toppers`, { headers: { "api-key": apiKey } })
+        const marksToppersPromise = fetch(`/api/marks/toppers`, { cache: "no-store", headers: { "api-key": apiKey } })
             .then(r => r.json())
             .then(res => {
                 if (res.success && res.data) {
@@ -1085,6 +1085,7 @@ export default function StudentDashboard({
       setMarksLoading(true);
       try {
         const res = await fetch(`/api/marks?studentId=${currentUser._id}`, {
+          cache: "no-store",
           headers: { "Content-Type": "application/json", "api-key": apiKey }
         });
         const result = await res.json();
@@ -1106,6 +1107,7 @@ export default function StudentDashboard({
       setRemarksLoading(true);
       try {
         const res = await fetch(`/api/remarks?studentId=${currentUser._id}`, {
+          cache: "no-store",
           headers: { "Content-Type": "application/json", "api-key": apiKey }
         });
         const result = await res.json();
