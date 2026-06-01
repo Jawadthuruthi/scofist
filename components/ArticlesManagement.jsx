@@ -28,13 +28,6 @@ import { toast } from "sonner";
 
 const formFields = [
   {
-    name: "image",
-    label: "Featured Image",
-    inputType: "image",
-    type: "object",
-    className: "col-span-2",
-  },
-  {
     name: "title",
     label: "Title",
     placeholder: "Enter article title",

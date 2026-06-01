@@ -66,8 +66,8 @@ export default function Footer({ settings, institutionName }) {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/programs" className="hover:text-white transition">
-                    Programs
+                  <Link href="/articles" className="hover:text-white transition">
+                    Articles
                   </Link>
                 </li>
                 <li>
