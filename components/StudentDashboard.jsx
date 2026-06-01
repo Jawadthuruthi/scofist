@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "@/components/Header";
-import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, Newspaper, Megaphone, Edit2, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, Newspaper, Megaphone, Edit2, CheckCircle, XCircle, AlertTriangle, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import UpdateCard from "@/components/UpdateCard";
@@ -3016,9 +3016,36 @@ export default function StudentDashboard({
                       <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors line-clamp-2 leading-tight">
                         {article.title}
                       </h2>
-                      <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1">
+                      <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1 mb-4">
                         {article.content}
                       </p>
+                      <div className="pt-4 border-t border-gray-50 dark:border-gray-800 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-purple-600 dark:text-purple-400"></span>
+                        <button
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const boldTitle = `*${article.title}*`;
+                            const shareData = {
+                              title: article.title,
+                              text: `${boldTitle}\n\n${article.content || article.title}`,
+                              url: `${window.location.origin}/articles/${article._id}`,
+                            };
+                            if (navigator.share) {
+                              try { await navigator.share(shareData); }
+                              catch (err) { if (err.name !== "AbortError") toast.error("Share failed"); }
+                            } else {
+                              navigator.clipboard.writeText(`*${article.title}*\n\n${article.content || ""}\n\n${window.location.origin}/articles/${article._id}`);
+                              toast.success("Copied to clipboard!");
+                            }
+                          }}
+                          className="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                          title="Share this article"
+                        >
+                          <Share2 className="w-3 h-3" />
+                          Share
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

@@ -283,7 +283,7 @@ export default function UpdatesManagement({ apiKey, initialUpdates = [], initial
                             const shareData = {
                               title: update.heading,
                               text: `${boldTitle}\n\n${update.news || update.heading}`,
-                              url: `${window.location.origin}/updates`,
+                              url: `${window.location.origin}/updates/${update._id}`,
                             };
                             if (navigator.share) {
                               try {
@@ -295,7 +295,7 @@ export default function UpdatesManagement({ apiKey, initialUpdates = [], initial
                               }
                             } else {
                               navigator.clipboard.writeText(
-                                `*${update.heading}*\n\n${update.news || ""}\n\n${window.location.origin}/updates`
+                                `*${update.heading}*\n\n${update.news || ""}\n\n${window.location.origin}/updates/${update._id}`
                               );
                               toast.success("Copied to clipboard!");
                             }

@@ -7,9 +7,10 @@ import { toast } from "sonner";
 export default function ShareButton({ title, text, url, imageUrl }) {
   const handleShare = async () => {
     const shareUrl = url || (typeof window !== "undefined" ? window.location.href : "");
+    const boldTitle = `*${title}*`;
     const shareData = {
       title: title,
-      text: `${title}\n\n${text?.substring(0, 160)}...\n\nRead more at:`,
+      text: `${boldTitle}\n\n${text?.substring(0, 160) || ""}...\n\nRead more at:`,
       url: shareUrl,
     };
 

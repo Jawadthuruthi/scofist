@@ -228,13 +228,13 @@ export default function ArticlesManagement({ apiKey, initialArticles = [] }) {
                           const shareData = {
                             title: article.title,
                             text: `${boldTitle}\n\n${article.content || article.title}`,
-                            url: window.location.origin,
+                            url: `${window.location.origin}/articles/${article._id}`,
                           };
                           if (navigator.share) {
                             try { await navigator.share(shareData); }
                             catch (err) { if (err.name !== "AbortError") toast.error("Share failed"); }
                           } else {
-                            navigator.clipboard.writeText(`*${article.title}*\n\n${article.content || ""}`);
+                            navigator.clipboard.writeText(`*${article.title}*\n\n${article.content || ""}\n\n${window.location.origin}/articles/${article._id}`);
                             toast.success("Copied to clipboard!");
                           }
                         }}
