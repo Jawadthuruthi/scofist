@@ -538,7 +538,7 @@ const ImageUploader = ({
       }
     } else {
       setPreview("");
-      onChange("");
+      onChange({ url: "", publicId: null });
     }
   };
 

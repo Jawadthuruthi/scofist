@@ -39,6 +39,7 @@ import {
   AlertCircle,
   FileQuestion,
   AlertTriangle,
+  Newspaper,
 } from "lucide-react";
 
 import {
@@ -386,8 +387,8 @@ const items = [
   },
   {
     title: "Articles",
-    url: "/dashboard/quiz",
-    icon: BookOpen,
+    url: "/dashboard/articles",
+    icon: Newspaper,
     allowedRoles: ["Org Admin"],
   },
   {

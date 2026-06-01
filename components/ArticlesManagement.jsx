@@ -28,6 +28,14 @@ import { toast } from "sonner";
 
 const formFields = [
   {
+    name: "image",
+    label: "Featured Image",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    required: false,
+  },
+  {
     name: "title",
     label: "Title",
     placeholder: "Enter article title",
@@ -202,6 +210,29 @@ export default function ArticlesManagement({ apiKey, initialArticles = [] }) {
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-7 w-7 rounded-full bg-purple-50 text-purple-600 hover:bg-purple-100 border-none"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const boldTitle = `*${article.title}*`;
+                            const shareData = {
+                              title: article.title,
+                              text: `${boldTitle}\n\n${article.content || article.title}`,
+                              url: `${window.location.origin}/articles/${article._id}`,
+                            };
+                            if (navigator.share) {
+                              try { await navigator.share(shareData); }
+                              catch (err) { if (err.name !== "AbortError") toast.error("Share failed"); }
+                            } else {
+                              navigator.clipboard.writeText(`*${article.title}*\n\n${article.content || ""}\n\n${window.location.origin}/articles/${article._id}`);
+                              toast.success("Copied to clipboard!");
+                            }
+                          }}
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
                     </div>
                     <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap line-clamp-2">
@@ -211,32 +242,7 @@ export default function ArticlesManagement({ apiKey, initialArticles = [] }) {
 
                   <div className="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between text-[9px] text-gray-400">
                     <span>ID: {article._id}</span>
-                    <div className="flex items-center gap-3">
-                      <button
-                        className="flex items-center gap-1 text-[9px] font-semibold text-gray-400 hover:text-blue-600 transition-colors uppercase tracking-widest"
-                        title="Share this article"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          const boldTitle = `*${article.title}*`;
-                          const shareData = {
-                            title: article.title,
-                            text: `${boldTitle}\n\n${article.content || article.title}`,
-                            url: `${window.location.origin}/articles/${article._id}`,
-                          };
-                          if (navigator.share) {
-                            try { await navigator.share(shareData); }
-                            catch (err) { if (err.name !== "AbortError") toast.error("Share failed"); }
-                          } else {
-                            navigator.clipboard.writeText(`*${article.title}*\n\n${article.content || ""}\n\n${window.location.origin}/articles/${article._id}`);
-                            toast.success("Copied to clipboard!");
-                          }
-                        }}
-                      >
-                        <Share2 className="w-2.5 h-2.5" />
-                        Share
-                      </button>
-                      <span className="font-medium text-blue-600/40 uppercase tracking-widest">Orchid Article</span>
-                    </div>
+                    <span className="font-medium text-blue-600/40 uppercase tracking-widest">Orchid Article</span>
                   </div>
                 </div>
               </div>

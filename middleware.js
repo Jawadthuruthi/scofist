@@ -426,8 +426,8 @@ const pages = [
     allowedRoles: ["Org Admin", "Teacher"],
   },
   {
-    title: "Quiz",
-    path: "/dashboard/quiz",
+    title: "Articles",
+    path: "/dashboard/articles",
     allowedRoles: ["Org Admin"],
   },
   {
