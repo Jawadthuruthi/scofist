@@ -5,7 +5,7 @@ import useCrud from "@/hooks/use-crud";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit2, Plus, Calendar as CalendarIcon } from "lucide-react";
+import { Trash2, Edit2, Plus, Calendar as CalendarIcon, Share2 } from "lucide-react";
 import Image from "next/image";
 import {
   Dialog,
@@ -162,13 +162,13 @@ export default function UpdatesManagement({ apiKey, initialUpdates = [], initial
 
             <div className="space-y-4">
               <h4 className="text-sm font-semibold text-gray-800 mb-1">Live Preview</h4>
-              <div className="aspect-[21/9] w-full bg-emerald-800 rounded-xl border border-emerald-700/30 flex items-center justify-center p-6 shadow-inner overflow-hidden relative group">
+              <div className="h-40 w-full bg-emerald-800 rounded-xl border border-emerald-700/30 flex items-center justify-center p-4 shadow-inner overflow-hidden relative group">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
                 {updatesLogo?.url ? (
-                  <img 
-                    src={updatesLogo.url} 
-                    alt="Updates Header Preview" 
-                    className="h-full w-auto object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-110"
+                  <img
+                    src={updatesLogo.url}
+                    alt="Updates Header Preview"
+                    className="relative z-10 max-h-full max-w-full object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
                   <div className="text-emerald-300/50 flex flex-col items-center gap-2">
@@ -181,6 +181,7 @@ export default function UpdatesManagement({ apiKey, initialUpdates = [], initial
                 * This is how the logo will appear in the emerald header column.
               </p>
             </div>
+
           </div>
         </CardContent>
       </Card>
@@ -271,6 +272,36 @@ export default function UpdatesManagement({ apiKey, initialUpdates = [], initial
                           onClick={() => confirmDelete(update)}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-7 w-7 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-none"
+                          title="Share this update"
+                          onClick={async () => {
+                            const boldTitle = `*${update.heading}*`;
+                            const shareData = {
+                              title: update.heading,
+                              text: `${boldTitle}\n\n${update.news || update.heading}`,
+                              url: `${window.location.origin}/updates`,
+                            };
+                            if (navigator.share) {
+                              try {
+                                await navigator.share(shareData);
+                              } catch (err) {
+                                if (err.name !== "AbortError") {
+                                  toast.error("Share failed");
+                                }
+                              }
+                            } else {
+                              navigator.clipboard.writeText(
+                                `*${update.heading}*\n\n${update.news || ""}\n\n${window.location.origin}/updates`
+                              );
+                              toast.success("Copied to clipboard!");
+                            }
+                          }}
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     </div>

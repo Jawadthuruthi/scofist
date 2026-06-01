@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Header from "@/components/Header";
-import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, HelpCircle, Megaphone, Edit2, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Calendar, Printer, BookOpen, Clock, Loader2, Wallet, IndianRupee, FileText, MessageSquare, User, Users, Eye, Plane, List, LayoutGrid, Search, Bell, Download, Trophy, Award, Camera, Newspaper, Megaphone, Edit2, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import UpdateCard from "@/components/UpdateCard";
@@ -899,6 +899,9 @@ export default function StudentDashboard({
   const [pendingFunds, setPendingFunds] = useState([]); // Array of fund objects
   const [fundsLoading, setFundsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("PROFILE");
+  const [articles, setArticles] = useState([]);
+  const [articlesLoading, setArticlesLoading] = useState(false);
+  const [articlesLoaded, setArticlesLoaded] = useState(false);
   const [rentalHistory, setRentalHistory] = useState([]);
   const [rentalsLoading, setRentalsLoading] = useState(true);
   const [marks, setMarks] = useState([]);
@@ -1193,6 +1196,17 @@ export default function StudentDashboard({
     const interval = setInterval(fetchPendingRequests, 15000); // Poll every 15s
     return () => clearInterval(interval);
   }, [apiKey, currentUser._id]);
+
+  // Lazy-load articles only when ARTICLES tab is first opened
+  useEffect(() => {
+    if (activeTab !== "ARTICLES" || articlesLoaded || !apiKey) return;
+    setArticlesLoading(true);
+    fetch("/api/articles", { headers: { "api-key": apiKey } })
+      .then(r => r.json())
+      .then(d => { setArticles(d.articles || []); setArticlesLoaded(true); })
+      .catch(e => console.error("Articles fetch error:", e))
+      .finally(() => setArticlesLoading(false));
+  }, [activeTab, articlesLoaded, apiKey]);
 
   const handleRequestBook = async (book) => {
     if (book.status !== "Available") {
@@ -1659,7 +1673,7 @@ export default function StudentDashboard({
           { id: "LEAVES", label: "Leaves", icon: Plane, color: "violet" },
           { id: "REMARKS", label: "Remarks", icon: MessageSquare, color: "orange" },
           { id: "AWARDS", label: "Awards", icon: Trophy, color: "yellow" },
-          { id: "QUIZ", label: "Quiz", icon: HelpCircle, color: "purple" },
+          { id: "ARTICLES", label: "Articles", icon: Newspaper, color: "purple" },
           { id: "UPDATES", label: "Updates", icon: Megaphone, color: "pink" },
         ].map((item) => {
           const Icon = item.icon;
@@ -1678,6 +1692,7 @@ export default function StudentDashboard({
             teal: { activeBorder: "border-teal-500", activeBg: "bg-teal-50/50 dark:bg-teal-900/10", iconActiveBg: "bg-teal-500", iconInactiveBg: "bg-teal-100 dark:bg-teal-900/20", iconInactiveText: "text-teal-600", labelActive: "text-teal-700 dark:text-teal-300", bottomBar: "bg-teal-500" },
             yellow: { activeBorder: "border-yellow-500", activeBg: "bg-yellow-50/50 dark:bg-yellow-900/10", iconActiveBg: "bg-yellow-500", iconInactiveBg: "bg-yellow-100 dark:bg-yellow-900/20", iconInactiveText: "text-yellow-600", labelActive: "text-yellow-700 dark:text-yellow-300", bottomBar: "bg-yellow-500" },
             purple: { activeBorder: "border-purple-500", activeBg: "bg-purple-50/50 dark:bg-purple-900/10", iconActiveBg: "bg-purple-500", iconInactiveBg: "bg-purple-100 dark:bg-purple-900/20", iconInactiveText: "text-purple-600", labelActive: "text-purple-700 dark:text-purple-300", bottomBar: "bg-purple-500" },
+
             pink: { activeBorder: "border-pink-500", activeBg: "bg-pink-50/50 dark:bg-pink-900/10", iconActiveBg: "bg-pink-500", iconInactiveBg: "bg-pink-100 dark:bg-pink-900/20", iconInactiveText: "text-pink-600", labelActive: "text-pink-700 dark:text-pink-300", bottomBar: "bg-pink-500" },
           };
 
@@ -2955,22 +2970,68 @@ export default function StudentDashboard({
         </Card>
       )}
 
-      {activeTab === "QUIZ" && (
-        <Card className="flex flex-col card-print-break mt-5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+      {activeTab === "ARTICLES" && (
+        <Card className="flex flex-col card-print-break mt-5 border-purple-100 dark:border-purple-900 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 border-b mb-4">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <HelpCircle className="h-5 w-5 text-purple-500" />
-              Quiz
+              <Newspaper className="h-5 w-5 text-purple-500" />
+              Articles
             </CardTitle>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              {articles?.length || 0} Total Articles
+            </div>
           </CardHeader>
           <CardContent className="flex-1">
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-              <div className="p-5 rounded-2xl bg-purple-100 dark:bg-purple-900/20 mb-4">
-                <HelpCircle className="h-10 w-10 text-purple-500 opacity-60" />
+            {articlesLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
               </div>
-              <p className="text-base font-semibold text-purple-700 dark:text-purple-300 mb-1">Quizzes Coming Soon</p>
-              <p className="text-sm text-muted-foreground">Interactive quizzes and assessments will be available here soon.</p>
-            </div>
+            ) : articles && articles.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {articles.map((article, idx) => (
+                  <div key={article._id || idx} className="group overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col bg-white dark:bg-slate-900 rounded-2xl cursor-default h-full">
+                    {article.image?.url ? (
+                      <div className="relative aspect-[16/10] overflow-hidden">
+                        <img
+                          src={article.image.url}
+                          alt={article.title}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      </div>
+                    ) : (
+                      <div className="aspect-[16/10] bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30 transition-colors">
+                        <Newspaper className="w-12 h-12 text-purple-200 group-hover:text-purple-300 transition-colors" />
+                      </div>
+                    )}
+                    <div className="flex-1 p-5 md:p-6 flex flex-col">
+                      <div className="flex items-center gap-2 text-purple-600 text-xs font-bold uppercase tracking-widest mb-3">
+                        <span className="bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded">
+                          {article.date ? new Date(article.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "Recent"}
+                        </span>
+                        {article.author && (
+                          <span className="text-muted-foreground font-medium normal-case tracking-normal truncate">by {article.author}</span>
+                        )}
+                      </div>
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors line-clamp-2 leading-tight">
+                        {article.title}
+                      </h2>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1">
+                        {article.content}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                <div className="p-5 rounded-2xl bg-purple-100 dark:bg-purple-900/20 mb-4">
+                  <Newspaper className="h-10 w-10 text-purple-500 opacity-60" />
+                </div>
+                <p className="text-base font-semibold text-purple-700 dark:text-purple-300 mb-1">No Articles Available</p>
+                <p className="text-sm text-muted-foreground text-center max-w-xs">No articles have been published yet. Check back later!</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

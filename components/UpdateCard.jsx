@@ -1,8 +1,10 @@
+"use client";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, ChevronRight } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronRight, Share2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import Link from "next/link";
+import { toast } from "sonner";
 
 export default function UpdateCard({ update }) {
   return (
@@ -40,6 +42,30 @@ export default function UpdateCard({ update }) {
             <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1 group-hover:gap-2 transition-all">
               Read More <ChevronRight className="w-3 h-3" />
             </span>
+            <button
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const boldTitle = `*${update.heading}*`;
+                const shareData = {
+                  title: update.heading,
+                  text: `${boldTitle}\n\n${update.news || update.heading}`,
+                  url: `${window.location.origin}/updates/${update._id}`,
+                };
+                if (navigator.share) {
+                  try { await navigator.share(shareData); }
+                  catch (err) { if (err.name !== "AbortError") toast.error("Share failed"); }
+                } else {
+                  navigator.clipboard.writeText(`*${update.heading}*\n\n${update.news || ""}\n\n${window.location.origin}/updates/${update._id}`);
+                  toast.success("Copied to clipboard!");
+                }
+              }}
+              className="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-emerald-600 transition-colors"
+              title="Share this update"
+            >
+              <Share2 className="w-3 h-3" />
+              Share
+            </button>
           </div>
         </CardContent>
       </Card>

@@ -1,15 +1,32 @@
 import Header from "@/components/Header";
+import ArticlesManagement from "@/components/ArticlesManagement";
+import { fetchData } from "@/lib/utils";
+import ErrorPage from "@/components/ErrorPage";
 
-export default function QuizPage() {
-  return (
-    <>
-      <Header title="QUIZ" subTitle="Manage and Participate in Quizzes" />
-      <div className="p-6">
-        <div className="bg-white rounded-lg shadow p-8 text-center border-2 border-dashed border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-700 mb-2">Coming Soon</h2>
-          <p className="text-gray-500">The Quiz module is currently under development.</p>
-        </div>
-      </div>
-    </>
-  );
+export default async function ArticlesPage() {
+  try {
+    const apiKey = process.env.API_KEY;
+    const initialArticles = await fetchData("articles", "", 0);
+
+    return (
+      <>
+        <Header title="ARTICLES" subTitle="Manage and Publish Latest Articles" />
+        <ArticlesManagement
+          apiKey={apiKey}
+          initialArticles={initialArticles}
+        />
+      </>
+    );
+  } catch (error) {
+    console.error("Error loading articles:", error.message);
+    return (
+      <ErrorPage
+        statusCode={500}
+        title="Internal Server Error"
+        description="An unexpected error occurred while processing articles."
+      />
+    );
+  }
 }
+
+export const revalidate = 0;

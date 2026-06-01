@@ -6,11 +6,10 @@ import ErrorPage from "@/components/ErrorPage";
 export default async function UpdatesPage() {
   try {
     const apiKey = process.env.API_KEY;
-    const data = await fetchData("updates", "", 0);
-    const initialUpdates = data?.updates || [];
+    const initialUpdates = await fetchData("updates", "", 0);
     
     const settingsData = await fetchData("settings", "", 0);
-    const initialUpdatesLogo = settingsData?.settings?.institution?.updatesLogo || null;
+    const initialUpdatesLogo = settingsData?.institution?.updatesLogo || null;
 
     return (
       <>

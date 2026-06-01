@@ -385,9 +385,9 @@ const items = [
     allowedRoles: ["Org Admin"],
   },
   {
-    title: "Quiz",
+    title: "Articles",
     url: "/dashboard/quiz",
-    icon: FileQuestion,
+    icon: BookOpen,
     allowedRoles: ["Org Admin"],
   },
   {
