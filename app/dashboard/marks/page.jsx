@@ -27,7 +27,7 @@ export default async function MarksPage() {
                 icon={<FileSpreadsheet className="h-5 w-5 text-muted-foreground" />}
             />
             <div className="px-4">
-                <MarksManager apiKey={apiKey} />
+                <MarksManager apiKey={apiKey} activeRole={activeRole} />
             </div>
         </div>
     );

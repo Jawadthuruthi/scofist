@@ -117,7 +117,7 @@ function MultiSelect({ options = [], selected = [], onChange, placeholder = "Sel
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function MarksManager({ apiKey }) {
+export default function MarksManager({ apiKey, activeRole: serverRole }) {
     const [batches, setBatches] = useState([]);
     const [classes, setClasses] = useState([]);
 
@@ -161,7 +161,8 @@ export default function MarksManager({ apiKey }) {
     const [isGradingDialogOpen, setIsGradingDialogOpen] = useState(false);
 
     const printRef = useRef(null);
-    const activeRole = Cookies.get("active-role");
+    const clientRole = Cookies.get("active-role");
+    const activeRole = serverRole || clientRole;
 
     // ── Refresh all exams helper
     const refreshAllExams = useCallback(async () => {
