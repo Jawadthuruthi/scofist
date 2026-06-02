@@ -1,7 +1,7 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-
+import { fetchData } from "@/lib/utils";
 const columnsConfig = [
   {
     id: "select",
@@ -138,6 +138,19 @@ export default async function BatchesPage() {
   try {
     const apiKey = process.env.API_KEY;
 
+    const batchesData = await fetchData("batches", "projection=_id");
+    const lastBatchId = batchesData?.length > 0 ? batchesData[batchesData.length - 1]._id : null;
+
+    const dynamicFormFields = formFields.map((field) => {
+      if (field.name === "_id") {
+        return {
+          ...field,
+          placeholder: lastBatchId ? `Last ID: ${lastBatchId}` : field.placeholder,
+        };
+      }
+      return field;
+    });
+
     return (
       <>
         <Header
@@ -148,7 +161,7 @@ export default async function BatchesPage() {
           resource="batches"
           initialData={[]}
           columnsConfig={columnsConfig}
-          formFields={formFields}
+          formFields={dynamicFormFields}
           apiKey={apiKey}
           createFormTitle="Add New Batch"
           editFormTitle="Edit Batch"

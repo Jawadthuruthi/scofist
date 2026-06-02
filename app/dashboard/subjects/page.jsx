@@ -1,7 +1,7 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-
+import { fetchData } from "@/lib/utils";
 const columnsConfig = [
   {
     id: "select",
@@ -67,6 +67,19 @@ export default async function BatchesPage() {
   try {
     const apiKey = process.env.API_KEY;
 
+    const subjectsData = await fetchData("subjects", "projection=_id");
+    const lastSubjectId = subjectsData?.length > 0 ? subjectsData[subjectsData.length - 1]._id : null;
+
+    const dynamicFormFields = formFields.map((field) => {
+      if (field.name === "_id") {
+        return {
+          ...field,
+          placeholder: lastSubjectId ? `Last ID: ${lastSubjectId}` : field.placeholder,
+        };
+      }
+      return field;
+    });
+
     return (
       <>
         <Header
@@ -77,7 +90,7 @@ export default async function BatchesPage() {
           resource="subjects"
           initialData={[]}
           columnsConfig={columnsConfig}
-          formFields={formFields}
+          formFields={dynamicFormFields}
           apiKey={apiKey}
           createFormTitle="Add New Subject"
           editFormTitle="Edit Subject"

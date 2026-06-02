@@ -1,7 +1,7 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-
+import { fetchData } from "@/lib/utils";
 const columnsConfig = [
   {
     id: "select",
@@ -232,6 +232,20 @@ export default async function BatchesPage() {
   try {
     const apiKey = process.env.API_KEY;
 
+    // Default sorting for users is _id descending, so the first one is the largest _id
+    const usersData = await fetchData("users", "roles=Teacher&projection=_id&limit=1");
+    const lastTeacherId = usersData?.length > 0 ? usersData[0]._id : null;
+
+    const dynamicFormFields = formFields.map((field) => {
+      if (field.name === "_id") {
+        return {
+          ...field,
+          placeholder: lastTeacherId ? `Last ID: ${lastTeacherId}` : field.placeholder,
+        };
+      }
+      return field;
+    });
+
     return (
       <>
         <Header
@@ -242,7 +256,7 @@ export default async function BatchesPage() {
           resource="users"
           initialData={[]}
           columnsConfig={columnsConfig}
-          formFields={formFields}
+          formFields={dynamicFormFields}
           apiKey={apiKey}
           createFormTitle="Add New Teacher"
           editFormTitle="Edit Teacher"

@@ -174,6 +174,19 @@ export default async function ClassesPage() {
       },
     ];
 
+    const classesData = await fetchData("classes", "projection=_id");
+    const lastClassId = classesData?.length > 0 ? classesData[classesData.length - 1]._id : null;
+
+    const dynamicFormFields = formFields.map((field) => {
+      if (field.name === "_id") {
+        return {
+          ...field,
+          placeholder: lastClassId ? `Last ID: ${lastClassId}` : field.placeholder,
+        };
+      }
+      return field;
+    });
+
     return (
       <>
         <Header
@@ -184,7 +197,7 @@ export default async function ClassesPage() {
           resource="classes"
           initialData={[]}
           columnsConfig={columnsConfig}
-          formFields={formFields}
+          formFields={dynamicFormFields}
           apiKey={apiKey}
           createFormTitle="Add New Class"
           editFormTitle="Edit Class"
