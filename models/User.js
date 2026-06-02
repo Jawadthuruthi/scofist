@@ -115,6 +115,10 @@ const studentSpecificSchema = new Schema({
     trim: true,
     ref: "Class",
   },
+  stream: {
+    type: String,
+    trim: true,
+  },
   batchId: {
     type: String,
     trim: true,

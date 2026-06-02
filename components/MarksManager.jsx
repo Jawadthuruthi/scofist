@@ -10,7 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Save, Plus, Printer, Trophy, Edit, Settings, X, User, Check, ChevronsUpDown, Search } from "lucide-react";
+import { Trash2, Save, Plus, Printer, Trophy, Edit, Settings, X, User, Check, ChevronsUpDown, Search, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { useReactToPrint } from "react-to-print";
@@ -599,6 +599,31 @@ export default function MarksManager({ apiKey }) {
         documentTitle: `${resultExam?.examName || examName} — Result`,
     });
 
+    const handleExportToExcel = async () => {
+        try {
+            const XLSX = await import("xlsx");
+            const table = printRef.current?.querySelector("table");
+            if (!table) return;
+
+            const clonedTable = table.cloneNode(true);
+            const originalInputs = table.querySelectorAll("input");
+            const clonedInputs = clonedTable.querySelectorAll("input");
+            clonedInputs.forEach((input, index) => {
+                const val = originalInputs[index]?.value || "";
+                input.parentNode.replaceChild(document.createTextNode(val), input);
+            });
+
+            const wb = XLSX.utils.table_to_book(clonedTable, { sheet: "Sheet1" });
+            const fileName = showResult 
+                ? `${resultExam?.examName || "Result"}.xlsx`
+                : `${examName || "MarkEntry"}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        } catch (error) {
+            console.error("Excel export error:", error);
+            toast.error("Failed to export to Excel");
+        }
+    };
+
     const computeResultStats = (exam) => {
         if (!exam) return [];
         const examStudents = exam.students || [];
@@ -995,6 +1020,17 @@ export default function MarksManager({ apiKey }) {
                         </div>
                         {resultExam && (
                             <div className="flex gap-2">
+                                {activeRole === "College Admin" && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 py-0 border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                                        onClick={handleExportToExcel}
+                                    >
+                                        <FileSpreadsheet className="w-3.5 h-3.5 sm:mr-1.5" />
+                                        <span className="hidden sm:inline">Excel</span>
+                                    </Button>
+                                )}
                                 <Button
                                     size="sm"
                                     variant="default"

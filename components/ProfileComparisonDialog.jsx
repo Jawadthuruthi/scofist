@@ -4,12 +4,14 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle, XCircle, ArrowRight, CheckSquare, Square, Save } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatDateShort } from "@/lib/utils";
 
 export default function ProfileComparisonDialog({ student, open, onClose, onActionComplete }) {
   const [loading, setLoading] = useState(false);
   const [fieldActions, setFieldActions] = useState({}); // { [path]: "approve" | "reject" }
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (open && student?.pendingProfileUpdate) {
@@ -98,6 +100,7 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
       });
 
       if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ["users"] });
         toast.success(`Request ${action === "approve" ? "processed" : "rejected"} successfully`);
         onActionComplete();
         onClose();

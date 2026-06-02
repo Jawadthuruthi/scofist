@@ -270,6 +270,7 @@ export async function GET(req) {
         batchName: studentSpecificField.batchId?.name,
         classData: studentSpecificField.classId,
         batchData: studentSpecificField.batchId,
+        stream: studentSpecificField.stream,
         status: user.roles?.includes("Student")
           ? studentSpecificField.status
           : teacherSpecificField.status,
@@ -361,6 +362,7 @@ export async function POST(req, res) {
       familyDetails,
       familyOtherDetails,
       subjectTypeAssignments,
+      stream,
     } = body;
 
     // Build user object efficiently
@@ -408,6 +410,7 @@ export async function POST(req, res) {
         status,
         batchId,
         classId,
+        stream,
         subjectTypeAssignments,
         familyDetails: familyDetails?.map(m => ({
           position: m.position,
@@ -544,6 +547,7 @@ export async function PUT(req) {
         "academicQualification",
         "batchId",
         "classId",
+        "stream",
         "subjectTypeAssignments",
         "status",
         "isVerified",

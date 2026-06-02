@@ -330,7 +330,10 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
           readOnly={activeRole !== "College Admin" || isReadOnly}
           tableHeight="calc(100vh - 200px)"
           enableClickToEdit={true}
-          clickToEditExcludeColumns={["_id", "select", "serialNo", "actions", "updatedAt"]}
+          clickToEditExcludeColumns={[
+            ...filteredColumnsConfig.map(c => c.accessorKey || c.id).filter(id => id !== "_id"),
+            "select", "serialNo", "actions", "updatedAt"
+          ]}
           formClassName="sm:max-w-4xl"
           defaultSorting={defaultSorting}
           capitalizeInputs={true}

@@ -71,7 +71,18 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, onProfileRe
         },
         { accessorKey: "aadharNo", header: "Aadhar Number" },
         { accessorKey: "batchName", header: "Batch" },
-        { accessorKey: "className", header: "Class" },
+        { 
+            accessorKey: "className", 
+            header: "Class",
+            cell: ({ row }) => (
+                <div className="flex flex-col">
+                    <span className="font-semibold">{row.original.className}</span>
+                    {row.original.stream && (
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{row.original.stream}</span>
+                    )}
+                </div>
+            )
+        },
         ...(pageTitle !== "ADMISSION REGISTER" ? [{
             accessorKey: "subjectTypeAssignments",
             header: "Subject Assignment",

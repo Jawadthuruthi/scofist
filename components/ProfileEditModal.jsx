@@ -73,13 +73,34 @@ export default function ProfileEditModal({ user, open, onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    const capitalizeData = (data) => {
+      if (!data) return data;
+      const result = Array.isArray(data) ? [] : {};
+      for (const key in data) {
+        if (data.hasOwnProperty(key)) {
+          const value = data[key];
+          if (typeof value === "object" && value !== null) {
+            result[key] = capitalizeData(value);
+          } else if (typeof value === "string" && key !== "email" && key !== "dateOfBirth") {
+            result[key] = value.toUpperCase();
+          } else {
+            result[key] = value;
+          }
+        }
+      }
+      return result;
+    };
+
+    const transformedData = capitalizeData(formData);
+
     try {
       const response = await fetch("/api/users/profile-request", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user._id,
-          pendingChanges: formData
+          pendingChanges: transformedData
         })
       });
 

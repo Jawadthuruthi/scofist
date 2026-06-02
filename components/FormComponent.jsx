@@ -98,6 +98,7 @@ const FormFields = ({ form, fields, apiKey }) =>
                 value={formField.value}
                 onValueChange={(value) => formField.onChange(value)}
                 readOnly={field.readOnly}
+                freeSolo={field.freeSolo}
               />
             ) : field.inputType === "toggle" ? (
               <div className="flex items-center space-x-2">
