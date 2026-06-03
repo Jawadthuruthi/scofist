@@ -171,6 +171,22 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRequestsOpen, setIsRequestsOpen] = useState(false);
 
+  const { useFetchItems } = useCrud("users", apiKey);
+  const { data: pendingRequestsData } = useFetchItems(
+    0,
+    100,
+    {
+      roles: "Student",
+      profileUpdateStatus: "Pending",
+    },
+    {
+      enabled: activeRole === "College Admin" && !isReadOnly && pageTitle !== "ADMISSION REGISTER",
+      refetchInterval: 15000,
+    }
+  );
+
+  const pendingRequestsCount = pendingRequestsData?.users?.length || 0;
+
   // Use shared column configuration
   const columnsConfig = getStudentColumns({
     classes,
@@ -340,12 +356,17 @@ export default function StudentsClient({ batches, classes, activeRole, apiKey, i
           customTopRightButtons={
             pageTitle !== "ADMISSION REGISTER" ? (
               <Button 
-                variant="outline" 
-                className="h-9 px-3 shrink-0 print:hidden gap-2" 
+                variant={pendingRequestsCount > 0 ? "destructive" : "outline"}
+                className={`h-9 px-3 shrink-0 print:hidden gap-2 ${pendingRequestsCount > 0 ? "bg-red-500 hover:bg-red-600 text-white" : ""}`} 
                 onClick={() => setIsRequestsOpen(true)}
               >
                 <ClipboardList className="h-4 w-4" />
                 <span className="hidden md:inline">Requests</span>
+                {pendingRequestsCount > 0 && (
+                  <span className="ml-1 bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
+                    {pendingRequestsCount}
+                  </span>
+                )}
               </Button>
             ) : null
           }

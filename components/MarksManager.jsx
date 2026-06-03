@@ -727,31 +727,53 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                     // Marks Entry Controls
                     activeRole === "Teacher" ? (
                         // Teacher: mode, exam name, subject
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-                            {/* Mode */}
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Mode</label>
-                                <Select
-                                    value="entry"
-                                    onValueChange={val => {
-                                        if (val === "result") {
-                                            setShowResult(true);
-                                            setResultExam(null);
-                                            setResultType("class-wise");
-                                            setSelectedStudentForIndividual("");
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="entry">Marks Entry</SelectItem>
-                                        <SelectItem value="result">Result View</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                        <div className={`space-y-3 md:space-y-0 md:grid md:gap-3 md:items-end ${examReady ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+                            {/* Row 1 on mobile: Mode + Subject side by side */}
+                            <div className={`grid gap-3 md:contents ${examReady ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                                {/* Mode */}
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block">Mode</label>
+                                    <Select
+                                        value="entry"
+                                        onValueChange={val => {
+                                            if (val === "result") {
+                                                setShowResult(true);
+                                                setResultExam(null);
+                                                setResultType("class-wise");
+                                                setSelectedStudentForIndividual("");
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="entry">Marks Entry</SelectItem>
+                                            <SelectItem value="result">Result View</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Subject */}
+                                {examReady && (
+                                    <div>
+                                        <label className="text-sm font-medium mb-1 block">Subject</label>
+                                        <Select
+                                            disabled={!examReady || subjects.length === 0}
+                                            value={selectedSubjectIndex !== null ? selectedSubjectIndex.toString() : ""}
+                                            onValueChange={val => setSelectedSubjectIndex(val === "" ? null : Number(val))}
+                                        >
+                                            <SelectTrigger><SelectValue placeholder={!examReady ? "Select exam first..." : "Select subject..."} /></SelectTrigger>
+                                            <SelectContent>
+                                                {subjects.map((subj, i) => (
+                                                    <SelectItem key={i} value={i.toString()}>{subj.name || `Subject ${i + 1}`}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Exam Name */}
-                            <div>
+                            {/* Exam Name — full width on mobile, middle col on md+ */}
+                            <div className="md:order-first">
                                 <label className="text-sm font-medium mb-1 block">Exam Name</label>
                                 <Select
                                     value={selectedExam?._id || ""}
@@ -765,23 +787,6 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                     <SelectContent>
                                         {allExams.map(exam => (
                                             <SelectItem key={exam._id} value={exam._id}>{exam.examName}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Subject */}
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Subject</label>
-                                <Select
-                                    disabled={!examReady || subjects.length === 0}
-                                    value={selectedSubjectIndex !== null ? selectedSubjectIndex.toString() : ""}
-                                    onValueChange={val => setSelectedSubjectIndex(val === "" ? null : Number(val))}
-                                >
-                                    <SelectTrigger><SelectValue placeholder={!examReady ? "Select exam first..." : "Select subject..."} /></SelectTrigger>
-                                    <SelectContent>
-                                        {subjects.map((subj, i) => (
-                                            <SelectItem key={i} value={i.toString()}>{subj.name || `Subject ${i + 1}`}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
