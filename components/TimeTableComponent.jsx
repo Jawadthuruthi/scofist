@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertCircle, Loader, UserX } from "lucide-react";
+import { AlertCircle, Check, ChevronsUpDown, FileText, Loader, UserX } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -27,9 +27,35 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import PrintHeader from "@/components/PrintHeader";
+
+const leaveReasons = [
+  "Home Leave",
+  "In a Function",
+  "Unfitness",
+  "Study Leave",
+  "Duty Leave",
+  "Campus Function",
+  "Fiqh Council",
+  "Exam",
+  "Hospital",
+];
 
 const daysOfWeek = [
   "Sunday",
@@ -104,6 +130,150 @@ const AbsenteesDialog = ({
   );
 };
 
+// Edit Leave Reason Dialog (for College Admin)
+const EditLeaveReasonDialog = ({ open, onOpenChange, leaveRecord, apiKey, onSuccess }) => {
+  const [reason, setReason] = useState("");
+  const [comboboxOpen, setComboboxOpen] = useState(false);
+  const [error, setError] = useState(false);
+
+  const { useAddItem, useDeleteItem } = useCrud("teachers-leave-record", apiKey);
+  const addLeaveRecord = useAddItem();
+  const deleteLeaveRecord = useDeleteItem();
+
+  useEffect(() => {
+    if (open && leaveRecord) {
+      setReason(leaveRecord.leaveReason || "");
+      setError(false);
+    }
+  }, [open, leaveRecord]);
+
+  const handleSubmit = async () => {
+    if (reason.trim() !== "" && reason.length > 20) {
+      toast.error("Leave reason should not exceed 20 characters.");
+      return;
+    }
+    try {
+      await addLeaveRecord.mutateAsync({
+        teacherId: leaveRecord.teacherId,
+        classId: leaveRecord.classId,
+        periodNumber: leaveRecord.periodNumber,
+        date: leaveRecord.date,
+        leaveReason: reason,
+      });
+      toast.success("Leave reason updated successfully.");
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (err) {
+      console.error("Error updating leave reason:", err);
+      toast.error(err.message || "Error updating leave reason");
+    }
+  };
+
+  const handleClear = async () => {
+    if (!leaveRecord?._id) return;
+    try {
+      await deleteLeaveRecord.mutateAsync({ data: { _id: leaveRecord._id } });
+      toast.success("Leave reason cleared successfully.");
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (err) {
+      console.error("Error clearing leave reason:", err);
+      toast.error(err.message || "Error clearing leave reason");
+    }
+  };
+
+  if (!leaveRecord) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
+        <DialogHeader>
+          <DialogTitle>Edit Leave Reason</DialogTitle>
+          <DialogDescription>
+            Edit the leave reason for <span className="font-semibold">{leaveRecord.teacherName || "this teacher"}</span> — Period {leaveRecord.periodNumber}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="relative">
+          <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 z-10" />
+          <div className="relative">
+            <Input
+              placeholder="Select or type a reason..."
+              value={reason}
+              onChange={(e) => {
+                if (e.target.value.length > 20) setError(true);
+                else setError(false);
+                setReason(e.target.value);
+              }}
+              className="pl-10 pr-10"
+            />
+            <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                >
+                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-0" align="end">
+                <Command>
+                  <CommandList>
+                    <CommandGroup>
+                      {leaveReasons.map((r) => (
+                        <CommandItem
+                          key={r}
+                          value={r}
+                          onSelect={(currentValue) => {
+                            setReason(currentValue);
+                            setComboboxOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              reason === r ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {r}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+          {error && (
+            <p className="text-destructive text-xs p-1">
+              Leave reason should not exceed 20 characters.
+            </p>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {leaveRecord._id && (
+            <Button
+              variant="outline"
+              className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
+              disabled={deleteLeaveRecord.isPending}
+              onClick={handleClear}
+            >
+              Clear
+            </Button>
+          )}
+          <Button
+            disabled={addLeaveRecord.isPending || error}
+            onClick={handleSubmit}
+            className={leaveRecord._id ? "flex-1" : "w-full"}
+          >
+            Save
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const TimeTableComponent = ({
   apiKey,
   teacherId,
@@ -114,11 +284,30 @@ const TimeTableComponent = ({
   teachersLeaveRecord = [],
   useShortName = false,
   hideEmptyClassRows = false,
+  role,
 }) => {
   const timeTableRef = useRef(null);
   const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
   const [currentDialogData, setCurrentDialogData] = useState({});
   const [currentAbsenteesList, setCurrentAbsenteesList] = useState([]);
+
+  // Edit Leave Reason state (College Admin)
+  const [editLeaveOpen, setEditLeaveOpen] = useState(false);
+  const [editLeaveRecord, setEditLeaveRecord] = useState(null);
+
+  const { useFetchItems: useFetchLeaveRecords } = useCrud("teachers-leave-record", apiKey);
+  const todayDateStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const liveLeaveQuery = useFetchLeaveRecords(
+    0, 0,
+    { date: todayDateStr },
+    { staleTime: 0, refetchOnWindowFocus: true, enabled: role === "College Admin" }
+  );
+  const liveLeaveRecords = useMemo(() => {
+    if (role === "College Admin") {
+      return liveLeaveQuery.data?.teachersLeaveRecord || teachersLeaveRecord;
+    }
+    return teachersLeaveRecord;
+  }, [role, liveLeaveQuery.data, teachersLeaveRecord]);
 
   const { useFetchItems } = useCrud("timeTables", apiKey);
   const fetchTimeTableQuery = useFetchItems(null, null, {
@@ -396,22 +585,24 @@ const TimeTableComponent = ({
                       [];
                     const isAttendanceMarked = markedAttendance?.length > 0;
 
-                    const leaveRecord = teachersLeaveRecord.find((record) => {
+                    const leaveRecord = liveLeaveRecords.find((record) => {
                       const recordDate = new Date(record.date);
                       const recordDay = recordDate.toLocaleDateString(
                         "en-US",
                         { weekday: "long" }
                       );
                       const recordDateStr = recordDate.toISOString().split('T')[0];
-                      const todayDateStr = new Date().toISOString().split('T')[0];
+                      const todayStr = new Date().toISOString().split('T')[0];
                       
                       return (
                         record.periodNumber === period.periodNumber &&
-                        record.teacherId === cellData?.teacherId?._id &&
+                        (record.teacherId?._id || record.teacherId) === (cellData?.teacherId?._id || cellData?.teacherId) &&
                         recordDay === currentDay &&
-                        recordDateStr === todayDateStr
+                        recordDateStr === todayStr
                       );
                     });
+
+                    const canEditLeave = role === "College Admin" && cellData && cellData.teacherId && !isAttendanceMarked;
 
                     return (
                       <TableCell
@@ -423,6 +614,26 @@ const TimeTableComponent = ({
                               cellData,
                               absenteesList
                             );
+                          } else if (canEditLeave) {
+                            if (leaveRecord) {
+                              setEditLeaveRecord({
+                                ...leaveRecord,
+                                teacherName: cellData.teacherId?.name || "",
+                                teacherId: leaveRecord.teacherId?._id || leaveRecord.teacherId,
+                                classId: leaveRecord.classId?._id || leaveRecord.classId,
+                              });
+                            } else {
+                              // New leave record — no _id yet
+                              setEditLeaveRecord({
+                                teacherName: cellData.teacherId?.name || "",
+                                teacherId: cellData.teacherId?._id || cellData.teacherId,
+                                classId: classItem?._id,
+                                periodNumber: period.periodNumber,
+                                date: new Date().toISOString(),
+                                leaveReason: "",
+                              });
+                            }
+                            setEditLeaveOpen(true);
                           }
                         }}
                         key={period?._id}
@@ -431,7 +642,7 @@ const TimeTableComponent = ({
                           : leaveRecord
                             ? "bg-red-100/50 print:bg-inherit"
                             : ""
-                          } border text-center  cursor-pointer print:max-w-32`}
+                          } border text-center cursor-pointer print:max-w-32`}
                       >
                         {!!cellData ? (
                           <div className="flex flex-col items-center justify-center">
@@ -493,6 +704,15 @@ const TimeTableComponent = ({
         periodNumber={currentDialogData.periodNumber}
         absenteesList={currentAbsenteesList}
         useShortName={useShortName}
+      />
+
+      {/* Edit Leave Reason Dialog (College Admin) */}
+      <EditLeaveReasonDialog
+        open={editLeaveOpen}
+        onOpenChange={setEditLeaveOpen}
+        leaveRecord={editLeaveRecord}
+        apiKey={apiKey}
+        onSuccess={() => liveLeaveQuery.refetch()}
       />
 
       {!hidePrintButton && (

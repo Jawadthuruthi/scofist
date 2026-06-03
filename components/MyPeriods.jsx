@@ -396,7 +396,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                   {filteredSlots.map((slot) => {
                     const leaveRecord = leaveRecords.find(
                       (record) =>
-                        record.classId === slot.classId?._id &&
+                        String(record.classId?._id || record.classId) === String(slot.classId?._id) &&
                         record.periodNumber === slot.periodNumber &&
                         formatDate(new Date(record.date)) === formattedDate
                     );
