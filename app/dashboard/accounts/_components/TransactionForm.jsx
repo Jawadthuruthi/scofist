@@ -134,7 +134,7 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
     };
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-sm border mb-6">
+        <div className="bg-card p-6 rounded-lg shadow-sm border mb-6">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="space-y-2 col-span-1">

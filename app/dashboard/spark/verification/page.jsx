@@ -28,11 +28,11 @@ export default async function VerificationPage() {
                     Verification Summary
                 </h1>
                 <p className="text-muted-foreground">
-                    Profile verification status for GB and Alumni members across batches.
+                    Profile verification status for all members.
                 </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
@@ -69,9 +69,9 @@ export default async function VerificationPage() {
                 <CardHeader>
                     <CardTitle>Batch Verification Status</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border">
-                        <Table>
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <Table className="[&_td]:border-r [&_th]:border-r [&_td:last-child]:border-r-0 [&_th:last-child]:border-r-0">
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[200px]">Batch Name</TableHead>
@@ -84,11 +84,11 @@ export default async function VerificationPage() {
                                 </TableRow>
                                 <TableRow className="bg-muted/50">
                                     <TableHead></TableHead>
-                                    <TableHead>Total</TableHead>
-                                    <TableHead>Verified</TableHead>
+                                    <TableHead className="text-center">Total</TableHead>
+                                    <TableHead className="text-center">Verified</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead className="border-l">Total</TableHead>
-                                    <TableHead>Verified</TableHead>
+                                    <TableHead className="text-center border-l">Total</TableHead>
+                                    <TableHead className="text-center">Verified</TableHead>
                                     <TableHead>Status</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -110,8 +110,8 @@ export default async function VerificationPage() {
                                             </TableCell>
 
                                             {/* GB Columns */}
-                                            <TableCell>{batch.gb.total}</TableCell>
-                                            <TableCell className="text-green-600 font-medium">
+                                            <TableCell className="text-center">{batch.gb.total}</TableCell>
+                                            <TableCell className="text-center text-green-600 font-medium">
                                                 {batch.gb.verified}
                                             </TableCell>
                                             <TableCell className="w-[150px]">
@@ -124,10 +124,10 @@ export default async function VerificationPage() {
                                             </TableCell>
 
                                             {/* Alumni Columns */}
-                                            <TableCell className="border-l">
+                                            <TableCell className="text-center border-l">
                                                 {batch.alumni.total}
                                             </TableCell>
-                                            <TableCell className="text-green-600 font-medium">
+                                            <TableCell className="text-center text-green-600 font-medium">
                                                 {batch.alumni.verified}
                                             </TableCell>
                                             <TableCell className="w-[150px]">

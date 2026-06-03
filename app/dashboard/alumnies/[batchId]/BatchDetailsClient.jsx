@@ -23,7 +23,7 @@ export default function BatchDetailsClient({ batch, classes, apiKey }) {
         classes,
         pageTitle: `${batch.name} - ${activeTab === "GB" ? "GB Members" : "Alumni Members"}`,
         onNameClick: null,
-        excludeColumns: ["select", "batchName", "className", "liabilities", "roles"]
+        excludeColumns: ["select", "batchName", "className", "liabilities", "roles", "subjectTypeAssignments", "remarks"]
     });
 
     const apiFilters = useMemo(() => {
@@ -80,7 +80,6 @@ export default function BatchDetailsClient({ batch, classes, apiKey }) {
                             : `${batch.alumniMembers} Members`
                     }
                 />
-                {isMobile && tabsElement}
 
                 <div className="flex items-center justify-center p-12 border rounded-lg bg-gray-50 text-muted-foreground">
                     <p>You do not have permission to view the student list for this batch.</p>
@@ -99,8 +98,6 @@ export default function BatchDetailsClient({ batch, classes, apiKey }) {
                         : `${batch.alumniMembers} Members`
                 }
             />
-
-            {isMobile && tabsElement}
 
             <DataTableComponent
                 resource="users"

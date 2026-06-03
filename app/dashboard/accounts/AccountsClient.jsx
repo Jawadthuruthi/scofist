@@ -69,7 +69,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
 
     // Fetch available account names
     useEffect(() => {
-        if (accountType === "Org" || accountType === "College") {
+        if (accountType === "Org" || accountType === "College" || accountType === "Spark") {
             fetch(`/api/finance/account-names?accountType=${accountType}`)
                 .then(res => res.json())
                 .then(data => {
@@ -298,7 +298,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         // Force DataTable refresh by updating key
         setRefreshKey(prev => prev + 1);
         // Re-fetch account names in case a new one was added
-        if (accountType === "Org" || accountType === "College") {
+        if (accountType === "Org" || accountType === "College" || accountType === "Spark") {
             fetch(`/api/finance/account-names?accountType=${accountType}`)
                 .then(res => res.json())
                 .then(data => {
@@ -437,8 +437,8 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
 
     return (
         <div className="space-y-6">
-            {(accountType === "Org" || accountType === "College") && (
-                <div className="flex flex-wrap md:flex-nowrap items-center gap-2 bg-white p-4 rounded-lg shadow-sm border">
+            {(accountType === "Org" || accountType === "College" || accountType === "Spark") && (
+                <div className="flex flex-wrap md:flex-nowrap items-center gap-2 bg-card p-4 rounded-lg shadow-sm border">
 
                     {/* Prev Button - Order 1 */}
                     <Button

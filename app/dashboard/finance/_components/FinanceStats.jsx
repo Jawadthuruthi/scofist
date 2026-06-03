@@ -34,7 +34,7 @@ export default function FinanceStats({ summary }) {
                     </div>
                 </CardContent>
             </Card>
-            <Card className="bg-slate-50 border-slate-200 col-span-2 md:col-span-1">
+            <Card className="bg-secondary border-border col-span-2 md:col-span-1">
                 <CardHeader className="flex flex-row items-center justify-center md:justify-between space-y-0 gap-2 pb-2">
                     <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
                     <Calculator className="h-4 w-4 text-emerald-500" />

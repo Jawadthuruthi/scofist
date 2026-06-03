@@ -1098,7 +1098,7 @@ const DataTableComponent = ({
             <FileSpreadsheet className="h-4 w-4" />
             <span className="hidden md:inline">Excel</span>
           </Button>
-          <Button onClick={handlePrint} className="print:hidden bg-black text-white hover:bg-gray-800 h-9 px-3 gap-2 shrink-0">
+          <Button onClick={handlePrint} className="print:hidden btn-print h-9 px-3 gap-2 shrink-0">
             <Printer className="h-4 w-4" />
             <span className="hidden md:inline">Print</span>
           </Button>
@@ -1234,7 +1234,7 @@ const DataTableComponent = ({
                 <FileSpreadsheet className="h-4 w-4" />
               </Button>
               
-              <Button onClick={handleDownloadPDF} className="h-9 w-9 p-0 flex items-center justify-center bg-black text-white hover:bg-gray-800 border-0 shrink-0">
+              <Button onClick={handleDownloadPDF} className="h-9 w-9 p-0 flex items-center justify-center btn-print border-0 shrink-0">
                 <Printer className="h-4 w-4" />
               </Button>
             </div>

@@ -96,11 +96,11 @@ export default async function AlumniesPage() {
                     icon={<GraduationCap className="h-5 w-5 text-muted-foreground" />}
                 />
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-2 gap-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">
-                                Total GB Members (Active)
+                                Total GB Members
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -137,7 +137,7 @@ export default async function AlumniesPage() {
                             </>
                         );
 
-                        const cardClasses = "bg-gray-100 text-card-foreground p-6 rounded-lg shadow-sm border flex flex-col items-center justify-center text-center space-y-2 hover:bg-gray-200 hover:shadow-md transition-all block w-full h-full";
+                        const cardClasses = "bg-secondary text-card-foreground p-6 rounded-lg shadow-sm border border-border dark:border-white/15 dark:shadow-md flex flex-col items-center justify-center text-center space-y-2 hover:bg-accent hover:shadow-md transition-all block w-full h-full";
 
                         if (activeRole === "Student") {
                             return (
