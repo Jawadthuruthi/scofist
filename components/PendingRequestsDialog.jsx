@@ -37,7 +37,14 @@ const PendingRequestsDialog = ({ open, onClose, apiKey, onView }) => {
     }
   );
 
-  const pendingStudents = useMemo(() => data?.users || [], [data]);
+  const pendingStudents = useMemo(() => {
+    const students = data?.users || [];
+    return [...students].sort((a, b) => {
+      const dateA = new Date(a.profileRequestDate || 0).getTime();
+      const dateB = new Date(b.profileRequestDate || 0).getTime();
+      return dateB - dateA;
+    });
+  }, [data]);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -54,6 +61,7 @@ const PendingRequestsDialog = ({ open, onClose, apiKey, onView }) => {
             <TableHeader className="bg-muted/50 sticky top-0 z-10">
               <TableRow>
                 <TableHead className="w-[80px]">Sl No</TableHead>
+                <TableHead>Student ID</TableHead>
                 <TableHead>Student Name</TableHead>
                 <TableHead>Date of Request</TableHead>
                 <TableHead className="text-right">Action</TableHead>
@@ -62,13 +70,13 @@ const PendingRequestsDialog = ({ open, onClose, apiKey, onView }) => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center">
                     <Loader className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ) : pendingStudents.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                     No pending profile requests
                   </TableCell>
                 </TableRow>
@@ -76,6 +84,7 @@ const PendingRequestsDialog = ({ open, onClose, apiKey, onView }) => {
                 pendingStudents.map((student, index) => (
                   <TableRow key={student._id}>
                     <TableCell className="font-medium">{index + 1}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{student._id}</TableCell>
                     <TableCell>{student.name}</TableCell>
                     <TableCell>
                       {student.profileRequestDate 

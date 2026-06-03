@@ -190,7 +190,7 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
               <p className="text-sm text-muted-foreground mt-1">Review the prefilled details and select actions for modified fields.</p>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm font-normal text-muted-foreground">ID: {student._id}</span>
+              <span className="text-sm font-semibold text-foreground bg-muted px-2 py-1 rounded-md border">Student ID: <span className="font-mono text-xs ml-1">{student._id}</span></span>
             </div>
           </div>
         </DialogHeader>
@@ -206,6 +206,7 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
 
           <div className="space-y-1">
             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-2 border-l-4 border-primary">Personal Details</h4>
+            <ComparisonRow label="Student ID" fieldPath="_id" oldVal={oldData._id} newVal={oldData._id} />
             <ComparisonRow label="Name" fieldPath="name" oldVal={oldData.name} newVal={newData.name ?? oldData.name} />
             <ComparisonRow label="DOB" fieldPath="dateOfBirth" oldVal={formatDateShort(oldData.dateOfBirth)} newVal={newData.dateOfBirth ? formatDateShort(newData.dateOfBirth) : formatDateShort(oldData.dateOfBirth)} />
             <ComparisonRow label="Blood Group" fieldPath="studentSpecificField.bloodGroup" oldVal={oldData.studentSpecificField?.bloodGroup || oldData.bloodGroup} newVal={newData.studentSpecificField?.bloodGroup ?? (oldData.studentSpecificField?.bloodGroup || oldData.bloodGroup)} />
