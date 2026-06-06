@@ -334,7 +334,7 @@ const TimeTableComponent = ({
     ? timeTable.reduce(
       (acc, timeTable) => {
         const slots = timeTable.timeSlots.filter(
-          (slot) => slot.teacherId?._id === teacherId
+          (slot) => slot.teacherId?._id === teacherId && !slot.validTo
         );
         const classId = timeTable.classId;
         return {
@@ -350,7 +350,7 @@ const TimeTableComponent = ({
       (acc, timeTable) => {
         // Only get slots for the current day
         const slots = timeTable.timeSlots.filter(
-          (slot) => slot.day === currentDay
+          (slot) => slot.day === currentDay && !slot.validTo
         );
 
         // Make sure we're associating the correct classId with each slot

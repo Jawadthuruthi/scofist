@@ -227,7 +227,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
       (timeTable) => {
         return timeTable.timeSlots
           .filter(
-            (slot) => slot.teacherId?._id === teacherId && slot.day === today
+            (slot) => slot.teacherId?._id === teacherId && slot.day === today && !slot.validTo
           )
           .map((slot) => ({
             ...slot,
