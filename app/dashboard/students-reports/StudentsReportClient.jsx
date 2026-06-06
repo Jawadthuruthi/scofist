@@ -112,7 +112,7 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
             setIsSearchingSuggestions(true);
             try {
                 const response = await fetch(
-                    `/api/users?roles=Student&lookup=${encodeURIComponent(term)}&limit=10&projection=_id,name,batchId,classId,studentSpecificField`,
+                    `/api/users?roles=Student&lookup=${encodeURIComponent(term)}&limit=1000&projection=_id,name,batchId,classId,studentSpecificField,profilePic`,
                     {
                         headers: {
                             "Content-Type": "application/json",
@@ -244,7 +244,7 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
 
         try {
             const response = await fetch(
-                `/api/users?roles=Student&global=${encodeURIComponent(term)}&limit=1000&projection=_id,name,batchId,classId,studentSpecificField`,
+                `/api/users?roles=Student&global=${encodeURIComponent(term)}&limit=1000&projection=_id,name,batchId,classId,studentSpecificField,profilePic`,
                 {
                     headers: {
                         "Content-Type": "application/json",

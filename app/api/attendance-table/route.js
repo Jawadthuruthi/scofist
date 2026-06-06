@@ -3,6 +3,7 @@ import connectToDB from '@/lib/db';
 import Attendance from '@/models/Attendance.js';
 import TimeTable from '@/models/TimeTable.js';
 import TeachersLeaveRecord from '@/models/TeachersLeaveRecord.js';
+import Class from '@/models/Class.js';
 
 export async function GET(req) {
   try {
@@ -124,9 +125,24 @@ export async function GET(req) {
       }
     });
 
-    const uniquePairs = Object.values(subjectTeacherPairs).sort((a, b) =>
-      a.subjectName.localeCompare(b.subjectName)
-    );
+    const classInfo = await Class.findById(classId).lean();
+    const coreSubjects = classInfo?.coreSubjects?.map(s => s.toString()) || [];
+    const majorSubjects = classInfo?.majorSubjects?.map(s => s.toString()) || [];
+
+    const uniquePairs = Object.values(subjectTeacherPairs).sort((a, b) => {
+      const aIsCore = coreSubjects.includes(a.subjectId);
+      const bIsCore = coreSubjects.includes(b.subjectId);
+      const aIsMajor = majorSubjects.includes(a.subjectId);
+      const bIsMajor = majorSubjects.includes(b.subjectId);
+
+      if (aIsCore && !bIsCore) return -1;
+      if (!aIsCore && bIsCore) return 1;
+
+      if (aIsMajor && !bIsMajor) return 1;
+      if (!aIsMajor && bIsMajor) return -1;
+
+      return a.subjectName.localeCompare(b.subjectName);
+    });
 
     // Create lookup set: date-subjectId-teacherId
     const markedAttendances = new Set();
@@ -186,21 +202,28 @@ export async function GET(req) {
         const accessor = `${pair.subjectId}-${pair.teacherId}`;
         const attendanceLookupKey = `${isoDate}-${pair.subjectId}-${pair.teacherId}`;
 
-        // If it's an upcoming day, leave it empty (NO_PERIOD)
-        if (isUpcoming) {
-          row[accessor] = {
-            status: 'NO_PERIOD',
-            message: 'Upcoming',
-          };
-          return;
-        }
-
         // Check for schedule in both current timetable and historical patterns
         const currentPeriods = (dayScheduleMap[dayName] && dayScheduleMap[dayName][accessor]) || [];
         const historicalPeriods = (historicalDayScheduleMap[dayName] && historicalDayScheduleMap[dayName][accessor]) || [];
         
         // Merge periods to identify if it "should" have been marked
         const scheduledPeriods = Array.from(new Set([...currentPeriods, ...historicalPeriods]));
+
+        // If it's an upcoming day
+        if (isUpcoming) {
+          if (scheduledPeriods.length > 0) {
+            row[accessor] = {
+              status: 'UPCOMING_PERIOD',
+              message: 'Upcoming',
+            };
+          } else {
+            row[accessor] = {
+              status: 'NO_PERIOD',
+              message: 'No Period',
+            };
+          }
+          return;
+        }
 
         if (scheduledPeriods.length === 0) {
           // No record of this subject on this day, BUT check if it was marked anyway (Ad-hoc marking)

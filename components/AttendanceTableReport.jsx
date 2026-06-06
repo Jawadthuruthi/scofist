@@ -98,6 +98,9 @@ export default function AttendanceTableReport({ classes }) {
                     </div>
                 );
 
+            case 'UPCOMING_PERIOD':
+                return null;
+
             default:
                 return '-';
         }
@@ -271,7 +274,7 @@ export default function AttendanceTableReport({ classes }) {
                                 <SelectValue placeholder="Select Class" />
                             </SelectTrigger>
                             <SelectContent>
-                                {classes?.slice().sort(sortClasses).map((cls) => (
+                                {classes?.filter(cls => cls.status === "Active").sort((a, b) => (a._id || a.id).localeCompare(b._id || b.id)).map((cls) => (
                                     <SelectItem key={cls.id || cls._id} value={cls.id || cls._id}>
                                         {cls.name}
                                     </SelectItem>
