@@ -425,7 +425,13 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
             seenIds.add(s._id);
         }
     });
-    const activeStudents = studentPool.filter(st => selectedStudentIds.includes(st._id));
+    const activeStudents = studentPool
+        .filter(st => selectedStudentIds.includes(st._id))
+        .sort((a, b) => {
+            const idA = String(a._id || "");
+            const idB = String(b._id || "");
+            return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: "base" });
+        });
 
     const computeStats = () => {
         const currentSubjects = (activeRole === "Teacher" && selectedSubjectIndex !== null)
@@ -470,7 +476,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
         const sorted = [...totals].sort((a, b) => Number(b.total) - Number(a.total));
         return totals.map(t => ({
             ...t,
-            rank: sorted.findIndex(s => s.studentId === t.studentId) + 1,
+            rank: sorted.findIndex(s => Number(s.total) === Number(t.total)) + 1,
         }));
     };
 
@@ -683,9 +689,14 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
         return totals
             .map(t => ({
                 ...t,
-                rank: sorted.findIndex(s => s.studentId === t.studentId) + 1,
+                rank: sorted.findIndex(s => Number(s.total) === Number(t.total)) + 1,
             }))
-            .sort((a, b) => a.rank - b.rank);
+            .sort((a, b) => {
+                if (a.rank !== b.rank) return a.rank - b.rank;
+                const idA = String(a.studentId || "");
+                const idB = String(b.studentId || "");
+                return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: "base" });
+            });
     };
 
     const resultViewStats = computeResultStats(resultExam);
