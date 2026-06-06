@@ -93,9 +93,9 @@ const institutionFormField = [
     placeholder: "Enter website URL",
   },
   {
-    name: "facebook",
-    label: "Facebook URL",
-    placeholder: "Enter Facebook URL",
+    name: "whatsappChannel",
+    label: "WhatsApp Channel URL",
+    placeholder: "Enter WhatsApp Channel URL",
   },
   {
     name: "youtube",

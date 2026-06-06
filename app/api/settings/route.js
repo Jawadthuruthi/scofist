@@ -58,8 +58,8 @@ export async function POST(req, res) {
           email: data.email ?? existingSettings?.institution?.contact.email,
           website:
             data.website ?? existingSettings?.institution?.contact.website,
-          facebook:
-            data.facebook ?? existingSettings?.institution?.contact.facebook,
+          whatsappChannel:
+            data.whatsappChannel ?? existingSettings?.institution?.contact.whatsappChannel,
           youtube:
             data.youtube ?? existingSettings?.institution?.contact.youtube,
           instagram:
@@ -316,8 +316,8 @@ export async function PUT(req) {
           email: data.email ?? existingSettings?.institution?.contact?.email,
           website:
             data.website ?? existingSettings?.institution?.contact?.website,
-          facebook:
-            data.facebook ?? existingSettings?.institution?.contact?.facebook,
+          whatsappChannel:
+            data.whatsappChannel ?? existingSettings?.institution?.contact?.whatsappChannel,
           youtube:
             data.youtube ?? existingSettings?.institution?.contact?.youtube,
           instagram:

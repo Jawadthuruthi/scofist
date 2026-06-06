@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Instagram, Facebook, Youtube } from "lucide-react";
+import { Instagram, MessageCircle, Youtube } from "lucide-react";
 
 export default function Footer({ settings, institutionName }) {
   const ensureAbsoluteUrl = (url) => {
@@ -88,13 +88,13 @@ export default function Footer({ settings, institutionName }) {
               <h3 className="text-lg font-semibold mb-4">Connect</h3>
               <nav className="flex flex-col gap-3">
                 <a
-                  href={ensureAbsoluteUrl(settings?.institution?.contact?.facebook) || "https://facebook.com/jawad_thuruthi"}
+                  href={ensureAbsoluteUrl(settings?.institution?.contact?.whatsappChannel) || "https://whatsapp.com/channel/"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 hover:text-white transition group cursor-pointer"
                 >
-                  <Facebook className="w-5 h-5 text-gray-300 group-hover:text-white" />
-                  <span>Facebook</span>
+                  <MessageCircle className="w-5 h-5 text-gray-300 group-hover:text-white" />
+                  <span>WhatsApp</span>
                 </a>
                 <a
                   href={ensureAbsoluteUrl(settings?.institution?.contact?.youtube) || "https://youtube.com/jawad_thuruthi"}

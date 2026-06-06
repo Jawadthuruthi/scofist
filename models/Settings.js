@@ -28,7 +28,7 @@ const SettingsSchema = new Schema(
         secondaryPhone: { type: String, trim: true },
         email: { type: String, trim: true, lowercase: true },
         website: { type: String, trim: true },
-        facebook: { type: String, trim: true },
+        whatsappChannel: { type: String, trim: true },
         youtube: { type: String, trim: true },
         instagram: { type: String, trim: true },
       },
@@ -427,7 +427,7 @@ const SettingsSchema = new Schema(
 SettingsSchema.index({}, { unique: true });
 
 // Check if model exists but is missing the new fields (Hot Reload fix)
-if (models.Settings && (!models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage"))) {
+if (models.Settings && (!models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel"))) {
   console.log("Detecting outdated Settings model. Refreshing...");
   delete models.Settings;
 }
