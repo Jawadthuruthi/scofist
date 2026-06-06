@@ -156,7 +156,7 @@ export async function GET(req, res) {
 
         // Determine if this day is a working day
         const isHoliday = holidayMap.has(dateString);
-        const isImplicitHoliday = dateString >= "2026-04-01" && dateString <= "2026-04-10";
+        const isImplicitHoliday = (dateString >= "2026-04-01" && dateString <= "2026-04-10") || (dateString >= "2026-05-25" && dateString <= "2026-06-05") || (dateString >= "2026-02-12" && dateString <= "2026-02-28");
         const isWorkingDay = !isHoliday && !isImplicitHoliday;
         // For today, the global toggle is the final truth. For other days, use the holiday calendar.
         const isEffectivelyWorking = (dateString === todayDS) ? isTodayGlobalWorking : isWorkingDay;

@@ -105,7 +105,7 @@ export async function GET(req) {
             const dayName = WEEKDAYS[curr.getUTCDay()];
             
             const isHoliday = holidayMap.has(dateDS);
-            const isImplicitHoliday = dateDS >= "2026-04-01" && dateDS <= "2026-04-10"; // Mirror main API logic
+            const isImplicitHoliday = (dateDS >= "2026-04-01" && dateDS <= "2026-04-10") || (dateDS >= "2026-05-25" && dateDS <= "2026-06-05") || (dateDS >= "2026-02-12" && dateDS <= "2026-02-28"); // Mirror main API logic
             const isWorkingDay = !isHoliday && !isImplicitHoliday && isTodayGlobalWorking;
 
             scheduleSlots.forEach(slot => {
