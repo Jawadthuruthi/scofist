@@ -548,20 +548,13 @@ const LiteraryAttendance = () => {
                                   (!!queryParams.groupId &&
                                     groupAssistantLeaderId === student._id &&
                                     "(Assistant Leader)") ||
-                                  (queryParams.category === "ALL" &&
-                                    studentToGroupMap[student._id]?.isLeader &&
-                                    "(Leader)") ||
-                                  (queryParams.category === "ALL" &&
-                                    studentToGroupMap[student._id]
-                                      ?.isAssistantLeader &&
-                                    "(Assistant Leader)") ||
                                   ""}
                               </p>
                                 <p className="text-xs text-muted-foreground">
                                   {student._id} {student?.className}
                                   {queryParams.category === "ALL" &&
                                     studentToGroupMap[student._id] &&
-                                    ` | ${studentToGroupMap[student._id].groupName} (${studentToGroupMap[student._id].leaderName})`}
+                                    ` | ${studentToGroupMap[student._id].groupName}`}
                                 </p>
                               </div>
                               {isOnLeave && (
