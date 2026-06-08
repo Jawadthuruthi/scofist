@@ -65,6 +65,8 @@ const MyPeriods = ({ apiKey, teacherId }) => {
   const [periodNumber, setPeriodNumber] = useState("");
   const [selectedRecordId, setSelectedRecordId] = useState("");
   const [error, setError] = useState(false);
+  const [whatsappLoadingId, setWhatsappLoadingId] = useState(null);
+  const [whatsappModalData, setWhatsappModalData] = useState(null);
 
   const router = useRouter();
 
@@ -132,7 +134,6 @@ const MyPeriods = ({ apiKey, teacherId }) => {
     {
       date: formattedDate,
       teacherId,
-      projection: "_id,classId,subjectId,periodNumber", // Exclude heavy attendanceData
     },
     {
       staleTime: 1000 * 60 * 2,
@@ -249,7 +250,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
     const statusMap = {};
     attendanceQuery.data.attendances.forEach((attendance) => {
       const key = `${attendance.classId?._id}:${attendance.subjectId?._id}:${attendance.periodNumber}`;
-      statusMap[key] = true;
+      statusMap[key] = attendance;
     });
 
     return statusMap;
@@ -329,6 +330,54 @@ const MyPeriods = ({ apiKey, teacherId }) => {
     }
   };
 
+  const handleWhatsAppClick = async (e, slot) => {
+    e.stopPropagation();
+    
+    const key = `${slot.classId?._id}:${slot.subjectId?._id}:${slot.periodNumber}`;
+    const attendanceRecord = attendanceStatus[key];
+    
+    if (!attendanceRecord || typeof attendanceRecord !== "object") {
+      toast.error("Attendance not found or not marked yet.");
+      return;
+    }
+    
+    const subjectName = slot.subjectId?.name || "this subject";
+    
+    // Use pre-fetched attendanceData from attendanceQuery
+    const absentStudents = attendanceRecord.attendanceData?.filter(student => !student.present) || [];
+    
+    if (absentStudents.length === 0) {
+      toast.info("No absent students for this period.");
+      return;
+    }
+    
+    const studentsToMessage = [];
+    absentStudents.forEach(student => {
+      const number = student.guardianContactNumber || student.contactNumber;
+      if (number) {
+        const formattedNumber = number.replace(/\D/g, '');
+        if (!studentsToMessage.some(s => s.contactNumber === formattedNumber)) {
+          studentsToMessage.push({
+            name: student.studentName || "Student",
+            contactNumber: formattedNumber
+          });
+        }
+      }
+    });
+    
+    if (studentsToMessage.length === 0) {
+      toast.error("No contact numbers found for absent students.");
+      return;
+    }
+    
+    // Open modal instantly
+    setWhatsappModalData({
+      subjectName,
+      loading: false,
+      students: studentsToMessage
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="w-full">
@@ -384,10 +433,13 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                     <TableHead className="w-16 hidden md:table-cell">
                       Period
                     </TableHead>
-                    <TableHead>Time</TableHead>
+                    <TableHead className="w-32 whitespace-nowrap">Time</TableHead>
                     <TableHead>Class</TableHead>
                     <TableHead className="hidden md:table-cell">
                       Subject
+                    </TableHead>
+                    <TableHead className="w-16 text-center">
+                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-green-500"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                     </TableHead>
                     <TableHead></TableHead>
                   </TableRow>
@@ -413,7 +465,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                             <Badge variant="outline">{slot.periodNumber}</Badge>
                           </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap w-32">
                           <div className="flex items-center gap-2">
                             {slot.periodDetails?.formattedTime ||
                               `Period ${slot.periodNumber}`}
@@ -435,12 +487,23 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                           <div className="text-xs md:text-base">
                             {slot.classId?.name}
                           </div>
-                          <div className="text-xs md:hidden mt-1">
+                          <div className="text-xs md:hidden mt-1 text-muted-foreground">
                             {slot.subjectId?.name}
                           </div>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           {slot.subjectId?.name}
+                        </TableCell>
+                        <TableCell className="text-center align-middle">
+                          {isAttendanceMarked(slot) && (
+                            <button
+                              onClick={(e) => handleWhatsAppClick(e, slot)}
+                              className="text-green-500 hover:text-green-600 transition-colors p-1.5 rounded-full hover:bg-green-50 inline-flex items-center justify-center"
+                              title="Message Absent Students"
+                            >
+                              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                            </button>
+                          )}
                         </TableCell>
 
                         <TableCell align="right">
@@ -625,6 +688,65 @@ const MyPeriods = ({ apiKey, teacherId }) => {
               >
                 Submit
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ── WhatsApp Absent Students Dialog ── */}
+        <Dialog open={!!whatsappModalData} onOpenChange={(open) => !open && setWhatsappModalData(null)}>
+          <DialogContent className="max-w-md max-h-[80vh] flex flex-col overflow-hidden">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                Absent Students
+              </DialogTitle>
+              <DialogDescription>
+                Message the parents of students who are absent for {whatsappModalData?.subjectName}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="overflow-y-auto max-h-[60vh] -mx-6 px-6 pb-2">
+              {whatsappModalData?.loading ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
+                  <Loader className="h-8 w-8 animate-spin text-green-500" />
+                  <p className="text-sm font-medium">Fetching absent students...</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableBody>
+                    {whatsappModalData?.students?.map((student, idx) => {
+                      const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.`;
+                      const url = `https://wa.me/${student.contactNumber}?text=${encodeURIComponent(msg)}`;
+                      
+                      return (
+                        <TableRow key={idx}>
+                          <TableCell>
+                            <p className="font-medium text-sm">{student.name}</p>
+                            <p className="text-xs text-muted-foreground">{student.contactNumber}</p>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="flex items-center gap-2 border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700"
+                              onClick={() => {
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.target = '_blank';
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                              }}
+                            >
+                              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                              Message
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </DialogContent>
         </Dialog>

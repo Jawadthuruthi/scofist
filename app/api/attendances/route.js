@@ -110,7 +110,7 @@ export async function GET(req, res) {
         path: "attendanceData",
         populate: {
           path: "studentId",
-          select: "name email",
+          select: "name email contactNumber studentSpecificField.guardianContactNumber",
         },
       });
     }
@@ -164,6 +164,8 @@ export async function GET(req, res) {
           ...student,
           studentId: student.studentId?._id || student.studentId,
           studentName: student.studentId?.name,
+          contactNumber: student.studentId?.contactNumber,
+          guardianContactNumber: student.studentId?.studentSpecificField?.guardianContactNumber,
         })),
       } : attendanceObj;
 

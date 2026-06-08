@@ -283,7 +283,11 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
 
   if (field.conditionalRender) {
     const expected = field.conditionalRender.expectedValue;
-    if (depValue !== expected) return null;
+    if (expected !== undefined) {
+      if (depValue !== expected) return null;
+    } else {
+      if (!depValue) return null;
+    }
   }
 
   return (
