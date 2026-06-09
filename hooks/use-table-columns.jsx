@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowUpDown, ExternalLink, Pencil, Trash, User } from "lucide-react";
+import { ArrowUpDown, ExternalLink, Pencil, Trash, User, Phone, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { CLASS_ORDER } from "@/lib/utils";
 
@@ -421,6 +421,48 @@ const useTableColumns = (columnConfig, onCellClick) => {
               <span className="text-xs text-muted-foreground">{alternative}</span>
             )}
           </div>
+        );
+      };
+    }
+
+    if (col.type?.includes("whatsappAction")) {
+      columnDefinition.cell = ({ row }) => {
+        let number = row.getValue(col.accessorKey) || row.original[col.accessorKey] || row.original?.studentSpecificField?.[col.accessorKey];
+        if (!number || number === "-") return null;
+        number = String(number).replace(/[^\d+]/g, ''); // Extract digits and +
+        if (!number) return null;
+        
+        return (
+          <a
+            href={`https://wa.me/${number.replace('+', '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-green-500 hover:text-green-700 p-1 block print:hidden"
+            title="WhatsApp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MessageCircle className="w-4 h-4" />
+          </a>
+        );
+      };
+    }
+
+    if (col.type?.includes("callAction")) {
+      columnDefinition.cell = ({ row }) => {
+        let number = row.getValue(col.accessorKey) || row.original[col.accessorKey] || row.original?.studentSpecificField?.[col.accessorKey];
+        if (!number || number === "-") return null;
+        number = String(number).replace(/[^\d+]/g, ''); // Extract digits and +
+        if (!number) return null;
+        
+        return (
+          <a
+            href={`tel:${number}`}
+            className="text-blue-500 hover:text-blue-700 p-1 block print:hidden"
+            title="Call"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Phone className="w-4 h-4" />
+          </a>
         );
       };
     }

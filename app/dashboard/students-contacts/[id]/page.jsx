@@ -22,12 +22,16 @@ const columnsConfig = [
   },
   { accessorKey: "name", header: "Name" },
   { accessorKey: "contactNumber", header: "Contact", type: ["contactWithAlternative"] },
+  { id: "contactNumber_wa", accessorKey: "contactNumber", header: "WA", type: ["whatsappAction"], width: 40, maxWidth: 40, minWidth: 40 },
+  { id: "contactNumber_call", accessorKey: "contactNumber", header: "Call", type: ["callAction"], width: 40, maxWidth: 40, minWidth: 40 },
   { accessorKey: "guardianName", header: "Guardian Name", type: ["guardianNameWithRelationship"] },
   {
     accessorKey: "guardianContactNumber",
     header: "Guardian Contact",
     type: ["guardianContactWithAlternative"]
   },
+  { id: "guardianContactNumber_wa", accessorKey: "guardianContactNumber", header: "WA", type: ["whatsappAction"], width: 40, maxWidth: 40, minWidth: 40 },
+  { id: "guardianContactNumber_call", accessorKey: "guardianContactNumber", header: "Call", type: ["callAction"], width: 40, maxWidth: 40, minWidth: 40 },
 ];
 
 const apiKey = process.env.API_KEY;
