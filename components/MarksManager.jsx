@@ -854,7 +854,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                             </div>
 
                             {/* Row 2: Students, Exam Name */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
                                 {/* Students */}
                                 <div>
                                     <label className="text-sm font-medium mb-1 block">
@@ -877,26 +877,44 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                 {/* Exam Name */}
                                 <div>
                                     <label className="text-sm font-medium mb-1 block">Exam Name</label>
-                                    <Select
-                                        value={isAddingNewExam ? "NEW_EXAM" : (selectedExam?._id || "")}
-                                        onValueChange={val => {
-                                            if (val === "NEW_EXAM") {
-                                                setIsAddingNewExam(true); setSelectedExam(null); setExamName(""); setGradingScale([]); setExamReady(false); setStudents([]); setMarksData({});
-                                                return;
-                                            }
-                                            const exam = allExams.find(e => e._id === val);
-                                            if (exam) { loadExam(exam); }
-                                            else { setSelectedExam(null); setIsAddingNewExam(false); setExamName(""); setSubjects([{ name: "", maxMark: 100, passMark: 40, subColumns: [] }]); setGradingScale([]); setExamReady(false); }
-                                        }}
-                                    >
-                                        <SelectTrigger><SelectValue placeholder="Select exam..." /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="NEW_EXAM" className="font-semibold text-primary">+ Add New Exam</SelectItem>
-                                            {allExams.map(exam => (
-                                                <SelectItem key={exam._id} value={exam._id}>{exam.examName}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    {!selectedExam ? (
+                                        <Select
+                                            value={isAddingNewExam ? "NEW_EXAM" : ""}
+                                            onValueChange={val => {
+                                                if (val === "NEW_EXAM") {
+                                                    setIsAddingNewExam(true); setSelectedExam(null); setExamName(""); setGradingScale([]); setExamReady(false); setStudents([]); setMarksData({});
+                                                    return;
+                                                }
+                                                const exam = allExams.find(e => e._id === val);
+                                                if (exam) { loadExam(exam); }
+                                                else { setSelectedExam(null); setIsAddingNewExam(false); setExamName(""); setSubjects([{ name: "", maxMark: 100, passMark: 40, subColumns: [] }]); setGradingScale([]); setExamReady(false); }
+                                            }}
+                                        >
+                                            <SelectTrigger><SelectValue placeholder="Select exam..." /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="NEW_EXAM" className="font-semibold text-primary">+ Add New Exam</SelectItem>
+                                                {allExams.map(exam => (
+                                                    <SelectItem key={exam._id} value={exam._id}>{exam.examName}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                value={examName}
+                                                onChange={e => setExamName(e.target.value)}
+                                                placeholder="Edit Exam Name"
+                                                autoFocus
+                                            />
+                                            <Button
+                                                size="icon" variant="ghost" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive border border-input bg-background"
+                                                onClick={() => { setSelectedExam(null); setExamName(""); setExamReady(false); setStudents([]); setMarksData({}); }}
+                                                title="Clear Selection"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
