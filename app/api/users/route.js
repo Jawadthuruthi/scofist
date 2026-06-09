@@ -365,6 +365,11 @@ export async function POST(req, res) {
       stream,
     } = body;
 
+    const formatPhoneNumber = (num) => {
+      if (num && /^\d{10}$/.test(num)) return '+91 ' + num;
+      return num;
+    };
+
     // Build user object efficiently
     const userData = {
       _id,
@@ -372,8 +377,8 @@ export async function POST(req, res) {
       email,
       profilePic,
       roles,
-      contactNumber,
-      alternativeNumber,
+      contactNumber: formatPhoneNumber(contactNumber),
+      alternativeNumber: formatPhoneNumber(alternativeNumber),
       dateOfBirth,
       address: {
         houseName,
@@ -402,8 +407,8 @@ export async function POST(req, res) {
         aadharNo,
         bloodGroup,
         guardianName,
-        guardianContactNumber,
-        guardianAlternativeNumber,
+        guardianContactNumber: formatPhoneNumber(guardianContactNumber),
+        guardianAlternativeNumber: formatPhoneNumber(guardianAlternativeNumber),
         relationship,
         islamicQualification,
         academicQualification,
@@ -462,6 +467,17 @@ export async function PUT(req) {
     const body = await req.json();
 
     const { ids, _id: _idToExclude, ...updateFields } = body;
+    
+    const formatPhoneNumber = (num) => {
+      if (num && /^\d{10}$/.test(num)) return '+91 ' + num;
+      return num;
+    };
+
+    if (updateFields.contactNumber) updateFields.contactNumber = formatPhoneNumber(updateFields.contactNumber);
+    if (updateFields.alternativeNumber) updateFields.alternativeNumber = formatPhoneNumber(updateFields.alternativeNumber);
+    if (updateFields.guardianContactNumber) updateFields.guardianContactNumber = formatPhoneNumber(updateFields.guardianContactNumber);
+    if (updateFields.guardianAlternativeNumber) updateFields.guardianAlternativeNumber = formatPhoneNumber(updateFields.guardianAlternativeNumber);
+
     if (!ids || ids.length === 0) {
       return NextResponse.json(
         { message: "User IDs are required" },
