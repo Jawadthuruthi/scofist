@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import PrintableReceipt from "./_components/PrintableReceipt";
+import PrintableVoucher from "./_components/PrintableVoucher";
 import {
     Dialog,
     DialogContent,
@@ -310,6 +312,18 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
     }, [router, accountType]);
 
     const [refreshKey, setRefreshKey] = useState(0);
+    const [printTransaction, setPrintTransaction] = useState(null);
+    const [printDialogType, setPrintDialogType] = useState(null); // "receipt" | "voucher"
+
+    const handleOpenPrint = (transaction) => {
+        setPrintTransaction(transaction);
+        setPrintDialogType(transaction.type === "Income" ? "receipt" : "voucher");
+    };
+
+    const handleClosePrint = () => {
+        setPrintTransaction(null);
+        setPrintDialogType(null);
+    };
 
 
     const columnsConfig = [
@@ -380,6 +394,37 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                     <IndianRupee className="h-3 w-3 mr-1" />
                     {row.original.amount}
                 </div>
+            )
+        },
+        {
+            id: "printDoc",
+            header: "Receipt/Voucher",
+            enableSorting: false,
+            enableHiding: false,
+            width: "130px",
+            minWidth: "120px",
+            cell: ({ row }) => (
+                row.original.type === "Income" ? (
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-700 border-green-300 hover:bg-green-50 hover:text-green-800 gap-1 text-xs px-2 py-1 h-7"
+                        onClick={() => handleOpenPrint(row.original)}
+                    >
+                        <Printer className="h-3 w-3" />
+                        Receipt
+                    </Button>
+                ) : (
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-blue-700 border-blue-300 hover:bg-blue-50 hover:text-blue-800 gap-1 text-xs px-2 py-1 h-7"
+                        onClick={() => handleOpenPrint(row.original)}
+                    >
+                        <Printer className="h-3 w-3" />
+                        Voucher
+                    </Button>
+                )
             )
         },
         // We might want to show accountName column if in Org view and no specific account selected?
@@ -604,6 +649,20 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 limit={0}
                 onSuccess={handleSuccess}
                 onDataFetched={handleDataFetched}
+            />
+
+            {/* Printable Receipt / Voucher Dialogs */}
+            <PrintableReceipt
+                transaction={printDialogType === "receipt" ? printTransaction : null}
+                open={printDialogType === "receipt"}
+                onClose={handleClosePrint}
+                apiKey={apiKey}
+            />
+            <PrintableVoucher
+                transaction={printDialogType === "voucher" ? printTransaction : null}
+                open={printDialogType === "voucher"}
+                onClose={handleClosePrint}
+                apiKey={apiKey}
             />
 
             <Dialog open={deleteConfirmationOpen} onOpenChange={setDeleteConfirmationOpen}>
