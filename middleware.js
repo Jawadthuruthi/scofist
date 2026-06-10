@@ -564,6 +564,7 @@ async function handleApiRequest(req) {
     "/api/settings",
     "/api/student-attendance-lookup",
     "/api/vcard",
+    "/api/vcard/class",
   ];
 
   if (req.method === "GET" && publicGet.includes(url.pathname)) {
