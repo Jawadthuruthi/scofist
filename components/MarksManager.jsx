@@ -206,8 +206,12 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
     // ── Fetch students whenever selected batches or classes change
     useEffect(() => {
         if (selectedBatches.length === 0 && selectedClasses.length === 0) {
-            setAvailableStudents([]);
-            setSelectedStudentIds([]);
+            if (students.length === 0) {
+                setAvailableStudents([]);
+                setSelectedStudentIds([]);
+            } else {
+                setAvailableStudents(students);
+            }
             return;
         }
 
@@ -226,15 +230,34 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
 
         Promise.all(promises).then(results => {
             const map = new Map();
+            // Retain students from the loaded exam so they aren't lost
+            students.forEach(u => {
+                if (u && u._id) map.set(u._id, u);
+            });
             results.forEach(d => {
                 (d.users || []).forEach(u => map.set(u._id, u));
             });
             const merged = Array.from(map.values());
-            setAvailableStudents(merged);
-            // Default: all students selected
-            setSelectedStudentIds(merged.map(u => u._id));
+            setAvailableStudents(prevAvailable => {
+                const prevAvailableIds = new Set(prevAvailable.map(u => u._id));
+                
+                // Mix the previously selected students with the newly fetched ones
+                setSelectedStudentIds(prevSelected => {
+                    const newIds = new Set(prevSelected);
+                    results.forEach(d => {
+                        (d.users || []).forEach(u => {
+                            if (!prevAvailableIds.has(u._id)) {
+                                newIds.add(u._id);
+                            }
+                        });
+                    });
+                    return Array.from(newIds);
+                });
+                
+                return merged;
+            });
         }).catch(err => console.error("Failed to fetch students", err));
-    }, [selectedBatches, selectedClasses]);
+    }, [selectedBatches, selectedClasses, students]);
 
     const loadExam = (exam) => {
         setSelectedExam(exam);
@@ -255,6 +278,8 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
             if (sid && typeof sid === "object") return sid; // populated
             return { _id: sid, name: sid }; // fallback
         }).filter(Boolean);
+        setSelectedBatches([]);
+        setSelectedClasses([]);
         setStudents(examStudents);
         setAvailableStudents(examStudents);
         setSelectedStudentIds(examStudents.map(s => s._id));
