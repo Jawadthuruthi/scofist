@@ -22,6 +22,7 @@ const columnsConfig = [
   },
   { accessorKey: "name", header: "Name" },
   { accessorKey: "contactNumber", header: "Contact", type: ["contactWithAlternative"] },
+  { id: "contactNumber_save", accessorKey: "contactNumber", header: "Save", type: ["saveContactAction"], width: 40, maxWidth: 40, minWidth: 40 },
   { id: "contactNumber_wa", accessorKey: "contactNumber", header: "WA", type: ["whatsappAction"], width: 40, maxWidth: 40, minWidth: 40 },
   { id: "contactNumber_call", accessorKey: "contactNumber", header: "Call", type: ["callAction"], width: 40, maxWidth: 40, minWidth: 40 },
   { accessorKey: "guardianName", header: "Guardian Name", type: ["guardianNameWithRelationship"] },
@@ -30,6 +31,7 @@ const columnsConfig = [
     header: "Guardian Contact",
     type: ["guardianContactWithAlternative"]
   },
+  { id: "guardianContactNumber_save", accessorKey: "guardianContactNumber", header: "Save", type: ["saveGuardianContactAction"], width: 40, maxWidth: 40, minWidth: 40 },
   { id: "guardianContactNumber_wa", accessorKey: "guardianContactNumber", header: "WA", type: ["whatsappAction"], width: 40, maxWidth: 40, minWidth: 40 },
   { id: "guardianContactNumber_call", accessorKey: "guardianContactNumber", header: "Call", type: ["callAction"], width: 40, maxWidth: 40, minWidth: 40 },
 ];
@@ -41,7 +43,7 @@ const StudentsContactsListPage = async ({ params }) => {
     const { id } = await params;
     let data = await fetchData(
       "users",
-      `projection=_id,name,profilePic,contactNumber,alternativeNumber,studentSpecificField.guardianName,studentSpecificField.relationship,studentSpecificField.guardianContactNumber,studentSpecificField.guardianAlternativeNumber,admissionNumber,studentSpecificField.admissionNumber&classId=${id}&roles=Student&status=Active`
+      `projection=_id,name,studentSpecificField.batchId,profilePic,contactNumber,alternativeNumber,studentSpecificField.guardianName,studentSpecificField.relationship,studentSpecificField.guardianContactNumber,studentSpecificField.guardianAlternativeNumber,admissionNumber,studentSpecificField.admissionNumber&classId=${id}&roles=Student&status=Active`
     );
 
     if (data && data.length > 0) {

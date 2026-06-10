@@ -1,11 +1,47 @@
-"use client";
-
+import React, { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowUpDown, ExternalLink, Pencil, Trash, User, Phone, MessageCircle } from "lucide-react";
+import { ArrowUpDown, ExternalLink, Pencil, Trash, User, Phone, MessageCircle, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { CLASS_ORDER } from "@/lib/utils";
+
+const SaveContactButton = ({ number, name }) => {
+    const [href, setHref] = useState("");
+    const [download, setDownload] = useState(undefined);
+
+    useEffect(() => {
+        if (!number) return;
+        
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        
+        const fallbackUrl = `${window.location.origin}/api/vcard?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(number)}`;
+
+        if (isAndroid) {
+            setHref(`intent:#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.dir/contact;S.name=${encodeURIComponent(name)};S.phone=${encodeURIComponent(number)};S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`);
+        } else {
+            setHref(fallbackUrl);
+            if (!isIOS) {
+                setDownload(`${name}.vcf`);
+            }
+        }
+    }, [name, number]);
+
+    if (!href) return <button className="text-indigo-300 p-2 block print:hidden" onClick={(e) => e.stopPropagation()}><UserPlus className="w-5 h-5" /></button>;
+
+    return (
+        <a
+            href={href}
+            download={download}
+            onClick={(e) => e.stopPropagation()}
+            className="text-indigo-500 hover:text-indigo-700 p-2 block print:hidden"
+            title="Save Contact"
+        >
+            <UserPlus className="w-5 h-5" />
+        </a>
+    );
+};
 
 const useTableColumns = (columnConfig, onCellClick) => {
   return columnConfig.map((col) => {
@@ -422,6 +458,39 @@ const useTableColumns = (columnConfig, onCellClick) => {
             )}
           </div>
         );
+      };
+    }
+
+    if (col.type?.includes("saveContactAction")) {
+      columnDefinition.cell = ({ row }) => {
+        let number = row.getValue(col.accessorKey) || row.original[col.accessorKey] || row.original?.studentSpecificField?.[col.accessorKey];
+        if (!number || number === "-") return null;
+        number = String(number).replace(/[^\d+]/g, '');
+        if (!number) return null;
+        
+        const batchName = row.original.batchName || row.original.batchId || "";
+        const studentName = row.original.name || "Student";
+        const name = batchName ? `${batchName} - ${studentName}` : studentName;
+        
+        return <SaveContactButton number={number} name={name} />;
+      };
+    }
+
+    if (col.type?.includes("saveGuardianContactAction")) {
+      columnDefinition.cell = ({ row }) => {
+        let number = row.getValue(col.accessorKey) || row.original[col.accessorKey] || row.original?.studentSpecificField?.[col.accessorKey];
+        if (!number || number === "-") return null;
+        number = String(number).replace(/[^\d+]/g, '');
+        if (!number) return null;
+        
+        const batchName = row.original.batchName || row.original.batchId || "";
+        const studentName = row.original.name || "Student";
+        const relationship = row.original.relationship || row.original?.studentSpecificField?.relationship || "Guardian";
+        
+        const baseName = batchName ? `${batchName} - ${studentName}` : studentName;
+        const contactName = `${baseName} (${relationship})`;
+        
+        return <SaveContactButton number={number} name={contactName} />;
       };
     }
 
