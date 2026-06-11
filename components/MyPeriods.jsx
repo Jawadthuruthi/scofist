@@ -438,7 +438,6 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                     <TableHead className="hidden md:table-cell">
                       Subject
                     </TableHead>
-                    <TableHead className="w-16 text-center"></TableHead>
                     <TableHead className="text-center"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -493,7 +492,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                           {slot.subjectId?.name}
                         </TableCell>
                         <TableCell className="text-center align-middle">
-                          {isAttendanceMarked(slot) && (
+                          {isAttendanceMarked(slot) ? (
                             <button
                               onClick={(e) => handleWhatsAppClick(e, slot)}
                               className="text-green-500 hover:text-green-600 transition-colors p-2 md:px-3 md:py-1.5 rounded-full md:rounded-md hover:bg-green-50 inline-flex items-center justify-center gap-1.5"
@@ -502,26 +501,24 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                               <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                               <span className="hidden md:inline font-medium text-sm">Message</span>
                             </button>
+                          ) : (
+                            <div
+                              className="z-10 flex justify-center items-center"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpen(true);
+                                setClassId(slot.classId._id);
+                                setPeriodNumber(slot.periodNumber);
+                                setReason(leaveRecord?.leaveReason || "");
+                                setSelectedRecordId(leaveRecord?._id || "");
+                              }}
+                            >
+                              <FileText className="text-muted-foreground h-5 w-5 md:hidden" />
+                              <Button size="sm" className="hidden md:inline-flex">
+                                Reason
+                              </Button>
+                            </div>
                           )}
-                        </TableCell>
-
-                        <TableCell className="text-center align-middle">
-                          <div
-                            className="z-10 flex justify-center items-center"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpen(true);
-                              setClassId(slot.classId._id);
-                              setPeriodNumber(slot.periodNumber);
-                              setReason(leaveRecord?.leaveReason || "");
-                              setSelectedRecordId(leaveRecord?._id || "");
-                            }}
-                          >
-                            <FileText className="text-muted-foreground h-5 w-5 md:hidden" />
-                            <Button size="sm" className="hidden md:inline-flex">
-                              Reason
-                            </Button>
-                          </div>
                         </TableCell>
                       </TableRow>
                     );
