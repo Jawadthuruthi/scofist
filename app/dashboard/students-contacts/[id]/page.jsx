@@ -1,46 +1,18 @@
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import TableComponent from "@/components/TableComponent";
 import { fetchData } from "@/lib/utils";
-
-const columnsConfig = [
-  {
-    accessorKey: "serialNo",
-    header: "Sl.No",
-    type: ["serialNo"],
-    width: 60,
-    maxWidth: 60,
-    minWidth: 60,
-  },
-  {
-    accessorKey: "profilePic",
-    header: "Image",
-    type: ["avatar"],
-    width: 70,
-    maxWidth: 70,
-    minWidth: 70,
-  },
-  { accessorKey: "name", header: "Name" },
-  { accessorKey: "contactNumber", header: "Contact", type: ["contactWithAlternative"] },
-  { id: "contactNumber_save", accessorKey: "contactNumber", header: "Save", type: ["saveContactAction"], width: 40, maxWidth: 40, minWidth: 40 },
-  { id: "contactNumber_wa", accessorKey: "contactNumber", header: "WA", type: ["whatsappAction"], width: 40, maxWidth: 40, minWidth: 40 },
-  { id: "contactNumber_call", accessorKey: "contactNumber", header: "Call", type: ["callAction"], width: 40, maxWidth: 40, minWidth: 40 },
-  { accessorKey: "guardianName", header: "Guardian Name", type: ["guardianNameWithRelationship"] },
-  {
-    accessorKey: "guardianContactNumber",
-    header: "Guardian Contact",
-    type: ["guardianContactWithAlternative"]
-  },
-  { id: "guardianContactNumber_save", accessorKey: "guardianContactNumber", header: "Save", type: ["saveGuardianContactAction"], width: 40, maxWidth: 40, minWidth: 40 },
-  { id: "guardianContactNumber_wa", accessorKey: "guardianContactNumber", header: "WA", type: ["whatsappAction"], width: 40, maxWidth: 40, minWidth: 40 },
-  { id: "guardianContactNumber_call", accessorKey: "guardianContactNumber", header: "Call", type: ["callAction"], width: 40, maxWidth: 40, minWidth: 40 },
-];
+import { cookies } from "next/headers";
+import StudentsContactsListClient from "./StudentsContactsListClient";
 
 const apiKey = process.env.API_KEY;
 
 const StudentsContactsListPage = async ({ params }) => {
   try {
     const { id } = await params;
+    const cookiesStore = await cookies();
+    const activeRole = cookiesStore.get("active-role")?.value;
+    const isCollegeAdmin = activeRole === "College Admin";
+
     let data = await fetchData(
       "users",
       `projection=_id,name,studentSpecificField.batchId,profilePic,contactNumber,alternativeNumber,studentSpecificField.guardianName,studentSpecificField.relationship,studentSpecificField.guardianContactNumber,studentSpecificField.guardianAlternativeNumber,admissionNumber,studentSpecificField.admissionNumber&classId=${id}&roles=Student&status=Active`
@@ -54,20 +26,19 @@ const StudentsContactsListPage = async ({ params }) => {
       });
     }
 
+    const printTitle = `Students Contacts${data?.length > 0 ? ` - ${data[0].className}` : ""}`;
+
     return (
       <>
         <Header
-          title={
-            data?.length > 0 ? data[0].className : "STUDENTS CONTACTS LIST"
-          }
+          title={data?.length > 0 ? data[0].className : "STUDENTS CONTACTS LIST"}
           subTitle="View Students Contact Details"
         />
-        <TableComponent
-          data={data}
-          columnsConfig={columnsConfig}
-          printTitle={`Students Contacts${data?.length > 0 ? ` - ${data[0].className}` : ""}`}
+        <StudentsContactsListClient
+          initialData={data}
           apiKey={apiKey}
-          showCsvBtn={true}
+          printTitle={printTitle}
+          isCollegeAdmin={isCollegeAdmin}
         />
       </>
     );

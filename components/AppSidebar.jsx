@@ -141,6 +141,12 @@ const items = [
     allowedRoles: ["College Admin", "Teacher"],
   },
   {
+    title: "Students Contacts",
+    url: "/dashboard/students-contacts",
+    icon: BookUser,
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Kinship",
     url: "/dashboard/students-families",
     icon: Users2,
