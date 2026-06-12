@@ -36,12 +36,7 @@ const literaryAttendanceSchema = new Schema(
         return this.category === "GROUP";
       },
       ref: "LiteraryGroup",
-      uppercase: true,
       trim: true,
-      match: [
-        /^[A-Z0-9-]+$/,
-        "Group ID must only contain uppercase letters, numbers, and hyphens (-).",
-      ],
     },
     classId: {
       type: String,
@@ -49,12 +44,7 @@ const literaryAttendanceSchema = new Schema(
         return this.category === "ALL";
       },
       ref: "Class",
-      uppercase: true,
       trim: true,
-      match: [
-        /^[A-Z0-9-]+$/,
-        "Class ID must only contain uppercase letters, numbers, and hyphens (-).",
-      ],
     },
     batchId: {
       type: String,
@@ -62,12 +52,7 @@ const literaryAttendanceSchema = new Schema(
         return this.category === "ALL";
       },
       ref: "Batch",
-      uppercase: true,
       trim: true,
-      match: [
-        /^[A-Z0-9-]+$/,
-        "Batch ID must only contain uppercase letters, numbers, and hyphens (-).",
-      ],
     },
 
     attendanceData: [
@@ -86,6 +71,11 @@ const literaryAttendanceSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Force model reload in development to ensure schema changes are picked up
+if (process.env.NODE_ENV === "development") {
+  delete models.LiteraryAttendance;
+}
 
 const LiteraryAttendance =
   models.LiteraryAttendance ||

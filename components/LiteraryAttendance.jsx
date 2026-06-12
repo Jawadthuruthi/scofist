@@ -212,7 +212,7 @@ const LiteraryAttendance = ({
                   <TableRow
                     key={cls._id}
                     className="hover:bg-accent/50 cursor-pointer"
-                    onClick={() => router.push(`/dashboard/literary-attendance/mark-attendance?classId=${cls?._id}&className=${cls?.name}&category=ALL&apiKey=${apiKey}&date=${formattedDate}&day=${today}&batchId=${cls.batchId}`)}
+                    onClick={() => router.push(`/dashboard/literary-attendance/mark-attendance?classId=${cls?._id}&className=${cls?.name}&category=ALL&apiKey=${apiKey}&date=${formattedDate}&day=${today}&batchId=${cls.batchId?._id || cls.batchId}`)}
                   >
                     <TableCell className="whitespace-nowrap">
                       <div className="text-xs md:text-base">{cls?.name}</div>

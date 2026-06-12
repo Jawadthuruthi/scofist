@@ -14,7 +14,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useCrud from "@/hooks/use-crud";
 import { useSearchParams } from "next/navigation";
-import { Calendar, Clock, Loader, User, UserCheck } from "lucide-react";
+import { Calendar, Clock, Loader, User, UserCheck, CheckCircle2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -26,6 +33,8 @@ const LiteraryAttendance = () => {
   const [attendance, setAttendance] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const router = useRouter();
 
@@ -390,10 +399,21 @@ const LiteraryAttendance = () => {
             attendanceData: attendancePayload.attendanceData,
           },
         });
+        setSuccessMessage("Attendance updated successfully.");
+        setShowSuccessDialog(true);
+        setTimeout(
+          () => (window.location.href = "/dashboard/literary-attendance"),
+          1000
+        );
       } else {
         await saveAttendance.mutateAsync(attendancePayload);
+        setSuccessMessage("Attendance marked successfully.");
+        setShowSuccessDialog(true);
+        setTimeout(
+          () => (window.location.href = "/dashboard/literary-attendance"),
+          1000
+        );
       }
-      router.back();
     } catch (error) {
       console.error("Error saving attendance:", error);
       toast.error(
@@ -414,8 +434,12 @@ const LiteraryAttendance = () => {
         data: { ids: [existingAttendance?._id] },
       });
       setAttendance({});
-      toast.success("Attendance record deleted successfully.");
-      router.refresh();
+      setSuccessMessage("Attendance record reset successfully.");
+      setShowSuccessDialog(true);
+      setTimeout(
+        () => (window.location.href = "/dashboard/literary-attendance"),
+        1000
+      );
     } catch (error) {
       console.error("Error deleting attendance:", error);
       toast.error("Error deleting attendance record.");
@@ -604,6 +628,22 @@ const LiteraryAttendance = () => {
           </div>
         </>
       )}
+
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
+          <DialogHeader className="flex flex-col items-center justify-center text-center space-y-3">
+            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
+              <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+            </div>
+            <DialogTitle className="text-2xl font-bold text-green-600 dark:text-green-400">
+              Successful
+            </DialogTitle>
+            <DialogDescription className="text-lg">
+              {successMessage}
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

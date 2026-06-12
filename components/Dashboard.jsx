@@ -451,7 +451,7 @@ const ClassCard = memo(
 ClassCard.displayName = "ClassCard";
 
 // ===== STATS OVERVIEW COMPONENT =====
-const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, onClassesClick, dashboardData, isLoadingCharts }) => {
+const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, onClassesClick, dashboardData, isLoadingCharts, activeRole }) => {
   const [facultyDialogOpen, setFacultyDialogOpen] = useState(false);
   const [activeStudentsDialogOpen, setActiveStudentsDialogOpen] = useState(false);
   const [graduatedStudentsDialogOpen, setGraduatedStudentsDialogOpen] = useState(false);
@@ -518,10 +518,14 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
     },
   ];
 
+  const visibleStatCards = activeRole === "Teacher"
+    ? statCards.filter((card) => card.title !== "Total Students" && card.title !== "Graduated Students")
+    : statCards;
+
   return (
     <>
-      <div className="grid gap-4 xs:grid-cols-2 lg:grid-cols-3">
-        {statCards.map((stat) => (
+      <div className={`grid gap-4 xs:grid-cols-2 ${activeRole === "Teacher" ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+        {visibleStatCards.map((stat) => (
           <StatCard key={stat.title} {...stat} />
         ))}
       </div>
@@ -1057,8 +1061,8 @@ export default function Dashboard({
           icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
           className="mb-0 pb-0"
         />
-        <LiterarySummaryCard apiKey={apiKey} />
         <LiteraryStudentLookup apiKey={apiKey} />
+        <LiterarySummaryCard apiKey={apiKey} />
       </div>
     );
   }
@@ -1233,6 +1237,7 @@ export default function Dashboard({
             onClassesClick={() => setActiveTab("classes")}
             dashboardData={dashboardData}
             isLoadingCharts={isLoadingCharts}
+            activeRole={activeRole}
           />
         </TabsContent>
 

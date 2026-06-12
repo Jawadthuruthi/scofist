@@ -121,8 +121,10 @@ export async function GET(req, res) {
       // Process each attendance record
       formattedAttendances.forEach((attendance) => {
         attendance.attendanceData.forEach((student) => {
-          if (!studentAbsences[student.studentId]) {
-            studentAbsences[student.studentId] = {
+          const uniqueKey = `${student.studentId}_${attendance.classId || attendance.groupId || "none"}`;
+          
+          if (!studentAbsences[uniqueKey]) {
+            studentAbsences[uniqueKey] = {
               studentId: student.studentId,
               studentName: student.studentName,
               className: student.className,
@@ -136,9 +138,10 @@ export async function GET(req, res) {
           }
 
           // Add this absence record
-          studentAbsences[student.studentId].absences.push({
+          studentAbsences[uniqueKey].absences.push({
             date: attendance.date,
             present: student.present,
+            updatedAt: attendance.updatedAt || attendance.createdAt || new Date(0),
           });
         });
       });
@@ -150,8 +153,21 @@ export async function GET(req, res) {
         });
         const todayIST = new Date(istNow);
         todayIST.setUTCHours(0, 0, 0, 0);
+
+        // Deduplicate by date, keeping the most recently updated record
+        const uniqueAbsencesByDate = {};
+        student.absences.forEach((item) => {
+          const dateStr = new Date(item.date).toISOString().slice(0, 10);
+          if (
+            !uniqueAbsencesByDate[dateStr] ||
+            new Date(item.updatedAt) > new Date(uniqueAbsencesByDate[dateStr].updatedAt)
+          ) {
+            uniqueAbsencesByDate[dateStr] = item;
+          }
+        });
+
         // Sort absences by date (newest first)
-        const studentAbsencesArray = student.absences
+        const studentAbsencesArray = Object.values(uniqueAbsencesByDate)
           .filter((item) => new Date(item.date) <= todayIST)
           .sort((a, b) => new Date(b.date) - new Date(a.date));
 
