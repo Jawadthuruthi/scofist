@@ -116,28 +116,30 @@ export async function GET(req) {
 
       const missing = missingByTeacher[teacher._id.toString()];
       
-      // Group by class for better readability
-      const lines = missing.map(m => `Period ${m.periodNumber}: ${m.className} (${subjectMap[m.subjectId] || 'Subject'})`);
-      
-      const payload = JSON.stringify({
-        title: "Missing Attendance Alert 🚨",
-        body: `You have ${missing.length} unmarked period(s) today:\n${lines.join('\n')}`,
-        url: "/dashboard/attendance-sheet"
+      // Send a separate notification for each missed period
+      const periodPromises = missing.map(async (m) => {
+        const payload = JSON.stringify({
+          title: "Missing Attendance Alert 🚨",
+          body: `You missed marking attendance for Period ${m.periodNumber}: ${m.className} (${subjectMap[m.subjectId] || 'Subject'})`,
+          url: "/dashboard/attendance-sheet"
+        });
+
+        // Send to all registered devices of the teacher
+        const devicePromises = teacher.pushSubscriptions.map(async (sub) => {
+          try {
+            await webpush.sendNotification(sub, payload);
+            notificationCount++;
+          } catch (error) {
+            console.error(`Failed to send push to teacher ${teacher.name}:`, error.body || error);
+            // If status code is 410 or 404, the subscription has expired or is no longer valid.
+            // Ideally, we should remove it from the DB here.
+          }
+        });
+
+        await Promise.all(devicePromises);
       });
 
-      // Send to all registered devices of the teacher
-      const devicePromises = teacher.pushSubscriptions.map(async (sub) => {
-        try {
-          await webpush.sendNotification(sub, payload);
-          notificationCount++;
-        } catch (error) {
-          console.error(`Failed to send push to teacher ${teacher.name}:`, error.body || error);
-          // If status code is 410 or 404, the subscription has expired or is no longer valid.
-          // Ideally, we should remove it from the DB here.
-        }
-      });
-
-      await Promise.all(devicePromises);
+      await Promise.all(periodPromises);
     });
 
     await Promise.all(pushPromises);
