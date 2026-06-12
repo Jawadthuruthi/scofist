@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TableComponent from "@/components/TableComponent";
 import { Pencil, Phone, Users, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -18,20 +18,21 @@ import { Input } from "@/components/ui/input";
 
 // --- Edit Contact Dialog ---
 function EditContactDialog({ open, onOpenChange, student, onSaved }) {
-  const [contactNumber, setContactNumber] = useState(student?.contactNumber || "");
-  const [alternativeNumber, setAlternativeNumber] = useState(student?.alternativeNumber || "");
-  const [guardianContactNumber, setGuardianContactNumber] = useState(student?.guardianContactNumber || "");
-  const [guardianAlternativeNumber, setGuardianAlternativeNumber] = useState(student?.guardianAlternativeNumber || "");
+  const [contactNumber, setContactNumber] = useState("");
+  const [alternativeNumber, setAlternativeNumber] = useState("");
+  const [guardianContactNumber, setGuardianContactNumber] = useState("");
+  const [guardianAlternativeNumber, setGuardianAlternativeNumber] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Sync field values each time the dialog opens for (possibly a different) student
+  // Sync field values whenever the student changes (different student selected)
+  useEffect(() => {
+    setContactNumber(student?.contactNumber || "");
+    setAlternativeNumber(student?.alternativeNumber || "");
+    setGuardianContactNumber(student?.guardianContactNumber || "");
+    setGuardianAlternativeNumber(student?.guardianAlternativeNumber || "");
+  }, [student]);
+
   const handleOpenChange = (isOpen) => {
-    if (isOpen) {
-      setContactNumber(student?.contactNumber || "");
-      setAlternativeNumber(student?.alternativeNumber || "");
-      setGuardianContactNumber(student?.guardianContactNumber || "");
-      setGuardianAlternativeNumber(student?.guardianAlternativeNumber || "");
-    }
     onOpenChange(isOpen);
   };
 
