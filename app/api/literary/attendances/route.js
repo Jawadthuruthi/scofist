@@ -4,6 +4,9 @@ import LiteraryAttendance from "@/models/LiteraryAttendance";
 import { apiResponse } from "@/lib/apiResponse";
 import StudentLiteraryAttendance from "@/models/StudentLiteraryAttendance";
 import { formatDateForDisplay } from "@/lib/utils";
+import { revalidatePath } from "next/cache";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req, res) {
   try {
@@ -247,8 +250,26 @@ export async function POST(req, res) {
     await connectToDB();
 
     const data = await req.json();
+    const { date, classId, groupId, batchId, category } = data;
 
-    const { date } = data;
+    // Strict duplicate check to prevent multiple records for same class/date
+    const duplicateQuery = {
+      date: new Date(date),
+      category: category,
+    };
+    if (classId) duplicateQuery.classId = classId;
+    if (groupId) duplicateQuery.groupId = groupId;
+
+    const existingAttendance = await LiteraryAttendance.findOne(duplicateQuery);
+    if (existingAttendance) {
+      return NextResponse.json(
+        {
+          error: "Attendance already recorded",
+          message: "Attendance for this class/group on this date already exists.",
+        },
+        { status: 409 }
+      );
+    }
 
     const attendance = new LiteraryAttendance({
       ...data,
@@ -283,6 +304,8 @@ export async function POST(req, res) {
     if (bulkOps.length > 0) {
       await StudentLiteraryAttendance.bulkWrite(bulkOps);
     }
+
+    revalidatePath("/dashboard/literary-attendance");
 
     return NextResponse.json(
       { message: "Literary attendance created successfully!" },
@@ -342,6 +365,8 @@ export async function PUT(req, res) {
       }
     }
 
+    revalidatePath("/dashboard/literary-attendance");
+
     return NextResponse.json(
       { message: "Literary attendance updated successfully!" },
       { status: 200 }
@@ -391,6 +416,8 @@ export async function DELETE(req, res) {
     if (ids.length > 1) {
       const result = await LiteraryAttendance.deleteMany({ _id: { $in: ids } });
 
+      revalidatePath("/dashboard/literary-attendance");
+
       return NextResponse.json(
         {
           result,
@@ -400,6 +427,8 @@ export async function DELETE(req, res) {
       );
     }
     const deletedAttendance = await LiteraryAttendance.findByIdAndDelete(_id);
+
+    revalidatePath("/dashboard/literary-attendance");
 
     return NextResponse.json(
       { message: "Literary attendance deleted successfully!" },

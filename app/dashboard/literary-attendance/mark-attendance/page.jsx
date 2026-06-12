@@ -105,14 +105,12 @@ const LiteraryAttendance = () => {
   const attendanceQuery = useFetchAttendance(0, 0, {
     date: queryParams.date,
     classId: queryParams.classId ? queryParams.classId : undefined,
-    batchId: queryParams.batchId ? queryParams.batchId : undefined,
     groupId: queryParams.groupId ? queryParams.groupId : undefined,
     category: queryParams.category,
     day: queryParams.day,
   });
   const absenteesQuery = useFetchAbsentees(0, 0, {
     classId: queryParams.classId ? queryParams.classId : undefined,
-    batchId: queryParams.batchId ? queryParams.batchId : undefined,
     groupId: queryParams.groupId ? queryParams.groupId : undefined,
     category: queryParams.category,
     trackAbsentees: true,
@@ -430,8 +428,11 @@ const LiteraryAttendance = () => {
         toast.error("No attendance record to delete.");
         return;
       }
+      const idsToDelete = attendanceData?.map((a) => a._id) || [
+        existingAttendance?._id,
+      ];
       await deleteAttendance.mutateAsync({
-        data: { ids: [existingAttendance?._id] },
+        data: { ids: idsToDelete },
       });
       setAttendance({});
       setSuccessMessage("Attendance record reset successfully.");
