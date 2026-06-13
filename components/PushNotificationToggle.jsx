@@ -92,12 +92,13 @@ export default function PushNotificationToggle() {
         setIsSubscribed(true);
         toast.success("Successfully subscribed to notifications!");
       } else {
-        toast.error("Failed to save subscription on the server");
+        const errorData = await response.json();
+        toast.error(`Server error: ${errorData.error || response.statusText}`);
         await subscription.unsubscribe();
       }
     } catch (error) {
       console.error("Error subscribing to push notifications:", error);
-      toast.error("Failed to subscribe. Are you on a secure connection (HTTPS)?");
+      toast.error(`Failed to subscribe: ${error.message || "Unknown error"}`);
     } finally {
       setIsLoading(false);
     }
