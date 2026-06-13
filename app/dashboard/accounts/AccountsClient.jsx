@@ -24,9 +24,11 @@ import {
 } from "@/components/ui/dialog";
 
 import CategoryBalanceDialog from "./_components/CategoryBalanceDialog";
+import PrintAllDocsButton from "./_components/PrintAllDocsButton";
 
 export default function AccountsClient({ initialSummary, apiKey, accountType = "College", accountName: initialAccountName = "", allCategories = [] }) {
     const [summary, setSummary] = useState(initialSummary);
+    const [transactions, setTransactions] = useState([]);
     const router = useRouter();
     const [accountName, setAccountName] = useState(initialAccountName || "");
     const [availableAccountNames, setAvailableAccountNames] = useState([]);
@@ -293,6 +295,9 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         if (data?.summary) {
             setSummary(data.summary);
         }
+        if (data?.finance) {
+            setTransactions(data.finance);
+        }
     }, []);
 
     const handleSuccess = useCallback(() => {
@@ -343,7 +348,6 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 return pageIndex * pageSize + row.index + 1;
             },
             enableSorting: false,
-            enableHiding: false,
             width: "50px",
             minWidth: "50px",
         },
@@ -400,9 +404,9 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
             id: "printDoc",
             header: "Receipt/Voucher",
             enableSorting: false,
-            enableHiding: false,
             width: "130px",
             minWidth: "120px",
+            meta: { className: "print:hidden" },
             cell: ({ row }) => (
                 row.original.type === "Income" ? (
                     <Button
@@ -638,8 +642,15 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 apiFilters={{ accountType, accountName, refreshKey }} // Pass accountType, accountName and refreshKey for filtering
                 additionalFormParams={{ accountType, accountName }} // For creation if we enabled it here
                 additionalProps={{
-                    customActions: summary?.categories && (
-                        <CategoryBalanceDialog categories={summary.categories} totalBalance={summary.totalBalance} />
+                    customActions: (
+                        <div className="flex items-center gap-2">
+                            {transactions?.length > 0 && (
+                                <PrintAllDocsButton transactions={transactions} apiKey={apiKey} />
+                            )}
+                            {summary?.categories && (
+                                <CategoryBalanceDialog categories={summary.categories} totalBalance={summary.totalBalance} />
+                            )}
+                        </div>
                     ),
                     accountType // Keep accountType here if needed by other logic
                 }}

@@ -1596,9 +1596,10 @@ const DataTableComponent = ({
                     <TableCell
                       style={getCellStyles(cell.column.columnDef.meta)}
                       key={`print-${cell.id}`}
-                      className={
-                        cell.column.id === "select" ? "print:hidden" : ""
-                      }
+                      className={cn(
+                        cell.column.id === "select" ? "print:hidden" : "",
+                        cell.column.columnDef.meta?.className || ""
+                      )}
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
