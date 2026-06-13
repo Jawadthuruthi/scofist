@@ -151,6 +151,10 @@ export async function GET(req) {
 
   } catch (error) {
     console.error("Error in missing-attendance cron:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Internal server error", 
+      details: error.message,
+      stack: error.stack
+    }, { status: 500 });
   }
 }
