@@ -28,7 +28,7 @@ const pwaConfig = withPWA({
   register: true,
   skipWaiting: true,
   customWorkerDir: "worker",
-  disable: process.env.NODE_ENV === "development",
+  disable: false, // Enabled in development mode so push notifications can be tested locally
   buildExcludes: [
     /middleware-manifest\.json$/,
     /^pages\/index\.html$/,

@@ -33,11 +33,11 @@ export default function PushNotificationToggle() {
 
   const checkSubscription = async () => {
     try {
-      const registration = await navigator.serviceWorker.getRegistration();
+      let registration = await navigator.serviceWorker.getRegistration();
       if (!registration) {
-        setIsSubscribed(false);
-        return;
+        registration = await navigator.serviceWorker.register('/sw.js');
       }
+      registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
       setIsSubscribed(!!subscription);
     } catch (error) {
@@ -48,12 +48,14 @@ export default function PushNotificationToggle() {
   const subscribe = async () => {
     setIsLoading(true);
     try {
-      const registration = await navigator.serviceWorker.getRegistration();
+      let registration = await navigator.serviceWorker.getRegistration();
       if (!registration) {
-        toast.error("Push notifications are disabled in development mode or service worker is missing.");
-        setIsLoading(false);
-        return;
+        console.log("No service worker found, attempting to register manually...");
+        registration = await navigator.serviceWorker.register('/sw.js');
       }
+      
+      // Wait for it to be ready
+      registration = await navigator.serviceWorker.ready;
 
       // Ask for permission explicitly
       const permission = await Notification.requestPermission();
