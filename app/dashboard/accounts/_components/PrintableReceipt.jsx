@@ -98,11 +98,22 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                     @page { size: auto; margin: 10mm; }
                     @media print { 
                         body { margin: 0; } 
+                        .receipt-wrapper { page-break-inside: avoid; }
                     }
                     img { max-width: 100%; }
                 </style>
             </head>
-            <body>${printContents}</body>
+            <body>
+                <div class="receipt-wrapper" style="margin-bottom: 20px;">
+                    <div style="max-width: 680px; margin: 0 auto 5px; text-align: right; font-size: 12px; font-weight: bold; color: #555;">Office Copy</div>
+                    ${printContents}
+                </div>
+                <div style="border-top: 1px dashed #999; margin: 20px auto; max-width: 680px;"></div>
+                <div class="receipt-wrapper" style="margin-bottom: 20px;">
+                    <div style="max-width: 680px; margin: 0 auto 5px; text-align: right; font-size: 12px; font-weight: bold; color: #555;">Student/Payee Copy</div>
+                    ${printContents}
+                </div>
+            </body>
             </html>
         `);
         printWindow.document.close();
@@ -260,28 +271,24 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
 
                         {/* ── FOOTER ── */}
                         <div style={{
-                            display: "flex", alignItems: "flex-end", 
-                            padding: "0 16px 16px", marginTop: -45,
+                            display: "flex", alignItems: "flex-end", justifyContent: "space-between",
+                            padding: "0 16px 16px", marginTop: 25,
                             position: "relative", zIndex: 10
                         }}>
-                            {/* Left half (empty) */}
-                            <div style={{ flex: 1 }} />
+                            {/* Left */}
+                            <span style={{ fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", flex: 1, textAlign: "left" }}>
+                                Payee
+                            </span>
 
-                            {/* Right half (Receiver -> Seal -> Manager) */}
-                            <div style={{ flex: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                                <span style={{ fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold" }}>
-                                    Receiver
-                                </span>
-                                
-                                <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src="/sdc_seal.png" alt="College Seal" style={{ width: 105, height: 105, opacity: 0.7, transform: "translateY(0px)" }} />
-                                </div>
+                            {/* Center */}
+                            <span style={{ fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", flex: 1, textAlign: "center" }}>
+                                Receiver
+                            </span>
 
-                                <span style={{ fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold" }}>
-                                    Manager/Secretary
-                                </span>
-                            </div>
+                            {/* Right */}
+                            <span style={{ fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", flex: 1, textAlign: "right" }}>
+                                Secretary
+                            </span>
                         </div>
                         </div>
                     </div>

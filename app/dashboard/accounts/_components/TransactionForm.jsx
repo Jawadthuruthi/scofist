@@ -28,7 +28,7 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
 
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split("T")[0],
-        type: "Expense",
+        type: "Income",
         invoiceNo: "",
         item: "",
         recipient: "",
@@ -96,7 +96,7 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
             // Reset form
             setFormData({
                 date: new Date().toISOString().split("T")[0],
-                type: "Expense",
+                type: "Income",
                 invoiceNo: "",
                 item: "",
                 recipient: "",
@@ -196,11 +196,11 @@ export default function TransactionForm({ apiKey, onSuccess, accountType = "Coll
                         />
                     </div>
                     <div className="space-y-2 col-span-2 md:col-span-1">
-                        <Label htmlFor="recipient">Recipient</Label>
+                        <Label htmlFor="recipient">Recipient/Payee</Label>
                         <Input
                             id="recipient"
                             name="recipient"
-                            placeholder="Enter Recipient"
+                            placeholder="Enter Recipient/Payee"
                             value={formData.recipient}
                             onChange={handleChange}
                             ref={recipientRef}

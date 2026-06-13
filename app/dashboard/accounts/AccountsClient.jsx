@@ -378,7 +378,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         },
         {
             accessorKey: "recipient",
-            header: "Recipient",
+            header: "Recipient/Payee",
             minWidth: "150px",
             cell: ({ row }) => row.original.recipient || "-",
         },
@@ -447,7 +447,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
         },
         { name: "invoiceNo", label: "Invoice/Receipt No", type: "text", required: true },
         { name: "item", label: "Item", type: "text", required: false },
-        { name: "recipient", label: "Recipient", type: "text", required: false },
+        { name: "recipient", label: "Recipient/Payee", type: "text", required: false },
         {
             name: "category",
             label: "Category",
