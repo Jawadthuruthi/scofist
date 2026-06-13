@@ -58,8 +58,20 @@ export default function PushNotificationToggle() {
         throw new Error("Service Worker registration failed.");
       }
       
-      // Wait for it to be completely active
-      registration = await navigator.serviceWorker.ready;
+      // Instead of relying on the notoriously flaky .ready promise, we check if it's active manually
+      if (!registration.active) {
+        console.log("Waiting for service worker to activate...");
+        // Wait up to 3 seconds for it to become active
+        for (let i = 0; i < 15; i++) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+          registration = await navigator.serviceWorker.getRegistration();
+          if (registration && registration.active) break;
+        }
+      }
+
+      if (!registration || !registration.active) {
+        throw new Error("Service worker is stuck in installation. Please try again or refresh the page.");
+      }
 
       // Ask for permission explicitly
       const permission = await Notification.requestPermission();
