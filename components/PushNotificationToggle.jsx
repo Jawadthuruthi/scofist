@@ -54,8 +54,9 @@ export default function PushNotificationToggle() {
         registration = await navigator.serviceWorker.register('/sw.js');
       }
       
-      // Wait for it to be ready
-      registration = await navigator.serviceWorker.ready;
+      if (!registration) {
+        throw new Error("Service Worker registration failed.");
+      }
 
       // Ask for permission explicitly
       const permission = await Notification.requestPermission();
