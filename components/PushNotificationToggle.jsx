@@ -122,7 +122,7 @@ export default function PushNotificationToggle() {
       ) : (
         <>
           <BellOff className="mr-2 h-4 w-4" />
-          {isLoading ? "Enabling..." : "Enable Notifications"}
+          {isLoading ? "Enabling..." : "Enable Alerts"}
         </>
       )}
     </Button>
