@@ -28,7 +28,7 @@ const pwaConfig = withPWA({
   register: true,
   skipWaiting: true,
   customWorkerDir: "worker",
-  disable: false, // Enabled in development mode so push notifications can be tested locally
+  disable: true, // Disable next-pwa plugin so Vercel serves the static sw.js we committed to git!
   buildExcludes: [
     /middleware-manifest\.json$/,
     /^pages\/index\.html$/,
