@@ -7,14 +7,14 @@ import User from "@/models/User";
 import Class from "@/models/Class";
 import Subject from "@/models/Subject";
 
-webpush.setVapidDetails(
-  "mailto:admin@scofist.com",
-  process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-);
-
 export async function GET(req) {
   try {
+    webpush.setVapidDetails(
+      "mailto:admin@scofist.com",
+      process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+
     // 1. Verify cron secret
     const { searchParams } = new URL(req.url);
     const cronSecret = searchParams.get("cronSecret");
