@@ -177,7 +177,7 @@ const items = [
     allowedRoles: ["Teacher"],
   },
   {
-    title: "Masjid Attendance",
+    title: "General Attendance",
     url: "/dashboard/masjid-attendance",
     icon: ClipboardList,
     allowedRoles: ["Teacher"],

@@ -33,6 +33,7 @@ const AttendanceSheet = ({
     date,
     apiKey,
     user,
+    sessionLabel,
 }) => {
     const router = useRouter();
     const [attendance, setAttendance] = useState({});
@@ -308,7 +309,7 @@ const AttendanceSheet = ({
                             MARK ATTENDANCE
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            {prayer} - {className}
+                            {sessionLabel && sessionLabel !== "General" ? `${sessionLabel} · ` : ""}{prayer} - {className}
                         </p>
                     </div>
                 </div>

@@ -28,7 +28,6 @@ const literaryAttendanceSchema = new Schema(
     category: {
       type: String,
       required: true,
-      enum: ["GROUP", "ALL"],
     },
     groupId: {
       type: String,
@@ -40,17 +39,13 @@ const literaryAttendanceSchema = new Schema(
     },
     classId: {
       type: String,
-      required: function () {
-        return this.category === "ALL";
-      },
+      required: false,
       ref: "Class",
       trim: true,
     },
     batchId: {
       type: String,
-      required: function () {
-        return this.category === "ALL";
-      },
+      required: false,
       ref: "Batch",
       trim: true,
     },

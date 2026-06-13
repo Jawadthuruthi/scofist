@@ -51,6 +51,7 @@ const LiteraryAttendance = () => {
       apiKey: searchParams.get("apiKey"),
       category: searchParams.get("category"),
       day: searchParams.get("day"),
+      sessionLabel: searchParams.get("sessionLabel") || searchParams.get("category"),
     }),
     [searchParams]
   );
@@ -142,7 +143,7 @@ const LiteraryAttendance = () => {
       status: "Active",
     },
     {
-      enabled: queryParams.category === "ALL",
+      enabled: !!queryParams.classId,
       refetchOnWindowFocus: true,
     }
   );
@@ -164,7 +165,7 @@ const LiteraryAttendance = () => {
     0,
     {},
     {
-      enabled: queryParams.category === "ALL",
+      enabled: !!queryParams.classId,
       refetchOnWindowFocus: true,
     }
   );
@@ -469,9 +470,11 @@ const LiteraryAttendance = () => {
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 <span className="text-sm font-medium">
-                  {queryParams.category === "ALL"
-                    ? `Class: ${queryParams.className}`
-                    : `Group: ${queryParams.groupName}`}
+                  {queryParams.category === "ALL" || queryParams.category === "GROUP"
+                    ? queryParams.category === "ALL"
+                      ? `Class: ${queryParams.className}`
+                      : `Group: ${queryParams.groupName}`
+                    : `${queryParams.sessionLabel || queryParams.category} – ${queryParams.className || queryParams.groupName}`}
                 </span>
               </div>
               {queryParams.category === "GROUP" && groupLeaderName && (

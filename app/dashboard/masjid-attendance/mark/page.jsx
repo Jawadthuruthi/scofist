@@ -10,7 +10,7 @@ const MarkAttendancePage = async ({ searchParams }) => {
     // Await searchParams as it might be a promise in future Next.js versions or depending on usage
     const params = await searchParams;
 
-    const { classId, className, batchId, prayer, date } = params;
+    const { classId, className, batchId, prayer, date, sessionLabel } = params;
 
     return (
         <AttendanceSheet
@@ -21,6 +21,7 @@ const MarkAttendancePage = async ({ searchParams }) => {
             date={date}
             apiKey={apiKey}
             user={user}
+            sessionLabel={sessionLabel}
         />
     );
 };

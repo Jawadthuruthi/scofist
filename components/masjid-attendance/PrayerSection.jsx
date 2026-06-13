@@ -18,7 +18,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 
-const PrayerSection = ({ prayer, classes, date, apiKey }) => {
+const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
     const searchParams = useSearchParams();
     const shouldBeOpen = searchParams.get("expanded") === prayer;
     const [isOpen, setIsOpen] = useState(shouldBeOpen);
@@ -100,7 +100,7 @@ const PrayerSection = ({ prayer, classes, date, apiKey }) => {
                                 return (
                                     <Link
                                         key={cls._id}
-                                        href={`/dashboard/masjid-attendance/mark?classId=${cls._id}&className=${cls.name}&batchId=${cls.batchId}&prayer=${prayer}&date=${formattedDate}&apiKey=${apiKey}`}
+                                        href={`/dashboard/masjid-attendance/mark?classId=${cls._id}&className=${cls.name}&batchId=${cls.batchId}&prayer=${prayer}&date=${formattedDate}&apiKey=${apiKey}&sessionLabel=${encodeURIComponent(sessionCategory || "General")}`}
                                         prefetch={false}
                                     >
                                         <div

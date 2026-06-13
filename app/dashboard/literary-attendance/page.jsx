@@ -8,6 +8,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "classes",
+    searchParams: "status=Active",
   },
   {
     pathname: "literary/groups",

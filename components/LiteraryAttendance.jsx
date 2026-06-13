@@ -2,7 +2,7 @@
 
 import { formatDate, formatDateForDisplay } from "@/lib/utils";
 import Header from "./Header";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import {
   Table,
@@ -13,8 +13,7 @@ import {
   TableRow,
 } from "./ui/table";
 import { Button } from "./ui/button";
-import { AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react";
-import Link from "next/link";
+import { AlertTriangle, CheckCircle2, ChevronsUpDown, Plus, X } from "lucide-react";
 import useCrud from "@/hooks/use-crud";
 import { useRouter } from "next/navigation";
 import { Badge } from "./ui/badge";
@@ -25,6 +24,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./ui/popover";
+import { cn } from "@/lib/utils";
 
 const days = [
   "Sunday",
@@ -35,6 +40,10 @@ const days = [
   "Friday",
   "Saturday",
 ];
+
+// Default attendance categories – "Literary" means existing ALL behaviour
+const DEFAULT_CATEGORIES = ["Literary", "Haddad", "Programs", "Spot"];
+const LITERARY_STORAGE_KEY = "literary_attendance_categories";
 
 const AbsenteesDialog = ({ open, setOpen, date, absentees }) => {
   return (
@@ -80,6 +89,141 @@ const AbsenteesDialog = ({ open, setOpen, date, absentees }) => {
   );
 };
 
+/** Combobox with ability to add custom items */
+const CategoryCombobox = ({ value, onChange, categories, onAddCategory, onRemoveCategory }) => {
+  const [open, setOpen] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+  const inputRef = useRef(null);
+
+  const filtered = useMemo(() => {
+    if (!inputValue.trim()) return categories;
+    return categories.filter((c) =>
+      c.toLowerCase().includes(inputValue.trim().toLowerCase())
+    );
+  }, [categories, inputValue]);
+
+  const handleAdd = () => {
+    const trimmed = inputValue.trim();
+    if (!trimmed) return;
+    const exists = categories.some(
+      (c) => c.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (!exists) {
+      onAddCategory(trimmed);
+    }
+    onChange(trimmed);
+    setInputValue("");
+    setOpen(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // If exact match in filtered list, select it
+      if (filtered.length === 1) {
+        onChange(filtered[0]);
+        setInputValue("");
+        setOpen(false);
+      } else {
+        handleAdd();
+      }
+    }
+    if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen} modal>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between text-sm font-normal"
+        >
+          <span className={cn(!value && "text-muted-foreground")}>
+            {value || "Select category…"}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[220px] p-0"
+        align="start"
+        style={{ zIndex: 9999 }}
+      >
+        <div className="flex flex-col">
+          {/* Search / Add Input */}
+          <div className="flex items-center gap-1 px-2 py-2 border-b">
+            <input
+              ref={inputRef}
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              placeholder="Search or add…"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={handleAdd}
+              className="flex items-center justify-center h-6 w-6 rounded-sm hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              title="Add custom category"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {/* List */}
+          <div className="max-h-48 overflow-y-auto py-1">
+            {filtered.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-muted-foreground">
+                Press Enter or + to add
+              </div>
+            ) : (
+              filtered.map((cat) => (
+                <div
+                  key={cat}
+                  className={cn(
+                    "group flex items-center justify-between px-3 py-1.5 cursor-pointer text-sm hover:bg-accent hover:text-accent-foreground rounded-sm mx-1",
+                    value === cat && "bg-accent text-accent-foreground font-medium"
+                  )}
+                >
+                  <span
+                    className="flex-1"
+                    onClick={() => {
+                      onChange(cat);
+                      setInputValue("");
+                      setOpen(false);
+                    }}
+                  >
+                    {cat}
+                  </span>
+                  {/* Only allow removing custom (non-default) categories */}
+                  {!DEFAULT_CATEGORIES.includes(cat) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveCategory(cat);
+                        if (value === cat) onChange("");
+                      }}
+                      className="opacity-0 group-hover:opacity-100 ml-1 text-muted-foreground hover:text-destructive transition-all"
+                      title="Remove category"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 const LiteraryAttendance = ({
   students = [],
   classes = [],
@@ -91,6 +235,52 @@ const LiteraryAttendance = ({
   const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedGroupId, setSelectedGroupId] = useState("");
+
+  // ─── Category state ───────────────────────────────────────────────────────
+  const [categories, setCategories] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_CATEGORIES;
+    try {
+      const stored = localStorage.getItem(LITERARY_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Merge defaults (preserve order, add any new defaults first)
+        const merged = [...DEFAULT_CATEGORIES];
+        parsed.forEach((c) => {
+          if (!merged.includes(c)) merged.push(c);
+        });
+        return merged;
+      }
+    } catch (_) {}
+    return DEFAULT_CATEGORIES;
+  });
+
+  const [selectedCategory, setSelectedCategory] = useState("Literary");
+
+  // Persist custom categories to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(LITERARY_STORAGE_KEY, JSON.stringify(categories));
+    } catch (_) {}
+  }, [categories]);
+
+  const handleAddCategory = useCallback((cat) => {
+    setCategories((prev) => {
+      if (prev.find((c) => c.toLowerCase() === cat.toLowerCase())) return prev;
+      return [...prev, cat];
+    });
+  }, []);
+
+  const handleRemoveCategory = useCallback((cat) => {
+    setCategories((prev) => prev.filter((c) => c !== cat));
+  }, []);
+
+  // ─── Derived attendance category value sent to the API ────────────────────
+  // "Literary" → use existing "ALL" category value (no change to existing behavior)
+  // Others → use uppercased label (e.g. "HADDAD", "PROGRAMS", "SPOT")
+  const apiCategory = useMemo(() => {
+    if (!selectedCategory || selectedCategory === "Literary") return "ALL";
+    return selectedCategory.toUpperCase().replace(/\s+/g, "_");
+  }, [selectedCategory]);
 
   const router = useRouter();
 
@@ -127,7 +317,7 @@ const LiteraryAttendance = ({
 
   const classBasedAbsentees = useMemo(() => {
     return absentees
-      .filter((student) => student.category === "ALL")
+      .filter((student) => student.category === apiCategory)
       .reduce((acc, student) => {
         if (!acc[student.classId]) {
           acc[student.classId] = [];
@@ -135,7 +325,7 @@ const LiteraryAttendance = ({
         acc[student.classId].push(student);
         return acc;
       }, {});
-  }, [absentees]);
+  }, [absentees, apiCategory]);
 
   const groupBasedAbsentees = useMemo(() => {
     return absentees
@@ -151,13 +341,10 @@ const LiteraryAttendance = ({
 
   useEffect(() => {
     if (students?.length > 0) {
-      // Initialize attendance map efficiently
       const initialAttendance = {};
       students.forEach((student) => {
-        initialAttendance[student._id] = true; // Default to present
+        initialAttendance[student._id] = true;
       });
-
-      // Only set attendance if we don't have existing attendance data
       if (Object.keys(attendance).length === 0) {
         setAttendance(initialAttendance);
       }
@@ -178,11 +365,20 @@ const LiteraryAttendance = ({
         (att) =>
           att.classId === id &&
           att.date === formattedDate &&
-          att.category === "ALL"
+          att.category === apiCategory
       );
     },
-    [attendanceData, activeTab, formattedDate]
+    [attendanceData, activeTab, formattedDate, apiCategory]
   );
+
+  // Reset to "all" tab whenever session type is not Literary
+  useEffect(() => {
+    if (selectedCategory !== "Literary") {
+      setActiveTab("all");
+    }
+  }, [selectedCategory]);
+
+  const isLiterary = selectedCategory === "Literary";
 
   return (
     <div className="space-y-3">
@@ -193,12 +389,34 @@ const LiteraryAttendance = ({
       <div className="mb-4 py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
         {date}
       </div>
+
+      {/* ── Session Type selector – above the tab bar ── */}
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+          Session Type
+        </span>
+        <div className="w-52">
+          <CategoryCombobox
+            value={selectedCategory}
+            onChange={setSelectedCategory}
+            categories={categories}
+            onAddCategory={handleAddCategory}
+            onRemoveCategory={handleRemoveCategory}
+          />
+        </div>
+
+      </div>
+
       <Tabs value={activeTab} defaultValue="all" onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 w-full">
-          <TabsTrigger value="all">General</TabsTrigger>
-          <TabsTrigger value="group">Group</TabsTrigger>
-        </TabsList>
+        {isLiterary && (
+          <TabsList className="grid grid-cols-2 w-full">
+            <TabsTrigger value="all">General</TabsTrigger>
+            <TabsTrigger value="group">Group</TabsTrigger>
+          </TabsList>
+        )}
+
         <TabsContent value="all">
+
           <div className="overflow-x-auto border rounded-md">
             <Table>
               <TableHeader>
@@ -212,7 +430,11 @@ const LiteraryAttendance = ({
                   <TableRow
                     key={cls._id}
                     className="hover:bg-accent/50 cursor-pointer"
-                    onClick={() => router.push(`/dashboard/literary-attendance/mark-attendance?classId=${cls?._id}&className=${cls?.name}&category=ALL&apiKey=${apiKey}&date=${formattedDate}&day=${today}&batchId=${cls.batchId?._id || cls.batchId}`)}
+                    onClick={() =>
+                      router.push(
+                        `/dashboard/literary-attendance/mark-attendance?classId=${cls?._id}&className=${cls?.name}&category=${apiCategory}&sessionLabel=${encodeURIComponent(selectedCategory)}&apiKey=${apiKey}&date=${formattedDate}&day=${today}&batchId=${cls.batchId?._id || cls.batchId}`
+                      )
+                    }
                   >
                     <TableCell className="whitespace-nowrap">
                       <div className="text-xs md:text-base">{cls?.name}</div>
@@ -254,6 +476,7 @@ const LiteraryAttendance = ({
             </Table>
           </div>
         </TabsContent>
+
         <TabsContent value="group">
           <div className="overflow-x-auto border rounded-md">
             <Table>
@@ -268,7 +491,11 @@ const LiteraryAttendance = ({
                   <TableRow
                     key={group._id}
                     className="hover:bg-accent/50 cursor-pointer"
-                    onClick={() => router.push(`/dashboard/literary-attendance/mark-attendance?groupId=${group?._id}&groupName=${group?.name}&category=GROUP&apiKey=${apiKey}&date=${formattedDate}&day=${today}`)}
+                    onClick={() =>
+                      router.push(
+                        `/dashboard/literary-attendance/mark-attendance?groupId=${group?._id}&groupName=${group?.name}&category=GROUP&apiKey=${apiKey}&date=${formattedDate}&day=${today}`
+                      )
+                    }
                   >
                     <TableCell className="whitespace-nowrap">
                       <div className="text-xs md:text-base">{group?.name}</div>
@@ -316,6 +543,7 @@ const LiteraryAttendance = ({
           </div>
         </TabsContent>
       </Tabs>
+
       <AbsenteesDialog
         open={absenteesDialogOpen}
         setOpen={setAbsenteesDialogOpen}
