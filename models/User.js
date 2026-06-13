@@ -259,6 +259,10 @@ const userSchema = new Schema(
       type: Date,
       default: null
     },
+    pushSubscriptions: {
+      type: [Schema.Types.Mixed],
+      default: []
+    },
   },
   {
     timestamps: true,

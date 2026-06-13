@@ -74,6 +74,7 @@ import { cn } from "@/lib/utils";
 import Cookies from "js-cookie";
 import { usePathname } from "next/navigation";
 import YearSwitcher from "./YearSwitcher";
+import PushNotificationToggle from "./PushNotificationToggle";
 
 // Menu items.
 const items = [
@@ -864,6 +865,9 @@ export function AppSidebar({ roles, activeRole, user }) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <div className="p-4 mt-auto border-t">
+        <PushNotificationToggle />
+      </div>
     </Sidebar>
   );
 }
