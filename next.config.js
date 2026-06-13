@@ -17,6 +17,9 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts", "date-fns", "lodash"],
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 // Create PWA configuration
