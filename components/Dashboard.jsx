@@ -424,14 +424,24 @@ const ClassCard = memo(
             <div className="text-sm border rounded-md p-2 max-h-80 overflow-y-auto bg-muted/10 space-y-1 flex-1">
               {sortedLeaveStudents.length > 0 ? (
                 sortedLeaveStudents.map((std, index) => {
+                  const student = students?.find(s => String(s._id) === String(std.studentId?._id || std.studentId));
+                  const admissionNumber = student?.studentSpecificField?.admissionNumber || student?.admissionNumber || "";
+                  const leaveReason = std.reason || std.leaveReason || "";
                   const displayId = std.studentId?._id || std.studentId || "";
                   return (
                     <div key={index} className="flex justify-between items-center py-2 px-3 border-b last:border-0 hover:bg-muted/50 rounded transition-colors">
-                      <div className="font-semibold text-red-600 dark:text-red-400">
-                        {index + 1}. {std.studentName}
+                      <div className="flex flex-col">
+                        <div className="font-semibold text-red-600 dark:text-red-400">
+                          {index + 1}. {std.studentName} {admissionNumber ? `(${admissionNumber})` : ""}
+                        </div>
+                        {leaveReason && (
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {leaveReason}
+                          </div>
+                        )}
                       </div>
                       {displayId && (
-                        <div className="text-xs font-mono text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm">
+                        <div className="text-xs font-mono text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm h-fit">
                           {displayId}
                         </div>
                       )}
@@ -653,8 +663,24 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
                   key={index}
                   className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50"
                 >
-                  <span className="text-sm font-medium">{index + 1}. {student.name}</span>
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">{student.className}</span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">
+                      {index + 1}. {student.name} {student.admissionNumber ? `(${student.admissionNumber})` : ""}
+                    </span>
+                    {student.leaveReason && (
+                      <span className="text-xs text-red-600 dark:text-red-400 mt-0.5 font-medium">
+                        {student.leaveReason}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded h-fit">{student.className}</span>
+                    {student.id && (
+                      <span className="text-xs font-mono text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm h-fit">
+                        {student.id}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))
             ) : (
@@ -1001,25 +1027,34 @@ export default function Dashboard({
           });
         }).length,
       },
-      onLeaveStudentsList: students
-        .filter(student => {
-          const studentLeaves = leaveRecords.filter(
-            (record) => String(record.studentId?._id || record.studentId) === String(student._id)
-          );
-          return studentLeaves.some(record => !record.arrivedDate);
-        })
-        .map(student => ({
-          name: student.studentName || student.name || student.username || "Unknown",
-          className: student.className || "N/A",
-        }))
-        .sort((a, b) => {
-          const idxA = sortedClasses.findIndex(c => c.name === a.className);
-          const idxB = sortedClasses.findIndex(c => c.name === b.className);
-          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-          if (idxA !== -1) return -1;
-          if (idxB !== -1) return 1;
-          return (a.className || "").localeCompare(b.className || "");
-        }),
+        onLeaveStudentsList: students
+          .filter(student => {
+            const studentLeaves = leaveRecords.filter(
+              (record) => String(record.studentId?._id || record.studentId) === String(student._id)
+            );
+            return studentLeaves.some(record => !record.arrivedDate);
+          })
+          .map(student => {
+            const studentLeaves = leaveRecords.filter(
+              (record) => String(record.studentId?._id || record.studentId) === String(student._id)
+            );
+            const activeLeave = studentLeaves.find(record => !record.arrivedDate);
+            return {
+              id: student._id,
+              name: student.studentName || student.name || student.username || "Unknown",
+              className: student.className || "N/A",
+              admissionNumber: student.studentSpecificField?.admissionNumber || student.admissionNumber || "",
+              leaveReason: activeLeave?.reason || activeLeave?.leaveReason || "",
+            };
+          })
+          .sort((a, b) => {
+            const idxA = sortedClasses.findIndex(c => c.name === a.className);
+            const idxB = sortedClasses.findIndex(c => c.name === b.className);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return (a.className || "").localeCompare(b.className || "");
+          }),
     };
   }, [
     students,
