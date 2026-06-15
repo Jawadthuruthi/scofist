@@ -96,7 +96,7 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                         -webkit-print-color-adjust: exact !important; 
                         print-color-adjust: exact !important;
                     }
-                    @page { size: auto; margin: 10mm; }
+                    @page { size: auto; margin: 10mm 5mm; }
                     @media print { 
                         body { margin: 0; } 
                         .receipt-wrapper { page-break-inside: avoid; }
@@ -108,17 +108,17 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                     .bw-copy .colored-blue { color: inherit !important; }
                     .bw-copy .colored-red { color: inherit !important; }
                     .bw-copy .bg-logo { display: none !important; }
-                    .bw-copy .payee-signature { visibility: visible !important; }
+                    .bw-copy .payee-signature { display: inline-block !important; visibility: visible !important; }
+                    .bw-copy .main-receiver { display: none !important; }
+                    .bw-copy .copy-receiver { display: inline-block !important; }
                 </style>
             </head>
             <body>
                 <div class="receipt-wrapper" style="margin-bottom: 20px;">
-                    <div style="max-width: 680px; margin: 0 auto 5px; text-align: right; font-size: 12px; font-weight: bold; color: #555;">Office Copy</div>
                     ${printContents}
                 </div>
-                <div style="border-top: 1px dashed #999; margin: 20px auto; max-width: 680px;"></div>
+                <div style="border-top: 1px dashed #999; margin: 20px auto; max-width: 760px;"></div>
                 <div class="receipt-wrapper bw-copy" style="margin-bottom: 20px;">
-                    <div style="max-width: 680px; margin: 0 auto 5px; text-align: right; font-size: 12px; font-weight: bold; color: #555;">RECEIPT-COPY</div>
                     ${copyPrintContents}
                 </div>
             </body>
@@ -131,12 +131,12 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-3xl p-0 overflow-auto">
+            <DialogContent className="max-w-4xl p-0 overflow-auto">
                 <DialogTitle className="sr-only">Receipt Preview</DialogTitle>
 
                 <div className="flex items-center justify-between p-3 border-b bg-gray-50 print:hidden">
                     <span className="font-semibold text-gray-700">
-                        Receipt Preview — No.&nbsp;{transaction.invoiceNo}
+                        Receipt Preview No.&nbsp;{transaction.invoiceNo}
                     </span>
                     <Button onClick={handlePrint} className="bg-green-600 hover:bg-green-700 text-white gap-2">
                         <Printer className="h-4 w-4" /> Print Receipt
@@ -146,7 +146,7 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                 <div className="p-4 bg-white" ref={printRef}>
                     <div style={{
                         border: "2.5px solid #333",
-                        maxWidth: 680,
+                        maxWidth: 760,
                         margin: "0 auto",
                         fontFamily: "'Montserrat', Arial, sans-serif",
                         background: "#F7F7F7",
@@ -156,7 +156,7 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                             <div className="bg-logo" style={{
                                 position: "absolute",
                                 inset: 0,
-                                opacity: 0.1,
+                                opacity: 0.15,
                                 backgroundImage: `url(${institutionPhoto})`,
                                 backgroundSize: "cover",
                                 backgroundPosition: "center",
@@ -220,13 +220,13 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                             alignItems: "center", padding: "6px 14px",
                         }}>
                             <span className="colored-red" style={{ fontWeight: "bold", fontFamily: "'Montserrat', Arial, sans-serif", fontSize: 16, color: "#dc2626" }}>
-                                Nō&nbsp;<span style={{ fontSize: 20, color: "#000" }}>
+                                No.&nbsp;<span style={{ fontSize: 20, color: "#000" }}>
                                     {transaction.invoiceNo}
                                 </span>
                             </span>
-                            <span className="colored-red" style={{ fontSize: 14, fontStyle: "italic", fontFamily: "'Montserrat', Arial, sans-serif", color: "#dc2626" }}>
+                            <span className="colored-red" style={{ fontSize: 14, fontStyle: "italic", fontWeight: "bold", fontFamily: "'Montserrat', Arial, sans-serif", color: "#dc2626" }}>
                                 Date:&nbsp;
-                                <span style={{ fontStyle: "normal", color: "#000" }}>
+                                <span style={{ fontStyle: "normal", color: "#000", fontWeight: "bold" }}>
                                     {date}
                                 </span>
                             </span>
@@ -237,42 +237,42 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
 
                             {/* Received with thanks from */}
                             <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 0, paddingLeft: 16, paddingRight: 16 }}>
-                                <span className="colored-blue" style={{ fontSize: 14, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#2563eb" }}>Received with thanks from</span>
+                                <span className="colored-darkblue" style={{ fontSize: 15, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#1e3a8a" }}>Received with thanks from</span>
                                 <span style={{ flex: 1, fontSize: 15, fontWeight: 600, minHeight: 18, color: "#000" }}>
                                     {transaction.recipient || ""}
                                 </span>
                             </div>
                             {/* dot line: spacer mirrors label + gap, dots fill the rest to the border */}
                             <div style={{ display: "flex", marginBottom: 6 }}>
-                                <span style={{ flexShrink: 0, paddingLeft: 16, fontSize: 14, visibility: "hidden", whiteSpace: "nowrap" }}>Received with thanks from</span>
+                                <span style={{ flexShrink: 0, paddingLeft: 16, fontSize: 15, visibility: "hidden", whiteSpace: "nowrap" }}>Received with thanks from</span>
                                 <span style={{ width: 6, flexShrink: 0 }} />
-                                <span style={{ flex: 1, overflow: "hidden", whiteSpace: "nowrap", color: "#bbb", letterSpacing: 4, fontSize: 12 }}>{".".repeat(150)}</span>
+                                <span style={{ flex: 1, overflow: "hidden", whiteSpace: "nowrap", color: "#999", letterSpacing: 4, fontSize: 12 }}>{".".repeat(150)}</span>
                             </div>
 
                             {/* a sum of Rupees */}
                             <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 0, paddingLeft: 16, paddingRight: 16 }}>
-                                <span className="colored-blue" style={{ fontSize: 16, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#2563eb" }}>a sum of Rupees</span>
+                                <span className="colored-darkblue" style={{ fontSize: 17, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#1e3a8a" }}>a sum of Rupees</span>
                                 <span style={{ flex: 1, fontSize: 17, fontWeight: 600, minHeight: 18, color: "#000" }}>
                                     {amountInWords}
                                 </span>
                             </div>
                             <div style={{ display: "flex", marginBottom: 6 }}>
-                                <span style={{ flexShrink: 0, paddingLeft: 16, fontSize: 14, visibility: "hidden", whiteSpace: "nowrap" }}>a sum of Rupees</span>
+                                <span style={{ flexShrink: 0, paddingLeft: 16, fontSize: 17, visibility: "hidden", whiteSpace: "nowrap" }}>a sum of Rupees</span>
                                 <span style={{ width: 6, flexShrink: 0 }} />
-                                <span style={{ flex: 1, overflow: "hidden", whiteSpace: "nowrap", color: "#bbb", letterSpacing: 4, fontSize: 12 }}>{".".repeat(150)}</span>
+                                <span style={{ flex: 1, overflow: "hidden", whiteSpace: "nowrap", color: "#999", letterSpacing: 4, fontSize: 12 }}>{".".repeat(150)}</span>
                             </div>
 
                             {/* being */}
                             <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 0, paddingLeft: 16, paddingRight: 16 }}>
-                                <span className="colored-blue" style={{ fontSize: 16, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#2563eb" }}>being</span>
+                                <span className="colored-darkblue" style={{ fontSize: 17, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#1e3a8a" }}>being</span>
                                 <span style={{ flex: 1, fontSize: 17, fontWeight: 600, minHeight: 18, color: "#000" }}>
                                     {transaction.item || transaction.category || ""}
                                 </span>
                             </div>
                             <div style={{ display: "flex", marginBottom: 10 }}>
-                                <span style={{ flexShrink: 0, paddingLeft: 16, fontSize: 14, visibility: "hidden", whiteSpace: "nowrap" }}>being</span>
+                                <span style={{ flexShrink: 0, paddingLeft: 16, fontSize: 17, visibility: "hidden", whiteSpace: "nowrap" }}>being</span>
                                 <span style={{ width: 6, flexShrink: 0 }} />
-                                <span style={{ flex: 1, overflow: "hidden", whiteSpace: "nowrap", color: "#bbb", letterSpacing: 4, fontSize: 12 }}>{".".repeat(150)}</span>
+                                <span style={{ flex: 1, overflow: "hidden", whiteSpace: "nowrap", color: "#999", letterSpacing: 4, fontSize: 12 }}>{".".repeat(150)}</span>
                             </div>
 
                             {/* Amount box */}
@@ -297,17 +297,24 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                             position: "relative", zIndex: 10
                         }}>
                             {/* Left */}
-                            <span className="payee-signature colored-blue" style={{ visibility: "hidden", fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", flex: 1, textAlign: "left", color: "#2563eb" }}>
-                                Payee
-                            </span>
+                            <div style={{ flex: 1, textAlign: "left" }}>
+                                <span className="main-receiver colored-darkblue" style={{ fontSize: 15, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", color: "#1e3a8a" }}>
+                                    Receiver
+                                </span>
+                                <span className="payee-signature colored-darkblue" style={{ display: "none", fontSize: 15, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", color: "#1e3a8a" }}>
+                                    Payee
+                                </span>
+                            </div>
 
                             {/* Center */}
-                            <span className="colored-blue" style={{ fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", flex: 1, textAlign: "center", color: "#2563eb" }}>
-                                Receiver
-                            </span>
+                            <div style={{ flex: 1, textAlign: "center" }}>
+                                <span className="copy-receiver colored-darkblue" style={{ display: "none", fontSize: 15, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", color: "#1e3a8a" }}>
+                                    Receiver
+                                </span>
+                            </div>
 
                             {/* Right */}
-                            <span className="colored-blue" style={{ fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", flex: 1, textAlign: "right", color: "#2563eb" }}>
+                            <span className="colored-darkblue" style={{ fontSize: 15, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", flex: 1, textAlign: "right", color: "#1e3a8a" }}>
                                 Secretary
                             </span>
                         </div>
