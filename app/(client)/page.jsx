@@ -22,7 +22,7 @@ export const metadata = {
     siteName: "Sadiya Dawa College",
     images: [
       {
-        url: "/sdc_seal.png",
+        url: "/logo.svg",
         width: 1200,
         height: 630,
         alt: "Sadiya Dawa College - Islamic College of Integrated Studies",
@@ -35,7 +35,7 @@ export const metadata = {
     title: "Sadiya Dawa College | Islamic College of Integrated Studies",
     description:
       "Kerala's premier Islamic educational institution offering comprehensive programs for academic excellence and spiritual growth.",
-    images: ["/sdc_seal.png"],
+    images: ["/logo.svg"],
   },
 
   robots: {

@@ -20,6 +20,19 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async headers() {
+    return [
+      {
+        source: '/sdc_seal.png',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 // Create PWA configuration

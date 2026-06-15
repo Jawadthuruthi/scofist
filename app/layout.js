@@ -84,7 +84,7 @@ export const metadata = {
     siteName: "Sadiya Dawa College",
     images: [
       {
-        url: "/sdc_seal.png", //
+        url: "/logo.svg", //
         width: 1200,
         height: 630,
         alt: "Sadiya Dawa College - Islamic College of Integrated Studies",
