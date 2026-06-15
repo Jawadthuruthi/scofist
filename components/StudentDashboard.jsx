@@ -2013,7 +2013,7 @@ export default function StudentDashboard({
                             }
                           }}
                         >
-                          {item.value.toFixed(2)}
+                          {(item.value || 0).toFixed(2)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -2023,7 +2023,7 @@ export default function StudentDashboard({
                         Total Pending Balance
                       </TableCell>
                       <TableCell className={`py-3 text-right text-base ${totalPending < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        {totalPending.toFixed(2)}
+                        {(totalPending || 0).toFixed(2)}
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -2063,7 +2063,7 @@ export default function StudentDashboard({
                               <TableCell className="font-medium">{record.year}</TableCell>
                               <TableCell>{record.holder}</TableCell>
                               <TableCell className="text-right font-bold text-orange-600">
-                                {record.value.toFixed(2)}
+                                {(record.value || 0).toFixed(2)}
                               </TableCell>
                             </TableRow>
                           ))}
@@ -2105,7 +2105,7 @@ export default function StudentDashboard({
                                       </div>
                                     </TableCell>
                                     <TableCell className={`py-2 text-xs text-right font-bold ${t.type === 'Withdrawal' ? 'text-red-600' : 'text-green-600'}`}>
-                                      {t.type === 'Withdrawal' ? '-' : '+'}{t.amount.toFixed(2)}
+                                      {t.type === 'Withdrawal' ? '-' : '+'}{(t.amount || 0).toFixed(2)}
                                     </TableCell>
                                     <TableCell className={`py-2 text-xs text-right font-bold ${t.calculatedBalance < 0 ? 'text-red-600' : 'text-green-600'}`}>
                                       {t.calculatedBalance?.toFixed(2) || "0.00"}
@@ -2159,10 +2159,10 @@ export default function StudentDashboard({
                               <TableCell className="py-3 text-sm">
                                 {coupon.couponNumber || "N/A"}
                               </TableCell>
-                              <TableCell className="py-3 text-right text-sm">₹{coupon.couponAmount.toFixed(2)}</TableCell>
-                              <TableCell className="py-3 text-right text-sm text-green-600">₹{paid.toFixed(2)}</TableCell>
+                              <TableCell className="py-3 text-right text-sm">₹{(coupon.couponAmount || 0).toFixed(2)}</TableCell>
+                              <TableCell className="py-3 text-right text-sm text-green-600">₹{(paid || 0).toFixed(2)}</TableCell>
                               <TableCell className="py-3 text-right font-bold text-orange-600 text-sm">
-                                ₹{balance.toFixed(2)}
+                                ₹{(balance || 0).toFixed(2)}
                               </TableCell>
                               <TableCell className="py-2">
                                 <div className="space-y-1">
@@ -2170,7 +2170,7 @@ export default function StudentDashboard({
                                     coupon.payments.map((p, pIdx) => (
                                       <div key={pIdx} className="flex items-center justify-between gap-4 text-[10px] bg-muted/30 px-2 py-1 rounded border border-muted/50">
                                         <span className="text-muted-foreground">{formatDateShort(p.date)}</span>
-                                        <span className="font-bold text-green-700">₹{p.amount.toFixed(2)}</span>
+                                        <span className="font-bold text-green-700">₹{(p.amount || 0).toFixed(2)}</span>
                                       </div>
                                     ))
                                   ) : (
