@@ -63,7 +63,7 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
     const institutionName = institution.name || "INSTITUTION NAME";
     const institutionTagline = institution.tagline || "";
     const institutionAddress = institution.address || "";
-    const institutionLogo = institution.logo?.url || null;
+    const institutionPhoto = institution.institutionPhoto?.url || null;
     const primaryPhone = institution.contact?.primaryPhone || "";
     const secondaryPhone = institution.contact?.secondaryPhone || "";
     const email = institution.contact?.email || "";
@@ -78,6 +78,7 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
 
     const handlePrint = () => {
         const printContents = printRef.current.innerHTML;
+        const copyPrintContents = printContents.replace(/>\s*RECEIPT\s*<\/div>/, ">RECEIPT-COPY</div>");
         const printWindow = window.open("", "_blank", "width=900,height=600");
         printWindow.document.write(`
             <!DOCTYPE html>
@@ -101,6 +102,13 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                         .receipt-wrapper { page-break-inside: avoid; }
                     }
                     img { max-width: 100%; }
+                    /* Restore original colors for the copy */
+                    .bw-copy .colored-green { color: #111 !important; }
+                    .bw-copy .colored-darkblue { color: #333 !important; }
+                    .bw-copy .colored-blue { color: inherit !important; }
+                    .bw-copy .colored-red { color: inherit !important; }
+                    .bw-copy .bg-logo { display: none !important; }
+                    .bw-copy .payee-signature { visibility: visible !important; }
                 </style>
             </head>
             <body>
@@ -109,9 +117,9 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                     ${printContents}
                 </div>
                 <div style="border-top: 1px dashed #999; margin: 20px auto; max-width: 680px;"></div>
-                <div class="receipt-wrapper" style="margin-bottom: 20px;">
-                    <div style="max-width: 680px; margin: 0 auto 5px; text-align: right; font-size: 12px; font-weight: bold; color: #555;">Student/Payee Copy</div>
-                    ${printContents}
+                <div class="receipt-wrapper bw-copy" style="margin-bottom: 20px;">
+                    <div style="max-width: 680px; margin: 0 auto 5px; text-align: right; font-size: 12px; font-weight: bold; color: #555;">RECEIPT-COPY</div>
+                    ${copyPrintContents}
                 </div>
             </body>
             </html>
@@ -144,7 +152,18 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                         background: "#F7F7F7",
                         position: "relative",
                     }}>
-                        {/* Wrap content in a div so it sits above any potential watermarks */}
+                        {institutionPhoto && (
+                            <div className="bg-logo" style={{
+                                position: "absolute",
+                                inset: 0,
+                                opacity: 0.1,
+                                backgroundImage: `url(${institutionPhoto})`,
+                                backgroundSize: "cover",
+                                backgroundPosition: "center",
+                                backgroundRepeat: "no-repeat",
+                                zIndex: 0
+                            }} />
+                        )}
                         <div style={{ position: "relative", zIndex: 1 }}>
                         {/* ── INSTITUTION HEADER ── */}
                         <div style={{
@@ -155,26 +174,26 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                         }}>
                             {/* Name + tagline + address */}
                             <div style={{ flex: 1, textAlign: "center" }}>
-                                <div style={{
+                                <div className="colored-green" style={{
                                     fontSize: 23, fontWeight: 900,
                                     fontFamily: "'Montserrat', Arial, sans-serif",
                                     letterSpacing: 0.5, lineHeight: 1.2,
-                                    color: "#111",
+                                    color: "#16a34a",
                                 }}>
                                     {institutionName}
                                 </div>
                                 {institutionTagline && (
-                                    <div style={{ fontSize: 14, fontWeight: "bold", color: "#333", fontFamily: "'Montserrat', Arial, sans-serif" }}>
+                                    <div className="colored-darkblue" style={{ fontSize: 14, fontWeight: "bold", color: "#1e3a8a", fontFamily: "'Montserrat', Arial, sans-serif" }}>
                                         {institutionTagline}
                                     </div>
                                 )}
                                 {institutionAddress && (
-                                    <div style={{ fontSize: 12, color: "#444", fontFamily: "'Montserrat', Arial, sans-serif", marginTop: 2 }}>
+                                    <div className="colored-darkblue" style={{ fontSize: 12, color: "#1e3a8a", fontFamily: "'Montserrat', Arial, sans-serif", marginTop: 2 }}>
                                         {institutionAddress}
                                     </div>
                                 )}
                                 {contactLine && (
-                                    <div style={{ fontSize: 11, color: "#444", fontFamily: "'Montserrat', Arial, sans-serif" }}>
+                                    <div className="colored-darkblue" style={{ fontSize: 11, color: "#1e3a8a", fontFamily: "'Montserrat', Arial, sans-serif" }}>
                                         {contactLine}
                                     </div>
                                 )}
@@ -190,6 +209,7 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                             fontFamily: "'Montserrat', Arial, sans-serif",
                             fontSize: 16,
                             letterSpacing: 2,
+                            color: "#000"
                         }}>
                             RECEIPT
                         </div>
@@ -199,14 +219,14 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                             display: "flex", justifyContent: "space-between",
                             alignItems: "center", padding: "6px 14px",
                         }}>
-                            <span style={{ fontWeight: "bold", fontFamily: "'Montserrat', Arial, sans-serif", fontSize: 16 }}>
-                                Nō&nbsp;<span style={{ fontSize: 20 }}>
+                            <span className="colored-red" style={{ fontWeight: "bold", fontFamily: "'Montserrat', Arial, sans-serif", fontSize: 16, color: "#dc2626" }}>
+                                Nō&nbsp;<span style={{ fontSize: 20, color: "#000" }}>
                                     {transaction.invoiceNo}
                                 </span>
                             </span>
-                            <span style={{ fontSize: 14, fontStyle: "italic", fontFamily: "'Montserrat', Arial, sans-serif" }}>
+                            <span className="colored-red" style={{ fontSize: 14, fontStyle: "italic", fontFamily: "'Montserrat', Arial, sans-serif", color: "#dc2626" }}>
                                 Date:&nbsp;
-                                <span style={{ fontStyle: "normal" }}>
+                                <span style={{ fontStyle: "normal", color: "#000" }}>
                                     {date}
                                 </span>
                             </span>
@@ -217,8 +237,8 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
 
                             {/* Received with thanks from */}
                             <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 0, paddingLeft: 16, paddingRight: 16 }}>
-                                <span style={{ fontSize: 14, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2 }}>Received with thanks from</span>
-                                <span style={{ flex: 1, fontSize: 15, fontWeight: 600, minHeight: 18 }}>
+                                <span className="colored-blue" style={{ fontSize: 14, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#2563eb" }}>Received with thanks from</span>
+                                <span style={{ flex: 1, fontSize: 15, fontWeight: 600, minHeight: 18, color: "#000" }}>
                                     {transaction.recipient || ""}
                                 </span>
                             </div>
@@ -231,8 +251,8 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
 
                             {/* a sum of Rupees */}
                             <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 0, paddingLeft: 16, paddingRight: 16 }}>
-                                <span style={{ fontSize: 16, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2 }}>a sum of Rupees</span>
-                                <span style={{ flex: 1, fontSize: 17, fontWeight: 600, minHeight: 18 }}>
+                                <span className="colored-blue" style={{ fontSize: 16, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#2563eb" }}>a sum of Rupees</span>
+                                <span style={{ flex: 1, fontSize: 17, fontWeight: 600, minHeight: 18, color: "#000" }}>
                                     {amountInWords}
                                 </span>
                             </div>
@@ -244,8 +264,8 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
 
                             {/* being */}
                             <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 0, paddingLeft: 16, paddingRight: 16 }}>
-                                <span style={{ fontSize: 16, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2 }}>being</span>
-                                <span style={{ flex: 1, fontSize: 17, fontWeight: 600, minHeight: 18 }}>
+                                <span className="colored-blue" style={{ fontSize: 16, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#2563eb" }}>being</span>
+                                <span style={{ flex: 1, fontSize: 17, fontWeight: 600, minHeight: 18, color: "#000" }}>
                                     {transaction.item || transaction.category || ""}
                                 </span>
                             </div>
@@ -257,11 +277,12 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
 
                             {/* Amount box */}
                             <div style={{ display: "flex", alignItems: "center", gap: 10, paddingLeft: 16, paddingRight: 16 }}>
-                                <span style={{ fontSize: 24, fontWeight: "bold" }}>₹</span>
+                                <span style={{ fontSize: 24, fontWeight: "bold", color: "#000" }}>₹</span>
                                 <div style={{
                                     border: "2px solid #333", padding: "4px 18px",
                                     minWidth: 110, textAlign: "center",
                                     fontSize: 18, fontWeight: "bold",
+                                    color: "#000"
                                 }}>
                                     {rupees.toLocaleString("en-IN")}
                                     {paise > 0 ? `.${String(paise).padStart(2, "0")}` : ""}
@@ -276,17 +297,17 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
                             position: "relative", zIndex: 10
                         }}>
                             {/* Left */}
-                            <span style={{ fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", flex: 1, textAlign: "left" }}>
+                            <span className="payee-signature colored-blue" style={{ visibility: "hidden", fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", flex: 1, textAlign: "left", color: "#2563eb" }}>
                                 Payee
                             </span>
 
                             {/* Center */}
-                            <span style={{ fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", flex: 1, textAlign: "center" }}>
+                            <span className="colored-blue" style={{ fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", flex: 1, textAlign: "center", color: "#2563eb" }}>
                                 Receiver
                             </span>
 
                             {/* Right */}
-                            <span style={{ fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", flex: 1, textAlign: "right" }}>
+                            <span className="colored-blue" style={{ fontSize: 13, fontFamily: "'Montserrat', Arial, sans-serif", fontWeight: "bold", flex: 1, textAlign: "right", color: "#2563eb" }}>
                                 Secretary
                             </span>
                         </div>

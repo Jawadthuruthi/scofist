@@ -26,7 +26,7 @@ import {
 import CategoryBalanceDialog from "./_components/CategoryBalanceDialog";
 import PrintAllDocsButton from "./_components/PrintAllDocsButton";
 
-export default function AccountsClient({ initialSummary, apiKey, accountType = "College", accountName: initialAccountName = "", allCategories = [] }) {
+export default function AccountsClient({ activeRole, initialSummary, apiKey, accountType = "College", accountName: initialAccountName = "", allCategories = [] }) {
     const [summary, setSummary] = useState(initialSummary);
     const [transactions, setTransactions] = useState([]);
     const router = useRouter();
@@ -644,7 +644,7 @@ export default function AccountsClient({ initialSummary, apiKey, accountType = "
                 additionalProps={{
                     customActions: (
                         <div className="flex items-center gap-2">
-                            {transactions?.length > 0 && (
+                            {transactions?.length > 0 && activeRole !== "College Admin" && (
                                 <PrintAllDocsButton transactions={transactions} apiKey={apiKey} />
                             )}
                             {summary?.categories && (

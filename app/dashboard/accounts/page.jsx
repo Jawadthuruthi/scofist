@@ -50,7 +50,7 @@ export default async function AccountsPage({ searchParams }) {
                 <h1 className="font-bold text-xl md:text-2xl tracking-tight uppercase">ACCOUNTS {accountType !== "College" ? `(${accountType})` : ""}</h1>
                 <p className="text-muted-foreground">Manage your financial transactions</p>
             </div>
-            <AccountsClient initialSummary={summary} apiKey={apiKey} accountType={accountType} accountName={accountName} allCategories={allCategories} />
+            <AccountsClient activeRole={activeRole} initialSummary={summary} apiKey={apiKey} accountType={accountType} accountName={accountName} allCategories={allCategories} />
         </div>
     );
 }

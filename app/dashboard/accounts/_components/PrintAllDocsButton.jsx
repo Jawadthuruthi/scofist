@@ -79,40 +79,42 @@ export default function PrintAllDocsButton({ transactions = [], apiKey }) {
                 (paise > 0 ? `.${String(paise).padStart(2, "0")}` : "");
 
             let printContents = "";
+            const institutionPhoto = institution.institutionPhoto?.url || null;
 
             if (transaction.type === "Income") {
                 // Receipt HTML
                 printContents = `
                     <div style="border: 2.5px solid #333; max-width: 680px; margin: 0 auto; font-family: 'Montserrat', Arial, sans-serif; background: #F7F7F7; position: relative;">
+                        ${institutionPhoto ? '<div class="bg-logo" style="position: absolute; inset: 0; opacity: 0.1; background-image: url(' + institutionPhoto + '); background-size: cover; background-position: center; background-repeat: no-repeat; z-index: 0;"></div>' : ""}
                         <div style="position: relative; z-index: 1;">
                             <div style="display: flex; align-items: center; gap: 14px; padding: 10px 16px;">
                                 <div style="flex: 1; text-align: center;">
-                                    <div style="font-size: 23px; font-weight: 900; letter-spacing: 0.5px; line-height: 1.2; color: #111;">
+                                    <div class="colored-green" style="font-size: 23px; font-weight: 900; letter-spacing: 0.5px; line-height: 1.2; color: #16a34a;">
                                         ${institutionName}
                                     </div>
-                                    ${institutionTagline ? `<div style="font-size: 14px; font-weight: bold; color: #333;">${institutionTagline}</div>` : ""}
-                                    ${institutionAddress ? `<div style="font-size: 12px; color: #444; margin-top: 2px;">${institutionAddress}</div>` : ""}
-                                    ${contactLine ? `<div style="font-size: 11px; color: #444;">${contactLine}</div>` : ""}
+                                    ${institutionTagline ? '<div class="colored-darkblue" style="font-size: 14px; font-weight: bold; color: #1e3a8a;">' + institutionTagline + '</div>' : ""}
+                                    ${institutionAddress ? '<div class="colored-darkblue" style="font-size: 12px; color: #1e3a8a; margin-top: 2px;">' + institutionAddress + '</div>' : ""}
+                                    ${contactLine ? '<div class="colored-darkblue" style="font-size: 11px; color: #1e3a8a;">' + contactLine + '</div>' : ""}
                                 </div>
                             </div>
 
-                            <div style="text-align: center; padding: 4px 0; border-top: 1.5px solid #333; font-weight: bold; font-size: 16px; letter-spacing: 2px;">
+                            <div style="text-align: center; padding: 4px 0; border-top: 1.5px solid #333; font-weight: bold; font-size: 16px; letter-spacing: 2px; color: #000;">
                                 RECEIPT
                             </div>
 
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 14px;">
-                                <span style="font-weight: bold; font-size: 16px;">
-                                    Nō&nbsp;<span style="font-size: 20px;">${transaction.invoiceNo || ""}</span>
+                                <span class="colored-red" style="font-weight: bold; font-size: 16px; color: #dc2626;">
+                                    Nō&nbsp;<span style="font-size: 20px; color: #000;">${transaction.invoiceNo || ""}</span>
                                 </span>
-                                <span style="font-size: 14px; font-style: italic;">
-                                    Date:&nbsp;<span style="font-style: normal;">${date}</span>
+                                <span class="colored-red" style="font-size: 14px; font-style: italic; color: #dc2626;">
+                                    Date:&nbsp;<span style="font-style: normal; color: #000;">${date}</span>
                                 </span>
                             </div>
 
                             <div style="padding-top: 10px; padding-bottom: 4px;">
                                 <div style="display: flex; align-items: flex-start; gap: 6px; margin-bottom: 0; padding-left: 16px; padding-right: 16px;">
-                                    <span style="font-size: 14px; white-space: nowrap; flex-shrink: 0; padding-top: 2px;">Received with thanks from</span>
-                                    <span style="flex: 1; font-size: 15px; font-weight: 600; min-height: 18px;">${transaction.recipient || ""}</span>
+                                    <span class="colored-blue" style="font-size: 14px; white-space: nowrap; flex-shrink: 0; padding-top: 2px; color: #2563eb;">Received with thanks from</span>
+                                    <span style="flex: 1; font-size: 15px; font-weight: 600; min-height: 18px; color: #000;">${transaction.recipient || ""}</span>
                                 </div>
                                 <div style="display: flex; margin-bottom: 6px;">
                                     <span style="flex-shrink: 0; padding-left: 16px; font-size: 14px; visibility: hidden; white-space: nowrap;">Received with thanks from</span>
@@ -121,8 +123,8 @@ export default function PrintAllDocsButton({ transactions = [], apiKey }) {
                                 </div>
 
                                 <div style="display: flex; align-items: flex-start; gap: 6px; margin-bottom: 0; padding-left: 16px; padding-right: 16px;">
-                                    <span style="font-size: 16px; white-space: nowrap; flex-shrink: 0; padding-top: 2px;">a sum of Rupees</span>
-                                    <span style="flex: 1; font-size: 17px; font-weight: 600; min-height: 18px;">${amountInWords}</span>
+                                    <span class="colored-blue" style="font-size: 16px; white-space: nowrap; flex-shrink: 0; padding-top: 2px; color: #2563eb;">a sum of Rupees</span>
+                                    <span style="flex: 1; font-size: 17px; font-weight: 600; min-height: 18px; color: #000;">${amountInWords}</span>
                                 </div>
                                 <div style="display: flex; margin-bottom: 6px;">
                                     <span style="flex-shrink: 0; padding-left: 16px; font-size: 14px; visibility: hidden; white-space: nowrap;">a sum of Rupees</span>
@@ -131,8 +133,8 @@ export default function PrintAllDocsButton({ transactions = [], apiKey }) {
                                 </div>
 
                                 <div style="display: flex; align-items: flex-start; gap: 6px; margin-bottom: 0; padding-left: 16px; padding-right: 16px;">
-                                    <span style="font-size: 16px; white-space: nowrap; flex-shrink: 0; padding-top: 2px;">being</span>
-                                    <span style="flex: 1; font-size: 17px; font-weight: 600; min-height: 18px;">${transaction.item || transaction.category || ""}</span>
+                                    <span class="colored-blue" style="font-size: 16px; white-space: nowrap; flex-shrink: 0; padding-top: 2px; color: #2563eb;">being</span>
+                                    <span style="flex: 1; font-size: 17px; font-weight: 600; min-height: 18px; color: #000;">${transaction.item || transaction.category || ""}</span>
                                 </div>
                                 <div style="display: flex; margin-bottom: 10px;">
                                     <span style="flex-shrink: 0; padding-left: 16px; font-size: 14px; visibility: hidden; white-space: nowrap;">being</span>
@@ -141,25 +143,33 @@ export default function PrintAllDocsButton({ transactions = [], apiKey }) {
                                 </div>
 
                                 <div style="display: flex; align-items: center; gap: 10px; padding-left: 16px; padding-right: 16px;">
-                                    <span style="font-size: 24px; font-weight: bold;">₹</span>
-                                    <div style="border: 2px solid #333; padding: 4px 18px; min-width: 110px; text-align: center; font-size: 18px; font-weight: bold;">
+                                    <span style="font-size: 24px; font-weight: bold; color: #000;">₹</span>
+                                    <div style="border: 2px solid #333; padding: 4px 18px; min-width: 110px; text-align: center; font-size: 18px; font-weight: bold; color: #000;">
                                         ${rupees.toLocaleString("en-IN")}${paise > 0 ? `.${String(paise).padStart(2, "0")}` : ""}
                                     </div>
                                 </div>
                             </div>
 
                             <div style="display: flex; align-items: flex-end; justify-content: space-between; padding: 0 16px 16px; margin-top: 25px; position: relative; z-index: 10;">
-                                <span style="font-size: 13px; font-weight: bold; flex: 1; text-align: left;">Payee</span>
-                                <span style="font-size: 13px; font-weight: bold; flex: 1; text-align: center;">Receiver</span>
-                                <span style="font-size: 13px; font-weight: bold; flex: 1; text-align: right;">Secretary</span>
+                                <span class="payee-signature colored-blue" style="visibility: hidden; font-size: 13px; font-weight: bold; flex: 1; text-align: left; color: #2563eb;">Payee</span>
+                                <span class="colored-blue" style="font-size: 13px; font-weight: bold; flex: 1; text-align: center; color: #2563eb;">Receiver</span>
+                                <span class="colored-blue" style="font-size: 13px; font-weight: bold; flex: 1; text-align: right; color: #2563eb;">Secretary</span>
                             </div>
                         </div>
                     </div>
                 `;
 
+                let copyPrintContents = printContents.replace(/>\s*RECEIPT\s*<\/div>/, ">RECEIPT-COPY</div>");
+
                 let wrapperHtml = `
                     <div class="receipt-wrapper" style="margin-bottom: 20px;">
+                        <div style="max-width: 680px; margin: 0 auto 5px; text-align: right; font-size: 12px; font-weight: bold; color: #555;">Office Copy</div>
                         ${printContents}
+                    </div>
+                    <div style="border-top: 1px dashed #999; margin: 20px auto; max-width: 680px;"></div>
+                    <div class="receipt-wrapper bw-copy" style="margin-bottom: 20px;">
+                        <div style="max-width: 680px; margin: 0 auto 5px; text-align: right; font-size: 12px; font-weight: bold; color: #555;">RECEIPT-COPY</div>
+                        ${copyPrintContents}
                     </div>
                 `;
 
@@ -315,6 +325,13 @@ export default function PrintAllDocsButton({ transactions = [], apiKey }) {
                         .receipt-wrapper { page-break-inside: avoid; }
                     }
                     img { max-width: 100%; }
+                    /* Restore original colors for the copy */
+                    .bw-copy .colored-green { color: #111 !important; }
+                    .bw-copy .colored-darkblue { color: #333 !important; }
+                    .bw-copy .colored-blue { color: inherit !important; }
+                    .bw-copy .colored-red { color: inherit !important; }
+                    .bw-copy .bg-logo { display: none !important; }
+                    .bw-copy .payee-signature { visibility: visible !important; }
                 </style>
             </head>
             <body>
