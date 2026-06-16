@@ -6,7 +6,7 @@ import { ArrowUpDown, ExternalLink, Pencil, Trash, User, Phone, MessageCircle, U
 import Link from "next/link";
 import { CLASS_ORDER } from "@/lib/utils";
 
-const SaveContactButton = ({ number, name }) => {
+const SaveContactButton = ({ number, altNumber, name }) => {
     const [href, setHref] = useState("");
     const [download, setDownload] = useState(undefined);
 
@@ -16,17 +16,25 @@ const SaveContactButton = ({ number, name }) => {
         const isAndroid = /Android/i.test(navigator.userAgent);
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
         
-        const fallbackUrl = `${window.location.origin}/api/vcard?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(number)}`;
+        let fallbackUrl = `${window.location.origin}/api/vcard?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(number)}`;
+        if (altNumber) {
+            fallbackUrl += `&altPhone=${encodeURIComponent(altNumber)}`;
+        }
 
         if (isAndroid) {
-            setHref(`intent:#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.dir/contact;S.name=${encodeURIComponent(name)};S.phone=${encodeURIComponent(number)};S.com.android.contacts.extra.ACCOUNT_TYPE=com.google;S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`);
+            let intentStr = `intent:#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.dir/contact;S.name=${encodeURIComponent(name)};S.phone=${encodeURIComponent(number)}`;
+            if (altNumber) {
+                intentStr += `;S.secondary_phone=${encodeURIComponent(altNumber)}`;
+            }
+            intentStr += `;S.com.android.contacts.extra.ACCOUNT_TYPE=com.google;S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`;
+            setHref(intentStr);
         } else {
             setHref(fallbackUrl);
             if (!isIOS) {
                 setDownload(`${name}.vcf`);
             }
         }
-    }, [name, number]);
+    }, [name, number, altNumber]);
 
     if (!href) return <button className="text-indigo-300 p-2 block print:hidden" onClick={(e) => e.stopPropagation()}><UserPlus className="w-5 h-5" /></button>;
 
@@ -468,11 +476,14 @@ const useTableColumns = (columnConfig, onCellClick) => {
         number = String(number).replace(/[^\d+]/g, '');
         if (!number) return null;
         
+        let altNumber = row.original.alternativeNumber;
+        if (altNumber) altNumber = String(altNumber).replace(/[^\d+]/g, '');
+
         const batchName = row.original.batchName || row.original.batchId || "";
         const studentName = row.original.name || "Student";
         const name = batchName ? `${batchName} - ${studentName}` : studentName;
         
-        return <SaveContactButton number={number} name={name} />;
+        return <SaveContactButton number={number} altNumber={altNumber} name={name} />;
       };
     }
 
@@ -483,6 +494,9 @@ const useTableColumns = (columnConfig, onCellClick) => {
         number = String(number).replace(/[^\d+]/g, '');
         if (!number) return null;
         
+        let altNumber = row.original.guardianAlternativeNumber || row.original?.studentSpecificField?.guardianAlternativeNumber;
+        if (altNumber) altNumber = String(altNumber).replace(/[^\d+]/g, '');
+
         const batchName = row.original.batchName || row.original.batchId || "";
         const studentName = row.original.name || "Student";
         const relationship = row.original.relationship || row.original?.studentSpecificField?.relationship || "Guardian";
@@ -490,7 +504,7 @@ const useTableColumns = (columnConfig, onCellClick) => {
         const baseName = batchName ? `${batchName} - ${studentName}` : studentName;
         const contactName = `${baseName} (${relationship})`;
         
-        return <SaveContactButton number={number} name={contactName} />;
+        return <SaveContactButton number={number} altNumber={altNumber} name={contactName} />;
       };
     }
 

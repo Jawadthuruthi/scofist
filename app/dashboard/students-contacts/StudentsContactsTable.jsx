@@ -40,14 +40,19 @@ const StudentsContactsTable = ({ data, apiKey }) => {
                     const downloadUrl = `/api/vcard/class?classId=${classId}&className=${encodeURIComponent(className)}`;
 
                     return (
-                        <a
-                            href={downloadUrl}
-                            onClick={handleSave}
-                            className="text-indigo-500 hover:text-indigo-700 p-2 flex justify-center items-center print:hidden"
-                            title="Save All Contacts"
-                        >
-                            <UserPlus className="w-5 h-5" />
-                        </a>
+                        <div className="flex justify-center items-center gap-2 print:hidden">
+                            <span className="text-sm font-medium text-muted-foreground" title="Number of contacts">
+                                {row.original.contactCount || 0}
+                            </span>
+                            <a
+                                href={downloadUrl}
+                                onClick={handleSave}
+                                className="text-indigo-500 hover:text-indigo-700 p-2 flex justify-center items-center"
+                                title="Save All Contacts"
+                            >
+                                <UserPlus className="w-5 h-5" />
+                            </a>
+                        </div>
                     );
                 }
             };

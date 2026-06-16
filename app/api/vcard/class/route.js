@@ -21,7 +21,7 @@ export async function GET(request) {
         const users = await User.find({
             "roles": "Student",
             "studentSpecificField.classId": classId,
-            "studentSpecificField.status": { $ne: "Removed" }
+            "studentSpecificField.status": "Active"
         }).populate("studentSpecificField.batchId", "name");
         
         if (!users || users.length === 0) {
@@ -33,22 +33,37 @@ export async function GET(request) {
         for (const user of users) {
             // Student Contact
             const studentNumber = user.contactNumber ? String(user.contactNumber).replace(/[^\d+]/g, '') : "";
+            const altNumber = user.alternativeNumber ? String(user.alternativeNumber).replace(/[^\d+]/g, '') : "";
             const batchName = user.studentSpecificField?.batchId?.name || "";
             const studentName = user.name || "Student";
             const name = batchName ? `${batchName} - ${studentName}` : studentName;
             
-            if (studentNumber && studentNumber !== "-") {
-                vcardData += `BEGIN:VCARD\nVERSION:3.0\nFN:${name}\nTEL;TYPE=CELL:${studentNumber}\nEND:VCARD\n`;
+            const hasValidStudentNumber = studentNumber && studentNumber !== "-";
+            const hasValidAltNumber = altNumber && altNumber !== "-";
+            
+            if (hasValidStudentNumber || hasValidAltNumber) {
+                vcardData += `BEGIN:VCARD\nVERSION:3.0\nFN:${name}\n`;
+                if (hasValidStudentNumber) vcardData += `TEL;TYPE=CELL:${studentNumber}\n`;
+                if (hasValidAltNumber) vcardData += `TEL;TYPE=HOME:${altNumber}\n`;
+                vcardData += `END:VCARD\n`;
             }
             
             // Guardian Contact
             const rawGuardianNumber = user.studentSpecificField?.guardianContactNumber || user.guardianContactNumber;
             const guardianNumber = rawGuardianNumber ? String(rawGuardianNumber).replace(/[^\d+]/g, '') : "";
+            const rawGuardianAltNumber = user.studentSpecificField?.guardianAlternativeNumber || user.guardianAlternativeNumber;
+            const guardianAltNumber = rawGuardianAltNumber ? String(rawGuardianAltNumber).replace(/[^\d+]/g, '') : "";
             const relationship = user.studentSpecificField?.relationship || "Guardian";
             const contactName = `${name} (${relationship})`;
             
-            if (guardianNumber && guardianNumber !== "-") {
-                vcardData += `BEGIN:VCARD\nVERSION:3.0\nFN:${contactName}\nTEL;TYPE=CELL:${guardianNumber}\nEND:VCARD\n`;
+            const hasValidGuardianNumber = guardianNumber && guardianNumber !== "-";
+            const hasValidGuardianAltNumber = guardianAltNumber && guardianAltNumber !== "-";
+            
+            if (hasValidGuardianNumber || hasValidGuardianAltNumber) {
+                vcardData += `BEGIN:VCARD\nVERSION:3.0\nFN:${contactName}\n`;
+                if (hasValidGuardianNumber) vcardData += `TEL;TYPE=CELL:${guardianNumber}\n`;
+                if (hasValidGuardianAltNumber) vcardData += `TEL;TYPE=HOME:${guardianAltNumber}\n`;
+                vcardData += `END:VCARD\n`;
             }
         }
         
