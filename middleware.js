@@ -80,6 +80,12 @@ const pages = [
     allowedRoles: ["Spark Admin"],
   },
   {
+    title: "Spark Contacts",
+    path: "/dashboard/spark/contacts",
+    pattern: /^\/dashboard\/spark\/contacts(?:\/[^/]+)?$/,
+    allowedRoles: ["Spark Admin"],
+  },
+  {
     title: "Spark Dashboard",
     path: "/dashboard/spark",
     allowedRoles: ["Student", "Spark Admin"],

@@ -331,23 +331,28 @@ const items = [
     allowedRoles: ["Spark Admin"],
   },
   {
+    title: "Alumnies",
+    url: "/dashboard/alumnies",
+    icon: GraduationCap, // Reusing GraduationCap or could use another like Users
+    allowedRoles: ["Student", "Spark Admin"],
+  },
+  {
     title: "Finance",
     url: "/dashboard/spark/finance",
     icon: CreditCard,
     allowedRoles: ["Spark Admin"],
   },
-
+  {
+    title: "Contacts",
+    url: "/dashboard/spark/contacts",
+    icon: BookUser,
+    allowedRoles: ["Spark Admin"],
+  },
   {
     title: "Verification",
     url: "/dashboard/spark/verification",
     icon: CheckCircle,
     allowedRoles: ["Spark Admin"],
-  },
-  {
-    title: "Alumnies",
-    url: "/dashboard/alumnies",
-    icon: GraduationCap, // Reusing GraduationCap or could use another like Users
-    allowedRoles: ["Student", "Spark Admin"],
   },
   {
     title: "My Identity Card",
