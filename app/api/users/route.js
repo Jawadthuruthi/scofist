@@ -5,7 +5,7 @@ import User from "@/models/User";
 import Class from "@/models/Class";
 import "@/models/StudentCoupon"; // Ensure schema is registered
 import { NextResponse } from "next/server";
-
+import { revalidatePath } from "next/cache";
 
 export async function GET(req) {
   try {
@@ -442,6 +442,8 @@ export async function POST(req, res) {
     const newUser = await User.create(userData);
     console.timeEnd("User creation");
 
+    revalidatePath("/dashboard/students-contacts", "layout");
+
     return NextResponse.json(
       { newUser, message: "User created successfully!" },
       { status: 200 }
@@ -623,6 +625,8 @@ export async function PUT(req) {
     // Save the user
     await user.save();
 
+    revalidatePath("/dashboard/students-contacts", "layout");
+
     return NextResponse.json(
       { updatedUser: user, message: "User updated successfully!" },
       { status: 200 }
@@ -682,6 +686,8 @@ export async function DELETE(req, res) {
 
       console.timeEnd("Delete operation");
 
+      revalidatePath("/dashboard/students-contacts", "layout");
+
       return NextResponse.json(
         {
           deletedCount: result.deletedCount,
@@ -705,6 +711,8 @@ export async function DELETE(req, res) {
     }
 
     console.timeEnd("Delete operation");
+
+    revalidatePath("/dashboard/students-contacts", "layout");
 
     return NextResponse.json(
       { message: "User deleted successfully!" },
