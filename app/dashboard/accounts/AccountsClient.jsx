@@ -644,7 +644,7 @@ export default function AccountsClient({ activeRole, initialSummary, apiKey, acc
                 additionalProps={{
                     customActions: (
                         <div className="flex items-center gap-2">
-                            {transactions?.length > 0 && activeRole !== "College Admin" && (
+                            {transactions?.length > 0 && (
                                 <PrintAllDocsButton transactions={transactions} apiKey={apiKey} />
                             )}
                             {summary?.categories && (

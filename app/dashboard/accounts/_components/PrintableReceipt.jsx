@@ -237,40 +237,40 @@ export default function PrintableReceipt({ transaction, open, onClose, apiKey })
 
                             {/* Received with thanks from */}
                             <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 0, paddingLeft: 16, paddingRight: 16 }}>
-                                <span className="colored-darkblue" style={{ fontSize: 15, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#1e3a8a" }}>Received with thanks from</span>
+                                <span className="colored-darkblue" style={{ fontSize: 15, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#1e3a8a", fontWeight: "bold" }}>Received with thanks from</span>
                                 <span style={{ flex: 1, fontSize: 15, fontWeight: 600, minHeight: 18, color: "#000" }}>
                                     {transaction.recipient || ""}
                                 </span>
                             </div>
                             {/* dot line: spacer mirrors label + gap, dots fill the rest to the border */}
                             <div style={{ display: "flex", marginBottom: 6 }}>
-                                <span style={{ flexShrink: 0, paddingLeft: 16, fontSize: 15, visibility: "hidden", whiteSpace: "nowrap" }}>Received with thanks from</span>
+                                <span style={{ flexShrink: 0, paddingLeft: 16, fontSize: 15, visibility: "hidden", whiteSpace: "nowrap", fontWeight: "bold" }}>Received with thanks from</span>
                                 <span style={{ width: 6, flexShrink: 0 }} />
                                 <span style={{ flex: 1, overflow: "hidden", whiteSpace: "nowrap", color: "#999", letterSpacing: 4, fontSize: 12 }}>{".".repeat(150)}</span>
                             </div>
 
                             {/* a sum of Rupees */}
                             <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 0, paddingLeft: 16, paddingRight: 16 }}>
-                                <span className="colored-darkblue" style={{ fontSize: 17, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#1e3a8a" }}>a sum of Rupees</span>
+                                <span className="colored-darkblue" style={{ fontSize: 17, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#1e3a8a", fontWeight: "bold" }}>a sum of Rupees</span>
                                 <span style={{ flex: 1, fontSize: 17, fontWeight: 600, minHeight: 18, color: "#000" }}>
                                     {amountInWords}
                                 </span>
                             </div>
                             <div style={{ display: "flex", marginBottom: 6 }}>
-                                <span style={{ flexShrink: 0, paddingLeft: 16, fontSize: 17, visibility: "hidden", whiteSpace: "nowrap" }}>a sum of Rupees</span>
+                                <span style={{ flexShrink: 0, paddingLeft: 16, fontSize: 17, visibility: "hidden", whiteSpace: "nowrap", fontWeight: "bold" }}>a sum of Rupees</span>
                                 <span style={{ width: 6, flexShrink: 0 }} />
                                 <span style={{ flex: 1, overflow: "hidden", whiteSpace: "nowrap", color: "#999", letterSpacing: 4, fontSize: 12 }}>{".".repeat(150)}</span>
                             </div>
 
                             {/* being */}
                             <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 0, paddingLeft: 16, paddingRight: 16 }}>
-                                <span className="colored-darkblue" style={{ fontSize: 17, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#1e3a8a" }}>being</span>
+                                <span className="colored-darkblue" style={{ fontSize: 17, whiteSpace: "nowrap", flexShrink: 0, paddingTop: 2, color: "#1e3a8a", fontWeight: "bold" }}>being</span>
                                 <span style={{ flex: 1, fontSize: 17, fontWeight: 600, minHeight: 18, color: "#000" }}>
                                     {transaction.item || transaction.category || ""}
                                 </span>
                             </div>
                             <div style={{ display: "flex", marginBottom: 10 }}>
-                                <span style={{ flexShrink: 0, paddingLeft: 16, fontSize: 17, visibility: "hidden", whiteSpace: "nowrap" }}>being</span>
+                                <span style={{ flexShrink: 0, paddingLeft: 16, fontSize: 17, visibility: "hidden", whiteSpace: "nowrap", fontWeight: "bold" }}>being</span>
                                 <span style={{ width: 6, flexShrink: 0 }} />
                                 <span style={{ flex: 1, overflow: "hidden", whiteSpace: "nowrap", color: "#999", letterSpacing: 4, fontSize: 12 }}>{".".repeat(150)}</span>
                             </div>
