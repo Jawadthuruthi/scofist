@@ -508,7 +508,7 @@ export async function PUT(req) {
             user[field] = updateFields[field];
           }
         } else {
-          user[field] = updateFields[field] || undefined;
+          user[field] = updateFields[field] === "" ? undefined : updateFields[field];
         }
       }
     });
@@ -578,7 +578,7 @@ export async function PUT(req) {
       // Handle standard student fields using Mongoose's formal schema tracking
       studentFields.forEach((field) => {
         if (updateFields[field] !== undefined) {
-          user.set(`studentSpecificField.${field}`, updateFields[field]);
+          user.set(`studentSpecificField.${field}`, updateFields[field] === "" ? undefined : updateFields[field]);
         }
       });
 

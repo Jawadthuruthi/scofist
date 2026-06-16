@@ -41,10 +41,10 @@ function EditContactDialog({ open, onOpenChange, student, onSaved }) {
     try {
       const body = {
         ids: [student._id],
-        contactNumber: contactNumber.trim() || undefined,
-        alternativeNumber: alternativeNumber.trim() || undefined,
-        guardianContactNumber: guardianContactNumber.trim() || undefined,
-        guardianAlternativeNumber: guardianAlternativeNumber.trim() || undefined,
+        contactNumber: contactNumber.trim(),
+        alternativeNumber: alternativeNumber.trim(),
+        guardianContactNumber: guardianContactNumber.trim(),
+        guardianAlternativeNumber: guardianAlternativeNumber.trim(),
       };
 
       const res = await fetch("/api/users", {
