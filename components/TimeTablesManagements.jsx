@@ -419,6 +419,9 @@ const TimeTablesManagements = ({
           // Skip comparing with itself when editing
           if (existingSlotId && slot?._id === existingSlotId) return;
 
+          // Skip historical/inactive slots
+          if (slot.validTo) return;
+
           if (
             slot?.teacherId?._id === teacherId &&
             slot.periodNumber === periodNumber &&
