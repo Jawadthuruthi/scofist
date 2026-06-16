@@ -7,7 +7,7 @@ export async function GET(request) {
 
     return new Response(vcard, {
         headers: {
-            "Content-Type": "text/vcard",
+            "Content-Type": "text/x-vcard",
             "Content-Disposition": `attachment; filename="${name}.vcf"`,
         },
     });

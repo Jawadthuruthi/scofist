@@ -58,7 +58,7 @@ export async function GET(request) {
         
         return new Response(vcardData, {
             headers: {
-                "Content-Type": "text/vcard",
+                "Content-Type": "text/x-vcard",
                 "Content-Disposition": `attachment; filename="${className}_Contacts.vcf"`,
             },
         });

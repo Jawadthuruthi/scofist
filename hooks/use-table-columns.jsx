@@ -19,7 +19,7 @@ const SaveContactButton = ({ number, name }) => {
         const fallbackUrl = `${window.location.origin}/api/vcard?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(number)}`;
 
         if (isAndroid) {
-            setHref(`intent:#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.dir/contact;S.name=${encodeURIComponent(name)};S.phone=${encodeURIComponent(number)};S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`);
+            setHref(`intent:#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.dir/contact;S.name=${encodeURIComponent(name)};S.phone=${encodeURIComponent(number)};S.com.android.contacts.extra.ACCOUNT_TYPE=com.google;S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`);
         } else {
             setHref(fallbackUrl);
             if (!isIOS) {
