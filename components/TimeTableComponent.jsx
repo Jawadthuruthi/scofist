@@ -310,7 +310,7 @@ const TimeTableComponent = ({
   }, [role, liveLeaveQuery.data, teachersLeaveRecord]);
 
   const { useFetchItems } = useCrud("timeTables", apiKey);
-  const fetchTimeTableQuery = useFetchItems(null, null, {
+  const fetchTimeTableQuery = useFetchItems(0, 0, {
     day: teacherId ? null : currentDay,
     teacherId: teacherId ? teacherId : null,
   });
@@ -378,7 +378,7 @@ const TimeTableComponent = ({
           (slot) =>
             slot.periodNumber === periodNumber &&
             slot.day === day &&
-            (classId ? slot.classId?._id === classId : true)
+            (classId ? (slot.classId?._id || slot.classId)?.toString() === classId?.toString() : true)
         );
       }
     },
@@ -399,7 +399,7 @@ const TimeTableComponent = ({
     return classes.filter((classItem) => {
       return timeTableData.timeSlots?.some(
         (slot) =>
-          slot.classId?._id === classItem._id &&
+          (slot.classId?._id || slot.classId)?.toString() === classItem._id?.toString() &&
           (slot.subjectId || slot.teacherId)
       );
     });
@@ -571,7 +571,7 @@ const TimeTableComponent = ({
                       (attendance) =>
                         attendance.periodNumber === period.periodNumber &&
                         attendance.day === currentDay &&
-                        attendance.classId?._id === classItem?._id &&
+                        (attendance.classId?._id || attendance.classId)?.toString() === classItem?._id?.toString() &&
                         (!cellData?.subjectId || (attendance.subjectId?._id || attendance.subjectId) === (cellData.subjectId?._id || cellData.subjectId)) &&
                         (!cellData?.teacherId || (attendance.teacherId?._id || attendance.teacherId) === (cellData.teacherId?._id || cellData.teacherId))
                     );
