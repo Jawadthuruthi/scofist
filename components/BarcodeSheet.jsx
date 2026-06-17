@@ -16,14 +16,18 @@ const BarcodeSheet = forwardRef(({ books = [] }, ref) => {
                             {book.number}
                         </div>
                         <div className="flex justify-center bg-white p-1">
-                            <Barcode
-                                value={String(book.number)}
-                                width={1.0}
-                                height={40}
-                                fontSize={10}
-                                margin={0}
-                                displayValue={false}
-                            />
+                            {book.number && /^[\x20-\x7E]+$/.test(String(book.number)) ? (
+                                <Barcode
+                                    value={String(book.number)}
+                                    width={1.0}
+                                    height={40}
+                                    fontSize={10}
+                                    margin={0}
+                                    displayValue={false}
+                                />
+                            ) : (
+                                <span className="text-xs text-muted-foreground py-2">Invalid Barcode</span>
+                            )}
                         </div>
                     </div>
                 ))}

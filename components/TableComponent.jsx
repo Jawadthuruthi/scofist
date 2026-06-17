@@ -65,6 +65,8 @@ const TableComponent = ({
   showCsvBtn = false,
   defaultViewMode = "list",
   hideViewToggle = false,
+  showTotalCount = false,
+  totalCountLabel = "Total Records",
 }) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -402,6 +404,13 @@ const TableComponent = ({
                 )}
               </TableBody>
             </Table>
+          </div>
+        </div>
+      )}
+      {showTotalCount && (
+        <div className="flex items-center mt-2 px-1 print:hidden">
+          <div className="text-sm font-medium text-muted-foreground">
+            {totalCountLabel}: {table.getFilteredRowModel().rows.length}
           </div>
         </div>
       )}

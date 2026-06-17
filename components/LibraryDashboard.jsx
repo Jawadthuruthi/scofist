@@ -287,6 +287,7 @@ export default function LibraryDashboard({
         {
             accessorKey: "language",
             header: "Language",
+            filterFn: "equalsString",
             meta: {
                 width: "1%",
                 whiteSpace: "nowrap"
@@ -295,6 +296,7 @@ export default function LibraryDashboard({
         {
             accessorKey: "category",
             header: "Category",
+            filterFn: "equalsString",
             meta: {
                 width: "1%",
                 whiteSpace: "nowrap"
@@ -320,6 +322,7 @@ export default function LibraryDashboard({
         {
             accessorKey: "status",
             header: "Status",
+            filterFn: "equalsString",
             cell: ({ row }) => {
                 const status = row.getValue("status");
                 const displayStatus = (status === "Pending" || status === "Rented") ? "Rented" : (status || "Unknown");
@@ -333,7 +336,7 @@ export default function LibraryDashboard({
             header: "Barcode",
             cell: ({ row }) => {
                 const number = row.getValue("number");
-                if (!number) return "-";
+                if (!number || !/^[\x20-\x7E]+$/.test(String(number))) return "-";
                 return (
                     <div className="flex justify-center items-center w-[120px] h-[45px] overflow-hidden bg-white rounded p-1">
                         <Barcode
@@ -1446,6 +1449,8 @@ export default function LibraryDashboard({
                     getRowId={(originalRow) => originalRow._id}
                     filterConfig={filterConfig}
                     enableGrid={true}
+                    showTotalCount={true}
+                    totalCountLabel="TOTAL NUMBER OF BOOKS"
                     renderGridItem={(row) => {
                         const book = row.original;
                         return (
@@ -1458,15 +1463,19 @@ export default function LibraryDashboard({
                                         <div className="text-center w-full space-y-1">
                                             <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/50 py-0.5 rounded">ID: {book.number}</div>
                                             <div className="flex justify-center items-center w-full h-[38px] overflow-hidden bg-white rounded p-1 border border-border/50 shadow-sm">
-                                                <Barcode
-                                                    value={String(book.number)}
-                                                    width={0.8}
-                                                    height={22}
-                                                    fontSize={0}
-                                                    margin={0}
-                                                    displayValue={false}
-                                                    background="transparent"
-                                                />
+                                                {book.number && /^[\x20-\x7E]+$/.test(String(book.number)) ? (
+                                                    <Barcode
+                                                        value={String(book.number)}
+                                                        width={0.8}
+                                                        height={22}
+                                                        fontSize={0}
+                                                        margin={0}
+                                                        displayValue={false}
+                                                        background="transparent"
+                                                    />
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground">Invalid</span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
