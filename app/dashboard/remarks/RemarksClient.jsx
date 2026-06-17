@@ -253,7 +253,8 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
                 formClassName="sm:max-w-2xl lg:max-w-3xl"
                 enableSearch={true}
                 searchBarClassName="w-[200px] sm:w-[280px] lg:w-[400px] xl:w-[500px]"
-                desktopSearchPlaceholder="Search student..."
+                desktopSearchPlaceholder="Search student or number..."
+                extraSearchFields={["studentId"]}
                 additionalProps={{
                     customActions: isTeacher ? (
                         <Button 
@@ -292,7 +293,8 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
                             formClassName="sm:max-w-2xl lg:max-w-3xl"
                             enableSearch={true}
                             searchBarClassName="w-[200px] sm:w-[280px] lg:w-[400px]"
-                            desktopSearchPlaceholder="Search student..."
+                            desktopSearchPlaceholder="Search student or number..."
+                            extraSearchFields={["studentId"]}
                             tableHeight="calc(80vh - 180px)"
                         />
                     </div>

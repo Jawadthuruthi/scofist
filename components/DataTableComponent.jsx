@@ -147,6 +147,7 @@ const DataTableComponent = ({
   capitalizeInputs = false,
   customTopRightButtons = null,
   searchBarClassName = "",
+  extraSearchFields = DEFAULT_ARRAY,
 }) => {
   const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
@@ -250,10 +251,11 @@ const DataTableComponent = ({
   }, [filterConfig]);
 
   const searchableFields = useMemo(() => {
-    return columnsConfig
+    const fromColumns = columnsConfig
       .filter(col => col.accessorKey && col.accessorKey !== "serialNo" && col.id !== "select")
       .map(col => col.accessorKey);
-  }, [columnsConfig]);
+    return [...new Set([...fromColumns, ...extraSearchFields])];
+  }, [columnsConfig, extraSearchFields]);
 
   const {
     filteredData,
