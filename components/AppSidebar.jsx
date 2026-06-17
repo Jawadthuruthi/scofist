@@ -363,7 +363,7 @@ const items = [
 
   {
     title: "Dashboard",
-    url: "/dashboard/library-dashboard",
+    url: "/library-dashboard",
     icon: LayoutGrid,
     allowedRoles: ["Librarian"],
   },
@@ -681,7 +681,7 @@ function ComboBox({ roles, role }) {
                       console.error("Error setting cookie:", error);
                     }
  if (currentValue === "Librarian") {
-                      window.location.href = "/dashboard/library-dashboard";
+                      window.location.href = "/library-dashboard";
                     } else if (currentValue === "Gate Keeper") {
                       window.location.href = "/dashboard/gate-pass";
                     } else {

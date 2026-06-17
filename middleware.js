@@ -261,7 +261,7 @@ const pages = [
   },
   {
     title: "Library Dashboard",
-    path: "/dashboard/library-dashboard",
+    path: "/library-dashboard",
     allowedRoles: ["Librarian"],
   },
   {
@@ -538,7 +538,7 @@ async function handleLoginPageRequest(req) {
 
     if (activeRole === "Librarian") {
       return NextResponse.redirect(
-        new URL("/dashboard/library-dashboard", req.url)
+        new URL("/library-dashboard", req.url)
       );
     }
 
@@ -721,7 +721,9 @@ function isUserAllowed(activeRole, path) {
   if (!activeRole) return false;
 
   if (path === "/dashboard") {
-    return true; // Any authenticated role can see the dashboard
+    // Librarian has their own dashboard at /library-dashboard
+    if (activeRole === "Librarian") return false;
+    return true; // Any other authenticated role can see the dashboard
   }
 
   let allowedRoles = exactPagesMap.get(path);
@@ -863,7 +865,7 @@ function prepareResponse(req, token, user) {
 
     if (activeRole === "Librarian" && req.nextUrl.pathname === "/dashboard") {
       return NextResponse.redirect(
-        new URL("/dashboard/library-dashboard", req.url)
+        new URL("/library-dashboard", req.url)
       );
     }
     if (activeRole === "Gate Keeper" && req.nextUrl.pathname === "/dashboard") {
@@ -889,5 +891,5 @@ function redirectTo404(req) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/:path*", "/", "/login"],
+  matcher: ["/dashboard/:path*", "/library-dashboard/:path*", "/library-dashboard", "/api/:path*", "/", "/login"],
 };
