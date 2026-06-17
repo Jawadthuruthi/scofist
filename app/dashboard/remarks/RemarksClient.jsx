@@ -1,8 +1,11 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import DataTableComponent from "@/components/DataTableComponent";
 import Header from "@/components/Header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const columnsConfig = [
     {
@@ -27,7 +30,11 @@ const columnsConfig = [
         cell: ({ row }) => new Date(row.original.date).toLocaleDateString(),
     },
     { accessorKey: "className", header: "Class" },
-    { accessorKey: "studentName", header: "Student" },
+    {
+        accessorKey: "studentName",
+        header: "Student",
+        cell: ({ row }) => `${row.original.studentId} - ${row.original.studentName}`
+    },
     {
         accessorKey: "comments",
         header: "Comment",
@@ -49,6 +56,11 @@ const columnsConfig = [
             const style = {};
 
             switch (status) {
+                case "advanced":
+                    variant = "success";
+                    style.backgroundColor = "#047857"; // emerald-700
+                    style.color = "white";
+                    break;
                 case "very good":
                     variant = "success";
                     style.backgroundColor = "#15803d"; // green-700
@@ -64,12 +76,17 @@ const columnsConfig = [
                     style.backgroundColor = "#eab308"; // yellow-500
                     style.color = "white";
                     break;
-                case "bad":
+                case "unsatisfied":
+                    variant = "warning";
+                    style.backgroundColor = "#f97316"; // orange-500
+                    style.color = "white";
+                    break;
+                case "poor":
                     variant = "destructive";
                     style.backgroundColor = "#ef4444"; // red-500
                     style.color = "white";
                     break;
-                case "very bad":
+                case "bad":
                     variant = "destructive";
                     style.backgroundColor = "#b91c1c"; // red-700
                     style.color = "white";
@@ -80,6 +97,7 @@ const columnsConfig = [
                     style.color = "white";
                     break;
                 default:
+                    variant = "outline";
                     break;
             }
 
@@ -102,13 +120,25 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
     const isTeacher = activeRole === "Teacher";
     const isAdmin = activeRole === "College Admin";
     const canEdit = isAdmin || isTeacher;
+    const [isMyRecordsOpen, setIsMyRecordsOpen] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    if (!isMounted) {
+        return null;
+    }
 
     const statusOptions = [
+        { value: "advanced", label: "Advanced" },
         { value: "very good", label: "Very Good" },
         { value: "good", label: "Good" },
         { value: "acceptable", label: "Acceptable" },
+        { value: "unsatisfied", label: "Unsatisfied" },
+        { value: "poor", label: "Poor" },
         { value: "bad", label: "Bad" },
-        { value: "very bad", label: "Very Bad" },
     ];
 
     const formFields = [
@@ -144,6 +174,7 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
                 roles: "Student",
                 status: "Active",
             },
+            className: "md:col-span-2",
         },
         {
             name: "comments",
@@ -155,7 +186,8 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
             validators: {
                 minLength: 3,
                 minLengthMessage: "Comment must be at least 3 characters long"
-            }
+            },
+            className: "md:col-span-2",
         },
         {
             name: "teacherId",
@@ -173,10 +205,11 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
             label: "Status",
             type: "text",
             inputType: "select",
+            freeSolo: true,
             options: statusOptions,
             required: true,
-            placeholder: "Select Status",
-            defaultValue: "very good",
+            placeholder: "Select or type status",
+            defaultValue: "good",
         },
     ];
 
@@ -187,23 +220,12 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
             inputType: "select",
             options: classes,
         },
-        {
-            id: "studentName",
-            label: "Student Name",
-            inputType: "text",
-        },
-        {
+        ...(isAdmin ? [{
             id: "teacherId",
             label: "Teacher",
             inputType: "select",
             options: teachers,
-        },
-        {
-            id: "status",
-            label: "Status",
-            inputType: "select",
-            options: statusOptions,
-        }
+        }] : [])
     ];
 
     return (
@@ -228,7 +250,54 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
                 limit={20}
                 readOnly={!canEdit}
                 enableDelete={canEdit}
+                formClassName="sm:max-w-2xl lg:max-w-3xl"
+                enableSearch={true}
+                searchBarClassName="w-[200px] sm:w-[280px] lg:w-[400px] xl:w-[500px]"
+                desktopSearchPlaceholder="Search student..."
+                additionalProps={{
+                    customActions: isTeacher ? (
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setIsMyRecordsOpen(true)}
+                            className="bg-indigo-600 text-white hover:bg-indigo-700 hover:text-white border-0"
+                        >
+                            MY RECORDS
+                        </Button>
+                    ) : null
+                }}
             />
+
+            <Dialog open={isMyRecordsOpen} onOpenChange={setIsMyRecordsOpen}>
+                <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col p-4 sm:p-6 overflow-hidden">
+                    <DialogHeader>
+                        <DialogTitle>My Remark Records</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-hidden mt-2">
+                        <DataTableComponent
+                            resource="remarks"
+                            apiFilters={{ teacherId: user?.userId, myRecords: "true" }}
+                            initialData={[]}
+                            columnsConfig={columnsConfig}
+                            formFields={formFields}
+                            apiKey={apiKey}
+                            limit={20}
+                            readOnly={false}
+                            enableDelete={true}
+                            enableCreate={false}
+                            editFormTitle="Edit Remark"
+                            deleteFormTitle="Delete Remark"
+                            editSuccessMessage={statusMessages.edit}
+                            deleteSuccessMessage={statusMessages.delete}
+                            filterConfig={filterConfig}
+                            formClassName="sm:max-w-2xl lg:max-w-3xl"
+                            enableSearch={true}
+                            searchBarClassName="w-[200px] sm:w-[280px] lg:w-[400px]"
+                            desktopSearchPlaceholder="Search student..."
+                            tableHeight="calc(80vh - 180px)"
+                        />
+                    </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

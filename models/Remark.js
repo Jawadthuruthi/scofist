@@ -30,7 +30,6 @@ const remarkSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["very good", "good", "acceptable", "bad", "very bad", "pending"],
       default: "pending"
     }
   },

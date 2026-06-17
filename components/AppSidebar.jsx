@@ -193,7 +193,7 @@ const items = [
     title: "Remarks",
     url: "/dashboard/remarks",
     icon: MessageSquare,
-    allowedRoles: ["Teacher"],
+    allowedRoles: ["Teacher", "College Admin"],
   },
   {
     title: "Gate Pass",

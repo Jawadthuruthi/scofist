@@ -146,6 +146,7 @@ const DataTableComponent = ({
   refetchInterval = 0,
   capitalizeInputs = false,
   customTopRightButtons = null,
+  searchBarClassName = "",
 }) => {
   const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
@@ -1320,7 +1321,7 @@ const DataTableComponent = ({
                     placeholder={desktopSearchPlaceholder}
                     value={globalFilter ?? ""}
                     onChange={(e) => handleSetGlobalFilter(e.target.value)}
-                    className="h-9 w-[180px] lg:w-[280px] xl:w-[320px] pl-9"
+                    className={cn("h-9 pl-9", searchBarClassName || "w-[180px] lg:w-[280px] xl:w-[320px]")}
                   />
                 </div>
               )}

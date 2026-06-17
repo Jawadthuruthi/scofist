@@ -32,7 +32,7 @@ export default async function RemarksPage() {
     // Fetch teachers for dropdown
     let teachers = [];
     try {
-      const teachersData = await fetchData("users", "roles=Teacher&limit=1000", 0, "users");
+      const teachersData = await fetchData("users", "roles=Teacher&limit=1000&sort=asc", 0, "users");
       teachers = formatOptions(teachersData);
     } catch (e) {
       console.error("Error fetching teachers:", e);

@@ -345,7 +345,7 @@ export default function PopupFilter({
             </Button>
           </DialogTrigger>
 
-          <DialogContent>
+          <DialogContent className="sm:max-w-3xl w-[95vw]">
             <DialogHeader>
               <DialogTitle>Filter {title}</DialogTitle>
             </DialogHeader>

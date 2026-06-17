@@ -31,12 +31,18 @@ export async function GET(req) {
 
     let query = {};
 
+    const isMyRecords = filterParams.myRecords === "true" || url.searchParams.get("myRecords") === "true";
+
     if (activeRole === "Teacher") {
-      const teacherClass = await Class.findOne({ teacherId: user.userId });
-      if (!teacherClass) {
-        return apiResponse.error("You are not assigned to any class.", 403);
+      if (isMyRecords) {
+        query.teacherId = user.userId;
+      } else {
+        const teacherClass = await Class.findOne({ teacherId: user.userId });
+        if (!teacherClass) {
+          return apiResponse.error("You are not assigned to any class.", 403);
+        }
+        query.classId = teacherClass._id.toString();
       }
-      query.classId = teacherClass._id.toString();
     } else if (activeRole !== "College Admin") {
       return apiResponse.error("You are not authorized to view remarks.", 403);
     }
@@ -54,9 +60,13 @@ export async function GET(req) {
       query.date = { $gte: startDate, $lt: endDate };
     }
 
-    if (filterParams.studentName) {
+    if (filterParams.studentName || filterParams.global) {
+      const searchName = filterParams.global || filterParams.studentName;
       const students = await User.find({
-        name: { $regex: filterParams.studentName, $options: "i" },
+        $or: [
+          { name: { $regex: searchName, $options: "i" } },
+          { _id: { $regex: searchName, $options: "i" } }
+        ],
         roles: "Student",
       }).select("_id");
       const studentIds = students.map((s) => s._id);
