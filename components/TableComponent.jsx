@@ -22,7 +22,7 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
 } from "@tanstack/react-table";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { useReactToPrint } from "react-to-print";
 import useTableColumns from "@/hooks/use-table-columns";
 import PrintHeader from "./PrintHeader";

@@ -334,23 +334,18 @@ export default function LibraryDashboard({
         {
             id: "barcode",
             header: "Barcode",
-            cell: ({ row }) => {
-                const number = row.getValue("number");
-                if (!number || !/^[\x20-\x7E]+$/.test(String(number))) return "-";
-                return (
-                    <div className="flex justify-center items-center w-[120px] h-[45px] overflow-hidden bg-white rounded p-1">
-                        <Barcode
-                            value={String(number)}
-                            width={1}
-                            height={30}
-                            fontSize={0}
-                            margin={0}
-                            displayValue={false}
-                            background="transparent"
-                        />
-                    </div>
-                );
-            },
+            cell: ({ row }) => (
+                <div className="flex flex-col items-center justify-center p-1 space-y-1">
+                    {row.original.number && /^[\x20-\x7E]+$/.test(String(row.original.number)) ? (
+                        <>
+                            <ScanBarcode className="h-6 w-6 text-muted-foreground" />
+                            <span className="font-mono text-[10px] uppercase tracking-widest">{row.original.number}</span>
+                        </>
+                    ) : (
+                        <span className="text-xs text-muted-foreground py-2">Invalid</span>
+                    )}
+                </div>
+            ),
             meta: {
                 width: "130px",
                 padding: "2px",
@@ -1262,7 +1257,7 @@ export default function LibraryDashboard({
 
                 {/* Categories Popup */}
                 <Dialog open={categoriesPopupOpen} onOpenChange={setCategoriesPopupOpen}>
-                    <DialogContent className="sm:max-w-[425px]">
+                    <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>Books by Category</DialogTitle>
                         </DialogHeader>
@@ -1303,7 +1298,7 @@ export default function LibraryDashboard({
 
                 {/* Languages Popup */}
                 <Dialog open={languagesPopupOpen} onOpenChange={setLanguagesPopupOpen}>
-                    <DialogContent className="sm:max-w-[425px]">
+                    <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>Books by Language</DialogTitle>
                         </DialogHeader>
