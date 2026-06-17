@@ -164,6 +164,7 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
             type: "text",
             inputType: "select",
             resource: "users",
+            labelKey: ["_id", "name"],
             required: true,
             placeholder: "Select Student",
             filter: {
