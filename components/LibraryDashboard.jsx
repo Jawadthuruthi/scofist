@@ -60,6 +60,10 @@ export default function LibraryDashboard({
     const [editPopupOpen, setEditPopupOpen] = useState(false);
     const barcodeSheetRef = useRef(null);
 
+    // --- Local optimistic state ---
+    const [localBooks, setLocalBooks] = useState(initialBooks);
+    useEffect(() => { setLocalBooks(initialBooks); }, [initialBooks]);
+
     // --- Popup State ---
     const [categoriesPopupOpen, setCategoriesPopupOpen] = useState(false);
     const [languagesPopupOpen, setLanguagesPopupOpen] = useState(false);
@@ -83,9 +87,12 @@ export default function LibraryDashboard({
     const [showBookScanner, setShowBookScanner] = useState(false);
 
     const selectedIds = Object.keys(rowSelection);
-    const selectedBook = view === "books" && selectedIds.length === 1
-        ? initialBooks.find(b => b._id === selectedIds[0])
-        : null;
+    const selectedBook = useMemo(
+        () => view === "books" && selectedIds.length === 1
+            ? localBooks.find(b => b._id === selectedIds[0])
+            : null,
+        [view, selectedIds, localBooks]
+    );
 
     const selectedRental = view === "rentals" && selectedIds.length === 1
         ? initialRentals.find(r => r._id === selectedIds[0])
@@ -214,7 +221,7 @@ export default function LibraryDashboard({
         }
     ];
 
-    const bookColumns = [
+    const bookColumns = useMemo(() => [
         {
             id: "select",
             header: ({ table }) => (
@@ -351,7 +358,8 @@ export default function LibraryDashboard({
                 padding: "2px",
             }
         },
-    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    ], [selectedIds.length]);
 
     const rentalColumns = [
         {
@@ -511,8 +519,13 @@ export default function LibraryDashboard({
                 body: JSON.stringify(data),
             });
             if (res.ok) {
+                const json = await res.json();
+                // Optimistic update: prepend new book to local list
+                if (json.data) {
+                    setLocalBooks(prev => [json.data, ...prev]);
+                }
                 toast.success("Book created successfully");
-                router.refresh();
+                router.refresh(); // Background sync
                 return true;
             } else {
                 const errorData = await res.json();
@@ -528,6 +541,8 @@ export default function LibraryDashboard({
 
     const handleUpdateBook = async (id, data) => {
         setLoading(true);
+        // Optimistic update: patch the book in local list immediately
+        setLocalBooks(prev => prev.map(b => b._id === id ? { ...b, ...data } : b));
         try {
             const res = await fetch("/api/library/books", {
                 method: "PATCH",
@@ -536,13 +551,17 @@ export default function LibraryDashboard({
             });
             if (res.ok) {
                 toast.success("Book updated successfully");
-                router.refresh();
+                setEditPopupOpen(false);
+                router.refresh(); // Background sync
                 return true;
             } else {
+                // Revert on failure
+                setLocalBooks(initialBooks);
                 const errorData = await res.json();
                 toast.error(errorData.msg || "Failed to update book");
             }
         } catch (error) {
+            setLocalBooks(initialBooks);
             console.error(error);
             toast.error("An error occurred while updating the book");
         } finally {
@@ -1437,7 +1456,7 @@ export default function LibraryDashboard({
                     />
                 </div>
                 <TableComponent
-                    data={initialBooks}
+                    data={localBooks}
                     columnsConfig={bookColumns}
                     rowSelection={rowSelection}
                     onRowSelectionChange={setRowSelection}
@@ -1517,17 +1536,19 @@ export default function LibraryDashboard({
                                     </Button>
                                 </>
                             )}
-                            {selectedBook && (
-                                <PopupForm
-                                    title="Edit Book"
-                                    formFields={bookFields}
-                                    data={selectedBook}
-                                    onSubmit={(data) => handleUpdateBook(selectedBook._id, data)}
-                                    loading={loading}
-                                    open={editPopupOpen}
-                                    onOpenChange={setEditPopupOpen}
-                                />
-                            )}
+                            {/* Always render Edit PopupForm (kept mounted) so it opens instantly */}
+                            <PopupForm
+                                title="Edit Book"
+                                formFields={bookFields}
+                                data={selectedBook || undefined}
+                                onSubmit={(data) => handleUpdateBook(selectedBook?._id, data)}
+                                loading={loading}
+                                open={editPopupOpen && !!selectedBook}
+                                onOpenChange={(open) => {
+                                    if (!open || selectedBook) setEditPopupOpen(open);
+                                }}
+                                hideButton={!selectedBook}
+                            />
                             <PopupForm
                                 title="Add New Book"
                                 formFields={bookFields}
@@ -1537,7 +1558,7 @@ export default function LibraryDashboard({
                         </div>
                     }
                 />
-                <BarcodeSheet ref={barcodeSheetRef} books={initialBooks.filter(b => selectedIds.includes(b._id))} />
+                <BarcodeSheet ref={barcodeSheetRef} books={localBooks.filter(b => selectedIds.includes(b._id))} />
                 {renderConfirmDialog()}
             </div>
         );
