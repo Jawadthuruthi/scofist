@@ -1,7 +1,8 @@
+require('dotenv').config({ path: '.env.local' });
 const mongoose = require('mongoose');
 
 async function fix() {
-  await mongoose.connect('mongodb+srv://abdullakk:abdullakk3030@sdc.qw7au9k.mongodb.net/scofist?retryWrites=true&w=majority&appName=SDC');
+  await mongoose.connect(process.env.MONGODB_URI);
   const db = mongoose.connection.db;
 
   const result = await db.collection('teacherattendances').updateMany(

@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
+import { config } from 'dotenv';
+config({ path: '.env.local' });
 
-const MONGODB_URI = "mongodb+srv://abdullakk:abdullakk3030@sdc.qw7au9k.mongodb.net/scofist?retryWrites=true&w=majority&appName=SDC";
+const MONGODB_URI = process.env.MONGODB_URI;
 
 async function clearHusainFunds() {
     try {

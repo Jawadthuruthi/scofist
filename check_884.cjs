@@ -1,5 +1,6 @@
+require('dotenv').config({ path: '.env.local' });
 const mongoose = require('mongoose');
-const uri = 'mongodb+srv://abdullakk:abdullakk3030@sdc.qw7au9k.mongodb.net/scofist?retryWrites=true&w=majority&appName=SDC';
+const uri = process.env.MONGODB_URI;
 mongoose.connect(uri).then(async () => {
   try {
     const db = mongoose.connection.db;
