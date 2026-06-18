@@ -269,6 +269,21 @@ export default function LibraryDashboard({
         {
             accessorKey: "number",
             header: "Book ID",
+            cell: ({ row }) => (
+                <button
+                    type="button"
+                    className="font-mono font-bold text-primary hover:underline cursor-pointer bg-transparent border-none p-0"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        // Select only this row
+                        setRowSelection({ [row.id]: true });
+                        // Open edit popup immediately
+                        setEditPopupOpen(true);
+                    }}
+                >
+                    {row.original.number}
+                </button>
+            ),
             meta: {
                 width: "100px",
                 whiteSpace: "nowrap",
