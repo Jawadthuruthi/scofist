@@ -79,6 +79,7 @@ export default function PopupFilter({
   setGlobalFilter,
   hasFilters,
   title = "Table",
+  triggerClass = "",
 }) {
   const [open, setOpen] = useState(false);
   const [localFilters, setLocalFilters] = useState(filters);
@@ -335,7 +336,7 @@ export default function PopupFilter({
       <div className="flex items-center space-x-2">
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button variant={hasFilters ? "default" : "outline"} size="sm">
+            <Button variant={hasFilters ? "default" : "outline"} size="sm" className={triggerClass}>
               <Filter className="h-4 w-4" />
               {hasFilters && (
                 <span className="ml-1 bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-xs">

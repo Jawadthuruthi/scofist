@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import Barcode from "react-barcode";
 import { useReactToPrint } from "react-to-print";
 import BarcodeSheet from "./BarcodeSheet";
-import { Search, Scan, IdCard, Book as BookIcon, ScanBarcode } from "lucide-react";
+import { Search, Scan, IdCard, Book as BookIcon, ScanBarcode, Edit } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const BarcodeScanner = dynamic(() => import("./BarcodeScanner"), {
@@ -272,7 +272,7 @@ export default function LibraryDashboard({
             cell: ({ row }) => (
                 <button
                     type="button"
-                    className="font-mono font-bold text-primary hover:underline cursor-pointer bg-transparent border-none p-0"
+                    className="font-bold text-primary hover:underline cursor-pointer bg-transparent border-none p-0"
                     onClick={(e) => {
                         e.stopPropagation();
                         // Select only this row
@@ -1507,6 +1507,7 @@ export default function LibraryDashboard({
                     enableGrid={true}
                     showTotalCount={true}
                     totalCountLabel="TOTAL NUMBER OF BOOKS"
+                    searchPlaceholder="Search Book (Name, ID)..."
                     renderGridItem={(row) => {
                         const book = row.original;
                         return (
@@ -1563,48 +1564,76 @@ export default function LibraryDashboard({
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handlePrintBarcodes()}
-                                        className="flex items-center gap-2 bg-foreground text-background hover:bg-foreground/90 hover:text-background border-none px-3"
+                                        className="bg-foreground text-background hover:bg-foreground/90 hover:text-background border-none h-8 w-8 p-0 md:w-auto md:px-3"
+                                        title="Print Barcodes"
                                     >
                                         <Scan className="h-4 w-4" />
-                                        Print Barcodes
+                                        <span className="hidden md:inline">Print Barcodes</span>
                                     </Button>
                                     <Button
                                         variant="destructive"
                                         size="sm"
                                         onClick={handleBulkDelete}
+                                        title={`Delete (${selectedIds.length})`}
+                                        className="h-8 w-auto px-2 md:px-3"
                                     >
                                         <Trash2 className="h-4 w-4" />
-                                        <span className="ml-2">({selectedIds.length})</span>
+                                        <span className="ml-1 md:ml-2">({selectedIds.length})</span>
                                     </Button>
                                 </>
                             )}
                             {/* Always render Edit PopupForm (kept mounted) so it opens instantly */}
-                            <PopupForm
-                                title="Edit Book"
-                                formFields={bookFields}
-                                data={selectedBook || undefined}
-                                onSubmit={(data) => handleUpdateBook(selectedBook?._id, data)}
-                                loading={loading}
-                                open={editPopupOpen && !!selectedBook}
-                                onOpenChange={(open) => {
-                                    if (!open || selectedBook) setEditPopupOpen(open);
-                                }}
-                                hideButton={!selectedBook}
-                            />
+                            <div className={!selectedBook ? "hidden" : ""}>
+                                <PopupForm
+                                    title="Edit Book"
+                                    formFields={bookFields}
+                                    data={selectedBook || undefined}
+                                    onSubmit={(data) => handleUpdateBook(selectedBook?._id, data)}
+                                    loading={loading}
+                                    open={editPopupOpen && !!selectedBook}
+                                    onOpenChange={(open) => {
+                                        if (!open || selectedBook) setEditPopupOpen(open);
+                                    }}
+                                    trigger={
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 md:w-auto md:px-3"
+                                            title="Edit Book"
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                            <span className="hidden md:inline ml-2">Edit</span>
+                                        </Button>
+                                    }
+                                />
+                            </div>
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={handleExportExcel}
-                                className="flex items-center gap-2 border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
+                                className="border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700 h-8 w-8 p-0 md:w-auto md:px-3"
+                                title="Export Excel"
                             >
                                 <FileSpreadsheet className="h-4 w-4" />
-                                Excel
+                                <span className="hidden md:inline">Excel</span>
                             </Button>
                             <PopupForm
                                 title="Add New Book"
                                 formFields={bookFields}
                                 onSubmit={handleCreateBook}
                                 loading={loading}
+                                triggerText="Add Book"
+                                triggerVariant="default"
+                                triggerClass="hidden md:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white border-none"
+                            />
+                            <PopupForm
+                                title="Add New Book"
+                                formFields={bookFields}
+                                onSubmit={handleCreateBook}
+                                loading={loading}
+                                triggerVariant="default"
+                                triggerClass="flex md:hidden h-8 w-8 p-0 bg-blue-600 hover:bg-blue-700 text-white border-none"
+                                title="Add Book"
                             />
                         </div>
                     }

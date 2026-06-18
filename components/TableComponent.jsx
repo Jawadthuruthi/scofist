@@ -26,7 +26,7 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { useReactToPrint } from "react-to-print";
 import useTableColumns from "@/hooks/use-table-columns";
 import PrintHeader from "./PrintHeader";
-import { SlidersHorizontal, Filter, Search, LayoutGrid, List, Download } from "lucide-react";
+import { SlidersHorizontal, Filter, Search, LayoutGrid, List, Download, Printer } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import PopupFilter from "./PopupFilter";
@@ -67,6 +67,7 @@ const TableComponent = ({
   hideViewToggle = false,
   showTotalCount = false,
   totalCountLabel = "Total Records",
+  searchPlaceholder,
 }) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -146,8 +147,10 @@ const TableComponent = ({
   });
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+      {/* Unified Toolbar Container */}
+      <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4">
+        {/* Left Controls: Column Management, View Toggle, Filters */}
+        <div className="flex items-center gap-2 order-1 shrink-0">
           {/* Column Management - First */}
           {!hideColumnManagement && (
             <DropdownMenu>
@@ -224,6 +227,10 @@ const TableComponent = ({
             </div>
           )}
 
+        </div>
+
+        {/* Mobile Row 2 / Desktop Center: Filter + Search */}
+        <div className="flex items-center gap-2 w-full md:w-auto md:flex-1 order-3 md:order-2 mt-2 md:mt-0">
           {filterConfig.length > 0 && (
             <PopupFilter
               filterConfig={filterConfig}
@@ -245,54 +252,48 @@ const TableComponent = ({
               }}
               clearFilters={() => setColumnFilters([])}
               hasFilters={columnFilters.length > 0}
+              triggerClass="h-10 md:h-8 w-10 md:w-auto px-0 md:px-3"
             />
           )}
 
           {/* Global Search Button/Input - Always visible */}
           {!hideSearch && (
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 flex"
-                onClick={() => setShowFilterInput(!showFilterInput)}
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-              {showFilterInput && (
-                <Input
-                  placeholder="Search..."
-                  value={globalFilter ?? ""}
-                  onChange={(event) => setGlobalFilter(event.target.value)}
-                  className="h-8 flex-1 lg:flex-none lg:w-[450px] min-w-[80px]"
-                />
-              )}
+            <div className="relative flex items-center flex-1">
+              <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={searchPlaceholder || "Search..."}
+                value={globalFilter ?? ""}
+                onChange={(event) => setGlobalFilter(event.target.value)}
+                className="h-10 md:h-8 pl-8 w-full lg:w-[250px]"
+              />
             </div>
           )}
-
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Action Buttons - Third/Last */}
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1 md:gap-2 order-2 md:order-3 ml-auto overflow-x-auto hide-scrollbar">
           {actionButtons}
           {showCsvBtn && (
             <Button
               size="sm"
               variant="outline"
               onClick={handleExportCSV}
-              className="h-8 lg:flex"
+              className="h-8 w-8 p-0 md:w-auto md:px-3 shrink-0"
+              title="Export CSV"
             >
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
+              <Download className="h-4 w-4" />
+              <span className="hidden md:inline ml-2">Export CSV</span>
             </Button>
           )}
           {!hidePrintBtn && (
             <Button
               size="sm"
               onClick={handlePrint}
-              className="h-8 lg:flex"
+              className="h-8 w-8 p-0 md:w-auto md:px-3 shrink-0"
+              title="Print"
             >
-              Print
+              <Printer className="h-4 w-4" />
+              <span className="hidden md:inline ml-2">Print</span>
             </Button>
           )}
         </div>
