@@ -8,7 +8,7 @@ import BestReaderCard from "./BestReaderCard";
 import MostReadBookCard from "./MostReadBookCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Book, Users, BookOpen, AlertCircle, Trash2 } from "lucide-react";
+import { Book, Users, BookOpen, AlertCircle, Trash2, FileSpreadsheet } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -515,6 +515,33 @@ export default function LibraryDashboard({
         },
     ];
 
+
+    // --- Excel Export ---
+    const handleExportExcel = () => {
+        const headers = ["Book ID", "Book Name", "Author", "Language", "Category", "Publication", "Price", "Status"];
+        const rows = localBooks.map(b => [
+            b.number ?? "",
+            b.name ?? "",
+            b.author ?? "",
+            b.language ?? "",
+            b.category ?? "",
+            b.publication ?? "",
+            b.price ?? "",
+            (b.status === "Pending" || b.status === "Rented") ? "Rented" : (b.status || "Available"),
+        ]);
+        const csv = [headers, ...rows]
+            .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+            .join("\r\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "books.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
     // --- Print Logic ---
     const handlePrintBarcodes = useReactToPrint({
@@ -1564,6 +1591,15 @@ export default function LibraryDashboard({
                                 }}
                                 hideButton={!selectedBook}
                             />
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleExportExcel}
+                                className="flex items-center gap-2 border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
+                            >
+                                <FileSpreadsheet className="h-4 w-4" />
+                                Excel
+                            </Button>
                             <PopupForm
                                 title="Add New Book"
                                 formFields={bookFields}
