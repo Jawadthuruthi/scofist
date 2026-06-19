@@ -44,11 +44,12 @@ export async function POST(req) {
         // If bookId is provided, check if it's a direct ID or a Book Number (from manual input)
         if (body.bookId) {
             // First try to find by number (Book ID can be alphanumeric)
-            let book = await LibraryBook.findOne({ number: body.bookId });
+            const searchBookId = typeof body.bookId === 'string' ? body.bookId.trim() : body.bookId;
+            let book = await LibraryBook.findOne({ number: { $regex: new RegExp(`^${searchBookId}$`, 'i') } });
 
             // If not found by number, and it looks like an ObjectId, try finding by ID (fallback)
-            if (!book && mongoose.Types.ObjectId.isValid(body.bookId)) {
-                book = await LibraryBook.findById(body.bookId);
+            if (!book && mongoose.Types.ObjectId.isValid(searchBookId)) {
+                book = await LibraryBook.findById(searchBookId);
             }
 
             if (!book) {

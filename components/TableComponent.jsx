@@ -149,13 +149,12 @@ const TableComponent = ({
     <div className="space-y-4">
       {/* Unified Toolbar Container */}
       <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4">
-        {/* Left Controls: Column Management, View Toggle, Filters */}
-        <div className="flex items-center gap-2 order-1 shrink-0">
+        <div className="flex items-center gap-2 order-1 w-full md:w-auto md:flex-1">
           {/* Column Management - First */}
           {!hideColumnManagement && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 lg:flex">
+                <Button variant="outline" size="sm" className="h-10 md:h-8 lg:flex shrink-0">
                   <SlidersHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -204,33 +203,20 @@ const TableComponent = ({
             </DropdownMenu>
           )}
 
-          {enableGrid && !hideViewToggle && (
-            <div className="flex items-center border rounded-md overflow-hidden">
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-8 w-8 px-0 rounded-none border-r"
-                onClick={() => setViewMode("list")}
-                title="List View"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "grid" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-8 w-8 px-0 rounded-none"
-                onClick={() => setViewMode("grid")}
-                title="Grid View"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
+          {/* Global Search Button/Input - Moved next to Column Management */}
+          {!hideSearch && (
+            <div className="relative flex items-center flex-1 md:flex-none">
+              <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={searchPlaceholder || "Search..."}
+                value={globalFilter ?? ""}
+                onChange={(event) => setGlobalFilter(event.target.value)}
+                className="h-10 md:h-8 pl-8 w-full md:w-[250px]"
+              />
             </div>
           )}
 
-        </div>
-
-        {/* Mobile Row 2 / Desktop Center: Filter + Search */}
-        <div className="flex items-center gap-2 w-full md:w-auto md:flex-1 order-3 md:order-2 mt-2 md:mt-0">
+          {/* Filters */}
           {filterConfig.length > 0 && (
             <PopupFilter
               filterConfig={filterConfig}
@@ -252,20 +238,31 @@ const TableComponent = ({
               }}
               clearFilters={() => setColumnFilters([])}
               hasFilters={columnFilters.length > 0}
-              triggerClass="h-10 md:h-8 w-10 md:w-auto px-0 md:px-3"
+              triggerClass="h-10 md:h-8 w-10 md:w-auto px-0 md:px-3 shrink-0"
             />
           )}
 
-          {/* Global Search Button/Input - Always visible */}
-          {!hideSearch && (
-            <div className="relative flex items-center flex-1">
-              <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={searchPlaceholder || "Search..."}
-                value={globalFilter ?? ""}
-                onChange={(event) => setGlobalFilter(event.target.value)}
-                className="h-10 md:h-8 pl-8 w-full lg:w-[250px]"
-              />
+          {/* View Toggle */}
+          {enableGrid && !hideViewToggle && (
+            <div className="flex items-center border rounded-md overflow-hidden shrink-0">
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-10 w-10 md:h-8 md:w-8 px-0 rounded-none border-r"
+                onClick={() => setViewMode("list")}
+                title="List View"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "grid" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-10 w-10 md:h-8 md:w-8 px-0 rounded-none"
+                onClick={() => setViewMode("grid")}
+                title="Grid View"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
             </div>
           )}
         </div>

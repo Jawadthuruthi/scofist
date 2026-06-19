@@ -45,14 +45,16 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+const EMPTY_ARRAY = [];
+
 export default function LibraryDashboard({
     view,
     counts,
     categories,
     languages,
-    initialBooks = [],
-    initialRentals = [],
-    initialPendingRentals = [],
+    initialBooks = EMPTY_ARRAY,
+    initialRentals = EMPTY_ARRAY,
+    initialPendingRentals = EMPTY_ARRAY,
 }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -85,6 +87,7 @@ export default function LibraryDashboard({
     const [lookupLoading, setLookupLoading] = useState(false);
     const [showStudentScanner, setShowStudentScanner] = useState(false);
     const [showBookScanner, setShowBookScanner] = useState(false);
+    const [returnBookRental, setReturnBookRental] = useState(null);
 
     const selectedIds = Object.keys(rowSelection);
     const selectedBook = useMemo(
@@ -471,16 +474,15 @@ export default function LibraryDashboard({
                 return rental.receivedDate ? (
                     format(new Date(rental.receivedDate), "PPP")
                 ) : (
-                    <PopupForm
-                        title="Return Book"
-                        description="Select the returned date"
-                        formFields={returnFormFields}
-                        onSubmit={(data) => handleSaveReturnBook(rental._id, data)}
-                        trigger={<span className="text-red-500 font-bold hover:underline cursor-pointer">Pending</span>}
-                        className="sm:max-w-[250px]"
-                        submitButtonClass="w-full"
-                        buttonContainerClass="md:col-span-2"
-                    />
+                    <span 
+                        className="text-red-500 font-bold hover:underline cursor-pointer"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setReturnBookRental(rental);
+                        }}
+                    >
+                        Pending
+                    </span>
                 );
             },
             meta: {
@@ -861,9 +863,9 @@ export default function LibraryDashboard({
         setLookupLoading(true);
         try {
             // Find book by number
-            const bookRes = await fetch("/api/library/books");
+            const bookRes = await fetch(`/api/library/books?number=${encodeURIComponent(id.trim())}`);
             const bookData = await bookRes.json();
-            const book = bookData.data.find(b => String(b.number).toLowerCase() === id.toLowerCase());
+            const book = bookData.data && bookData.data.length > 0 ? bookData.data[0] : null;
 
             if (book) {
                 setLookupBook(book);
@@ -1159,16 +1161,15 @@ export default function LibraryDashboard({
                                                                         {format(new Date(rental.receivedDate), "PP")}
                                                                     </span>
                                                                 ) : (
-                                                                    <PopupForm
-                                                                        title="Return Book"
-                                                                        description="Select the returned date"
-                                                                        formFields={returnFormFields}
-                                                                        onSubmit={(data) => handleSaveReturnBook(rental._id, data)}
-                                                                        trigger={<span className="text-red-500 font-bold hover:underline cursor-pointer">Pending</span>}
-                                                                        className="sm:max-w-[250px]"
-                                                                        submitButtonClass="w-full"
-                                                                        buttonContainerClass="md:col-span-2"
-                                                                    />
+                                                                    <span 
+                                                                        className="text-red-500 font-bold hover:underline cursor-pointer"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setReturnBookRental(rental);
+                                                                        }}
+                                                                    >
+                                                                        Pending
+                                                                    </span>
                                                                 )}
                                                             </TableCell>
                                                         </TableRow>
@@ -1245,16 +1246,15 @@ export default function LibraryDashboard({
                                                                         {format(new Date(rental.receivedDate), "PP")}
                                                                     </span>
                                                                 ) : (
-                                                                    <PopupForm
-                                                                        title="Return Book"
-                                                                        description="Select the returned date"
-                                                                        formFields={returnFormFields}
-                                                                        onSubmit={(data) => handleSaveReturnBook(rental._id, data)}
-                                                                        trigger={<span className="text-red-500 font-bold hover:underline cursor-pointer">Pending</span>}
-                                                                        className="sm:max-w-[250px]"
-                                                                        submitButtonClass="w-full"
-                                                                        buttonContainerClass="md:col-span-2"
-                                                                    />
+                                                                    <span 
+                                                                        className="text-red-500 font-bold hover:underline cursor-pointer"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setReturnBookRental(rental);
+                                                                        }}
+                                                                    >
+                                                                        Pending
+                                                                    </span>
                                                                 )}
                                                             </TableCell>
                                                         </TableRow>
@@ -1484,6 +1484,25 @@ export default function LibraryDashboard({
                     </DialogContent>
                 </Dialog>
                 {renderConfirmDialog()}
+                {returnBookRental && (
+                    <PopupForm
+                        title="Return Book"
+                        description="Select the returned date"
+                        formFields={returnFormFields}
+                        data={returnBookRental}
+                        open={!!returnBookRental}
+                        onOpenChange={(open) => !open && setReturnBookRental(null)}
+                        onSubmit={async (data) => {
+                            const success = await handleSaveReturnBook(returnBookRental._id, data);
+                            if (success) setReturnBookRental(null);
+                            return success;
+                        }}
+                        hideButton={true}
+                        className="sm:max-w-[250px]"
+                        submitButtonClass="w-full"
+                        buttonContainerClass="md:col-span-2"
+                    />
+                )}
             </div>
         );
     }
@@ -1721,6 +1740,25 @@ export default function LibraryDashboard({
                     </DialogContent>
                 </Dialog>
                 {renderConfirmDialog()}
+                {returnBookRental && (
+                    <PopupForm
+                        title="Return Book"
+                        description="Select the returned date"
+                        formFields={returnFormFields}
+                        data={returnBookRental}
+                        open={!!returnBookRental}
+                        onOpenChange={(open) => !open && setReturnBookRental(null)}
+                        onSubmit={async (data) => {
+                            const success = await handleSaveReturnBook(returnBookRental._id, data);
+                            if (success) setReturnBookRental(null);
+                            return success;
+                        }}
+                        hideButton={true}
+                        className="sm:max-w-[250px]"
+                        submitButtonClass="w-full"
+                        buttonContainerClass="md:col-span-2"
+                    />
+                )}
             </div>
         );
     }
