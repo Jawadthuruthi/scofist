@@ -1,4 +1,4 @@
-import { jwtVerify } from "jose";
+import { jwtVerify, SignJWT } from "jose";
 import { NextResponse } from "next/server";
 
 
@@ -665,7 +665,21 @@ async function handleAuthRequest(req, event) {
       return redirectToLogin(req);
     }
 
-    // Check cache first
+    // 1. Check for cookie-based profile cache
+    const profileCacheToken = req.cookies.get("profile-cache")?.value;
+    if (profileCacheToken) {
+      try {
+        const { payload: cachedProfile } = await jwtVerify(profileCacheToken, SECRET_KEY);
+        // Ensure this cached profile belongs to the current user
+        if (cachedProfile.userId === effectiveUserId || cachedProfile._id === effectiveUserId) {
+          return prepareResponse(req, activeToken, cachedProfile);
+        }
+      } catch (err) {
+        // Cache token invalid or expired, continue to fetch
+      }
+    }
+
+    // 2. Check memory cache (secondary fallback)
     const cachedEntry = getUserFromCache(effectiveUserId);
 
     if (cachedEntry) {
@@ -698,7 +712,15 @@ async function handleAuthRequest(req, event) {
 
       if (user) {
         storeUserInCache(effectiveUserId, user);
-        return prepareResponse(req, activeToken, user);
+
+        // Create new JWT for the cookie
+        const newProfileToken = await new SignJWT(user)
+          .setProtectedHeader({ alg: 'HS256' })
+          .setIssuedAt()
+          .setExpirationTime('5m')
+          .sign(SECRET_KEY);
+
+        return prepareResponse(req, activeToken, user, newProfileToken);
       }
     } catch (fetchError) {
       console.error("Error fetching user profile:", fetchError.message);
@@ -821,7 +843,7 @@ async function fetchUserProfile(userId, apiKey, origin) {
   }
 }
 
-function prepareResponse(req, token, user) {
+function prepareResponse(req, token, user, newProfileToken = null) {
   const res = NextResponse.next();
 
   if (
@@ -843,6 +865,15 @@ function prepareResponse(req, token, user) {
     res.headers.set("x-auth-token", token);
   } catch (error) {
     console.error("Error setting headers:", error.message);
+  }
+
+  if (newProfileToken) {
+    res.cookies.set("profile-cache", newProfileToken, {
+      path: "/",
+      maxAge: 5 * 60, // 5 minutes
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
   }
 
   // Set cookie if not present
