@@ -1,6 +1,7 @@
 // app/dashboard/results-qr-code/_components/QRCodeActions.jsx
 "use client";
 
+import { useState, useEffect } from "react";
 import { useReactToPrint } from "react-to-print";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,11 @@ export function QRCodeActions({
   printRef,
 }) {
   const { isCopied, copyToClipboard } = useClipboard();
+  const [canShare, setCanShare] = useState(false);
+
+  useEffect(() => {
+    setCanShare(typeof navigator !== "undefined" && !!navigator.share);
+  }, []);
 
   // Print handler
   const handlePrint = useReactToPrint(
@@ -114,7 +120,7 @@ export function QRCodeActions({
           View Results Page
         </Button>
 
-        {typeof navigator !== "undefined" && navigator.share && (
+        {canShare && (
           <Button onClick={handleShare} className="w-full" variant="secondary">
             <Share2 className="mr-2 h-4 w-4" />
             Share
