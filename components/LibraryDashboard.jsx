@@ -55,6 +55,7 @@ export default function LibraryDashboard({
     initialBooks = EMPTY_ARRAY,
     initialRentals = EMPTY_ARRAY,
     initialPendingRentals = EMPTY_ARRAY,
+    activeRole = "",
 }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -88,6 +89,7 @@ export default function LibraryDashboard({
     const [showStudentScanner, setShowStudentScanner] = useState(false);
     const [showBookScanner, setShowBookScanner] = useState(false);
     const [returnBookRental, setReturnBookRental] = useState(null);
+    const [quickRentalBook, setQuickRentalBook] = useState(null);
 
     const selectedIds = Object.keys(rowSelection);
     const selectedBook = useMemo(
@@ -356,6 +358,38 @@ export default function LibraryDashboard({
             },
             meta: { padding: "4px 4px" }
         },
+        ...(activeRole === "Librarian" ? [{
+            id: "register",
+            header: "Register",
+            cell: ({ row }) => {
+                const book = row.original;
+                const isAvailable = book.status === "Available";
+                return (
+                    <Button
+                        size="sm"
+                        variant={isAvailable ? "default" : "outline"}
+                        className={`h-7 px-2 text-xs font-semibold ${
+                            isAvailable
+                                ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                                : "text-muted-foreground cursor-not-allowed opacity-60"
+                        }`}
+                        disabled={!isAvailable}
+                        title={isAvailable ? `Register rental for ${book.name}` : "Book is not available"}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setQuickRentalBook(book);
+                        }}
+                    >
+                        Register
+                    </Button>
+                );
+            },
+            meta: {
+                width: "90px",
+                whiteSpace: "nowrap",
+                padding: "4px 8px",
+            }
+        }] : []),
         {
             id: "barcode",
             header: "Barcode",
@@ -458,6 +492,27 @@ export default function LibraryDashboard({
             }
         },
         {
+            id: "batchClass",
+            header: "Batch & Class",
+            cell: ({ row }) => {
+                const student = row.original.studentId;
+                if (!student || typeof student !== 'object') return <span className="text-muted-foreground text-xs">–</span>;
+                const batch = student.batchName;
+                const cls = student.className;
+                if (!batch && !cls) return <span className="text-muted-foreground text-xs">–</span>;
+                return (
+                    <div className="flex flex-col gap-0.5">
+                        {batch && <span className="text-xs font-medium text-foreground">{batch}</span>}
+                        {cls && <span className="text-[11px] text-muted-foreground">{cls}</span>}
+                    </div>
+                );
+            },
+            meta: {
+                width: "1%",
+                whiteSpace: "nowrap",
+            }
+        },
+        {
             accessorKey: "rentedDate",
             header: "Rented On",
             cell: ({ row }) => row.original.rentedDate ? format(new Date(row.original.rentedDate), "PPP") : "-",
@@ -491,6 +546,7 @@ export default function LibraryDashboard({
             }
         },
     ];
+
 
 
     const filterConfig = [
@@ -1569,6 +1625,25 @@ export default function LibraryDashboard({
                                             <div className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
                                                 {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
                                             </div>
+                                            {activeRole === "Librarian" && (
+                                                <Button
+                                                    size="sm"
+                                                    variant={book.status === 'Available' ? "default" : "outline"}
+                                                    className={`w-full mt-1 h-7 text-xs font-semibold ${
+                                                        book.status === 'Available'
+                                                            ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                                                            : "text-muted-foreground cursor-not-allowed opacity-60"
+                                                    }`}
+                                                    disabled={book.status !== 'Available'}
+                                                    title={book.status === 'Available' ? `Register rental for ${book.name}` : "Book is not available"}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setQuickRentalBook(book);
+                                                    }}
+                                                >
+                                                    Register Rental
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 </CardContent>
@@ -1659,6 +1734,67 @@ export default function LibraryDashboard({
                 />
                 <BarcodeSheet ref={barcodeSheetRef} books={localBooks.filter(b => selectedIds.includes(b._id))} />
                 {renderConfirmDialog()}
+                {/* Quick Rental Popup — triggered from Register button in book row/card */}
+                {quickRentalBook && (
+                    <PopupForm
+                        title="New Rental"
+                        description={`Registering rental for: ${quickRentalBook.name} (ID: ${quickRentalBook.number})`}
+                        formFields={[
+                            {
+                                name: "bookId",
+                                label: "Book ID",
+                                inputType: "async-text",
+                                asyncProps: {
+                                    endpoint: "/api/library/books",
+                                    queryKey: "number",
+                                    displayKey: "name",
+                                    responseKey: "data"
+                                },
+                                required: true,
+                                enableScanner: true,
+                                defaultValue: quickRentalBook.number,
+                            },
+                            {
+                                name: "studentId",
+                                label: "Student ID",
+                                inputType: "async-text",
+                                asyncProps: {
+                                    endpoint: "/api/users",
+                                    queryKey: "_id",
+                                    displayKey: "name",
+                                    responseKey: "users"
+                                },
+                                required: true,
+                                enableScanner: true,
+                                autoFocus: true,
+                            },
+                            {
+                                name: "rentedDate",
+                                label: "Rented Date",
+                                inputType: "date",
+                                type: "date",
+                                required: true,
+                                defaultValue: new Date().toISOString().split("T")[0],
+                            },
+                            {
+                                name: "receivedDate",
+                                label: "Received Date",
+                                inputType: "date",
+                                type: "date",
+                            },
+                        ]}
+                        data={{ bookId: quickRentalBook.number }}
+                        open={!!quickRentalBook}
+                        onOpenChange={(open) => !open && setQuickRentalBook(null)}
+                        onSubmit={async (data) => {
+                            const success = await handleCreateRental(data);
+                            if (success) setQuickRentalBook(null);
+                            return success;
+                        }}
+                        hideButton={true}
+                        loading={loading}
+                    />
+                )}
             </div>
         );
     }

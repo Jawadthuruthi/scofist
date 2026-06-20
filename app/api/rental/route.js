@@ -3,6 +3,8 @@ import connectToDB from "@/lib/db";
 import Rental from "@/models/Rental";
 import LibraryBook from "@/models/LibraryBook";
 import User from "@/models/User";
+import Batch from "@/models/Batch";
+import Class from "@/models/Class";
 import mongoose from "mongoose";
 
 
@@ -24,10 +26,28 @@ export async function GET(req) {
 
         const rentals = await Rental.find(query)
             .populate("bookId")
-            .populate("studentId", "name _id profilePic studentSpecificField")
+            .populate({
+                path: "studentId",
+                select: "name _id profilePic studentSpecificField",
+                populate: [
+                    { path: "studentSpecificField.batchId", model: "Batch", select: "name" },
+                    { path: "studentSpecificField.classId", model: "Class", select: "name" },
+                ]
+            })
             .sort({ createdAt: -1 });
 
-        return NextResponse.json({ success: true, msg: "Rentals fetched successfully", data: rentals }, { status: 200 });
+        // Flatten batchName and className onto studentId for easy frontend access
+        const formatted = rentals.map(r => {
+            const rental = r.toObject();
+            if (rental.studentId && typeof rental.studentId === 'object') {
+                const ssf = rental.studentId.studentSpecificField || {};
+                rental.studentId.batchName = ssf.batchId?.name || null;
+                rental.studentId.className = ssf.classId?.name || null;
+            }
+            return rental;
+        });
+
+        return NextResponse.json({ success: true, msg: "Rentals fetched successfully", data: formatted }, { status: 200 });
     } catch (error) {
         return NextResponse.json({ success: false, msg: error.message, data: {} }, { status: 500 });
     }
