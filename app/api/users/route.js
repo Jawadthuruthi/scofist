@@ -575,6 +575,7 @@ export async function PUT(req) {
       if (!user.studentSpecificField) user.studentSpecificField = {};
       
       // Capture oldClassId BEFORE it gets overwritten in the loop below
+      const oldBatchId = user.studentSpecificField?.batchId;
       const oldClassId = user.studentSpecificField?.classId;
       
       // Handle standard student fields using Mongoose's formal schema tracking
@@ -583,6 +584,27 @@ export async function PUT(req) {
           user.set(`studentSpecificField.${field}`, updateFields[field] === "" ? undefined : updateFields[field]);
         }
       });
+
+      // Update StudentsFund batchId if batchId changed
+      if (updateFields.batchId !== undefined && String(oldBatchId) !== String(updateFields.batchId)) {
+        try {
+          const StudentsFund = (await import("@/models/StudentsFund")).default;
+          // Find existing funds for the student
+          const studentFunds = await StudentsFund.find({ studentId: user._id });
+          for (const fund of studentFunds) {
+            fund.batchId = updateFields.batchId;
+            try {
+              await fund.save();
+            } catch (err) {
+              // If duplicate key error, we skip saving this specific fund
+              // The duplicate merging logic in studentsFund/route.js will handle it next time it's accessed
+              console.log("Duplicate fund found when changing batchId, skipping update for this fund");
+            }
+          }
+        } catch (err) {
+          console.error("Error updating StudentsFund batchId:", err);
+        }
+      }
 
       // Auto-sync subjectTypeAssignments when classId changes
       if (updateFields.classId !== undefined) {

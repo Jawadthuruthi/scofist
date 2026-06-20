@@ -56,7 +56,6 @@ export async function POST(req) {
 
         const operations = uniqueStudentIds.map((studentId) => {
             const query = {
-                batchId,
                 studentId,
                 fundType, // Include fundType in query to match unique index partialFilterExpression
             };
@@ -73,6 +72,7 @@ export async function POST(req) {
                     update: {
                         $inc: { balance: amountChange },
                         $push: { transactions: { ...transaction, date: new Date() } },
+                        $set: { batchId }, // Update batchId to the latest one
                         $setOnInsert: {
                             // fundType, // Already in query
                             // ...query, // Already in query

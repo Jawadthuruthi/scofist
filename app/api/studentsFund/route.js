@@ -51,7 +51,7 @@ export async function GET(req, res) {
       query.$or = [{ fundType: "Individual" }, { fundType: { $exists: false } }];
     }
 
-    if (searchParams.batchId) {
+    if (searchParams.batchId && !searchParams.studentId) {
       query.batchId = searchParams.batchId;
     }
 
@@ -149,7 +149,6 @@ export async function POST(req, res) {
     }
 
     const query = {
-      batchId,
       fundType, // Include fundType to ensure partialFilterExpression of unique index is met
     };
 
@@ -163,6 +162,7 @@ export async function POST(req, res) {
       query.studentId = studentId;
     } else {
       query.studentId = { $exists: false };
+      query.batchId = batchId;
     }
 
     const amountChange =
@@ -199,6 +199,7 @@ export async function POST(req, res) {
       // Update the primary fund
       primaryFund.balance = newTotalBalance;
       primaryFund.transactions = allTransactions;
+      primaryFund.batchId = batchId; // Update batchId to the latest one
       await primaryFund.save();
       
       studentFund = primaryFund;
@@ -209,6 +210,7 @@ export async function POST(req, res) {
       const update = {
         $inc: { balance: amountChange },
         $push: { transactions: { ...transaction, date: new Date() } },
+        $set: { batchId }, // Update batchId to the latest one
         $setOnInsert: {
           // fundType, // Already in query
           // ...query, // Already in query
@@ -240,14 +242,13 @@ export async function PUT(req, res) {
       fundType = "Individual",
     } = await req.json();
 
-    const query = {
-      batchId,
-    };
+    const query = {};
 
     if (studentId) {
       query.studentId = studentId;
     } else {
       query.studentId = { $exists: false };
+      query.batchId = batchId;
     }
 
     if (fundType === "Department" && department) {
@@ -277,6 +278,7 @@ export async function PUT(req, res) {
           $set: {
             transactions: [],
             fundType: fundType, // Migrate on update
+            batchId: batchId, // Update batchId to the latest one
           },
         },
         { new: true }
@@ -289,6 +291,7 @@ export async function PUT(req, res) {
           $set: {
             transactions: [],
             fundType: fundType,
+            batchId: batchId, // Update batchId to the latest one
           },
         },
         { new: true, upsert: true }
