@@ -706,6 +706,22 @@ export function AppSidebar({ roles, activeRole, user }) {
   const { setOpen, setOpenMobile } = useSidebar();
   const [role, setRole] = useState(activeRole || filteredRoles[0] || "");
   const pathname = usePathname();
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  // Fetch pending book requests count for Librarian
+  useEffect(() => {
+    if (role !== "Librarian") return;
+    const fetchCount = async () => {
+      try {
+        const res = await fetch("/api/library/requests?status=Pending");
+        const data = await res.json();
+        if (data.success) setPendingRequestsCount(data.data?.length || 0);
+      } catch { /* silent */ }
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, [role]);
 
   // Close sidebar on outside click
   const handleClickOutside = useCallback(
@@ -860,7 +876,12 @@ export function AppSidebar({ roles, activeRole, user }) {
                     >
                       <Link href={item.url} className="flex items-center gap-2">
                         <item.icon className="w-5 h-5" />
-                        <span>{item.title}</span>
+                        <span className="flex-1">{item.title}</span>
+                        {item.title === "Books Requests" && pendingRequestsCount > 0 && (
+                          <span className="ml-auto text-xs font-bold bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5 leading-none">
+                            {pendingRequestsCount}
+                          </span>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

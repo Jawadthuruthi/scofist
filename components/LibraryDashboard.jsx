@@ -8,7 +8,7 @@ import BestReaderCard from "./BestReaderCard";
 import MostReadBookCard from "./MostReadBookCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Book, Users, BookOpen, AlertCircle, Trash2, FileSpreadsheet } from "lucide-react";
+import { Book, Users, BookOpen, AlertCircle, Trash2, FileSpreadsheet, Check, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -55,6 +55,7 @@ export default function LibraryDashboard({
     initialBooks = EMPTY_ARRAY,
     initialRentals = EMPTY_ARRAY,
     initialPendingRentals = EMPTY_ARRAY,
+    initialPendingRequests = EMPTY_ARRAY,
     activeRole = "",
 }) {
     const router = useRouter();
@@ -75,6 +76,65 @@ export default function LibraryDashboard({
     const [availableBooksPopupOpen, setAvailableBooksPopupOpen] = useState(false);
     const [deleteErrorPopupOpen, setDeleteErrorPopupOpen] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState({ open: false, title: "", message: "", onConfirm: null });
+
+    // --- Book Requests state ---
+    const [localRequests, setLocalRequests] = useState(Array.isArray(initialPendingRequests) ? initialPendingRequests : []);
+    const [requestsPopupOpen, setRequestsPopupOpen] = useState(false);
+    const [selectedRequest, setSelectedRequest] = useState(null);
+    const [rentalFromRequestOpen, setRentalFromRequestOpen] = useState(false);
+    const [requestsLoading, setRequestsLoading] = useState(false);
+
+    const fetchRequests = async () => {
+        setRequestsLoading(true);
+        try {
+            const res = await fetch("/api/library/requests");
+            const result = await res.json();
+            if (result.success) setLocalRequests(result.data || []);
+        } catch {/* silent */} finally {
+            setRequestsLoading(false);
+        }
+    };
+
+    const handleRejectRequest = async (requestId) => {
+        if (!confirm("Reject this request?")) return;
+        try {
+            const res = await fetch("/api/library/requests", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ _id: requestId, status: "Rejected" }),
+            });
+            if (res.ok) { toast.success("Request rejected"); fetchRequests(); }
+        } catch { toast.error("Failed to reject"); }
+    };
+
+    const handleApproveRequest = async (data) => {
+        try {
+            const response = await fetch("/api/rental", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+            if (response.ok) {
+                if (selectedRequest) {
+                    await fetch("/api/library/requests", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ _id: selectedRequest._id, status: "Approved" }),
+                    });
+                }
+                toast.success("Rental created and request approved");
+                fetchRequests();
+                setRentalFromRequestOpen(false);
+                return true;
+            } else {
+                const err = await response.json();
+                toast.error(err.msg || "Failed to create rental");
+                return false;
+            }
+        } catch { toast.error("An error occurred"); return false; }
+    };
+
+    const pendingRequestsCount = localRequests.filter(r => r.status === "Pending").length;
 
     // --- Lookup State ---
     const [studentSearchId, setStudentSearchId] = useState("");
@@ -1131,7 +1191,7 @@ export default function LibraryDashboard({
                     </Card>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Card
                         className="cursor-pointer hover:border-primary transition-all active:scale-[0.98]"
                         onClick={() => setCategoriesPopupOpen(true)}
@@ -1154,6 +1214,28 @@ export default function LibraryDashboard({
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{languages?.length || 0}</div>
+                        </CardContent>
+                    </Card>
+                    <Card
+                        className="cursor-pointer hover:border-primary transition-all active:scale-[0.98] relative"
+                        onClick={() => { fetchRequests(); setRequestsPopupOpen(true); }}
+                    >
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                Book Requests
+                                {pendingRequestsCount > 0 && (
+                                    <span className="inline-flex items-center justify-center text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full w-4 h-4">
+                                        {pendingRequestsCount}
+                                    </span>
+                                )}
+                            </CardTitle>
+                            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{localRequests.length}</div>
+                            {pendingRequestsCount > 0 && (
+                                <p className="text-xs text-destructive font-medium mt-1">{pendingRequestsCount} pending</p>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -1371,6 +1453,157 @@ export default function LibraryDashboard({
                         </div>
                     </DialogContent>
                 </Dialog>
+
+                {/* Book Requests Popup */}
+                <Dialog open={requestsPopupOpen} onOpenChange={setRequestsPopupOpen}>
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                Book Requests
+                                {pendingRequestsCount > 0 && (
+                                    <span className="text-xs font-bold bg-destructive text-destructive-foreground rounded-full px-2 py-0.5">
+                                        {pendingRequestsCount} pending
+                                    </span>
+                                )}
+                            </DialogTitle>
+                        </DialogHeader>
+                        {requestsLoading ? (
+                            <div className="flex items-center justify-center h-32">
+                                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                            </div>
+                        ) : localRequests.length === 0 ? (
+                            <div className="text-center text-muted-foreground py-12">No book requests found.</div>
+                        ) : (
+                            <div className="rounded-md border overflow-hidden">
+                                <Table>
+                                    <TableHeader className="bg-muted/50">
+                                        <TableRow>
+                                            <TableHead className="w-[30px] text-center">#</TableHead>
+                                            <TableHead>Book Details</TableHead>
+                                            <TableHead>Student Details</TableHead>
+                                            <TableHead>Requested On</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {localRequests.map((req, i) => (
+                                            <TableRow key={req._id}>
+                                                <TableCell className="text-center text-muted-foreground text-xs">{i + 1}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-semibold text-sm">{req.bookId?.name || "N/A"}</span>
+                                                        <span className="text-xs text-muted-foreground">ID: {req.bookId?.number || "N/A"}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-semibold text-sm">{req.studentId?.name || "N/A"}</span>
+                                                        <span className="text-xs text-muted-foreground">ID: {req.studentId?._id || "N/A"}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                                                    {req.createdAt ? format(new Date(req.createdAt), "PPP") : "-"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                                        req.status === "Pending"
+                                                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                                            : req.status === "Approved"
+                                                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                                    }`}>
+                                                        {req.status}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {req.status === "Pending" && (
+                                                        <div className="flex gap-1.5">
+                                                            <Button
+                                                                size="sm"
+                                                                className="h-7 px-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                                                                onClick={() => {
+                                                                    setSelectedRequest(req);
+                                                                    setRentalFromRequestOpen(true);
+                                                                }}
+                                                            >
+                                                                <Check className="h-3 w-3 mr-1" /> Approve
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="destructive"
+                                                                className="h-7 px-2 text-xs"
+                                                                onClick={() => handleRejectRequest(req._id)}
+                                                            >
+                                                                <X className="h-3 w-3 mr-1" /> Reject
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
+
+                {/* Approve Request → Create Rental popup */}
+                {rentalFromRequestOpen && selectedRequest && (
+                    <PopupForm
+                        title="Process Rental"
+                        description={`Creating rental for ${selectedRequest.studentId?.name} — ${selectedRequest.bookId?.name}`}
+                        formFields={[
+                            {
+                                name: "bookId",
+                                label: "Book ID",
+                                inputType: "async-text",
+                                asyncProps: {
+                                    endpoint: "/api/library/books",
+                                    queryKey: "number",
+                                    displayKey: "name",
+                                    responseKey: "data"
+                                },
+                                required: true,
+                                enableScanner: true,
+                                defaultValue: selectedRequest.bookId?.number,
+                            },
+                            {
+                                name: "studentId",
+                                label: "Student ID",
+                                inputType: "async-text",
+                                asyncProps: {
+                                    endpoint: "/api/users",
+                                    queryKey: "_id",
+                                    displayKey: "name",
+                                    responseKey: "users"
+                                },
+                                required: true,
+                                enableScanner: true,
+                                defaultValue: selectedRequest.studentId?._id,
+                            },
+                            {
+                                name: "rentedDate",
+                                label: "Rented Date",
+                                inputType: "date",
+                                type: "date",
+                                required: true,
+                                defaultValue: new Date().toISOString().split("T")[0],
+                            },
+                        ]}
+                        data={{
+                            bookId: selectedRequest.bookId?.number,
+                            studentId: selectedRequest.studentId?._id,
+                            rentedDate: new Date().toISOString().split("T")[0],
+                        }}
+                        open={rentalFromRequestOpen}
+                        onOpenChange={setRentalFromRequestOpen}
+                        onSubmit={handleApproveRequest}
+                        hideButton={true}
+                        loading={loading}
+                    />
+                )}
 
                 {/* Categories Popup */}
                 <Dialog open={categoriesPopupOpen} onOpenChange={setCategoriesPopupOpen}>

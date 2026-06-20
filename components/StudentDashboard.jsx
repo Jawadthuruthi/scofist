@@ -1234,6 +1234,27 @@ export default function StudentDashboard({
     }
   };
 
+  const handleCancelRequest = async (requestId) => {
+    if (!confirm("Are you sure you want to cancel this request?")) return;
+
+    try {
+      const res = await fetch(`/api/library/requests?id=${requestId}`, {
+        method: "DELETE",
+        headers: { "api-key": apiKey }
+      });
+      const result = await res.json();
+      if (result.success) {
+        toast.success("Request cancelled successfully");
+        fetchPendingRequests();
+      } else {
+        toast.error(result.msg || "Failed to cancel request");
+      }
+    } catch (error) {
+      console.error("Error cancelling request:", error);
+      toast.error("An error occurred while cancelling the request");
+    }
+  };
+
   const attendanceHistory = useMemo(() => {
     // Robust extraction of attendance records
     let records = [];
@@ -2325,23 +2346,36 @@ export default function StudentDashboard({
                                   </div>
 
                                   <div className="flex-1">
-                                    {pendingRequests.some(r => r.bookId?._id === book._id || r.bookId === book._id) ? (
-                                      <Button disabled size="sm" className="w-full h-7 text-[10px] font-bold">
-                                        Requested
-                                      </Button>
-                                    ) : book.status !== "Available" ? (
-                                      <Button disabled size="sm" className="w-full h-7 text-[10px] font-bold bg-muted text-muted-foreground">
-                                        Not Available
-                                      </Button>
-                                    ) : (
-                                      <Button 
-                                        size="sm" 
-                                        className="w-full h-7 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white"
-                                        onClick={() => handleRequestBook(book)}
-                                      >
-                                        Request
-                                      </Button>
-                                    )}
+                                    {(() => {
+                                      const existingReq = pendingRequests.find(r => r.bookId?._id === book._id || r.bookId === book._id);
+                                      if (existingReq) {
+                                        return (
+                                          <Button 
+                                            size="sm" 
+                                            className="w-full h-7 text-[10px] font-bold bg-red-600 hover:bg-red-700 text-white"
+                                            onClick={() => handleCancelRequest(existingReq._id)}
+                                          >
+                                            Cancel Request
+                                          </Button>
+                                        );
+                                      } else if (book.status !== "Available") {
+                                        return (
+                                          <Button disabled size="sm" className="w-full h-7 text-[10px] font-bold bg-muted text-muted-foreground">
+                                            Not Available
+                                          </Button>
+                                        );
+                                      } else {
+                                        return (
+                                          <Button 
+                                            size="sm" 
+                                            className="w-full h-7 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                                            onClick={() => handleRequestBook(book)}
+                                          >
+                                            Request
+                                          </Button>
+                                        );
+                                      }
+                                    })()}
                                   </div>
                                 </div>
                               </div>
