@@ -97,6 +97,11 @@ export default function LibraryDashboard({
         }
     };
 
+    useEffect(() => {
+        fetchRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const handleRejectRequest = async (requestId) => {
         if (!confirm("Reject this request?")) return;
         try {

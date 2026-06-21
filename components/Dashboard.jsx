@@ -397,7 +397,7 @@ const ClassCard = memo(
                     <div className="font-semibold text-slate-700 dark:text-slate-200">
                       {index + 1}. {student.name}
                     </div>
-                    <div className="text-xs font-mono text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm">
+                    <div className="text-xs text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm">
                       {student._id}
                     </div>
                   </div>
@@ -431,17 +431,17 @@ const ClassCard = memo(
                   return (
                     <div key={index} className="flex justify-between items-center py-2 px-3 border-b last:border-0 hover:bg-muted/50 rounded transition-colors">
                       <div className="flex flex-col">
-                        <div className="font-semibold text-red-600 dark:text-red-400">
+                        <div className="font-semibold text-slate-700 dark:text-slate-200">
                           {index + 1}. {std.studentName} {admissionNumber ? `(${admissionNumber})` : ""}
                         </div>
                         {leaveReason && (
-                          <div className="text-xs text-muted-foreground mt-0.5">
+                          <div className="text-xs text-red-600 dark:text-red-400 mt-0.5 font-medium">
                             {leaveReason}
                           </div>
                         )}
                       </div>
                       {displayId && (
-                        <div className="text-xs font-mono text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm h-fit">
+                        <div className="text-xs text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm h-fit">
                           {displayId}
                         </div>
                       )}
@@ -676,7 +676,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
                   <div className="flex flex-col items-end gap-1">
                     <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded h-fit">{student.className}</span>
                     {student.id && (
-                      <span className="text-xs font-mono text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm h-fit">
+                      <span className="text-xs text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm h-fit">
                         {student.id}
                       </span>
                     )}
