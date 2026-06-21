@@ -42,12 +42,31 @@ export async function GET(req, res) {
     if (filterParams.studentId) {
       query.studentId = filterParams.studentId;
     }
-    if (filterParams.classId) {
-      query.classId = filterParams.classId;
+    
+    // Determine student IDs based on class/batch filters to ensure we get all records 
+    // for current students, even if the record was created in an older class
+    let studentIdsToFetch = null;
+
+    if (filterParams.classId || filterParams.classIds || filterParams.batchId) {
+      const studentQuery = { roles: "Student" };
+      if (filterParams.classId) {
+        studentQuery["studentSpecificField.classId"] = filterParams.classId;
+      }
+      if (filterParams.classIds) {
+        studentQuery["studentSpecificField.classId"] = { $in: filterParams.classIds.split(",") };
+      }
+      if (filterParams.batchId) {
+        studentQuery["studentSpecificField.batchId"] = filterParams.batchId;
+      }
+      
+      const studentsInGroup = await User.find(studentQuery).select("_id");
+      studentIdsToFetch = studentsInGroup.map(s => s._id);
     }
-    if (filterParams.classIds) {
-      query.classId = { $in: filterParams.classIds.split(",") };
+
+    if (studentIdsToFetch !== null) {
+      query.studentId = { $in: studentIdsToFetch };
     }
+
     if (filterParams.isArrived) {
       const isArrived = filterParams.isArrived === "true";
       if (isArrived) {
