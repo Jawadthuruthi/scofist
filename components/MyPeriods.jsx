@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 // Hooks and Utils
 import { formatDate, formatDateForDisplay, cn } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
+import { fetchItems } from "@/lib/api";
 import Header from "./Header";
 import { useRouter } from "next/navigation";
 import {
@@ -351,26 +352,48 @@ const MyPeriods = ({ apiKey, teacherId }) => {
       return;
     }
     
+    setWhatsappModalData({
+      subjectName,
+      loading: true,
+      students: []
+    });
+
+    let leaveRecordsData = [];
+    try {
+      const response = await fetchItems("leave-records", apiKey, 0, 0, { classId: slot.classId?._id, isArrived: "false" });
+      leaveRecordsData = response?.["leave-records"] || [];
+    } catch (err) {
+      console.error("Failed to fetch leave records:", err);
+    }
+
     const studentsToMessage = [];
     absentStudents.forEach(student => {
       const number = student.guardianContactNumber || student.contactNumber;
       if (number) {
         const formattedNumber = number.replace(/\D/g, '');
         if (!studentsToMessage.some(s => s.contactNumber === formattedNumber)) {
+          const studentLeave = leaveRecordsData.find(record => {
+            const rId = typeof record.studentId === 'object' ? record.studentId?._id : record.studentId;
+            const sId = typeof student.studentId === 'object' ? student.studentId?._id : student.studentId;
+            return String(rId) === String(sId);
+          });
+          const leaveReason = studentLeave?.leaveReason || "No Reason";
+
           studentsToMessage.push({
             name: student.studentName || "Student",
-            contactNumber: formattedNumber
+            contactNumber: formattedNumber,
+            leaveReason: leaveReason
           });
         }
       }
     });
     
     if (studentsToMessage.length === 0) {
+      setWhatsappModalData(null);
       toast.error("No contact numbers found for absent students.");
       return;
     }
     
-    // Open modal instantly
     setWhatsappModalData({
       subjectName,
       loading: false,
@@ -710,7 +733,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                 <Table>
                   <TableBody>
                     {whatsappModalData?.students?.map((student, idx) => {
-                      const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.`;
+                      const msg = `Dear parent, your child ${student.name} is absent today for ${whatsappModalData.subjectName}.\nLeave Reason : ${student.leaveReason}`;
                       const url = `https://wa.me/${student.contactNumber}?text=${encodeURIComponent(msg)}`;
                       
                       return (
