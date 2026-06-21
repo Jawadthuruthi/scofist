@@ -1039,21 +1039,28 @@ export default function Dashboard({
               (record) => String(record.studentId?._id || record.studentId) === String(student._id)
             );
             const activeLeave = studentLeaves.find(record => !record.arrivedDate);
+            const studentClassId = student.studentSpecificField?.classId?._id || student.studentSpecificField?.classId || student.classId?._id || student.classId || "";
             return {
               id: student._id,
               name: student.studentName || student.name || student.username || "Unknown",
               className: student.className || "N/A",
+              classId: studentClassId,
               admissionNumber: student.studentSpecificField?.admissionNumber || student.admissionNumber || "",
               leaveReason: activeLeave?.reason || activeLeave?.leaveReason || "",
             };
           })
           .sort((a, b) => {
-            const idxA = sortedClasses.findIndex(c => c.name === a.className);
-            const idxB = sortedClasses.findIndex(c => c.name === b.className);
-            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-            if (idxA !== -1) return -1;
-            if (idxB !== -1) return 1;
-            return (a.className || "").localeCompare(b.className || "");
+            const classIdA = String(a.classId || "");
+            const classIdB = String(b.classId || "");
+            let classCompare = classIdA.localeCompare(classIdB, undefined, { numeric: true });
+            
+            if (classCompare !== 0) {
+              return classCompare;
+            }
+            
+            const idA = a.admissionNumber || a.id || "";
+            const idB = b.admissionNumber || b.id || "";
+            return String(idA).localeCompare(String(idB), undefined, { numeric: true });
           }),
     };
   }, [

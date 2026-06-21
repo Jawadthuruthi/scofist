@@ -86,7 +86,7 @@ export default async function ArticleDetailPage({ params }) {
                 </div>
               )}
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-6">
+            <h1 className="font-google-sans text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-6">
               {article.title}
             </h1>
           </header>
@@ -104,7 +104,7 @@ export default async function ArticleDetailPage({ params }) {
 
           {/* Content */}
           <div className="prose prose-lg max-w-none">
-            <p className="text-gray-700 leading-relaxed text-xl md:text-2xl whitespace-pre-wrap font-medium">
+            <p className="font-google-sans text-gray-700 leading-relaxed text-xl md:text-2xl whitespace-pre-wrap font-medium">
               {article.content}
             </p>
           </div>
@@ -118,6 +118,7 @@ export default async function ArticleDetailPage({ params }) {
               title={article.title} 
               text={article.content} 
               imageUrl={article.image?.url}
+              buttonText="Share this Article"
             />
           </div>
 

@@ -252,7 +252,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
             <TableRow>
               <TableHead className="w-12 text-center">No.</TableHead>
               <TableHead>Student</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="text-right pr-4">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -286,20 +286,25 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                         {index + 1}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8 border border-muted">
-                            <AvatarImage src={student.profilePic?.url} alt={student.name} />
-                            <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
-                              {student.name?.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
+                        <div className="flex items-center sm:items-start gap-3">
+                          <div className="flex flex-col items-center gap-1 shrink-0">
+                            <Avatar className="h-8 w-8 border border-muted">
+                              <AvatarImage src={student.profilePic?.url} alt={student.name} />
+                              <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
+                                {student.name?.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="sm:hidden text-[9px] text-muted-foreground whitespace-nowrap">
+                              {student._id}
+                            </span>
+                          </div>
                           <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="hidden sm:inline-block text-[10px] text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border whitespace-nowrap">
                                 {student._id}
                               </span>
                               <span
-                                className={`font-semibold text-xs ${stats.pendingLeaves > 0 || stats.overdueLeaves > 0
+                                className={`font-semibold text-xs whitespace-normal break-words max-w-[150px] sm:max-w-none ${stats.pendingLeaves > 0 || stats.overdueLeaves > 0
                                   ? "text-red-900 dark:text-red-100"
                                   : ""
                                   }`}
@@ -323,10 +328,10 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="p-0 py-2">
+                      <TableCell className="p-0 py-2 align-top text-right pr-4">
                         {latestRecord ? (
-                          <div className="space-y-1">
-                            <div className="flex flex-wrap gap-1">
+                          <div className="space-y-1 flex flex-col items-end">
+                            <div className="flex flex-wrap justify-end gap-1">
                               {stats.overdueLeaves > 0 && (
                                 <Badge variant="destructive" className="text-xs px-1 py-0">
                                   Overdue
@@ -355,7 +360,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                           </div>
                         ) : (
                           <div
-                            className={`text-sm ${stats.pendingLeaves > 0
+                            className={`text-sm pr-2 ${stats.pendingLeaves > 0
                               ? "text-red-700 dark:text-red-300"
                               : "text-muted-foreground"
                               }`}

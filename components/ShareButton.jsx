@@ -4,7 +4,7 @@ import { Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-export default function ShareButton({ title, text, url, imageUrl }) {
+export default function ShareButton({ title, text, url, imageUrl, buttonText = "Share this Update" }) {
   const handleShare = async () => {
     const shareUrl = url || (typeof window !== "undefined" ? window.location.href : "");
     const boldTitle = `*${title}*`;
@@ -15,33 +15,29 @@ export default function ShareButton({ title, text, url, imageUrl }) {
     };
 
     try {
-      // Try to include image if provided and supported
-      if (imageUrl && navigator.canShare) {
-        try {
-          const response = await fetch(imageUrl);
-          const blob = await response.blob();
-          const file = new File([blob], "update.jpg", { type: blob.type });
-          
-          if (navigator.canShare({ files: [file] })) {
-            shareData.files = [file];
-          }
-        } catch (imageErr) {
-          console.error("Could not fetch image for sharing:", imageErr);
-          // Continue without image
-        }
-      }
-
       if (navigator.share) {
         await navigator.share(shareData);
-      } else {
+      } else if (navigator.clipboard) {
         // Fallback: Copy to clipboard
         await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
         toast.success("Link and details copied to clipboard!");
+      } else {
+        toast.error("Sharing is not supported on this browser.");
       }
     } catch (err) {
       if (err.name !== "AbortError") {
         console.error("Error sharing:", err);
-        toast.error("Sharing failed. Try copying the link manually.");
+        // Fallback to clipboard if share throws an error (e.g., NotAllowedError or TypeError)
+        if (navigator.clipboard) {
+          try {
+            await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+            toast.success("Link copied to clipboard (sharing failed)!");
+          } catch (copyErr) {
+            toast.error("Sharing failed. Try copying the link manually.");
+          }
+        } else {
+          toast.error("Sharing failed. Try copying the link manually.");
+        }
       }
     }
   };
@@ -53,7 +49,7 @@ export default function ShareButton({ title, text, url, imageUrl }) {
       className="rounded-full flex items-center gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-all active:scale-95 shadow-sm hover:shadow-md"
     >
       <Share2 className="w-4 h-4" />
-      Share this Update
+      {buttonText}
     </Button>
   );
 }

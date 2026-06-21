@@ -20,11 +20,17 @@ export default function ArticleCard({ article }) {
       } catch (err) {
         if (err.name !== "AbortError") toast.error("Share failed");
       }
+    } else if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(
+          `*${article.title}*\n\n${article.content || ""}\n\n${window.location.origin}/articles/${article._id}`
+        );
+        toast.success("Copied to clipboard!");
+      } catch (copyErr) {
+        toast.error("Failed to copy to clipboard");
+      }
     } else {
-      navigator.clipboard.writeText(
-        `*${article.title}*\n\n${article.content || ""}\n\n${window.location.origin}/articles/${article._id}`
-      );
-      toast.success("Copied to clipboard!");
+      toast.error("Sharing is not supported on this browser.");
     }
   };
 
@@ -62,10 +68,10 @@ export default function ArticleCard({ article }) {
               </span>
             )}
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-purple-700 transition-colors line-clamp-2 leading-tight">
+          <h2 className="font-google-sans text-xl font-bold text-gray-900 mb-3 group-hover:text-purple-700 transition-colors line-clamp-2 leading-tight">
             {article.title}
           </h2>
-          <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 flex-1 mb-4">
+          <p className="font-google-sans text-gray-600 text-sm leading-relaxed line-clamp-3 flex-1 mb-4">
             {article.content}
           </p>
           <div className="pt-4 border-t border-gray-50 flex items-center justify-between">

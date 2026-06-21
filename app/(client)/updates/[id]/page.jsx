@@ -79,7 +79,7 @@ export default async function UpdateDetailPage({ params }) {
               <CalendarIcon className="w-4 h-4" />
               {update.date ? format(new Date(update.date), "MMMM d, yyyy") : "Recent Update"}
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-6">
+            <h1 className="font-google-sans text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-6">
               {update.heading}
             </h1>
           </header>
@@ -97,7 +97,7 @@ export default async function UpdateDetailPage({ params }) {
 
           {/* Content */}
           <div className="prose prose-lg max-w-none">
-            <p className="text-gray-700 leading-relaxed text-xl md:text-2xl whitespace-pre-wrap font-medium">
+            <p className="font-google-sans text-gray-700 leading-relaxed text-xl md:text-2xl whitespace-pre-wrap font-medium">
               {update.news}
             </p>
           </div>

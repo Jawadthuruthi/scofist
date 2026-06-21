@@ -31,10 +31,10 @@ export default function UpdateCard({ update }) {
               {update.date ? format(new Date(update.date), "MMM d, yyyy") : "Recent"}
             </span>
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-tight">
+          <h2 className="font-google-sans text-xl font-bold text-gray-900 mb-3 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-tight">
             {update.heading}
           </h2>
-          <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4 flex-1">
+          <p className="font-google-sans text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4 flex-1">
             {update.news}
           </p>
 
@@ -55,9 +55,15 @@ export default function UpdateCard({ update }) {
                 if (navigator.share) {
                   try { await navigator.share(shareData); }
                   catch (err) { if (err.name !== "AbortError") toast.error("Share failed"); }
+                } else if (navigator.clipboard) {
+                  try {
+                    await navigator.clipboard.writeText(`*${update.heading}*\n\n${update.news || ""}\n\n${window.location.origin}/updates/${update._id}`);
+                    toast.success("Copied to clipboard!");
+                  } catch (copyErr) {
+                    toast.error("Failed to copy");
+                  }
                 } else {
-                  navigator.clipboard.writeText(`*${update.heading}*\n\n${update.news || ""}\n\n${window.location.origin}/updates/${update._id}`);
-                  toast.success("Copied to clipboard!");
+                  toast.error("Sharing is not supported on this browser.");
                 }
               }}
               className="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-emerald-600 transition-colors"

@@ -1152,7 +1152,7 @@ export default function LibraryDashboard({
                     </Card>
                 </div >
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                     <Card
                         className="cursor-pointer hover:border-primary transition-all active:scale-[0.98]"
                         onClick={() => setTotalBooksPopupOpen(true)}
@@ -1189,10 +1189,9 @@ export default function LibraryDashboard({
                             <div className="text-2xl font-bold">{counts?.pendingRentals || 0}</div>
                         </CardContent>
                     </Card>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Card
+
                         className="cursor-pointer hover:border-primary transition-all active:scale-[0.98]"
                         onClick={() => setCategoriesPopupOpen(true)}
                     >

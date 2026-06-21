@@ -62,7 +62,7 @@ export default async function ArticlesPage() {
 
             {/* Center Area */}
             <div className="flex-[2] flex flex-col items-center justify-center">
-                <h1 className="text-2xl md:text-4xl font-bold tracking-wider text-white drop-shadow-md">ARTICLES</h1>
+                <h1 className="font-google-sans text-2xl md:text-4xl font-bold tracking-wider text-white drop-shadow-md">ARTICLES</h1>
             </div>
 
             {/* Organisation Logo (Right) */}

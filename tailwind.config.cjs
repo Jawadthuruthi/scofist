@@ -71,6 +71,7 @@ module.exports = {
       },
       fontFamily: {
         montserrat: ["Montserrat", "sans-serif"],
+        "google-sans": ['"Product Sans"', '"Google Sans"', '"Noto Sans Malayalam"', '"Noto Sans Arabic"', 'sans-serif'],
       },
       fontSize: {
         xxs: ["0.625rem", { lineHeight: "1rem" }],
