@@ -57,12 +57,14 @@ export default function LibraryDashboard({
     initialPendingRentals = EMPTY_ARRAY,
     initialPendingRequests = EMPTY_ARRAY,
     activeRole = "",
+    apiKey = "",
 }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [rowSelection, setRowSelection] = useState({});
     const [editPopupOpen, setEditPopupOpen] = useState(false);
     const barcodeSheetRef = useRef(null);
+    const tableRef = useRef(null);
 
     // --- Local optimistic state ---
     const [localBooks, setLocalBooks] = useState(initialBooks);
@@ -322,7 +324,7 @@ export default function LibraryDashboard({
         {
             id: "serial",
             header: "Sl No",
-            cell: ({ row }) => row.index + 1,
+            cell: ({ row, table }) => table.getSortedRowModel().rows.indexOf(row) + 1,
             meta: {
                 width: "1px",
                 whiteSpace: "nowrap",
@@ -448,6 +450,7 @@ export default function LibraryDashboard({
                 width: "90px",
                 whiteSpace: "nowrap",
                 padding: "4px 8px",
+                className: "print:hidden",
             }
         }] : []),
         {
@@ -637,7 +640,8 @@ export default function LibraryDashboard({
     // --- Excel Export ---
     const handleExportExcel = () => {
         const headers = ["Book ID", "Book Name", "Author", "Language", "Category", "Publication", "Price", "Status"];
-        const rows = localBooks.map(b => [
+        const booksToExport = tableRef.current ? tableRef.current.getFilteredData() : localBooks;
+        const rows = booksToExport.map(b => [
             b.number ?? "",
             b.name ?? "",
             b.author ?? "",
@@ -650,11 +654,27 @@ export default function LibraryDashboard({
         const csv = [headers, ...rows]
             .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
             .join("\r\n");
+
+        let filterLabels = [];
+        const filters = tableRef.current?.getFilters ? tableRef.current.getFilters() : [];
+        if (filters && filters.length > 0) {
+            filters.forEach(f => {
+                if (['category', 'language', 'status'].includes(f.id) && f.value) {
+                    filterLabels.push(String(f.value).replace(/[^a-zA-Z0-9]/g, '_'));
+                }
+            });
+        }
+        
+        let filename = "books.csv";
+        if (filterLabels.length > 0) {
+            filename = `books_${filterLabels.join('_')}.csv`;
+        }
+
         const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "books.csv";
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1805,6 +1825,7 @@ export default function LibraryDashboard({
                     />
                 </div>
                 <TableComponent
+                    ref={tableRef}
                     data={localBooks}
                     columnsConfig={bookColumns}
                     rowSelection={rowSelection}
@@ -1815,6 +1836,8 @@ export default function LibraryDashboard({
                     showTotalCount={true}
                     totalCountLabel="TOTAL NUMBER OF BOOKS"
                     searchPlaceholder="Search Book (Name, ID)..."
+                    printTitle="LIBRARY BOOKS"
+                    apiKey={apiKey}
                     renderGridItem={(row) => {
                         const book = row.original;
                         return (

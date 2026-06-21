@@ -7,5 +7,7 @@ export default async function Page() {
     const cookiesStore = await cookies();
     const activeRole = cookiesStore.get("active-role")?.value || "";
 
-    return <LibraryDashboard view="books" initialBooks={initialBooks} activeRole={activeRole} />;
+    const apiKey = process.env.API_KEY || "";
+
+    return <LibraryDashboard view="books" initialBooks={initialBooks} activeRole={activeRole} apiKey={apiKey} />;
 }

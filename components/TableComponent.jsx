@@ -22,7 +22,7 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
 } from "@tanstack/react-table";
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { useReactToPrint } from "react-to-print";
 import useTableColumns from "@/hooks/use-table-columns";
 import PrintHeader from "./PrintHeader";
@@ -44,7 +44,7 @@ const getCellStyles = (meta) => ({
   verticalAlign: meta?.verticalAlign || "middle", // Default to middle for consistency
 });
 
-const TableComponent = ({
+const TableComponent = forwardRef(({
   data = [],
   columnsConfig = [],
   apiKey,
@@ -68,7 +68,7 @@ const TableComponent = ({
   showTotalCount = false,
   totalCountLabel = "Total Records",
   searchPlaceholder,
-}) => {
+}, ref) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
@@ -82,9 +82,22 @@ const TableComponent = ({
     return useTableColumns(columnsConfig);
   }, [columnsConfig]);
 
+  const dynamicPrintTitle = useMemo(() => {
+    let title = printTitle || "Table Print";
+    if (columnFilters && columnFilters.length > 0) {
+      const filterLabels = columnFilters
+        .filter(f => f.value)
+        .map(f => String(f.value).replace(/[^a-zA-Z0-9]/g, '_'));
+      if (filterLabels.length > 0) {
+        title = `${title}_${filterLabels.join('_')}`;
+      }
+    }
+    return title;
+  }, [printTitle, columnFilters]);
+
   const handlePrint = useReactToPrint({
     contentRef: tableRef,
-    documentTitle: printTitle ? printTitle : "Table Print",
+    documentTitle: dynamicPrintTitle,
   });
 
   const handleExportCSV = () => {
@@ -145,6 +158,12 @@ const TableComponent = ({
       columnFilters,
     },
   });
+
+  useImperativeHandle(ref, () => ({
+    getFilteredData: () => table.getFilteredRowModel().rows.map(row => row.original),
+    getFilters: () => columnFilters
+  }));
+
   return (
     <div className="space-y-4">
       {/* Unified Toolbar Container */}
@@ -414,6 +433,6 @@ const TableComponent = ({
       )}
     </div>
   );
-};
+});
 
 export default TableComponent;
