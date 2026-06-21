@@ -1987,7 +1987,6 @@ export default function LibraryDashboard({
                                 loading={loading}
                                 triggerVariant="default"
                                 triggerClass="flex md:hidden h-8 w-8 p-0 bg-blue-600 hover:bg-blue-700 text-white border-none"
-                                title="Add Book"
                             />
                         </div>
                     }

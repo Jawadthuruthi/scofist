@@ -17,7 +17,7 @@ export default async function IndividualLeaveRegisterPage({ params }) {
       },
       {
         pathname: "users",
-        searchParams: `_id=${studentId}&role=Student&projection=_id,name`,
+        searchParams: `_id=${studentId}&role=Student&projection=_id,name,studentSpecificField.classId`,
       },
     ];
 
@@ -57,14 +57,16 @@ export default async function IndividualLeaveRegisterPage({ params }) {
         required: true,
         defaultValue: student?.[0]?.classId || "",
         inputType: "select",
-        options: student?.[0]?.classId
-          ? [
-            {
-              value: student[0].classId,
-              label: student[0].className || "Unknown Class",
-            },
-          ]
-          : [],
+        options: (() => {
+          const optMap = new Map();
+          if (student?.[0]?.classId) {
+            optMap.set(student[0].classId, student[0].className || "Unknown Class");
+          }
+          if (leaveRecord?.[0]?.classId) {
+            optMap.set(leaveRecord[0].classId, leaveRecord[0].className || "Unknown Class");
+          }
+          return Array.from(optMap, ([value, label]) => ({ value, label }));
+        })(),
         readOnly: true,
       },
 
@@ -134,6 +136,11 @@ export default async function IndividualLeaveRegisterPage({ params }) {
         },
       },
     ];
+
+    // Force the leave record to use the student's current class
+    if (leaveRecord?.[0] && student?.[0]?.classId) {
+      leaveRecord[0].classId = student[0].classId;
+    }
 
     return (
       <>

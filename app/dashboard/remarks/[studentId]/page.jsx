@@ -17,7 +17,7 @@ export default async function IndividualRemarkPage({ params }) {
       },
       {
         pathname: "users",
-        searchParams: `_id=${studentId}&role=Student&projection=_id,name,classId,className`,
+        searchParams: `_id=${studentId}&role=Student&projection=_id,name,studentSpecificField.classId`,
       },
     ];
 
@@ -57,14 +57,18 @@ export default async function IndividualRemarkPage({ params }) {
         required: true,
         defaultValue: student?.[0]?.classId || "",
         inputType: "select",
-        options: student?.[0]?.classId
-          ? [
-              {
-                value: student[0].classId,
-                label: student[0].className || "Unknown Class",
-              },
-            ]
-          : [],
+        options: (() => {
+          const optMap = new Map();
+          if (student?.[0]?.classId) {
+            optMap.set(student[0].classId, student[0].className || "Unknown Class");
+          }
+          if (Array.isArray(remarks)) {
+            remarks.forEach((r) => {
+              if (r.classId) optMap.set(r.classId, r.className || "Unknown Class");
+            });
+          }
+          return Array.from(optMap, ([value, label]) => ({ value, label }));
+        })(),
         readOnly: true,
       },
 
