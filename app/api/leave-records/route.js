@@ -5,6 +5,7 @@ import StudentAttendance from "@/models/StudentAttendance";
 import TimeTable from "@/models/TimeTable";
 import User from "@/models/User";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 export async function GET(req, res) {
   try {
@@ -161,6 +162,9 @@ export async function POST(req, res) {
       lateReason,
       remark,
     });
+    
+    revalidatePath("/dashboard", "layout");
+    
     return NextResponse.json(
       { newLeaveRecord, message: "Leave Record created successfully!" },
       { status: 200 }
@@ -210,6 +214,8 @@ export async function PUT(req, res) {
         }
       );
 
+      revalidatePath("/dashboard", "layout");
+
       return NextResponse.json(
         {
           updatedLeaveRecords,
@@ -236,6 +242,8 @@ export async function PUT(req, res) {
       { new: true }
     );
 
+    revalidatePath("/dashboard", "layout");
+
     return NextResponse.json(
       {
         updatedLeaveRecord,
@@ -258,12 +266,18 @@ export async function DELETE(req, res) {
       const deletedLeaveRecords = await LeaveRecord.deleteMany({
         _id: { $in: ids },
       });
+      
+      revalidatePath("/dashboard", "layout");
+      
       return NextResponse.json(
         { deletedLeaveRecords, message: "Leave Records deleted successfully!" },
         { status: 200 }
       );
     }
     const deletedLeaveRecord = await LeaveRecord.findByIdAndDelete(_id);
+    
+    revalidatePath("/dashboard", "layout");
+    
     return NextResponse.json(
       { deletedLeaveRecord, message: "Leave Record deleted successfully!" },
       { status: 200 }

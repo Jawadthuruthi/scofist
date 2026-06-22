@@ -77,9 +77,9 @@ function MonthCalendar({ year, monthIndex, events, onDayClick }) {
                         return (
                             <button key={day} onClick={() => onDayClick(dateStr, evs)}
                                 className={cn(
-                                    "relative flex flex-col items-center text-base py-3 rounded-md transition-colors hover:bg-accent",
+                                    "relative flex flex-col items-center text-sm py-1.5 rounded-md transition-colors hover:bg-accent",
                                     isToday(day) && "bg-primary text-primary-foreground hover:bg-primary/90 font-bold",
-                                    evs.length > 0 && !isToday(day) && "font-semibold"
+                                    evs.length > 0 && !isToday(day) && "text-blue-600 bg-blue-50 font-bold"
                                 )}>
                                 <span>{day}</span>
                                 {evs.length > 0 && (
@@ -110,6 +110,7 @@ export default function AcademicCalendarManager({ apiKey }) {
     const [deletingId, setDeletingId] = useState(null);
     const [isDeletingRecord, setIsDeletingRecord] = useState(false);
     const [notifyingId, setNotifyingId] = useState(null);
+    const [confirmNotifyEv, setConfirmNotifyEv] = useState(null);
     const calendarRef = useRef();
 
     const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } =
@@ -191,6 +192,7 @@ export default function AcademicCalendarManager({ apiKey }) {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Failed to send notification.");
             toast.success(data.message || "Alert sent to all teachers.");
+            setConfirmNotifyEv(null);
         } catch (err) {
             toast.error(err.message || "Failed to send alert.");
         } finally {
@@ -301,7 +303,7 @@ export default function AcademicCalendarManager({ apiKey }) {
                                                                 <Button variant="ghost" size="icon"
                                                                     className="h-7 w-7 text-blue-500 hover:text-blue-600"
                                                                     title="Send Alert to Teachers"
-                                                                    onClick={() => handleNotify(ev)}
+                                                                    onClick={() => setConfirmNotifyEv(ev)}
                                                                     disabled={notifyingId === ev._id}>
                                                                     {notifyingId === ev._id ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
                                                                 </Button>
@@ -362,7 +364,7 @@ export default function AcademicCalendarManager({ apiKey }) {
                                         <Button variant="ghost" size="icon"
                                             className="h-7 w-7 text-blue-500 hover:text-blue-600"
                                             title="Send Alert to Teachers"
-                                            onClick={() => handleNotify(ev)}
+                                            onClick={() => setConfirmNotifyEv(ev)}
                                             disabled={notifyingId === ev._id}>
                                             {notifyingId === ev._id ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
                                         </Button>
@@ -513,6 +515,43 @@ export default function AcademicCalendarManager({ apiKey }) {
                                     disabled={isDeletingRecord}
                                 >
                                     {isDeletingRecord ? 'Deleting...' : 'Delete'}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Notify Confirmation Modal */}
+            {confirmNotifyEv && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <Card className="w-full max-w-sm shadow-2xl border-blue-500/20 overflow-hidden animate-in zoom-in-95 duration-200">
+                        <CardHeader className="bg-blue-500/5 pb-2">
+                            <CardTitle className="text-lg flex items-center gap-2 text-blue-600">
+                                <BellRing className="w-5 h-5" />
+                                Send Alert
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4 space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                Are you sure you want to send a notification to all teachers about <strong>{confirmNotifyEv.title}</strong>?
+                            </p>
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={() => setConfirmNotifyEv(null)}
+                                    disabled={notifyingId === confirmNotifyEv._id}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                                    onClick={() => handleNotify(confirmNotifyEv)}
+                                    disabled={notifyingId === confirmNotifyEv._id}
+                                >
+                                    {notifyingId === confirmNotifyEv._id ? <Loader className="h-4 w-4 mr-1 animate-spin" /> : <BellRing className="h-4 w-4 mr-1" />}
+                                    Send
                                 </Button>
                             </div>
                         </CardContent>
