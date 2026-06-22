@@ -31,6 +31,7 @@ export default function OTPVerification() {
   const [countdown, setCountdown] = useState(300);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [verifySuccess, setVerifySuccess] = useState(false);
+  const [redirectUrl, setRedirectUrl] = useState("/dashboard");
   const [otpError, setOtpError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -60,11 +61,11 @@ export default function OTPVerification() {
     if (verifySuccess) {
       const timer = setTimeout(() => {
         setVerifySuccess(false);
-        router.push("/dashboard");
+        router.push(redirectUrl);
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [verifySuccess, router]);
+  }, [verifySuccess, router, redirectUrl]);
 
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
@@ -84,7 +85,14 @@ export default function OTPVerification() {
     setOtpError("");
     try {
       setLoading(true);
-      await axios.post("/api/auth/verifyOTP", { email, otp });
+      const res = await axios.post("/api/auth/verifyOTP", { email, otp });
+      
+      if (res.data.roles && res.data.roles.includes("Teacher")) {
+        setRedirectUrl("/dashboard/my-periods");
+      } else {
+        setRedirectUrl("/dashboard");
+      }
+      
       setVerifySuccess(true);
     } catch (error) {
       console.error("Error verifying OTP:", error.message);

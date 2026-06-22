@@ -780,7 +780,7 @@ export function AppSidebar({ roles, activeRole, user }) {
 
         // Custom check for Guest Teacher
         if (role === "Teacher" && user?.teacherSpecificField?.status === "Guest") {
-          const allowedGuestItems = ["My Periods", "My Time Table", "Remarks"];
+          const allowedGuestItems = ["My Periods", "My Time Table", "Remarks", "My Attendance"];
           if (!allowedGuestItems.includes(item.title)) {
             return false;
           }
