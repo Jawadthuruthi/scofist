@@ -19,7 +19,10 @@ export async function POST(req) {
 
     await connectToDB();
 
-    const teachers = await User.find({ roles: "Teacher" }).lean();
+    const teachers = await User.find({ 
+      roles: "Teacher",
+      "teacherSpecificField.status": "Active"
+    }).lean();
     let notificationCount = 0;
 
     const payload = JSON.stringify({
