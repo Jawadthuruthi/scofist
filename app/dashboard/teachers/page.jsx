@@ -201,6 +201,7 @@ const formFields = [
     options: [
       { label: "Active", value: "Active" },
       { label: "Retired", value: "Retired" },
+      { label: "Guest", value: "Guest" },
     ],
   },
 ];
@@ -214,6 +215,7 @@ const filterConfig = [
     options: [
       { label: "Active", value: "Active" },
       { label: "Retired", value: "Retired" },
+      { label: "Guest", value: "Guest" },
     ],
   },
 ];

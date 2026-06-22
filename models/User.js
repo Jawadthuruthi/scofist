@@ -230,12 +230,12 @@ const userSchema = new Schema(
       },
       status: {
         type: String,
-        enum: ["Active", "Retired"],
+        enum: ["Active", "Retired", "Guest"],
         required: function () {
           return this.roles.includes("Teacher");
         },
         validate: {
-          validator: (v) => v === "Active" || v === "Retired",
+          validator: (v) => v === "Active" || v === "Retired" || v === "Guest",
           message: "Invalid status value",
         },
       },

@@ -778,6 +778,14 @@ export function AppSidebar({ roles, activeRole, user }) {
 
         if (!item.allowedRoles?.includes(role)) return false;
 
+        // Custom check for Guest Teacher
+        if (role === "Teacher" && user?.teacherSpecificField?.status === "Guest") {
+          const allowedGuestItems = ["My Periods", "My Time Table", "Remarks"];
+          if (!allowedGuestItems.includes(item.title)) {
+            return false;
+          }
+        }
+
         // Custom check for Downloads, Students, and Identity Cards: Visible only for 'Active' students
         if (
           (item.title === "Downloads" || item.title === "Students" || item.title === "My Identity Card") &&
