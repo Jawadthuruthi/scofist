@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import {
     CalendarDays, Plus, Pencil, Trash2, Printer,
-    ChevronLeft, ChevronRight, X, Check, Loader, CalendarIcon, AlertCircle,
+    ChevronLeft, ChevronRight, X, Check, Loader, CalendarIcon, AlertCircle, BellRing,
 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import PrintHeader from "./PrintHeader";
@@ -109,6 +109,7 @@ export default function AcademicCalendarManager({ apiKey }) {
     const [submitting, setSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
     const [isDeletingRecord, setIsDeletingRecord] = useState(false);
+    const [notifyingId, setNotifyingId] = useState(null);
     const calendarRef = useRef();
 
     const { useFetchItems, useAddItem, useUpdateItem, useDeleteItem } =
@@ -173,6 +174,28 @@ export default function AcademicCalendarManager({ apiKey }) {
             setDeletingId(null);
         } catch (err) { toast.error(err.message || "Delete failed."); }
         finally { setIsDeletingRecord(false); }
+    };
+
+    const handleNotify = async (ev) => {
+        setNotifyingId(ev._id);
+        try {
+            const res = await fetch("/api/academic-calendar/notify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    eventName: ev.title,
+                    date: fmtDisplay(ev.date),
+                    time: ev.time
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to send notification.");
+            toast.success(data.message || "Alert sent to all teachers.");
+        } catch (err) {
+            toast.error(err.message || "Failed to send alert.");
+        } finally {
+            setNotifyingId(null);
+        }
     };
 
     const handlePrint = useReactToPrint({
@@ -275,6 +298,13 @@ export default function AcademicCalendarManager({ apiKey }) {
                                                                     onClick={() => setDeletingId(ev._id)}>
                                                                     <Trash2 className="h-3.5 w-3.5" />
                                                                 </Button>
+                                                                <Button variant="ghost" size="icon"
+                                                                    className="h-7 w-7 text-blue-500 hover:text-blue-600"
+                                                                    title="Send Alert to Teachers"
+                                                                    onClick={() => handleNotify(ev)}
+                                                                    disabled={notifyingId === ev._id}>
+                                                                    {notifyingId === ev._id ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
+                                                                </Button>
                                                             </div>
                                                         </TableCell>
                                                     </TableRow>
@@ -328,6 +358,13 @@ export default function AcademicCalendarManager({ apiKey }) {
                                             className="h-7 w-7 text-destructive hover:text-destructive"
                                             onClick={() => setDeletingId(ev._id)}>
                                             <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon"
+                                            className="h-7 w-7 text-blue-500 hover:text-blue-600"
+                                            title="Send Alert to Teachers"
+                                            onClick={() => handleNotify(ev)}
+                                            disabled={notifyingId === ev._id}>
+                                            {notifyingId === ev._id ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
                                         </Button>
                                     </div>
                                 </div>
