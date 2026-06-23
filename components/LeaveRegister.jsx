@@ -278,7 +278,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                       }}
                     >
                       <TableCell
-                        className={`text-center font-medium text-sm ${stats.pendingLeaves > 0 || stats.overdueLeaves > 0
+                        className={`text-center align-middle font-medium text-sm ${stats.pendingLeaves > 0 || stats.overdueLeaves > 0
                           ? "text-red-900 dark:text-red-100"
                           : ""
                           }`}
@@ -294,15 +294,13 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                                 {student.name?.charAt(0)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="sm:hidden text-[9px] text-muted-foreground whitespace-nowrap">
+                            <span className="text-[9px] text-muted-foreground whitespace-nowrap">
                               {student._id}
                             </span>
                           </div>
                           <div className="space-y-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="hidden sm:inline-block text-[10px] text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border whitespace-nowrap">
-                                {student._id}
-                              </span>
+
                               <span
                                 className={`font-semibold text-xs whitespace-normal break-words max-w-[150px] sm:max-w-none ${stats.pendingLeaves > 0 || stats.overdueLeaves > 0
                                   ? "text-red-900 dark:text-red-100"
@@ -313,17 +311,27 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-2 text-xs">
-                              <span
-                                className={`${stats.pendingLeaves > 0 ||
-                                  stats.overdueLeaves > 0
-                                  ? "text-red-700 dark:text-red-300"
-                                  : "text-muted-foreground"
-                                  }`}
-                              >
-                                {stats.totalLeaves || 0}{" "}
-                                {stats.totalLeaves <= 1 ? "leave" : "leaves"}
-                              </span>
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-2 text-xs">
+                                <span
+                                  className={`${stats.pendingLeaves > 0 ||
+                                    stats.overdueLeaves > 0
+                                    ? "text-red-700 dark:text-red-300"
+                                    : "text-muted-foreground"
+                                    }`}
+                                >
+                                  {stats.totalLeaves || 0}{" "}
+                                  {stats.totalLeaves <= 1 ? "leave" : "leaves"}
+                                </span>
+                              </div>
+                              {(stats.pendingLeaves > 0 || stats.overdueLeaves > 0) && latestRecord?.leaveReason && (
+                                <span 
+                                  className="text-[11px] text-red-600/90 dark:text-red-400/90 italic truncate max-w-[150px] sm:max-w-[250px]" 
+                                  title={latestRecord.leaveReason}
+                                >
+                                  {latestRecord.leaveReason}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -342,7 +350,9 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
                                   Pending
                                 </Badge>
                               )}
-                              {getStatusBadge(latestRecord.remark)}
+                              {(!latestRecord.remark && (stats.pendingLeaves > 0 || stats.overdueLeaves > 0)) 
+                                ? null 
+                                : getStatusBadge(latestRecord.remark)}
                             </div>
                             <div
                               className={`text-xs px-2 ${stats.pendingLeaves > 0

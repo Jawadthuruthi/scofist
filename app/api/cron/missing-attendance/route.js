@@ -7,6 +7,17 @@ import User from "@/models/User";
 import Class from "@/models/Class";
 import Subject from "@/models/Subject";
 
+// Helper to get consistent YYYY-MM-DD from any Date source using Local Time
+const getDS = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export async function GET(req) {
   try {
     webpush.setVapidDetails(
@@ -35,6 +46,7 @@ export async function GET(req) {
 
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+    const todayDS = getDS(today);
 
     // 3. Fetch timetables that have slots for today
     const timeTables = await TimeTable.find({
@@ -46,13 +58,19 @@ export async function GET(req) {
     timeTables.forEach((tt) => {
       tt.timeSlots.forEach((slot) => {
         if (slot.day === todayDay) {
-          expectedPeriods.push({
-            classId: tt.classId._id.toString(),
-            className: tt.classId.name,
-            subjectId: slot.subjectId?.toString(),
-            teacherId: slot.teacherId?.toString(),
-            periodNumber: slot.periodNumber,
-          });
+          const effectiveValidFrom = slot.validFrom || tt.updatedAt || tt.createdAt;
+          const validFromDS = effectiveValidFrom ? getDS(effectiveValidFrom) : null;
+          const validToDS = slot.validTo ? getDS(slot.validTo) : null;
+
+          if ((!validFromDS || todayDS >= validFromDS) && (!validToDS || todayDS < validToDS)) {
+            expectedPeriods.push({
+              classId: tt.classId._id.toString(),
+              className: tt.classId.name,
+              subjectId: slot.subjectId?.toString(),
+              teacherId: slot.teacherId?.toString(),
+              periodNumber: slot.periodNumber,
+            });
+          }
         }
       });
     });
