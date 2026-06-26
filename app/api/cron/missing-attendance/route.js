@@ -6,6 +6,7 @@ import Attendance from "@/models/Attendance";
 import User from "@/models/User";
 import Class from "@/models/Class";
 import Subject from "@/models/Subject";
+import Settings from "@/models/Settings";
 
 // Helper to get consistent YYYY-MM-DD from any Date source using Local Time
 const getDS = (date) => {
@@ -34,6 +35,28 @@ export async function GET(req) {
     }
 
     await connectToDB();
+
+
+    // 1b. Check if today is a non-working day via Settings — skip entirely if so
+    const settings = await Settings.findOne({}).lean();
+
+    // Get today's IST date string for comparison with nonWorkingDays
+    const nowForCheck = new Date();
+    const todayISTDateStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(nowForCheck); // returns YYYY-MM-DD
+
+    const isNonWorkingByToggle = !settings?.general?.isWorkingDay;
+    const isNonWorkingByHistory = (settings?.general?.nonWorkingDays || []).some(
+      (dt) => new Date(dt).toISOString().split("T")[0] === todayISTDateStr
+    );
+
+    if (isNonWorkingByToggle || isNonWorkingByHistory) {
+      return NextResponse.json(
+        { message: `College is closed today (${todayISTDateStr} is a non-working day). No notifications sent.` },
+        { status: 200 }
+      );
+    }
 
     // 2. Get today's day of week and date boundaries
     const today = new Date();

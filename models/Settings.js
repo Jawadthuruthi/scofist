@@ -17,6 +17,11 @@ const SettingsSchema = new Schema(
           return !this.isWorkingDay;
         },
       },
+      // Persistent log of all dates marked as non-working by the college admin
+      nonWorkingDays: {
+        type: [Date],
+        default: [],
+      },
     },
     institution: {
       name: { type: String, required: true, trim: true },
@@ -427,7 +432,7 @@ const SettingsSchema = new Schema(
 SettingsSchema.index({}, { unique: true });
 
 // Check if model exists but is missing the new fields (Hot Reload fix)
-if (models.Settings && (!models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel"))) {
+if (models.Settings && (!models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel") || !models.Settings.schema.path("general.nonWorkingDays"))) {
   console.log("Detecting outdated Settings model. Refreshing...");
   delete models.Settings;
 }

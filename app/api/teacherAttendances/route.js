@@ -7,7 +7,6 @@ import User from "@/models/User";
 import Class from "@/models/Class";
 import Subject from "@/models/Subject";
 import Settings from "@/models/Settings";
-import { models } from "mongoose";
 import { NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic';
@@ -67,19 +66,18 @@ export async function GET(req, res) {
     if (isNaN(startDate.getTime())) startDate = new Date();
     if (isNaN(endDate.getTime())) endDate = new Date(startDate);
 
-    // 2. Fetch TimeTables, Settings, and Holidays for synthesis
-    const [timeTables, settings, holidays] = await Promise.all([
+    // 2. Fetch TimeTables and Settings for synthesis
+    const [timeTables, settings] = await Promise.all([
       TimeTable.find({}).lean(),
       Settings.findOne({}).lean(),
-      models.AcademicCalendar ? models.AcademicCalendar.find({
-        date: { $gte: startDate, $lte: endDate },
-        type: "Holiday"
-      }).lean() : []
     ]);
 
-    // Pre-process holidays into a quick lookup map
-    const holidayMap = new Map();
-    holidays.forEach(h => holidayMap.set(getDS(h.date), true));
+    // Build a fast lookup set of non-working date strings from Settings
+    const nonWorkingDaySet = new Set(
+      (settings?.general?.nonWorkingDays || []).map(
+        (dt) => getDS(dt)
+      )
+    );
 
     // 6. Synthesize Attendance History
     const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -154,11 +152,10 @@ export async function GET(req, res) {
         const dateString = getDS(curr);
         const daySlots = teacherSchedules[dayName] || [];
 
-        // Determine if this day is a working day
-        const isHoliday = holidayMap.has(dateString);
-        const isImplicitHoliday = (dateString >= "2026-04-01" && dateString <= "2026-04-10") || (dateString >= "2026-05-25" && dateString <= "2026-06-05") || (dateString >= "2026-02-12" && dateString <= "2026-02-28");
-        const isWorkingDay = !isHoliday && !isImplicitHoliday;
-        // For today, the global toggle is the final truth. For other days, use the holiday calendar.
+        // Determine if this day is a working day based solely on Settings nonWorkingDays
+        const isNonWorkingDay = nonWorkingDaySet.has(dateString);
+        const isWorkingDay = !isNonWorkingDay;
+        // For today, the global toggle is the final truth. For past days, check nonWorkingDays log.
         const isEffectivelyWorking = (dateString === todayDS) ? isTodayGlobalWorking : isWorkingDay;
 
         daySlots.forEach(slot => {

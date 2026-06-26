@@ -407,6 +407,33 @@ export async function PUT(req) {
           data.isWorkingDay ?? existingSettings?.general?.isWorkingDay,
         occasion: data.occasion ?? existingSettings?.general?.occasion,
       };
+
+      // Auto-track non-working days: record today's date when admin marks it as non-working
+      if (data.isWorkingDay === false) {
+        // Get today's date as a UTC midnight Date so it matches the stored format
+        const todayIST = new Date();
+        const y = todayIST.getUTCFullYear();
+        const m = String(todayIST.getUTCMonth() + 1).padStart(2, "0");
+        const d = String(todayIST.getUTCDate()).padStart(2, "0");
+        const todayMidnight = new Date(`${y}-${m}-${d}T00:00:00.000Z`);
+
+        // Push only if not already recorded (avoid duplicates)
+        const alreadyRecorded = (existingSettings?.general?.nonWorkingDays || []).some(
+          (dt) => new Date(dt).toISOString().split("T")[0] === `${y}-${m}-${d}`
+        );
+        if (!alreadyRecorded) {
+          updateData["general.nonWorkingDays"] = [
+            ...(existingSettings?.general?.nonWorkingDays || []),
+            todayMidnight,
+          ];
+        }
+      } else if (data.isWorkingDay === true) {
+        // Remove today from nonWorkingDays if the admin turns working day back on
+        const todayDS = new Date().toISOString().split("T")[0];
+        updateData["general.nonWorkingDays"] = (existingSettings?.general?.nonWorkingDays || []).filter(
+          (dt) => new Date(dt).toISOString().split("T")[0] !== todayDS
+        );
+      }
     }
 
     // Festival - Build carefully
