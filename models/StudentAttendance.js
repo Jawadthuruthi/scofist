@@ -245,9 +245,12 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
 
   // Custom sort order
   const classOrder = [
+    "PLUS ONE",
     "PLUS ONE A",
     "PLUS ONE B",
     "PLUS TWO",
+    "PLUS TWO A",
+    "PLUS TWO B",
     "DEGREE FIRST YEAR",
     "DEGREE SECOND YEAR",
     "DEGREE THIRD YEAR",

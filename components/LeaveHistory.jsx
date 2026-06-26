@@ -9,9 +9,12 @@ import { Badge } from "@/components/ui/badge";
 export default function LeaveHistory({ classes, students, apiKey, role, teacherClassId }) {
     const sortedClasses = useMemo(() => {
         const classOrder = [
+            "PLUS ONE",
             "PLUS ONE A",
             "PLUS ONE B",
             "PLUS TWO",
+            "PLUS TWO A",
+            "PLUS TWO B",
             "DEGREE FIRST YEAR",
             "DEGREE SECOND YEAR",
             "DEGREE THIRD YEAR",
