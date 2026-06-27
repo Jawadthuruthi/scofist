@@ -161,8 +161,161 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
     const [isGradingDialogOpen, setIsGradingDialogOpen] = useState(false);
 
     const printRef = useRef(null);
+    const fileInputRef = useRef(null);
     const clientRole = Cookies.get("active-role");
     const activeRole = serverRole || clientRole;
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const XLSX = await import("xlsx");
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            if (jsonData.length < 2) {
+                toast.error("File is empty or invalid format");
+                return;
+            }
+
+            const headers = jsonData[0] || [];
+            
+            const admNoIndex = headers.findIndex(h => h && typeof h === "string" && h.toLowerCase().replace(/\./g, "").includes("adm"));
+            const nameIndex = headers.findIndex(h => h && typeof h === "string" && (h.toLowerCase().includes("student") || h.toLowerCase() === "name"));
+            const idIndex = headers.findIndex(h => h && typeof h === "string" && h.toLowerCase() === "id");
+
+            let dataStartIndex = 1;
+            let subHeaders = null;
+
+            if (jsonData.length > 1) {
+                const row2 = jsonData[1];
+                const nameCell = nameIndex >= 0 ? row2[nameIndex] : null;
+                const admCell = admNoIndex >= 0 ? row2[admNoIndex] : null;
+                const hasSubColText = row2.some((cell, idx) => idx > Math.max(nameIndex, admNoIndex, idIndex) && cell && typeof cell === "string");
+                
+                if (!nameCell && !admCell && hasSubColText) {
+                    subHeaders = row2;
+                    dataStartIndex = 2;
+                }
+            }
+
+            const startIndex = Math.max(nameIndex, admNoIndex, idIndex) + 1;
+            const nonSubjectCols = ["rank", "total", "%", "remark"];
+            const subjectHeaders = [];
+            const newSubjects = [...subjects];
+            
+            let currentSubjIndex = -1;
+            const maxLen = Math.max(headers.length, subHeaders ? subHeaders.length : 0);
+
+            for (let i = startIndex; i < maxLen; i++) {
+                const h = headers[i];
+                const sh = subHeaders ? subHeaders[i] : null;
+                
+                const lowerH = h && typeof h === "string" ? h.toLowerCase().trim() : "";
+                if (lowerH && nonSubjectCols.includes(lowerH)) {
+                    currentSubjIndex = -1; 
+                    continue;
+                }
+
+                if (h && typeof h === "string" && h.trim() !== "") {
+                    let sIndex = newSubjects.findIndex(s => s.name.toLowerCase() === h.toLowerCase().trim());
+                    if (sIndex === -1) {
+                        sIndex = newSubjects.length;
+                        newSubjects.push({ name: h.trim(), maxMark: 100, passMark: 40, subColumns: [] });
+                    }
+                    currentSubjIndex = sIndex;
+                }
+
+                if (currentSubjIndex !== -1) {
+                    if (sh && typeof sh === "string" && sh.trim() !== "") {
+                        const subj = newSubjects[currentSubjIndex];
+                        if (!subj.subColumns) subj.subColumns = [];
+                        let scIndex = subj.subColumns.findIndex(sc => sc.name.toLowerCase() === sh.toLowerCase().trim());
+                        if (scIndex === -1) {
+                            scIndex = subj.subColumns.length;
+                            subj.subColumns.push({ name: sh.trim(), maxMark: 100, passMark: 40 });
+                        }
+                        subjectHeaders.push({ index: i, subjIndex: currentSubjIndex, subColIndex: scIndex });
+                    } else {
+                        subjectHeaders.push({ index: i, subjIndex: currentSubjIndex, subColIndex: -1 });
+                    }
+                }
+            }
+
+            if (newSubjects.length > 0) {
+                setSubjects(newSubjects);
+            }
+
+            const newMarksData = { ...marksData };
+
+            let currentAvailableStudents = [...availableStudents];
+            if (currentAvailableStudents.length === 0) {
+                try {
+                    const res = await fetch("/api/users?roles=Student&limit=5000");
+                    const data = await res.json();
+                    if (data.users) {
+                        currentAvailableStudents = data.users;
+                        setAvailableStudents(currentAvailableStudents);
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch all students", err);
+                }
+            }
+
+            jsonData.slice(dataStartIndex).forEach(row => {
+                const rowAdmNo = admNoIndex >= 0 ? String(row[admNoIndex] || "").trim() : null;
+                const rowName = nameIndex >= 0 ? String(row[nameIndex] || "").trim() : null;
+                const rowId = idIndex >= 0 ? String(row[idIndex] || "").trim() : null;
+
+                const matchedStudent = currentAvailableStudents.find(s => 
+                    (rowId && String(s._id) === rowId) ||
+                    (rowAdmNo && String(s.admissionNumber || s.admissionNo || s.studentSpecificField?.admissionNumber) === rowAdmNo) ||
+                    (rowName && s.name.toLowerCase() === rowName.toLowerCase())
+                );
+
+                if (matchedStudent) {
+                    if (!newMarksData[matchedStudent._id]) {
+                        newMarksData[matchedStudent._id] = {};
+                    }
+                    subjectHeaders.forEach((sh) => {
+                        const val = row[sh.index];
+                        if (val !== undefined && val !== null && val !== "") {
+                            if (sh.subColIndex !== -1) {
+                                if (!newMarksData[matchedStudent._id][sh.subjIndex] || typeof newMarksData[matchedStudent._id][sh.subjIndex] !== "object") {
+                                    newMarksData[matchedStudent._id][sh.subjIndex] = {};
+                                }
+                                newMarksData[matchedStudent._id][sh.subjIndex][sh.subColIndex] = Number(val) || 0;
+                            } else {
+                                newMarksData[matchedStudent._id][sh.subjIndex] = Number(val) || 0;
+                            }
+                        }
+                    });
+                }
+            });
+
+            setMarksData(newMarksData);
+            
+            const matchedIds = Object.keys(newMarksData);
+            if (matchedIds.length > 0) {
+                 const newSelected = [...new Set([...selectedStudentIds, ...matchedIds])];
+                 setSelectedStudentIds(newSelected);
+                 const pickedStudents = currentAvailableStudents.filter(s => newSelected.includes(s._id));
+                 setStudents(pickedStudents);
+                 setExamReady(true);
+                 toast.success(`Marks loaded! Matched ${matchedIds.length} student(s).`);
+            } else {
+                 toast.error("No students could be matched from the file. Please check Admission No, ID, or Name.");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to parse file");
+        }
+        
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    };
 
     // ── Refresh all exams helper
     const refreshAllExams = useCallback(async () => {
@@ -508,34 +661,43 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
     const stats = computeStats();
     const hasAnySubCols = subjects.some(s => (s.subColumns || []).length > 0);
 
-    const saveMarks = async () => {
+    const executeSave = async (
+        currentExamName,
+        currentSubjects,
+        currentClasses,
+        currentBatches,
+        currentActiveStudents,
+        currentMarksData,
+        currentGradingScale,
+        currentSelectedExam
+    ) => {
         setSavingMarks(true);
-        const validatedSubjects = subjects.map((s, i) => ({
+        const validatedSubjects = currentSubjects.map((s, i) => ({
             ...s,
             name: s.name.trim() || `Subject ${i + 1}`,
         }));
 
         // Build classIds from current selections
-        const classIds = [...new Set([...selectedClasses, ...selectedBatches])];
+        const classIds = [...new Set([...currentClasses, ...currentBatches])];
         // Also include class IDs from the existing exam if editing
-        if (selectedExam?.classIds?.length) {
-            selectedExam.classIds.forEach(id => { if (!classIds.includes(id)) classIds.push(id); });
+        if (currentSelectedExam?.classIds?.length) {
+            currentSelectedExam.classIds.forEach(id => { if (!classIds.includes(id)) classIds.push(id); });
         }
-        if (selectedExam?.classId && !classIds.includes(selectedExam.classId)) {
-            classIds.push(selectedExam.classId);
+        if (currentSelectedExam?.classId && !classIds.includes(currentSelectedExam.classId)) {
+            classIds.push(currentSelectedExam.classId);
         }
 
         const payload = {
-            examName,
+            examName: currentExamName,
             classIds,
-            classId: classIds[0] || selectedExam?.classId || "",
+            classId: classIds[0] || currentSelectedExam?.classId || "",
             subjects: validatedSubjects,
-            gradingScale,
-            students: activeStudents.map(st => ({
+            gradingScale: currentGradingScale,
+            students: currentActiveStudents.map(st => ({
                 studentId: st._id,
                 marks: validatedSubjects.reduce((acc, subj, i) => {
                     if (subj.subColumns && subj.subColumns.length > 0) {
-                        const markObj = marksData[st._id]?.[i];
+                        const markObj = currentMarksData[st._id]?.[i];
                         if (markObj && typeof markObj === "object") {
                             const scData = subj.subColumns.reduce((scAcc, sc, j) => {
                                 const v = markObj[j];
@@ -545,7 +707,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                             if (Object.keys(scData).length > 0) acc[subj.name] = scData;
                         }
                     } else {
-                        const val = marksData[st._id]?.[i];
+                        const val = currentMarksData[st._id]?.[i];
                         if (val !== undefined && val !== "") acc[subj.name] = val;
                     }
                     return acc;
@@ -553,8 +715,8 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
             })),
         };
 
-        const method = selectedExam ? "PUT" : "POST";
-        const url = selectedExam ? `/api/marks/${selectedExam._id}` : `/api/marks`;
+        const method = currentSelectedExam ? "PUT" : "POST";
+        const url = currentSelectedExam ? `/api/marks/${currentSelectedExam._id}` : `/api/marks`;
 
         try {
             const res = await fetch(url, {
@@ -566,7 +728,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
             if (data.success) {
                 setShowSavedPopup(true);
                 setTimeout(() => setShowSavedPopup(false), 2500);
-                const savedId = data.data?._id || selectedExam?._id;
+                const savedId = data.data?._id || currentSelectedExam?._id;
                 await refreshAllExams();
                 const updated = await fetch("/api/marks", { cache: "no-store" }).then(r => r.json());
                 const exams = updated.data || [];
@@ -575,7 +737,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                     setResultExam(thisExam);
                     setSubjects(thisExam.subjects);
                 }
-                if (!selectedExam) setSelectedExam(data.data);
+                if (!currentSelectedExam) setSelectedExam(data.data);
             } else {
                 toast.error(data.message || "Failed to save marks");
             }
@@ -584,6 +746,19 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
             toast.error("Network error occurred while saving");
         }
         setSavingMarks(false);
+    };
+
+    const saveMarks = async () => {
+        await executeSave(
+            examName,
+            subjects,
+            selectedClasses,
+            selectedBatches,
+            activeStudents,
+            marksData,
+            gradingScale,
+            selectedExam
+        );
     };
 
     const saveSettings = async () => {
@@ -1054,7 +1229,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                 </Button>
                             </div>
                         </div>
-                        <div>
+                        <div className="flex flex-col gap-2">
                             <Button
                                 onClick={handleOpenTable}
                                 disabled={!examName.trim() || selectedStudentIds.length === 0}
@@ -1062,6 +1237,22 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                             >
                                 <Save className="w-4 h-4" />
                                 Open Marks Table
+                            </Button>
+                            <input
+                                type="file"
+                                accept=".xlsx, .xls, .csv"
+                                className="hidden"
+                                ref={fileInputRef}
+                                onChange={handleFileUpload}
+                            />
+                            <Button
+                                variant="outline"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={!examName.trim()}
+                                className="w-full gap-2"
+                            >
+                                <FileSpreadsheet className="w-4 h-4" />
+                                Upload Marks File
                             </Button>
                         </div>
                     </div>
