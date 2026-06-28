@@ -43,7 +43,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
     });
 
     const [loading, setLoading] = useState(false);
-    const [data, setData] = useState({ students: [], attendanceMap: {}, leavesMap: {} });
+    const [data, setData] = useState({ students: [], attendanceMap: {}, leavesMap: {}, nonWorkingDaysMap: {} });
     const [daysInMonth, setDaysInMonth] = useState([]);
 
     const filteredClasses = classes;
@@ -340,14 +340,23 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                         <TableRow>
                             <TableHead className="w-[50px] sticky left-0 bg-secondary z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">Sl.No</TableHead>
                             <TableHead className="min-w-[150px] sticky left-[50px] bg-secondary z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">Student Name</TableHead>
-                            {daysInMonth.map(day => (
-                                <TableHead key={day.toISOString()} className={`text-center min-w-[30px] px-1 ${day.getDay() === 5 ? 'bg-red-50 text-red-600 print:bg-red-100' : ''}`}>
-                                    <div className="flex flex-col items-center">
-                                        <span className="text-xs font-bold">{day.getDate()}</span>
-                                        <span className="text-[9px] uppercase">{day.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>
-                                    </div>
-                                </TableHead>
-                            ))}
+                            {daysInMonth.map(day => {
+                                const dateKey = day.getDate();
+                                const isFriday = day.getDay() === 5;
+                                // Use 'in' check so empty-string occasions (legacy dates) are still treated as non-working
+                                const isNonWorkingDay = !isFriday && (dateKey in (data.nonWorkingDaysMap || {}));
+                                return (
+                                    <TableHead key={day.toISOString()} className={`text-center min-w-[30px] px-1 ${
+                                        isFriday ? 'bg-red-50 text-red-600 print:bg-red-100' :
+                                        isNonWorkingDay ? 'bg-orange-50 text-orange-600 print:bg-orange-100' : ''
+                                    }`}>
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-xs font-bold">{day.getDate()}</span>
+                                            <span className="text-[9px] uppercase">{day.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>
+                                        </div>
+                                    </TableHead>
+                                );
+                            })}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -379,6 +388,9 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                         // Determine status: Database
                                         const isPresent = entry?.present;
                                         const isFriday = day.getDay() === 5;
+                                        const occasionName = data.nonWorkingDaysMap?.[dateKey];
+                                        // Use 'in' check so empty-string occasions (legacy dates) are still non-working
+                                        const isNonWorkingDay = !isFriday && (dateKey in (data.nonWorkingDaysMap || {}));
 
                                         if (isFriday) {
                                             const isMiddle = index === Math.floor(data.students.length / 2);
@@ -398,6 +410,27 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                                         {isMiddle && (
                                                             <span className="absolute z-0 text-xl text-red-300 font-bold tracking-[1em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
                                                                 Friday
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            );
+                                        }
+
+                                        if (isNonWorkingDay) {
+                                            const isMiddle = index === Math.floor(data.students.length / 2);
+                                            const borderTop = index === 0 ? '' : 'border-t-0 print:border-t-0';
+                                            const borderBottom = index === data.students.length - 1 ? '' : 'border-b-0 print:border-b-0';
+
+                                            return (
+                                                <TableCell
+                                                    key={day.toISOString()}
+                                                    className={`text-center p-0 border-l bg-orange-50/50 print:bg-orange-50 align-middle ${borderTop} ${borderBottom}`}
+                                                >
+                                                    <div className="flex items-center justify-center w-full h-12 relative overflow-visible">
+                                                        {isMiddle && occasionName && (
+                                                            <span className="absolute z-0 text-xl text-orange-300 font-bold tracking-[0.5em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
+                                                                {occasionName}
                                                             </span>
                                                         )}
                                                     </div>

@@ -6,6 +6,7 @@ import Class from "@/models/Class";
 import Subject from "@/models/Subject";
 import Attendance from "@/models/Attendance";
 import LeaveRecord from "@/models/LeaveRecord";
+import Settings from "@/models/Settings";
 
 // Helper to validate User via x-user-id header
 async function validateUser(request) {
@@ -188,10 +189,106 @@ export async function GET(request) {
             }
         });
 
+        // 4. Fetch non-working days from Settings for this month/year
+        const nonWorkingDaysMap = {}; // day (1-31) -> occasion name
+        try {
+            const settings = await Settings.findOne({}).select("general").lean();
+            const log = settings?.general?.nonWorkingDaysLog || [];
+            const legacyDates = settings?.general?.nonWorkingDays || [];
+            const currentOccasion = settings?.general?.occasion || "";
+            const isCurrentlyNonWorking = settings?.general?.isWorkingDay === false;
+
+            // Primary: populate from nonWorkingDaysLog — each entry has its own exact occasion
+            // Dates are stored as IST-aligned UTC midnight (YYYY-MM-DDT00:00:00.000Z)
+            log.forEach((entry) => {
+                const d = new Date(entry.date);
+                if (d.getUTCFullYear() === year && d.getUTCMonth() === month) {
+                    nonWorkingDaysMap[d.getUTCDate()] = entry.occasion || "";
+                }
+            });
+
+            // For legacy dates (in nonWorkingDays but not in nonWorkingDaysLog):
+            // Find the LATEST continuous block of dates in this month and apply
+            // general.occasion only to that block. Earlier dates from different
+            // occasion periods get no label.
+            const monthLegacyDays = legacyDates
+                .map(dt => new Date(dt))
+                .filter(d => d.getUTCFullYear() === year && d.getUTCMonth() === month)
+                .map(d => d.getUTCDate())
+                .sort((a, b) => a - b);
+
+            if (monthLegacyDays.length > 0) {
+                const daySet = new Set(monthLegacyDays);
+                const maxDay = monthLegacyDays[monthLegacyDays.length - 1];
+
+                // Walk backwards from maxDay; Fridays are always non-working so
+                // they don't count as a "gap" even if absent from the array
+                let blockStart = maxDay;
+                for (let day = maxDay - 1; day >= 1; day--) {
+                    const dayOfWeek = new Date(Date.UTC(year, month, day)).getUTCDay();
+                    const isFriday = dayOfWeek === 5;
+                    if (daySet.has(day)) {
+                        blockStart = day; // extend the block back
+                    } else if (isFriday) {
+                        continue; // Friday gap is allowed — keep walking back
+                    } else {
+                        break; // real gap — this is the block boundary
+                    }
+                }
+
+            // Apply currentOccasion only to the latest block; label older dates as empty
+                monthLegacyDays.forEach(day => {
+                    if (!(day in nonWorkingDaysMap)) {
+                        nonWorkingDaysMap[day] = day >= blockStart ? currentOccasion : "";
+                    }
+                });
+            }
+
+            // Ongoing vacation gap fill: if the vacation is currently active, any missing days
+            // between the latest recorded legacy date and yesterday are automatically part of the vacation.
+            // This covers weekends or days the admin didn't open the site.
+            if (isCurrentlyNonWorking) {
+                const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+                const todayYear = nowIST.getUTCFullYear();
+                const todayMonth = nowIST.getUTCMonth();
+                const todayDate = nowIST.getUTCDate();
+                
+                if (todayYear === year && todayMonth === month && monthLegacyDays.length > 0) {
+                    const maxDay = monthLegacyDays[monthLegacyDays.length - 1];
+                    // Fill any unrecorded days from maxDay + 1 up to yesterday
+                    for (let day = maxDay + 1; day < todayDate; day++) {
+                        if (!(day in nonWorkingDaysMap)) {
+                            nonWorkingDaysMap[day] = currentOccasion;
+                        }
+                    }
+                }
+
+                // Only add today if it is already in nonWorkingDays (explicitly recorded)
+                const todayInLegacy = legacyDates.some(dt => {
+                    const d = new Date(dt);
+                    return d.getUTCFullYear() === todayYear && d.getUTCMonth() === todayMonth && d.getUTCDate() === todayDate;
+                });
+                const todayInLog = log.some(entry => {
+                    const d = new Date(entry.date);
+                    return d.getUTCFullYear() === todayYear && d.getUTCMonth() === todayMonth && d.getUTCDate() === todayDate;
+                });
+                if ((todayInLegacy || todayInLog) && todayYear === year && todayMonth === month) {
+                    if (!(todayDate in nonWorkingDaysMap)) {
+                        nonWorkingDaysMap[todayDate] = currentOccasion;
+                    }
+                }
+            }
+
+            console.log("[AttendanceSheet] nonWorkingDays count:", legacyDates.length, "| nonWorkingDaysLog count:", log.length, "| month:", month, "year:", year, "| map:", JSON.stringify(nonWorkingDaysMap));
+        } catch (settingsErr) {
+            console.error("Failed to fetch non-working days from settings:", settingsErr);
+        }
+
         return NextResponse.json({
             students,
             attendanceMap,
-            leavesMap
+            leavesMap,
+            nonWorkingDaysMap
         });
 
     } catch (error) {

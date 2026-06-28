@@ -22,6 +22,16 @@ const SettingsSchema = new Schema(
         type: [Date],
         default: [],
       },
+      // Log with occasion name per non-working date
+      nonWorkingDaysLog: {
+        type: [
+          {
+            date: { type: Date, required: true },
+            occasion: { type: String, trim: true, default: "" },
+          },
+        ],
+        default: [],
+      },
     },
     institution: {
       name: { type: String, required: true, trim: true },
@@ -432,7 +442,7 @@ const SettingsSchema = new Schema(
 SettingsSchema.index({}, { unique: true });
 
 // Check if model exists but is missing the new fields (Hot Reload fix)
-if (models.Settings && (!models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel") || !models.Settings.schema.path("general.nonWorkingDays"))) {
+if (models.Settings && (!models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel") || !models.Settings.schema.path("general.nonWorkingDays") || !models.Settings.schema.path("general.nonWorkingDaysLog"))) {
   console.log("Detecting outdated Settings model. Refreshing...");
   delete models.Settings;
 }

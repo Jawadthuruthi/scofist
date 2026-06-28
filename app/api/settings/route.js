@@ -402,25 +402,28 @@ export async function PUT(req) {
 
     // General
     if (data.isWorkingDay !== undefined || data.occasion !== undefined) {
-      updateData.general = {
-        isWorkingDay:
-          data.isWorkingDay ?? existingSettings?.general?.isWorkingDay,
-        occasion: data.occasion ?? existingSettings?.general?.occasion,
-      };
+      // Use dot notation for all general fields to avoid MongoDB $set conflicts
+      // with general.nonWorkingDays and general.nonWorkingDaysLog sub-paths
+      if (data.isWorkingDay !== undefined) {
+        updateData["general.isWorkingDay"] = data.isWorkingDay;
+      }
+      if (data.occasion !== undefined) {
+        updateData["general.occasion"] = data.occasion;
+      }
 
-      // Auto-track non-working days: record today's date when admin marks it as non-working
+      // Auto-track non-working days: record today's date in IST when admin marks it as non-working
       if (data.isWorkingDay === false) {
-        // Get today's date in IST to match the day it was clicked in India
         const now = new Date();
         const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
         const y = todayIST.getUTCFullYear();
         const m = String(todayIST.getUTCMonth() + 1).padStart(2, "0");
         const d = String(todayIST.getUTCDate()).padStart(2, "0");
-        const todayMidnight = new Date(`${y}-${m}-${d}T00:00:00.000Z`);
+        const todayDateStr = `${y}-${m}-${d}`;
+        const todayMidnight = new Date(`${todayDateStr}T00:00:00.000Z`);
 
-        // Push only if not already recorded (avoid duplicates)
+        // Push date only if not already recorded (avoid duplicates)
         const alreadyRecorded = (existingSettings?.general?.nonWorkingDays || []).some(
-          (dt) => new Date(dt).toISOString().split("T")[0] === `${y}-${m}-${d}`
+          (dt) => new Date(dt).toISOString().split("T")[0] === todayDateStr
         );
         if (!alreadyRecorded) {
           updateData["general.nonWorkingDays"] = [
@@ -428,37 +431,155 @@ export async function PUT(req) {
             todayMidnight,
           ];
         }
+
+        // Build the occasion name from what was submitted
+        const occasionName = data.occasion ?? existingSettings?.general?.occasion ?? "Holiday";
+
+        // Build a set of already-logged dates for quick lookup
+        const alreadyLoggedDates = new Set(
+          (existingSettings?.general?.nonWorkingDaysLog || []).map(
+            (entry) => new Date(entry.date).toISOString().split("T")[0]
+          )
+        );
+
+        // Start with existing log entries
+        const newLog = [...(existingSettings?.general?.nonWorkingDaysLog || [])];
+
+        // Remove and re-add today's entry (always upsert with latest occasion name)
+        const newLogWithoutToday = newLog.filter(
+          (entry) => new Date(entry.date).toISOString().split("T")[0] !== todayDateStr
+        );
+        newLogWithoutToday.push({ date: todayMidnight, occasion: occasionName });
+
+        // Helper to get the latest continuous block of dates (ignoring Fridays as gaps)
+        const getLatestBlockStrs = (datesArray) => {
+          if (!datesArray || datesArray.length === 0) return [];
+          const sorted = [...datesArray].map(dt => new Date(dt)).sort((a, b) => a - b);
+          const maxDate = sorted[sorted.length - 1];
+          const block = new Set();
+          let curr = maxDate;
+          const dateStrs = new Set(sorted.map(d => d.toISOString().split("T")[0]));
+          
+          for (let i = 0; i < 365; i++) { // safety limit
+            const currStr = curr.toISOString().split("T")[0];
+            const isFriday = curr.getUTCDay() === 5;
+            if (dateStrs.has(currStr)) {
+              block.add(currStr);
+              curr = new Date(curr.getTime() - 24 * 60 * 60 * 1000);
+            } else if (isFriday) {
+              curr = new Date(curr.getTime() - 24 * 60 * 60 * 1000);
+            } else {
+              break; // real gap breaks the block
+            }
+          }
+          return block;
+        };
+
+        // Also backfill unlogged dates, but ONLY within the latest continuous block
+        // This ensures dates like June 25-28 get the current occasion, but old legacy dates from May are ignored
+        const allNonWorkingDates = alreadyRecorded
+          ? (existingSettings?.general?.nonWorkingDays || [])
+          : [...(existingSettings?.general?.nonWorkingDays || []), todayMidnight];
+
+        const latestBlockStrs = getLatestBlockStrs(allNonWorkingDates);
+
+        allNonWorkingDates.forEach((dt) => {
+          const dateStr = new Date(dt).toISOString().split("T")[0];
+          if (latestBlockStrs.has(dateStr) && dateStr !== todayDateStr && !alreadyLoggedDates.has(dateStr)) {
+            // This date belongs to the current block and has no log entry yet — backfill it
+            newLogWithoutToday.push({
+              date: new Date(`${dateStr}T00:00:00.000Z`),
+              occasion: occasionName,
+            });
+          }
+        });
+
+        updateData["general.nonWorkingDaysLog"] = newLogWithoutToday;
+
       } else if (data.isWorkingDay === true) {
-        // Remove today from nonWorkingDays if the admin turns working day back on
+        // Remove today from nonWorkingDays and nonWorkingDaysLog (IST date)
         const now = new Date();
         const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
         const todayDS = `${todayIST.getUTCFullYear()}-${String(todayIST.getUTCMonth() + 1).padStart(2, "0")}-${String(todayIST.getUTCDate()).padStart(2, "0")}`;
-        
-        let newNonWorkingDays = [...(existingSettings?.general?.nonWorkingDays || [])];
 
-        // Backfill intermediate days if it was previously false
+        let newNonWorkingDays = [...(existingSettings?.general?.nonWorkingDays || [])];
+        let newNonWorkingDaysLog = [...(existingSettings?.general?.nonWorkingDaysLog || [])];
+
+        // The occasion that was active during the non-working period
+        const prevOccasion = existingSettings?.general?.occasion || "Holiday";
+
+        // Backfill intermediate days if it was previously false (multi-day non-working period)
         if (existingSettings?.general?.isWorkingDay === false && existingSettings?.updatedAt) {
-           let curr = new Date(existingSettings.updatedAt);
-           // iterate day by day until today
-           while (curr <= now) {
-             const cIST = new Date(curr.getTime() + 5.5 * 60 * 60 * 1000);
-             const y = cIST.getUTCFullYear();
-             const m = String(cIST.getUTCMonth() + 1).padStart(2, "0");
-             const d = String(cIST.getUTCDate()).padStart(2, "0");
-             const ds = `${y}-${m}-${d}`;
-             if (ds !== todayDS) {
-               const cMidnight = new Date(`${ds}T00:00:00.000Z`);
-               const alreadyRecorded = newNonWorkingDays.some(dt => new Date(dt).toISOString().split("T")[0] === ds);
-               if (!alreadyRecorded) {
-                 newNonWorkingDays.push(cMidnight);
-               }
-             }
-             curr = new Date(curr.getTime() + 24 * 60 * 60 * 1000); // add 1 day
-           }
+          let curr = new Date(existingSettings.updatedAt);
+          while (curr <= now) {
+            const cIST = new Date(curr.getTime() + 5.5 * 60 * 60 * 1000);
+            const cy = cIST.getUTCFullYear();
+            const cm = String(cIST.getUTCMonth() + 1).padStart(2, "0");
+            const cd = String(cIST.getUTCDate()).padStart(2, "0");
+            const ds = `${cy}-${cm}-${cd}`;
+            if (ds !== todayDS) {
+              const cMidnight = new Date(`${ds}T00:00:00.000Z`);
+              const alreadyRecorded = newNonWorkingDays.some(dt => new Date(dt).toISOString().split("T")[0] === ds);
+              if (!alreadyRecorded) {
+                newNonWorkingDays.push(cMidnight);
+              }
+              const logAlreadyRecorded = newNonWorkingDaysLog.some(entry => new Date(entry.date).toISOString().split("T")[0] === ds);
+              if (!logAlreadyRecorded) {
+                newNonWorkingDaysLog.push({ date: new Date(`${ds}T00:00:00.000Z`), occasion: prevOccasion });
+              }
+            }
+            curr = new Date(curr.getTime() + 24 * 60 * 60 * 1000);
+          }
         }
+
+        // Helper to get the latest continuous block of dates (ignoring Fridays as gaps)
+        const getLatestBlockStrsTrue = (datesArray) => {
+          if (!datesArray || datesArray.length === 0) return [];
+          const sorted = [...datesArray].map(dt => new Date(dt)).sort((a, b) => a - b);
+          const maxDate = sorted[sorted.length - 1];
+          const block = new Set();
+          let curr = maxDate;
+          const dateStrs = new Set(sorted.map(d => d.toISOString().split("T")[0]));
+          
+          for (let i = 0; i < 365; i++) {
+            const currStr = curr.toISOString().split("T")[0];
+            const isFriday = curr.getUTCDay() === 5;
+            if (dateStrs.has(currStr)) {
+              block.add(currStr);
+              curr = new Date(curr.getTime() - 24 * 60 * 60 * 1000);
+            } else if (isFriday) {
+              curr = new Date(curr.getTime() - 24 * 60 * 60 * 1000);
+            } else {
+              break;
+            }
+          }
+          return block;
+        };
+
+        // Also backfill existing nonWorkingDays that don't have a log entry yet,
+        // but ONLY for the latest continuous block (prevents overwriting old disconnected legacy dates)
+        const latestBlockStrsTrue = getLatestBlockStrsTrue(newNonWorkingDays);
+        
+        newNonWorkingDays.forEach((dt) => {
+          const dateStr = new Date(dt).toISOString().split("T")[0];
+          if (latestBlockStrsTrue.has(dateStr) && dateStr !== todayDS) {
+            const logAlreadyRecorded = newNonWorkingDaysLog.some(
+              (entry) => new Date(entry.date).toISOString().split("T")[0] === dateStr
+            );
+            if (!logAlreadyRecorded) {
+              newNonWorkingDaysLog.push({
+                date: new Date(`${dateStr}T00:00:00.000Z`),
+                occasion: prevOccasion,
+              });
+            }
+          }
+        });
 
         updateData["general.nonWorkingDays"] = newNonWorkingDays.filter(
           (dt) => new Date(dt).toISOString().split("T")[0] !== todayDS
+        );
+        updateData["general.nonWorkingDaysLog"] = newNonWorkingDaysLog.filter(
+          (entry) => new Date(entry.date).toISOString().split("T")[0] !== todayDS
         );
       }
     }
