@@ -410,8 +410,9 @@ export async function PUT(req) {
 
       // Auto-track non-working days: record today's date when admin marks it as non-working
       if (data.isWorkingDay === false) {
-        // Get today's date as a UTC midnight Date so it matches the stored format
-        const todayIST = new Date();
+        // Get today's date in IST to match the day it was clicked in India
+        const now = new Date();
+        const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
         const y = todayIST.getUTCFullYear();
         const m = String(todayIST.getUTCMonth() + 1).padStart(2, "0");
         const d = String(todayIST.getUTCDate()).padStart(2, "0");
@@ -429,8 +430,34 @@ export async function PUT(req) {
         }
       } else if (data.isWorkingDay === true) {
         // Remove today from nonWorkingDays if the admin turns working day back on
-        const todayDS = new Date().toISOString().split("T")[0];
-        updateData["general.nonWorkingDays"] = (existingSettings?.general?.nonWorkingDays || []).filter(
+        const now = new Date();
+        const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+        const todayDS = `${todayIST.getUTCFullYear()}-${String(todayIST.getUTCMonth() + 1).padStart(2, "0")}-${String(todayIST.getUTCDate()).padStart(2, "0")}`;
+        
+        let newNonWorkingDays = [...(existingSettings?.general?.nonWorkingDays || [])];
+
+        // Backfill intermediate days if it was previously false
+        if (existingSettings?.general?.isWorkingDay === false && existingSettings?.updatedAt) {
+           let curr = new Date(existingSettings.updatedAt);
+           // iterate day by day until today
+           while (curr <= now) {
+             const cIST = new Date(curr.getTime() + 5.5 * 60 * 60 * 1000);
+             const y = cIST.getUTCFullYear();
+             const m = String(cIST.getUTCMonth() + 1).padStart(2, "0");
+             const d = String(cIST.getUTCDate()).padStart(2, "0");
+             const ds = `${y}-${m}-${d}`;
+             if (ds !== todayDS) {
+               const cMidnight = new Date(`${ds}T00:00:00.000Z`);
+               const alreadyRecorded = newNonWorkingDays.some(dt => new Date(dt).toISOString().split("T")[0] === ds);
+               if (!alreadyRecorded) {
+                 newNonWorkingDays.push(cMidnight);
+               }
+             }
+             curr = new Date(curr.getTime() + 24 * 60 * 60 * 1000); // add 1 day
+           }
+        }
+
+        updateData["general.nonWorkingDays"] = newNonWorkingDays.filter(
           (dt) => new Date(dt).toISOString().split("T")[0] !== todayDS
         );
       }

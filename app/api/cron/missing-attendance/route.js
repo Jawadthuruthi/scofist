@@ -8,14 +8,15 @@ import Class from "@/models/Class";
 import Subject from "@/models/Subject";
 import Settings from "@/models/Settings";
 
-// Helper to get consistent YYYY-MM-DD from any Date source using Local Time
+// Helper to get consistent YYYY-MM-DD from any Date source using IST Time
 const getDS = (date) => {
   if (!date) return "";
   const d = new Date(date);
   if (isNaN(d.getTime())) return "";
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const istDate = new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
+  const year = istDate.getUTCFullYear();
+  const month = String(istDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(istDate.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -52,6 +53,19 @@ export async function GET(req) {
     );
 
     if (isNonWorkingByToggle || isNonWorkingByHistory) {
+      // If the college is closed by toggle but not yet in history, add it to the history
+      if (isNonWorkingByToggle && !isNonWorkingByHistory) {
+        const todayIST = new Date(nowForCheck.getTime() + 5.5 * 60 * 60 * 1000);
+        const y = todayIST.getUTCFullYear();
+        const m = String(todayIST.getUTCMonth() + 1).padStart(2, "0");
+        const d = String(todayIST.getUTCDate()).padStart(2, "0");
+        const todayMidnight = new Date(`${y}-${m}-${d}T00:00:00.000Z`);
+        
+        await Settings.updateOne({}, {
+          $addToSet: { 'general.nonWorkingDays': todayMidnight }
+        });
+      }
+
       return NextResponse.json(
         { message: `College is closed today (${todayISTDateStr} is a non-working day). No notifications sent.` },
         { status: 200 }

@@ -8,14 +8,15 @@ import Class from "@/models/Class";
 import Subject from "@/models/Subject";
 import { models } from "mongoose";
 
-// Helper to get consistent YYYY-MM-DD
+// Helper to get consistent YYYY-MM-DD using IST
 const getDS = (date) => {
   if (!date) return "";
   const d = new Date(date);
   if (isNaN(d.getTime())) return "";
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const istDate = new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
+  const year = istDate.getUTCFullYear();
+  const month = String(istDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(istDate.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 

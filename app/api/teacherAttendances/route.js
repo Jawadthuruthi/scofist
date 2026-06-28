@@ -11,14 +11,16 @@ import { NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic';
 
-// Helper to get consistent YYYY-MM-DD from any Date source using Local Time
+// Helper to get consistent YYYY-MM-DD from any Date source using IST Time
 const getDS = (date) => {
   if (!date) return "";
   const d = new Date(date);
   if (isNaN(d.getTime())) return "";
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  // Convert to IST
+  const istDate = new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
+  const year = istDate.getUTCFullYear();
+  const month = String(istDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(istDate.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -137,6 +139,16 @@ export async function GET(req, res) {
       Object.entries(teacherLookups).forEach(([key, actual]) => {
         const actualDate = new Date(actual.date);
         if (actualDate >= startDate && actualDate <= endDate) {
+          const dateString = getDS(actualDate);
+          const isNonWorkingDay = nonWorkingDaySet.has(dateString);
+          const isWorkingDay = !isNonWorkingDay;
+          const isEffectivelyWorking = (dateString === todayDS) ? isTodayGlobalWorking : isWorkingDay;
+
+          // Skip counting as absent if it's a non-working day
+          if (!isEffectivelyWorking && !actual.present) {
+            return;
+          }
+
           records.push({
             ...actual,
             date: actual.date
