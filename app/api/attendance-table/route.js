@@ -4,6 +4,7 @@ import Attendance from '@/models/Attendance.js';
 import TimeTable from '@/models/TimeTable.js';
 import TeachersLeaveRecord from '@/models/TeachersLeaveRecord.js';
 import Class from '@/models/Class.js';
+import Settings from '@/models/Settings';
 
 export async function GET(req) {
   try {
@@ -168,6 +169,84 @@ export async function GET(req) {
       leaveMap[key] = leave.leaveReason;
     });
 
+    // 3.5 Fetch non-working days from Settings for this month/year
+    const nonWorkingDaysMap = {}; // day (1-31) -> occasion name
+    try {
+        const settings = await Settings.findOne({}).select("general").lean();
+        const log = settings?.general?.nonWorkingDaysLog || [];
+        const legacyDates = settings?.general?.nonWorkingDays || [];
+        const currentOccasion = settings?.general?.occasion || "";
+        const isCurrentlyNonWorking = settings?.general?.isWorkingDay === false;
+
+        log.forEach((entry) => {
+            const d = new Date(entry.date);
+            if (d.getUTCFullYear() === year && d.getUTCMonth() === (month - 1)) {
+                nonWorkingDaysMap[d.getUTCDate()] = entry.occasion || "";
+            }
+        });
+
+        const monthLegacyDays = legacyDates
+            .map(dt => new Date(dt))
+            .filter(d => d.getUTCFullYear() === year && d.getUTCMonth() === (month - 1))
+            .map(d => d.getUTCDate())
+            .sort((a, b) => a - b);
+
+        if (monthLegacyDays.length > 0) {
+            const daySet = new Set(monthLegacyDays);
+            const maxDay = monthLegacyDays[monthLegacyDays.length - 1];
+
+            let blockStart = maxDay;
+            for (let day = maxDay - 1; day >= 1; day--) {
+                const dayOfWeek = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+                if (daySet.has(day)) {
+                    blockStart = day;
+                } else if (dayOfWeek === 5) {
+                    continue;
+                } else {
+                    break;
+                }
+            }
+
+            monthLegacyDays.forEach(day => {
+                if (!(day in nonWorkingDaysMap)) {
+                    nonWorkingDaysMap[day] = day >= blockStart ? currentOccasion : "";
+                }
+            });
+        }
+
+        if (isCurrentlyNonWorking) {
+            const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+            const todayYear = nowIST.getUTCFullYear();
+            const todayMonth = nowIST.getUTCMonth();
+            const todayDate = nowIST.getUTCDate();
+            
+            if (todayYear === year && todayMonth === (month - 1) && monthLegacyDays.length > 0) {
+                const maxDay = monthLegacyDays[monthLegacyDays.length - 1];
+                for (let day = maxDay + 1; day < todayDate; day++) {
+                    if (!(day in nonWorkingDaysMap)) {
+                        nonWorkingDaysMap[day] = currentOccasion;
+                    }
+                }
+            }
+
+            const todayInLegacy = legacyDates.some(dt => {
+                const d = new Date(dt);
+                return d.getUTCFullYear() === todayYear && d.getUTCMonth() === todayMonth && d.getUTCDate() === todayDate;
+            });
+            const todayInLog = log.some(entry => {
+                const d = new Date(entry.date);
+                return d.getUTCFullYear() === todayYear && d.getUTCMonth() === todayMonth && d.getUTCDate() === todayDate;
+            });
+            if ((todayInLegacy || todayInLog) && todayYear === year && todayMonth === (month - 1)) {
+                if (!(todayDate in nonWorkingDaysMap)) {
+                    nonWorkingDaysMap[todayDate] = currentOccasion;
+                }
+            }
+        }
+    } catch (settingsErr) {
+        console.error("Failed to fetch non-working days from settings:", settingsErr);
+    }
+
     // 4. Create columns for the table
     const columns = [
       { Header: 'Date', accessor: 'date' },
@@ -191,11 +270,15 @@ export async function GET(req) {
       const isoDate = formatDate(date);
       const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
       const isUpcoming = date > today;
+      const dateKey = date.getDate();
+      const isNonWorkingDay = dayName !== 'Friday' && (dateKey in nonWorkingDaysMap);
 
       const row = {
         date: isoDate,
         dayName: dayName,
         displayDate: `${date.getDate()} ${date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}`,
+        isNonWorkingDay: isNonWorkingDay,
+        occasion: nonWorkingDaysMap[dateKey] || "",
       };
 
       uniquePairs.forEach((pair) => {

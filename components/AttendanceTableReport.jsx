@@ -93,8 +93,8 @@ export default function AttendanceTableReport({ classes }) {
 
             case 'NO_PERIOD':
                 return (
-                    <div className="flex items-center justify-center text-gray-300 p-0">
-                        <MinusCircle className="h-3 w-3" />
+                    <div className="flex items-center justify-center text-gray-400 p-0">
+                        <MinusCircle className="h-[14px] w-[14px]" />
                     </div>
                 );
 
@@ -351,19 +351,32 @@ export default function AttendanceTableReport({ classes }) {
                             </TableHeader>
                             <TableBody>
                                 {tableData.map((row, rowIdx) => (
-                                    <TableRow key={rowIdx} className={`group hover:bg-muted/5 transition-colors ${row.dayName === 'Friday' ? 'bg-red-100/60 dark:bg-red-900/20 print:bg-[#fee2e2] friday-row' : ''}`}>
-                                        <TableCell className={`sticky left-0 ${row.dayName === 'Friday' ? 'bg-[#fee2e2]' : 'bg-white'} font-bold border z-30 p-0 h-10 date-column print:static print:bg-white print:text-black print:z-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:shadow-none`}>
+                                    <TableRow key={rowIdx} className={`group hover:bg-muted/5 transition-colors ${row.dayName === 'Friday' ? 'bg-red-100/60 dark:bg-red-900/20 print:bg-[#fee2e2] friday-row' : row.isNonWorkingDay ? 'bg-orange-50/50 print:bg-orange-50 non-working-row' : ''}`}>
+                                        <TableCell className={`sticky left-0 ${row.dayName === 'Friday' ? 'bg-[#fee2e2]' : row.isNonWorkingDay ? 'bg-orange-50' : 'bg-white'} font-bold border z-30 p-0 h-10 date-column print:static print:bg-white print:text-black print:z-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:shadow-none`}>
                                             <div className="flex items-center justify-center h-full px-4 text-xs whitespace-nowrap text-black print:text-center print:w-full">
                                                 {row.displayDate}
                                             </div>
                                         </TableCell>
-                                        {columns.slice(1).map((col, colIdx) => (
-                                            <TableCell key={colIdx} className={`p-0 border h-10 overflow-hidden ${row[col.accessor]?.status === 'NO_PERIOD' ? 'bg-gray-50/50 no-period-cell' : ''}`}>
-                                                <div className="flex items-center justify-center px-2 h-full min-w-[80px]">
-                                                    {renderCellContent(row[col.accessor])}
+                                        {row.isNonWorkingDay ? (
+                                            <TableCell 
+                                                colSpan={columns.length - 1} 
+                                                className="p-0 border h-10 bg-orange-50/50 print:bg-orange-50"
+                                            >
+                                                <div className="flex items-center justify-center h-full w-full">
+                                                    <span className="text-sm md:text-lg text-orange-400 font-bold tracking-[0.5em] uppercase whitespace-nowrap">
+                                                        {row.occasion}
+                                                    </span>
                                                 </div>
                                             </TableCell>
-                                        ))}
+                                        ) : (
+                                            columns.slice(1).map((col, colIdx) => (
+                                                <TableCell key={colIdx} className={`p-0 border h-10 overflow-hidden ${row[col.accessor]?.status === 'NO_PERIOD' ? 'bg-gray-100 no-period-cell' : ''}`}>
+                                                    <div className="flex items-center justify-center px-2 h-full min-w-[80px]">
+                                                        {renderCellContent(row[col.accessor])}
+                                                    </div>
+                                                </TableCell>
+                                            ))
+                                        )}
                                     </TableRow>
                                 ))}
                             </TableBody>
