@@ -7,7 +7,7 @@ const API_ENDPOINTS = [
   {
     pathname: "users",
     searchParams:
-      "projection=_id,name,role,profilePic,studentSpecificField.batchId,studentSpecificField.classId,studentSpecificField.admissionNumber&roles=Student&limit=2000",
+      "projection=_id,name,status,role,profilePic,studentSpecificField.status,studentSpecificField.batchId,studentSpecificField.classId,studentSpecificField.admissionNumber&roles=Student&limit=2000",
   },
   {
     pathname: "batches",

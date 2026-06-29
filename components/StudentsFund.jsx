@@ -92,7 +92,9 @@ const StudentsFund = ({
   department,
 }) => {
   const [selectedStudents, setSelectedStudents] = useState([]);
+  const [groupType, setGroupType] = useState("batch");
   const [selectedBatch, setSelectedBatch] = useState("");
+  const [selectedClass, setSelectedClass] = useState("");
   const [studentBalance, setStudentBalance] = useState(0);
   const [transactionType, setTransactionType] = useState("");
   const [amount, setAmount] = useState("");
@@ -151,6 +153,14 @@ const StudentsFund = ({
     }
   }, [apiKey]);
 
+  const effectiveBatchId = useMemo(() => {
+    if (groupType === "batch") return selectedBatch;
+    if (groupType === "class" && selectedClass) {
+      return classes?.find((c) => c._id === selectedClass)?.batchId;
+    }
+    return "";
+  }, [groupType, selectedBatch, selectedClass, classes]);
+
   const fetchStudentFundQuery = useFetchItems(
     0,
     0,
@@ -158,15 +168,15 @@ const StudentsFund = ({
       studentId: selectedStudents.length === 1 ? selectedStudents[0] : undefined,
       teacherId: department ? undefined : teacherId,
       department,
-      batchId: selectedBatch,
+      batchId: effectiveBatchId,
       projection: "studentId,balance,transactions,batchId,fundType,teacherId,department",
-      includeSummary: !!selectedBatch ? "true" : "false",
+      includeSummary: !!effectiveBatchId ? "true" : "false",
     },
     {
       staleTime: 1000 * 60 * 5, // 5 minutes
       enabled:
         !!(teacherId || department) &&
-        !!selectedBatch,
+        !!effectiveBatchId,
     }
   );
 
@@ -177,24 +187,34 @@ const StudentsFund = ({
     // or just the first one found since we just need one entry per student.
     const uniqueStudentsMap = new Map();
 
-    // Filter to only include students who actually belong to the selected batch
+    // Filter to only include students who actually belong to the selected group
     rawFunds.forEach(studentFund => {
-      if (!selectedBatch) return;
+      if (groupType === "batch" && !selectedBatch) return;
+      if (groupType === "class" && !selectedClass) return;
       
       // 1. Batch Filtering: studentId is populated with studentSpecificField.batchId
       const s = studentFund.studentId?.studentSpecificField;
       const studentBatchId = studentFund.studentId?.batchId || s?.batchId?._id || s?.batchId;
-      let belongsToBatch = studentBatchId === selectedBatch;
-      
       const studentClassId = studentFund.studentId?.classId || s?.classId?._id || s?.classId;
-      if (!belongsToBatch && studentClassId && classes) {
-        const studentClass = classes.find(c => c._id === studentClassId);
-        if (studentClass && studentClass.batchId === selectedBatch) {
-          belongsToBatch = true;
+
+      let belongsToGroup = false;
+
+      if (groupType === "batch") {
+        let belongsToBatch = studentBatchId === selectedBatch;
+        if (!belongsToBatch && studentClassId && classes) {
+          const studentClass = classes.find(c => c._id === studentClassId);
+          if (studentClass && studentClass.batchId === selectedBatch) {
+            belongsToBatch = true;
+          }
         }
+        belongsToGroup = belongsToBatch;
+      } else {
+        belongsToGroup = studentClassId === selectedClass;
+        const status = s?.status || studentFund.studentId?.status;
+        if (status !== "Active") belongsToGroup = false;
       }
       
-      if (!belongsToBatch) return;
+      if (!belongsToGroup) return;
 
       // 2. Zero-Balance Filtering: Hide zero balance students
       if ((studentFund.balance || 0) === 0) return;
@@ -212,7 +232,7 @@ const StudentsFund = ({
     });
 
     return Array.from(uniqueStudentsMap.values());
-  }, [fetchStudentFundQuery.data, selectedBatch, department, classes]);
+  }, [fetchStudentFundQuery.data, selectedBatch, selectedClass, groupType, department, classes]);
 
   const allStudentBalance = useMemo(() => {
     return allStudentsFund.reduce((total, studentFund) => {
@@ -226,7 +246,7 @@ const StudentsFund = ({
 
   const studentFund = useMemo(() => {
     return fetchStudentFundQuery.data?.studentFund || {};
-  }, [fetchStudentFundQuery.data, selectedStudents, selectedBatch]);
+  }, [fetchStudentFundQuery.data, selectedStudents, selectedBatch, selectedClass, groupType]);
 
   useEffect(() => {
     if (fetchStudentFundQuery.data && studentFund && selectedStudents.length <= 1) {
@@ -263,22 +283,30 @@ const StudentsFund = ({
     }
   }, [showConfirmDialog]);
 
-  // Filter students based on selected batch, sorted by admission number ascending
+  // Filter students based on selected group, sorted by admission number ascending
   const availableStudents = useMemo(() => {
     return students
       .filter(
         (student) => {
-          const batchId = student.batchId || student.studentSpecificField?.batchId?._id || student.studentSpecificField?.batchId;
-          if (batchId === selectedBatch) return true;
-          
-          const classId = student.classId || student.studentSpecificField?.classId?._id || student.studentSpecificField?.classId;
-          if (classId && classes) {
-            const studentClass = classes.find((c) => c._id === classId);
-            if (studentClass && studentClass.batchId === selectedBatch) {
-              return true;
+          if (groupType === "batch") {
+            const batchId = student.batchId || student.studentSpecificField?.batchId?._id || student.studentSpecificField?.batchId;
+            if (batchId === selectedBatch) return true;
+            
+            const classId = student.classId || student.studentSpecificField?.classId?._id || student.studentSpecificField?.classId;
+            if (classId && classes) {
+              const studentClass = classes.find((c) => c._id === classId);
+              if (studentClass && studentClass.batchId === selectedBatch) {
+                return true;
+              }
             }
+            return false;
+          } else {
+            const classId = student.classId || student.studentSpecificField?.classId?._id || student.studentSpecificField?.classId;
+            if (classId !== selectedClass) return false;
+            
+            const status = student.studentSpecificField?.status || student.status;
+            return status === "Active";
           }
-          return false;
         }
       )
       .sort((a, b) => {
@@ -286,7 +314,7 @@ const StudentsFund = ({
         const bVal = String(b.studentSpecificField?.admissionNumber ?? b.admissionNumber ?? b._id ?? "");
         return aVal.localeCompare(bVal, undefined, { numeric: true, sensitivity: 'base' });
       });
-  }, [students, classes, selectedBatch]);
+  }, [students, classes, selectedBatch, selectedClass, groupType]);
 
   const searchResults = useMemo(() => {
     const term = lookupSearchTerm.trim().toLowerCase();
@@ -349,11 +377,15 @@ const StudentsFund = ({
   }, [allStudentsFund, department]);
 
   const selectedBatchData = useMemo(() => {
-    return batches.find((batch) => batch._id === selectedBatch) || {};
-  }, [selectedBatch]);
+    if (groupType === "class") {
+      return classes?.find((c) => c._id === selectedClass) || {};
+    }
+    return batches?.find((batch) => batch._id === selectedBatch) || {};
+  }, [selectedBatch, selectedClass, groupType, classes, batches]);
 
   const dropdownOptions = useMemo(() => {
-    if (!selectedBatch) return [];
+    const isGroupSelected = groupType === "batch" ? !!selectedBatch : !!selectedClass;
+    if (!isGroupSelected) return [];
 
     const batchOption = {
       value: selectedBatchData._id,
@@ -368,7 +400,7 @@ const StudentsFund = ({
     }));
 
     return [batchOption, ...studentOptions];
-  }, [selectedBatch, availableStudents, selectedBatchData]);
+  }, [selectedBatch, selectedClass, groupType, availableStudents, selectedBatchData]);
 
   const handleTransaction = () => {
     if (!amount || !transactionType) return;
@@ -384,7 +416,7 @@ const StudentsFund = ({
       // Bulk Transaction Logic
       try {
         console.log("Sending Bulk Transaction:", {
-          batchId: selectedBatch,
+          batchId: effectiveBatchId,
           studentIds: selectedStudents,
           department,
           fundType: department ? "Department" : "Individual",
@@ -396,7 +428,7 @@ const StudentsFund = ({
             "api-key": apiKey,
           },
           body: JSON.stringify({
-            batchId: selectedBatch,
+            batchId: effectiveBatchId,
             studentIds: selectedStudents,
             transaction: {
               type: transactionType,
@@ -462,7 +494,7 @@ const StudentsFund = ({
           teacherId: department ? undefined : teacherId,
           department,
           fundType: department ? "Department" : "Individual",
-          batchId: selectedBatch,
+          batchId: effectiveBatchId,
           transaction: {
             ...transaction,
             performedBy: teacherId,
@@ -496,7 +528,7 @@ const StudentsFund = ({
         studentId: selectedStudents.length === 1 ? selectedStudents[0] : undefined,
         department,
         fundType: department ? "Department" : "Individual",
-        batchId: selectedBatch,
+        batchId: effectiveBatchId,
       });
 
       await updateStudentFund.mutateAsync({
@@ -506,7 +538,7 @@ const StudentsFund = ({
           teacherId: department ? undefined : teacherId,
           department,
           fundType: department ? "Department" : "Individual",
-          batchId: selectedBatch,
+          batchId: effectiveBatchId,
         },
       });
       console.log("History cleared successfully");
@@ -541,7 +573,7 @@ const StudentsFund = ({
         teacherId: department ? undefined : teacherId,
         department,
         fundType: department ? "Department" : "Individual",
-        batchId: selectedBatch,
+        batchId: effectiveBatchId,
         transaction: {
           type: "Deposit", // Mapped to "Received"
           amount: amount,
@@ -672,6 +704,7 @@ const StudentsFund = ({
 
     if (foundStudent) {
       if (foundStudent.batchId) {
+        setGroupType("batch");
         setSelectedBatch(foundStudent.batchId);
         setSelectedStudents([foundStudent._id]);
         setTransactionType("Deposit");
@@ -682,12 +715,14 @@ const StudentsFund = ({
         toast.error("Student found, but they are not assigned to a batch.");
         setSelectedStudents([]);
         setSelectedBatch("");
+        setSelectedClass("");
       }
     } else {
       toast.error("Student not found. Ensure the student is loaded in this view.");
       if (typeof overrideSearchTerm !== "string") {
         setSelectedStudents([]);
         setSelectedBatch("");
+        setSelectedClass("");
       }
     }
 
@@ -725,9 +760,6 @@ const StudentsFund = ({
                 <Search className="w-5 h-5 text-primary" />
                 Student Lookup
               </CardTitle>
-              <CardDescription>
-                Search for a student by ID or Name
-              </CardDescription>
               <div className="flex gap-2 mt-4 w-full">
                 <div className="relative flex-1">
                     <Input
@@ -778,6 +810,7 @@ const StudentsFund = ({
                           setLookupSearchTerm("");
                           setSelectedStudents([]);
                           setSelectedBatch("");
+                          setSelectedClass("");
                           setShowSearchResults(false);
                         }}
                       >
@@ -848,27 +881,69 @@ const StudentsFund = ({
             <CardContent className="p-5 space-y-6">
               <>
                 <div className="flex flex-col sm:flex-row gap-4 items-end">
-                  <div className="flex-1 w-full">
-                    <Select
-                      value={selectedBatch}
-                      onValueChange={(val) => {
-                        setSelectedBatch(val);
-                        setSelectedStudents([]);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a batch" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {batches.map((batch) => (
-                          <SelectItem key={batch._id} value={batch._id}>
-                            {batch.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="flex flex-row gap-4 w-full sm:w-auto items-end">
+                    <div className="w-[110px] shrink-0">
+                      <Select
+                        value={groupType}
+                        onValueChange={(val) => {
+                          setGroupType(val);
+                          setSelectedBatch("");
+                          setSelectedClass("");
+                          setSelectedStudents([]);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="class">Class</SelectItem>
+                          <SelectItem value="batch">Batch</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex-1 w-full max-w-[250px]">
+                      {groupType === "batch" ? (
+                        <Select
+                          value={selectedBatch}
+                          onValueChange={(val) => {
+                            setSelectedBatch(val);
+                            setSelectedStudents([]);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a batch" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {batches.map((batch) => (
+                              <SelectItem key={batch._id} value={batch._id}>
+                                {batch.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Select
+                          value={selectedClass}
+                          onValueChange={(val) => {
+                            setSelectedClass(val);
+                            setSelectedStudents([]);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a class" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {classes.map((cls) => (
+                              <SelectItem key={cls._id} value={cls._id}>
+                                {cls.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
                   </div>
-                  {selectedBatch && (
+                  {(selectedBatch || selectedClass) && (
                     <div className="space-y-2 flex-1 w-full">
                       <MultiSelect
                         options={dropdownOptions}
@@ -887,7 +962,7 @@ const StudentsFund = ({
           </Card>
 
           {/* Student Balance & Transaction Form */}
-          {(selectedStudents.length > 0 || selectedBatch) && (
+          {(selectedStudents.length > 0 || selectedBatch || selectedClass) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1084,7 +1159,7 @@ const StudentsFund = ({
           )}
 
           {/* All Students Balance Table for Department Funds */}
-          {department && selectedBatch && (
+          {department && (selectedBatch || selectedClass) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -1473,7 +1548,7 @@ const StudentsFund = ({
                     </div>
                   )}
 
-                  {selectedBatch && (
+                  {(selectedBatch || selectedClass) && (
                     <Dialog
                       open={showBalanceDialog}
                       onOpenChange={setShowBalanceDialog}
