@@ -89,7 +89,7 @@ export async function GET(req, res) {
       }
 
       const rawFunds = await StudentsFund.find(allStudentsQuery)
-        .populate("studentId", "name profilePic studentSpecificField.admissionNumber studentSpecificField.batchId") // Optimized population
+        .populate("studentId", "name profilePic studentSpecificField.admissionNumber studentSpecificField.batchId studentSpecificField.classId") // Optimized population
         .sort({ updatedAt: -1 })
         .lean();
 
