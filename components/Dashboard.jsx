@@ -793,10 +793,10 @@ const BatchStudentsTable = memo(({ batches = [], students = [], showStatusColumn
           const graduated = batchStudents.filter((s) => s.status === "Graduated").length;
           // Match variations like "Dropedout", "Dropped Out", etc.
           const droppedOut = batchStudents.filter((s) => s.status?.toLowerCase().includes("drop")).length;
-          return { name: batch.name, count, active, graduated, droppedOut };
+          return { name: batch.name, academicYear: batch.academicYear, count, active, graduated, droppedOut };
         }
         
-        return { name: batch.name, count };
+        return { name: batch.name, academicYear: batch.academicYear, count };
       })
       .filter((item) => item.count > 0);
   }, [batches, students, showStatusColumns]);
@@ -833,7 +833,16 @@ const BatchStudentsTable = memo(({ batches = [], students = [], showStatusColumn
           {tableData.map((row, index) => (
             <tr key={index} className="hover:bg-muted/50 transition-colors">
               <td className={cellPadding}>{index + 1}</td>
-              <td className={`${cellPadding} font-medium whitespace-nowrap`}>{row.name}</td>
+              <td className={`${cellPadding} font-medium whitespace-nowrap`}>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1">
+                  <span>{row.name}</span>
+                  {row.academicYear && (
+                    <span className="text-xs text-muted-foreground font-normal">
+                      ({row.academicYear})
+                    </span>
+                  )}
+                </div>
+              </td>
               {showStatusColumns ? (
                 <>
                   <td className={`${cellPadding} text-center`}>{row.active}</td>
@@ -980,9 +989,8 @@ const ClassStudentsTable = memo(({ classes = [], batches = [], students = [] }) 
         const count = classStudents.length;
         const classBatch = batches?.find((b) => String(b._id) === String(cls.batchId?._id || cls.batchId));
         const batchName = classBatch ? classBatch.name : "";
-        const displayName = `${cls.name} ${batchName ? `(${batchName})` : ''}`;
         
-        return { name: displayName, count };
+        return { name: cls.name, batchName, count };
       })
       .filter((item) => item.count > 0);
   }, [classes, batches, students]);
@@ -1006,7 +1014,16 @@ const ClassStudentsTable = memo(({ classes = [], batches = [], students = [] }) 
           {tableData.map((row, index) => (
             <tr key={index} className="hover:bg-muted/50 transition-colors">
               <td className={cellPadding}>{index + 1}</td>
-              <td className={`${cellPadding} font-medium whitespace-nowrap`}>{row.name}</td>
+              <td className={`${cellPadding} font-medium whitespace-nowrap`}>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1">
+                  <span>{row.name}</span>
+                  {row.batchName && (
+                    <span className="text-xs text-muted-foreground font-normal">
+                      ({row.batchName})
+                    </span>
+                  )}
+                </div>
+              </td>
               <td className={`${cellPadding} text-center`}>{row.count}</td>
             </tr>
           ))}
