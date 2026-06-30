@@ -28,6 +28,8 @@ import {
   Loader,
   ChevronLeft,
   ChevronRight,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -247,6 +249,7 @@ const ClassCard = memo(
   ({ classData, students, batches, attendances, leaveStudents }) => {
     const [activeOpen, setActiveOpen] = useState(false);
     const [leaveOpen, setLeaveOpen] = useState(false);
+    const [isCopied, setIsCopied] = useState(false);
 
     const { classStudentsList, classBatch, attendanceStats } = useMemo(() => {
       const filteredStudents =
@@ -322,7 +325,7 @@ const ClassCard = memo(
             className="pb-2 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors duration-200 group/header"
             onClick={() => setActiveOpen(true)}
           >
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start w-full">
               <div>
                 <CardTitle id={`class-${classData._id}`} className="text-lg group-hover/header:text-primary transition-colors">
                   {classData.name}
@@ -333,6 +336,26 @@ const ClassCard = memo(
                     : "N/A"}
                 </CardDescription>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-primary shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const header = `${classData.name}${classBatch ? ` - ${classBatch.name}` : ''}`;
+                  const studentsText = classStudentsList.map((student, index) => {
+                    const admnNo = student.studentSpecificField?.admissionNumber || student.admissionNumber || student._id;
+                    return `${index + 1}. ${student.name} (${admnNo})`;
+                  });
+                  const textToCopy = [header, "", ...studentsText].join('\n');
+                  navigator.clipboard.writeText(textToCopy);
+                  setIsCopied(true);
+                  setTimeout(() => setIsCopied(false), 2000);
+                }}
+                title="Copy active students"
+              >
+                {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="pt-4">
