@@ -22,7 +22,7 @@ const API_ENDPOINTS = [
   {
     pathname: "users",
     searchParams:
-      "projection=_id,name,email,profilePic,contactNumber,dateOfBirth,address&roles=Teacher&status=Active",
+      "projection=_id,name,email,profilePic,contactNumber,dateOfBirth,address,teacherSpecificField.status&roles=Teacher&status=Active,Principal,Guest",
   },
 
   {

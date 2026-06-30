@@ -707,6 +707,33 @@ export function AppSidebar({ roles, activeRole, user }) {
   const [role, setRole] = useState(activeRole || filteredRoles[0] || "");
   const pathname = usePathname();
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [pendingTeacherRequestsCount, setPendingTeacherRequestsCount] = useState(0);
+  const [pendingStudentRequestsCount, setPendingStudentRequestsCount] = useState(0);
+
+  // Fetch pending profile requests for College Admin
+  useEffect(() => {
+    if (role !== "College Admin") return;
+    const fetchCounts = async () => {
+      try {
+        const [teacherRes, studentRes] = await Promise.all([
+          fetch("/api/users?roles=Teacher&profileUpdateStatus=Pending&limit=1&projection=_id"),
+          fetch("/api/users?roles=Student&profileUpdateStatus=Pending&limit=1&projection=_id")
+        ]);
+        const teacherData = await teacherRes.json();
+        const studentData = await studentRes.json();
+        
+        if (teacherData.pagination?.total !== undefined) {
+          setPendingTeacherRequestsCount(teacherData.pagination.total);
+        }
+        if (studentData.pagination?.total !== undefined) {
+          setPendingStudentRequestsCount(studentData.pagination.total);
+        }
+      } catch { /* silent */ }
+    };
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, [role]);
 
   // Fetch pending book requests count for Librarian
   useEffect(() => {
@@ -867,9 +894,19 @@ export function AppSidebar({ roles, activeRole, user }) {
                             data-active={pathname === subItem.url}
                             asChild
                           >
-                            <Link href={subItem.url}>
+                            <Link href={subItem.url} className="flex items-center gap-2">
                               <subItem.icon className="w-5 h-5" />
-                              <span>{subItem.title}</span>
+                              <span className="flex-1">{subItem.title}</span>
+                              {subItem.title === "Teachers" && pendingTeacherRequestsCount > 0 && (
+                                <span className="ml-auto text-xs font-bold bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5 leading-none">
+                                  {pendingTeacherRequestsCount}
+                                </span>
+                              )}
+                              {subItem.title === "Students" && pendingStudentRequestsCount > 0 && (
+                                <span className="ml-auto text-xs font-bold bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5 leading-none">
+                                  {pendingStudentRequestsCount}
+                                </span>
+                              )}
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

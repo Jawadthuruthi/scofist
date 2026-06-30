@@ -5,6 +5,7 @@ import { Menu, Moon, Sun, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "./ui/sidebar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import TeacherProfileEditModal from "./TeacherProfileEditModal";
 import {
   Card,
   CardDescription,
@@ -20,6 +21,8 @@ export function Topbar({ user }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [institution, setInstitution] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const isTeacher = user?.roles?.includes("Teacher");
 
   // Handle client-side mounting to avoid hydration mismatch
   useEffect(() => {
@@ -90,8 +93,13 @@ export function Topbar({ user }) {
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="User menu">
-              <User className="w-5 h-5" />
+            <Button variant="ghost" size="icon" aria-label="User menu" className="rounded-full overflow-hidden">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user?.profilePic?.url} alt={user?.name || "User"} className="object-cover" />
+                <AvatarFallback className="bg-transparent">
+                  <User className="w-5 h-5" />
+                </AvatarFallback>
+              </Avatar>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-72 p-0 rounded-xl mr-4 mt-4 overflow-hidden">
@@ -126,9 +134,18 @@ export function Topbar({ user }) {
                   </CardDescription>
                 </div>
               </CardHeader>
-              <CardFooter>
+              <CardFooter className="flex-col gap-2">
+                {isTeacher && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setIsEditModalOpen(true)}
+                  >
+                    Edit Profile
+                  </Button>
+                )}
                 <Button
-                  variant="outline"
+                  variant={isTeacher ? "default" : "outline"}
                   className="w-full"
                   onClick={handleLogout}
                 >
@@ -139,6 +156,17 @@ export function Topbar({ user }) {
           </PopoverContent>
         </Popover>
       </div>
+
+      {isTeacher && (
+        <TeacherProfileEditModal
+          user={user}
+          open={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSuccess={() => {
+            window.location.reload();
+          }}
+        />
+      )}
     </header>
   );
 }

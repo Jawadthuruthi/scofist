@@ -21,7 +21,7 @@ export async function POST(req) {
 
     const teachers = await User.find({ 
       roles: "Teacher",
-      "teacherSpecificField.status": "Active"
+      "teacherSpecificField.status": { $in: ["Active", "Principal"] }
     }).lean();
     let notificationCount = 0;
 

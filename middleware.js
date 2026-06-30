@@ -666,8 +666,9 @@ async function handleAuthRequest(req, event) {
     }
 
     // 1. Check for cookie-based profile cache
+    const forceRefresh = req.cookies.has("force-profile-refresh");
     const profileCacheToken = req.cookies.get("profile-cache")?.value;
-    if (profileCacheToken) {
+    if (profileCacheToken && !forceRefresh) {
       try {
         const { payload: cachedProfile } = await jwtVerify(profileCacheToken, SECRET_KEY);
         // Ensure this cached profile belongs to the current user
@@ -680,7 +681,7 @@ async function handleAuthRequest(req, event) {
     }
 
     // 2. Check memory cache (secondary fallback)
-    const cachedEntry = getUserFromCache(effectiveUserId);
+    const cachedEntry = !forceRefresh ? getUserFromCache(effectiveUserId) : null;
 
     if (cachedEntry) {
       const { user, timestamp } = cachedEntry;
@@ -865,6 +866,10 @@ function prepareResponse(req, token, user, newProfileToken = null) {
     res.headers.set("x-auth-token", token);
   } catch (error) {
     console.error("Error setting headers:", error.message);
+  }
+
+  if (req.cookies.has("force-profile-refresh")) {
+    res.cookies.delete("force-profile-refresh");
   }
 
   if (newProfileToken) {

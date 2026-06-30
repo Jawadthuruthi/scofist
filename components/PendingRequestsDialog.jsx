@@ -21,14 +21,14 @@ import { Loader } from "lucide-react";
 import useCrud from "@/hooks/use-crud";
 import { formatDateForDisplay } from "@/lib/utils";
 
-const PendingRequestsDialog = ({ open, onClose, apiKey, onView }) => {
+const PendingRequestsDialog = ({ open, onClose, apiKey, onView, role = "Student" }) => {
   const { useFetchItems } = useCrud("users", apiKey);
 
   const { data, isLoading } = useFetchItems(
     0,
     100, // Fetch up to 100 pending requests
     {
-      roles: "Student",
+      roles: role,
       profileUpdateStatus: "Pending",
     },
     {
@@ -52,7 +52,7 @@ const PendingRequestsDialog = ({ open, onClose, apiKey, onView }) => {
         <DialogHeader>
           <DialogTitle>Pending Profile Update Requests</DialogTitle>
           <DialogDescription>
-            Students who have requested profile changes
+            {role}s who have requested profile changes
           </DialogDescription>
         </DialogHeader>
 
@@ -61,8 +61,8 @@ const PendingRequestsDialog = ({ open, onClose, apiKey, onView }) => {
             <TableHeader className="bg-muted/50 sticky top-0 z-10">
               <TableRow>
                 <TableHead className="w-[80px]">Sl No</TableHead>
-                <TableHead>Student ID</TableHead>
-                <TableHead>Student Name</TableHead>
+                <TableHead>ID</TableHead>
+                <TableHead>Name</TableHead>
                 <TableHead>Date of Request</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>

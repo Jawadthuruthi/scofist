@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import connectToDB from "@/lib/db";
 import User from "@/models/User";
 
@@ -68,7 +69,7 @@ export async function POST(req) {
       } else {
         // Fallback to all changes if none specified (old behavior)
         // Map top level fields
-        ["name", "email", "contactNumber", "alternativeNumber", "dateOfBirth"].forEach((field) => {
+        ["name", "email", "contactNumber", "alternativeNumber", "dateOfBirth", "profilePic"].forEach((field) => {
           if (pendingChanges[field] !== undefined) changesToApply[field] = pendingChanges[field];
         });
 
@@ -76,6 +77,13 @@ export async function POST(req) {
         if (pendingChanges.studentSpecificField) {
           for (const [key, value] of Object.entries(pendingChanges.studentSpecificField)) {
             changesToApply[`studentSpecificField.${key}`] = value;
+          }
+        }
+
+        // Map teacherSpecificField
+        if (pendingChanges.teacherSpecificField) {
+          for (const [key, value] of Object.entries(pendingChanges.teacherSpecificField)) {
+            changesToApply[`teacherSpecificField.${key}`] = value;
           }
         }
 
@@ -95,6 +103,9 @@ export async function POST(req) {
       };
 
       await User.updateOne({ _id: userId }, { $set: updateObj });
+      const cookieStore = await cookies();
+      cookieStore.set("force-profile-refresh", "true", { path: "/" });
+      
       return NextResponse.json({ message: "Profile update approved and applied" });
     } else if (action === "reject") {
       await User.updateOne(

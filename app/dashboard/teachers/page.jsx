@@ -2,6 +2,7 @@ import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData } from "@/lib/utils";
+import PendingTeacherRequestsWrapper from "@/components/PendingTeacherRequestsWrapper";
 const columnsConfig = [
   {
     id: "select",
@@ -200,6 +201,7 @@ const formFields = [
     required: true,
     options: [
       { label: "Active", value: "Active" },
+      { label: "Principal", value: "Principal" },
       { label: "Retired", value: "Retired" },
       { label: "Guest", value: "Guest" },
     ],
@@ -214,6 +216,7 @@ const filterConfig = [
     inputType: "select",
     options: [
       { label: "Active", value: "Active" },
+      { label: "Principal", value: "Principal" },
       { label: "Retired", value: "Retired" },
       { label: "Guest", value: "Guest" },
     ],
@@ -273,6 +276,7 @@ export default async function BatchesPage() {
           printTitle={"Teachers"}
           enableSearch={true}
           defaultSorting={[{ id: "_id", desc: false }]}
+          customTopRightButtons={<PendingTeacherRequestsWrapper key="pending-requests" apiKey={apiKey} />}
         />
       </>
     );

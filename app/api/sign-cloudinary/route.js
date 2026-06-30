@@ -27,7 +27,7 @@ export async function POST(req) {
         const { folder = "downloads" } = body;
 
         // Security check: Only allow specific folders
-        const allowedFolders = ["downloads", "applications"];
+        const allowedFolders = ["downloads", "applications", "profiles"];
         if (!allowedFolders.includes(folder)) {
             return NextResponse.json({ message: "Invalid folder" }, { status: 400 });
         }

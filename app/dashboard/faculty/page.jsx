@@ -7,7 +7,7 @@ export default async function FacultyPage() {
   try {
     const teachers = await fetchData(
       "users",
-      "projection=_id,name,email,profilePic,contactNumber,dateOfBirth,address,place&roles=Teacher&status=Active"
+      "projection=_id,name,email,profilePic,contactNumber,dateOfBirth,address,place,teacherSpecificField.status&roles=Teacher&status=Active,Principal,Guest"
     );
 
     const classes = await fetchData("classes");
@@ -23,9 +23,10 @@ export default async function FacultyPage() {
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {teachers?.map((teacher) => {
-            const assignedClass =
-              classes.find((c) => c.teacherId === teacher._id)?.name ||
-              "No Class Assigned";
+            let assignedClass = classes.find((c) => (c.teacherId?._id || c.teacherId) === teacher._id)?.name || "No Class Assigned";
+            if (teacher.teacherStatus === "Principal" || teacher.teacherStatus === "Guest") {
+              assignedClass = teacher.teacherStatus;
+            }
             return (
               <FacultyProfileCard
                 key={teacher._id}

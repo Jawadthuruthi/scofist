@@ -29,7 +29,7 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
     const changed = [];
     
     // Check top level
-    ["name", "email", "contactNumber", "alternativeNumber", "dateOfBirth"].forEach(field => {
+    ["name", "email", "contactNumber", "alternativeNumber", "dateOfBirth", "profilePic"].forEach(field => {
       if (newData[field] !== undefined && JSON.stringify(oldData[field]) !== JSON.stringify(newData[field])) {
         changed.push(field);
       }
@@ -42,6 +42,17 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
         const newVal = newData.studentSpecificField[key];
         if (newVal !== undefined && JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
           changed.push(`studentSpecificField.${key}`);
+        }
+      });
+    }
+
+    // Check teacherSpecificField
+    if (newData.teacherSpecificField) {
+      Object.keys(newData.teacherSpecificField).forEach(key => {
+        const oldVal = oldData.teacherSpecificField?.[key] || oldData[key];
+        const newVal = newData.teacherSpecificField[key];
+        if (newVal !== undefined && JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+          changed.push(`teacherSpecificField.${key}`);
         }
       });
     }
@@ -125,8 +136,12 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
   };
 
   const ComparisonRow = ({ label, fieldPath, oldVal, newVal }) => {
-    // Normalize for comparison (treat null/undefined/"" as same)
-    const norm = (v) => (v === null || v === undefined ? "" : String(v).trim());
+    // Normalize for comparison (treat null/undefined/"" as same, serialize objects)
+    const norm = (v) => {
+      if (v === null || v === undefined) return "";
+      if (typeof v === "object") return JSON.stringify(v);
+      return String(v).trim();
+    };
     const isChanged = norm(oldVal) !== norm(newVal);
     
     const currentAction = fieldActions[fieldPath];
@@ -138,7 +153,11 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
         }`}
       >
         <div className="col-span-2 text-xs font-bold text-muted-foreground uppercase tracking-wider pl-2">{label}</div>
-        <div className="col-span-3 text-sm break-all text-muted-foreground">{typeof oldVal === 'object' ? JSON.stringify(oldVal) : String(oldVal || "-")}</div>
+        <div className="col-span-3 text-sm break-all text-muted-foreground">
+          {typeof oldVal === 'object' && oldVal?.url ? (
+            <img src={oldVal.url} alt="Old" className="h-10 w-10 object-cover rounded-md" crossOrigin="anonymous" />
+          ) : typeof oldVal === 'object' ? JSON.stringify(oldVal) : String(oldVal || "-")}
+        </div>
         <div className="col-span-1 flex justify-center">
           {isChanged && <ArrowRight className={`h-4 w-4 ${currentAction === "approve" ? "text-green-500" : "text-red-500 opacity-30"}`} />}
         </div>
@@ -152,7 +171,9 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
               ) 
             : ""
         }`}>
-          {typeof newVal === 'object' ? JSON.stringify(newVal) : String(newVal || "-")}
+          {typeof newVal === 'object' && newVal?.url ? (
+            <img src={newVal.url} alt="New" className="h-10 w-10 object-cover rounded-md" crossOrigin="anonymous" />
+          ) : typeof newVal === 'object' ? JSON.stringify(newVal) : String(newVal || "-")}
         </div>
         <div className="col-span-2 flex justify-center gap-1.5 pr-2">
           {isChanged && (
@@ -190,7 +211,7 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
               <p className="text-sm text-muted-foreground mt-1">Review the prefilled details and select actions for modified fields.</p>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm font-semibold text-foreground bg-muted px-2 py-1 rounded-md border">Student ID: <span className="font-mono text-xs ml-1">{student._id}</span></span>
+              <span className="text-sm font-semibold text-foreground bg-muted px-2 py-1 rounded-md border">ID: <span className="font-mono text-xs ml-1">{student._id}</span></span>
             </div>
           </div>
         </DialogHeader>
@@ -206,11 +227,25 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
 
           <div className="space-y-1">
             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-2 border-l-4 border-primary">Personal Details</h4>
-            <ComparisonRow label="Student ID" fieldPath="_id" oldVal={oldData._id} newVal={oldData._id} />
+            <ComparisonRow label="ID" fieldPath="_id" oldVal={oldData._id} newVal={oldData._id} />
+            <ComparisonRow label="Photo" fieldPath="profilePic" oldVal={oldData.profilePic} newVal={newData.profilePic ?? oldData.profilePic} />
             <ComparisonRow label="Name" fieldPath="name" oldVal={oldData.name} newVal={newData.name ?? oldData.name} />
             <ComparisonRow label="DOB" fieldPath="dateOfBirth" oldVal={formatDateShort(oldData.dateOfBirth)} newVal={newData.dateOfBirth ? formatDateShort(newData.dateOfBirth) : formatDateShort(oldData.dateOfBirth)} />
-            <ComparisonRow label="Blood Group" fieldPath="studentSpecificField.bloodGroup" oldVal={oldData.studentSpecificField?.bloodGroup || oldData.bloodGroup} newVal={newData.studentSpecificField?.bloodGroup ?? (oldData.studentSpecificField?.bloodGroup || oldData.bloodGroup)} />
-            <ComparisonRow label="Aadhar" fieldPath="studentSpecificField.aadharNo" oldVal={oldData.studentSpecificField?.aadharNo || oldData.aadharNo} newVal={newData.studentSpecificField?.aadharNo ?? (oldData.studentSpecificField?.aadharNo || oldData.aadharNo)} />
+            
+            {/* Student Specific */}
+            {(oldData.studentSpecificField || newData.studentSpecificField) && (
+              <>
+                <ComparisonRow label="Blood Group" fieldPath="studentSpecificField.bloodGroup" oldVal={oldData.studentSpecificField?.bloodGroup || oldData.bloodGroup} newVal={newData.studentSpecificField?.bloodGroup ?? (oldData.studentSpecificField?.bloodGroup || oldData.bloodGroup)} />
+                <ComparisonRow label="Aadhar" fieldPath="studentSpecificField.aadharNo" oldVal={oldData.studentSpecificField?.aadharNo || oldData.aadharNo} newVal={newData.studentSpecificField?.aadharNo ?? (oldData.studentSpecificField?.aadharNo || oldData.aadharNo)} />
+              </>
+            )}
+
+            {/* Teacher Specific */}
+            {(oldData.teacherSpecificField || newData.teacherSpecificField) && (
+              <>
+                <ComparisonRow label="Joining Date" fieldPath="teacherSpecificField.dateOfJoining" oldVal={formatDateShort(oldData.teacherSpecificField?.dateOfJoining)} newVal={newData.teacherSpecificField?.dateOfJoining ? formatDateShort(newData.teacherSpecificField?.dateOfJoining) : formatDateShort(oldData.teacherSpecificField?.dateOfJoining)} />
+              </>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -218,10 +253,15 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
             <ComparisonRow label="Email" fieldPath="email" oldVal={oldData.email} newVal={newData.email ?? oldData.email} />
             <ComparisonRow label="Contact" fieldPath="contactNumber" oldVal={oldData.contactNumber} newVal={newData.contactNumber ?? oldData.contactNumber} />
             <ComparisonRow label="Alt. Contact" fieldPath="alternativeNumber" oldVal={oldData.alternativeNumber} newVal={newData.alternativeNumber ?? oldData.alternativeNumber} />
-            <ComparisonRow label="Guardian" fieldPath="studentSpecificField.guardianName" oldVal={oldData.studentSpecificField?.guardianName || oldData.guardianName} newVal={newData.studentSpecificField?.guardianName ?? (oldData.studentSpecificField?.guardianName || oldData.guardianName)} />
-            <ComparisonRow label="Relationship" fieldPath="studentSpecificField.relationship" oldVal={oldData.studentSpecificField?.relationship || oldData.relationship} newVal={newData.studentSpecificField?.relationship ?? (oldData.studentSpecificField?.relationship || oldData.relationship)} />
-            <ComparisonRow label="G. Contact" fieldPath="studentSpecificField.guardianContactNumber" oldVal={oldData.studentSpecificField?.guardianContactNumber || oldData.guardianContactNumber} newVal={newData.studentSpecificField?.guardianContactNumber ?? (oldData.studentSpecificField?.guardianContactNumber || oldData.guardianContactNumber)} />
-            <ComparisonRow label="G. Alt. Contact" fieldPath="studentSpecificField.guardianAlternativeNumber" oldVal={oldData.studentSpecificField?.guardianAlternativeNumber || oldData.guardianAlternativeNumber} newVal={newData.studentSpecificField?.guardianAlternativeNumber ?? (oldData.studentSpecificField?.guardianAlternativeNumber || oldData.guardianAlternativeNumber)} />
+            
+            {(oldData.studentSpecificField || newData.studentSpecificField) && (
+              <>
+                <ComparisonRow label="Guardian" fieldPath="studentSpecificField.guardianName" oldVal={oldData.studentSpecificField?.guardianName || oldData.guardianName} newVal={newData.studentSpecificField?.guardianName ?? (oldData.studentSpecificField?.guardianName || oldData.guardianName)} />
+                <ComparisonRow label="Relationship" fieldPath="studentSpecificField.relationship" oldVal={oldData.studentSpecificField?.relationship || oldData.relationship} newVal={newData.studentSpecificField?.relationship ?? (oldData.studentSpecificField?.relationship || oldData.relationship)} />
+                <ComparisonRow label="G. Contact" fieldPath="studentSpecificField.guardianContactNumber" oldVal={oldData.studentSpecificField?.guardianContactNumber || oldData.guardianContactNumber} newVal={newData.studentSpecificField?.guardianContactNumber ?? (oldData.studentSpecificField?.guardianContactNumber || oldData.guardianContactNumber)} />
+                <ComparisonRow label="G. Alt. Contact" fieldPath="studentSpecificField.guardianAlternativeNumber" oldVal={oldData.studentSpecificField?.guardianAlternativeNumber || oldData.guardianAlternativeNumber} newVal={newData.studentSpecificField?.guardianAlternativeNumber ?? (oldData.studentSpecificField?.guardianAlternativeNumber || oldData.guardianAlternativeNumber)} />
+              </>
+            )}
           </div>
 
           <div className="space-y-1">
