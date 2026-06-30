@@ -175,8 +175,8 @@ export default function TeacherProfileEditModal({ user, open, onClose, onSuccess
         <form onSubmit={handleSubmit} className="space-y-8 py-4">
           
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-1 text-primary">Profile Photo</h3>
-            <div className="flex flex-col gap-4 items-start">
+            <h3 className="text-lg font-semibold border-b pb-1 text-primary text-center">Profile Photo</h3>
+            <div className="flex flex-col gap-4 items-center">
               <div className="relative w-32 h-32 border-2 border-dashed rounded-md overflow-hidden flex items-center justify-center bg-muted">
                 {previewUrl ? (
                   <>
@@ -198,14 +198,27 @@ export default function TeacherProfileEditModal({ user, open, onClose, onSuccess
                   </div>
                 )}
               </div>
-              <div className="flex flex-col gap-2">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  ref={fileInputRef}
-                  className="max-w-xs"
-                />
+              <div className="flex flex-col gap-2 items-center">
+                <div className="flex flex-col items-center gap-3">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    ref={fileInputRef}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Change Photo
+                  </Button>
+                  <span className="text-sm text-muted-foreground truncate max-w-[200px]">
+                    {file ? file.name : "No file chosen"}
+                  </span>
+                </div>
                 <span className="text-xs text-muted-foreground">Maximum file size: 2MB</span>
               </div>
             </div>
