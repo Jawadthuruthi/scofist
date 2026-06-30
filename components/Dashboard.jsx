@@ -598,16 +598,22 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <BarChart className="h-5 w-5" />
-              <span>Active Students By Batch ({dashboardData?.activeStudents?.length ?? 0})</span>
+              <span>Active Students By Class ({dashboardData?.activeStudents?.length ?? 0})</span>
             </DialogTitle>
             <DialogDescription>
-              Distribution of active students across different batches
+              Distribution of active students across different classes
             </DialogDescription>
           </DialogHeader>
-          <BatchChart
+          <ClassChart
+            classes={dashboardData?.activeClasses}
             batches={dashboardData?.batches}
             students={dashboardData?.activeStudents}
             isLoading={isLoadingCharts}
+          />
+          <ClassStudentsTable
+            classes={dashboardData?.activeClasses}
+            batches={dashboardData?.batches}
+            students={dashboardData?.activeStudents}
           />
         </DialogContent>
       </Dialog>
@@ -628,6 +634,10 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
             batches={dashboardData?.batches}
             students={dashboardData?.graduatedStudents}
             isLoading={isLoadingCharts}
+          />
+          <BatchStudentsTable
+            batches={dashboardData?.batches}
+            students={dashboardData?.graduatedStudents}
           />
         </DialogContent>
       </Dialog>
@@ -664,6 +674,11 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
                 </div>
               </div>
             </div>
+            <BatchStudentsTable
+              batches={dashboardData?.batches}
+              students={dashboardData?.students}
+              showStatusColumns={true}
+            />
           </div>
         </DialogContent>
       </Dialog>
@@ -762,6 +777,94 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
 });
 StatsOverview.displayName = "StatsOverview";
 
+// ===== BATCH STUDENTS TABLE COMPONENT =====
+const BatchStudentsTable = memo(({ batches = [], students = [], showStatusColumns = false }) => {
+  const tableData = useMemo(() => {
+    if (!batches?.length || !students?.length) return [];
+    
+    return batches
+      .map((batch) => {
+        const batchStudents = students.filter((student) => student.batchId === batch._id);
+        const count = batchStudents.length;
+        
+        if (showStatusColumns) {
+          const active = batchStudents.filter((s) => s.status === "Active").length;
+          const graduated = batchStudents.filter((s) => s.status === "Graduated").length;
+          // Match variations like "Dropedout", "Dropped Out", etc.
+          const droppedOut = batchStudents.filter((s) => s.status?.toLowerCase().includes("drop")).length;
+          return { name: batch.name, count, active, graduated, droppedOut };
+        }
+        
+        return { name: batch.name, count };
+      })
+      .filter((item) => item.count > 0);
+  }, [batches, students, showStatusColumns]);
+
+  if (!tableData.length) return null;
+
+  const totalStudents = tableData.reduce((sum, item) => sum + item.count, 0);
+  const totalActive = showStatusColumns ? tableData.reduce((sum, item) => sum + item.active, 0) : 0;
+  const totalGraduated = showStatusColumns ? tableData.reduce((sum, item) => sum + item.graduated, 0) : 0;
+  const totalDroppedOut = showStatusColumns ? tableData.reduce((sum, item) => sum + item.droppedOut, 0) : 0;
+
+  const cellPadding = showStatusColumns ? "px-3.5 py-2 text-xs" : "px-5 py-2.5";
+
+  return (
+    <div className={`mt-6 border rounded-md overflow-x-auto ${showStatusColumns ? "w-fit" : ""}`}>
+      <table className={`${showStatusColumns ? "w-max" : "w-full"} text-sm text-left`}>
+        <thead className="bg-muted text-muted-foreground text-xs uppercase">
+          <tr>
+            <th className={`${cellPadding} font-medium border-b whitespace-nowrap`}>Sl No</th>
+            <th className={`${cellPadding} font-medium border-b`}>Batch</th>
+            {showStatusColumns ? (
+              <>
+                <th className={`${cellPadding} font-medium border-b text-center`}>Active</th>
+                <th className={`${cellPadding} font-medium border-b text-center`}>Graduated</th>
+                <th className={`${cellPadding} font-medium border-b text-center whitespace-nowrap`}>Drop Out</th>
+                <th className={`${cellPadding} font-medium border-b text-center`}>Total</th>
+              </>
+            ) : (
+              <th className={`${cellPadding} font-medium border-b text-center`}>No. of Students</th>
+            )}
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {tableData.map((row, index) => (
+            <tr key={index} className="hover:bg-muted/50 transition-colors">
+              <td className={cellPadding}>{index + 1}</td>
+              <td className={`${cellPadding} font-medium whitespace-nowrap`}>{row.name}</td>
+              {showStatusColumns ? (
+                <>
+                  <td className={`${cellPadding} text-center`}>{row.active}</td>
+                  <td className={`${cellPadding} text-center`}>{row.graduated}</td>
+                  <td className={`${cellPadding} text-center`}>{row.droppedOut}</td>
+                  <td className={`${cellPadding} text-center font-medium`}>{row.count}</td>
+                </>
+              ) : (
+                <td className={`${cellPadding} text-center`}>{row.count}</td>
+              )}
+            </tr>
+          ))}
+          <tr className="bg-muted/30 font-bold">
+            <td className={`${cellPadding} border-t`} colSpan={2}>Total</td>
+            {showStatusColumns ? (
+              <>
+                <td className={`${cellPadding} border-t text-center`}>{totalActive}</td>
+                <td className={`${cellPadding} border-t text-center`}>{totalGraduated}</td>
+                <td className={`${cellPadding} border-t text-center`}>{totalDroppedOut}</td>
+                <td className={`${cellPadding} border-t text-center`}>{totalStudents}</td>
+              </>
+            ) : (
+              <td className={`${cellPadding} border-t text-center`}>{totalStudents}</td>
+            )}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+});
+BatchStudentsTable.displayName = "BatchStudentsTable";
+
 // ===== BATCH CHART COMPONENT =====
 const BatchChart = memo(({ batches = [], students = [], isLoading }) => {
   const [barWidth, setBarWidth] = useState(30);
@@ -847,6 +950,188 @@ const BatchChart = memo(({ batches = [], students = [], isLoading }) => {
   );
 });
 BatchChart.displayName = "BatchChart";
+
+// ===== CLASS STUDENTS TABLE COMPONENT =====
+const ClassStudentsTable = memo(({ classes = [], batches = [], students = [] }) => {
+  const tableData = useMemo(() => {
+    if (!classes?.length || !students?.length) return [];
+    
+    return classes
+      .map((cls) => {
+        const classStudents = students.filter((student) => {
+          const studentClassId =
+            student.studentSpecificField?.classId?._id ||
+            student.studentSpecificField?.classId ||
+            student.classId?._id ||
+            student.classId;
+          const studentBatchId =
+            student.studentSpecificField?.batchId?._id ||
+            student.studentSpecificField?.batchId ||
+            student.batchId?._id ||
+            student.batchId;
+          const targetBatchId = cls.batchId?._id || cls.batchId;
+          
+          return studentClassId 
+            ? String(studentClassId) === String(cls._id)
+            : (student.className === cls.name && String(studentBatchId) === String(targetBatchId));
+        });
+        
+        const count = classStudents.length;
+        const classBatch = batches?.find((b) => String(b._id) === String(cls.batchId?._id || cls.batchId));
+        const batchName = classBatch ? classBatch.name : "";
+        const displayName = `${cls.name} ${batchName ? `(${batchName})` : ''}`;
+        
+        return { name: displayName, count };
+      })
+      .filter((item) => item.count > 0);
+  }, [classes, batches, students]);
+
+  if (!tableData.length) return null;
+
+  const totalStudents = tableData.reduce((sum, item) => sum + item.count, 0);
+  const cellPadding = "px-3.5 py-2 text-xs";
+
+  return (
+    <div className={`mt-6 border rounded-md overflow-x-auto w-fit`}>
+      <table className={`w-max text-sm text-left`}>
+        <thead className="bg-muted text-muted-foreground text-xs uppercase">
+          <tr>
+            <th className={`${cellPadding} font-medium border-b whitespace-nowrap`}>Sl No</th>
+            <th className={`${cellPadding} font-medium border-b`}>Class</th>
+            <th className={`${cellPadding} font-medium border-b text-center`}>No. of Students</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {tableData.map((row, index) => (
+            <tr key={index} className="hover:bg-muted/50 transition-colors">
+              <td className={cellPadding}>{index + 1}</td>
+              <td className={`${cellPadding} font-medium whitespace-nowrap`}>{row.name}</td>
+              <td className={`${cellPadding} text-center`}>{row.count}</td>
+            </tr>
+          ))}
+          <tr className="bg-muted/30 font-bold">
+            <td className={`${cellPadding} border-t`} colSpan={2}>Total</td>
+            <td className={`${cellPadding} border-t text-center`}>{totalStudents}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+});
+ClassStudentsTable.displayName = "ClassStudentsTable";
+
+// ===== CLASS CHART COMPONENT =====
+const ClassChart = memo(({ classes = [], batches = [], students = [], isLoading }) => {
+  const [barWidth, setBarWidth] = useState(30);
+
+  const handleResize = useCallback(() => {
+    const vw = window.innerWidth;
+    const calculatedWidth = Math.max(30, Math.floor(vw * 0.05));
+    setBarWidth(calculatedWidth);
+  }, []);
+
+  useEffect(() => {
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [handleResize]);
+
+  const chartData = useMemo(() => {
+    if (!classes?.length || !students?.length) return [];
+
+    return classes
+      .map((cls) => {
+        const classStudents = students.filter((student) => {
+          const studentClassId =
+            student.studentSpecificField?.classId?._id ||
+            student.studentSpecificField?.classId ||
+            student.classId?._id ||
+            student.classId;
+          const studentBatchId =
+            student.studentSpecificField?.batchId?._id ||
+            student.studentSpecificField?.batchId ||
+            student.batchId?._id ||
+            student.batchId;
+          const targetBatchId = cls.batchId?._id || cls.batchId;
+          
+          return studentClassId 
+            ? String(studentClassId) === String(cls._id)
+            : (student.className === cls.name && String(studentBatchId) === String(targetBatchId));
+        });
+        
+        const classBatch = batches?.find((b) => String(b._id) === String(cls.batchId?._id || cls.batchId));
+        const batchName = classBatch ? classBatch.name : "";
+        const fullName = `${cls.name} ${batchName ? `(${batchName})` : ''}`;
+        
+        return {
+          name: cls.shortname || cls.name,
+          fullName,
+          students: classStudents.length,
+        };
+      })
+      .filter((item) => item.students > 0);
+  }, [classes, batches, students]);
+
+  if (isLoading) return <ChartSkeleton />;
+
+  if (!chartData.length) {
+    return (
+      <div className="h-64 flex items-center justify-center bg-muted/20 rounded-md">
+        <p className="text-gray-500">No class data available</p>
+      </div>
+    );
+  }
+
+  const BAR_GAP = 20;
+  const CHART_PADDING = 70;
+  const totalWidth = Math.max(
+    300,
+    (barWidth + BAR_GAP) * chartData.length + CHART_PADDING
+  );
+
+  return (
+    <div className="h-64 max-w-full overflow-x-auto overflow-y-hidden rounded-md">
+      <div style={{ width: `${totalWidth}px`, height: "290px" }}>
+        <ResponsiveContainer width="100%" height={290}>
+          <RechartsBarChart
+            data={chartData}
+            margin={{ top: 10, right: 30, left: 20, bottom: 60 }}
+            barSize={barWidth}
+            barGap={0}
+            barCategoryGap={BAR_GAP}
+          >
+            <XAxis
+              dataKey="name"
+              interval={0}
+              angle={-35}
+              textAnchor="end"
+              height={70}
+              tick={{ fontSize: 12 }}
+            />
+            <YAxis />
+            <Tooltip
+              formatter={(value, name) => [`${value} students`, name]}
+              labelFormatter={(label, payload) => {
+                const fullName = payload?.[0]?.payload?.fullName || label;
+                return `Class: ${fullName}`;
+              }}
+            />
+            <Legend />
+            <Bar
+              dataKey="students"
+              name="Number of Students"
+              fill="#8884d8"
+              radius={[4, 4, 0, 0]}
+            >
+              <LabelList dataKey="students" position="inside" fill="#ffffff" />
+            </Bar>
+          </RechartsBarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+});
+ClassChart.displayName = "ClassChart";
 
 // ===== STUDENT STATUS CHART COMPONENT =====
 const StudentStatusChart = memo(({ students, isLoading }) => {
