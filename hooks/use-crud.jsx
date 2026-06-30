@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import {
   fetchItems,
   fetchItemById,
@@ -8,6 +9,8 @@ import {
 } from "@/lib/api";
 
 const useCrud = (apiEndpoint, apiKey) => {
+  const router = useRouter();
+  
   // Fetch items with pagination support
   const useFetchItems = (page = 0, limit = 20, filters = {}, options = {}) => {
     return useQuery({
@@ -43,6 +46,9 @@ const useCrud = (apiEndpoint, apiKey) => {
           queryClient.invalidateQueries({ queryKey: ["timeTables"] });
           queryClient.invalidateQueries({ queryKey: ["leave-records"] });
         }
+        
+        // Refresh server components
+        router.refresh();
       },
     });
   };
@@ -64,6 +70,9 @@ const useCrud = (apiEndpoint, apiKey) => {
           queryClient.invalidateQueries({ queryKey: ["timeTables"] });
           queryClient.invalidateQueries({ queryKey: ["leave-records"] });
         }
+        
+        // Refresh server components
+        router.refresh();
       },
     });
   };
@@ -83,6 +92,9 @@ const useCrud = (apiEndpoint, apiKey) => {
           queryClient.invalidateQueries({ queryKey: ["timeTables"] });
           queryClient.invalidateQueries({ queryKey: ["leave-records"] });
         }
+        
+        // Refresh server components
+        router.refresh();
       },
     });
   };
