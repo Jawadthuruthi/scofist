@@ -3,8 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import axios from "axios";
-import { Loader, Check, X } from "lucide-react";
+import { Loader, Check, X, Filter, Download, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import {
     Select,
     SelectContent,
@@ -87,7 +92,12 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                 ]);
                 setClasses(classesRes.data.classes || []);
                 setAllSubjects(subjectsRes.data.subjects || []);
-                setBatches(batchesRes.data.batches || []);
+                const fetchedBatches = batchesRes.data.batches || [];
+                setBatches(fetchedBatches.sort((a, b) => {
+                    const yearA = parseInt(a.academicYear) || 0;
+                    const yearB = parseInt(b.academicYear) || 0;
+                    return yearB - yearA;
+                }));
             } catch (error) {
                 console.error("Metadata fetch error:", error);
                 toast.error("Failed to fetch initial data");
@@ -218,6 +228,66 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
         }
     };
 
+    const exportToCSV = () => {
+        if (!data.students || data.students.length === 0) {
+            toast.error("No data to export");
+            return;
+        }
+
+        const headers = ["Sl.No", "Student Name"];
+        daysInMonth.forEach(day => headers.push(day.getDate().toString()));
+        headers.push("P", "A", "L");
+
+        const rows = [headers];
+
+        data.students.forEach((student, idx) => {
+            const row = [idx + 1, student.name];
+            let presentCount = 0;
+            let absentCount = 0;
+            let leaveCount = 0;
+
+            daysInMonth.forEach(day => {
+                const dateKey = day.getDate();
+                const isFriday = day.getDay() === 5;
+                const isNonWorkingDay = !isFriday && (dateKey in (data.nonWorkingDaysMap || {}));
+                
+                if (isFriday || isNonWorkingDay) {
+                    row.push("-");
+                } else {
+                    const status = data.attendanceMap[student._id]?.[dateKey];
+                    const hasLeave = data.leavesMap[student._id]?.[dateKey];
+                    
+                    if (hasLeave) {
+                        row.push("L");
+                        leaveCount++;
+                    } else if (status === "Present") {
+                        row.push("P");
+                        presentCount++;
+                    } else if (status === "Absent") {
+                        row.push("A");
+                        absentCount++;
+                    } else {
+                        row.push("");
+                    }
+                }
+            });
+
+            row.push(presentCount, absentCount, leaveCount);
+            rows.push(row);
+        });
+
+        const csvContent = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Attendance_${filters.year}_${filters.month + 1}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
 
 
     return (
@@ -268,69 +338,93 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
             </div>
 
             {/* Filters - Hidden in Print */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6 print:hidden">
-                <Select value={filters.year.toString()} onValueChange={(v) => setFilters(prev => ({ ...prev, year: parseInt(v) }))}>
-                    <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
-                    <SelectContent>
-                        {[...Array(5)].map((_, i) => {
-                            const y = new Date().getFullYear() - i;
-                            return <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-                        })}
-                    </SelectContent>
-                </Select>
+            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4 mb-6 print:hidden">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Select value={filters.year.toString()} onValueChange={(v) => setFilters(prev => ({ ...prev, year: parseInt(v) }))}>
+                        <SelectTrigger className="flex-1 sm:flex-none sm:w-[120px]"><SelectValue placeholder="Year" /></SelectTrigger>
+                        <SelectContent>
+                            {[...Array(5)].map((_, i) => {
+                                const y = new Date().getFullYear() - i;
+                                return <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                            })}
+                        </SelectContent>
+                    </Select>
 
-                <Select value={filters.month.toString()} onValueChange={(v) => setFilters(prev => ({ ...prev, month: parseInt(v) }))}>
-                    <SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger>
-                    <SelectContent>
-                        {Array.from({ length: 12 }, (_, i) => (
-                            <SelectItem key={i} value={i.toString()}>
-                                {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    <Select value={filters.month.toString()} onValueChange={(v) => setFilters(prev => ({ ...prev, month: parseInt(v) }))}>
+                        <SelectTrigger className="flex-1 sm:flex-none sm:w-[140px]"><SelectValue placeholder="Month" /></SelectTrigger>
+                        <SelectContent>
+                            {Array.from({ length: 12 }, (_, i) => (
+                                <SelectItem key={i} value={i.toString()}>
+                                    {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:ml-auto">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" size="icon" className="shrink-0">
+                                <Filter className="h-4 w-4" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80" align="start">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">Filter Options</h4>
+                                    <p className="text-sm text-muted-foreground">Set batch, class, and subject.</p>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Select value={filters.batchId || "none"} onValueChange={handleBatchChange}>
+                                        <SelectTrigger><SelectValue placeholder="Select Batch" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">All/No Batch</SelectItem>
+                                            {batches.map(b => (
+                                                <SelectItem key={b._id} value={b._id}>
+                                                    {b.name} {b.academicYear ? `(${b.academicYear})` : ""}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={filters.classId || "none"} onValueChange={handleClassChange}>
+                                        <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">All/No Class</SelectItem>
+                                            {filteredClasses.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={filters.subjectId} onValueChange={(v) => setFilters(prev => ({ ...prev, subjectId: v }))} disabled={!filters.classId && !filters.batchId}>
+                                        <SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger>
+                                        <SelectContent>
+                                            {subjects.map(s => (
+                                                <SelectItem key={s._id || `s-${s}`} value={s._id || s}>
+                                                    {s.name || s}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
 
-                <Select value={filters.batchId || "none"} onValueChange={handleBatchChange}>
-                    <SelectTrigger><SelectValue placeholder="Select Batch" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="none">All/No Batch</SelectItem>
-                        {batches.map(b => (
-                            <SelectItem key={b._id} value={b._id}>
-                                {b.name} {b.academicYear ? `(${b.academicYear})` : ""}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    <Button onClick={loadAttendance} disabled={loading} className="flex-1 sm:flex-none">
+                        {loading ? <Loader className="animate-spin h-4 w-4 mr-2" /> : null}
+                        Load Data
+                    </Button>
 
-                <Select value={filters.classId || "none"} onValueChange={handleClassChange}>
-                    <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="none">All/No Class</SelectItem>
-                        {filteredClasses.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                </Select>
+                    <Button variant="outline" onClick={exportToCSV} disabled={!data.students || data.students.length === 0} className="gap-2 flex-1 sm:flex-none">
+                        <FileSpreadsheet className="h-4 w-4 text-green-600" /> Excel
+                    </Button>
 
-                <Select value={filters.subjectId} onValueChange={(v) => setFilters(prev => ({ ...prev, subjectId: v }))} disabled={!filters.classId && !filters.batchId}>
-                    <SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger>
-                    <SelectContent>
-                        {subjects.map(s => (
-                            <SelectItem key={s._id || `s-${s}`} value={s._id || s}>
-                                {s.name || s}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-
-                <Button onClick={loadAttendance} disabled={loading} className="w-full">
-                    {loading ? <Loader className="animate-spin" /> : "Load Data"}
-                </Button>
-
-                <Button
-                    className="bg-black text-white hover:bg-gray-800 w-full"
-                    onClick={() => window.print()}
-                >
-                    Print
-                </Button>
+                    <Button
+                        className="bg-black text-white hover:bg-gray-800 flex-1 sm:flex-none"
+                        onClick={() => window.print()}
+                    >
+                        Print
+                    </Button>
+                </div>
             </div>
 
             {/* Table */}
