@@ -176,7 +176,7 @@ export async function GET(req) {
         const payload = JSON.stringify({
           title: "Missing Attendance Alert 🚨",
           body: `You missed marking attendance for Period ${m.periodNumber}: ${m.className} (${subjectMap[m.subjectId] || 'Subject'})`,
-          url: "/dashboard/attendance-sheet"
+          url: "/dashboard/my-periods"
         });
 
         // Send to all registered devices of the teacher
