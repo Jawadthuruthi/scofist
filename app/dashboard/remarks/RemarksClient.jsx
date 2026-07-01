@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 const columnsConfig = [
     {
@@ -108,6 +109,50 @@ const columnsConfig = [
             );
         },
     },
+    {
+        id: "whatsapp",
+        header: "",
+        width: 50,
+        maxWidth: 50,
+        minWidth: 50,
+        cell: ({ row }) => {
+            const data = row.original;
+            const handleWhatsAppClick = (e) => {
+                e.stopPropagation();
+                const d = new Date(data.date);
+                const dateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+                const msg = `Student Remark Details:\n\nDate: ${dateStr}\nClass: ${data.className}\nStudent: ${data.studentName}\nTeacher: ${data.teacherName}\nComment: ${data.comments}\nStatus: ${data.status}`;
+                const number = data.guardianContactNumber;
+                
+                if (!number) {
+                    toast.error("No guardian contact number found for this student.");
+                    return;
+                }
+                
+                const formattedNumber = number.replace(/\D/g, '');
+                const url = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(msg)}`;
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.target = '_blank';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
+            return (
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-green-500 hover:text-green-600 hover:bg-green-50 h-8 w-8"
+                    onClick={handleWhatsAppClick}
+                    title="Send to WhatsApp"
+                >
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                </Button>
+            );
+        }
+    },
 ];
 
 const statusMessages = {
@@ -196,10 +241,10 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
             type: "text",
             inputType: "select",
             options: teachers,
-            required: true,
+            required: !isTeacher,
             placeholder: "Select Teacher",
-            readOnly: isTeacher,
             defaultValue: isTeacher ? user?.userId : undefined,
+            className: isTeacher ? "hidden" : "",
         },
         {
             name: "status",

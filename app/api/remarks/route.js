@@ -84,7 +84,7 @@ export async function GET(req) {
     }
 
     const remarks = await Remark.find(query, projections)
-      .populate("studentId", "name")
+      .populate("studentId", "name contactNumber studentSpecificField.guardianContactNumber")
       .populate("teacherId", "name")
       .populate("classId", "name")
       .skip(page * limit)
@@ -101,6 +101,8 @@ export async function GET(req) {
       studentName: remark.studentId?.name,
       className: remark.classId?.name,
       teacherName: remark.teacherId?.name,
+      contactNumber: remark.studentId?.contactNumber,
+      guardianContactNumber: remark.studentId?.studentSpecificField?.guardianContactNumber,
     }));
 
     return NextResponse.json(

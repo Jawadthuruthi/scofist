@@ -536,6 +536,14 @@ export default function AcademicCalendarManager({ apiKey }) {
                             <p className="text-sm text-muted-foreground">
                                 Are you sure you want to send a notification to all teachers about <strong>{confirmNotifyEv.title}</strong>?
                             </p>
+                            <div className="p-3 bg-muted/50 rounded-md border text-sm space-y-1">
+                                <p className="font-semibold text-foreground">
+                                    Special Day Alert 📅
+                                </p>
+                                <p className="text-muted-foreground whitespace-pre-wrap">
+                                    {`Event: ${confirmNotifyEv.title}\nDate: ${fmtDisplay(confirmNotifyEv.date)}${confirmNotifyEv.time ? `\nTime: ${confirmNotifyEv.time}` : ''}`}
+                                </p>
+                            </div>
                             <div className="flex gap-3">
                                 <Button
                                     variant="outline"

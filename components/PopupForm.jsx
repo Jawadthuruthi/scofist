@@ -545,7 +545,7 @@ const FormContent = ({
             setActiveIndex={setActiveSectionIndex}
           />
         )}
-        <div className="max-h-[60vh] overflow-y-auto px-2">
+        <div className="max-h-[85vh] overflow-y-auto px-2">
           {sectionOrder.map((section, index) => (
             <div
               key={section}
