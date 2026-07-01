@@ -256,6 +256,7 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
                 searchBarClassName="w-[200px] sm:w-[280px] lg:w-[400px] xl:w-[500px]"
                 desktopSearchPlaceholder="Search student or number..."
                 extraSearchFields={["studentId"]}
+                tableHeight="calc(100vh - 250px)"
                 additionalProps={{
                     customActions: isTeacher ? (
                         <Button 

@@ -1077,9 +1077,9 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                 {/* Exam Name */}
                                 <div>
                                     <label className="text-sm font-medium mb-1 block">Exam Name</label>
-                                    {!selectedExam ? (
+                                    {(!selectedExam && !isAddingNewExam) ? (
                                         <Select
-                                            value={isAddingNewExam ? "NEW_EXAM" : ""}
+                                            value=""
                                             onValueChange={val => {
                                                 if (val === "NEW_EXAM") {
                                                     setIsAddingNewExam(true); setSelectedExam(null); setExamName(""); setGradingScale([]); setExamReady(false); setStudents([]); setMarksData({});
@@ -1103,13 +1103,18 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                             <Input
                                                 value={examName}
                                                 onChange={e => setExamName(e.target.value)}
-                                                placeholder="Edit Exam Name"
+                                                placeholder={isAddingNewExam ? "Enter New Exam Name" : "Edit Exam Name"}
+                                                onKeyDown={e => {
+                                                    if (e.key === "Enter" && isAddingNewExam && examName.trim()) {
+                                                        handleOpenTable();
+                                                    }
+                                                }}
                                                 autoFocus
                                             />
                                             <Button
                                                 size="icon" variant="ghost" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive border border-input bg-background"
-                                                onClick={() => { setSelectedExam(null); setExamName(""); setExamReady(false); setStudents([]); setMarksData({}); }}
-                                                title="Clear Selection"
+                                                onClick={() => { setIsAddingNewExam(false); setSelectedExam(null); setExamName(""); setExamReady(false); setStudents([]); setMarksData({}); setSelectedBatches([]); setSelectedClasses([]); setSelectedStudentIds([]); }}
+                                                title="Cancel"
                                             >
                                                 <X className="w-4 h-4" />
                                             </Button>
@@ -1209,52 +1214,31 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                 {/* Extras/Secondary line for adding new exam or result configuration */}
                 {/* 1. Add New Exam Extra Inputs (College Admin in Mark Entry mode) */}
                 {!showResult && activeRole !== "Teacher" && isAddingNewExam && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end border border-dashed rounded-lg p-3 bg-muted/10">
-                        <div className="md:col-span-2">
-                            <label className="text-sm font-medium mb-1 block">New Exam Name</label>
-                            <div className="flex gap-2 items-center">
-                                <Input
-                                    autoFocus
-                                    placeholder="e.g. First Term Exam"
-                                    value={examName}
-                                    onChange={e => setExamName(e.target.value)}
-                                    onKeyDown={e => e.key === "Enter" && examName.trim() && handleOpenTable()}
-                                />
-                                <Button
-                                    size="icon" variant="ghost" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
-                                    onClick={() => { setIsAddingNewExam(false); setExamName(""); setSelectedBatches([]); setSelectedClasses([]); setAvailableStudents([]); setSelectedStudentIds([]); }}
-                                    title="Cancel"
-                                >
-                                    <X className="w-4 h-4" />
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <Button
-                                onClick={handleOpenTable}
-                                disabled={!examName.trim() || selectedStudentIds.length === 0}
-                                className="w-full gap-2"
-                            >
-                                <Save className="w-4 h-4" />
-                                Open Marks Table
-                            </Button>
-                            <input
-                                type="file"
-                                accept=".xlsx, .xls, .csv"
-                                className="hidden"
-                                ref={fileInputRef}
-                                onChange={handleFileUpload}
-                            />
-                            <Button
-                                variant="outline"
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={!examName.trim()}
-                                className="w-full gap-2"
-                            >
-                                <FileSpreadsheet className="w-4 h-4" />
-                                Upload Marks File
-                            </Button>
-                        </div>
+                    <div className="flex flex-col sm:flex-row gap-3 items-center justify-end p-3 bg-muted/10 border border-dashed rounded-lg">
+                        <input
+                            type="file"
+                            accept=".xlsx, .xls, .csv"
+                            className="hidden"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                        />
+                        <Button
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={!examName.trim()}
+                            className="gap-2 w-full sm:w-auto"
+                        >
+                            <FileSpreadsheet className="w-4 h-4" />
+                            Import from Excel
+                        </Button>
+                        <Button
+                            onClick={handleOpenTable}
+                            disabled={!examName.trim() || selectedStudentIds.length === 0}
+                            className="gap-2 w-full sm:w-auto"
+                        >
+                            <Save className="w-4 h-4" />
+                            Open Marks Table
+                        </Button>
                     </div>
                 )}
             </div>

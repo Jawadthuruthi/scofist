@@ -183,6 +183,7 @@ const AttendanceTrackingPage = async () => {
         },
         trailingToolbar: <StudentAttendanceLookup students={formattedStudents} classes={formatOptions(formattedClasses)} />,
         limit: 1000,
+        tableHeight: "calc(100vh - 250px)",
         defaultSorting: [],
       },
       {
@@ -280,6 +281,7 @@ const AttendanceTrackingPage = async () => {
         enableMonthYearFilter: true,
         trailingToolbar: <StudentAttendanceLookup students={formattedTeachers} type="teacher" />,
         limit: 1000,
+        tableHeight: "calc(100vh - 250px)",
         defaultSorting: [],
       },
     ];
@@ -387,6 +389,7 @@ const AttendanceTrackingPage = async () => {
         },
         trailingToolbar: <StudentAttendanceLookup students={students} />,
         limit: 1000,
+        tableHeight: "calc(100vh - 250px)",
         defaultSorting: [],
       },
     ];
@@ -399,7 +402,7 @@ const AttendanceTrackingPage = async () => {
             subTitle="Track Attendance Records In Real Time"
           />
           <ClientOnlyAdvancedDataTable
-            tabsConfig={tabsConfig2}
+            tablesConfig={tabsConfig2}
             apiKey={apiKey}
           />
         </>
