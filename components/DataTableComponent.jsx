@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import useDataFilter from "@/hooks/use-data-filter";
 import dynamic from "next/dynamic";
-import { Loader, Search, X, Trophy, FileSpreadsheet, Printer, CheckCircle2 } from "lucide-react";
+import { Loader, Search, X, Trophy, FileSpreadsheet, Printer, CheckCircle2, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
@@ -47,6 +47,7 @@ import ColumnCustomization from "./ColumnCustomization";
 import PopupFilter from "./PopupFilter";
 import ConfirmationPopup from "./ConfirmationPopup";
 import PopupForm from "./PopupForm";
+import StarOfTheMonthModal from "./StarOfTheMonthModal";
 
 // Dynamic imports removed to fix ChunkLoadError
 // const PopupFilter = ...
@@ -1149,6 +1150,10 @@ const DataTableComponent = ({
               filterType={filterType}
             />
 
+            {resource === "performance" && (
+              <StarOfTheMonthModal classes={filterConfig?.find(f => f.id === "classId")?.options || []} />
+            )}
+
             {/* Trophy Icon Toggle for Toppers */}
             {resource === "studentAttendances" && enableMonthYearFilter && (
               <Button
@@ -1315,6 +1320,10 @@ const DataTableComponent = ({
                 title={filterTitle || capitalize(resource)}
                 filterType={filterType}
               />
+
+              {resource === "performance" && (
+                <StarOfTheMonthModal classes={filterConfig?.find(f => f.id === "classId")?.options || []} />
+              )}
 
               {enableSearch && (
                 <div className="relative">

@@ -336,10 +336,10 @@ export default function PopupFilter({
       <div className="flex items-center space-x-2">
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button variant={hasFilters ? "default" : "outline"} size="sm" className={triggerClass}>
+            <Button variant={hasFilters ? "default" : "outline"} className={`h-9 min-w-9 flex items-center justify-center shrink-0 ${hasFilters ? "px-2" : "w-9 p-0"} ${triggerClass}`}>
               <Filter className="h-4 w-4" />
               {hasFilters && (
-                <span className="ml-1 bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-xs">
+                <span className="ml-1 bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-[10px] min-w-4 text-center">
                   {Object.keys(filters).length}
                 </span>
               )}

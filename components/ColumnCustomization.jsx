@@ -15,7 +15,7 @@ const ColumnCustomization = ({ table, columnsConfig }) => {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className="h-9 w-9 p-0 flex items-center justify-center shrink-0">
           <Sliders className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>

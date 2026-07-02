@@ -40,6 +40,7 @@ import {
   FileQuestion,
   AlertTriangle,
   Newspaper,
+  TrendingUp,
 } from "lucide-react";
 
 import {
@@ -193,6 +194,12 @@ const items = [
     title: "Remarks",
     url: "/dashboard/remarks",
     icon: MessageSquare,
+    allowedRoles: ["Teacher", "College Admin"],
+  },
+  {
+    title: "Performance",
+    url: "/dashboard/performance",
+    icon: TrendingUp,
     allowedRoles: ["Teacher", "College Admin"],
   },
   {
