@@ -13,12 +13,12 @@ const BarcodeSheet = forwardRef(({ books = [] }, ref) => {
                         className="border p-1 flex flex-col items-center justify-center space-y-0.5 break-inside-avoid h-[2.1cm]"
                     >
                         <div className="text-[11px] font-bold uppercase tracking-wider">
-                            {book.number}
+                            {book.id}
                         </div>
                         <div className="flex justify-center bg-white p-1">
-                            {book.number && /^[\x20-\x7E]+$/.test(String(book.number)) ? (
+                            {book.id && /^[\x20-\x7E]+$/.test(String(book.id)) ? (
                                 <Barcode
-                                    value={String(book.number)}
+                                    value={String(book.id)}
                                     width={1.0}
                                     height={40}
                                     fontSize={10}

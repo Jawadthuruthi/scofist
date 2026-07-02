@@ -79,8 +79,13 @@ async function run() {
         const operations = [];
 
         for (const row of books) {
-            const rawId = row['book ID'];
+            let rawId = row['book ID'];
             if (!rawId) continue;
+            
+            rawId = rawId.toString().trim().replace(/[^a-zA-Z0-9]/g, '');
+            if (/^\d+$/.test(rawId)) {
+                rawId = 'ENG' + rawId;
+            }
 
             const { prefix, number } = parseId(rawId);
 

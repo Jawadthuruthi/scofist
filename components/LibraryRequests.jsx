@@ -201,7 +201,7 @@ export default function LibraryRequests() {
             cell: ({ row }) => (
                 <div className="flex flex-col">
                     <span className="font-bold">{row.original.bookId?.name || "N/A"}</span>
-                    <span className="text-xs text-muted-foreground">ID: {row.original.bookId?.number || "N/A"}</span>
+                    <span className="text-xs text-muted-foreground">ID: {row.original.bookId?.id || "N/A"}</span>
                 </div>
             )
         },
@@ -306,7 +306,7 @@ export default function LibraryRequests() {
                     description={`Creating rental for ${selectedRequest.studentId?.name} - ${selectedRequest.bookId?.name}`}
                     formFields={rentalFields}
                     data={{
-                        bookId: selectedRequest.bookId?.number,
+                        bookId: selectedRequest.bookId?.id,
                         studentId: selectedRequest.studentId?._id,
                         rentedDate: new Date().toISOString().split("T")[0]
                     }}

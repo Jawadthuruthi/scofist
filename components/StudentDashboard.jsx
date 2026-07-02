@@ -2271,7 +2271,7 @@ export default function StudentDashboard({
                     defaultViewMode="grid"
                     hideViewToggle={true}
                     columnsConfig={[
-                      { accessorKey: "number", header: "Book ID" },
+                      { accessorKey: "id", header: "Book ID", sortingFn: "alphanumeric" },
                       { accessorKey: "name", header: "Book Name" },
                       { accessorKey: "author", header: "Author" },
                       { accessorKey: "category", header: "Category" },
@@ -2311,7 +2311,7 @@ export default function StudentDashboard({
                                 <BookOpen className="h-6 w-6 text-muted-foreground" />
                               </div>
                               <div className="text-center w-full space-y-1">
-                                <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/80 py-0.5 rounded border">ID: {book.number}</div>
+                                <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/80 py-0.5 rounded border">ID: {book.id}</div>
                                 <div className="font-bold text-[11px] text-foreground">₹{book.price?.toFixed(2) || "0.00"}</div>
                                 <div className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider inline-block ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
                                   {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
@@ -2332,9 +2332,9 @@ export default function StudentDashboard({
                                 <div className="flex items-center gap-2 w-full">
                                   {/* Barcode in the same row */}
                                   <div className="flex-1 flex justify-center items-center h-7 overflow-hidden bg-white rounded border border-border/50 shadow-sm p-0.5">
-                                    {book.number && (
+                                    {book.id && (
                                       <Barcode
-                                        value={String(book.number)}
+                                        value={String(book.id)}
                                         width={0.6}
                                         height={20}
                                         fontSize={0}
@@ -2411,9 +2411,7 @@ export default function StudentDashboard({
                             <TableCell className="font-medium">
                               {rental.bookId?.name || "Unknown Book"}
                               <div className="text-xs text-muted-foreground">
-                                {rental.bookId?.prefix && rental.bookId?.number
-                                  ? `${rental.bookId.prefix}-${rental.bookId.number}`
-                                  : rental.bookId?.number || "N/A"}
+                                {rental.bookId?.id || "N/A"}
                               </div>
                             </TableCell>
                             <TableCell className="text-sm">

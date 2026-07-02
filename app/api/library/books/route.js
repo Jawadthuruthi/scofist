@@ -13,10 +13,10 @@ export async function GET(req) {
 
         const query = {};
         if (number) {
-            query.number = { $regex: new RegExp(`^${number}$`, 'i') }; // Exact match, case insensitive
+            query.id = { $regex: new RegExp(`^${number}$`, 'i') }; // Exact match, case insensitive
         }
 
-        const books = await LibraryBook.find(query).sort({ number: 1 }).collation({ locale: "en", numericOrdering: true }).lean();
+        const books = await LibraryBook.find(query).sort({ prefix: 1, number: 1 }).collation({ locale: "en", numericOrdering: true }).lean();
         const activeRentals = await Rental.find({ receivedDate: null }).select("bookId");
 
         const rentedBookIds = new Set(activeRentals.map(r => r.bookId?.toString()));

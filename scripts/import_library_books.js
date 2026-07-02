@@ -34,29 +34,19 @@ const libraryBookSchema = new mongoose.Schema({
 
 const LibraryBook = mongoose.models.LibraryBook || mongoose.model("LibraryBook", libraryBookSchema);
 
-const DOWNLOADS_DIR = 'C:\\Users\\ABDULLA\\Downloads';
+const DOWNLOADS_DIR = 'C:\\Users\\ABDULLA\\Downloads\\books';
 
-// Patterns to match CSV files
-const FILE_PATTERNS = [
-    'KANNADA NEW CATALOGUE  - K-BG',
-    'كتب - شروح الحديث',
-    'LIBRARY CATALOGUE'
-];
-
-// Helper to find file matching pattern
-function findFile(pattern) {
+// Helper to find all CSV files
+function findCSVFiles() {
     try {
+        if (!fs.existsSync(DOWNLOADS_DIR)) return [];
         const files = fs.readdirSync(DOWNLOADS_DIR);
-        // Find file that includes the pattern and ends with .csv
-        // (User's manual edit looked for .json, but only .csv exist)
-        const match = files.find(file =>
-            file.toLowerCase().includes(pattern.toLowerCase()) &&
-            file.toLowerCase().endsWith('.csv')
-        );
-        return match ? path.join(DOWNLOADS_DIR, match) : null;
+        return files
+            .filter(file => file.toLowerCase().endsWith('.csv'))
+            .map(file => path.join(DOWNLOADS_DIR, file));
     } catch (err) {
         console.error(`Error reading downloads directory: ${err.message}`);
-        return null;
+        return [];
     }
 }
 
@@ -64,6 +54,10 @@ function findFile(pattern) {
 function parseId(id) {
     if (!id) return { prefix: '', number: null };
     const strId = String(id).trim();
+
+    if (/^\d+$/.test(strId)) {
+        return { prefix: '', number: parseInt(strId, 10) };
+    }
 
     // Regex to match prefix (anything that is not a digit at the end) and number (digits at the end)
     const match = strId.match(/^(.+?)(\d+)$/);
@@ -73,10 +67,6 @@ function parseId(id) {
             prefix: match[1].trim(),
             number: parseInt(match[2], 10)
         };
-    }
-
-    if (/^\d+$/.test(strId)) {
-        return { prefix: '', number: parseInt(strId, 10) };
     }
 
     return { prefix: strId, number: null };
@@ -89,13 +79,12 @@ async function importBooks() {
 
         let totalImported = 0;
 
-        for (const pattern of FILE_PATTERNS) {
-            const filePath = findFile(pattern);
-            if (!filePath) {
-                console.warn(`No file found matching pattern: "${pattern}"`);
-                continue;
-            }
+        const filesToProcess = findCSVFiles();
+        if (filesToProcess.length === 0) {
+            console.warn(`No CSV files found in downloads directory.`);
+        }
 
+        for (const filePath of filesToProcess) {
             console.log(`Processing file: ${filePath}`);
 
             // Read CSV as UTF-8 string to handle special chars (Arabic/Kannada)
@@ -103,7 +92,43 @@ async function importBooks() {
             // Parse CSV with XLSX
             const workbook = XLSX.read(fileContent, { type: 'string' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const books = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+            const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+            
+            let headerRowIndex = -1;
+            let headers = [];
+            
+            // Find the header row
+            for (let i = 0; i < Math.min(10, rawRows.length); i++) {
+                const row = rawRows[i];
+                if (!Array.isArray(row)) continue;
+                const lowerRow = row.map(cell => String(cell).toLowerCase().trim());
+                if (lowerRow.includes('_id') || lowerRow.includes('id')) {
+                    headerRowIndex = i;
+                    headers = row.map(cell => String(cell).trim());
+                    break;
+                }
+            }
+            
+            if (headerRowIndex === -1) {
+                console.warn(`Could not find header row containing '_id' or 'id' in ${path.basename(filePath)}`);
+                continue;
+            }
+            
+            const books = [];
+            for (let i = headerRowIndex + 1; i < rawRows.length; i++) {
+                const rowArray = rawRows[i];
+                if (!Array.isArray(rowArray) || rowArray.length === 0) continue;
+                if (rowArray.every(cell => String(cell).trim() === "")) continue;
+                
+                const bookObj = {};
+                for (let j = 0; j < headers.length; j++) {
+                    const header = headers[j];
+                    if (header) {
+                        bookObj[header] = rowArray[j] !== undefined ? rowArray[j] : "";
+                    }
+                }
+                books.push(bookObj);
+            }
 
             console.log(`Found ${books.length} rows in ${path.basename(filePath)}`);
 
@@ -117,10 +142,20 @@ async function importBooks() {
                 });
 
                 // Find ID from '_id' or 'id'
-                const rawId = normalizedRow['_id'] || normalizedRow['id'];
+                let rawId = normalizedRow['_id'] || normalizedRow['id'];
 
                 if (!rawId) {
                     continue;
+                }
+                
+                rawId = rawId.toString().trim();
+                
+                // Remove all non-alphanumeric characters (like dashes, spaces)
+                rawId = rawId.replace(/[^a-zA-Z0-9]/g, '');
+                
+                // Correct IDs without letters by prepending 'KKW'
+                if (/^\d+$/.test(rawId)) {
+                    rawId = 'KKW' + rawId;
                 }
 
                 const { prefix, number } = parseId(rawId);

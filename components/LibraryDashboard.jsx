@@ -360,7 +360,8 @@ export default function LibraryDashboard({
             },
         },
         {
-            accessorKey: "number",
+            accessorKey: "id",
+            sortingFn: "alphanumeric",
             header: "Book ID",
             cell: ({ row }) => (
                 <button
@@ -374,7 +375,7 @@ export default function LibraryDashboard({
                         setEditPopupOpen(true);
                     }}
                 >
-                    {row.original.number}
+                    {row.original.id}
                 </button>
             ),
             meta: {
@@ -484,10 +485,10 @@ export default function LibraryDashboard({
             header: "Barcode",
             cell: ({ row }) => (
                 <div className="flex flex-col items-center justify-center p-1 space-y-1">
-                    {row.original.number && /^[\x20-\x7E]+$/.test(String(row.original.number)) ? (
+                    {row.original.id && /^[\x20-\x7E]+$/.test(String(row.original.id)) ? (
                         <>
                             <ScanBarcode className="h-6 w-6 text-muted-foreground" />
-                            <span className="font-mono text-[10px] uppercase tracking-widest">{row.original.number}</span>
+                            <span className="font-mono text-[10px] uppercase tracking-widest">{row.original.id}</span>
                         </>
                     ) : (
                         <span className="text-xs text-muted-foreground py-2">Invalid</span>
@@ -543,7 +544,8 @@ export default function LibraryDashboard({
             },
         },
         {
-            accessorKey: "bookId.number",
+            accessorKey: "bookId.id",
+            sortingFn: "alphanumeric",
             header: "Book ID",
             meta: {
                 width: "1%",
@@ -668,7 +670,7 @@ export default function LibraryDashboard({
         const headers = ["Book ID", "Book Name", "Author", "Language", "Category", "Publication", "Price", "Status"];
         const booksToExport = tableRef.current ? tableRef.current.getFilteredData() : localBooks;
         const rows = booksToExport.map(b => [
-            b.number ?? "",
+            b.id ?? "",
             b.name ?? "",
             b.author ?? "",
             b.language ?? "",
@@ -1345,7 +1347,7 @@ export default function LibraryDashboard({
                                                 {studentHistory.length > 0 ? (
                                                     studentHistory.map((rental) => (
                                                         <TableRow key={rental._id}>
-                                                            <TableCell className="font-medium">{rental.bookId?.number}</TableCell>
+                                                            <TableCell className="font-medium">{rental.bookId?.id}</TableCell>
                                                             <TableCell>{rental.bookId?.name}</TableCell>
                                                             <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
                                                             <TableCell>
@@ -1398,7 +1400,7 @@ export default function LibraryDashboard({
                                     <div className="space-y-1 flex-1 text-center md:text-left">
                                         <h2 className="text-2xl font-bold text-primary">{lookupBook.name}</h2>
                                         <div className="flex flex-col gap-1">
-                                            <div className="text-sm font-medium">Book ID: <span className="text-muted-foreground font-bold">{lookupBook.number}</span></div>
+                                            <div className="text-sm font-medium">Book ID: <span className="text-muted-foreground font-bold">{lookupBook.id}</span></div>
                                             <div className="text-sm font-medium">Author: <span className="text-muted-foreground uppercase">{lookupBook.author}</span></div>
                                             <div className="text-sm font-medium">Category: <span className="text-muted-foreground">{lookupBook.category}</span></div>
                                             <div className="text-sm font-medium">Language: <span className="text-muted-foreground">{lookupBook.language}</span></div>
@@ -1490,7 +1492,7 @@ export default function LibraryDashboard({
                                         initialPendingRentals.map((rental, index) => (
                                             <TableRow key={rental._id}>
                                                 <TableCell className="font-medium">{index + 1}</TableCell>
-                                                <TableCell className="font-medium">{rental.bookId?.number}</TableCell>
+                                                <TableCell className="font-medium">{rental.bookId?.id}</TableCell>
                                                 <TableCell>{rental.bookId?.name}</TableCell>
                                                 <TableCell>{rental.studentId?.name || rental.studentName}</TableCell>
                                                 <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
@@ -1548,7 +1550,7 @@ export default function LibraryDashboard({
                                                 <TableCell>
                                                     <div className="flex flex-col">
                                                         <span className="font-semibold text-sm">{req.bookId?.name || "N/A"}</span>
-                                                        <span className="text-xs text-muted-foreground">ID: {req.bookId?.number || "N/A"}</span>
+                                                        <span className="text-xs text-muted-foreground">ID: {req.bookId?.id || "N/A"}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
@@ -1622,7 +1624,7 @@ export default function LibraryDashboard({
                                 },
                                 required: true,
                                 enableScanner: true,
-                                defaultValue: selectedRequest.bookId?.number,
+                                defaultValue: selectedRequest.bookId?.id,
                             },
                             {
                                 name: "studentId",
@@ -1648,7 +1650,7 @@ export default function LibraryDashboard({
                             },
                         ]}
                         data={{
-                            bookId: selectedRequest.bookId?.number,
+                            bookId: selectedRequest.bookId?.id,
                             studentId: selectedRequest.studentId?._id,
                             rentedDate: new Date().toISOString().split("T")[0],
                         }}
@@ -1764,7 +1766,7 @@ export default function LibraryDashboard({
                                         initialBooks.map((book, index) => (
                                             <TableRow key={book._id}>
                                                 <TableCell className="font-medium">{index + 1}</TableCell>
-                                                <TableCell className="font-medium text-primary">{book.number}</TableCell>
+                                                <TableCell className="font-medium text-primary">{book.id}</TableCell>
                                                 <TableCell>{book.name}</TableCell>
                                                 <TableCell>{book.author}</TableCell>
                                                 <TableCell>
@@ -1809,7 +1811,7 @@ export default function LibraryDashboard({
                                         initialBooks.filter(b => b.status === "Available").map((book, index) => (
                                             <TableRow key={book._id}>
                                                 <TableCell className="font-medium">{index + 1}</TableCell>
-                                                <TableCell className="font-medium text-primary">{book.number}</TableCell>
+                                                <TableCell className="font-medium text-primary">{book.id}</TableCell>
                                                 <TableCell>{book.name}</TableCell>
                                                 <TableCell>{book.author}</TableCell>
                                                 <TableCell>{book.category}</TableCell>
@@ -1884,11 +1886,11 @@ export default function LibraryDashboard({
                                             <BookOpen className="h-10 w-10 text-primary" />
                                         </div>
                                         <div className="text-center w-full space-y-1">
-                                            <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/50 py-0.5 rounded">ID: {book.number}</div>
+                                            <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/50 py-0.5 rounded">ID: {book.id}</div>
                                             <div className="flex justify-center items-center w-full h-[38px] overflow-hidden bg-white rounded p-1 border border-border/50 shadow-sm">
-                                                {book.number && /^[\x20-\x7E]+$/.test(String(book.number)) ? (
+                                                {book.id && /^[\x20-\x7E]+$/.test(String(book.id)) ? (
                                                     <Barcode
-                                                        value={String(book.number)}
+                                                        value={String(book.id)}
                                                         width={0.8}
                                                         height={22}
                                                         fontSize={0}
@@ -2028,7 +2030,7 @@ export default function LibraryDashboard({
                 {quickRentalBook && (
                     <PopupForm
                         title="New Rental"
-                        description={`Registering rental for: ${quickRentalBook.name} (ID: ${quickRentalBook.number})`}
+                        description={`Registering rental for: ${quickRentalBook.name} (ID: ${quickRentalBook.id})`}
                         formFields={[
                             {
                                 name: "bookId",
@@ -2042,7 +2044,7 @@ export default function LibraryDashboard({
                                 },
                                 required: true,
                                 enableScanner: true,
-                                defaultValue: quickRentalBook.number,
+                                defaultValue: quickRentalBook.id,
                             },
                             {
                                 name: "studentId",
@@ -2073,7 +2075,7 @@ export default function LibraryDashboard({
                                 type: "date",
                             },
                         ]}
-                        data={{ bookId: quickRentalBook.number }}
+                        data={{ bookId: quickRentalBook.id }}
                         open={!!quickRentalBook}
                         onOpenChange={(open) => !open && setQuickRentalBook(null)}
                         onSubmit={async (data) => {
@@ -2112,7 +2114,7 @@ export default function LibraryDashboard({
                                             formFields={rentalFields}
                                             data={{
                                                 ...selectedRental,
-                                                bookId: selectedRental.bookId?.number || selectedRental.bookId,
+                                                bookId: selectedRental.bookId?.id || selectedRental.bookId,
                                                 studentId: selectedRental.studentId?._id || selectedRental.studentId,
                                             }}
                                             onSubmit={handleUpdateRental}
