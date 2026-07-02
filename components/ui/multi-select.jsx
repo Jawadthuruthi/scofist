@@ -324,6 +324,7 @@ export const MultiSelect = React.forwardRef(
             setIsPopoverOpen(open);
           }
         }}
+        modal={true}
       >
         <PopoverTrigger asChild>
           <Button
@@ -478,10 +479,9 @@ export const MultiSelect = React.forwardRef(
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-auto p-0"
+          className="w-[--radix-popover-trigger-width] p-0"
           align="start"
           onEscapeKeyDown={() => setIsPopoverOpen(false)}
-          portalled={false}
         >
           <div className="flex flex-col">
             {/* Search input */}

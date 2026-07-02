@@ -56,6 +56,7 @@ export default function LibraryDashboard({
     initialRentals = EMPTY_ARRAY,
     initialPendingRentals = EMPTY_ARRAY,
     initialPendingRequests = EMPTY_ARRAY,
+    classes = EMPTY_ARRAY,
     activeRole = "",
     apiKey = "",
 }) {
@@ -262,8 +263,28 @@ export default function LibraryDashboard({
                 displayKey: "name",
                 responseKey: "users"
             },
-            required: true,
             enableScanner: true,
+        },
+        {
+            name: "classId",
+            label: "Class (Optional)",
+            inputType: "select",
+            options: Array.isArray(classes) ? classes.map(c => ({ value: c._id, label: c.name })) : [],
+            disableSearch: false,
+        },
+        {
+            name: "studentSelect",
+            label: "Select Student (Optional)",
+            inputType: "select",
+            resource: "users",
+            apiFilters: { roles: "Student" },
+            labelKey: ["studentSpecificField.admissionNumber|_id", "name"],
+            valueKey: "_id",
+            disableSearch: false,
+            filter: {
+                key: "classId",
+                dependentField: "classId"
+            }
         },
         {
             name: "rentedDate",
@@ -852,6 +873,16 @@ export default function LibraryDashboard({
         // Wait, Schema has `studentName`. If I don't send it, it will be null.
         // I will assume for now we might need to update API to fetch name, or just store ID.
         // Let's rely on ID for now and updated API later if needed.
+
+        if (data.studentSelect && !data.studentId) {
+            data.studentId = data.studentSelect;
+        }
+
+        if (!data.studentId) {
+            toast.error("Please provide a Student ID or select a Student");
+            setLoading(false);
+            return false;
+        }
 
         try {
             const res = await fetch("/api/rental", {
@@ -2109,6 +2140,9 @@ export default function LibraryDashboard({
                                 formFields={rentalFields}
                                 onSubmit={handleCreateRental}
                                 loading={loading}
+                                triggerText="New Rental"
+                                triggerClass="bg-primary hover:bg-primary/90 text-primary-foreground"
+                                className="sm:max-w-3xl"
                             />
                         </div>
                     }
