@@ -2081,7 +2081,7 @@ export default function LibraryDashboard({
                                             formFields={rentalFields}
                                             data={{
                                                 ...selectedRental,
-                                                bookId: selectedRental.bookId?._id || selectedRental.bookId,
+                                                bookId: selectedRental.bookId?.number || selectedRental.bookId,
                                                 studentId: selectedRental.studentId?._id || selectedRental.studentId,
                                             }}
                                             onSubmit={handleUpdateRental}

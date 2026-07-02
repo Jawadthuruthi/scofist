@@ -142,6 +142,31 @@ export async function PATCH(req) {
             return NextResponse.json({ success: false, msg: "Rental ID required", data: {} }, { status: 400 });
         }
 
+        if (body.bookId) {
+            const searchBookId = typeof body.bookId === 'string' ? body.bookId.trim() : body.bookId;
+            let book = await LibraryBook.findOne({ number: { $regex: new RegExp(`^${searchBookId}$`, 'i') } });
+
+            if (!book && mongoose.Types.ObjectId.isValid(searchBookId)) {
+                book = await LibraryBook.findById(searchBookId);
+            }
+
+            if (!book) {
+                return NextResponse.json({ success: false, msg: "Book not found", data: {} }, { status: 404 });
+            }
+            body.bookId = book._id;
+        }
+
+        if (body.studentId) {
+            const User = mongoose.models.User || mongoose.model("User");
+            const student = await User.findById(body.studentId);
+            if (!student) {
+                return NextResponse.json({ success: false, msg: "Student not found", data: {} }, { status: 404 });
+            }
+            if (!body.studentName) {
+                body.studentName = student.name;
+            }
+        }
+
         const updatedRental = await Rental.findByIdAndUpdate(_id, body, { new: true });
 
         // If receivedDate is set, mark book as Available
