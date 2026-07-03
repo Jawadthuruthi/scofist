@@ -1531,7 +1531,7 @@ export default function LibraryDashboard({
                         ) : localRequests.length === 0 ? (
                             <div className="text-center text-muted-foreground py-12">No book requests found.</div>
                         ) : (
-                            <div className="rounded-md border overflow-hidden">
+                            <div className="rounded-md border overflow-x-auto">
                                 <Table>
                                     <TableHeader className="bg-muted/50">
                                         <TableRow>
