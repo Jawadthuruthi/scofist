@@ -1750,7 +1750,7 @@ export default function StudentDashboard({
       {/* Navigation Cards Grid */}
       <div className="no-print grid grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
         {[
-          { id: "PROFILE", label: "My Profile", icon: User, color: "blue" },
+          { id: "PROFILE", label: "Profile", icon: User, color: "blue" },
           { id: "ATTENDANCE", label: "Attendance", icon: Calendar, color: "rose" },
           { id: "FINANCE", label: "Finance", icon: IndianRupee, color: "emerald" },
           { id: "LIBRARY", label: "Library", icon: BookOpen, color: "amber" },
