@@ -296,6 +296,10 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                           </div>
                         </div>
                       </div>
+                      
+                      <div className="mt-4 pt-4 border-t border-indigo-100/50 w-full flex justify-center z-10" data-html2canvas-ignore="false">
+                        <span className="text-[10px] font-black tracking-[0.4em] uppercase text-indigo-400">Congratulations...</span>
+                      </div>
                     </>
                   ) : (
                     <div className="py-10 text-center z-10">

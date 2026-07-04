@@ -534,7 +534,7 @@ function AwardPoster({ award, currentUser, festSettings }) {
         </div>
 
         <div className="text-center space-y-3 pb-4">
-            {award.type && !["ATTENDANCE TOPPER", "BEST READER"].includes(award.type) && (
+            {award.type && !["ATTENDANCE TOPPER", "BEST READER", "STAR OF THE MONTH"].includes(award.type) && (
                 <h4 className={`text-[10px] font-black tracking-[0.3em] uppercase opacity-70 ${
                   award.color === 'amber' ? 'text-amber-600' :
                   award.color === 'emerald' ? 'text-emerald-600' :
@@ -805,9 +805,45 @@ function AwardsTabContent({ currentUser, apiKey }) {
             })
             .catch(() => null);
 
+        // 6. Fetch Star of the Month awards
+        const starPromises = [];
+        for (let m = 1; m <= monthsToCheck; m++) {
+            const date = new Date();
+            date.setMonth(date.getMonth() - m);
+            const monthNum = date.getMonth() + 1;
+            const year = date.getFullYear();
+            const capturedDate = new Date(date);
+            
+            starPromises.push(
+                fetch(`/api/performance/star?classId=all&month=${monthNum}&year=${year}`, { cache: "no-store", headers: { "api-key": apiKey } })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success && res.data) {
+                            res.data.forEach(starData => {
+                                if (starData.student && String(starData.student.id) === String(currentUser._id)) {
+                                    studentAwards.push({
+                                        type: "STAR OF THE MONTH",
+                                        title: "Star of the Month",
+                                        subtitle: starData.className || "Class Star",
+                                        extraInfo: `Total Score: ${starData.totalScore}`,
+                                        period: formatMonthYear(capturedDate),
+                                        date: new Date(capturedDate.getFullYear(), capturedDate.getMonth(), 1),
+                                        icon: Trophy,
+                                        color: "gold",
+                                        rankLabel: "Star Student"
+                                    });
+                                }
+                            });
+                        }
+                    })
+                    .catch(() => null)
+            );
+        }
+
         await Promise.all([
             ...bestReaderPromises, 
             ...attendancePromises, 
+            ...starPromises,
             winnersPromise, 
             individualToppersPromise,
             marksToppersPromise

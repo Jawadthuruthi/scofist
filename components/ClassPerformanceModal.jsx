@@ -24,12 +24,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, TrendingUp } from "lucide-react";
+import { Loader2, TrendingUp, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import ConfirmationPopup from "./ConfirmationPopup";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 
 const performanceOptions = [
   "advanced",
@@ -66,52 +66,50 @@ export default function ClassPerformanceModal({
 }) {
   const [loading, setLoading] = useState(false);
   const [studentStatuses, setStudentStatuses] = useState({});
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const today = new Date().toISOString().split('T')[0];
+  const classId = slot?.classId?._id || slot?.classId;
+  const comments = `${slot?.subjectId?.name || "Unknown"} - Class Performance`;
+
+  const { data: performanceData, isLoading: isFetchingPerformance } = useQuery({
+    queryKey: ["performance", classId, today, comments],
+    queryFn: async () => {
+      const res = await axios.get(
+        `/api/performance?classId=${classId}&date=${today}&comments=${encodeURIComponent(comments)}`,
+        {
+          headers: {
+            "x-api-key": apiKey,
+          },
+        }
+      );
+      return res.data;
+    },
+    enabled: !!open && !!classId,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+
   // Fetch existing statuses when modal opens
   useEffect(() => {
-    if (open && slot) {
-      const fetchExisting = async () => {
-        try {
-          setLoading(true);
-          const today = new Date().toISOString().split('T')[0];
-          const classId = slot.classId?._id || slot.classId;
-          const comments = `${slot?.subjectId?.name || "Unknown"} - Class Performance`;
-          
-          const res = await axios.get(
-            `/api/performance?classId=${classId}&date=${today}&comments=${encodeURIComponent(comments)}&_t=${Date.now()}`,
-            {
-              headers: {
-                "x-api-key": apiKey,
-              },
-            }
-          );
-          
-          if (res.data?.performance) {
-            const existingStatuses = {};
-            res.data.performance.forEach(perf => {
-              if (perf.teacherId === teacherId) {
-                existingStatuses[perf.studentId] = perf.status;
-              }
-            });
-            setStudentStatuses(existingStatuses);
-          } else {
-            setStudentStatuses({});
+    if (open) {
+      if (performanceData?.performance) {
+        const existingStatuses = {};
+        performanceData.performance.forEach(perf => {
+          if (perf.teacherId === teacherId) {
+            existingStatuses[perf.studentId] = perf.status;
           }
-        } catch (error) {
-          console.error("Error fetching existing performance:", error);
-          setStudentStatuses({});
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      fetchExisting();
+        });
+        setStudentStatuses(existingStatuses);
+      } else {
+        setStudentStatuses({});
+      }
     } else {
       setStudentStatuses({});
     }
-  }, [open, slot, teacherId, apiKey]);
+  }, [performanceData, open, teacherId]);
 
   const handleStatusChange = (studentId, status) => {
     setStudentStatuses((prev) => ({
@@ -121,10 +119,6 @@ export default function ClassPerformanceModal({
   };
 
   const handleClearAll = async () => {
-    if (!window.confirm("Are you sure you want to clear all performance statuses for this class? This will completely remove them from the database and cannot be undone.")) {
-      return;
-    }
-    
     try {
       setLoading(true);
       const classId = slot.classId?._id || slot.classId;
@@ -142,9 +136,13 @@ export default function ClassPerformanceModal({
       );
 
       if (res.status === 200) {
-        toast.success("All performances cleared successfully.");
-        setStudentStatuses({});
-        onOpenChange(false);
+        setSuccessMessage("All performances cleared successfully.");
+        setShowSuccessDialog(true);
+        setTimeout(() => {
+          setShowSuccessDialog(false);
+          setStudentStatuses({});
+          onOpenChange(false);
+        }, 1000);
         queryClient.invalidateQueries({ queryKey: ["performance"] });
         router.refresh();
       } else {
@@ -195,10 +193,14 @@ export default function ClassPerformanceModal({
       );
 
       if (res.status === 201) {
-        toast.success(res.data.message || "Class performance saved successfully.");
+        setSuccessMessage(res.data.message || "Class performance saved successfully.");
+        setShowSuccessDialog(true);
         queryClient.invalidateQueries({ queryKey: ["performance"] });
         router.refresh();
-        onOpenChange(false);
+        setTimeout(() => {
+          setShowSuccessDialog(false);
+          onOpenChange(false);
+        }, 1000);
       } else {
         toast.error("Failed to save class performance.");
       }
@@ -213,7 +215,8 @@ export default function ClassPerformanceModal({
   const students = attendanceRecord?.attendanceData || [];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-indigo-700">
@@ -226,7 +229,11 @@ export default function ClassPerformanceModal({
         </DialogHeader>
 
         <div className="overflow-y-auto max-h-[60vh] -mx-6 px-6 py-2">
-          {students.length === 0 ? (
+          {isFetchingPerformance ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+            </div>
+          ) : students.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No students found for this class.
             </div>
@@ -307,5 +314,22 @@ export default function ClassPerformanceModal({
         </div>
       </DialogContent>
     </Dialog>
+
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
+          <DialogHeader className="flex flex-col items-center justify-center text-center space-y-3">
+            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
+              <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+            </div>
+            <DialogTitle className="text-2xl font-bold text-green-600 dark:text-green-400">
+              Successful
+            </DialogTitle>
+            <DialogDescription className="text-lg">
+              {successMessage}
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
