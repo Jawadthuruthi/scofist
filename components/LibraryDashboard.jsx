@@ -190,7 +190,7 @@ export default function LibraryDashboard({
 
     const bookFields = [
         {
-            name: "number",
+            name: "id",
             label: "Book ID",
             inputType: "text",
             type: "text",
