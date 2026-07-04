@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowUpDown, ExternalLink, Pencil, Trash, User, Phone, MessageCircle, UserPlus } from "lucide-react";
+import { ArrowUpDown, ExternalLink, Pencil, Trash, User, Phone, MessageCircle, UserPlus, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { CLASS_ORDER } from "@/lib/utils";
+import LiteraryWhatsAppAction from "@/components/LiteraryWhatsAppAction";
+import LiteraryPerformanceAction from "@/components/LiteraryPerformanceAction";
 
 const SaveContactButton = ({ number, altNumber, name }) => {
     const [href, setHref] = useState("");
@@ -527,6 +529,18 @@ const useTableColumns = (columnConfig, onCellClick) => {
             <MessageCircle className="w-4 h-4" />
           </a>
         );
+      };
+    }
+
+    if (col.type?.includes("literaryWhatsAppAction")) {
+      columnDefinition.cell = ({ row }) => {
+        return <LiteraryWhatsAppAction rowData={row.original} groups={col.groupsData} />;
+      };
+    }
+
+    if (col.type?.includes("literaryPerformanceAction")) {
+      columnDefinition.cell = ({ row }) => {
+        return <LiteraryPerformanceAction rowData={row.original} apiKey={col.apiKey} />;
       };
     }
 

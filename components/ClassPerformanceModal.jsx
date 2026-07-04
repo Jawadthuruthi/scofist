@@ -63,6 +63,7 @@ export default function ClassPerformanceModal({
   attendanceRecord,
   teacherId,
   apiKey,
+  defaultComment,
 }) {
   const [loading, setLoading] = useState(false);
   const [studentStatuses, setStudentStatuses] = useState({});
@@ -73,7 +74,7 @@ export default function ClassPerformanceModal({
 
   const today = new Date().toISOString().split('T')[0];
   const classId = slot?.classId?._id || slot?.classId;
-  const comments = `${slot?.subjectId?.name || "Unknown"} - Class Performance`;
+  const comments = defaultComment || `${slot?.subjectId?.name || "Unknown"} - Class Performance`;
 
   const { data: performanceData, isLoading: isFetchingPerformance } = useQuery({
     queryKey: ["performance", classId, today, comments],
@@ -122,7 +123,7 @@ export default function ClassPerformanceModal({
     try {
       setLoading(true);
       const classId = slot.classId?._id || slot.classId;
-      const comments = `${slot?.subjectId?.name || "Unknown"} - Class Performance`;
+      const comments = defaultComment || `${slot?.subjectId?.name || "Unknown"} - Class Performance`;
       const date = new Date().toISOString();
       
       const res = await axios.post(
@@ -169,7 +170,7 @@ export default function ClassPerformanceModal({
           teacherId,
           date,
           status,
-          comments: `${slot?.subjectId?.name || "Unknown"} - Class Performance`,
+          comments: defaultComment || `${slot?.subjectId?.name || "Unknown"} - Class Performance`,
         });
       }
     }

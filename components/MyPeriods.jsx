@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 // Hooks and Utils
 import { formatDate, formatDateForDisplay, cn } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
+import { fetchItems } from "@/lib/api";
 import Header from "./Header";
 import ClassPerformanceModal from "./ClassPerformanceModal";
 import { useRouter } from "next/navigation";

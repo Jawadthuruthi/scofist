@@ -13,7 +13,9 @@ import {
   TableRow,
 } from "./ui/table";
 import { Button } from "./ui/button";
-import { AlertTriangle, CheckCircle2, ChevronsUpDown, Plus, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronsUpDown, Plus, X, TrendingUp } from "lucide-react";
+import LiteraryWhatsAppAction from "./LiteraryWhatsAppAction";
+import ClassPerformanceModal from "./ClassPerformanceModal";
 import useCrud from "@/hooks/use-crud";
 import { useRouter } from "next/navigation";
 import { Badge } from "./ui/badge";
@@ -284,6 +286,10 @@ const LiteraryAttendance = ({
 
   const router = useRouter();
 
+  const [performanceModalOpen, setPerformanceModalOpen] = useState(false);
+  const [performanceSlot, setPerformanceSlot] = useState(null);
+  const [performanceAttendanceRecord, setPerformanceAttendanceRecord] = useState(null);
+
   const today = useMemo(() => days[new Date().getDay()], [days]);
   const date = useMemo(() => formatDateForDisplay(new Date()), []);
   const formattedDate = useMemo(() => formatDate(new Date()), []);
@@ -386,25 +392,26 @@ const LiteraryAttendance = ({
         title="LITERARY ATTENDANCE"
         subTitle="Manage Literary Attendance"
       />
-      <div className="mb-4 py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
-        {date}
-      </div>
-
-      {/* ── Session Type selector – above the tab bar ── */}
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-          Session Type
-        </span>
-        <div className="w-52">
-          <CategoryCombobox
-            value={selectedCategory}
-            onChange={setSelectedCategory}
-            categories={categories}
-            onAddCategory={handleAddCategory}
-            onRemoveCategory={handleRemoveCategory}
-          />
+      <div className="flex items-center gap-3 mb-4">
+        <div suppressHydrationWarning className="py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
+          {date}
         </div>
 
+        {/* ── Session Type selector ── */}
+        <div className="flex items-center gap-2 md:gap-3">
+          <span className="hidden md:inline text-sm font-medium text-muted-foreground whitespace-nowrap">
+            Session Type
+          </span>
+          <div className="w-40 md:w-52">
+            <CategoryCombobox
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              categories={categories}
+              onAddCategory={handleAddCategory}
+              onRemoveCategory={handleRemoveCategory}
+            />
+          </div>
+        </div>
       </div>
 
       <Tabs value={activeTab} defaultValue="all" onValueChange={setActiveTab}>
@@ -421,8 +428,11 @@ const LiteraryAttendance = ({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Class</TableHead>
-                  <TableHead className="text-right">Absentees</TableHead>
+                  <TableHead className="px-4">Class</TableHead>
+                  <TableHead className="text-center w-24 px-4">Absent</TableHead>
+                  <TableHead className="w-16 px-4"></TableHead>
+                  <TableHead className="w-16 px-4"></TableHead>
+                  <TableHead className="w-full"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -436,7 +446,7 @@ const LiteraryAttendance = ({
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">
+                    <TableCell className="whitespace-nowrap px-4">
                       <div className="text-xs md:text-base">{cls?.name}</div>
                       {isAttendanceMarked(cls._id) && (
                         <div className="flex items-center gap-1 text-xxs text-muted-foreground mt-0.5">
@@ -445,11 +455,11 @@ const LiteraryAttendance = ({
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="w-24 px-4">
                       {classBasedAbsentees[cls._id] &&
                         classBasedAbsentees[cls._id].length > 0 ? (
                         <div
-                          className={`flex items-center ml-auto max-w-fit gap-2 rounded-full px-2 py-1 border hover:bg-muted transition-colors`}
+                          className={`flex items-center mx-auto max-w-fit gap-2 rounded-full px-2 py-1 border hover:bg-muted transition-colors`}
                           onClick={(e) => {
                             e.stopPropagation();
                             setAbsenteesDialogOpen(true);
@@ -465,11 +475,32 @@ const LiteraryAttendance = ({
                           </Badge>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground text-sm">
-                          {isAttendanceMarked(cls._id) ? "0" : "-"}
-                        </span>
+                        <div className="flex justify-center">
+                          <span className="text-muted-foreground text-sm">
+                            {isAttendanceMarked(cls._id) ? "0" : "-"}
+                          </span>
+                        </div>
                       )}
                     </TableCell>
+                    <TableCell className="w-16 text-center px-4">
+                      {isAttendanceMarked(cls._id) && (
+                        <LiteraryWhatsAppAction rowData={{ absentees: classBasedAbsentees[cls._id] || [], category: apiCategory, date: formattedDate, dateForDisplay: date }} groups={groups} />
+                      )}
+                    </TableCell>
+                    <TableCell className="w-16 text-center px-4">
+                      {isAttendanceMarked(cls._id) && (
+                        <Button variant="ghost" size="icon" className="text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8" onClick={(e) => { 
+                          e.stopPropagation(); 
+                          const attRecord = attendanceData.find(att => att.classId === cls._id && att.category === apiCategory);
+                          setPerformanceSlot({ classId: cls._id, subjectId: { name: `Literary - ${apiCategory}` } });
+                          setPerformanceAttendanceRecord(attRecord);
+                          setPerformanceModalOpen(true);
+                        }} title="Performance">
+                          <TrendingUp className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </TableCell>
+                    <TableCell></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -483,7 +514,10 @@ const LiteraryAttendance = ({
               <TableHeader>
                 <TableRow>
                   <TableHead>Group</TableHead>
-                  <TableHead className="text-right">Absentees</TableHead>
+                  <TableHead className="text-center w-24">Absent</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="w-full"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -497,7 +531,7 @@ const LiteraryAttendance = ({
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">
+                    <TableCell className="whitespace-nowrap px-4">
                       <div className="text-xs md:text-base">{group?.name}</div>
                       {group.leaderName && (
                         <div className="text-xxs text-muted-foreground mt-0.5">
@@ -511,11 +545,11 @@ const LiteraryAttendance = ({
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="w-24 px-4">
                       {groupBasedAbsentees[group._id] &&
                         groupBasedAbsentees[group._id].length > 0 ? (
                         <div
-                          className={`flex items-center ml-auto max-w-fit gap-2 rounded-full px-2 py-1 border hover:bg-muted transition-colors`}
+                          className={`flex items-center mx-auto max-w-fit gap-2 rounded-full px-2 py-1 border hover:bg-muted transition-colors`}
                           onClick={(e) => {
                             e.stopPropagation();
                             setAbsenteesDialogOpen(true);
@@ -531,11 +565,32 @@ const LiteraryAttendance = ({
                           </Badge>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground text-sm">
-                          {isAttendanceMarked(group._id) ? "0" : "-"}
-                        </span>
+                        <div className="flex justify-center">
+                          <span className="text-muted-foreground text-sm">
+                            {isAttendanceMarked(group._id) ? "0" : "-"}
+                          </span>
+                        </div>
                       )}
                     </TableCell>
+                    <TableCell className="w-12 text-center px-1">
+                      {isAttendanceMarked(group._id) && (
+                        <LiteraryWhatsAppAction rowData={{ absentees: groupBasedAbsentees[group._id] || [], category: "GROUP", date: formattedDate, dateForDisplay: date }} groups={groups} />
+                      )}
+                    </TableCell>
+                    <TableCell className="w-12 text-center px-1">
+                      {isAttendanceMarked(group._id) && (
+                        <Button variant="ghost" size="icon" className="text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8" onClick={(e) => { 
+                          e.stopPropagation(); 
+                          const attRecord = attendanceData.find(att => att.groupId === group._id && att.category === "GROUP");
+                          setPerformanceSlot({ classId: group._id, subjectId: { name: `Literary - Group` } });
+                          setPerformanceAttendanceRecord(attRecord);
+                          setPerformanceModalOpen(true);
+                        }} title="Performance">
+                          <TrendingUp className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </TableCell>
+                    <TableCell></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -553,6 +608,15 @@ const LiteraryAttendance = ({
             ? classBasedAbsentees[selectedClassId] || []
             : groupBasedAbsentees[selectedGroupId] || []
         }
+      />
+
+      <ClassPerformanceModal 
+        open={performanceModalOpen} 
+        onOpenChange={setPerformanceModalOpen}
+        slot={performanceSlot}
+        attendanceRecord={performanceAttendanceRecord}
+        apiKey={apiKey}
+        defaultComment="Literary Performance"
       />
     </div>
   );

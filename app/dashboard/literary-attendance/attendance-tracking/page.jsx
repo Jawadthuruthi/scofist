@@ -190,11 +190,18 @@ const AttendanceTrackingPage = async () => {
             }
           },
           {
-            header: "Absentees",
+            header: "Absent",
             accessorKey: "absentees",
             valueKey: "absentees",
             type: ["length"],
             clickable: true,
+          },
+          {
+            header: "",
+            accessorKey: "whatsapp",
+            type: ["literaryWhatsAppAction"],
+            groupsData: groups,
+            width: 50,
           },
         ],
         filterConfig: [
