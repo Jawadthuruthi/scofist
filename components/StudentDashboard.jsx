@@ -944,6 +944,9 @@ export default function StudentDashboard({
   const [marksLoading, setMarksLoading] = useState(true);
   const [remarksList, setRemarksList] = useState([]);
   const [remarksLoading, setRemarksLoading] = useState(true);
+  const [performanceList, setPerformanceList] = useState([]);
+  const [performanceLoading, setPerformanceLoading] = useState(true);
+  const [activeRemarksSubTab, setActiveRemarksSubTab] = useState("REMARKS");
   const [selectedExamId, setSelectedExamId] = useState("all");
   const [couponDetails, setCouponDetails] = useState([]);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
@@ -1141,25 +1144,37 @@ export default function StudentDashboard({
   }, [currentUser, apiKey]);
 
   useEffect(() => {
-    const fetchRemarks = async () => {
+    const fetchRemarksAndPerformance = async () => {
       if (!currentUser?._id || !apiKey) return;
       setRemarksLoading(true);
+      setPerformanceLoading(true);
       try {
-        const res = await fetch(`/api/remarks?studentId=${currentUser._id}`, {
-          cache: "no-store",
-          headers: { "Content-Type": "application/json", "api-key": apiKey }
-        });
-        const result = await res.json();
+        const [remarksRes, perfRes] = await Promise.all([
+          fetch(`/api/remarks?studentId=${currentUser._id}`, {
+            cache: "no-store",
+            headers: { "Content-Type": "application/json", "api-key": apiKey }
+          }),
+          fetch(`/api/performance?studentId=${currentUser._id}&limit=1000`, {
+            cache: "no-store",
+            headers: { "Content-Type": "application/json", "api-key": apiKey }
+          })
+        ]);
+        const result = await remarksRes.json();
+        const perfResult = await perfRes.json();
         if (result.remarks) {
           setRemarksList(result.remarks || []);
         }
+        if (perfResult.performance) {
+          setPerformanceList(perfResult.performance || []);
+        }
       } catch (error) {
-        console.error("Error fetching remarks:", error);
+        console.error("Error fetching remarks/performance:", error);
       } finally {
         setRemarksLoading(false);
+        setPerformanceLoading(false);
       }
     };
-    fetchRemarks();
+    fetchRemarksAndPerformance();
   }, [currentUser, apiKey]);
 
   useEffect(() => {
@@ -1421,6 +1436,21 @@ export default function StudentDashboard({
   const totalPending = useMemo(() => {
     return displayFunds.reduce((acc, item) => acc + (item.value || 0), 0);
   }, [displayFunds]);
+
+  const getStatusBadgeStyle = (status) => {
+    switch (status?.toLowerCase()) {
+      case "advanced": return { backgroundColor: "#047857", color: "white" }; // emerald-700
+      case "very good": return { backgroundColor: "#15803d", color: "white" }; // green-700
+      case "good": return { backgroundColor: "#22c55e", color: "white" }; // green-500
+      case "acceptable": return { backgroundColor: "#eab308", color: "white" }; // yellow-500
+      case "unsatisfied": return { backgroundColor: "#f97316", color: "white" }; // orange-500
+      case "poor": return { backgroundColor: "#ef4444", color: "white" }; // red-500
+      case "bad": return { backgroundColor: "#b91c1c", color: "white" }; // red-700
+      case "very bad": return { backgroundColor: "#7f1d1d", color: "white" }; // red-900
+      case "pending": return { backgroundColor: "#64748b", color: "white" }; // slate-500
+      default: return { backgroundColor: "#f3f4f6", color: "#1f2937", border: "1px solid #e5e7eb" }; // gray-100
+    }
+  };
 
 
   return (
@@ -2928,62 +2958,133 @@ export default function StudentDashboard({
         <Card className="flex flex-col card-print-break mt-5">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Clock className="h-5 w-5 text-orange-500" />
-              Student Remarks
+              <MessageSquare className="h-5 w-5 text-orange-500" />
+              Student Remarks & Performance
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1">
+          <CardContent className="flex-1 space-y-4">
+            {/* Sub-tab Switcher */}
+            <div className="flex gap-2 border-b pb-3 overflow-x-auto no-scrollbar mt-2">
+              {[
+                { id: "REMARKS", label: "Remarks", icon: MessageSquare, color: "text-orange-600 dark:text-orange-400", activeBg: "bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300" },
+                { id: "PERFORMANCE", label: "Performance", icon: Trophy, color: "text-amber-600 dark:text-amber-400", activeBg: "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300" },
+              ].map(tab => {
+                const Icon = tab.icon;
+                const isActive = activeRemarksSubTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveRemarksSubTab(tab.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 ${
+                      isActive
+                        ? tab.activeBg
+                        : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 ${isActive ? "" : tab.color}`} />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="max-h-[400px] overflow-y-auto pr-2">
-              {remarksLoading ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (remarksList && remarksList.length > 0) ? (
-                <div className="rounded-md border overflow-hidden">
-                  <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead className="w-[60px] py-3 pl-4 text-xs">Sl No</TableHead>
-                        <TableHead className="py-3 text-xs">Date</TableHead>
-                        <TableHead className="py-3 text-xs w-[40%]">Remarks</TableHead>
-                        <TableHead className="py-3 text-xs">Teacher</TableHead>
-                        <TableHead className="py-3 text-xs text-center">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {[...remarksList]
-                        .sort((a, b) => new Date(b.date) - new Date(a.date))
-                        .map((remark, index) => (
-                        <TableRow key={remark._id} className="group hover:bg-muted/30 transition-colors">
-                          <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
-                          <TableCell className="py-3 text-sm font-medium">
-                            {formatDateShort(remark.date)}
-                          </TableCell>
-                          <TableCell className="py-3">
-                            <p className="text-sm text-foreground leading-relaxed italic">"{remark.comments}"</p>
-                          </TableCell>
-                          <TableCell className="py-3 text-sm text-muted-foreground">
-                            {remark.teacherName || "N/A"}
-                          </TableCell>
-                          <TableCell className="py-3 text-center">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                              remark.status === 'very good' || remark.status === 'good' ? 'bg-green-100 text-green-700' :
-                              remark.status === 'acceptable' ? 'bg-blue-100 text-blue-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              {remark.status}
-                            </span>
-                          </TableCell>
+              {activeRemarksSubTab === "REMARKS" ? (
+                remarksLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (remarksList && remarksList.length > 0) ? (
+                  <div className="rounded-md border overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow>
+                          <TableHead className="w-[60px] py-3 pl-4 text-xs">Sl No</TableHead>
+                          <TableHead className="py-3 text-xs">Date</TableHead>
+                          <TableHead className="py-3 text-xs w-[40%]">Remarks</TableHead>
+                          <TableHead className="py-3 text-xs">Teacher</TableHead>
+                          <TableHead className="py-3 text-xs text-center">Status</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {[...remarksList]
+                          .sort((a, b) => new Date(b.date) - new Date(a.date))
+                          .map((remark, index) => (
+                          <TableRow key={remark._id} className="group hover:bg-muted/30 transition-colors">
+                            <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
+                            <TableCell className="py-3 text-sm font-medium">
+                              {formatDateShort(remark.date)}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <p className="text-sm text-foreground leading-relaxed italic">"{remark.comments}"</p>
+                            </TableCell>
+                            <TableCell className="py-3 text-sm text-muted-foreground">
+                              {remark.teacherName || "N/A"}
+                            </TableCell>
+                            <TableCell className="py-3 text-center">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase" style={getStatusBadgeStyle(remark.status)}>
+                                {remark.status}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                    <MessageSquare className="h-10 w-10 mb-2 opacity-20" />
+                    <p className="text-sm">No remarks records found.</p>
+                  </div>
+                )
               ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                  <Clock className="h-10 w-10 mb-2 opacity-20" />
-                  <p className="text-sm">No remarks records found.</p>
-                </div>
+                performanceLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (performanceList && performanceList.length > 0) ? (
+                  <div className="rounded-md border overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow>
+                          <TableHead className="w-[60px] py-3 pl-4 text-xs">Sl No</TableHead>
+                          <TableHead className="py-3 text-xs">Date</TableHead>
+                          <TableHead className="py-3 text-xs w-[40%]">Performance</TableHead>
+                          <TableHead className="py-3 text-xs">Teacher</TableHead>
+                          <TableHead className="py-3 text-xs text-center">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {[...performanceList]
+                          .sort((a, b) => new Date(b.date) - new Date(a.date))
+                          .map((perf, index) => (
+                          <TableRow key={perf._id} className="group hover:bg-muted/30 transition-colors">
+                            <TableCell className="py-3 pl-4 text-sm text-muted-foreground font-medium">{index + 1}</TableCell>
+                            <TableCell className="py-3 text-sm font-medium">
+                              {formatDateShort(perf.date)}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <p className="text-sm text-foreground leading-relaxed italic">"{perf.comments}"</p>
+                            </TableCell>
+                            <TableCell className="py-3 text-sm text-muted-foreground">
+                              {perf.teacherName || "N/A"}
+                            </TableCell>
+                            <TableCell className="py-3 text-center">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase" style={getStatusBadgeStyle(perf.status)}>
+                                {perf.status}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                    <Trophy className="h-10 w-10 mb-2 opacity-20" />
+                    <p className="text-sm">No performance records found.</p>
+                  </div>
+                )
               )}
             </div>
           </CardContent>
