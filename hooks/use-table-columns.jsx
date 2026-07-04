@@ -6,6 +6,7 @@ import { ArrowUpDown, ExternalLink, Pencil, Trash, User, Phone, MessageCircle, U
 import Link from "next/link";
 import { CLASS_ORDER } from "@/lib/utils";
 import LiteraryWhatsAppAction from "@/components/LiteraryWhatsAppAction";
+import LiteraryWhatsAppBulkAction from "@/components/LiteraryWhatsAppBulkAction";
 import LiteraryPerformanceAction from "@/components/LiteraryPerformanceAction";
 
 const SaveContactButton = ({ number, altNumber, name }) => {
@@ -533,6 +534,13 @@ const useTableColumns = (columnConfig, onCellClick) => {
     }
 
     if (col.type?.includes("literaryWhatsAppAction")) {
+      columnDefinition.header = ({ table }) => {
+        return (
+          <div className="flex justify-center items-center h-full">
+            <LiteraryWhatsAppBulkAction table={table} groups={col.groupsData} />
+          </div>
+        );
+      };
       columnDefinition.cell = ({ row }) => {
         return <LiteraryWhatsAppAction rowData={row.original} groups={col.groupsData} />;
       };

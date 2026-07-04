@@ -43,6 +43,8 @@ export async function GET(req) {
         }
         query.classId = teacherClass._id.toString();
       }
+    } else if (activeRole === "Literary Leader") {
+      query.teacherId = user.userId;
     } else if (activeRole !== "College Admin") {
       return apiResponse.error("You are not authorized to view performances.", 403);
     }

@@ -74,7 +74,10 @@ export default function ClassPerformanceModal({
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = attendanceRecord?.date 
+    ? new Date(attendanceRecord.date).toISOString().split('T')[0] 
+    : new Date().toISOString().split('T')[0];
+    
   const classId = slot?.classId?._id || slot?.classId;
   const comments = defaultComment || `${slot?.subjectId?.name || "Unknown"} - Class Performance`;
 
@@ -99,15 +102,18 @@ export default function ClassPerformanceModal({
   // Fetch existing statuses when modal opens
   useEffect(() => {
     if (open) {
+      console.log("performanceData on open:", performanceData);
       if (performanceData?.performance) {
         const existingStatuses = {};
         performanceData.performance.forEach(perf => {
           const perfTeacherId = typeof perf.teacherId === 'object' ? perf.teacherId?._id : perf.teacherId;
           const perfStudentId = typeof perf.studentId === 'object' ? perf.studentId?._id : perf.studentId;
+          console.log("Checking perf for student:", perfStudentId, "status:", perf.status, "teacherId:", teacherId, "perfTeacherId:", perfTeacherId);
           if (!teacherId || perfTeacherId === teacherId) {
             existingStatuses[perfStudentId] = perf.status;
           }
         });
+        console.log("existingStatuses calculated:", existingStatuses);
         setStudentStatuses(existingStatuses);
       } else {
         setStudentStatuses({});
@@ -129,7 +135,9 @@ export default function ClassPerformanceModal({
       setLoading(true);
       const classId = slot.classId?._id || slot.classId;
       const comments = defaultComment || `${slot?.subjectId?.name || "Unknown"} - Class Performance`;
-      const date = new Date().toISOString();
+      const date = attendanceRecord?.date 
+        ? new Date(attendanceRecord.date).toISOString() 
+        : new Date().toISOString();
       
       const res = await axios.post(
         "/api/performance/bulk",
@@ -171,7 +179,9 @@ export default function ClassPerformanceModal({
   const handleSave = async () => {
     // Filter out students who don't have a status selected
     const recordsToSave = [];
-    const date = new Date().toISOString();
+    const date = attendanceRecord?.date 
+      ? new Date(attendanceRecord.date).toISOString() 
+      : new Date().toISOString();
 
     for (const [studentId, status] of Object.entries(studentStatuses)) {
       if (status && status !== "none") {

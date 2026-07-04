@@ -92,6 +92,11 @@ const columnsConfig = [
                     style.backgroundColor = "#b91c1c"; // red-700
                     style.color = "white";
                     break;
+                case "very bad":
+                    variant = "destructive";
+                    style.backgroundColor = "#7f1d1d"; // red-900
+                    style.color = "white";
+                    break;
                 case "pending":
                     variant = "secondary";
                     style.backgroundColor = "#64748b"; // slate-500
@@ -184,6 +189,7 @@ export default function PerformanceClient({ apiKey, activeRole, user, classes, t
         { value: "unsatisfied", label: "Unsatisfied" },
         { value: "poor", label: "Poor" },
         { value: "bad", label: "Bad" },
+        { value: "very bad", label: "Very Bad" },
     ];
 
     const formFields = [

@@ -15,6 +15,7 @@ import {
 import { Button } from "./ui/button";
 import { AlertTriangle, CheckCircle2, ChevronsUpDown, Plus, X, TrendingUp } from "lucide-react";
 import LiteraryWhatsAppAction from "./LiteraryWhatsAppAction";
+import LiteraryWhatsAppBulkAction from "./LiteraryWhatsAppBulkAction";
 import ClassPerformanceModal from "./ClassPerformanceModal";
 import useCrud from "@/hooks/use-crud";
 import { useRouter } from "next/navigation";
@@ -430,7 +431,9 @@ const LiteraryAttendance = ({
                 <TableRow>
                   <TableHead className="px-4">Class</TableHead>
                   <TableHead className="text-center w-24 px-4">Absent</TableHead>
-                  <TableHead className="w-16 px-4"></TableHead>
+                  <TableHead className="w-16 text-center px-4">
+                    <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === apiCategory)} groups={groups} date={formattedDate} dateForDisplay={date} />
+                  </TableHead>
                   <TableHead className="w-16 px-4"></TableHead>
                   <TableHead className="w-full"></TableHead>
                 </TableRow>
@@ -515,7 +518,9 @@ const LiteraryAttendance = ({
                 <TableRow>
                   <TableHead>Group</TableHead>
                   <TableHead className="text-center w-24">Absent</TableHead>
-                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="w-12 text-center px-1">
+                    <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === "GROUP")} groups={groups} date={formattedDate} dateForDisplay={date} />
+                  </TableHead>
                   <TableHead className="w-12"></TableHead>
                   <TableHead className="w-full"></TableHead>
                 </TableRow>
@@ -621,7 +626,7 @@ const LiteraryAttendance = ({
         slot={performanceSlot}
         attendanceRecord={performanceAttendanceRecord}
         apiKey={apiKey}
-        defaultComment="Literary Performance"
+        defaultComment={performanceSlot?.isGroup ? "Literary Performance - GROUP" : `Literary Performance - ${apiCategory}`}
         title="Literary Performance"
         subtitle={performanceSlot?.isGroup ? `Group: ${performanceSlot?.className}` : `Class: ${performanceSlot?.className}`}
       />

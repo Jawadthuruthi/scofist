@@ -41,7 +41,7 @@ export default function LiteraryPerformanceAction({ rowData, apiKey }) {
           slot={slot}
           attendanceRecord={rowData}
           apiKey={apiKey}
-          defaultComment="Literary Performance"
+          defaultComment={category === "GROUP" ? "Literary Performance - GROUP" : `Literary Performance - ${category || "ALL"}`}
         />
       )}
     </>
