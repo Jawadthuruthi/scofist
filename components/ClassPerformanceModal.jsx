@@ -82,7 +82,7 @@ export default function ClassPerformanceModal({
     queryKey: ["performance", classId, today, comments],
     queryFn: async () => {
       const res = await axios.get(
-        `/api/performance?classId=${classId}&date=${today}&comments=${encodeURIComponent(comments)}`,
+        `/api/performance?classId=${classId}&date=${today}&comments=${encodeURIComponent(comments)}&myRecords=true`,
         {
           headers: {
             "x-api-key": apiKey,
@@ -92,7 +92,8 @@ export default function ClassPerformanceModal({
       return res.data;
     },
     enabled: !!open && !!classId,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 0, // Always fetch fresh data to avoid stale caching issues
+    refetchOnMount: "always",
   });
 
   // Fetch existing statuses when modal opens
@@ -101,8 +102,10 @@ export default function ClassPerformanceModal({
       if (performanceData?.performance) {
         const existingStatuses = {};
         performanceData.performance.forEach(perf => {
-          if (perf.teacherId === teacherId) {
-            existingStatuses[perf.studentId] = perf.status;
+          const perfTeacherId = typeof perf.teacherId === 'object' ? perf.teacherId?._id : perf.teacherId;
+          const perfStudentId = typeof perf.studentId === 'object' ? perf.studentId?._id : perf.studentId;
+          if (!teacherId || perfTeacherId === teacherId) {
+            existingStatuses[perfStudentId] = perf.status;
           }
         });
         setStudentStatuses(existingStatuses);
@@ -140,13 +143,19 @@ export default function ClassPerformanceModal({
 
       if (res.status === 200) {
         setSuccessMessage("All performances cleared successfully.");
+        
+        queryClient.setQueryData(["performance", classId, today, comments], (oldData) => ({
+          ...oldData,
+          performance: []
+        }));
+
         setShowSuccessDialog(true);
         setTimeout(() => {
           setShowSuccessDialog(false);
           setStudentStatuses({});
           onOpenChange(false);
         }, 1000);
-        queryClient.resetQueries({ queryKey: ["performance"] });
+        queryClient.invalidateQueries({ queryKey: ["performance"] });
         router.refresh();
       } else {
         toast.error("Failed to clear performances.");
@@ -197,8 +206,24 @@ export default function ClassPerformanceModal({
 
       if (res.status === 201) {
         setSuccessMessage(res.data.message || "Class performance saved successfully.");
+        
+        queryClient.setQueryData(["performance", slot.classId?._id || slot.classId, today, defaultComment || `${slot?.subjectId?.name || "Unknown"} - Class Performance`], (oldData) => {
+          const updatedPerformances = [...(oldData?.performance || [])];
+          
+          recordsToSave.forEach(newRec => {
+            const existingIndex = updatedPerformances.findIndex(p => p.studentId === newRec.studentId);
+            if (existingIndex >= 0) {
+              updatedPerformances[existingIndex].status = newRec.status;
+            } else {
+              updatedPerformances.push(newRec);
+            }
+          });
+          
+          return { ...oldData, performance: updatedPerformances };
+        });
+
         setShowSuccessDialog(true);
-        queryClient.resetQueries({ queryKey: ["performance"] });
+        queryClient.invalidateQueries({ queryKey: ["performance"] });
         router.refresh();
         setTimeout(() => {
           setShowSuccessDialog(false);

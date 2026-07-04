@@ -7,35 +7,31 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import axios from "axios";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
 export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
   const [open, setOpen] = useState(false);
-  const [teachers, setTeachers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedTeacher, setSelectedTeacher] = useState("");
 
-  const handleOpen = async (e) => {
+  const { data: teachers = [], isLoading: loading } = useQuery({
+    queryKey: ["teachersListWhatsApp"],
+    queryFn: async () => {
+      const res = await axios.get("/api/users?roles=Teacher");
+      const sortedTeachers = (res.data.users || []).sort((a, b) => {
+        const idA = a._id ? a._id.toString() : "";
+        const idB = b._id ? b._id.toString() : "";
+        return idA.localeCompare(idB, undefined, { numeric: true });
+      });
+      return sortedTeachers;
+    },
+    staleTime: 1000 * 60 * 10, // Cache for 10 minutes
+  });
+
+  const handleOpen = (e) => {
     e.stopPropagation();
     setOpen(true);
-    if (teachers.length === 0) {
-      setLoading(true);
-      try {
-        const res = await axios.get("/api/users?roles=Teacher");
-        setTeachers(res.data.users || []);
-      } catch (err) {
-        toast.error("Failed to load teachers");
-      }
-      setLoading(false);
-    }
   };
 
-  const handleSend = () => {
-    if (!selectedTeacher) {
-      toast.error("Please select a teacher");
-      return;
-    }
-    
-    const teacher = teachers.find((t) => t._id === selectedTeacher);
+  const handleSend = (teacher) => {
     if (!teacher || !teacher.contactNumber) {
       toast.error("Teacher contact number not found");
       return;
@@ -50,7 +46,7 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
     
     const formattedDate = dateForDisplay || new Date(date).toLocaleDateString();
     
-    let message = `*Literary Absentees for ${formattedDate}*\n\n`;
+    let message = `*Literary Absentees*\n${formattedDate}\n\n`;
     
     if (category === "GROUP") {
       // Group attendance -> group by Team (groupId)
@@ -66,8 +62,8 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
       
       for (const [groupName, students] of Object.entries(grouped)) {
         message += `*Team: ${groupName}*\n`;
-        students.forEach((s) => {
-          message += `- ${s.studentName} (${s.className || "Unknown Class"})\n`;
+        students.forEach((s, idx) => {
+          message += `${idx + 1}. ${s.studentName} (${s.className || "Unknown Class"})\n`;
         });
         message += `\n`;
       }
@@ -82,8 +78,8 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
       
       for (const [className, students] of Object.entries(grouped)) {
         message += `*Class: ${className}*\n`;
-        students.forEach((s) => {
-          message += `- ${s.studentName}\n`;
+        students.forEach((s, idx) => {
+          message += `${idx + 1}. ${s.studentName} (${s.studentId || "Unknown ID"})\n`;
         });
         message += `\n`;
       }
@@ -113,30 +109,34 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
             <DialogHeader>
               <DialogTitle>Select Teacher to Send WhatsApp</DialogTitle>
             </DialogHeader>
-            <div className="py-4">
+            <div className="py-2 max-h-[60vh] overflow-y-auto">
               {loading ? (
                 <div className="flex items-center justify-center p-4">
                   <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
                   <span className="ml-2 text-sm text-gray-500">Loading teachers...</span>
                 </div>
               ) : (
-                <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a teacher" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teachers.map((teacher) => (
-                      <SelectItem key={teacher._id} value={teacher._id}>
-                        {teacher.name} {teacher.contactNumber ? `(${teacher.contactNumber})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-col gap-2">
+                  {teachers.map((teacher) => (
+                    <Button
+                      key={teacher._id}
+                      variant="outline"
+                      className="justify-start h-auto py-2 px-3 flex items-center"
+                      onClick={() => handleSend(teacher)}
+                    >
+                      <div className="flex flex-col items-start w-full text-left">
+                        <span className="font-medium text-sm">{teacher.name}</span>
+                        {teacher.contactNumber && (
+                          <span className="text-xs text-muted-foreground">{teacher.contactNumber}</span>
+                        )}
+                      </div>
+                    </Button>
+                  ))}
+                </div>
               )}
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={handleSend} disabled={loading || !selectedTeacher}>Send Message</Button>
+              <Button variant="outline" onClick={() => setOpen(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

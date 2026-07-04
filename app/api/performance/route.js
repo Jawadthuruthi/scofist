@@ -95,9 +95,9 @@ export async function GET(req) {
 
     const formattedPerformances = performances.map((performance) => ({
       ...performance.toObject(),
-      studentId: performance.studentId?._id?.toString(),
-      classId: performance.classId?._id?.toString(),
-      teacherId: performance.teacherId?._id?.toString(),
+      studentId: performance.studentId?._id?.toString() || performance.studentId?.toString(),
+      classId: performance.classId?._id?.toString() || performance.classId?.toString(),
+      teacherId: performance.teacherId?._id?.toString() || performance.teacherId?.toString(),
       studentName: performance.studentId?.name,
       className: performance.classId?.name,
       teacherName: performance.teacherId?.name,
