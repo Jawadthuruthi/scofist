@@ -72,18 +72,28 @@ export async function GET(req) {
       );
     }
 
-    // 2. Get today's day of week and date boundaries
+    // 2. Get today's day of week and date boundaries (all in IST)
     const today = new Date();
-    // Use IST timezone for day checking since the school operates in IST
+
+    // Use IST timezone for day-of-week checking since the school operates in IST
     const formatter = new Intl.DateTimeFormat("en-US", {
       weekday: "long",
       timeZone: "Asia/Kolkata",
     });
     const todayDay = formatter.format(today); // e.g., "Monday"
+    const todayDS = getDS(today); // YYYY-MM-DD in IST
 
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
-    const todayDS = getDS(today);
+    // Compute IST midnight for today to build correct UTC date boundaries for DB queries.
+    // IST is UTC+5:30, so IST midnight = UTC 18:30 of the previous day.
+    // e.g. 2024-07-04 00:00 IST = 2024-07-03 18:30:00 UTC
+    const [istYear, istMonth, istDay] = todayDS.split("-").map(Number);
+    // IST midnight expressed in UTC
+    const startOfDayIST = new Date(Date.UTC(istYear, istMonth - 1, istDay, 0, 0, 0, 0) - (5.5 * 60 * 60 * 1000));
+    // IST end of day = IST midnight next day - 1ms
+    const endOfDayIST = new Date(Date.UTC(istYear, istMonth - 1, istDay + 1, 0, 0, 0, 0) - (5.5 * 60 * 60 * 1000) - 1);
+
+    const startOfDay = startOfDayIST;
+    const endOfDay = endOfDayIST;
 
     // 3. Fetch timetables that have slots for today
     const timeTables = await TimeTable.find({
