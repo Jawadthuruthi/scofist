@@ -477,28 +477,6 @@ const LiteraryAttendance = () => {
                     : `${queryParams.sessionLabel || queryParams.category} – ${queryParams.className || queryParams.groupName}`}
                 </span>
               </div>
-              {queryParams.category === "GROUP" && groupLeaderName && (
-                <>
-                  <div className="h-4 w-px bg-border"></div>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    <span className="text-sm font-medium">
-                      Leader: {groupLeaderName}
-                    </span>
-                  </div>
-                </>
-              )}
-              {queryParams.category === "GROUP" && groupAssistantLeaderName && (
-                <>
-                  <div className="h-4 w-px bg-border"></div>
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="h-4 w-4" />
-                    <span className="text-sm font-medium">
-                      Assistant: {groupAssistantLeaderName}
-                    </span>
-                  </div>
-                </>
-              )}
             </div>
           </div>
 
@@ -533,7 +511,7 @@ const LiteraryAttendance = () => {
               </div>
             </div>
           </div>
-          <div className="overflow-x-auto max-h-[calc(100vh-445px)] md:max-h-[calc(100vh-393px)] border rounded-md">
+          <div className="overflow-x-auto max-h-[calc(100vh-385px)] md:max-h-[calc(100vh-333px)] border rounded-md">
             <Table>
               <TableHeader>
                 <TableRow>

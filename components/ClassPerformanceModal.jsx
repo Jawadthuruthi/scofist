@@ -64,6 +64,8 @@ export default function ClassPerformanceModal({
   teacherId,
   apiKey,
   defaultComment,
+  title = "Class Performance",
+  subtitle,
 }) {
   const [loading, setLoading] = useState(false);
   const [studentStatuses, setStudentStatuses] = useState({});
@@ -144,7 +146,7 @@ export default function ClassPerformanceModal({
           setStudentStatuses({});
           onOpenChange(false);
         }, 1000);
-        queryClient.invalidateQueries({ queryKey: ["performance"] });
+        queryClient.resetQueries({ queryKey: ["performance"] });
         router.refresh();
       } else {
         toast.error("Failed to clear performances.");
@@ -196,7 +198,7 @@ export default function ClassPerformanceModal({
       if (res.status === 201) {
         setSuccessMessage(res.data.message || "Class performance saved successfully.");
         setShowSuccessDialog(true);
-        queryClient.invalidateQueries({ queryKey: ["performance"] });
+        queryClient.resetQueries({ queryKey: ["performance"] });
         router.refresh();
         setTimeout(() => {
           setShowSuccessDialog(false);
@@ -222,19 +224,18 @@ export default function ClassPerformanceModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-indigo-700">
             <TrendingUp className="h-5 w-5" />
-            Class Performance
+            {title}
+            {isFetchingPerformance && (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-2" />
+            )}
           </DialogTitle>
           <DialogDescription>
-            Select performance status for students in {slot?.subjectId?.name || "this subject"}.
+            {subtitle || `Select performance status for students in ${slot?.subjectId?.name || "this subject"}.`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto max-h-[60vh] -mx-6 px-6 py-2">
-          {isFetchingPerformance ? (
-            <div className="flex justify-center items-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-            </div>
-          ) : students.length === 0 ? (
+          {students.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No students found for this class.
             </div>
@@ -260,6 +261,7 @@ export default function ClassPerformanceModal({
                         <Select
                           value={studentStatuses[sId] || ""}
                           onValueChange={(val) => handleStatusChange(sId, val)}
+                          disabled={isFetchingPerformance}
                         >
                           <SelectTrigger 
                             className="w-[130px]"

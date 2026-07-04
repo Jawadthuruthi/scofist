@@ -492,7 +492,7 @@ const LiteraryAttendance = ({
                         <Button variant="ghost" size="icon" className="text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8" onClick={(e) => { 
                           e.stopPropagation(); 
                           const attRecord = attendanceData.find(att => att.classId === cls._id && att.category === apiCategory);
-                          setPerformanceSlot({ classId: cls._id, subjectId: { name: `Literary - ${apiCategory}` } });
+                          setPerformanceSlot({ classId: cls._id, className: cls.name, subjectId: { name: `Literary - ${apiCategory}` }, isGroup: false });
                           setPerformanceAttendanceRecord(attRecord);
                           setPerformanceModalOpen(true);
                         }} title="Performance">
@@ -536,6 +536,11 @@ const LiteraryAttendance = ({
                       {group.leaderName && (
                         <div className="text-xxs text-muted-foreground mt-0.5">
                           Leader: {group.leaderName}
+                        </div>
+                      )}
+                      {group.assistantLeaderName && (
+                        <div className="text-xxs text-muted-foreground mt-0.5">
+                          Asst Leader: {group.assistantLeaderName}
                         </div>
                       )}
                       {isAttendanceMarked(group._id) && (
@@ -582,7 +587,7 @@ const LiteraryAttendance = ({
                         <Button variant="ghost" size="icon" className="text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8" onClick={(e) => { 
                           e.stopPropagation(); 
                           const attRecord = attendanceData.find(att => att.groupId === group._id && att.category === "GROUP");
-                          setPerformanceSlot({ classId: group._id, subjectId: { name: `Literary - Group` } });
+                          setPerformanceSlot({ classId: group._id, className: group.name, subjectId: { name: `Literary - Group` }, isGroup: true });
                           setPerformanceAttendanceRecord(attRecord);
                           setPerformanceModalOpen(true);
                         }} title="Performance">
@@ -617,6 +622,8 @@ const LiteraryAttendance = ({
         attendanceRecord={performanceAttendanceRecord}
         apiKey={apiKey}
         defaultComment="Literary Performance"
+        title="Literary Performance"
+        subtitle={performanceSlot?.isGroup ? `Group: ${performanceSlot?.className}` : `Class: ${performanceSlot?.className}`}
       />
     </div>
   );
