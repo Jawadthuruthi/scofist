@@ -47,7 +47,7 @@ export async function GET(req) {
     const month = parseInt(searchParams.get("month"));
     const year = parseInt(searchParams.get("year"));
 
-    if (!classId || !month || !year) {
+    if (!month || !year) {
       return NextResponse.json({ success: false, message: "Missing required parameters" }, { status: 400 });
     }
 
@@ -56,23 +56,34 @@ export async function GET(req) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
-    // 1. Get all students in the class
-    const students = await User.find({
-      "studentSpecificField.classId": classId,
+    const studentFilter = {
       "roles": "Student",
       "studentSpecificField.status": "Active"
-    }).lean();
+    };
+    
+    if (classId && classId !== "all") {
+      studentFilter["studentSpecificField.classId"] = classId;
+    }
+
+    // 1. Get all students
+    const students = await User.find(studentFilter).lean();
 
     if (!students || students.length === 0) {
-      return NextResponse.json({ success: false, message: "No active students found in this class." });
+      return NextResponse.json({ success: false, message: "No active students found." });
     }
 
     const studentMap = {};
+    const classIdsSet = new Set();
+    
     students.forEach(s => {
+      const sClassId = s.studentSpecificField?.classId?.toString();
+      if (sClassId) classIdsSet.add(sClassId);
+      
       studentMap[s._id.toString()] = {
         id: s._id.toString(),
         name: s.name,
         profilePic: s.profilePic?.url || null,
+        classId: sClassId,
         scores: {
           regularAttendance: 0,
           masjidAttendance: 0,
@@ -92,14 +103,21 @@ export async function GET(req) {
     const studentIds = Object.keys(studentMap);
 
     // 2-7. Run all independent queries in parallel
-    const [regAtt, masAtt, litAtt, remarks, performances, leaves] = await Promise.all([
-      StudentAttendance.find({ "attendanceRecords.classId": classId }).lean(),
-      StudentMasjidAttendance.find({ "attendanceRecords.classId": classId }).lean(),
+    const [regAtt, masAtt, litAtt, remarks, performances, leaves, classes, settings] = await Promise.all([
+      StudentAttendance.find({ studentId: { $in: studentIds } }).lean(),
+      StudentMasjidAttendance.find({ studentId: { $in: studentIds } }).lean(),
       StudentLiteraryAttendance.find({ studentId: { $in: studentIds } }).lean(),
       Remark.find({ studentId: { $in: studentIds }, date: { $gte: startDate, $lte: endDate } }).lean(),
       Performance.find({ studentId: { $in: studentIds }, date: { $gte: startDate, $lte: endDate } }).lean(),
-      LeaveRecord.find({ studentId: { $in: studentIds }, dateOfLeave: { $gte: startDate, $lte: endDate } }).lean()
+      LeaveRecord.find({ studentId: { $in: studentIds }, dateOfLeave: { $gte: startDate, $lte: endDate } }).lean(),
+      Class.find({ _id: { $in: Array.from(classIdsSet) } }).lean(),
+      Settings.findOne().lean()
     ]);
+
+    const classMap = {};
+    classes.forEach(c => {
+      classMap[c._id.toString()] = c.name;
+    });
 
     // Process Regular Attendance
     regAtt.forEach(doc => {
@@ -107,7 +125,7 @@ export async function GET(req) {
       if (!studentMap[sid]) return;
       doc.attendanceRecords.forEach(record => {
         const recDate = new Date(record.date);
-        if (record.classId.toString() === classId && recDate >= startDate && recDate <= endDate) {
+        if (recDate >= startDate && recDate <= endDate) {
           studentMap[sid].stats.regular.total += 1;
           if (record.present) studentMap[sid].stats.regular.present += 1;
         }
@@ -120,7 +138,7 @@ export async function GET(req) {
       if (!studentMap[sid]) return;
       doc.attendanceRecords.forEach(record => {
         const recDate = new Date(record.date);
-        if (record.classId.toString() === classId && recDate >= startDate && recDate <= endDate) {
+        if (recDate >= startDate && recDate <= endDate) {
           studentMap[sid].stats.masjid.total += 1;
           if (record.present) studentMap[sid].stats.masjid.present += 1;
         }
@@ -169,7 +187,6 @@ export async function GET(req) {
     });
 
     // Process Leaves
-
     const studentsWithLeaves = new Set();
     leaves.forEach(leave => {
       const sid = leave.studentId.toString();
@@ -183,42 +200,36 @@ export async function GET(req) {
       studentMap[sid].scores.leaves += getStatusPoints(leave.remark);
     });
 
-    // Determine the Star (highest total score)
-    let bestStudent = null;
-    let maxScore = -Infinity;
+    // Determine the Star(s)
+    const bestByClass = {};
 
     for (const sid of studentIds) {
       const s = studentMap[sid];
       const total = s.scores.regularAttendance + s.scores.masjidAttendance + s.scores.literaryAttendance + s.scores.remarks + s.scores.performance + s.scores.leaves;
       
-      // We only consider students who have at least one record of any kind (or you could just rank everyone)
-      // Actually, let's rank everyone.
-      if (total > maxScore) {
-        maxScore = total;
-        bestStudent = {
+      const cId = s.classId;
+      if (!cId) continue;
+
+      if (!bestByClass[cId] || total > bestByClass[cId].totalScore) {
+        bestByClass[cId] = {
           student: { id: s.id, name: s.name, profilePic: s.profilePic },
           breakdown: s.scores,
-          totalScore: total
+          totalScore: total,
+          className: classMap[cId] || "Unknown Class",
+          institutionName: settings?.institution?.name || "Institution Name"
         };
       }
     }
 
-    if (!bestStudent) {
+    const results = Object.values(bestByClass).sort((a, b) => a.className.localeCompare(b.className));
+
+    if (results.length === 0) {
       return NextResponse.json({ success: false, message: "No data available to calculate Star of the Month." });
     }
 
-    const [classDoc, settings] = await Promise.all([
-      Class.findById(classId).lean(),
-      Settings.findOne().lean()
-    ]);
-
     return NextResponse.json({
       success: true,
-      data: {
-        ...bestStudent,
-        className: classDoc ? classDoc.name : "Unknown Class",
-        institutionName: settings?.institution?.name || "Institution Name",
-      }
+      data: results
     });
 
   } catch (error) {

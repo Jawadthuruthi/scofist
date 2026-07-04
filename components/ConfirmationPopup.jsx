@@ -23,6 +23,7 @@ export default function ConfirmationPopup({
   onClick,
   triggerClass,
   confirmText = "",
+  disabled = false,
 }) {
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
@@ -45,7 +46,7 @@ export default function ConfirmationPopup({
       if (!val) setInputValue("");
     }}>
       <DialogTrigger asChild>
-        <Button variant={triggerClass ? "default" : "outline"} className={triggerClass}>
+        <Button variant={triggerClass ? "default" : "outline"} className={triggerClass} disabled={disabled}>
           {icon || <Trash />}
         </Button>
       </DialogTrigger>

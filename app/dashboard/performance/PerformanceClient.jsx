@@ -56,7 +56,7 @@ const columnsConfig = [
             let variant = "secondary";
             const style = {};
 
-            switch (status) {
+            switch (status?.toLowerCase()) {
                 case "advanced":
                     variant = "success";
                     style.backgroundColor = "#047857"; // emerald-700
@@ -281,6 +281,7 @@ export default function PerformanceClient({ apiKey, activeRole, user, classes, t
                 subTitle="Manage Student Performance"
             />
             <DataTableComponent
+                activeRole={activeRole}
                 resource="performance"
                 initialData={[]}
                 columnsConfig={columnsConfig}
@@ -322,6 +323,7 @@ export default function PerformanceClient({ apiKey, activeRole, user, classes, t
                     </DialogHeader>
                     <div className="flex-1 overflow-hidden mt-2">
                         <DataTableComponent
+                            activeRole={activeRole}
                             resource="performance"
                             apiFilters={{ teacherId: user?.userId, myRecords: "true" }}
                             initialData={[]}

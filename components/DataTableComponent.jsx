@@ -149,6 +149,7 @@ const DataTableComponent = ({
   customTopRightButtons = null,
   searchBarClassName = "",
   extraSearchFields = DEFAULT_ARRAY,
+  activeRole = "",
 }) => {
   const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
@@ -1150,7 +1151,7 @@ const DataTableComponent = ({
               filterType={filterType}
             />
 
-            {resource === "performance" && (
+            {resource === "performance" && activeRole === "College Admin" && (
               <StarOfTheMonthModal classes={filterConfig?.find(f => f.id === "classId")?.options || []} />
             )}
 
@@ -1321,7 +1322,7 @@ const DataTableComponent = ({
                 filterType={filterType}
               />
 
-              {resource === "performance" && (
+              {resource === "performance" && activeRole === "College Admin" && (
                 <StarOfTheMonthModal classes={filterConfig?.find(f => f.id === "classId")?.options || []} />
               )}
 

@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Loader, CheckCircle2, FileText, AlertCircle, Check, ChevronsUpDown, CalendarDays, ChevronRight } from "lucide-react";
-
-// UI Components
+import { Loader, CheckCircle2, FileText, AlertCircle, Check, ChevronsUpDown, CalendarDays, ChevronRight, TrendingUp } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -18,8 +16,8 @@ import { Button } from "@/components/ui/button";
 // Hooks and Utils
 import { formatDate, formatDateForDisplay, cn } from "@/lib/utils";
 import useCrud from "@/hooks/use-crud";
-import { fetchItems } from "@/lib/api";
 import Header from "./Header";
+import ClassPerformanceModal from "./ClassPerformanceModal";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -68,6 +66,9 @@ const MyPeriods = ({ apiKey, teacherId }) => {
   const [error, setError] = useState(false);
   const [whatsappLoadingId, setWhatsappLoadingId] = useState(null);
   const [whatsappModalData, setWhatsappModalData] = useState(null);
+  const [performanceModalOpen, setPerformanceModalOpen] = useState(false);
+  const [performanceSlot, setPerformanceSlot] = useState(null);
+  const [performanceAttendanceRecord, setPerformanceAttendanceRecord] = useState(null);
 
   const router = useRouter();
 
@@ -461,7 +462,7 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                     <TableHead className="hidden md:table-cell">
                       Subject
                     </TableHead>
-                    <TableHead className="text-center"></TableHead>
+                    <TableHead className="text-left md:text-center w-24 md:w-auto"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -514,19 +515,35 @@ const MyPeriods = ({ apiKey, teacherId }) => {
                         <TableCell className="hidden md:table-cell">
                           {slot.subjectId?.name}
                         </TableCell>
-                        <TableCell className="text-center align-middle">
+                        <TableCell className="text-left md:text-center align-middle pl-0 md:pl-4">
                           {isAttendanceMarked(slot) ? (
-                            <button
-                              onClick={(e) => handleWhatsAppClick(e, slot)}
-                              className="text-green-500 hover:text-green-600 transition-colors p-2 md:px-3 md:py-1.5 rounded-full md:rounded-md hover:bg-green-50 inline-flex items-center justify-center gap-1.5"
-                              title="Message Absent Students"
-                            >
-                              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                              <span className="hidden md:inline font-medium text-sm">Message</span>
-                            </button>
+                            <div className="flex items-center justify-start md:justify-center gap-1 md:gap-2 -ml-2 md:ml-0">
+                              <button
+                                onClick={(e) => handleWhatsAppClick(e, slot)}
+                                className="text-green-500 hover:text-green-600 transition-colors p-2 md:px-3 md:py-1.5 rounded-full md:rounded-md hover:bg-green-50 inline-flex items-center justify-center gap-1.5"
+                                title="Message Absent Students"
+                              >
+                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                                <span className="hidden md:inline font-medium text-sm">Message</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const key = `${slot.classId?._id}:${slot.subjectId?._id}:${slot.periodNumber}`;
+                                  setPerformanceSlot(slot);
+                                  setPerformanceAttendanceRecord(attendanceStatus[key]);
+                                  setPerformanceModalOpen(true);
+                                }}
+                                className="text-indigo-500 hover:text-indigo-600 transition-colors p-2 md:px-3 md:py-1.5 rounded-full md:rounded-md hover:bg-indigo-50 inline-flex items-center justify-center gap-1.5"
+                                title="Class Performance"
+                              >
+                                <TrendingUp className="h-4 w-4" />
+                                <span className="hidden md:inline font-medium text-sm">Performance</span>
+                              </button>
+                            </div>
                           ) : (
                             <div
-                              className="z-10 flex justify-center items-center"
+                              className="z-10 flex justify-start md:justify-center items-center pl-1 md:pl-0"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setOpen(true);
@@ -769,6 +786,15 @@ const MyPeriods = ({ apiKey, teacherId }) => {
             </div>
           </DialogContent>
         </Dialog>
+
+        <ClassPerformanceModal 
+          open={performanceModalOpen} 
+          onOpenChange={setPerformanceModalOpen}
+          slot={performanceSlot}
+          attendanceRecord={performanceAttendanceRecord}
+          teacherId={teacherId}
+          apiKey={apiKey}
+        />
       </div>
     </div>
   );

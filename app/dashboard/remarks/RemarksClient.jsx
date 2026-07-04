@@ -56,7 +56,7 @@ const columnsConfig = [
             let variant = "secondary";
             const style = {};
 
-            switch (status) {
+            switch (status?.toLowerCase()) {
                 case "advanced":
                     variant = "success";
                     style.backgroundColor = "#047857"; // emerald-700
