@@ -7,6 +7,7 @@ import User from "@/models/User";
 import Class from "@/models/Class";
 import Subject from "@/models/Subject";
 import Settings from "@/models/Settings";
+import Attendance from "@/models/Attendance";
 import { NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic';
@@ -101,19 +102,66 @@ export async function GET(req, res) {
           subjectId: slot.subjectId,
           periodNumber: slot.periodNumber,
           day: slot.day,
-          validFrom: slot.validFrom || tt.updatedAt || tt.createdAt,
-          validTo: slot.validTo
+          // Use the EXACT same effective validFrom as the timetable "view by date" component:
+          //   slot.validFrom || tt.updatedAt || tt.createdAt
+          // Legacy slots (null validFrom) get the timetable document's timestamp as their
+          // effective start, so they don't generate phantom absents for all of history.
+          validFrom: slot.validFrom || tt.updatedAt || tt.createdAt || null,
+          validTo: slot.validTo || null
         });
       });
     });
 
     const isTodayGlobalWorking = settings?.general?.isWorkingDay !== false;
 
-    // 5. Fetch and map ALL actual marked attendance for these teachers
+    // 5. Fetch all data in parallel
     const teacherIds = allTeachers.map(t => t._id.toString());
-    const existingAttendances = await TeacherAttendance.find({
-      teacherId: { $in: teacherIds }
-    }).lean();
+    const [existingAttendances, conductedClasses, leaveRecords] = await Promise.all([
+      TeacherAttendance.find({ teacherId: { $in: teacherIds } }).lean(),
+      // Student attendance — ground truth for teacher presence.
+      Attendance.find({
+        teacherId: { $in: teacherIds },
+        date: { $gte: startDate, $lte: endDate },
+      }, "teacherId classId subjectId periodNumber date").lean(),
+      // Leave records — for absent-with-reason entries.
+      TeachersLeaveRecord.find({
+        teacherId: { $in: teacherIds },
+        date: { $gte: startDate, $lte: endDate },
+      }, "teacherId classId periodNumber date leaveReason").lean(),
+    ]);
+
+    // Build lookup: teacherId -> [attendance objects] for Step 1.5
+    // Also build conductedSlotSubjectMap as a fallback subjectId source:
+    //   key: teacherId_classId_periodNumber -> subjectId
+    // When a historical leave record has no matching timetable slot, we look up
+    // the subjectId from actual Attendance records for the same teacher/class/period.
+    const conductedClassesByTeacher = {};
+    const conductedSlotSubjectMap = {};
+    conductedClasses.forEach(att => {
+      const tId = att.teacherId.toString();
+      if (!conductedClassesByTeacher[tId]) conductedClassesByTeacher[tId] = [];
+      conductedClassesByTeacher[tId].push(att);
+      // Map: teacherId_classId_periodNumber -> subjectId (any attendance proves the subject)
+      const slotKey = `${tId}_${String(att.classId)}_${att.periodNumber}`;
+      if (!conductedSlotSubjectMap[slotKey] && att.subjectId) {
+        conductedSlotSubjectMap[slotKey] = att.subjectId;
+      }
+    });
+
+    // Build lookup: teacherId -> [leave records] for Step 1.6
+    // Also build leaveReasonMap for joining onto Step 1/2 records.
+    const toStr = (v) => (v?._id || v || "").toString().trim();
+    const leaveRecordsByTeacher = {};
+    const leaveReasonMap = {};
+    leaveRecords.forEach(lr => {
+      const tId = toStr(lr.teacherId);
+      if (!leaveRecordsByTeacher[tId]) leaveRecordsByTeacher[tId] = [];
+      leaveRecordsByTeacher[tId].push(lr);
+      // leaveReasonMap key: teacherId_classId_periodNumber_YYYY-MM-DD
+      const dateKey = getDS(lr.date);
+      const key = `${tId}_${toStr(lr.classId)}_${lr.periodNumber}_${dateKey}`;
+      if (lr.leaveReason) leaveReasonMap[key] = lr.leaveReason;
+    });
 
     const lookupMap = {};
     existingAttendances.forEach(doc => {
@@ -157,7 +205,73 @@ export async function GET(req, res) {
         }
       });
 
-      // 2. Then, synthesize missing records from the current TimeTable schedule
+      // 1.5. Add present:true records directly from Attendance (student attendance).
+      // This covers subjects/periods that were in the timetable in previous months but
+      // have since been removed from the current timetable. The Attendance model is the
+      // ground truth: if the teacher marked student attendance for a period, they were
+      // physically present — regardless of the current timetable state.
+      (conductedClassesByTeacher[teacherId] || []).forEach(att => {
+        const ds = getDS(att.date);
+        const key = `${ds}_${String(att.classId)}_${String(att.subjectId)}_${att.periodNumber}`;
+        if (!processedKeys.has(key)) {
+          records.push({
+            _id: `synth_pres_${teacher._id}_${ds}_${att.periodNumber}`,
+            teacherId: teacher._id,
+            date: new Date(att.date),
+            classId: att.classId,
+            subjectId: att.subjectId,
+            periodNumber: att.periodNumber,
+            present: true,
+            synthetic: true
+          });
+          processedKeys.add(key);
+        }
+      });
+
+      // 1.6. Add absent records directly from TeachersLeaveRecord.
+      // Leave records have no subjectId, so we look it up in order of priority:
+      //   1. The timetable slot active on the leave date (validFrom <= date < validTo)
+      //   2. Any Attendance record for the same teacher/class/period (conductedSlotSubjectMap)
+      //   3. null if neither found (will show "Unknown" — expected for very old data)
+      (leaveRecordsByTeacher[teacherId] || []).forEach(lr => {
+        const ds = getDS(lr.date);
+        const lrClassId = toStr(lr.classId);
+        const lrDayName = WEEKDAYS[new Date(lr.date).getUTCDay()];
+        const daySlots = teacherSchedules[lrDayName] || [];
+
+        // Priority 1: find the timetable slot that was active on the exact leave date
+        const matchingSlot = daySlots.find(s => {
+          if (toStr(s.classId) !== lrClassId || s.periodNumber !== lr.periodNumber) return false;
+          const vfDS = s.validFrom ? getDS(s.validFrom) : null;
+          const vtDS = s.validTo   ? getDS(s.validTo)   : null;
+          return (!vfDS || vfDS <= ds) && (!vtDS || vtDS > ds);
+        });
+
+        // Priority 2: fall back to any Attendance record for this slot
+        const fallbackSlotKey = `${teacherId}_${lrClassId}_${lr.periodNumber}`;
+        const subjectId = matchingSlot?.subjectId
+          ?? conductedSlotSubjectMap[fallbackSlotKey]
+          ?? null;
+
+        const key = `${ds}_${lrClassId}_${String(subjectId)}_${lr.periodNumber}`;
+        if (!processedKeys.has(key)) {
+          records.push({
+            _id: `synth_leave_${teacher._id}_${ds}_${lr.periodNumber}`,
+            teacherId: teacher._id,
+            date: new Date(lr.date),
+            classId: lr.classId,
+            subjectId,
+            periodNumber: lr.periodNumber,
+            present: false,
+            leaveReason: lr.leaveReason || null,
+            synthetic: true
+          });
+          processedKeys.add(key);
+        }
+      });
+
+      // 2. Then, synthesize missing records from the TimeTable schedule
+      // (handles absent records for slots where no attendance was marked).
       let curr = new Date(startDate);
       while (curr <= endDate) {
         const dayName = WEEKDAYS[curr.getUTCDay()];
@@ -185,14 +299,21 @@ export async function GET(req, res) {
           }
           
           const key = `${dateString}_${String(slot.classId)}_${String(slot.subjectId)}_${slot.periodNumber}`;
-          
+
+          // Use the EXACT same validFrom/validTo logic as the timetable "view by date":
+          //   slot covers this date if validFrom <= date AND (no validTo OR validTo > date)
+          // This is the single source of truth already used and proven in the timetable component.
           const validFromDS = slot.validFrom ? getDS(slot.validFrom) : null;
-          const validToDS = slot.validTo ? getDS(slot.validTo) : null;
-          
-          // Only add synthetic record if we haven't already added an actual record for this slot
-          if (!processedKeys.has(key) && isEffectivelyWorking && dateString <= todayDS && (!validFromDS || dateString >= validFromDS) && (!validToDS || dateString < validToDS)) {
+          const validToDS   = slot.validTo   ? getDS(slot.validTo)   : null;
+          const isStarted   = !validFromDS || validFromDS <= dateString;
+          const isNotEnded  = !validToDS   || validToDS   >  dateString;
+
+          // Only add synthetic absent record for scheduled slots not yet claimed by
+          // Steps 1 or 1.5. If the teacher actually conducted the class, Step 1.5
+          // already added it as present:true and put it in processedKeys.
+          if (!processedKeys.has(key) && isEffectivelyWorking && dateString <= todayDS && isStarted && isNotEnded) {
             records.push({
-              _id: `synth_${teacher._id}_${dateString}_${slot.periodNumber}`,
+              _id: `synth_abs_${teacher._id}_${dateString}_${slot.periodNumber}`,
               teacherId: teacher._id,
               date: new Date(curr),
               classId: slot.classId,
@@ -216,23 +337,12 @@ export async function GET(req, res) {
     });
 
     // 7. Populate names for synthesized records
-    const classIds = [...new Set(formattedData.flatMap(t => t.attendanceRecords.map(r => r.classId?.toString())))].filter(Boolean);
-    const subjectIds = [...new Set(formattedData.flatMap(t => t.attendanceRecords.map(r => r.subjectId?.toString())))].filter(Boolean);
+    // Collect all classIds and subjectIds — use String() to handle both ObjectId and string types
+    const classIds  = [...new Set(formattedData.flatMap(t => t.attendanceRecords.map(r => r.classId  ? String(r.classId)  : null)))].filter(Boolean);
+    const subjectIds = [...new Set(formattedData.flatMap(t => t.attendanceRecords.map(r => r.subjectId ? String(r.subjectId) : null)))].filter(Boolean);
 
-    // Fetch leave records for all teachers in the date range to join leaveReason
-    const leaveRecords = await TeachersLeaveRecord.find({
-      teacherId: { $in: teacherIds },
-      date: { $gte: startDate, $lte: endDate },
-    }, "teacherId classId periodNumber date leaveReason").lean();
-
-    // Build a fast lookup: teacherId_classId_periodNumber_YYYY-MM-DD -> leaveReason
-    const toStr = (v) => (v?._id || v || "").toString().trim();
-    const leaveReasonMap = {};
-    leaveRecords.forEach(lr => {
-      const dateKey = getDS(lr.date);
-      const key = `${toStr(lr.teacherId)}_${toStr(lr.classId)}_${lr.periodNumber}_${dateKey}`;
-      if (lr.leaveReason) leaveReasonMap[key] = lr.leaveReason;
-    });
+    // Build fast lookup: teacherId_classId_periodNumber_YYYY-MM-DD -> leaveReason
+    // (leaveReasonMap already built above from the early-fetched leaveRecords)
     
     const [nameClasses, nameSubjects] = await Promise.all([
       Class.find({ _id: { $in: classIds } }, "name").lean(),
@@ -245,8 +355,18 @@ export async function GET(req, res) {
     formattedData.forEach(teacher => {
       const teacherId = teacher._id.toString();
       teacher.attendanceRecords.forEach(r => {
-        if (!r.className) r.className = classNameMap[r.classId?.toString()] || "Unknown";
-        if (!r.subjectName) r.subjectName = subjectNameMap[r.subjectId?.toString()] || "Unknown";
+        if (!r.className) {
+          r.className = classNameMap[r.classId?.toString()];
+          if (!r.className) {
+            r.className = (r.classId && r.classId !== "undefined" && r.classId !== "null") ? r.classId : "N/A";
+          }
+        }
+        if (!r.subjectName) {
+          r.subjectName = subjectNameMap[r.subjectId?.toString()];
+          if (!r.subjectName) {
+            r.subjectName = (r.subjectId && r.subjectId !== "undefined" && r.subjectId !== "null" && r.subjectId !== "") ? r.subjectId : "N/A";
+          }
+        }
         // Join leaveReason from TeachersLeaveRecord
         const dateKey = getDS(r.date);
         const leaveKey = `${toStr(teacher._id)}_${toStr(r.classId)}_${r.periodNumber}_${dateKey}`;

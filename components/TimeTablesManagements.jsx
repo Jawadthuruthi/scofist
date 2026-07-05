@@ -278,6 +278,10 @@ const TimeTablesManagements = ({
   const [saveTotal, setSaveTotal] = useState(0);
   const [saveCompleted, setSaveCompleted] = useState(false);
 
+  // Snapshot state — populated for past dates from DailyTimetableSnapshot collection
+  const [snapshotData, setSnapshotData] = useState(null); // null = not fetched / no snapshot
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+
   // Helper to safely get string ID from object or string
   const getStrId = useCallback((val) => {
     if (!val) return "";
@@ -373,6 +377,28 @@ const TimeTablesManagements = ({
   const allTimeTablesQuery = useFetchItems(0, 0, {});
   const updateItem = useUpdateItem();
   const deleteItem = useDeleteItem();
+
+  // Fetch snapshot whenever the user selects a past date in "date" view
+  useEffect(() => {
+    if (category !== "date" || !date) {
+      setSnapshotData(null);
+      return;
+    }
+
+    // Only fetch snapshots for past dates (today and future use the live timetable)
+    const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local
+    if (date >= todayStr) {
+      setSnapshotData(null);
+      return;
+    }
+
+    setSnapshotLoading(true);
+    fetch(`/api/timetable-snapshot?date=${date}`)
+      .then((r) => r.json())
+      .then(({ snapshot }) => setSnapshotData(snapshot || null))
+      .catch(() => setSnapshotData(null))
+      .finally(() => setSnapshotLoading(false));
+  }, [category, date]);
 
   // Handler for showing absentees dialog
   const showAbsenteesDialog = useCallback(
@@ -525,34 +551,47 @@ const TimeTablesManagements = ({
 
       setTimeTableData(timeSlotsByTeacher);
     } else if (category === "date" && date) {
-      // Use allTimeTablesQuery if available to ensure we have data for all classes, 
-      // falling back to fetchItemsQuery if not.
-      const sourceData = allTimeTablesQuery.data?.timeTables || fetchItemsQuery.data?.timeTables || [];
-      
-      const timeSlotsByDate = sourceData.reduce(
-        (acc, timeTable) => {
-          const slots = timeTable.timeSlots.filter((slot) => {
-            if (slot.day !== day) return false;
-            
-            const validFromDS = slot.validFrom ? new Date(slot.validFrom).toISOString().split('T')[0] : null;
-            const validToDS = slot.validTo ? new Date(slot.validTo).toISOString().split('T')[0] : null;
-            
-            const isStarted = !validFromDS || validFromDS <= date;
-            const isNotEnded = !validToDS || validToDS > date;
-            
-            return isStarted && isNotEnded;
-          });
-          const classId = timeTable.classId;
-          return {
-            timeSlots: [
-              ...(acc.timeSlots || []),
-              ...slots.map((slot) => ({ ...slot, classId })),
-            ],
-          };
-        },
-        { timeSlots: [] }
-      );
-      setTimeTableData(timeSlotsByDate || { timeSlots: [] });
+      // For PAST dates: if a stored snapshot exists, use it as the authoritative
+      // source of truth. This ensures future timetable changes never affect how
+      // old dates look in the view.
+      if (snapshotData) {
+        // Map snapshot slots to the same shape timeTableData.timeSlots expects.
+        // Each slot already has classId/teacherId/subjectId as plain strings;
+        // we wrap classId in the populated object shape getCellData expects.
+        const snapshotSlots = (snapshotData.slots || []).map((s) => ({
+          ...s,
+          // getCellData compares classId via getStrId which handles both string and object
+          classId: s.classId,
+          _fromSnapshot: true,
+        }));
+        setTimeTableData({ timeSlots: snapshotSlots });
+      } else {
+        // Fallback: no snapshot exists (date is before snapshot system, or future date).
+        // Reconstruct from validFrom/validTo — current behaviour.
+        const sourceData = allTimeTablesQuery.data?.timeTables || fetchItemsQuery.data?.timeTables || [];
+        const timeSlotsByDate = sourceData.reduce(
+          (acc, timeTable) => {
+            const slots = timeTable.timeSlots.filter((slot) => {
+              if (slot.day !== day) return false;
+              const effectiveVF = slot.validFrom || timeTable.updatedAt || timeTable.createdAt;
+              const validFromDS = effectiveVF ? new Date(effectiveVF).toISOString().split('T')[0] : null;
+              const validToDS = slot.validTo ? new Date(slot.validTo).toISOString().split('T')[0] : null;
+              const isStarted = !validFromDS || validFromDS <= date;
+              const isNotEnded = !validToDS || validToDS > date;
+              return isStarted && isNotEnded;
+            });
+            const classId = timeTable.classId;
+            return {
+              timeSlots: [
+                ...(acc.timeSlots || []),
+                ...slots.map((slot) => ({ ...slot, classId })),
+              ],
+            };
+          },
+          { timeSlots: [] }
+        );
+        setTimeTableData(timeSlotsByDate || { timeSlots: [] });
+      }
     } else {
       const classTimeTable = newData[0];
       if (classTimeTable && classTimeTable.timeSlots) {
@@ -572,6 +611,7 @@ const TimeTablesManagements = ({
   }, [
     fetchItemsQuery.data,
     allTimeTablesQuery.data,
+    snapshotData,
     category,
     selectedTeacher,
     selectedClass,

@@ -7,6 +7,8 @@ import User from "@/models/User";
 import Class from "@/models/Class";
 import Subject from "@/models/Subject";
 import Settings from "@/models/Settings";
+import DailyTimetableSnapshot from "@/models/DailyTimetableSnapshot";
+
 
 // Helper to get consistent YYYY-MM-DD from any Date source using IST Time
 const getDS = (date) => {
@@ -65,6 +67,16 @@ export async function GET(req) {
           $addToSet: { 'general.nonWorkingDays': todayMidnight }
         });
       }
+
+      // Save an empty snapshot so this date is permanently marked as a non-working day.
+      // Future timetable changes won't make this date appear as a school day in history.
+      const [istY, istM, istD] = todayISTDateStr.split("-").map(Number);
+      const todayUTCMidnight = new Date(Date.UTC(istY, istM - 1, istD));
+      await DailyTimetableSnapshot.updateOne(
+        { dateString: todayISTDateStr },
+        { $set: { date: todayUTCMidnight, dateString: todayISTDateStr, isWorkingDay: false, slots: [] } },
+        { upsert: true }
+      );
 
       return NextResponse.json(
         { message: `College is closed today (${todayISTDateStr} is a non-working day). No notifications sent.` },
@@ -125,6 +137,32 @@ export async function GET(req) {
     if (expectedPeriods.length === 0) {
       return NextResponse.json({ message: "No periods scheduled for today" });
     }
+
+    // ── SNAPSHOT ──────────────────────────────────────────────────────────────
+    // Permanently record today's active timetable so that future timetable
+    // changes never alter how this date appears in "timetable view by date".
+    // Uses upsert so re-running the cron is idempotent.
+    const [istY, istM, istD] = todayDS.split("-").map(Number);
+    const todayUTCMidnight = new Date(Date.UTC(istY, istM - 1, istD));
+    await DailyTimetableSnapshot.updateOne(
+      { dateString: todayDS },
+      {
+        $set: {
+          date: todayUTCMidnight,
+          dateString: todayDS,
+          isWorkingDay: true,
+          slots: expectedPeriods.map(ep => ({
+            classId:      ep.classId,
+            teacherId:    ep.teacherId,
+            subjectId:    ep.subjectId,
+            periodNumber: ep.periodNumber,
+            day:          todayDay,
+          })),
+        },
+      },
+      { upsert: true }
+    );
+    // ──────────────────────────────────────────────────────────────────────────
 
     // 4. Fetch today's attendance records
     const attendances = await Attendance.find({
