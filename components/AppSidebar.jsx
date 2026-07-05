@@ -294,10 +294,10 @@ const items = [
     allowedRoles: ["College Admin", "Teacher"],
     subItems: [
       {
-        title: "Attendance Sheet",
-        url: "/dashboard/attendance-sheet",
-        icon: FileSpreadsheet,
-        allowedRoles: ["College Admin", "Teacher"],
+        title: "Admission Register",
+        url: "/dashboard/admission-register",
+        icon: FileText,
+        allowedRoles: ["College Admin"],
       },
       {
         title: "Attendance History",
@@ -306,9 +306,15 @@ const items = [
         allowedRoles: ["College Admin", "Teacher"],
       },
       {
-        title: "Admission Register",
-        url: "/dashboard/admission-register",
-        icon: FileText,
+        title: "Attendance Sheet",
+        url: "/dashboard/attendance-sheet",
+        icon: FileSpreadsheet,
+        allowedRoles: ["College Admin", "Teacher"],
+      },
+      {
+        title: "Attendance Table",
+        url: "/dashboard/attendance-table",
+        icon: FileSpreadsheet,
         allowedRoles: ["College Admin"],
       },
       {
@@ -318,9 +324,9 @@ const items = [
         allowedRoles: ["College Admin"],
       },
       {
-        title: "Attendance Table",
-        url: "/dashboard/attendance-table",
-        icon: FileSpreadsheet,
+        title: "Students Certificate",
+        url: "/dashboard/students-certificate",
+        icon: FileText,
         allowedRoles: ["College Admin"],
       },
     ],
