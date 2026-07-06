@@ -329,6 +329,12 @@ const items = [
         icon: FileText,
         allowedRoles: ["College Admin"],
       },
+      {
+        title: "Clearance Certificate",
+        url: "/dashboard/clearance-certificate",
+        icon: FileText,
+        allowedRoles: ["College Admin"],
+      },
     ],
   },
   {

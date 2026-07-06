@@ -202,6 +202,11 @@ const pages = [
     allowedRoles: ["College Admin"],
   },
   {
+    title: "Clearance Certificate",
+    path: "/dashboard/clearance-certificate",
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Attendance Sheet",
     path: "/dashboard/attendance-sheet",
     allowedRoles: ["College Admin", "Teacher"],
