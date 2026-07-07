@@ -219,30 +219,40 @@ export async function GET(req) {
 
       const missing = missingByTeacher[teacher._id.toString()];
       
-      // Send a separate notification for each missed period
-      const periodPromises = missing.map(async (m) => {
-        const payload = JSON.stringify({
-          title: "Missing Attendance Alert 🚨",
-          body: `You missed marking attendance for Period ${m.periodNumber}: ${m.className} (${subjectMap[m.subjectId] || 'Subject'})`,
-          url: "/dashboard/my-periods"
-        });
+      // Sort missing periods to keep them in order
+      missing.sort((a, b) => a.periodNumber - b.periodNumber);
+      
+      const isMultiple = missing.length > 1;
+      const title = isMultiple ? `Missing Attendance Alert 🚨 (${missing.length} periods)` : "Missing Attendance Alert 🚨";
+      
+      let bodyText = "";
+      if (isMultiple) {
+        const periodDetails = missing.map(m => `${m.periodNumber} (${m.className})`).join(", ");
+        bodyText = `You missed marking attendance for ${missing.length} periods: ${periodDetails}`;
+      } else {
+        const m = missing[0];
+        bodyText = `You missed marking attendance for Period ${m.periodNumber}: ${m.className} (${subjectMap[m.subjectId] || 'Subject'})`;
+      }
 
-        // Send to all registered devices of the teacher
-        const devicePromises = teacher.pushSubscriptions.map(async (sub) => {
-          try {
-            await webpush.sendNotification(sub, payload);
-            notificationCount++;
-          } catch (error) {
-            console.error(`Failed to send push to teacher ${teacher.name}:`, error.body || error);
-            // If status code is 410 or 404, the subscription has expired or is no longer valid.
-            // Ideally, we should remove it from the DB here.
-          }
-        });
-
-        await Promise.all(devicePromises);
+      const payload = JSON.stringify({
+        title,
+        body: bodyText,
+        url: "/dashboard/my-periods"
       });
 
-      await Promise.all(periodPromises);
+      // Send to all registered devices of the teacher
+      const devicePromises = teacher.pushSubscriptions.map(async (sub) => {
+        try {
+          await webpush.sendNotification(sub, payload);
+          notificationCount++;
+        } catch (error) {
+          console.error(`Failed to send push to teacher ${teacher.name}:`, error.body || error);
+          // If status code is 410 or 404, the subscription has expired or is no longer valid.
+          // Ideally, we should remove it from the DB here.
+        }
+      });
+
+      await Promise.all(devicePromises);
     });
 
     await Promise.all(pushPromises);

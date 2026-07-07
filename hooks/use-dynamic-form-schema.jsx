@@ -176,8 +176,7 @@ export function useDynamicFormSchema(formFields = null) {
                     message: `Please select a valid option for ${displayName}`,
                   }
                 );
-          } else if (inputType === "multiSelect" && options) {
-            const values = options.map((option) => option.value);
+          } else if (inputType === "multiSelect") {
             let arraySchema = z.array(z.string());
 
             if (required) {
@@ -186,12 +185,15 @@ export function useDynamicFormSchema(formFields = null) {
               });
             }
 
-            arraySchema = arraySchema.refine(
-              (items) => items.every((item) => values.includes(item)),
-              {
-                message: `Please select valid options for ${displayName}`,
-              }
-            );
+            if (options) {
+              const values = options.map((option) => option.value);
+              arraySchema = arraySchema.refine(
+                (items) => items.every((item) => values.includes(item)),
+                {
+                  message: `Please select valid options for ${displayName}`,
+                }
+              );
+            }
 
             if (validators.min) {
               arraySchema = arraySchema.refine(

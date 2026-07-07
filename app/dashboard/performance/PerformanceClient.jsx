@@ -213,11 +213,11 @@ export default function PerformanceClient({ apiKey, activeRole, user, classes, t
             name: "studentId",
             label: "Student",
             type: "text",
-            inputType: "select",
+            inputType: "multiSelect",
             resource: "users",
             labelKey: ["_id", "name"],
             required: true,
-            placeholder: "Select Student",
+            placeholder: "Select Student(s)",
             filter: {
                 dependentField: "classId",
                 key: "classId",

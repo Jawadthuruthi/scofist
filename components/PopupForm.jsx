@@ -655,7 +655,6 @@ export default function PopupForm({
 
         let newField = { ...field };
 
-        // Explicitly handle color field to ensure it populates from data OR default
         if (field.name === 'color') {
           newField.defaultValue = value || field.defaultValue || "#808080";
         } else if (value && typeof value === 'object' && !Array.isArray(value) &&
@@ -663,7 +662,11 @@ export default function PopupForm({
           // Use the _id if available, otherwise keep original
           newField.defaultValue = value._id || value.id || value;
         } else if (value !== undefined && value !== null) {
-          newField.defaultValue = value;
+          if (field.inputType === 'multiSelect' && !Array.isArray(value)) {
+            newField.defaultValue = typeof value === 'object' ? [value._id || value.id || value] : [value];
+          } else {
+            newField.defaultValue = value;
+          }
         }
 
         return newField;

@@ -143,18 +143,20 @@ export async function POST(req) {
       assignedTeacherId = teacherId;
     }
 
-    const newRemark = new Remark({
-      studentId,
+    const studentIds = Array.isArray(studentId) ? studentId : [studentId];
+    
+    const remarksToCreate = studentIds.map(id => ({
+      studentId: id,
       classId,
       teacherId: assignedTeacherId,
       date,
       comments,
       status,
-    });
+    }));
 
-    await newRemark.save();
+    const newRemarks = await Remark.insertMany(remarksToCreate);
 
-    return NextResponse.json({ remark: newRemark, message: "Remark created successfully!" }, { status: 201 });
+    return NextResponse.json({ remark: newRemarks[0], remarks: newRemarks, message: "Remark(s) created successfully!" }, { status: 201 });
   } catch (error) {
     return apiResponse.error(error.message, 500);
   }

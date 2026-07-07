@@ -145,18 +145,20 @@ export async function POST(req) {
       assignedTeacherId = teacherId;
     }
 
-    const newPerformance = new Performance({
-      studentId,
+    const studentIds = Array.isArray(studentId) ? studentId : [studentId];
+    
+    const performancesToCreate = studentIds.map(id => ({
+      studentId: id,
       classId,
       teacherId: assignedTeacherId,
       date,
       comments,
       status,
-    });
+    }));
 
-    await newPerformance.save();
+    const newPerformances = await Performance.insertMany(performancesToCreate);
 
-    return NextResponse.json({ performance: newPerformance, message: "Performance created successfully!" }, { status: 201 });
+    return NextResponse.json({ performance: newPerformances[0], performances: newPerformances, message: "Performance(s) created successfully!" }, { status: 201 });
   } catch (error) {
     return apiResponse.error(error.message, 500);
   }
