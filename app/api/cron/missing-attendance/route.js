@@ -225,14 +225,8 @@ export async function GET(req) {
       const isMultiple = missing.length > 1;
       const title = isMultiple ? `Missing Attendance Alert 🚨 (${missing.length} periods)` : "Missing Attendance Alert 🚨";
       
-      let bodyText = "";
-      if (isMultiple) {
-        const periodDetails = missing.map(m => `${m.periodNumber} (${m.className})`).join(", ");
-        bodyText = `You missed marking attendance for ${missing.length} periods: ${periodDetails}`;
-      } else {
-        const m = missing[0];
-        bodyText = `You missed marking attendance for Period ${m.periodNumber}: ${m.className} (${subjectMap[m.subjectId] || 'Subject'})`;
-      }
+      let bodyText = `You missed marking attendance ${missing.length} period${missing.length > 1 ? 's' : ''}.\n`;
+      bodyText += missing.map((m, index) => `${index + 1}. Period: ${m.periodNumber} - ${m.className} (${subjectMap[m.subjectId] || 'Subject'})`).join("\n");
 
       const payload = JSON.stringify({
         title,
