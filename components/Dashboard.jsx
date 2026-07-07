@@ -575,7 +575,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               View active teaching staff profile and information
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
             {sortedTeachersLocal?.map((teacher) => {
               let assignedClass = sortedClasses?.find((c) => (c.teacherId?._id || c.teacherId) === teacher._id)?.name || "No Class Assigned";
               if (teacher.teacherStatus === "Principal" || teacher.teacherStatus === "Guest") {

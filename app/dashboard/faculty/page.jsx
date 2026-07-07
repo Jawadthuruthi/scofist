@@ -21,7 +21,7 @@ export default async function FacultyPage() {
           title="FACULTY PROFILES"
           subTitle="View active teaching staff profile and information"
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {teachers?.map((teacher) => {
             let assignedClass = classes.find((c) => (c.teacherId?._id || c.teacherId) === teacher._id)?.name || "No Class Assigned";
             if (teacher.teacherStatus === "Principal" || teacher.teacherStatus === "Guest") {

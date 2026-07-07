@@ -47,7 +47,7 @@ export default async function UpdatesPage() {
 
       <main className="flex-1">
         {/* Hero Section - Super Slim with Balanced Logos */}
-        <section className="bg-emerald-800 text-white py-1 px-6">
+        <section className="bg-emerald-800 text-white py-1 px-6 sticky top-[4rem] z-40 shadow-sm">
           <div className="max-w-7xl mx-auto flex flex-row items-center justify-between gap-4">
             {/* Institution Logo (Left) - Increased size */}
             <div className="flex-1 flex justify-start">

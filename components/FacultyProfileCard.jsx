@@ -8,12 +8,12 @@ import { Card } from "@/components/ui/card";
 
 const FacultyProfileCard = memo(({ faculty, assignedClass }) => (
   <Card
-    className="overflow-hidden hover:border-primary/50 transition-all col-span-6 md:col-span-3 lg:col-span-2 focus-within:outline-none focus-within:ring-2 focus-within:ring-primary"
+    className="overflow-hidden h-full hover:border-primary/50 transition-all focus-within:outline-none focus-within:ring-2 focus-within:ring-primary"
     role="region"
     aria-labelledby={`faculty-${faculty._id}`}
   >
-    <div className="flex">
-      <div className="w-20 xs:w-32 h-20 xs:h-32 relative bg-muted/30">
+    <div className="flex h-full">
+      <div className="w-24 xs:w-32 shrink-0 relative bg-muted/30 min-h-[5rem]">
         {faculty.profilePic?.url ? (
           <Image
             src={faculty?.profilePic?.url}
