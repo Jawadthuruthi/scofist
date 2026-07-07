@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Star, Trophy, Loader2, Download, Share2, ImagePlus } from "lucide-react";
+import { Star, Trophy, Loader2, Download, Share2, ImagePlus, Printer } from "lucide-react";
 import html2canvas from "html2canvas";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -88,6 +88,85 @@ export default function StarOfTheMonthModal({ classes = [] }) {
     } catch (err) {
       console.error(err);
       toast.error("Failed to share poster");
+      setExporting(false);
+    }
+  };
+
+  const handlePrintAll = async () => {
+    if (!starData || starData.length === 0) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error("Please allow popups to print");
+      return;
+    }
+    printWindow.document.write('<html><body><h2 style="font-family: sans-serif; text-align: center; margin-top: 50px;">Generating posters for printing. Please wait...</h2></body></html>');
+
+    setExporting(true);
+    toast.info("Preparing posters for printing...");
+    try {
+      const images = [];
+      for (let i = 0; i < starData.length; i++) {
+        const posterRef = posterRefs.current[i];
+        if (posterRef) {
+          const canvas = await html2canvas(posterRef, { useCORS: true, scale: 2 });
+          images.push(canvas.toDataURL('image/jpeg', 0.9));
+        }
+      }
+      
+      const html = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Print Posters</title>
+            <style>
+              @page { size: A4 landscape; margin: 0; }
+              body { margin: 0; padding: 0; box-sizing: border-box; background: #fff; }
+              .page {
+                width: 297mm;
+                height: 210mm;
+                page-break-after: always;
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+                gap: 10mm;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              .poster {
+                width: 143.5mm;
+                height: 210mm;
+                object-fit: fill; /* Stretches the generated image to fit the height while accommodating the center margin */
+              }
+            </style>
+          </head>
+          <body>
+            ${images.reduce((acc, img, i) => {
+              if (i % 2 === 0) acc += '<div class="page">';
+              acc += '<img src="' + img + '" class="poster" />';
+              if (i % 2 === 1 || i === images.length - 1) acc += '</div>';
+              return acc;
+            }, '')}
+            <script>
+              // Adding a small delay to ensure images are loaded
+              setTimeout(() => {
+                window.print();
+                window.close();
+              }, 500);
+            </script>
+          </body>
+        </html>
+      `;
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate print");
+      printWindow.close();
+    } finally {
       setExporting(false);
     }
   };
@@ -200,14 +279,28 @@ export default function StarOfTheMonthModal({ classes = [] }) {
           />
         </div>
 
-        <Button 
-          onClick={handleGenerate} 
-          disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Star className="h-4 w-4 mr-2" />}
-          Calculate & Generate Poster
-        </Button>
+        <div className="flex gap-2 w-full">
+          <Button 
+            onClick={handleGenerate} 
+            disabled={loading}
+            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Star className="h-4 w-4 mr-2" />}
+            Calculate & Generate Poster
+          </Button>
+
+          {starData && Array.isArray(starData) && starData.length > 0 && (
+            <Button 
+              onClick={handlePrintAll}
+              disabled={exporting}
+              variant="outline"
+              className="bg-white border-indigo-600 text-indigo-700 hover:bg-indigo-50"
+            >
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Printer className="h-4 w-4 mr-2" />}
+              Print All
+            </Button>
+          )}
+        </div>
 
         {starData && Array.isArray(starData) && (
           <div className="mt-6 flex flex-col gap-10">
@@ -297,8 +390,13 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                         </div>
                       </div>
                       
-                      <div className="mt-4 pt-4 border-t border-indigo-100/50 w-full flex justify-center z-10" data-html2canvas-ignore="false">
-                        <span className="text-[10px] font-black tracking-[0.4em] uppercase text-indigo-400">Congratulations...</span>
+                      <div className="mt-auto pt-6 pb-2 w-full flex flex-col items-center justify-center z-10">
+                        <div className="px-6 py-2 bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400 rounded-full shadow-lg border-2 border-white transform hover:scale-105 transition-transform">
+                          <span className="text-xl sm:text-2xl font-black tracking-widest uppercase text-indigo-900 drop-shadow-sm">
+                            Congratulations!
+                          </span>
+                        </div>
+                        <span className="mt-2 text-xs font-bold text-indigo-400 tracking-[0.2em] uppercase">Keep up the great work</span>
                       </div>
                     </>
                   ) : (

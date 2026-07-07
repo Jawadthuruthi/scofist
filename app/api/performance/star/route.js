@@ -215,13 +215,14 @@ export async function GET(req) {
           student: { id: s.id, name: s.name, profilePic: s.profilePic },
           breakdown: s.scores,
           totalScore: total,
+          classId: cId,
           className: classMap[cId] || "Unknown Class",
           institutionName: settings?.institution?.name || "Institution Name"
         };
       }
     }
 
-    const results = Object.values(bestByClass).sort((a, b) => a.className.localeCompare(b.className));
+    const results = Object.values(bestByClass).sort((a, b) => a.classId.localeCompare(b.classId));
 
     if (results.length === 0) {
       return NextResponse.json({ success: false, message: "No data available to calculate Star of the Month." });
