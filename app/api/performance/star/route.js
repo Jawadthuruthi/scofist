@@ -83,6 +83,7 @@ export async function GET(req) {
         id: s._id.toString(),
         name: s.name,
         profilePic: s.profilePic?.url || null,
+        admnNo: s.studentSpecificField?.admissionNumber || s.admissionNumber || s._id?.toString() || "-",
         classId: sClassId,
         scores: {
           regularAttendance: 0,
@@ -96,6 +97,16 @@ export async function GET(req) {
           regular: { total: 0, present: 0 },
           masjid: { total: 0, present: 0 },
           literary: { total: 0, present: 0 }
+        },
+        details: {
+          remarks: [],
+          performance: [],
+          leaves: [],
+          attendance: {
+            regular: { percentage: 0 },
+            masjid: { percentage: 0 },
+            literary: { percentage: 0 }
+          }
         }
       };
     });
@@ -164,26 +175,33 @@ export async function GET(req) {
       
       const regPct = s.stats.regular.total > 0 ? (s.stats.regular.present / s.stats.regular.total) * 100 : 0;
       s.scores.regularAttendance = getAttendancePoints(regPct);
+      s.details.attendance.regular.percentage = regPct;
 
       const masPct = s.stats.masjid.total > 0 ? (s.stats.masjid.present / s.stats.masjid.total) * 100 : 0;
       s.scores.masjidAttendance = getAttendancePoints(masPct);
+      s.details.attendance.masjid.percentage = masPct;
 
       const litPct = s.stats.literary.total > 0 ? (s.stats.literary.present / s.stats.literary.total) * 100 : 0;
       s.scores.literaryAttendance = getAttendancePoints(litPct);
+      s.details.attendance.literary.percentage = litPct;
     }
 
     // Process Remarks
     remarks.forEach(remark => {
       const sid = remark.studentId.toString();
       if (!studentMap[sid]) return;
-      studentMap[sid].scores.remarks += getStatusPoints(remark.status);
+      const pts = getStatusPoints(remark.status);
+      studentMap[sid].scores.remarks += pts;
+      studentMap[sid].details.remarks.push({ status: remark.status, points: pts, date: remark.date });
     });
 
     // Process Performance
     performances.forEach(perf => {
       const sid = perf.studentId.toString();
       if (!studentMap[sid]) return;
-      studentMap[sid].scores.performance += getStatusPoints(perf.status);
+      const pts = getStatusPoints(perf.status);
+      studentMap[sid].scores.performance += pts;
+      studentMap[sid].details.performance.push({ status: perf.status, points: pts, date: perf.date });
     });
 
     // Process Leaves
@@ -197,11 +215,14 @@ export async function GET(req) {
         studentMap[sid].scores.leaves = 0; // Remove the default 10 points
       }
       
-      studentMap[sid].scores.leaves += getStatusPoints(leave.remark);
+      const pts = getStatusPoints(leave.remark);
+      studentMap[sid].scores.leaves += pts;
+      studentMap[sid].details.leaves.push({ status: leave.remark, points: pts, date: leave.dateOfLeave });
     });
 
     // Determine the Star(s)
     const bestByClass = {};
+    const allStudents = [];
 
     for (const sid of studentIds) {
       const s = studentMap[sid];
@@ -209,14 +230,18 @@ export async function GET(req) {
       
       const cId = s.classId;
       if (!cId) continue;
+      
+      s.totalScore = total;
+      s.className = classMap[cId] || "Unknown Class";
+      allStudents.push(s);
 
       if (!bestByClass[cId] || total > bestByClass[cId].totalScore) {
         bestByClass[cId] = {
-          student: { id: s.id, name: s.name, profilePic: s.profilePic },
+          student: { id: s.id, name: s.name, profilePic: s.profilePic, admnNo: s.admnNo },
           breakdown: s.scores,
           totalScore: total,
           classId: cId,
-          className: classMap[cId] || "Unknown Class",
+          className: s.className,
           institutionName: settings?.institution?.name || "Institution Name"
         };
       }
@@ -230,7 +255,8 @@ export async function GET(req) {
 
     return NextResponse.json({
       success: true,
-      data: results
+      data: results,
+      allStudents: allStudents
     });
 
   } catch (error) {

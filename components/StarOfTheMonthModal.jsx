@@ -17,6 +17,9 @@ export default function StarOfTheMonthModal({ classes = [] }) {
   
   const [loading, setLoading] = useState(false);
   const [starData, setStarData] = useState(null);
+  const [allStudents, setAllStudents] = useState([]);
+  const [selectedStudentForDetails, setSelectedStudentForDetails] = useState(null);
+  const [expandedDetail, setExpandedDetail] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [bgImage, setBgImage] = useState(null);
   const posterRefs = useRef([]);
@@ -181,6 +184,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
   const handleGenerate = async () => {
     setLoading(true);
     setStarData(null);
+    setAllStudents([]);
 
     try {
       const response = await axios.get(`/api/performance/star`, {
@@ -194,6 +198,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
 
       if (response.data.success) {
         setStarData(response.data.data);
+        setAllStudents(response.data.allStudents || []);
       } else {
         toast.error(response.data.message || "Failed to calculate Star of the Month");
       }
@@ -206,12 +211,13 @@ export default function StarOfTheMonthModal({ classes = [] }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) setStarData(null); }}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="h-9 w-9 p-0 flex items-center justify-center shrink-0" title="Star of the Month">
-          <Star className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
+    <>
+      <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setStarData(null); setAllStudents([]); setSelectedStudentForDetails(null); } }}>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="h-9 w-9 p-0 flex items-center justify-center shrink-0" title="Star of the Month">
+            <Star className="h-4 w-4" />
+          </Button>
+        </DialogTrigger>
       
       <DialogContent className="sm:max-w-md md:max-w-2xl bg-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -221,14 +227,14 @@ export default function StarOfTheMonthModal({ classes = [] }) {
           </DialogTitle>
         </DialogHeader>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4">
           <div className="space-y-2 col-span-1">
             <label className="text-sm font-medium">Year</label>
             <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
               <SelectTrigger>
                 <SelectValue placeholder="Select Year" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-56 overflow-y-auto">
                 {years.map(y => (
                   <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
                 ))}
@@ -236,13 +242,13 @@ export default function StarOfTheMonthModal({ classes = [] }) {
             </Select>
           </div>
           
-          <div className="space-y-2">
+          <div className="space-y-2 col-span-1">
             <label className="text-sm font-medium">Month</label>
             <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
               <SelectTrigger>
                 <SelectValue placeholder="Select Month" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-56 overflow-y-auto">
                 {months.map(m => (
                   <SelectItem key={m.value} value={m.value.toString()}>{m.label}</SelectItem>
                 ))}
@@ -250,56 +256,86 @@ export default function StarOfTheMonthModal({ classes = [] }) {
             </Select>
           </div>
           
-          <div className="space-y-2 col-span-2 md:col-span-1">
+          <div className="space-y-2 col-span-2 md:col-span-2">
             <label className="text-sm font-medium">Class</label>
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Classes" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Classes</SelectItem>
-                {classes.map(c => (
-                  <SelectItem key={c.value || c._id} value={c.value || c._id}>{c.label || c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Classes" />
+                </SelectTrigger>
+                <SelectContent className="max-h-56 overflow-y-auto">
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {classes.map(c => (
+                    <SelectItem key={c.value || c._id} value={c.value || c._id}>{c.label || c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={handleGenerate} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white shrink-0">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Load"}
+              </Button>
+            </div>
           </div>
         </div>
 
+        {allStudents && allStudents.length > 0 && (
+          <div className="overflow-x-auto overflow-y-auto max-h-64 mt-2 mb-6 border rounded-lg">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-100 text-gray-700 sticky top-0 z-10">
+                <tr>
+                  <th className="pl-4 pr-2 py-2 w-12 leading-tight">Sl<br/>No</th>
+                  <th className="px-2 py-2 w-16 leading-tight">Admn<br/>No</th>
+                  <th className="px-2 py-2">Name</th>
+                  <th className="px-4 py-2">Class</th>
+                  <th className="px-4 py-2 text-right">Total Points</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allStudents.sort((a,b) => String(a.admnNo).localeCompare(String(b.admnNo), undefined, { numeric: true })).map((s, idx) => (
+                  <tr key={s.id} className="border-b hover:bg-gray-50">
+                    <td className="pl-4 pr-2 py-2">{idx + 1}</td>
+                    <td className="px-2 py-2 text-xs">{s.admnNo}</td>
+                    <td className="px-2 py-2 font-medium">{s.name}</td>
+                    <td className="px-4 py-2">{s.className}</td>
+                    <td className="px-4 py-2 text-right">
+                      <button 
+                         onClick={() => setSelectedStudentForDetails(s)}
+                         className="text-indigo-600 hover:text-indigo-800 hover:underline font-bold bg-indigo-50 px-2 py-1 rounded"
+                      >
+                        {s.totalScore}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         <div className="flex flex-col gap-2 mb-4">
-          <label className="text-sm font-medium flex items-center gap-2">
-            <ImagePlus className="h-4 w-4 text-gray-500" />
-            Poster Background Image (Optional)
-          </label>
+          <div className="flex justify-between items-center">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <ImagePlus className="h-4 w-4 text-gray-500" />
+              Poster Background Image (Optional)
+            </label>
+            {starData && Array.isArray(starData) && starData.length > 0 && (
+              <Button 
+                onClick={handlePrintAll}
+                disabled={exporting}
+                variant="outline"
+                size="sm"
+                className="bg-white border-indigo-600 text-indigo-700 hover:bg-indigo-50"
+              >
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Printer className="h-4 w-4 mr-2" />}
+                Print All Posters
+              </Button>
+            )}
+          </div>
           <input 
             type="file" 
             accept="image/*" 
             onChange={handleBgImageUpload}
             className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-gray-200 rounded-md p-1"
           />
-        </div>
-
-        <div className="flex gap-2 w-full">
-          <Button 
-            onClick={handleGenerate} 
-            disabled={loading}
-            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-          >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Star className="h-4 w-4 mr-2" />}
-            Calculate & Generate Poster
-          </Button>
-
-          {starData && Array.isArray(starData) && starData.length > 0 && (
-            <Button 
-              onClick={handlePrintAll}
-              disabled={exporting}
-              variant="outline"
-              className="bg-white border-indigo-600 text-indigo-700 hover:bg-indigo-50"
-            >
-              {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Printer className="h-4 w-4 mr-2" />}
-              Print All
-            </Button>
-          )}
         </div>
 
         {starData && Array.isArray(starData) && (
@@ -364,7 +400,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                         
                         <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-gray-500">Regular Att.</span>
+                            <span className="text-gray-500">Class Att.</span>
                             <span className="font-semibold">{data.breakdown.regularAttendance} pts</span>
                           </div>
                           <div className="flex justify-between">
@@ -434,6 +470,123 @@ export default function StarOfTheMonthModal({ classes = [] }) {
           </div>
         )}
       </DialogContent>
-    </Dialog>
+      </Dialog>
+
+      <Dialog open={!!selectedStudentForDetails} onOpenChange={(open) => !open && setSelectedStudentForDetails(null)}>
+        <DialogContent className="sm:max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-indigo-700">Point Details - {selectedStudentForDetails?.name}</DialogTitle>
+          </DialogHeader>
+          {selectedStudentForDetails && (
+            <div className="space-y-3 py-4">
+               <div className="flex flex-col border-b pb-2">
+                 <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'classAtt' ? null : 'classAtt')}>
+                   <span className="text-gray-600">Class Attendance</span>
+                   <span className="font-semibold text-indigo-600">{selectedStudentForDetails.scores.regularAttendance} pts</span>
+                 </div>
+                 {expandedDetail === 'classAtt' && selectedStudentForDetails.details && (
+                   <div className="text-sm bg-gray-50 p-2 rounded mt-1 text-gray-700">
+                     Attendance Percentage: <span className="font-medium">{selectedStudentForDetails.details.attendance?.regular?.percentage?.toFixed(1) || 0}%</span>
+                   </div>
+                 )}
+               </div>
+               <div className="flex flex-col border-b pb-2">
+                 <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'masjidAtt' ? null : 'masjidAtt')}>
+                   <span className="text-gray-600">Masjid Attendance</span>
+                   <span className="font-semibold text-indigo-600">{selectedStudentForDetails.scores.masjidAttendance} pts</span>
+                 </div>
+                 {expandedDetail === 'masjidAtt' && selectedStudentForDetails.details && (
+                   <div className="text-sm bg-gray-50 p-2 rounded mt-1 text-gray-700">
+                     Attendance Percentage: <span className="font-medium">{selectedStudentForDetails.details.attendance?.masjid?.percentage?.toFixed(1) || 0}%</span>
+                   </div>
+                 )}
+               </div>
+               <div className="flex flex-col border-b pb-2">
+                 <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'literaryAtt' ? null : 'literaryAtt')}>
+                   <span className="text-gray-600">Literary Attendance</span>
+                   <span className="font-semibold text-indigo-600">{selectedStudentForDetails.scores.literaryAttendance} pts</span>
+                 </div>
+                 {expandedDetail === 'literaryAtt' && selectedStudentForDetails.details && (
+                   <div className="text-sm bg-gray-50 p-2 rounded mt-1 text-gray-700">
+                     Attendance Percentage: <span className="font-medium">{selectedStudentForDetails.details.attendance?.literary?.percentage?.toFixed(1) || 0}%</span>
+                   </div>
+                 )}
+               </div>
+               <div className="flex flex-col border-b pb-2">
+                 <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'remarks' ? null : 'remarks')}>
+                   <span className="text-gray-600">Remarks</span>
+                   <span className="font-semibold text-indigo-600">{selectedStudentForDetails.scores.remarks} pts</span>
+                 </div>
+                 {expandedDetail === 'remarks' && selectedStudentForDetails.details && (
+                   <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-32 overflow-y-auto">
+                     {selectedStudentForDetails.details.remarks?.length > 0 ? (
+                       <ul className="space-y-1">
+                         {selectedStudentForDetails.details.remarks.map((r, i) => (
+                           <li key={i} className="flex justify-between border-b border-gray-200 last:border-0 pb-1">
+                             <span>{r.status} <span className="text-xs text-gray-400">({new Date(r.date).toLocaleDateString()})</span></span>
+                             <span className={r.points > 0 ? "text-green-600" : "text-red-500"}>{r.points > 0 ? `+${r.points}` : r.points} pts</span>
+                           </li>
+                         ))}
+                       </ul>
+                     ) : (
+                       <p className="text-gray-500 italic">No remarks in this month.</p>
+                     )}
+                   </div>
+                 )}
+               </div>
+               <div className="flex flex-col border-b pb-2">
+                 <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'performance' ? null : 'performance')}>
+                   <span className="text-gray-600">Performance</span>
+                   <span className="font-semibold text-indigo-600">{selectedStudentForDetails.scores.performance} pts</span>
+                 </div>
+                 {expandedDetail === 'performance' && selectedStudentForDetails.details && (
+                   <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-32 overflow-y-auto">
+                     {selectedStudentForDetails.details.performance?.length > 0 ? (
+                       <ul className="space-y-1">
+                         {selectedStudentForDetails.details.performance.map((p, i) => (
+                           <li key={i} className="flex justify-between border-b border-gray-200 last:border-0 pb-1">
+                             <span>{p.status} <span className="text-xs text-gray-400">({new Date(p.date).toLocaleDateString()})</span></span>
+                             <span className={p.points > 0 ? "text-green-600" : "text-red-500"}>{p.points > 0 ? `+${p.points}` : p.points} pts</span>
+                           </li>
+                         ))}
+                       </ul>
+                     ) : (
+                       <p className="text-gray-500 italic">No performance records in this month.</p>
+                     )}
+                   </div>
+                 )}
+               </div>
+               <div className="flex flex-col border-b pb-2">
+                 <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'leaves' ? null : 'leaves')}>
+                   <span className="text-gray-600">Leaves</span>
+                   <span className="font-semibold text-indigo-600">{selectedStudentForDetails.scores.leaves} pts</span>
+                 </div>
+                 {expandedDetail === 'leaves' && selectedStudentForDetails.details && (
+                   <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-32 overflow-y-auto">
+                     <p className="text-xs text-gray-500 mb-1">Base score: 10 pts (lost if leaves taken)</p>
+                     {selectedStudentForDetails.details.leaves?.length > 0 ? (
+                       <ul className="space-y-1">
+                         {selectedStudentForDetails.details.leaves.map((l, i) => (
+                           <li key={i} className="flex justify-between border-b border-gray-200 last:border-0 pb-1">
+                             <span>{l.status} <span className="text-xs text-gray-400">({new Date(l.date).toLocaleDateString()})</span></span>
+                             <span className={l.points > 0 ? "text-green-600" : "text-red-500"}>{l.points > 0 ? `+${l.points}` : l.points} pts</span>
+                           </li>
+                         ))}
+                       </ul>
+                     ) : (
+                       <p className="text-green-600 italic">No leaves taken.</p>
+                     )}
+                   </div>
+                 )}
+               </div>
+               <div className="flex justify-between pt-2 text-lg font-bold">
+                 <span>Total Score</span>
+                 <span className="text-indigo-700">{selectedStudentForDetails.totalScore} pts</span>
+               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
