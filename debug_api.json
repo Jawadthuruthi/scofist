@@ -1,0 +1,22 @@
+{
+  "recordFilters": {},
+  "dateFilter": {
+    "start": "2026-06-30T18:30:00.000Z",
+    "end": "2026-07-31T18:29:59.999Z"
+  },
+  "sampleUsers": [
+    {
+      "_id": "128",
+      "name": "MUHAMMED SHEIK SALAHUDHEEN",
+      "attendanceRecords": []
+    },
+    {
+      "_id": "273",
+      "name": "MOHAMMED YASIR M",
+      "attendanceRecords": []
+    }
+  ],
+  "totalFormattedUsers": 1000,
+  "totalRecordsForFirstUser": 0,
+  "originalRecordsCount": 0
+}

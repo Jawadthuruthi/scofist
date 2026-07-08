@@ -100,12 +100,12 @@ export async function GET(req, res) {
         ...attendance.toObject(),
         date: new Date(attendance.date).toISOString().slice(0, 10),
         dateForDisplay: formatDateForDisplay(attendance.date),
-        groupId: attendance?.groupId?._id,
-        groupDetails: attendance?.groupId,
-        classId: attendance?.classId?._id,
-        classDetails: attendance?.classId,
-        batchId: attendance?.batchId?._id,
-        batchDetails: attendance?.batchId,
+        groupId: attendance?.groupId?._id || attendance?.groupId,
+        groupDetails: typeof attendance?.groupId === 'object' ? attendance?.groupId : undefined,
+        classId: attendance?.classId?._id || attendance?.classId,
+        classDetails: typeof attendance?.classId === 'object' ? attendance?.classId : undefined,
+        batchId: attendance?.batchId?._id || attendance?.batchId,
+        batchDetails: typeof attendance?.batchId === 'object' ? attendance?.batchId : undefined,
         attendanceData: attendance.attendanceData.map((data) => ({
           ...data.toObject(),
           studentId: data.studentId._id,
@@ -124,7 +124,7 @@ export async function GET(req, res) {
       // Process each attendance record
       formattedAttendances.forEach((attendance) => {
         attendance.attendanceData.forEach((student) => {
-          const uniqueKey = `${student.studentId}_${attendance.classId || attendance.groupId || "none"}`;
+          const uniqueKey = `${student.studentId}_${attendance.classId || attendance.groupId || "none"}_${attendance.category}`;
           
           if (!studentAbsences[uniqueKey]) {
             studentAbsences[uniqueKey] = {
