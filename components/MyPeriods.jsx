@@ -419,27 +419,31 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
           <Header
             title="MY PERIODS"
             subTitle="View Schedule & Take Attendance"
-            rightAction={
-              isPrincipal && (
-                <TodayStatusModal 
-                  type="teacher" 
-                  students={teachers} 
-                  customTrigger={
-                    <Button variant="outline" className="flex items-center gap-2 font-medium">
-                      <CalendarDays className="h-4 w-4" />
-                      Teacher Status
-                    </Button>
-                  }
-                />
-              )
-            }
           />
         </div>
-        <div>
+        <div className="flex flex-row items-center justify-between w-full mb-3 gap-2 overflow-hidden">
           {/* Day selector */}
-          <div className="mb-2 py-1 px-8 border border-border rounded-lg max-w-fit text-sm">
+          <div className="py-1 px-4 md:px-8 border border-border rounded-lg text-xs md:text-sm whitespace-nowrap shrink-0">
             {date}
           </div>
+          
+          {isPrincipal && (
+            <div className="shrink-0">
+              <TodayStatusModal 
+                type="teacher" 
+                students={teachers} 
+                customTrigger={
+                  <Button variant="outline" size="sm" className="flex items-center gap-1.5 md:gap-2 font-medium text-xs md:text-sm h-8">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    Teacher Status
+                  </Button>
+                }
+              />
+            </div>
+          )}
+        </div>
+
+        <div>
 
           {/* ── Upcoming Special Day Banner ── */}
           {upcomingEvent && (
