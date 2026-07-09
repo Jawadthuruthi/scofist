@@ -172,53 +172,55 @@ export default function TodayStatusModal({ type = "student", students = [], clas
                 )}
             </DialogTrigger>
             <DialogContent className="max-w-xl max-h-[85vh] flex flex-col p-6">
-                <DialogHeader className="mb-4 relative flex items-center justify-center flex-row">
-                    <DialogTitle className="absolute left-0">Status</DialogTitle>
+                <DialogHeader className="mb-2 sm:mb-4 flex flex-col sm:flex-row items-center justify-center relative gap-2 sm:gap-0">
+                    <DialogTitle className="sm:absolute sm:left-0 w-full text-center sm:text-left">Status</DialogTitle>
                     
-                    <div className="flex items-center gap-1 bg-neutral-100 rounded-md p-0.5 border border-neutral-200">
-                        <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={handlePrevDay}
-                            title="Previous Day"
-                            className="h-7 w-7 rounded-sm hover:bg-white text-muted-foreground hover:text-black"
+                    <div className="flex items-center justify-center">
+                        <div className="flex items-center gap-1 bg-neutral-100 rounded-md p-0.5 border border-neutral-200">
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={handlePrevDay}
+                                title="Previous Day"
+                                className="h-7 w-7 rounded-sm hover:bg-white text-muted-foreground hover:text-black"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <input 
+                                type="date"
+                                value={selectedDateStr}
+                                onChange={(e) => {
+                                    if (e.target.value) {
+                                        setSelectedDateStr(e.target.value);
+                                    }
+                                }}
+                                className="bg-transparent border-none text-sm font-medium focus:outline-none focus:ring-0 px-1 cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer h-7"
+                            />
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={handleNextDay}
+                                title="Next Day"
+                                className="h-7 w-7 rounded-sm hover:bg-white text-muted-foreground hover:text-black"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+
+                        <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            onClick={fetchTodayRecords} 
+                            disabled={loading || !selectedPerson}
+                            title="Refresh Status"
+                            className="ml-3 h-8 w-8 text-muted-foreground hover:text-black transition-colors rounded-full bg-neutral-100/50 hover:bg-neutral-100 shrink-0"
                         >
-                            <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <input 
-                            type="date"
-                            value={selectedDateStr}
-                            onChange={(e) => {
-                                if (e.target.value) {
-                                    setSelectedDateStr(e.target.value);
-                                }
-                            }}
-                            className="bg-transparent border-none text-sm font-medium focus:outline-none focus:ring-0 px-1 cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer h-7"
-                        />
-                        <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={handleNextDay}
-                            title="Next Day"
-                            className="h-7 w-7 rounded-sm hover:bg-white text-muted-foreground hover:text-black"
-                        >
-                            <ChevronRight className="h-4 w-4" />
+                            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
                         </Button>
                     </div>
-
-                    <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={fetchTodayRecords} 
-                        disabled={loading || !selectedPerson}
-                        title="Refresh Status"
-                        className="ml-3 h-8 w-8 text-muted-foreground hover:text-black transition-colors rounded-full bg-neutral-100/50 hover:bg-neutral-100"
-                    >
-                        <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                    </Button>
                 </DialogHeader>
 
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3">
                     {type === "student" ? (
                         <div className="flex gap-4 w-full">
                             <div className="flex-1 flex flex-col gap-1.5">

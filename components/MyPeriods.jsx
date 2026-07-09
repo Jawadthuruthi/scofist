@@ -101,7 +101,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const { useFetchItems: useFetchAttendance } = useCrud("attendances", apiKey);
   const { useFetchItems: useFetchUsers } = useCrud("users", apiKey);
 
-  const usersQuery = useFetchUsers(0, 0, { role: "Teacher" }, { 
+  const usersQuery = useFetchUsers(0, 0, { roles: "Teacher" }, { 
     staleTime: 1000 * 60 * 60,
     enabled: isPrincipal 
   });
@@ -423,7 +423,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         </div>
         <div className="flex flex-row items-center justify-between w-full mb-3 gap-2 overflow-hidden">
           {/* Day selector */}
-          <div className="py-1 px-4 md:px-8 border border-border rounded-lg text-xs md:text-sm whitespace-nowrap shrink-0">
+          <div className="py-1.5 px-4 md:px-8 border border-border rounded-lg text-sm md:text-base font-medium whitespace-nowrap shrink-0">
             {date}
           </div>
           
@@ -433,8 +433,8 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                 type="teacher" 
                 students={teachers} 
                 customTrigger={
-                  <Button variant="outline" size="sm" className="flex items-center gap-1.5 md:gap-2 font-medium text-xs md:text-sm h-8">
-                    <CalendarDays className="h-3.5 w-3.5" />
+                  <Button variant="outline" className="flex items-center gap-1.5 md:gap-2 font-semibold text-sm md:text-base h-9 md:h-10 px-3 md:px-4">
+                    <CalendarDays className="h-4 w-4" />
                     Teacher Status
                   </Button>
                 }
