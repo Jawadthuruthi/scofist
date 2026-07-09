@@ -129,6 +129,7 @@ export async function GET(req) {
                 const validToDS = slot.validTo ? getDS(slot.validTo) : null;
 
                 if (actual) {
+                    const isLeave = !!actual.leaveReason;
                     records.push({
                         date: actual.date,
                         classId: String(actual.classId?._id || actual.classId || slot.classId),
@@ -136,8 +137,9 @@ export async function GET(req) {
                         subjectName: actual.subjectId?.name || "Unknown",
                         className: actual.classId?.name || "Unknown",
                         periodNumber: actual.periodNumber,
-                        present: true,
-                        synthetic: false
+                        present: !isLeave,
+                        synthetic: false,
+                        leaveReason: actual.leaveReason || null
                     });
                 } else if (isWorkingDay && dateDS <= todayDS && (!validFromDS || dateDS >= validFromDS) && (!validToDS || dateDS < validToDS)) {
                     // This is an unmarked scheduled period
@@ -202,6 +204,7 @@ export async function GET(req) {
             const key = `${toStr(r.classId)}_${r.periodNumber}_${dateKey}`;
             if (!r.leaveReason && leaveMap[key]) {
                 r.leaveReason = leaveMap[key];
+                r.present = false;
             }
             r.periodTime = periodTimeMap[r.periodNumber] || null;
         });

@@ -122,7 +122,7 @@ export async function GET(req, res) {
       Attendance.find({
         teacherId: { $in: teacherIds },
         date: { $gte: startDate, $lte: endDate },
-      }, "teacherId classId subjectId periodNumber date").lean(),
+      }, "teacherId classId subjectId periodNumber date leaveReason").lean(),
       // Leave records — for absent-with-reason entries.
       TeachersLeaveRecord.find({
         teacherId: { $in: teacherIds },
@@ -221,8 +221,9 @@ export async function GET(req, res) {
             classId: att.classId,
             subjectId: att.subjectId,
             periodNumber: att.periodNumber,
-            present: true,
-            synthetic: true
+            present: !att.leaveReason,
+            synthetic: true,
+            leaveReason: att.leaveReason || null
           });
           processedKeys.add(key);
         }
@@ -372,6 +373,9 @@ export async function GET(req, res) {
         const leaveKey = `${toStr(teacher._id)}_${toStr(r.classId)}_${r.periodNumber}_${dateKey}`;
         if (!r.leaveReason && leaveReasonMap[leaveKey]) {
           r.leaveReason = leaveReasonMap[leaveKey];
+        }
+        if (r.leaveReason) {
+          r.present = false;
         }
       });
     });
