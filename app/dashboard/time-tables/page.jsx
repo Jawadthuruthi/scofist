@@ -16,7 +16,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "classes",
-    searchParams: "projection=_id,name,coreSubjects,majorSubjects",
+    searchParams: "projection=_id,name,shortname,coreSubjects,majorSubjects",
   },
 ];
 

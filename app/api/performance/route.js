@@ -67,7 +67,8 @@ export async function GET(req) {
       const students = await User.find({
         $or: [
           { name: { $regex: searchName, $options: "i" } },
-          { _id: { $regex: searchName, $options: "i" } }
+          { _id: { $regex: searchName, $options: "i" } },
+          { "studentSpecificField.admissionNumber": { $regex: searchName, $options: "i" } }
         ],
         roles: "Student",
       }).select("_id");
@@ -86,7 +87,7 @@ export async function GET(req) {
     }
 
     const performances = await Performance.find(query, projections)
-      .populate("studentId", "name contactNumber studentSpecificField.guardianContactNumber")
+      .populate("studentId", "name contactNumber studentSpecificField.admissionNumber studentSpecificField.guardianContactNumber")
       .populate("teacherId", "name")
       .populate("classId", "name")
       .skip(page * limit)
@@ -105,6 +106,7 @@ export async function GET(req) {
       teacherName: performance.teacherId?.name,
       contactNumber: performance.studentId?.contactNumber,
       guardianContactNumber: performance.studentId?.studentSpecificField?.guardianContactNumber,
+      admissionNumber: performance.studentId?.studentSpecificField?.admissionNumber,
     }));
 
     return NextResponse.json(

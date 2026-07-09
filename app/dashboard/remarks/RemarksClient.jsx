@@ -293,14 +293,14 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
                 editSuccessMessage={statusMessages.edit}
                 deleteSuccessMessage={statusMessages.delete}
                 filterConfig={filterConfig}
-                limit={20}
+                limit={10000}
                 readOnly={!canEdit}
                 enableDelete={canEdit}
                 formClassName="sm:max-w-2xl lg:max-w-3xl"
                 enableSearch={true}
                 searchBarClassName="w-[200px] sm:w-[280px] lg:w-[400px] xl:w-[500px]"
                 desktopSearchPlaceholder="Search student or number..."
-                extraSearchFields={["studentId"]}
+                extraSearchFields={["studentId", "admissionNumber"]}
                 tableHeight="calc(100vh - 250px)"
                 additionalProps={{
                     customActions: isTeacher ? (
@@ -328,7 +328,7 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
                             columnsConfig={columnsConfig}
                             formFields={formFields}
                             apiKey={apiKey}
-                            limit={20}
+                            limit={10000}
                             readOnly={false}
                             enableDelete={true}
                             enableCreate={false}
@@ -341,7 +341,7 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
                             enableSearch={true}
                             searchBarClassName="w-[200px] sm:w-[280px] lg:w-[400px]"
                             desktopSearchPlaceholder="Search student or number..."
-                            extraSearchFields={["studentId"]}
+                            extraSearchFields={["studentId", "admissionNumber"]}
                             tableHeight="calc(80vh - 180px)"
                         />
                     </div>

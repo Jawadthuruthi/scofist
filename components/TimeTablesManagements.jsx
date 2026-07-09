@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   UserX,
   Save,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 // UI Components
@@ -258,7 +260,7 @@ const TimeTablesManagements = ({
   const [timeTableData, setTimeTableData] = useState({ timeSlots: [] });
   const [selectedClass, setSelectedClass] = useState(classes[0]?._id || "");
   const [selectedTeacher, setSelectedTeacher] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [selectedDay, setSelectedDay] = useState("");
@@ -1154,13 +1156,37 @@ const TimeTablesManagements = ({
           </div>
         )}
         {category === "date" && (
-          <div className="w-full md:w-1/4">
+          <div className="w-full md:w-1/4 flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                if (!date) return;
+                const d = new Date(date);
+                d.setDate(d.getDate() - 1);
+                setDate(d.toISOString().split("T")[0]);
+              }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
             <Input
               name="date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                if (!date) return;
+                const d = new Date(date);
+                d.setDate(d.getDate() + 1);
+                setDate(d.toISOString().split("T")[0]);
+              }}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         )}
 
@@ -1324,7 +1350,7 @@ const TimeTablesManagements = ({
                   >
                     <TableCell className="border font-medium bg-accent sticky left-0 z-10">
                       <div className="flex items-center whitespace-nowrap gap-2">
-                        {classItem.name}
+                        {classItem.shortname || classItem.name}
                       </div>
                     </TableCell>
                     {periods.map((period) => {
