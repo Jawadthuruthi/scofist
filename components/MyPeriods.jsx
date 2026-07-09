@@ -526,9 +526,16 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                             </div>
                           )}
                           {leaveRecord && !isAttendanceMarked(slot) && (
-                            <div className="flex items-center gap-1 text-xxs text-muted-foreground">
-                              <AlertCircle className="text-red-500 h-3 w-3" />
-                              <span>{leaveRecord.leaveReason}</span>
+                            <div className="flex flex-col gap-0.5 mt-1">
+                              <div className="flex items-center gap-1 text-[10px] font-bold text-red-600 uppercase tracking-tight">
+                                <AlertCircle className="h-3 w-3" />
+                                <span>Absent</span>
+                              </div>
+                              {leaveRecord.leaveReason && (
+                                <span className="text-[10px] text-muted-foreground ml-4 leading-tight italic">
+                                  {leaveRecord.leaveReason}
+                                </span>
+                              )}
                             </div>
                           )}
                         </TableCell>

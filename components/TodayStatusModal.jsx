@@ -339,9 +339,16 @@ export default function TodayStatusModal({ type = "student", students = [], clas
                                                         Present
                                                     </Badge>
                                                 ) : rec.present === false ? (
-                                                    <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 border-none px-2 py-0 text-[10px] uppercase font-bold tracking-tight">
-                                                        Absent
-                                                    </Badge>
+                                                    <div className="flex flex-col items-center justify-center gap-0.5">
+                                                        <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 border-none px-2 py-0 text-[10px] uppercase font-bold tracking-tight">
+                                                            Absent
+                                                        </Badge>
+                                                        {rec.leaveReason && (
+                                                            <span className="text-[10px] text-red-600/90 font-medium text-center leading-tight">
+                                                                {rec.leaveReason}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 ) : (
                                                     <span className="text-muted-foreground text-sm font-medium tracking-tight opacity-70">
                                                         —
