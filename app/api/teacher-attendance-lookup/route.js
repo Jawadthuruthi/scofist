@@ -28,6 +28,7 @@ export async function GET(req) {
         const teacherId = url.searchParams.get("teacherId");
         const monthParam = parseInt(url.searchParams.get("month"));
         const yearParam = parseInt(url.searchParams.get("year"));
+        const specificDate = url.searchParams.get("date"); // YYYY-MM-DD
 
         if (!teacherId) {
             return NextResponse.json({ message: "teacherId is required" }, { status: 400 });
@@ -36,7 +37,14 @@ export async function GET(req) {
         // 1. Determine Date Range
         let startDate = null;
         let endDate = null;
-        if (monthParam && yearParam) {
+        
+        if (specificDate) {
+            const parts = specificDate.split("-");
+            if (parts.length === 3) {
+                startDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+                endDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999));
+            }
+        } else if (monthParam && yearParam) {
             startDate = new Date(Date.UTC(yearParam, monthParam - 1, 1));
             endDate = new Date(Date.UTC(yearParam, monthParam, 0, 23, 59, 59, 999));
         } else if (yearParam) {
@@ -132,13 +140,13 @@ export async function GET(req) {
                         synthetic: false
                     });
                 } else if (isWorkingDay && dateDS <= todayDS && (!validFromDS || dateDS >= validFromDS) && (!validToDS || dateDS < validToDS)) {
-                    // This is an "Absent" record (scheduled but not marked)
+                    // This is an unmarked scheduled period
                     records.push({
                         date: new Date(curr),
                         classId: slot.classId,
                         subjectId: slot.subjectId,
                         periodNumber: slot.periodNumber,
-                        present: false,
+                        present: dateDS === todayDS ? null : false, // Blank if today, absent if in the past
                         synthetic: true
                     });
                 }
@@ -181,12 +189,21 @@ export async function GET(req) {
             if (lr.leaveReason) leaveMap[key] = lr.leaveReason;
         });
 
+        // Fetch Periods for timing information
+        const Period = (await import("@/models/Period")).default;
+        const periods = await Period.find({});
+        const periodTimeMap = {};
+        periods.forEach(p => {
+            periodTimeMap[p.periodNumber] = p.formattedTime;
+        });
+
         records.forEach(r => {
             const dateKey = getDS(r.date);
             const key = `${toStr(r.classId)}_${r.periodNumber}_${dateKey}`;
             if (!r.leaveReason && leaveMap[key]) {
                 r.leaveReason = leaveMap[key];
             }
+            r.periodTime = periodTimeMap[r.periodNumber] || null;
         });
 
         // Final sort

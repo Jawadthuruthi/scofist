@@ -12,6 +12,7 @@ export async function GET(req) {
         const studentId = url.searchParams.get("studentId");
         const month = parseInt(url.searchParams.get("month"));
         const year = parseInt(url.searchParams.get("year"));
+        const specificDate = url.searchParams.get("date"); // YYYY-MM-DD
 
         if (!studentId) {
             return NextResponse.json(
@@ -23,7 +24,16 @@ export async function GET(req) {
         // Build date range for filtering
         let startDate = null;
         let endDate = null;
-        if (month && year) {
+        
+        if (specificDate) {
+            const parts = specificDate.split("-");
+            if (parts.length === 3) {
+                startDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                endDate.setHours(23, 59, 59, 999);
+            }
+        } else if (month && year) {
             startDate = new Date(year, month - 1, 1);
             startDate.setHours(0, 0, 0, 0);
             endDate = new Date(year, month, 0);
@@ -57,9 +67,10 @@ export async function GET(req) {
         // Sort descending by date (most recent first)
         filteredRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        // ── Secondary: look up teacher names from Attendance (best-effort) ────
-        // Build a map keyed by "classId|subjectId|periodNumber|date(date-only)"
+        // ── Secondary: look up teacher names and true status from Attendance (best-effort) ────
+        // Build maps keyed by "classId|subjectId|periodNumber|date(date-only)"
         let teacherMap = {};
+        let trueStatusMap = {};
         if (filteredRecords.length > 0) {
             const dateFilter = startDate && endDate
                 ? { date: { $gte: startDate, $lte: endDate } }
@@ -76,6 +87,12 @@ export async function GET(req) {
                 const dateKey = new Date(att.date).toISOString().split("T")[0];
                 const key = `${att.classId}|${att.subjectId}|${att.periodNumber}|${dateKey}`;
                 teacherMap[key] = att.teacherId?.name || "—";
+                
+                // Get the true present status for this student from the master record
+                const studentData = att.attendanceData.find(d => d.studentId === studentId);
+                if (studentData) {
+                    trueStatusMap[key] = studentData.present;
+                }
             });
         }
 
@@ -127,22 +144,119 @@ export async function GET(req) {
             });
         }
 
+        // ── Fetch Periods for timing information ─────────────────────────────
+        const Period = (await import("@/models/Period")).default;
+        const periods = await Period.find({});
+        const periodTimeMap = {};
+        periods.forEach(p => {
+            periodTimeMap[p.periodNumber] = p.formattedTime;
+        });
+
         // Map to the dialog's expected shape
-        const records = filteredRecords.map((rec) => {
-            const classId = rec.classId?._id || rec.classId;
-            const subjectId = rec.subjectId?._id || rec.subjectId;
-            const dateKey = toDateKey(rec.date);
-            const key = `${classId}|${subjectId}|${rec.periodNumber}|${dateKey}`;
+        const records = filteredRecords.map((r) => {
+            const classIdStr = typeof r.classId === "object" ? r.classId._id?.toString() || "" : r.classId?.toString() || "";
+            const subjectIdStr = typeof r.subjectId === "object" ? r.subjectId._id?.toString() || "" : r.subjectId?.toString() || "";
+            const dateKey = toDateKey(r.date);
+            const key = `${classIdStr}|${subjectIdStr}|${r.periodNumber}|${dateKey}`;
+            
+            // Override with true status from master record if it exists
+            const trueStatus = trueStatusMap[key];
+            const finalPresentStatus = trueStatus !== undefined ? trueStatus : r.present;
 
             return {
-                date: rec.date,
-                subjectName: rec.subjectId?.name || "—",
+                date: r.date,
+                subjectName: r.subjectId?.name || "—",
                 teacherName: teacherMap[key] || "—",
-                className: rec.classId?.name || "—",
-                periodNumber: rec.periodNumber,
-                present: rec.present ?? null,
-                leaveReason: leaveReasonMap[dateKey] || null,
+                className: r.classId?.name || "—",
+                periodNumber: r.periodNumber,
+                periodTime: periodTimeMap[r.periodNumber] || null,
+                present: finalPresentStatus,
+                leaveReason: r.leaveReason || leaveReasonMap[dateKey] || null,
             };
+        });
+
+        // ── Include synthetic unmarked schedule records for a specific date ──
+        const includeScheduleForDate = url.searchParams.get("includeScheduleForDate");
+        if (includeScheduleForDate) {
+            const reqDate = new Date(includeScheduleForDate);
+            if (!isNaN(reqDate.getTime())) {
+                const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                const reqDayName = WEEKDAYS[reqDate.getUTCDay() || reqDate.getDay()];
+                const reqDateKey = toDateKey(reqDate);
+
+                const User = (await import("@/models/User")).default;
+                const TimeTable = (await import("@/models/TimeTable")).default;
+                const Class = (await import("@/models/Class")).default;
+                const Subject = (await import("@/models/Subject")).default;
+
+                const student = await User.findById(studentId).lean();
+                const studentClassId = student?.studentSpecificField?.classId || student?.classId;
+
+                if (studentClassId) {
+                    const timeTable = await TimeTable.findOne({ classId: studentClassId }).lean();
+                    if (timeTable && timeTable.timeSlots) {
+                        const classDoc = await Class.findById(studentClassId, "name").lean();
+                        const className = classDoc?.name || "—";
+                        
+                        // Get all periods scheduled for this day
+                        const reqDateObj = new Date(reqDateKey);
+                        const daySlots = timeTable.timeSlots.filter(s => {
+                            if (s.day !== reqDayName) return false;
+                            
+                            // Check validity period
+                            if (s.validFrom) {
+                                const validFrom = new Date(toDateKey(s.validFrom));
+                                if (reqDateObj < validFrom) return false;
+                            }
+                            if (s.validTo) {
+                                const validTo = new Date(toDateKey(s.validTo));
+                                if (reqDateObj >= validTo) return false;
+                            }
+                            
+                            return true;
+                        });
+                        
+                        // Check which periods are already in records for this date
+                        const markedPeriodsForDate = new Set(
+                            records.filter(r => toDateKey(r.date) === reqDateKey).map(r => r.periodNumber)
+                        );
+                        
+                        // Fetch subject and teacher names for synthetic records
+                        const missingSubIds = [...new Set(daySlots.map(s => String(s.subjectId)))];
+                        const missingTeacherIds = [...new Set(daySlots.map(s => String(s.teacherId)))];
+                        
+                        const subjects = await Subject.find({ _id: { $in: missingSubIds } }, "name").lean();
+                        const teachers = await User.find({ _id: { $in: missingTeacherIds } }, "name").lean();
+                        
+                        const subjectMap = Object.fromEntries(subjects.map(s => [String(s._id), s.name]));
+                        const teacherMapSync = Object.fromEntries(teachers.map(t => [String(t._id), t.name]));
+
+                        // Add unmarked periods
+                        daySlots.forEach(slot => {
+                            if (!markedPeriodsForDate.has(slot.periodNumber)) {
+                                records.push({
+                                    date: new Date(includeScheduleForDate),
+                                    subjectName: subjectMap[String(slot.subjectId)] || "—",
+                                    teacherName: teacherMapSync[String(slot.teacherId)] || "—",
+                                    className: className,
+                                    periodNumber: slot.periodNumber,
+                                    periodTime: periodTimeMap[slot.periodNumber] || null,
+                                    present: null, // Blank status
+                                    synthetic: true,
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+        }
+        
+        // Final Sort by Date Desc, Period Asc
+        records.sort((a, b) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            if (dateA !== dateB) return dateB - dateA;
+            return (a.periodNumber || 0) - (b.periodNumber || 0);
         });
 
         return NextResponse.json({ records }, { status: 200 });

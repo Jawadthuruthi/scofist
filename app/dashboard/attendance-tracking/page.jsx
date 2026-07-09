@@ -12,7 +12,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "classes",
-    searchParams: "projection=_id,name,batchId,coreSubjects,majorSubjects",
+    searchParams: "projection=_id,name,batchId,coreSubjects,majorSubjects,status",
   },
   {
     pathname: "subjects",
@@ -20,11 +20,11 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "users",
-    searchParams: "projection=_id,name,studentSpecificField,profilePic,className&roles=Student",
+    searchParams: "projection=_id,name,studentSpecificField,profilePic,className&roles=Student&limit=3000",
   },
   {
     pathname: "users",
-    searchParams: "projection=_id,name,profilePic&roles=Teacher",
+    searchParams: "projection=_id,name,profilePic&roles=Teacher&limit=3000",
   },
 ];
 
@@ -44,6 +44,7 @@ const AttendanceTrackingPage = async () => {
     const formattedClasses = classes.map((c) => ({
       ...c,
       name: c.batchName ? `${c.name} (${c.batchName})` : c.name,
+      originalName: c.name,
     }));
 
     // Map subjects to their classes (both core and major)

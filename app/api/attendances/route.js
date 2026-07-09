@@ -441,18 +441,26 @@ export async function PUT(req, res) {
 
         if (existingRecord) {
           // UPDATE existing record
-          await StudentAttendance.updateOne(
+          const updateRes = await StudentAttendance.updateOne(
             {
               studentId: student.studentId,
-              "attendanceRecords.date": updatedAttendance.date,
-              "attendanceRecords.classId": updatedAttendance.classId,
-              "attendanceRecords.subjectId": updatedAttendance.subjectId,
-              "attendanceRecords.periodNumber": updatedAttendance.periodNumber,
+              attendanceRecords: {
+                $elemMatch: {
+                  date: {
+                    $gte: new Date(new Date(updatedAttendance.date).setHours(0, 0, 0, 0)),
+                    $lt: new Date(new Date(updatedAttendance.date).setHours(23, 59, 59, 999)),
+                  },
+                  classId: updatedAttendance.classId,
+                  subjectId: updatedAttendance.subjectId,
+                  periodNumber: updatedAttendance.periodNumber,
+                }
+              }
             },
             {
               $set: { "attendanceRecords.$.present": student.present },
             }
           );
+          console.log(`[ATTENDANCE PUT] studentId=${student.studentId} updateRes:`, updateRes);
         } else {
           // PUSH new record if missing (e.g. student added after initial attendance was saved)
           await StudentAttendance.updateOne(

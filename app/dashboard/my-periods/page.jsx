@@ -3,14 +3,21 @@ import MyPeriods from "@/components/MyPeriods";
 import { parseUser } from "@/lib/utils";
 import { headers } from "next/headers";
 
+import connectToDB from "@/lib/db";
+import User from "@/models/User";
+
 const MyPeriodsPage = async () => {
   try {
     const apiKey = process.env.API_KEY;
 
     const headerStore = await headers();
-    const user = parseUser(headerStore);
+    const userPayload = parseUser(headerStore);
 
-    return <MyPeriods apiKey={apiKey} teacherId={user?._id} />;
+    await connectToDB();
+    const user = await User.findById(userPayload?._id).lean();
+    const isPrincipal = user?.teacherSpecificField?.status === "Principal";
+
+    return <MyPeriods apiKey={apiKey} teacherId={userPayload?._id} isPrincipal={isPrincipal} />;
   } catch (error) {
     console.error("Error :", error);
     return (

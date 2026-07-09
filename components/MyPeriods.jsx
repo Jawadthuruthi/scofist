@@ -19,6 +19,7 @@ import useCrud from "@/hooks/use-crud";
 import { fetchItems } from "@/lib/api";
 import Header from "./Header";
 import ClassPerformanceModal from "./ClassPerformanceModal";
+import TodayStatusModal from "./TodayStatusModal";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -55,7 +56,7 @@ const leaveReasons = [
   "Hospital",
 ];
 
-const MyPeriods = ({ apiKey, teacherId }) => {
+const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -98,6 +99,14 @@ const MyPeriods = ({ apiKey, teacherId }) => {
   const { useFetchItems } = useCrud("timeTables", apiKey);
   const { useFetchItems: useFetchPeriods } = useCrud("periods", apiKey);
   const { useFetchItems: useFetchAttendance } = useCrud("attendances", apiKey);
+  const { useFetchItems: useFetchUsers } = useCrud("users", apiKey);
+
+  const usersQuery = useFetchUsers(0, 0, { role: "Teacher" }, { 
+    staleTime: 1000 * 60 * 60,
+    enabled: isPrincipal 
+  });
+  const teachers = useMemo(() => usersQuery.data?.users || [], [usersQuery.data]);
+
   const { useFetchItems: useFetchSettings } = useCrud("settings", apiKey);
   const {
     useFetchItems: useFetchTeachersLeaveRecord,
@@ -410,6 +419,20 @@ const MyPeriods = ({ apiKey, teacherId }) => {
           <Header
             title="MY PERIODS"
             subTitle="View Schedule & Take Attendance"
+            rightAction={
+              isPrincipal && (
+                <TodayStatusModal 
+                  type="teacher" 
+                  students={teachers} 
+                  customTrigger={
+                    <Button variant="outline" className="flex items-center gap-2 font-medium">
+                      <CalendarDays className="h-4 w-4" />
+                      Teacher Status
+                    </Button>
+                  }
+                />
+              )
+            }
           />
         </div>
         <div>

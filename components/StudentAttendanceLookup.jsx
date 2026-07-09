@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Search, ScanBarcode, X, Loader2, ChevronDown, Trophy } from "lucide-react";
+import TodayStatusModal from "./TodayStatusModal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -322,6 +323,7 @@ export default function StudentAttendanceLookup({ students = [], type = "student
                             <ScanBarcode className={`h-4 w-4 transition-colors ${scanning ? "animate-pulse" : ""}`} />
                         )}
                     </Button>
+                    <TodayStatusModal type={type} students={students} classes={classes} />
 
                     {/* Toppers Filter Toggle - Desktop only in this component as Row 2 handles it for mobile */}
                     {!isMobile && type === "student" && (
