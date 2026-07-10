@@ -178,6 +178,7 @@ export async function POST(req, res) {
           [],
       },
       years: data.years ?? existingSettings?.years ?? ["2025 november"],
+      blockedYears: data.blockedYears ?? existingSettings?.blockedYears ?? [],
       activeYear:
         data.activeYear ?? existingSettings?.activeYear ?? "2025 november",
     };
@@ -665,6 +666,9 @@ export async function PUT(req) {
 
     if (data.years) {
       updateData.years = data.years;
+    }
+    if (data.blockedYears !== undefined) {
+      updateData.blockedYears = data.blockedYears;
     }
     if (data.activeYear) {
       updateData.activeYear = data.activeYear;

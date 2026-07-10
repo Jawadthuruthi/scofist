@@ -430,6 +430,10 @@ const SettingsSchema = new Schema(
       type: [String],
       default: ["2025 november"],
     },
+    blockedYears: {
+      type: [String],
+      default: [],
+    },
     activeYear: {
       type: String,
       default: "2025 november",

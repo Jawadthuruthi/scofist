@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, Edit2, Trash2, Settings2 } from "lucide-react";
+import { Plus, Calendar, Edit2, Trash2, Settings2, Lock, Unlock } from "lucide-react";
 import Cookies from "js-cookie";
 import axios from "axios";
 import { toast } from "sonner";
@@ -18,9 +18,11 @@ import {
 
 const YearSwitcher = () => {
   const [years, setYears] = useState([]);
+  const [blockedYears, setBlockedYears] = useState([]);
   const [activeYear, setActiveYear] = useState("");
   const [newYear, setNewYear] = useState("");
   const [loading, setLoading] = useState(true);
+  const currentRole = Cookies.get("active-role");
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [editingYear, setEditingYear] = useState(null);
   const [editValue, setEditValue] = useState("");
@@ -33,13 +35,28 @@ const YearSwitcher = () => {
     try {
       const response = await axios.get("/api/settings");
       const settings = response.data.settings;
-      setYears(settings.years || ["2025 november"]);
+      const fetchedYears = settings.years || ["2025 november"];
+      const fetchedBlockedYears = settings.blockedYears || [];
+      setYears(fetchedYears);
+      setBlockedYears(fetchedBlockedYears);
 
-      const currentYear =
-        Cookies.get("active-year") || settings.activeYear || "2025 november";
+      const recentYear = fetchedYears.length > 0 ? fetchedYears[fetchedYears.length - 1] : "2025 november";
+      let currentYear = Cookies.get("active-year");
+
+      if (currentRole === "Program Committee" || currentRole === "Program Leader") {
+        if (!currentYear) currentYear = recentYear;
+      } else {
+        if (!currentYear) currentYear = settings.activeYear || "2025 november";
+      }
+
+      if ((currentRole === "Program Leader" || currentRole === "Program Committee") && fetchedBlockedYears.includes(currentYear)) {
+        const unblockedYears = fetchedYears.filter(y => !fetchedBlockedYears.includes(y));
+        currentYear = unblockedYears.length > 0 ? unblockedYears[unblockedYears.length - 1] : currentYear;
+      }
+
       setActiveYear(currentYear);
 
-      if (!Cookies.get("active-year")) {
+      if (!Cookies.get("active-year") || Cookies.get("active-year") !== currentYear) {
         Cookies.set("active-year", currentYear, { expires: 365, path: "/" });
       }
     } catch (error) {
@@ -53,6 +70,21 @@ const YearSwitcher = () => {
     setActiveYear(value);
     Cookies.set("active-year", value, { expires: 365, path: "/" });
     window.location.reload();
+  };
+
+  const handleToggleBlockYear = async (year) => {
+    try {
+      const isBlocked = blockedYears.includes(year);
+      const updatedBlockedYears = isBlocked
+        ? blockedYears.filter((y) => y !== year)
+        : [...blockedYears, year];
+        
+      await axios.put("/api/settings", { blockedYears: updatedBlockedYears });
+      setBlockedYears(updatedBlockedYears);
+      toast.success(isBlocked ? "Year unblocked" : "Year blocked");
+    } catch (error) {
+      toast.error("Failed to update block status");
+    }
   };
 
   const handleAddYear = async () => {
@@ -155,84 +187,100 @@ const YearSwitcher = () => {
           <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
             Festival Session
           </label>
-          <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5 text-muted-foreground hover:text-primary"
-              >
-                <Settings2 className="h-3 w-3" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Manage Festival Sessions</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                {years.map((year) => (
-                  <div
-                    key={year}
-                    className="flex items-center justify-between gap-4 p-2 rounded-lg border bg-muted/30"
-                  >
-                    {editingYear === year ? (
-                      <div className="flex flex-1 gap-2">
-                        <Input
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          className="h-8 text-sm"
-                          autoFocus
-                          onKeyDown={(e) =>
-                            e.key === "Enter" && handleRenameYear(year)
-                          }
-                        />
-                        <Button
-                          size="sm"
-                          className="h-8"
-                          onClick={() => handleRenameYear(year)}
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8"
-                          onClick={() => setEditingYear(null)}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <span className="font-medium text-sm">{year}</span>
-                        <div className="flex items-center gap-1">
+          {currentRole !== "Program Leader" && (
+            <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 text-muted-foreground hover:text-primary"
+                >
+                  <Settings2 className="h-3 w-3" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Manage Festival Sessions</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  {years.map((year) => (
+                    <div
+                      key={year}
+                      className="flex items-center justify-between gap-4 p-2 rounded-lg border bg-muted/30"
+                    >
+                      {editingYear === year ? (
+                        <div className="flex flex-1 gap-2">
+                          <Input
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="h-8 text-sm"
+                            autoFocus
+                            onKeyDown={(e) =>
+                              e.key === "Enter" && handleRenameYear(year)
+                            }
+                          />
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              setEditingYear(year);
-                              setEditValue(year);
-                            }}
+                            size="sm"
+                            className="h-8"
+                            onClick={() => handleRenameYear(year)}
                           >
-                            <Edit2 className="h-4 w-4 text-blue-500" />
+                            Save
                           </Button>
                           <Button
+                            size="sm"
                             variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleDeleteYear(year)}
+                            className="h-8"
+                            onClick={() => setEditingYear(null)}
                           >
-                            <Trash2 className="h-4 w-4 text-red-500" />
+                            Cancel
                           </Button>
                         </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </DialogContent>
-          </Dialog>
+                      ) : (
+                        <>
+                          <span className="font-medium text-sm">{year} {blockedYears.includes(year) && <span className="text-xs text-red-500 ml-2">(Blocked)</span>}</span>
+                          <div className="flex items-center gap-1">
+                            {currentRole === "Program Committee" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleToggleBlockYear(year)}
+                              >
+                                {blockedYears.includes(year) ? (
+                                  <Unlock className="h-4 w-4 text-orange-500" />
+                                ) : (
+                                  <Lock className="h-4 w-4 text-orange-500" />
+                                )}
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setEditingYear(year);
+                                setEditValue(year);
+                              }}
+                            >
+                              <Edit2 className="h-4 w-4 text-blue-500" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleDeleteYear(year)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
         <Select value={activeYear} onValueChange={handleYearChange}>
           <SelectTrigger className="w-full bg-background border-muted-foreground/20 hover:border-primary/50 transition-colors">
@@ -242,9 +290,9 @@ const YearSwitcher = () => {
             </div>
           </SelectTrigger>
           <SelectContent className="z-[10000]">
-            {years.map((year) => (
+            {((currentRole === "Program Leader" || currentRole === "Program Committee") ? years.filter(y => !blockedYears.includes(y)) : years).map((year) => (
               <SelectItem key={year} value={year} className="cursor-pointer">
-                {year}
+                {year} {blockedYears.includes(year) && currentRole !== "Program Leader" && currentRole !== "Program Committee" && "(Blocked)"}
               </SelectItem>
             ))}
           </SelectContent>

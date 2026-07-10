@@ -31,6 +31,9 @@ export async function PUT(req) {
     }
 
     settings.years = settings.years.map(y => y === oldName ? newName : y);
+    if (settings.blockedYears && settings.blockedYears.includes(oldName)) {
+      settings.blockedYears = settings.blockedYears.map(y => y === oldName ? newName : y);
+    }
     if (settings.activeYear === oldName) {
       settings.activeYear = newName;
     }
