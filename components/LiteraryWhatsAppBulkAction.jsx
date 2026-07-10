@@ -9,7 +9,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 
-export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAbsentees, groups = [], date, dateForDisplay }) {
+export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAbsentees, groups = [], classes = [], date, dateForDisplay }) {
   const [open, setOpen] = useState(false);
 
   const { data: teachers = [], isLoading: loading } = useQuery({
@@ -96,9 +96,26 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
       }
     });
 
+    const classOrderMap = new Map();
+    classes.forEach((c, index) => {
+      classOrderMap.set(c.name, index);
+    });
+
+    const groupOrderMap = new Map();
+    groups.forEach((g, index) => {
+      groupOrderMap.set(g.name, index);
+    });
+
     if (Object.keys(groupedGeneral).length > 0) {
       message += `*--- General ---*\n\n`;
-      for (const [className, students] of Object.entries(groupedGeneral)) {
+      
+      const sortedClasses = Object.entries(groupedGeneral).sort(([classNameA], [classNameB]) => {
+        const indexA = classOrderMap.has(classNameA) ? classOrderMap.get(classNameA) : 99999;
+        const indexB = classOrderMap.has(classNameB) ? classOrderMap.get(classNameB) : 99999;
+        return indexA - indexB;
+      });
+
+      for (const [className, students] of sortedClasses) {
         message += `*Class: ${className}*\n`;
         // Deduplicate students by ID just in case
         const uniqueStudents = Array.from(new Map(students.map(s => [s.studentId, s])).values());
@@ -111,7 +128,14 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
 
     if (Object.keys(groupedGroups).length > 0) {
       message += `*--- Group ---*\n\n`;
-      for (const [groupName, students] of Object.entries(groupedGroups)) {
+      
+      const sortedGroups = Object.entries(groupedGroups).sort(([groupNameA], [groupNameB]) => {
+        const indexA = groupOrderMap.has(groupNameA) ? groupOrderMap.get(groupNameA) : 99999;
+        const indexB = groupOrderMap.has(groupNameB) ? groupOrderMap.get(groupNameB) : 99999;
+        return indexA - indexB;
+      });
+
+      for (const [groupName, students] of sortedGroups) {
         message += `*Team: ${groupName}*\n`;
         const uniqueStudents = Array.from(new Map(students.map(s => [s.studentId, s])).values());
         uniqueStudents.forEach((s, idx) => {

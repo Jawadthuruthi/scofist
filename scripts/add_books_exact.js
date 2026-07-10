@@ -196,6 +196,7 @@ async function importBooks() {
 
             if (operations.length > 0) {
                 const result = await LibraryBook.bulkWrite(operations);
+                console.log(`BulkWrite Result - Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}, Matched: ${result.matchedCount}`);
                 const count = result.upsertedCount + result.modifiedCount + (result.matchedCount || 0);
                 // matchedCount includes modifiedCount, but logic varies. 
                 // Safest to rely on `result.matchedCount` if we want total touched records.

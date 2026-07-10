@@ -432,7 +432,7 @@ const LiteraryAttendance = ({
                   <TableHead className="px-4">Class</TableHead>
                   <TableHead className="text-center w-24 px-4">Absent</TableHead>
                   <TableHead className="w-16 text-center px-4">
-                    <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === apiCategory)} groups={groups} date={formattedDate} dateForDisplay={date} />
+                    <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === apiCategory)} groups={groups} classes={classes} date={formattedDate} dateForDisplay={date} />
                   </TableHead>
                   <TableHead className="w-16 px-4"></TableHead>
                   <TableHead className="w-full"></TableHead>
@@ -519,7 +519,7 @@ const LiteraryAttendance = ({
                   <TableHead>Group</TableHead>
                   <TableHead className="text-center w-24">Absent</TableHead>
                   <TableHead className="w-12 text-center px-1">
-                    <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === "GROUP")} groups={groups} date={formattedDate} dateForDisplay={date} />
+                    <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === "GROUP")} groups={groups} classes={classes} date={formattedDate} dateForDisplay={date} />
                   </TableHead>
                   <TableHead className="w-12"></TableHead>
                   <TableHead className="w-full"></TableHead>

@@ -1156,7 +1156,7 @@ const TimeTablesManagements = ({
           </div>
         )}
         {category === "date" && (
-          <div className="w-full md:w-1/4 flex items-center gap-2">
+          <div className="w-full md:w-auto flex items-center gap-2">
             <Button
               variant="outline"
               size="icon"
@@ -1169,12 +1169,18 @@ const TimeTablesManagements = ({
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Input
-              name="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
+            <div className="flex flex-1 md:flex-none items-center gap-2 px-3 border rounded-md bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+              <input
+                name="date"
+                type="date"
+                value={date}
+                className="w-full bg-transparent outline-none border-none py-2 text-sm text-foreground focus:ring-0"
+                onChange={(e) => setDate(e.target.value)}
+              />
+              <span className="whitespace-nowrap font-medium text-sm text-muted-foreground">
+                - {day}
+              </span>
+            </div>
             <Button
               variant="outline"
               size="icon"

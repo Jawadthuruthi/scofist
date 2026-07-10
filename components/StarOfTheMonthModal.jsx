@@ -1,17 +1,19 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Star, Trophy, Loader2, Download, Share2, ImagePlus, Printer } from "lucide-react";
+import { Star, Trophy, Loader2, Download, Share2, ImagePlus, Printer, Image as ImageIcon } from "lucide-react";
 import html2canvas from "html2canvas";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import axios from "axios";
+import { useReactToPrint } from "react-to-print";
+import PrintHeader from "@/components/PrintHeader";
 
 export default function StarOfTheMonthModal({ classes = [] }) {
   const [open, setOpen] = useState(false);
-  const [selectedClass, setSelectedClass] = useState("all");
+  const [selectedClass, setSelectedClass] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   
@@ -93,6 +95,37 @@ export default function StarOfTheMonthModal({ classes = [] }) {
       toast.error("Failed to share poster");
       setExporting(false);
     }
+  };
+
+  const printTableRef = useRef(null);
+  const printStarsTableRef = useRef(null);
+  
+  const handlePrintAction = useReactToPrint({
+    content: () => printTableRef.current,
+    contentRef: printTableRef,
+    documentTitle: 'Star of the Month - Students List',
+  });
+
+  const handlePrintStarsAction = useReactToPrint({
+    content: () => printStarsTableRef.current,
+    contentRef: printStarsTableRef,
+    documentTitle: 'Star of the Month - Top Stars',
+  });
+
+  const handlePrintTable = () => {
+    if (!allStudents || allStudents.length === 0) {
+      toast.error("No students to print");
+      return;
+    }
+    handlePrintAction();
+  };
+
+  const handlePrintStars = () => {
+    if (!starData || starData.length === 0) {
+      toast.error("No stars to print");
+      return;
+    }
+    handlePrintStarsAction();
   };
 
   const handlePrintAll = async () => {
@@ -181,6 +214,13 @@ export default function StarOfTheMonthModal({ classes = [] }) {
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
+  const formatPoints = (pts) => {
+    const value = Number(pts) || 0;
+    if (value > 0) return <span className="font-semibold text-green-600">+{value} pts</span>;
+    if (value < 0) return <span className="font-semibold text-red-500">{value} pts</span>;
+    return <span className="font-semibold text-gray-700">{value} pts</span>;
+  };
+
   const handleGenerate = async () => {
     setLoading(true);
     setStarData(null);
@@ -189,7 +229,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
     try {
       const response = await axios.get(`/api/performance/star`, {
         params: {
-          classId: selectedClass,
+          classId: 'all',
           month: selectedMonth,
           year: selectedYear,
           _t: Date.now()
@@ -197,7 +237,20 @@ export default function StarOfTheMonthModal({ classes = [] }) {
       });
 
       if (response.data.success) {
-        setStarData(response.data.data);
+        let sortedData = response.data.data || [];
+        if (classes && classes.length > 0) {
+          const classOrderMap = new Map();
+          classes.forEach((c, idx) => {
+            classOrderMap.set((c.label || c.name), idx);
+          });
+          
+          sortedData.sort((a, b) => {
+            const indexA = classOrderMap.has(a.className) ? classOrderMap.get(a.className) : 9999;
+            const indexB = classOrderMap.has(b.className) ? classOrderMap.get(b.className) : 9999;
+            return indexA - indexB;
+          });
+        }
+        setStarData(sortedData);
         setAllStudents(response.data.allStudents || []);
       } else {
         toast.error(response.data.message || "Failed to calculate Star of the Month");
@@ -210,6 +263,22 @@ export default function StarOfTheMonthModal({ classes = [] }) {
     }
   };
 
+  useEffect(() => {
+    if (open) {
+      handleGenerate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonth, selectedYear, open]);
+
+  const filteredStudents = useMemo(() => {
+    if (!allStudents) return [];
+    if (selectedClass === 'all' || !selectedClass) return allStudents;
+    return allStudents.filter(s => s.classId === selectedClass);
+  }, [allStudents, selectedClass]);
+
+  const currentMonthLabel = months.find(m => m.value === selectedMonth)?.label || '';
+  const currentClassLabel = selectedClass === 'all' ? 'All Classes' : (classes.find(c => (c.value || c._id) === selectedClass)?.label || classes.find(c => (c.value || c._id) === selectedClass)?.name || '');
+
   return (
     <>
       <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setStarData(null); setAllStudents([]); setSelectedStudentForDetails(null); } }}>
@@ -219,17 +288,17 @@ export default function StarOfTheMonthModal({ classes = [] }) {
           </Button>
         </DialogTrigger>
       
-      <DialogContent className="sm:max-w-md md:max-w-2xl bg-white max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl text-indigo-700">
-            <Star className="h-5 w-5 fill-yellow-400 text-yellow-500" />
+      <DialogContent className="w-[95vw] sm:w-full sm:max-w-md md:max-w-2xl bg-white max-h-[90vh] overflow-y-auto overflow-x-hidden p-3 md:p-6">
+        <DialogHeader className="pb-0 mb-0">
+          <DialogTitle className="flex items-center gap-2 text-lg md:text-xl text-indigo-700">
+            <Star className="h-4 w-4 md:h-5 md:w-5 fill-yellow-400 text-yellow-500" />
             Star of the Month
           </DialogTitle>
         </DialogHeader>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4">
-          <div className="space-y-2 col-span-1">
-            <label className="text-sm font-medium">Year</label>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 pb-0 pt-1">
+          <div className="space-y-1 md:space-y-2 col-span-1">
+            <label className="text-xs md:text-sm font-medium">Year</label>
             <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
               <SelectTrigger>
                 <SelectValue placeholder="Select Year" />
@@ -242,8 +311,8 @@ export default function StarOfTheMonthModal({ classes = [] }) {
             </Select>
           </div>
           
-          <div className="space-y-2 col-span-1">
-            <label className="text-sm font-medium">Month</label>
+          <div className="space-y-1 md:space-y-2 col-span-1">
+            <label className="text-xs md:text-sm font-medium">Month</label>
             <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
               <SelectTrigger>
                 <SelectValue placeholder="Select Month" />
@@ -256,12 +325,12 @@ export default function StarOfTheMonthModal({ classes = [] }) {
             </Select>
           </div>
           
-          <div className="space-y-2 col-span-2 md:col-span-2">
-            <label className="text-sm font-medium">Class</label>
-            <div className="flex gap-2">
+          <div className="space-y-1 md:space-y-2 col-span-2 md:col-span-2">
+            <label className="text-xs md:text-sm font-medium">Class</label>
+            <div className="flex gap-1 md:gap-2">
               <Select value={selectedClass} onValueChange={setSelectedClass}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Classes" />
+                  <SelectValue placeholder="Select a class" />
                 </SelectTrigger>
                 <SelectContent className="max-h-56 overflow-y-auto">
                   <SelectItem value="all">All Classes</SelectItem>
@@ -270,76 +339,97 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={handleGenerate} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white shrink-0">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Load"}
+              {filteredStudents && filteredStudents.length > 0 && (
+                <Button 
+                  onClick={handlePrintTable}
+                  className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 shrink-0 px-3 md:px-4"
+                  title="Print Table"
+                >
+                  <Printer className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Print</span>
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1 md:gap-2 mb-4">
+          <label className="text-xs md:text-sm font-medium flex items-center gap-2">
+            <ImagePlus className="h-4 w-4 text-gray-500" />
+            Poster Background Image (Optional)
+          </label>
+          <div className="flex flex-row items-center gap-1 md:gap-2 w-full">
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleBgImageUpload}
+              className="text-xs md:text-sm file:mr-1 md:file:mr-4 file:py-1 md:file:py-2 file:px-2 md:file:px-4 file:rounded-md file:border-0 file:text-xs md:file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-gray-200 rounded-md p-1 flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+            />
+            <div className="flex flex-row gap-2 shrink-0">
+              <Button 
+                onClick={handlePrintAll}
+                disabled={exporting || !starData || starData.length === 0}
+                variant="outline"
+                className="bg-white border-indigo-600 text-indigo-700 hover:bg-indigo-50 h-9 w-9 p-0 md:h-10 md:w-auto md:px-4 md:py-2 flex items-center justify-center shrink-0"
+                title="Print Posters"
+              >
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin md:mr-2" /> : <ImageIcon className="h-4 w-4 md:mr-2" />}
+                <span className="hidden md:inline">Posters</span>
+              </Button>
+              <Button 
+                onClick={handlePrintStars}
+                disabled={exporting || !starData || starData.length === 0}
+                variant="outline"
+                className="bg-white border-indigo-600 text-indigo-700 hover:bg-indigo-50 h-9 w-9 p-0 md:h-10 md:w-auto md:px-4 md:py-2 flex items-center justify-center shrink-0"
+                title="Print Stars"
+              >
+                <Star className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Stars</span>
               </Button>
             </div>
           </div>
         </div>
 
-        {allStudents && allStudents.length > 0 && (
-          <div className="overflow-x-auto overflow-y-auto max-h-64 mt-2 mb-6 border rounded-lg">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-gray-100 text-gray-700 sticky top-0 z-10">
-                <tr>
-                  <th className="pl-4 pr-2 py-2 w-12 leading-tight">Sl<br/>No</th>
-                  <th className="px-2 py-2 w-16 leading-tight">Admn<br/>No</th>
-                  <th className="px-2 py-2">Name</th>
-                  <th className="px-4 py-2">Class</th>
-                  <th className="px-4 py-2 text-right">Total Points</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allStudents.sort((a,b) => String(a.admnNo).localeCompare(String(b.admnNo), undefined, { numeric: true })).map((s, idx) => (
-                  <tr key={s.id} className="border-b hover:bg-gray-50">
-                    <td className="pl-4 pr-2 py-2">{idx + 1}</td>
-                    <td className="px-2 py-2 text-xs">{s.admnNo}</td>
-                    <td className="px-2 py-2 font-medium">{s.name}</td>
-                    <td className="px-4 py-2">{s.className}</td>
-                    <td className="px-4 py-2 text-right">
-                      <button 
-                         onClick={() => setSelectedStudentForDetails(s)}
-                         className="text-indigo-600 hover:text-indigo-800 hover:underline font-bold bg-indigo-50 px-2 py-1 rounded"
-                      >
-                        {s.totalScore}
-                      </button>
-                    </td>
+        {filteredStudents && filteredStudents.length > 0 && (
+          <div ref={printTableRef} className="w-full print:bg-white print:text-black print:p-8">
+            <PrintHeader 
+              title={`Points of the Month - ${currentClassLabel} - ${currentMonthLabel} - ${selectedYear}`} 
+            />
+            
+            <div className="overflow-x-auto overflow-y-auto max-h-96 mt-0 mb-6 border rounded-lg print:border-none print:overflow-visible print:max-h-none">
+              <table className="w-full text-sm text-left border-collapse print:border print:border-gray-300">
+                <thead className="bg-gray-100 text-gray-700 sticky top-0 z-10 print:static">
+                  <tr>
+                    <th className="pl-4 pr-2 py-2 w-12 leading-tight print:border print:border-gray-300">Sl<br/>No</th>
+                    <th className="px-2 py-2 print:border print:border-gray-300">Name</th>
+                    <th className="px-4 py-2 print:hidden">Class</th>
+                    <th className="px-4 py-2 text-center print:border print:border-gray-300">Total Points</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {[...filteredStudents].sort((a,b) => b.totalScore - a.totalScore).map((s, idx) => (
+                    <tr key={s.id} className="border-b hover:bg-gray-50 print:border print:border-gray-300">
+                      <td className="pl-4 pr-2 py-2 print:border print:border-gray-300">{idx + 1}</td>
+                      <td className="px-2 py-2 font-medium print:border print:border-gray-300">{s.name} <span className="text-gray-500 text-xs">({s.admnNo})</span></td>
+                      <td className="px-4 py-2 print:hidden">{s.className}</td>
+                      <td className="px-4 py-2 text-center print:border print:border-gray-300">
+                        <button 
+                           onClick={() => setSelectedStudentForDetails(s)}
+                           className={`${s.totalScore > 0 ? 'text-green-600 hover:text-green-800 bg-green-50' : s.totalScore < 0 ? 'text-red-600 hover:text-red-800 bg-red-50' : 'text-gray-600 hover:text-gray-800 bg-gray-50'} hover:underline font-bold px-2 py-1 rounded print:p-0 print:bg-transparent`}
+                        >
+                          {s.totalScore > 0 ? '+' : ''}{s.totalScore}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        <div className="flex flex-col gap-2 mb-4">
-          <div className="flex justify-between items-center">
-            <label className="text-sm font-medium flex items-center gap-2">
-              <ImagePlus className="h-4 w-4 text-gray-500" />
-              Poster Background Image (Optional)
-            </label>
-            {starData && Array.isArray(starData) && starData.length > 0 && (
-              <Button 
-                onClick={handlePrintAll}
-                disabled={exporting}
-                variant="outline"
-                size="sm"
-                className="bg-white border-indigo-600 text-indigo-700 hover:bg-indigo-50"
-              >
-                {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Printer className="h-4 w-4 mr-2" />}
-                Print All Posters
-              </Button>
-            )}
-          </div>
-          <input 
-            type="file" 
-            accept="image/*" 
-            onChange={handleBgImageUpload}
-            className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-gray-200 rounded-md p-1"
-          />
-        </div>
-
         {starData && Array.isArray(starData) && (
-          <div className="mt-6 flex flex-col gap-10">
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             {starData.map((data, index) => (
               <div key={index} className="flex flex-col gap-4">
                 <div ref={el => posterRefs.current[index] = el} className="p-6 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white shadow-lg flex flex-col items-center justify-center relative overflow-hidden">
@@ -382,8 +472,8 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                             <Trophy className="h-16 w-16 text-yellow-500" />
                           )}
                         </div>
-                        <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white w-10 h-10 rounded-full flex items-center justify-center border-2 border-white shadow-lg font-bold">
-                          #1
+                        <div className="absolute -top-2 -left-2 bg-yellow-500 text-white w-10 h-10 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+                          <Star className="h-5 w-5 fill-white text-white" />
                         </div>
                       </div>
 
@@ -395,44 +485,46 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                       <div className="w-full bg-white/90 backdrop-blur-md rounded-xl p-5 shadow-sm border border-indigo-50 z-10" data-html2canvas-ignore="true">
                         <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                           <span className="font-semibold text-gray-700 tracking-wide uppercase text-xs">Total Score</span>
-                          <span className="text-3xl font-black text-indigo-600 drop-shadow-sm">{data.totalScore} pts</span>
+                          <span className={`text-xl md:text-2xl font-black drop-shadow-sm ${data.totalScore > 0 ? 'text-green-600' : data.totalScore < 0 ? 'text-red-500' : 'text-gray-700'}`}>
+                            {data.totalScore > 0 ? '+' : ''}{data.totalScore} pts
+                          </span>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                        <div className="grid grid-cols-1 gap-y-2 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-gray-500">Class Att.</span>
-                            <span className="font-semibold">{data.breakdown.regularAttendance} pts</span>
+                            <span className="text-gray-500">Class Attendance</span>
+                            {formatPoints(data.breakdown.regularAttendance)}
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-500">Masjid Att.</span>
-                            <span className="font-semibold">{data.breakdown.masjidAttendance} pts</span>
+                            <span className="text-gray-500">Masjid Attendance</span>
+                            {formatPoints(data.breakdown.masjidAttendance)}
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-500">Literary Att.</span>
-                            <span className="font-semibold">{data.breakdown.literaryAttendance} pts</span>
+                            <span className="text-gray-500">Literary Attendance</span>
+                            {formatPoints(data.breakdown.literaryAttendance)}
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Remarks</span>
-                            <span className="font-semibold">{data.breakdown.remarks} pts</span>
+                            {formatPoints(data.breakdown.remarks)}
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Performance</span>
-                            <span className="font-semibold">{data.breakdown.performance} pts</span>
+                            {formatPoints(data.breakdown.performance)}
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Leaves</span>
-                            <span className="font-semibold">{data.breakdown.leaves} pts</span>
+                            {formatPoints(data.breakdown.leaves)}
                           </div>
                         </div>
                       </div>
                       
-                      <div className="mt-auto pt-6 pb-2 w-full flex flex-col items-center justify-center z-10">
-                        <div className="px-6 py-2 bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400 rounded-full shadow-lg border-2 border-white transform hover:scale-105 transition-transform">
-                          <span className="text-xl sm:text-2xl font-black tracking-widest uppercase text-indigo-900 drop-shadow-sm">
+                      <div className="mt-auto pt-6 pb-2 w-full flex flex-col items-center justify-center z-10 text-center">
+                        <div className="px-3 md:px-5 py-1.5 md:py-2 bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400 rounded-full shadow-lg border-2 border-white transform hover:scale-105 transition-transform">
+                          <span className="text-base md:text-lg font-black tracking-wider uppercase text-indigo-900 drop-shadow-sm block">
                             Congratulations!
                           </span>
                         </div>
-                        <span className="mt-2 text-xs font-bold text-indigo-400 tracking-[0.2em] uppercase">Keep up the great work</span>
+                        <span className="mt-2 text-[10px] md:text-xs font-bold text-indigo-400 tracking-wider md:tracking-widest uppercase text-center px-2">Keep up the great work</span>
                       </div>
                     </>
                   ) : (
@@ -446,22 +538,22 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                 </div>
                 
                 {data.student && (
-                  <div className="flex justify-center gap-4 mt-2">
+                  <div className="flex flex-row flex-wrap justify-center gap-2 mt-2 w-full">
                     <Button 
                       onClick={() => handleDownload(index, data)} 
                       disabled={exporting}
-                      className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                      className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 flex-1 min-w-[120px] text-xs px-2 md:text-sm md:px-4"
                     >
-                      {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
-                      Download JPEG
+                      {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-1 md:mr-2" /> : <Download className="h-4 w-4 mr-1 md:mr-2" />}
+                      Download
                     </Button>
                     <Button 
                       onClick={() => handleShare(index, data)} 
                       disabled={exporting}
-                      className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                      className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 flex-1 min-w-[120px] text-xs px-2 md:text-sm md:px-4"
                     >
-                      {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Share2 className="h-4 w-4 mr-2" />}
-                      Share Poster
+                      {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-1 md:mr-2" /> : <Share2 className="h-4 w-4 mr-1 md:mr-2" />}
+                      Share
                     </Button>
                   </div>
                 )}
@@ -469,6 +561,37 @@ export default function StarOfTheMonthModal({ classes = [] }) {
             ))}
           </div>
         )}
+        
+        {/* Hidden Printable Table for Top Stars */}
+        <div className="hidden print:block">
+          <div ref={printStarsTableRef} className="w-full print:bg-white print:text-black print:p-8">
+            <PrintHeader title={`Stars of the Month - ${currentMonthLabel} - ${selectedYear}`} />
+            <table className="w-full text-sm text-left mt-6 border-collapse print:border print:border-gray-300">
+              <thead className="bg-gray-100 text-gray-700">
+                <tr>
+                  <th className="print:border print:border-gray-300 px-4 py-2 w-12 text-center">Sl No</th>
+                  <th className="print:border print:border-gray-300 px-4 py-2">Class</th>
+                  <th className="print:border print:border-gray-300 px-4 py-2">Name</th>
+                  <th className="print:border print:border-gray-300 px-4 py-2 text-center">Points</th>
+                </tr>
+              </thead>
+              <tbody>
+                {starData && starData.map((data, idx) => (
+                  <tr key={idx} className="border-b hover:bg-gray-50 print:border print:border-gray-300">
+                    <td className="print:border print:border-gray-300 px-4 py-2 text-center">{idx + 1}</td>
+                    <td className="print:border print:border-gray-300 px-4 py-2">{data.className}</td>
+                    <td className="print:border print:border-gray-300 px-4 py-2 font-medium">{data.student?.name} <span className="text-gray-500 text-xs">({data.student?.admnNo})</span></td>
+                    <td className="print:border print:border-gray-300 px-4 py-2 text-center font-bold">
+                      <span className={data.totalScore > 0 ? 'text-green-600' : data.totalScore < 0 ? 'text-red-600' : 'text-gray-600'}>
+                        {data.totalScore > 0 ? '+' : ''}{data.totalScore}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </DialogContent>
       </Dialog>
 
@@ -482,7 +605,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                <div className="flex flex-col border-b pb-2">
                  <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'classAtt' ? null : 'classAtt')}>
                    <span className="text-gray-600">Class Attendance</span>
-                   <span className="font-semibold text-indigo-600">{selectedStudentForDetails.scores.regularAttendance} pts</span>
+                   {formatPoints(selectedStudentForDetails.scores.regularAttendance)}
                  </div>
                  {expandedDetail === 'classAtt' && selectedStudentForDetails.details && (
                    <div className="text-sm bg-gray-50 p-2 rounded mt-1 text-gray-700">
@@ -493,7 +616,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                <div className="flex flex-col border-b pb-2">
                  <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'masjidAtt' ? null : 'masjidAtt')}>
                    <span className="text-gray-600">Masjid Attendance</span>
-                   <span className="font-semibold text-indigo-600">{selectedStudentForDetails.scores.masjidAttendance} pts</span>
+                   {formatPoints(selectedStudentForDetails.scores.masjidAttendance)}
                  </div>
                  {expandedDetail === 'masjidAtt' && selectedStudentForDetails.details && (
                    <div className="text-sm bg-gray-50 p-2 rounded mt-1 text-gray-700">
@@ -504,7 +627,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                <div className="flex flex-col border-b pb-2">
                  <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'literaryAtt' ? null : 'literaryAtt')}>
                    <span className="text-gray-600">Literary Attendance</span>
-                   <span className="font-semibold text-indigo-600">{selectedStudentForDetails.scores.literaryAttendance} pts</span>
+                   {formatPoints(selectedStudentForDetails.scores.literaryAttendance)}
                  </div>
                  {expandedDetail === 'literaryAtt' && selectedStudentForDetails.details && (
                    <div className="text-sm bg-gray-50 p-2 rounded mt-1 text-gray-700">
@@ -515,7 +638,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                <div className="flex flex-col border-b pb-2">
                  <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'remarks' ? null : 'remarks')}>
                    <span className="text-gray-600">Remarks</span>
-                   <span className="font-semibold text-indigo-600">{selectedStudentForDetails.scores.remarks} pts</span>
+                   {formatPoints(selectedStudentForDetails.scores.remarks)}
                  </div>
                  {expandedDetail === 'remarks' && selectedStudentForDetails.details && (
                    <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-32 overflow-y-auto">
@@ -537,7 +660,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                <div className="flex flex-col border-b pb-2">
                  <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'performance' ? null : 'performance')}>
                    <span className="text-gray-600">Performance</span>
-                   <span className="font-semibold text-indigo-600">{selectedStudentForDetails.scores.performance} pts</span>
+                   {formatPoints(selectedStudentForDetails.scores.performance)}
                  </div>
                  {expandedDetail === 'performance' && selectedStudentForDetails.details && (
                    <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-32 overflow-y-auto">
@@ -559,7 +682,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                <div className="flex flex-col border-b pb-2">
                  <div className="flex justify-between cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setExpandedDetail(expandedDetail === 'leaves' ? null : 'leaves')}>
                    <span className="text-gray-600">Leaves</span>
-                   <span className="font-semibold text-indigo-600">{selectedStudentForDetails.scores.leaves} pts</span>
+                   {formatPoints(selectedStudentForDetails.scores.leaves)}
                  </div>
                  {expandedDetail === 'leaves' && selectedStudentForDetails.details && (
                    <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-32 overflow-y-auto">
@@ -581,7 +704,9 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                </div>
                <div className="flex justify-between pt-2 text-lg font-bold">
                  <span>Total Score</span>
-                 <span className="text-indigo-700">{selectedStudentForDetails.totalScore} pts</span>
+                  <span className={selectedStudentForDetails.totalScore > 0 ? 'text-green-600' : selectedStudentForDetails.totalScore < 0 ? 'text-red-500' : 'text-gray-700'}>
+                    {selectedStudentForDetails.totalScore > 0 ? '+' : ''}{selectedStudentForDetails.totalScore} pts
+                  </span>
                </div>
             </div>
           )}
