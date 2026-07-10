@@ -6,7 +6,7 @@ import Barcode from "react-barcode";
 const BarcodeSheet = forwardRef(({ books = [] }, ref) => {
     return (
         <div ref={ref} className="p-4 bg-white text-black hidden print:block">
-            <div className="grid grid-cols-5 gap-1">
+            <div className="grid grid-cols-5 gap-x-1">
                 {books.map((book) => (
                     <div
                         key={book._id}
