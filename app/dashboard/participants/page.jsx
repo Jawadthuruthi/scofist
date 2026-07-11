@@ -60,6 +60,8 @@ export default async function ParticipantsPage() {
     const cookiesStore = await cookies();
     const user = parseUser(headerStore);
     const activeRole = cookiesStore.get("active-role")?.value;
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
     const apiKey = process.env.API_KEY;
 
     let users, batches, teams, divisions;
@@ -72,16 +74,16 @@ export default async function ParticipantsPage() {
           0
         ),
         fetchData("batches", "projection=_id,name&status=Active", 0),
-        fetchData("teams", "projection=_id,name", 0),
-        fetchData("divisions", "projection=_id,name&type=Primary", 0),
+        fetchData("teams", `${yearParam}projection=_id,name`, 0),
+        fetchData("divisions", `${yearParam}projection=_id,name&type=Primary`, 0),
       ]);
     } else {
-      teams = await fetchData("teams", `leaderId=${user?.userId}`, 0);
-      (users = []),
-        ([batches, divisions] = await Promise.all([
+      teams = await fetchData("teams", `${yearParam}leaderId=${user?.userId}`, 0);
+      users = [];
+      [batches, divisions] = await Promise.all([
           fetchData("batches", "projection=_id,name&status=Active", 0),
-          fetchData("divisions", "projection=_id,name&type=Primary", 0),
-        ]));
+          fetchData("divisions", `${yearParam}projection=_id,name&type=Primary`, 0),
+      ]);
     }
 
     const formFields = [
@@ -241,6 +243,7 @@ export default async function ParticipantsPage() {
               : {}
           }
           isFestival={true}
+          formClassName="sm:max-w-3xl w-[95vw]"
         />
       </>
     );

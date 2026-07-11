@@ -179,6 +179,7 @@ export default async function ProgramsPage() {
           limit={1000}
           readOnly={activeRole !== "Program Committee"}
           isFestival={true}
+          formClassName="sm:max-w-3xl w-[95vw]"
         />
       </>
     );
