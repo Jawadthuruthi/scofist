@@ -64,12 +64,10 @@ async function importBooks() {
                 const id = idIndex !== -1 ? columns[idIndex] : '';
                 if (!id) continue;
 
-                let prefix = "";
-                let number = id;
-                const match = id.match(/^([A-Za-z_-]+)?(\d+)?$/);
-                if (match) {
-                    prefix = match[1] || "";
-                    number = match[2] || id;
+                let prefix = id.replace(/[^A-Za-z]/g, '');
+                let number = id.replace(/[^0-9]/g, '');
+                if (!prefix && !number) {
+                    number = id;
                 }
 
                 const bookData = {
@@ -85,12 +83,8 @@ async function importBooks() {
                     publication: publicationIndex !== -1 ? columns[publicationIndex] : '',
                 };
 
-                // Add book, don't remove existing
-                await LibraryBook.updateOne(
-                    { id: id },
-                    { $set: bookData },
-                    { upsert: true }
-                );
+                // Add book, don't remove existing (create new documents for duplicates)
+                await LibraryBook.create(bookData);
                 importedCount++;
             }
         }

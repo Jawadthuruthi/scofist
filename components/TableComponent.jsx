@@ -68,6 +68,7 @@ const TableComponent = forwardRef(({
   showTotalCount = false,
   totalCountLabel = "Total Records",
   searchPlaceholder,
+  onFiltersChange,
 }, ref) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -77,6 +78,12 @@ const TableComponent = forwardRef(({
   const [viewMode, setViewMode] = useState(defaultViewMode); // list or grid
 
   const tableRef = useRef(null);
+
+  useEffect(() => {
+    if (onFiltersChange) {
+      onFiltersChange(columnFilters);
+    }
+  }, [columnFilters, onFiltersChange]);
 
   const columns = useMemo(() => {
     return useTableColumns(columnsConfig);

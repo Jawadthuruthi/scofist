@@ -68,8 +68,20 @@ export default function LibraryDashboard({
     const tableRef = useRef(null);
 
     // --- Local optimistic state ---
-    const [localBooks, setLocalBooks] = useState(initialBooks);
-    useEffect(() => { setLocalBooks(initialBooks); }, [initialBooks]);
+    const [localBooks, setLocalBooks] = useState(initialBooks.map(b => ({
+        ...b,
+        language: b.language ? b.language.toUpperCase() : b.language,
+        category: b.category ? b.category.toUpperCase() : b.category
+    })));
+    const [activeFilters, setActiveFilters] = useState([]);
+
+    useEffect(() => { 
+        setLocalBooks(initialBooks.map(b => ({
+            ...b,
+            language: b.language ? b.language.toUpperCase() : b.language,
+            category: b.category ? b.category.toUpperCase() : b.category
+        }))); 
+    }, [initialBooks]);
 
     // --- Popup State ---
     const [categoriesPopupOpen, setCategoriesPopupOpen] = useState(false);
@@ -173,18 +185,24 @@ export default function LibraryDashboard({
 
     // --- Dynamic Options ---
     const dynamicLanguages = useMemo(() => {
-        const fromBooks = initialBooks.map(b => b.language).filter(Boolean);
-        const fromApi = Array.isArray(languages) ? languages.map(l => l.language) : (languages || []);
+        const fromBooks = localBooks.map(b => b.language?.toUpperCase()).filter(Boolean);
+        const fromApi = Array.isArray(languages) ? languages.map(l => l.language?.toUpperCase()) : (languages || []).map(l => typeof l === 'string' ? l.toUpperCase() : l);
         const all = new Set([...fromApi, ...fromBooks]);
         return Array.from(all).sort();
-    }, [languages, initialBooks]);
+    }, [languages, localBooks]);
 
     const dynamicCategories = useMemo(() => {
-        const fromBooks = initialBooks.map(b => b.category).filter(Boolean);
-        const fromApi = Array.isArray(categories) ? categories.map(c => c.category) : (categories || []);
+        const selectedLanguage = activeFilters.find(f => f.id === 'language')?.value;
+        let booksToExtract = localBooks;
+        if (selectedLanguage) {
+            booksToExtract = localBooks.filter(b => b.language?.toUpperCase() === selectedLanguage.toUpperCase());
+        }
+        
+        const fromBooks = booksToExtract.map(b => b.category?.toUpperCase()).filter(Boolean);
+        const fromApi = selectedLanguage ? [] : (Array.isArray(categories) ? categories.map(c => c.category?.toUpperCase()) : (categories || []).map(c => typeof c === 'string' ? c.toUpperCase() : c));
         const all = new Set([...fromApi, ...fromBooks]);
         return Array.from(all).sort();
-    }, [categories, initialBooks]);
+    }, [categories, localBooks, activeFilters]);
 
     // --- Configurations ---
 
@@ -366,7 +384,7 @@ export default function LibraryDashboard({
             cell: ({ row }) => (
                 <button
                     type="button"
-                    className="font-bold text-primary hover:underline cursor-pointer bg-transparent border-none p-0"
+                    className="font-bold text-primary hover:underline cursor-pointer bg-transparent border-none p-0 uppercase"
                     onClick={(e) => {
                         e.stopPropagation();
                         // Select only this row
@@ -395,6 +413,7 @@ export default function LibraryDashboard({
         {
             accessorKey: "author",
             header: "Author",
+            cell: ({ row }) => <span className="uppercase">{row.getValue("author")}</span>,
             meta: {
                 width: "150px",
                 whiteSpace: "normal"
@@ -404,6 +423,7 @@ export default function LibraryDashboard({
             accessorKey: "language",
             header: "Language",
             filterFn: "equalsString",
+            cell: ({ row }) => <span className="uppercase">{row.getValue("language")}</span>,
             meta: {
                 width: "1%",
                 whiteSpace: "nowrap"
@@ -413,6 +433,7 @@ export default function LibraryDashboard({
             accessorKey: "category",
             header: "Category",
             filterFn: "equalsString",
+            cell: ({ row }) => <span className="uppercase">{row.getValue("category")}</span>,
             meta: {
                 width: "1%",
                 whiteSpace: "nowrap"
@@ -421,6 +442,7 @@ export default function LibraryDashboard({
         {
             accessorKey: "publication",
             header: "Publication",
+            cell: ({ row }) => <span className="uppercase">{row.getValue("publication")}</span>,
             meta: {
                 width: "120px",
                 whiteSpace: "normal"
@@ -1870,6 +1892,7 @@ export default function LibraryDashboard({
                     onRowSelectionChange={setRowSelection}
                     getRowId={(originalRow) => originalRow._id}
                     filterConfig={filterConfig}
+                    onFiltersChange={setActiveFilters}
                     enableGrid={true}
                     showTotalCount={true}
                     totalCountLabel="TOTAL NUMBER OF BOOKS"
@@ -2099,11 +2122,14 @@ export default function LibraryDashboard({
                     subTitle="Track book rentals"
                 />
                 <TableComponent
+                    ref={tableRef}
                     data={initialRentals}
                     columnsConfig={rentalColumns}
                     rowSelection={rowSelection}
                     onRowSelectionChange={setRowSelection}
                     getRowId={(originalRow) => originalRow._id}
+                    onFiltersChange={setActiveFilters}
+                    showCsvBtn={true}
                     actionButtons={
                         <div className="flex gap-2">
                             {selectedIds.length > 0 && (

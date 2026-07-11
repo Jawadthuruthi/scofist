@@ -40,14 +40,10 @@ export async function POST(req) {
         const body = await req.json();
 
         if (body.id) {
-            const match = body.id.match(/^([A-Za-z_-]+)?(\d+)?$/);
-            if (match) {
-                body.prefix = match[1] || "";
-                body.number = match[2] || body.id;
-            } else {
-                body.prefix = "";
-                body.number = body.id;
-            }
+            const prefixMatch = body.id.replace(/[^A-Za-z]/g, '');
+            const numberMatch = body.id.replace(/[^0-9]/g, '');
+            body.prefix = prefixMatch || "";
+            body.number = numberMatch || body.id;
         }
 
         const newBook = await LibraryBook.create(body);
@@ -70,14 +66,10 @@ export async function PATCH(req) {
         }
 
         if (updateData.id) {
-            const match = updateData.id.match(/^([A-Za-z_-]+)?(\d+)?$/);
-            if (match) {
-                updateData.prefix = match[1] || "";
-                updateData.number = match[2] || updateData.id;
-            } else {
-                updateData.prefix = "";
-                updateData.number = updateData.id;
-            }
+            const prefixMatch = updateData.id.replace(/[^A-Za-z]/g, '');
+            const numberMatch = updateData.id.replace(/[^0-9]/g, '');
+            updateData.prefix = prefixMatch || "";
+            updateData.number = numberMatch || updateData.id;
         }
 
         const updatedBook = await LibraryBook.findByIdAndUpdate(_id, updateData, { new: true });
