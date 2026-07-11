@@ -23,7 +23,7 @@ const columnsConfig = [
   },
   { accessorKey: "_id", header: "Participant ID" },
   { accessorKey: "name", header: "Name" },
-  { accessorKey: "batchName", header: "Batch" },
+  { accessorKey: "className", header: "Class" },
   {
     accessorKey: "chestNumber",
     header: "Chest Number",
@@ -64,37 +64,42 @@ export default async function ParticipantsPage() {
     const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
     const apiKey = process.env.API_KEY;
 
-    let users, batches, teams, divisions;
+    let users, classes, teams, divisions;
 
     if (activeRole === "Program Committee") {
-      [users, batches, teams, divisions] = await Promise.all([
+      [users, classes, teams, divisions] = await Promise.all([
         fetchData(
           "users",
           "projection=_id,name&status=Active&roles=Student",
           0
         ),
-        fetchData("batches", "projection=_id,name&status=Active", 0),
+        fetchData("classes", "projection=_id,name&status=Active", 0),
         fetchData("teams", `${yearParam}projection=_id,name`, 0),
         fetchData("divisions", `${yearParam}projection=_id,name&type=Primary`, 0),
       ]);
     } else {
       teams = await fetchData("teams", `${yearParam}leaderId=${user?.userId}`, 0);
       users = [];
-      [batches, divisions] = await Promise.all([
-          fetchData("batches", "projection=_id,name&status=Active", 0),
+      [classes, divisions] = await Promise.all([
+          fetchData("classes", "projection=_id,name&status=Active", 0),
           fetchData("divisions", `${yearParam}projection=_id,name&type=Primary`, 0),
       ]);
     }
 
+    // Sort students in ascending admission number order (_id)
+    if (users && users.length > 0) {
+      users.sort((a, b) => String(a._id).localeCompare(String(b._id), undefined, { numeric: true, sensitivity: 'base' }));
+    }
+
     const formFields = [
       {
-        name: "batchId",
-        label: "Batch",
+        name: "classId",
+        label: "Class",
         type: "text",
         inputType: "select",
-        options: formatOptions(batches),
+        options: formatOptions(classes),
         required: true,
-        placeholder: "Select batch",
+        placeholder: "Select class",
       },
       {
         name: "participantIds",
@@ -110,7 +115,7 @@ export default async function ParticipantsPage() {
         },
         helpText: "Participant IDs will be automatically set to match User IDs",
         filter: {
-          dependentField: "batchId",
+          dependentField: "classId",
         },
         showSelectedCount: true,
       },
@@ -186,10 +191,10 @@ export default async function ParticipantsPage() {
     const filterConfig = [
       { id: "name", label: "Name" },
       {
-        id: "batchId",
-        label: "Batch",
+        id: "classId",
+        label: "Class",
         inputType: "select",
-        options: formatOptions(batches),
+        options: formatOptions(classes),
       },
       {
         id: "teamId",

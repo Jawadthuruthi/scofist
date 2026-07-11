@@ -36,6 +36,8 @@ export async function GET(req) {
       fields.forEach((field) => {
         projections[field.trim()] = 1;
       });
+      // Always include classId to ensure frontend dropdown dependency filters work
+      projections["studentSpecificField.classId"] = 1;
     }
 
     // Build MongoDB query from filter params

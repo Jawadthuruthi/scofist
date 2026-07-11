@@ -117,8 +117,8 @@ export async function GET(req, res) {
     if (filterParams.name) {
       query.name = { $regex: filterParams.name, $options: "i" };
     }
-    if (filterParams.batchId) {
-      query.batchId = filterParams.batchId;
+    if (filterParams.classId) {
+      query.classId = filterParams.classId;
     }
     if (filterParams.teamId) {
       query.teamId = filterParams.teamId;
@@ -149,10 +149,10 @@ export async function GET(req, res) {
         },
         {
           $lookup: {
-            from: "batches",
-            localField: "batchId",
+            from: "classes",
+            localField: "classId",
             foreignField: "_id",
-            as: "batchDetails",
+            as: "classDetails",
           },
         },
         {
@@ -248,8 +248,8 @@ export async function GET(req, res) {
         ...participant,
         _id: participant._id,
         profilePic: participant.userDetails[0]?.profilePic,
-        batchId: participant.batchDetails[0]?._id,
-        batchName: participant.batchDetails[0]?.name || "Unknown",
+        classId: participant.classDetails[0]?._id,
+        className: participant.classDetails[0]?.name || "Unknown",
         teamId: participant.teamDetails[0]?._id,
         teamName: participant.teamDetails[0]?.name || "Unknown",
         divisionId: participant.divisionDetails[0]?._id,
@@ -301,10 +301,10 @@ export async function GET(req, res) {
         },
         {
           $lookup: {
-            from: "batches",
-            localField: "batchId",
+            from: "classes",
+            localField: "classId",
             foreignField: "_id",
-            as: "batchDetails",
+            as: "classDetails",
           },
         },
         {
@@ -374,8 +374,8 @@ export async function GET(req, res) {
         ...participant,
         _id: participant._id,
         profilePic: participant.userDetails[0]?.profilePic,
-        batchId: participant.batchDetails[0]?._id,
-        batchName: participant.batchDetails[0]?.name || "Unknown",
+        classId: participant.classDetails[0]?._id,
+        className: participant.classDetails[0]?.name || "Unknown",
         teamId: participant.teamDetails[0]?._id,
         teamName: participant.teamDetails[0]?.name || "Unknown",
         divisionId: participant.divisionDetails[0]?._id,
@@ -446,10 +446,10 @@ export async function GET(req, res) {
         },
         {
           $lookup: {
-            from: "batches",
-            localField: "batchId",
+            from: "classes",
+            localField: "classId",
             foreignField: "_id",
-            as: "batchDetails",
+            as: "classDetails",
           },
         },
         {
@@ -485,8 +485,8 @@ export async function GET(req, res) {
         ...participant,
         _id: participant._id,
         profilePic: participant.userDetails[0]?.profilePic,
-        batchId: participant.batchDetails[0]?._id,
-        batchName: participant.batchDetails[0]?.name || "Unknown",
+        classId: participant.classDetails[0]?._id,
+        className: participant.classDetails[0]?.name || "Unknown",
         teamId: participant.teamDetails[0]?._id,
         teamName: participant.teamDetails[0]?.name || "Unknown",
         divisionId: participant.divisionDetails[0]?._id,
@@ -519,7 +519,7 @@ export async function GET(req, res) {
 
     // Regular participant fetching (non-filtered, non-sorted by points)
     const participants = await Participant.find(query, projections)
-      .populate("batchId", ["_id", "name"])
+      .populate("classId", ["_id", "name"])
       .populate("teamId", ["_id", "name"])
       .populate("divisionId", ["_id", "name"])
       .populate({
@@ -554,8 +554,8 @@ export async function GET(req, res) {
       ...participant.toObject(),
       _id: participant._id,
       profilePic: profilePicMap[userId] || null,
-      batchId: participant.batchId?._id,
-      batchName: participant.batchId?.name || "Unknown",
+      classId: participant.classId?._id,
+      className: participant.classId?.name || "Unknown",
       teamId: participant.teamId?._id,
       teamName: participant.teamId?.name || "Unknown",
       divisionId: participant.divisionId?._id,
@@ -608,7 +608,7 @@ export async function POST(req, res) {
 
     const {
       participantIds,
-      batchId,
+      classId,
       teamId,
       divisionId,
       stagePoints = 0,
@@ -674,7 +674,7 @@ export async function POST(req, res) {
     const participantsToCreate = users.map((user, index) => ({
       _id: `${user._id}-${activeYear}`,
       name: user.name,
-      batchId,
+      classId,
       teamId,
       divisionId,
       chestNumber: assignedChestNumbers[index],

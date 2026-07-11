@@ -18,10 +18,10 @@ const participantSchema = new Schema(
       ],
       ref: "User",
     },
-    batchId: {
+    classId: {
       type: String,
       required: true,
-      ref: "Batch",
+      ref: "Class",
     },
     name: {
       type: String,
