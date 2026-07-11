@@ -502,6 +502,11 @@ const pages = [
     path: "/dashboard/gate-pass",
     allowedRoles: ["College Admin", "Gate Keeper", "Teacher"],
   },
+  {
+    title: "Hifz & Doura",
+    path: "/dashboard/hifz-doura",
+    allowedRoles: ["College Admin"],
+  },
 ];
 
 // Pre-compile pages map/array for O(1) lookup

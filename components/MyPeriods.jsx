@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Loader, CheckCircle2, FileText, AlertCircle, Check, ChevronsUpDown, CalendarDays, ChevronRight, TrendingUp } from "lucide-react";
+import { Loader, CheckCircle2, FileText, AlertCircle, Check, ChevronsUpDown, CalendarDays, ChevronRight, TrendingUp, BookOpenCheck, Save } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -43,6 +43,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import Cookies from "js-cookie";
 
 const leaveReasons = [
   "Home Leave",
@@ -66,11 +67,30 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const [periodNumber, setPeriodNumber] = useState("");
   const [selectedRecordId, setSelectedRecordId] = useState("");
   const [error, setError] = useState(false);
+
+  // ── Hifz & Doura state ───────────────────────────────────────────────
+  const [hifzEnrollments, setHifzEnrollments] = useState([]);
+  const [hifzLoadingEnroll, setHifzLoadingEnroll] = useState(true);
+  const [hifzSelectedClassId, setHifzSelectedClassId] = useState("");
+  const [hifzDialogOpen, setHifzDialogOpen] = useState(false);
+  const [hifzDate, setHifzDate] = useState(formatDate(new Date()));
+  const [hifzPageInputs, setHifzPageInputs] = useState({});  // { studentId: pagesCount }
+  const [hifzSaving, setHifzSaving] = useState(false);
+  const [hifzLoadingRecords, setHifzLoadingRecords] = useState(false);
   const [whatsappLoadingId, setWhatsappLoadingId] = useState(null);
   const [whatsappModalData, setWhatsappModalData] = useState(null);
   const [performanceModalOpen, setPerformanceModalOpen] = useState(false);
   const [performanceSlot, setPerformanceSlot] = useState(null);
   const [performanceAttendanceRecord, setPerformanceAttendanceRecord] = useState(null);
+  // { [classId]: { byStudent: { [studentId]: { totalPages, lastDate, records: [{date, pagesCount}] } } } }
+  const [hifzClassSummary, setHifzClassSummary] = useState({});
+  const [hifzRecordsDialogClassId, setHifzRecordsDialogClassId] = useState("");
+  const [selectedRecordsStudent, setSelectedRecordsStudent] = useState(null); // { sId, sName }
+  const [hifzWhatsappClassId, setHifzWhatsappClassId] = useState(""); // classId of open WA dialog
+  const [hifzStudentContacts, setHifzStudentContacts] = useState({}); // { [studentId]: guardianContactNumber }
+  const [hifzContactsLoading, setHifzContactsLoading] = useState(false);
+  const [teacherName, setTeacherName] = useState("");
+  const [hifzSuccessOpen, setHifzSuccessOpen] = useState(false);
 
   const router = useRouter();
 
@@ -412,6 +432,221 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     });
   };
 
+  // ── Hifz & Doura logic ───────────────────────────────────────────────
+  const activeYear = Cookies.get("active-year") || "";
+
+  // Fetch enrollments where this teacher is the designated teacher
+  const fetchHifzEnrollments = useCallback(async () => {
+    setHifzLoadingEnroll(true);
+    try {
+      const res = await fetch(`/api/hifz-doura-class?teacherId=${teacherId}&year=${activeYear}&projection=studentId,classId,teacherId,enrolledAt`, {
+        credentials: "include",
+        headers: { "api-key": apiKey },
+      });
+      const data = await res.json();
+      setHifzEnrollments(data?.enrollments || []);
+    } catch {
+      /* silent */
+    } finally {
+      setHifzLoadingEnroll(false);
+    }
+  }, [teacherId, apiKey, activeYear]);
+
+  useEffect(() => {
+    if (teacherId) fetchHifzEnrollments();
+  }, [fetchHifzEnrollments, teacherId]);
+
+  // Fetch current teacher's name once
+  useEffect(() => {
+    if (!teacherId) return;
+    fetch(`/api/users?_id=${teacherId}`, {
+      credentials: "include",
+      headers: { "api-key": apiKey },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        const name = data?.users?.[0]?.name || "";
+        if (name) setTeacherName(name);
+      })
+      .catch(() => {});
+  }, [teacherId, apiKey]);
+
+  // Classes where this teacher is the Hifz teacher
+  const hifzClasses = useMemo(() => {
+    const map = {};
+    hifzEnrollments.forEach((e) => {
+      const cId = e.classId?._id || e.classId;
+      if (!map[cId]) {
+        map[cId] = { classId: cId, className: e.classId?.name || cId, students: [] };
+      }
+      map[cId].students.push(e);
+    });
+    return Object.values(map);
+  }, [hifzEnrollments]);
+
+  const hifzSelectedClass = useMemo(
+    () => hifzClasses.find((c) => c.classId === hifzSelectedClassId),
+    [hifzClasses, hifzSelectedClassId]
+  );
+
+  // Load existing records for the selected class+date
+  const loadHifzRecords = useCallback(async () => {
+    if (!hifzSelectedClassId || !hifzDate) return;
+    setHifzLoadingRecords(true);
+    try {
+      const res = await fetch(
+        `/api/hifz-doura?classId=${hifzSelectedClassId}&date=${hifzDate}&year=${activeYear}`,
+        { credentials: "include", headers: { "api-key": apiKey } }
+      );
+      const data = await res.json();
+      const inputs = {};
+      (data?.records || []).forEach((r) => {
+        const sId = r.studentId?._id || r.studentId;
+        inputs[sId] = r.pagesCount;
+      });
+      setHifzPageInputs(inputs);
+    } catch {
+      /* silent */
+    } finally {
+      setHifzLoadingRecords(false);
+    }
+  }, [hifzSelectedClassId, hifzDate, apiKey, activeYear]);
+
+  useEffect(() => {
+    loadHifzRecords();
+  }, [loadHifzRecords]);
+
+  // Fetch summary (total pages + last date) for all hifz classes
+  const fetchHifzClassSummary = useCallback(async (classIds) => {
+    if (!classIds || classIds.length === 0) return;
+    try {
+      const res = await fetch(
+        `/api/hifz-doura?classId=${classIds.join(",")}&year=${activeYear}`,
+        { credentials: "include", headers: { "api-key": apiKey } }
+      );
+      const data = await res.json();
+      const summaryMap = {};
+
+      // Initialize map for all requested classIds
+      classIds.forEach((cId) => {
+        summaryMap[cId] = { byStudent: {} };
+      });
+
+      (data?.records || []).forEach((r) => {
+        const cId = r.classId?._id || r.classId;
+        const sId = r.studentId?._id || r.studentId;
+        const sName = r.studentId?.name || sId;
+
+        if (!summaryMap[cId]) return;
+        const byStudent = summaryMap[cId].byStudent;
+
+        if (!byStudent[sId]) {
+          byStudent[sId] = { name: sName, totalPages: 0, lastDate: null, records: [] };
+        }
+        byStudent[sId].totalPages += r.pagesCount || 0;
+        const rDate = r.date ? new Date(r.date) : null;
+        if (rDate && (!byStudent[sId].lastDate || rDate > byStudent[sId].lastDate)) {
+          byStudent[sId].lastDate = rDate;
+        }
+        byStudent[sId].records.push({ date: r.date, pagesCount: r.pagesCount || 0 });
+      });
+
+      // Sort each student's records newest first
+      Object.values(summaryMap).forEach((c) => {
+        Object.values(c.byStudent).forEach((s) => {
+          s.records.sort((a, b) => new Date(b.date) - new Date(a.date));
+        });
+      });
+
+      setHifzClassSummary(summaryMap);
+    } catch {
+      /* silent */
+    }
+  }, [apiKey, activeYear]);
+
+  useEffect(() => {
+    if (hifzClasses.length > 0) {
+      fetchHifzClassSummary(hifzClasses.map((c) => c.classId));
+    }
+  }, [hifzClasses, fetchHifzClassSummary]);
+
+  // Fetch guardian contact numbers for all students in the selected WA class
+  useEffect(() => {
+    if (!hifzWhatsappClassId) return;
+    const waClass = hifzClasses.find((c) => c.classId === hifzWhatsappClassId);
+    if (!waClass) return;
+    const studentIds = waClass.students.map((e) => e.studentId?._id || e.studentId).filter(Boolean);
+    if (studentIds.length === 0) return;
+
+    setHifzContactsLoading(true);
+    Promise.all(
+      studentIds.map((sId) =>
+        fetch(`/api/users?_id=${sId}`, {
+          credentials: "include",
+          headers: { "api-key": apiKey },
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            const u = data?.users?.[0];
+            // guardianContactNumber is inside studentSpecificField in DB;
+            // the users API formatter maps it to top-level guardianContactNumber
+            return { sId, contact: u?.guardianContactNumber || "" };
+          })
+          .catch(() => ({ sId, contact: "" }))
+      )
+    ).then((results) => {
+      const map = {};
+      results.forEach(({ sId, contact }) => { map[sId] = contact; });
+      setHifzStudentContacts(map);
+      setHifzContactsLoading(false);
+    });
+  }, [hifzWhatsappClassId, hifzClasses, apiKey]);
+
+  const handleHifzSave = async () => {
+    if (!hifzSelectedClass) return;
+    setHifzSaving(true);
+    try {
+      const Cookies2 = Cookies;
+      const activeRole = Cookies2.get("active-role");
+      const year = Cookies2.get("active-year") || "";
+      const entries = hifzSelectedClass.students.map((enrollment) => {
+        const sId = enrollment.studentId?._id || enrollment.studentId;
+        return {
+          studentId: sId,
+          classId: hifzSelectedClassId,
+          pagesCount: parseInt(hifzPageInputs[sId] || "0", 10),
+          date: hifzDate,
+        };
+      });
+      const res = await fetch("/api/hifz-doura", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": apiKey,
+          "active-role": activeRole,
+          "active-year": year,
+        },
+        body: JSON.stringify({ entries, recordedBy: teacherId, year }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setHifzSuccessOpen(true);
+        setHifzDialogOpen(false);
+        setHifzPageInputs({});
+        setTimeout(() => {
+          setHifzSuccessOpen(false);
+        }, 1500);
+      } else {
+        toast.error(data.message || "Failed to save records");
+      }
+    } catch {
+      toast.error("Failed to save Hifz records");
+    } finally {
+      setHifzSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="w-full">
@@ -603,6 +838,460 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
             </div>
           )}
         </div>
+
+        {/* ── Hifz & Doura Section ────────────────────────────────────────── */}
+        {hifzLoadingEnroll ? null : hifzClasses.length > 0 ? (
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <BookOpenCheck className="h-5 w-5 text-primary" />
+                <h2 className="font-bold text-lg">HIFZ &amp; DOURA</h2>
+              </div>
+            </div>
+
+            {/* Classes table — click a row to open the students dialog */}
+            <div className="overflow-x-auto border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-14 text-center">Sl.No</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead className="text-center w-24"></TableHead>
+                    <TableHead className="text-center w-32">Records</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {hifzClasses.map((cls, idx) => {
+                    const summary = hifzClassSummary[cls.classId];
+                    const summaryEntries = summary
+                      ? cls.students.map((enrollment, si) => {
+                          const sId = enrollment.studentId?._id || enrollment.studentId;
+                          const sName = enrollment.studentId?.name || summary?.byStudent?.[sId]?.name || sId;
+                          const info = summary?.byStudent?.[sId];
+                          return {
+                            sl: si + 1,
+                            sId,
+                            sName,
+                            totalPages: info?.totalPages ?? 0,
+                            lastDate: info?.lastDate ?? null,
+                          };
+                        })
+                      : null;
+                    return (
+                      <TableRow
+                        key={cls.classId}
+                        className="cursor-pointer hover:bg-accent/50"
+                        onClick={() => {
+                          setHifzSelectedClassId(cls.classId);
+                          setHifzDialogOpen(true);
+                        }}
+                      >
+                        <TableCell className="text-center text-muted-foreground font-medium">
+                          {idx + 1}
+                        </TableCell>
+                        <TableCell className="font-medium whitespace-nowrap">{cls.className}</TableCell>
+                        {/* WhatsApp column */}
+                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setHifzWhatsappClassId(cls.classId);
+                            }}
+                            className="inline-flex items-center justify-center gap-1 text-green-600 hover:text-green-700 transition-colors p-1.5 rounded-md hover:bg-green-50"
+                            title="Send WhatsApp to guardians"
+                          >
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                            </svg>
+                          </button>
+                        </TableCell>
+
+                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs gap-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setHifzRecordsDialogClassId(cls.classId);
+                            }}
+                          >
+                            <BookOpenCheck className="h-3 w-3" />
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Students dialog */}
+            <Dialog open={hifzDialogOpen} onOpenChange={(o) => { setHifzDialogOpen(o); if (!o) { setHifzSelectedClassId(""); setHifzPageInputs({}); } }}>
+              <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <BookOpenCheck className="h-5 w-5 text-primary" />
+                    {hifzSelectedClass?.className} — HIFZ &amp; DOURA
+                  </DialogTitle>
+                  <DialogDescription className="flex justify-center mt-2">
+                    <input
+                      type="date"
+                      value={hifzDate}
+                      onChange={(e) => setHifzDate(e.target.value)}
+                      className="border-2 border-primary/20 rounded-md px-4 py-2 text-base font-semibold bg-primary/5 text-primary shadow-sm cursor-pointer hover:bg-primary/10 transition-colors"
+                    />
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="flex-1 overflow-y-auto">
+                  {hifzLoadingRecords ? (
+                    <div className="flex justify-center py-12">
+                      <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12 text-center">Sl.No</TableHead>
+                          <TableHead>Student Name</TableHead>
+                          <TableHead className="text-center w-36">Pages Recited</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(hifzSelectedClass?.students || []).map((enrollment, idx) => {
+                          const sId = enrollment.studentId?._id || enrollment.studentId;
+                          const sName = enrollment.studentId?.name || sId;
+                          const admNo = enrollment.studentId?.studentSpecificField?.admissionNumber || "";
+                          return (
+                            <TableRow key={sId}>
+                              <TableCell className="text-center text-muted-foreground font-medium">
+                                {idx + 1}
+                              </TableCell>
+                              <TableCell>
+                                <p className="font-medium text-sm">{sName}</p>
+                                {admNo && (
+                                  <p className="text-xs text-muted-foreground mt-0.5">Adm: {admNo}</p>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="604"
+                                  className="w-20 text-center mx-auto"
+                                  value={hifzPageInputs[sId] ?? ""}
+                                  onChange={(e) =>
+                                    setHifzPageInputs((prev) => ({
+                                      ...prev,
+                                      [sId]: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="0"
+                                />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+
+                <div className="border-t pt-3 flex justify-end">
+                  <Button
+                    onClick={handleHifzSave}
+                    disabled={hifzSaving}
+                    className="flex items-center gap-2"
+                  >
+                    {hifzSaving ? (
+                      <Loader className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    Save Records
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Records summary dialog */}
+            {(() => {
+              const recordsClass = hifzClasses.find((c) => c.classId === hifzRecordsDialogClassId);
+              const summary = hifzClassSummary[hifzRecordsDialogClassId];
+              const summaryEntries = recordsClass && summary
+                ? recordsClass.students.map((enrollment, si) => {
+                    const sId = enrollment.studentId?._id || enrollment.studentId;
+                    const sName = enrollment.studentId?.name || summary?.byStudent?.[sId]?.name || sId;
+                    const info = summary?.byStudent?.[sId];
+                    return {
+                      sl: si + 1,
+                      sId,
+                      sName,
+                      totalPages: info?.totalPages ?? 0,
+                      lastDate: info?.lastDate ?? null,
+                      records: info?.records ?? [],
+                    };
+                  })
+                : null;
+
+              const drillStudent = selectedRecordsStudent
+                ? summaryEntries?.find((e) => e.sId === selectedRecordsStudent.sId)
+                : null;
+
+              return (
+                <Dialog
+                  open={!!hifzRecordsDialogClassId}
+                  onOpenChange={(o) => { if (!o) { setHifzRecordsDialogClassId(""); setSelectedRecordsStudent(null); } }}
+                >
+                  <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+                    <DialogHeader className="text-left space-y-0">
+                      <div className="flex justify-between items-start sm:items-center gap-4">
+                        <div className="flex flex-col space-y-1.5">
+                          <DialogTitle className="flex items-start sm:items-center gap-2">
+                            <BookOpenCheck className="h-5 w-5 text-primary shrink-0 mt-1 sm:mt-0" />
+                            {drillStudent ? (
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                                <span>{drillStudent.sName}</span>
+                                <span className="hidden sm:inline text-muted-foreground font-normal text-sm">/</span>
+                                <button
+                                  onClick={() => setSelectedRecordsStudent(null)}
+                                  className="text-muted-foreground hover:text-foreground transition-colors text-sm font-normal underline underline-offset-2 text-left mt-1 sm:mt-0"
+                                >
+                                  {recordsClass?.className}
+                                </button>
+                              </div>
+                            ) : (
+                              <span>{recordsClass?.className} — Records</span>
+                            )}
+                          </DialogTitle>
+
+                        </div>
+                      </div>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto">
+                      {!summaryEntries ? (
+                        <div className="flex justify-center py-12">
+                          <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : drillStudent ? (
+                        /* ── Per-student records view ── */
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center px-2 pt-2 pb-1">
+                            <div className="flex items-center justify-center gap-1.5 bg-primary/10 px-2 py-1 sm:px-3 sm:py-1.5 rounded-md border border-primary/20 shrink-0">
+                              <span className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider">Total Sessions:</span>
+                              <span className="text-base sm:text-lg font-black text-primary leading-none">{drillStudent.records.length}</span>
+                            </div>
+                            <div className="flex items-center justify-center gap-1.5 bg-primary/10 px-2 py-1 sm:px-3 sm:py-1.5 rounded-md border border-primary/20 shrink-0">
+                              <span className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider">Total Pages:</span>
+                              <span className="text-base sm:text-lg font-black text-primary leading-none">{drillStudent.totalPages}</span>
+                            </div>
+                          </div>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-12 text-center">Sl.No</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead className="text-center w-28">Pages</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {drillStudent.records.length === 0 ? (
+                                <TableRow>
+                                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">No sessions recorded yet.</TableCell>
+                                </TableRow>
+                              ) : (
+                                drillStudent.records.map((rec, idx) => (
+                                  <TableRow key={idx}>
+                                    <TableCell className="text-center text-muted-foreground font-medium">{idx + 1}</TableCell>
+                                    <TableCell className="text-sm">
+                                      {rec.date
+                                        ? new Date(rec.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                                        : "—"}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <Badge variant={rec.pagesCount > 0 ? "default" : "secondary"}>
+                                        {rec.pagesCount}
+                                      </Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ) : (
+                        /* ── Student list view ── */
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-12 text-center">Sl.No</TableHead>
+                              <TableHead>Student Name</TableHead>
+                              <TableHead className="text-center w-28">Total Pages</TableHead>
+                              <TableHead className="text-center w-32">Last Date</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {summaryEntries.map((entry) => (
+                              <TableRow
+                                key={entry.sId}
+                                className="cursor-pointer hover:bg-accent/60"
+                                onClick={() => setSelectedRecordsStudent({ sId: entry.sId, sName: entry.sName })}
+                              >
+                                <TableCell className="text-center text-muted-foreground font-medium">
+                                  {entry.sl}
+                                </TableCell>
+                                <TableCell>
+                                  <p className="font-medium text-sm">{entry.sName}</p>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant={entry.totalPages > 0 ? "default" : "secondary"}>
+                                    {entry.totalPages}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-center text-sm text-muted-foreground">
+                                  {entry.lastDate
+                                    ? new Date(entry.lastDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                                    : "—"}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              );
+            })()}
+
+            {/* WhatsApp guardian message dialog */}
+            {(() => {
+              const waClass = hifzClasses.find((c) => c.classId === hifzWhatsappClassId);
+              const summary = hifzClassSummary[hifzWhatsappClassId];
+              return (
+                <Dialog
+                  open={!!hifzWhatsappClassId}
+                  onOpenChange={(o) => { if (!o) setHifzWhatsappClassId(""); }}
+                >
+                  <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                        </svg>
+                        {waClass?.className} — WhatsApp Guardians
+                      </DialogTitle>
+                      <DialogDescription>
+                        Send Hifz &amp; Doura progress for{" "}
+                        <strong>
+                          {hifzDate
+                            ? new Date(hifzDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                            : "today"}
+                        </strong>{" "}
+                        to each student&apos;s guardian.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-y-auto">
+                      {hifzContactsLoading ? (
+                        <div className="flex justify-center items-center py-12">
+                          <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-12 text-center">Sl.No</TableHead>
+                            <TableHead>Student</TableHead>
+                            <TableHead className="text-center w-20">Pages</TableHead>
+                            <TableHead className="text-center w-32">Action</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(waClass?.students || []).map((enrollment, idx) => {
+                            const sId = enrollment.studentId?._id || enrollment.studentId;
+                            const sName = enrollment.studentId?.name || sId;
+                            // Use fetched contact map (handles String-typed ref — populate doesn't work)
+                            const guardian = hifzStudentContacts[sId] || "";
+                            const formattedNumber = guardian.replace(/\D/g, "");
+
+                            const studentInfo = summary?.byStudent?.[sId];
+                            const todayRecord = studentInfo?.records?.find((r) => {
+                              if (!r.date) return false;
+                              const rStr = new Date(r.date).toISOString().slice(0, 10);
+                              return rStr === hifzDate;
+                            });
+                            const pagesCount = todayRecord?.pagesCount ?? 0;
+
+                            const dateLabel = hifzDate
+                              ? new Date(hifzDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })
+                              : new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+
+                            const msg = `*Hifz & Doura Progress Report*
+Date: ${dateLabel}
+Student: ${sName}
+Class: ${waClass?.className}
+*Pages Recited: ${pagesCount}*
+Teacher: ${teacherName || "Teacher"}`;
+                            const waUrl = formattedNumber
+                              ? `https://wa.me/${formattedNumber}?text=${encodeURIComponent(msg)}`
+                              : null;
+
+                            return (
+                              <TableRow key={sId}>
+                                <TableCell className="text-center text-muted-foreground font-medium">{idx + 1}</TableCell>
+                                <TableCell>
+                                  <p className="font-medium text-sm">{sName}</p>
+                                  {guardian ? (
+                                    <p className="text-xs text-muted-foreground mt-0.5">{guardian}</p>
+                                  ) : (
+                                    <p className="text-xs text-destructive mt-0.5">No contact</p>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant={pagesCount > 0 ? "default" : "secondary"}>{pagesCount}</Badge>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  {waUrl ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="flex items-center gap-1.5 border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700"
+                                      onClick={() => {
+                                        const a = document.createElement("a");
+                                        a.href = waUrl;
+                                        a.target = "_blank";
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        document.body.removeChild(a);
+                                      }}
+                                    >
+                                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                                      </svg>
+                                      Message
+                                    </Button>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              );
+            })()}
+          </div>
+        ) : null}
+
+
         {/* ── Academic Calendar Events Popup ── */}
         <Dialog open={calendarOpen} onOpenChange={setCalendarOpen}>
           <DialogContent className="max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
@@ -824,6 +1513,23 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
           teacherId={teacherId}
           apiKey={apiKey}
         />
+
+        {/* ── Hifz Success Popup ── */}
+        <Dialog open={hifzSuccessOpen} onOpenChange={setHifzSuccessOpen}>
+          <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
+            <DialogHeader className="flex flex-col items-center justify-center text-center space-y-3">
+              <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
+                <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+              </div>
+              <DialogTitle className="text-2xl font-bold text-green-600 dark:text-green-400">
+                Successful
+              </DialogTitle>
+              <DialogDescription className="text-lg">
+                Hifz records saved successfully.
+              </DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

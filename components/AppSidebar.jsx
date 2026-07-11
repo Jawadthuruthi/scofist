@@ -209,6 +209,12 @@ const items = [
     allowedRoles: ["College Admin", "Gate Keeper", "Teacher"],
   },
   {
+    title: "Hifz & Doura",
+    url: "/dashboard/hifz-doura",
+    icon: BookOpen,
+    allowedRoles: ["College Admin"],
+  },
+  {
     title: "Managements",
     icon: Briefcase,
     allowedRoles: ["College Admin", "Teacher"],
