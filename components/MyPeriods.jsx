@@ -1182,16 +1182,10 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
                           <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                         </svg>
-                        {waClass?.className} — WhatsApp Guardians
+                        {waClass?.className} - Hifz &amp; Doura
                       </DialogTitle>
                       <DialogDescription>
-                        Send Hifz &amp; Doura progress for{" "}
-                        <strong>
-                          {hifzDate
-                            ? new Date(hifzDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
-                            : "today"}
-                        </strong>{" "}
-                        to each student&apos;s guardian.
+                        Send Hifz &amp; Doura progress
                       </DialogDescription>
                     </DialogHeader>
                     <div className="flex-1 overflow-y-auto">
@@ -1205,7 +1199,6 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                           <TableRow>
                             <TableHead className="w-12 text-center">Sl.No</TableHead>
                             <TableHead>Student</TableHead>
-                            <TableHead className="text-center w-20">Pages</TableHead>
                             <TableHead className="text-center w-32">Action</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1249,9 +1242,6 @@ Teacher: ${teacherName || "Teacher"}`;
                                   ) : (
                                     <p className="text-xs text-destructive mt-0.5">No contact</p>
                                   )}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <Badge variant={pagesCount > 0 ? "default" : "secondary"}>{pagesCount}</Badge>
                                 </TableCell>
                                 <TableCell className="text-center">
                                   {waUrl ? (
