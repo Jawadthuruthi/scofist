@@ -843,9 +843,9 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
         {hifzLoadingEnroll ? null : hifzClasses.length > 0 ? (
           <div className="mt-6">
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <BookOpenCheck className="h-5 w-5 text-primary" />
+              <div className="flex flex-col">
                 <h2 className="font-bold text-lg">HIFZ &amp; DOURA</h2>
+                <p className="text-sm text-muted-foreground">Quran memorization and revision tracking</p>
               </div>
             </div>
 
