@@ -98,8 +98,14 @@ const YearSwitcher = () => {
       const updatedYears = [...years, newYear.trim()];
       await axios.put("/api/settings", { years: updatedYears });
       setYears(updatedYears);
+      
+      // Automatically select the newly added year
+      setActiveYear(newYear.trim());
+      Cookies.set("active-year", newYear.trim(), { expires: 365, path: "/" });
+      
       setNewYear("");
       toast.success("Year added successfully");
+      window.location.reload();
     } catch (error) {
       toast.error("Failed to add year");
     }
@@ -202,7 +208,23 @@ const YearSwitcher = () => {
                 <DialogHeader>
                   <DialogTitle>Manage Festival Sessions</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
+                <div className="flex gap-2 pt-4">
+                  <Input
+                    placeholder="New Year (e.g. 2026)"
+                    value={newYear}
+                    onChange={(e) => setNewYear(e.target.value)}
+                    className="flex-1"
+                    onKeyDown={(e) => e.key === "Enter" && handleAddYear()}
+                  />
+                  <Button
+                    onClick={handleAddYear}
+                    className="shrink-0"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Session
+                  </Button>
+                </div>
+                <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
                   {years.map((year) => (
                     <div
                       key={year}
@@ -299,23 +321,7 @@ const YearSwitcher = () => {
         </Select>
       </div>
 
-      <div className="px-4 flex gap-2">
-        <Input
-          placeholder="New Year (e.g. 2026)"
-          value={newYear}
-          onChange={(e) => setNewYear(e.target.value)}
-          className="h-8 text-xs bg-background border-muted-foreground/20"
-          onKeyDown={(e) => e.key === "Enter" && handleAddYear()}
-        />
-        <Button
-          size="icon"
-          variant="secondary"
-          className="h-8 w-8 shrink-0 hover:bg-primary hover:text-primary-foreground transition-all"
-          onClick={handleAddYear}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
+
     </div>
   );
 };
