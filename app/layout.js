@@ -1,5 +1,5 @@
 import "./globals.css";
-import { Montserrat } from "next/font/google";
+import { Montserrat, Noto_Sans_Malayalam } from "next/font/google";
 import Providers from "@/components/Providers";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -7,6 +7,13 @@ const montserrat = Montserrat({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-montserrat",
+  display: "swap",
+});
+
+const notoSansMalayalam = Noto_Sans_Malayalam({
+  subsets: ["malayalam"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-noto-malayalam",
   display: "swap",
 });
 
@@ -160,7 +167,7 @@ export const structuredData = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={montserrat.className}>
+      <body className={`${montserrat.className} ${montserrat.variable} ${notoSansMalayalam.variable}`}>
         <Providers>{children}</Providers>
         <Toaster />
       </body>

@@ -42,6 +42,7 @@ const getCellStyles = (meta) => ({
   padding: meta?.padding, // Allow overriding padding
   textAlign: meta?.textAlign || "left",
   verticalAlign: meta?.verticalAlign || "middle", // Default to middle for consistency
+  fontSize: meta?.fontSize,
 });
 
 const TableComponent = forwardRef(({

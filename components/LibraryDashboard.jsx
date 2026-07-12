@@ -47,6 +47,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const EMPTY_ARRAY = [];
 
+// Normalize common category misspellings
+const normalizeCategoryName = (name) => {
+    if (!name) return name;
+    const upper = name.toUpperCase().trim();
+    const corrections = {
+        "TRAVELOUGUE": "TRAVELOGUE",
+        "TRAVELOUGE": "TRAVELOGUE",
+        "TRAVLOGUE": "TRAVELOGUE",
+        "TRAVELOG": "TRAVELOGUE",
+    };
+    return corrections[upper] ?? upper;
+};
+
 export default function LibraryDashboard({
     view,
     counts,
@@ -64,23 +77,32 @@ export default function LibraryDashboard({
     const [loading, setLoading] = useState(false);
     const [rowSelection, setRowSelection] = useState({});
     const [editPopupOpen, setEditPopupOpen] = useState(false);
+    const [duplicateIdsOpen, setDuplicateIdsOpen] = useState(false);
     const barcodeSheetRef = useRef(null);
     const tableRef = useRef(null);
 
     // --- Local optimistic state ---
-    const [localBooks, setLocalBooks] = useState(initialBooks.map(b => ({
-        ...b,
-        language: b.language ? b.language.toUpperCase() : b.language,
-        category: b.category ? b.category.toUpperCase() : b.category
-    })));
-    const [activeFilters, setActiveFilters] = useState([]);
-
-    useEffect(() => { 
-        setLocalBooks(initialBooks.map(b => ({
+    const sortBooks = (books) => {
+        return books.map(b => ({
             ...b,
             language: b.language ? b.language.toUpperCase() : b.language,
             category: b.category ? b.category.toUpperCase() : b.category
-        }))); 
+        })).sort((a, b) => {
+            const catA = normalizeCategoryName(a.category) || "";
+            const catB = normalizeCategoryName(b.category) || "";
+            if (catA !== catB) return catA.localeCompare(catB);
+            
+            const idA = String(a.id || "");
+            const idB = String(b.id || "");
+            return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
+        });
+    };
+
+    const [localBooks, setLocalBooks] = useState(sortBooks(initialBooks));
+    const [activeFilters, setActiveFilters] = useState([]);
+
+    useEffect(() => { 
+        setLocalBooks(sortBooks(initialBooks)); 
     }, [initialBooks]);
 
     // --- Popup State ---
@@ -183,6 +205,77 @@ export default function LibraryDashboard({
         ? initialRentals.find(r => r._id === selectedIds[0])
         : null;
 
+    // --- Duplicate ID detection ---
+    const duplicateIdGroups = useMemo(() => {
+        const idMap = {};
+        localBooks.forEach(b => {
+            const key = String(b.id || "").trim().toUpperCase();
+            if (!key) return;
+            if (!idMap[key]) idMap[key] = [];
+            idMap[key].push(b);
+        });
+        return Object.entries(idMap)
+            .filter(([, books]) => books.length > 1)
+            .map(([id, books]) => {
+                // Safe to merge = all books have identical name, author, language, category
+                const norm = b => ([
+                    (b.name || "").trim().toUpperCase(),
+                    (b.author || "").trim().toUpperCase(),
+                    (b.language || "").trim().toUpperCase(),
+                    normalizeCategoryName(b.category),
+                ].join("|"));
+                const firstSig = norm(books[0]);
+                const isSafe = books.every(b => norm(b) === firstSig);
+                return { id, books, isSafe };
+            })
+            .sort((a, b) => a.id.localeCompare(b.id));
+    }, [localBooks]);
+
+    const handleMergeDuplicates = async (books) => {
+        const toDelete = books.slice(1);
+
+        setLoading(true);
+        try {
+            for (const book of toDelete) {
+                await fetch(`/api/library/books?id=${book._id}`, { method: "DELETE" });
+            }
+            setLocalBooks(prev => {
+                const idsToRemove = new Set(toDelete.map(b => b._id));
+                return prev.filter(b => !idsToRemove.has(b._id));
+            });
+            toast.success(`Merged: kept 1, deleted ${toDelete.length} duplicate${toDelete.length > 1 ? "s" : ""}`);
+            router.refresh();
+        } catch {
+            toast.error("Failed to merge duplicates");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleMergeAllSafe = async () => {
+        const safeGroups = duplicateIdGroups.filter(g => g.isSafe);
+        if (!safeGroups.length) return;
+        const allToDelete = safeGroups.flatMap(g => g.books.slice(1));
+        setLoading(true);
+        try {
+            for (const book of allToDelete) {
+                await fetch(`/api/library/books?id=${book._id}`, { method: "DELETE" });
+            }
+            setLocalBooks(prev => {
+                const idsToRemove = new Set(allToDelete.map(b => b._id));
+                return prev.filter(b => !idsToRemove.has(b._id));
+            });
+            toast.success(
+                `Merged ${safeGroups.length} group${safeGroups.length > 1 ? "s" : ""}: deleted ${allToDelete.length} duplicate${allToDelete.length > 1 ? "s" : ""}`
+            );
+            router.refresh();
+        } catch {
+            toast.error("Failed to merge all safe duplicates");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // --- Dynamic Options ---
     const dynamicLanguages = useMemo(() => {
         const fromBooks = localBooks.map(b => b.language?.toUpperCase()).filter(Boolean);
@@ -198,8 +291,8 @@ export default function LibraryDashboard({
             booksToExtract = localBooks.filter(b => b.language?.toUpperCase() === selectedLanguage.toUpperCase());
         }
         
-        const fromBooks = booksToExtract.map(b => b.category?.toUpperCase()).filter(Boolean);
-        const fromApi = selectedLanguage ? [] : (Array.isArray(categories) ? categories.map(c => c.category?.toUpperCase()) : (categories || []).map(c => typeof c === 'string' ? c.toUpperCase() : c));
+        const fromBooks = booksToExtract.map(b => normalizeCategoryName(b.category)).filter(Boolean);
+        const fromApi = selectedLanguage ? [] : (Array.isArray(categories) ? categories.map(c => normalizeCategoryName(c.category)) : (categories || []).map(c => typeof c === 'string' ? normalizeCategoryName(c) : c));
         const all = new Set([...fromApi, ...fromBooks]);
         return Array.from(all).sort();
     }, [categories, localBooks, activeFilters]);
@@ -375,6 +468,7 @@ export default function LibraryDashboard({
                 padding: "0px 8px",
                 textAlign: "center",
                 className: "tight-column",
+                fontSize: "0.875rem",
             },
         },
         {
@@ -400,23 +494,27 @@ export default function LibraryDashboard({
                 width: "100px",
                 whiteSpace: "nowrap",
                 padding: "0px 8px",
+                fontSize: "0.875rem",
             }
         },
         {
             accessorKey: "name",
             header: "Book Name",
+            cell: ({ row }) => <span className="book-text-font">{row.getValue("name")}</span>,
             meta: {
                 width: "200px",
-                whiteSpace: "normal"
+                whiteSpace: "normal",
+                fontSize: "0.875rem",
             }
         },
         {
             accessorKey: "author",
             header: "Author",
-            cell: ({ row }) => <span className="uppercase">{row.getValue("author")}</span>,
+            cell: ({ row }) => <span className="uppercase book-text-font">{row.getValue("author")}</span>,
             meta: {
                 width: "150px",
-                whiteSpace: "normal"
+                whiteSpace: "normal",
+                fontSize: "0.875rem",
             }
         },
         {
@@ -426,26 +524,30 @@ export default function LibraryDashboard({
             cell: ({ row }) => <span className="uppercase">{row.getValue("language")}</span>,
             meta: {
                 width: "1%",
-                whiteSpace: "nowrap"
+                whiteSpace: "nowrap",
+                fontSize: "0.875rem",
             }
         },
         {
             accessorKey: "category",
             header: "Category",
-            filterFn: "equalsString",
-            cell: ({ row }) => <span className="uppercase">{row.getValue("category")}</span>,
+            filterFn: (row, columnId, filterValue) =>
+                normalizeCategoryName(row.getValue(columnId)) === normalizeCategoryName(filterValue),
+            cell: ({ row }) => <span className="uppercase">{normalizeCategoryName(row.getValue("category"))}</span>,
             meta: {
                 width: "1%",
-                whiteSpace: "nowrap"
+                whiteSpace: "nowrap",
+                fontSize: "0.875rem",
             }
         },
         {
             accessorKey: "publication",
             header: "Publication",
-            cell: ({ row }) => <span className="uppercase">{row.getValue("publication")}</span>,
+            cell: ({ row }) => <span className="uppercase book-text-font">{row.getValue("publication")}</span>,
             meta: {
                 width: "120px",
-                whiteSpace: "normal"
+                whiteSpace: "normal",
+                fontSize: "0.875rem",
             }
         },
         {
@@ -455,6 +557,7 @@ export default function LibraryDashboard({
                 width: "1%",
                 whiteSpace: "nowrap",
                 padding: "4px 4px",
+                fontSize: "0.875rem",
             }
         },
         {
@@ -467,7 +570,7 @@ export default function LibraryDashboard({
                 const color = displayStatus === "Available" ? "text-green-600" : "text-red-600";
                 return <span className={`font-medium ${color}`}>{displayStatus}</span>;
             },
-            meta: { padding: "4px 4px" }
+            meta: { padding: "4px 4px", fontSize: "0.875rem" }
         },
         ...(activeRole === "Librarian" ? [{
             id: "register",
@@ -580,7 +683,7 @@ export default function LibraryDashboard({
         {
             accessorKey: "bookId.name",
             header: "Book Name",
-            cell: ({ row }) => row.original.bookId?.name || "Unknown Book",
+            cell: ({ row }) => <span className="book-text-font">{row.original.bookId?.name || "Unknown Book"}</span>,
             meta: {
                 whiteSpace: "nowrap"
             }
@@ -1370,7 +1473,7 @@ export default function LibraryDashboard({
                                                     studentHistory.map((rental) => (
                                                         <TableRow key={rental._id}>
                                                             <TableCell className="font-medium">{rental.bookId?.id}</TableCell>
-                                                            <TableCell>{rental.bookId?.name}</TableCell>
+                                                            <TableCell className="book-text-font">{rental.bookId?.name}</TableCell>
                                                             <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
                                                             <TableCell>
                                                                 {rental.receivedDate ? (
@@ -1420,10 +1523,10 @@ export default function LibraryDashboard({
                                         <BookIcon className="h-24 w-24 text-primary" />
                                     </div>
                                     <div className="space-y-1 flex-1 text-center md:text-left">
-                                        <h2 className="text-2xl font-bold text-primary">{lookupBook.name}</h2>
+                                        <h2 className="text-2xl font-bold text-primary book-text-font">{lookupBook.name}</h2>
                                         <div className="flex flex-col gap-1">
                                             <div className="text-sm font-medium">Book ID: <span className="text-muted-foreground font-bold">{lookupBook.id}</span></div>
-                                            <div className="text-sm font-medium">Author: <span className="text-muted-foreground uppercase">{lookupBook.author}</span></div>
+                                            <div className="text-sm font-medium">Author: <span className="text-muted-foreground uppercase book-text-font">{lookupBook.author}</span></div>
                                             <div className="text-sm font-medium">Category: <span className="text-muted-foreground">{lookupBook.category}</span></div>
                                             <div className="text-sm font-medium">Language: <span className="text-muted-foreground">{lookupBook.language}</span></div>
                                             <div className="text-sm font-medium">Status:
@@ -1515,8 +1618,8 @@ export default function LibraryDashboard({
                                             <TableRow key={rental._id}>
                                                 <TableCell className="font-medium">{index + 1}</TableCell>
                                                 <TableCell className="font-medium">{rental.bookId?.id}</TableCell>
-                                                <TableCell>{rental.bookId?.name}</TableCell>
-                                                <TableCell>{rental.studentId?.name || rental.studentName}</TableCell>
+                                                <TableCell className="book-text-font">{rental.bookId?.name}</TableCell>
+                                                <TableCell className="book-text-font">{rental.studentId?.name || rental.studentName}</TableCell>
                                                 <TableCell>{rental.rentedDate ? format(new Date(rental.rentedDate), "PP") : "-"}</TableCell>
                                             </TableRow>
                                         ))
@@ -1571,7 +1674,7 @@ export default function LibraryDashboard({
                                                 <TableCell className="text-center text-muted-foreground text-xs">{i + 1}</TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-col">
-                                                        <span className="font-semibold text-sm">{req.bookId?.name || "N/A"}</span>
+                                                        <span className="font-semibold text-sm book-text-font">{req.bookId?.name || "N/A"}</span>
                                                         <span className="text-xs text-muted-foreground">ID: {req.bookId?.id || "N/A"}</span>
                                                     </div>
                                                 </TableCell>
@@ -1695,16 +1798,37 @@ export default function LibraryDashboard({
                                 <TableHeader className="bg-muted/50">
                                     <TableRow>
                                         <TableHead className="w-[50px]">Sl No</TableHead>
+                                        <TableHead>ID</TableHead>
                                         <TableHead>Category</TableHead>
                                         <TableHead className="text-right">Books Count</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {categories.length > 0 ? (
-                                        categories.map((cat, index) => (
-                                            <TableRow key={index}>
+                                        Object.values(
+                                            categories.reduce((acc, cat) => {
+                                                const key = normalizeCategoryName(cat.category);
+                                                if (!key) return acc;
+                                                if (acc[key]) {
+                                                    acc[key].count += cat.count || 0;
+                                                } else {
+                                                    let prefix = "-";
+                                                    const book = localBooks.find(b => normalizeCategoryName(b.category) === key && b.id);
+                                                    if (book && book.id) {
+                                                        const match = String(book.id).match(/^[A-Za-z]+/);
+                                                        if (match) prefix = match[0].toUpperCase();
+                                                    }
+                                                    acc[key] = { category: key, count: cat.count || 0, prefix };
+                                                }
+                                                return acc;
+                                            }, {})
+                                        )
+                                        .sort((a, b) => a.category.localeCompare(b.category))
+                                        .map((cat, index) => (
+                                            <TableRow key={cat.category}>
                                                 <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
-                                                <TableCell className="font-bold">{cat.category}</TableCell>
+                                                <TableCell className="font-bold text-primary">{cat.prefix}</TableCell>
+                                                <TableCell className="font-bold uppercase">{cat.category}</TableCell>
                                                 <TableCell className="text-right">
                                                     <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold">
                                                         {cat.count}
@@ -1714,7 +1838,7 @@ export default function LibraryDashboard({
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                                            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                                                 No categories found
                                             </TableCell>
                                         </TableRow>
@@ -1742,10 +1866,23 @@ export default function LibraryDashboard({
                                 </TableHeader>
                                 <TableBody>
                                     {languages.length > 0 ? (
-                                        languages.map((lang, index) => (
-                                            <TableRow key={index}>
+                                        Object.values(
+                                            languages.reduce((acc, lang) => {
+                                                const key = (lang.language || "").toUpperCase();
+                                                if (!key) return acc;
+                                                if (acc[key]) {
+                                                    acc[key].count += lang.count || 0;
+                                                } else {
+                                                    acc[key] = { language: key, count: lang.count || 0 };
+                                                }
+                                                return acc;
+                                            }, {})
+                                        )
+                                        .sort((a, b) => a.language.localeCompare(b.language))
+                                        .map((lang, index) => (
+                                            <TableRow key={lang.language}>
                                                 <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
-                                                <TableCell className="font-bold">{lang.language}</TableCell>
+                                                <TableCell className="font-bold uppercase">{lang.language}</TableCell>
                                                 <TableCell className="text-right">
                                                     <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold">
                                                         {lang.count}
@@ -1789,8 +1926,8 @@ export default function LibraryDashboard({
                                             <TableRow key={book._id}>
                                                 <TableCell className="font-medium">{index + 1}</TableCell>
                                                 <TableCell className="font-medium text-primary">{book.id}</TableCell>
-                                                <TableCell>{book.name}</TableCell>
-                                                <TableCell>{book.author}</TableCell>
+                                                <TableCell className="book-text-font">{book.name}</TableCell>
+                                                <TableCell className="uppercase book-text-font">{book.author}</TableCell>
                                                 <TableCell>
                                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${book.status === 'Available' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                                                         {book.status}
@@ -1834,8 +1971,8 @@ export default function LibraryDashboard({
                                             <TableRow key={book._id}>
                                                 <TableCell className="font-medium">{index + 1}</TableCell>
                                                 <TableCell className="font-medium text-primary">{book.id}</TableCell>
-                                                <TableCell>{book.name}</TableCell>
-                                                <TableCell>{book.author}</TableCell>
+                                                <TableCell className="book-text-font">{book.name}</TableCell>
+                                                <TableCell className="uppercase book-text-font">{book.author}</TableCell>
                                                 <TableCell>{book.category}</TableCell>
                                             </TableRow>
                                         ))
@@ -2017,6 +2154,21 @@ export default function LibraryDashboard({
                                     }
                                 />
                             </div>
+                            {duplicateIdGroups.length > 0 && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setDuplicateIdsOpen(true)}
+                                    className="relative h-8 px-2 md:px-3 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
+                                    title={`${duplicateIdGroups.length} duplicate ID(s) found`}
+                                >
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span className="hidden md:inline ml-1">Duplicate IDs</span>
+                                    <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center text-[10px] font-bold bg-red-500 text-white rounded-full w-4 h-4">
+                                        {duplicateIdGroups.length}
+                                    </span>
+                                </Button>
+                            )}
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -2048,6 +2200,92 @@ export default function LibraryDashboard({
                     }
                 />
                 <BarcodeSheet ref={barcodeSheetRef} books={localBooks.filter(b => selectedIds.includes(b._id))} />
+
+                {/* Duplicate IDs Dialog */}
+                <Dialog open={duplicateIdsOpen} onOpenChange={setDuplicateIdsOpen}>
+                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <div className="flex items-center justify-between gap-4 flex-wrap">
+                                <DialogTitle className="flex items-center gap-2 text-red-600">
+                                    <AlertCircle className="h-5 w-5" />
+                                    Duplicate Book IDs ({duplicateIdGroups.length} group{duplicateIdGroups.length !== 1 ? "s" : ""})
+                                </DialogTitle>
+                                {duplicateIdGroups.some(g => g.isSafe) && (
+                                    <Button
+                                        size="sm"
+                                        disabled={loading}
+                                        className="h-8 px-4 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none font-bold"
+                                        onClick={handleMergeAllSafe}
+                                    >
+                                        {loading ? "Merging…" : `Merge All Safe (${duplicateIdGroups.filter(g => g.isSafe).length} group${duplicateIdGroups.filter(g => g.isSafe).length > 1 ? "s" : ""})`}
+                                    </Button>
+                                )}
+                            </div>
+                        </DialogHeader>
+                        <div className="space-y-4 mt-2">
+                            {duplicateIdGroups.length === 0 ? (
+                                <p className="text-center text-muted-foreground py-8">No duplicate IDs found.</p>
+                            ) : (
+                                duplicateIdGroups.map(({ id, books, isSafe }) => (
+                                    <div key={id} className={`rounded-md border overflow-hidden ${isSafe ? "border-amber-200 dark:border-amber-900" : "border-red-200 dark:border-red-900"}`}>
+                                        <div className={`px-4 py-2 flex items-center gap-2 justify-between ${isSafe ? "bg-amber-50 dark:bg-amber-950/40" : "bg-red-50 dark:bg-red-950/40"}`}>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`font-bold uppercase tracking-widest text-sm ${isSafe ? "text-amber-700 dark:text-amber-400" : "text-red-700 dark:text-red-400"}`}>ID: {id}</span>
+                                                <span className={`text-xs rounded-full px-2 py-0.5 font-bold text-white ${isSafe ? "bg-amber-500" : "bg-red-500"}`}>{books.length} books</span>
+                                                {isSafe ? (
+                                                    <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">✓ Same content — safe to merge</span>
+                                                ) : (
+                                                    <span className="text-xs text-red-600 dark:text-red-400 font-medium">⚠ Conflicting content — resolve manually</span>
+                                                )}
+                                            </div>
+                                            {isSafe && (
+                                                <Button
+                                                    size="sm"
+                                                    disabled={loading}
+                                                    className="h-7 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                                                    onClick={() => handleMergeDuplicates(books)}
+                                                >
+                                                    {loading ? "Merging…" : `Merge (keep 1, delete ${books.length - 1})`}
+                                                </Button>
+                                            )}
+                                        </div>
+                                        <Table>
+                                            <TableHeader className="bg-muted/30">
+                                                <TableRow>
+                                                    <TableHead className="text-xs">Book Name</TableHead>
+                                                    <TableHead className="text-xs">Author</TableHead>
+                                                    <TableHead className="text-xs">Language</TableHead>
+                                                    <TableHead className="text-xs">Category</TableHead>
+                                                    <TableHead className="text-xs">Status</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {books.map((book, idx) => (
+                                                    <TableRow key={book._id} className={`text-sm ${isSafe && idx > 0 ? "opacity-50" : ""}`}>
+                                                        <TableCell className="book-text-font font-medium">
+                                                            {isSafe && idx === 0 && <span className="mr-1 text-[10px] bg-emerald-100 text-emerald-700 rounded px-1 font-bold">KEEP</span>}
+                                                            {isSafe && idx > 0 && <span className="mr-1 text-[10px] bg-red-100 text-red-600 rounded px-1 font-bold">DEL</span>}
+                                                            {book.name}
+                                                        </TableCell>
+                                                        <TableCell className="book-text-font uppercase text-muted-foreground">{book.author}</TableCell>
+                                                        <TableCell className="uppercase text-muted-foreground">{book.language}</TableCell>
+                                                        <TableCell className="uppercase text-muted-foreground">{normalizeCategoryName(book.category)}</TableCell>
+                                                        <TableCell>
+                                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${book.status === "Available" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                                                                {(book.status === "Pending" || book.status === "Rented") ? "Rented" : (book.status || "Unknown")}
+                                                            </span>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
                 {renderConfirmDialog()}
                 {/* Quick Rental Popup — triggered from Register button in book row/card */}
                 {quickRentalBook && (

@@ -5,6 +5,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Shared font stack for book name, author, publication:
+   English → Montserrat (listed first, has Latin glyphs)
+   Arabic  → Sakkal Majalla (Montserrat has no Arabic glyphs, falls through)
+   Malayalam → Noto Sans Malayalam (fallback for Malayalam script) */
+.book-text-font {
+  font-family: var(--font-montserrat), 'Montserrat', 'Sakkal Majalla',
+    var(--font-noto-malayalam), 'Noto Sans Malayalam', sans-serif;
+}
+
+
 @media print {
   .no-print {
     display: none !important;
