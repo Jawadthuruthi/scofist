@@ -785,6 +785,7 @@ export default function LibraryDashboard({
             options: [
                 { value: "Available", label: "Available" },
                 { value: "Rented", label: "Rented" },
+                { value: "Not Available", label: "Not Available" },
             ],
         },
     ];
@@ -933,6 +934,62 @@ export default function LibraryDashboard({
                     setRowSelection({});
                 } catch (error) { console.error(error); } 
                 finally { setLoading(false); setConfirmDialog(prev => ({ ...prev, open: false })); }
+            }
+        });
+    };
+
+    const handleBulkMarkNotAvailable = () => {
+        setConfirmDialog({
+            open: true,
+            title: "Mark Not Available",
+            message: `Are you sure you want to mark ${selectedIds.length} books as Not Available?`,
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    for (const id of selectedIds) {
+                        await fetch("/api/library/books", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ _id: id, status: "Not Available" }),
+                        });
+                    }
+                    toast.success(`Marked ${selectedIds.length} books as Not Available`);
+                    router.refresh();
+                    setRowSelection({});
+                } catch (error) {
+                    toast.error("Failed to update status");
+                } finally {
+                    setLoading(false);
+                    setConfirmDialog(prev => ({ ...prev, open: false }));
+                }
+            }
+        });
+    };
+
+    const handleBulkMarkAvailable = () => {
+        setConfirmDialog({
+            open: true,
+            title: "Mark Available",
+            message: `Are you sure you want to mark ${selectedIds.length} books as Available?`,
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    for (const id of selectedIds) {
+                        await fetch("/api/library/books", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ _id: id, status: "Available" }),
+                        });
+                    }
+                    toast.success(`Marked ${selectedIds.length} books as Available`);
+                    router.refresh();
+                    setRowSelection({});
+                } catch (error) {
+                    toast.error("Failed to update status");
+                } finally {
+                    setLoading(false);
+                    setConfirmDialog(prev => ({ ...prev, open: false }));
+                }
             }
         });
     };
@@ -2112,20 +2169,37 @@ export default function LibraryDashboard({
                                         size="sm"
                                         onClick={() => handlePrintBarcodes()}
                                         className="bg-foreground text-background hover:bg-foreground/90 hover:text-background border-none h-8 w-8 p-0 md:w-auto md:px-3"
-                                        title="Print Barcodes"
+                                        title="Barcodes"
                                     >
                                         <Scan className="h-4 w-4" />
-                                        <span className="hidden md:inline">Print Barcodes</span>
+                                        <span className="hidden md:inline">Barcodes</span>
                                     </Button>
                                     <Button
                                         variant="destructive"
                                         size="sm"
                                         onClick={handleBulkDelete}
                                         title={`Delete (${selectedIds.length})`}
-                                        className="h-8 w-auto px-2 md:px-3"
+                                        className="h-8 px-2"
                                     >
                                         <Trash2 className="h-4 w-4" />
-                                        <span className="ml-1 md:ml-2">({selectedIds.length})</span>
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleBulkMarkAvailable}
+                                        title={`Mark Available (${selectedIds.length})`}
+                                        className="h-8 px-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
+                                    >
+                                        <Check className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleBulkMarkNotAvailable}
+                                        title={`Mark Not Available (${selectedIds.length})`}
+                                        className="h-8 px-2 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
+                                    >
+                                        <X className="h-4 w-4" />
                                     </Button>
                                 </>
                             )}
@@ -2145,11 +2219,10 @@ export default function LibraryDashboard({
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            className="h-8 w-8 p-0 md:w-auto md:px-3"
+                                            className="h-8 w-8 p-0"
                                             title="Edit Book"
                                         >
                                             <Edit className="h-4 w-4" />
-                                            <span className="hidden md:inline ml-2">Edit</span>
                                         </Button>
                                     }
                                 />
@@ -2184,9 +2257,9 @@ export default function LibraryDashboard({
                                 formFields={bookFields}
                                 onSubmit={handleCreateBook}
                                 loading={loading}
-                                triggerText="Add Book"
+                                triggerText="Add"
                                 triggerVariant="default"
-                                triggerClass="hidden md:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white border-none"
+                                triggerClass="hidden md:flex items-center gap-1 h-8 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white border-none"
                             />
                             <PopupForm
                                 title="Add New Book"
