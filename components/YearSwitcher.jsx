@@ -46,7 +46,11 @@ const YearSwitcher = () => {
       if (currentRole === "Program Committee" || currentRole === "Program Leader") {
         if (!currentYear) currentYear = recentYear;
       } else {
-        if (!currentYear) currentYear = settings.activeYear || "2025 november";
+        if (!currentYear) currentYear = settings.activeYear || recentYear;
+      }
+
+      if (fetchedYears.length > 0 && !fetchedYears.includes(currentYear)) {
+        currentYear = recentYear;
       }
 
       if ((currentRole === "Program Leader" || currentRole === "Program Committee") && fetchedBlockedYears.includes(currentYear)) {
