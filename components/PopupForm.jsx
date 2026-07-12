@@ -160,11 +160,16 @@ const PopulatedField = ({ field, form, apiKey, data, capitalizeInputs }) => {
 function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
   const depName =
     field.conditionalRender?.dependentField || field.filter?.dependentField;
-  const depValue = useWatch({ control: form.control, name: depName });
-  const thisValue = useWatch({ control: form.control, name: field.name });
+  const depValue = useWatch({ control: form.control, name: depName || "__ignore_dep_watch__" });
+
+  const isSelect = field.inputType === "select" || field.inputType === "multiSelect";
+  const thisValue = useWatch({ 
+    control: form.control, 
+    name: isSelect ? field.name : "__ignore_watch__" 
+  });
 
   // Auto-selection logic for fields like subjectTypeAssignments
-  const autoSelectValue = useWatch({ control: form.control, name: field.autoSelectFrom });
+  const autoSelectValue = useWatch({ control: form.control, name: field.autoSelectFrom || "__ignore_watch__" });
   const prevAutoSelectValue = React.useRef(autoSelectValue);
 
   React.useEffect(() => {
@@ -363,15 +368,6 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
                   />
                 ) : fieldToRender.inputType === "async-text" ? (
                   <AsyncInput
-                    value={((capitalizeInputs && fieldToRender.name !== "email" && fieldToRender.type !== "email" && typeof formField.value === "string") ? formField.value.toUpperCase() : formField.value)}
-                    onChange={(e) => {
-                      const val = e && e.target ? e.target.value : e;
-                      const uppercaseVal = typeof val === "string" ? val.toUpperCase() : val;
-                      if (e && e.target) {
-                        e.target.value = uppercaseVal;
-                      }
-                      formField.onChange(uppercaseVal);
-                    }}
                     placeholder={fieldToRender.placeholder}
                     disabled={fieldToRender.disabled}
                     readOnly={(data?._id && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
@@ -379,6 +375,33 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
                     autoFocus={fieldToRender.autoFocus}
                     className={capitalizeInputs && fieldToRender.name !== "email" ? "uppercase" : ""}
                     {...formField}
+                    {...(capitalizeInputs && fieldToRender.name !== "email" && fieldToRender.type !== "email" ? {
+                      value: typeof formField.value === "string" ? formField.value.toUpperCase() : formField.value,
+                      onChange: (e) => {
+                        if (e && e.target) {
+                          const target = e.target;
+                          const val = target.value;
+                          if (typeof val === "string") {
+                            const start = target.selectionStart;
+                            const end = target.selectionEnd;
+                            formField.onChange(val.toUpperCase());
+                            requestAnimationFrame(() => {
+                              if (target && target.setSelectionRange && start !== null) {
+                                target.setSelectionRange(start, end);
+                              }
+                            });
+                          } else {
+                            formField.onChange(e);
+                          }
+                        } else {
+                          if (typeof e === "string") {
+                            formField.onChange(e.toUpperCase());
+                          } else {
+                            formField.onChange(e);
+                          }
+                        }
+                      }
+                    } : {})}
                   />
                 ) : (
                   <Input
@@ -387,16 +410,15 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
                     readOnly={(data?._id && fieldToRender.readOnlyOnEdit) || fieldToRender.readOnly}
                     autoFocus={fieldToRender.autoFocus}
                     className={capitalizeInputs && fieldToRender.name !== "email" ? "uppercase" : ""}
-                    {...formField}
-                    value={((capitalizeInputs && fieldToRender.name !== "email" && fieldToRender.type !== "email" && typeof formField.value === "string") ? formField.value.toUpperCase() : formField.value)}
-                    onChange={(e) => {
-                      const val = e && e.target ? e.target.value : e;
-                      const uppercaseVal = typeof val === "string" ? val.toUpperCase() : val;
-                      if (e && e.target) {
-                        e.target.value = uppercaseVal;
+                    {...form.register(fieldToRender.name, {
+                      setValueAs: (v) => {
+                        if (typeof v === "string" && capitalizeInputs && fieldToRender.name !== "email" && fieldToRender.type !== "email") {
+                          return v.toUpperCase();
+                        }
+                        return v;
                       }
-                      formField.onChange(uppercaseVal);
-                    }}
+                    })}
+                    defaultValue={form.getValues(fieldToRender.name) ?? ""}
                   />
                 )}
               </div>
