@@ -88,10 +88,6 @@ export default function LibraryDashboard({
             language: b.language ? b.language.toUpperCase() : b.language,
             category: b.category ? b.category.toUpperCase() : b.category
         })).sort((a, b) => {
-            const catA = normalizeCategoryName(a.category) || "";
-            const catB = normalizeCategoryName(b.category) || "";
-            if (catA !== catB) return catA.localeCompare(catB);
-            
             const idA = String(a.id || "");
             const idB = String(b.id || "");
             return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
@@ -2179,7 +2175,7 @@ export default function LibraryDashboard({
                                         size="sm"
                                         onClick={handleBulkDelete}
                                         title={`Delete (${selectedIds.length})`}
-                                        className="h-8 px-2"
+                                        className="h-8 w-8 p-0"
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -2188,7 +2184,7 @@ export default function LibraryDashboard({
                                         size="sm"
                                         onClick={handleBulkMarkAvailable}
                                         title={`Mark Available (${selectedIds.length})`}
-                                        className="h-8 px-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
+                                        className="h-8 w-8 p-0 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
                                     >
                                         <Check className="h-4 w-4" />
                                     </Button>
@@ -2197,7 +2193,7 @@ export default function LibraryDashboard({
                                         size="sm"
                                         onClick={handleBulkMarkNotAvailable}
                                         title={`Mark Not Available (${selectedIds.length})`}
-                                        className="h-8 px-2 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
+                                        className="h-8 w-8 p-0 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
                                     >
                                         <X className="h-4 w-4" />
                                     </Button>

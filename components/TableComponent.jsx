@@ -181,7 +181,7 @@ const TableComponent = forwardRef(({
           {!hideColumnManagement && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-10 md:h-8 lg:flex shrink-0">
+                <Button variant="outline" size="sm" className="h-10 md:h-8 lg:flex shrink-0 order-1">
                   <SlidersHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -232,7 +232,7 @@ const TableComponent = forwardRef(({
 
           {/* Global Search Button/Input - Moved next to Column Management */}
           {!hideSearch && (
-            <div className="relative flex items-center flex-1 md:flex-none">
+            <div className="relative flex items-center flex-1 md:flex-none order-3 md:order-2">
               <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder={searchPlaceholder || "Search..."}
@@ -243,7 +243,7 @@ const TableComponent = forwardRef(({
             </div>
           )}
 
-          {/* Filters */}
+          {/* Filters (Desktop) */}
           {filterConfig.length > 0 && (
             <PopupFilter
               filterConfig={filterConfig}
@@ -265,13 +265,13 @@ const TableComponent = forwardRef(({
               }}
               clearFilters={() => setColumnFilters([])}
               hasFilters={columnFilters.length > 0}
-              triggerClass="h-10 md:h-8 w-10 md:w-auto px-0 md:px-3 shrink-0"
+              triggerClass="hidden md:flex h-8 w-auto px-3 shrink-0 order-3"
             />
           )}
 
-          {/* View Toggle */}
+          {/* View Toggle (Desktop) */}
           {enableGrid && !hideViewToggle && (
-            <div className="flex items-center border rounded-md overflow-hidden shrink-0">
+            <div className="hidden md:flex items-center border rounded-md overflow-hidden shrink-0">
               <Button
                 variant={viewMode === "list" ? "secondary" : "ghost"}
                 size="sm"
@@ -296,6 +296,54 @@ const TableComponent = forwardRef(({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1 md:gap-2 order-2 md:order-3 ml-auto overflow-x-auto hide-scrollbar">
+          {/* View Toggle (Mobile) */}
+          {enableGrid && !hideViewToggle && (
+            <div className="flex md:hidden items-center border rounded-md overflow-hidden shrink-0">
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 px-0 rounded-none border-r"
+                onClick={() => setViewMode("list")}
+                title="List View"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "grid" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 px-0 rounded-none"
+                onClick={() => setViewMode("grid")}
+                title="Grid View"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          {/* Filters (Mobile) */}
+          {filterConfig.length > 0 && (
+            <PopupFilter
+              filterConfig={filterConfig}
+              filters={columnFilters.reduce((acc, filter) => {
+                acc[filter.id] = filter.value;
+                return acc;
+              }, {})}
+              setFilter={(id, value) => {
+                setColumnFilters((prev) => {
+                  const existing = prev.find((f) => f.id === id);
+                  if (existing) {
+                    return prev.map((f) => (f.id === id ? { ...f, value } : f));
+                  }
+                  return [...prev, { id, value }];
+                });
+              }}
+              removeFilter={(id) => {
+                setColumnFilters((prev) => prev.filter((f) => f.id !== id));
+              }}
+              clearFilters={() => setColumnFilters([])}
+              hasFilters={columnFilters.length > 0}
+              triggerClass="flex md:hidden h-8 w-8 px-0 p-0 shrink-0 justify-center items-center"
+            />
+          )}
           {actionButtons}
           {showCsvBtn && (
             <Button
