@@ -101,15 +101,17 @@ export default async function SchedulePage() {
   try {
     const cookiesStore = await cookies();
     const activeRole = cookiesStore.get("active-role")?.value;
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
     const apiKey = process.env.API_KEY;
+    const isOwner = activeRole === "Owner";
 
-    // Fetch programs for form options
+    // Fetch programs and divisions for form options
     const programs = await fetchData(
       "programs",
-      "projection=_id,name,type,category"
+      `${yearParam}projection=_id,name,type,category`
     );
-
-    const divisions = await fetchData("divisions", "projection=_id,name");
+    const divisions = await fetchData("divisions", `${yearParam}projection=_id,name`);
 
     const stageOptions = generateStageOptions();
 

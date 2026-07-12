@@ -665,6 +665,36 @@ export async function PUT(req) {
     }
 
     if (data.years) {
+      const oldYears = existingSettings?.years || [];
+      const newYears = data.years;
+
+      // Detect if exactly one year was renamed
+      if (oldYears.length === newYears.length) {
+        const removedYears = oldYears.filter(y => !newYears.includes(y));
+        const addedYears = newYears.filter(y => !oldYears.includes(y));
+
+        if (removedYears.length === 1 && addedYears.length === 1) {
+          const oldYearName = removedYears[0];
+          const newYearName = addedYears[0];
+          
+          try {
+            const db = (await connectToDB()).connection.db;
+            const collections = await db.listCollections().toArray();
+            for (const collInfo of collections) {
+              if (collInfo.type === 'collection') {
+                await db.collection(collInfo.name).updateMany(
+                  { year: oldYearName },
+                  { $set: { year: newYearName } }
+                );
+              }
+            }
+            console.log(`Successfully migrated data from ${oldYearName} to ${newYearName}`);
+          } catch (migrationError) {
+            console.error("Error migrating collections:", migrationError);
+          }
+        }
+      }
+
       updateData.years = data.years;
     }
     if (data.blockedYears !== undefined) {

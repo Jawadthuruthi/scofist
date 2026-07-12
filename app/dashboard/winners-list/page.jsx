@@ -3,6 +3,8 @@ import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
 
+import { cookies } from "next/headers";
+
 const columnsConfig = [
   {
     accessorKey: "serialNo",
@@ -29,9 +31,12 @@ const columnsConfig = [
 
 export default async function WinnersListPage() {
   try {
+    const cookiesStore = await cookies();
     const apiKey = process.env.API_KEY;
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
 
-    const divisions = await fetchData("divisions", "projection=_id,name", 0);
+    const divisions = await fetchData("divisions", `${yearParam}projection=_id,name`, 0);
 
     const filterConfig = [
       {

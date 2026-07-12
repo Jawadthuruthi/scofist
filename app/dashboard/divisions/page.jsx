@@ -55,11 +55,13 @@ export default async function DivisionsPage() {
   try {
     const cookiesStore = await cookies();
     const activeRole = cookiesStore.get("active-role")?.value;
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
     const apiKey = process.env.API_KEY;
 
     const divisions = await fetchData(
       "divisions",
-      "projection=_id,name&type=Primary",
+      `${yearParam}projection=_id,name&type=Primary`,
       0
     );
 
