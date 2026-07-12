@@ -333,6 +333,10 @@ const StudentsFund = ({
         batchName: batch?.name || s.batchName || "No Batch",
         className: s.className || "No Class"
       };
+    }).sort((a, b) => {
+      const aVal = String(a.studentSpecificField?.admissionNumber ?? a.admissionNumber ?? a._id ?? "");
+      const bVal = String(b.studentSpecificField?.admissionNumber ?? b.admissionNumber ?? b._id ?? "");
+      return bVal.localeCompare(aVal, undefined, { numeric: true, sensitivity: 'base' });
     });
   }, [lookupSearchTerm, students, batches, classes, showSearchResults]);
 
