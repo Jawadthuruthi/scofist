@@ -140,13 +140,21 @@ export async function GET(req, res) {
       const pipeline = [
         { $match: query },
         {
+          $addFields: {
+            userIdForLookup: {
+              $arrayElemAt: [{ $split: ["$_id", "-"] }, 0],
+            },
+          },
+        },
+        {
           $lookup: {
             from: "users",
-            localField: "_id",
+            localField: "userIdForLookup",
             foreignField: "_id",
             as: "userDetails",
           },
         },
+
         {
           $lookup: {
             from: "classes",
@@ -248,8 +256,8 @@ export async function GET(req, res) {
         ...participant,
         _id: participant._id,
         profilePic: participant.userDetails[0]?.profilePic,
-        classId: participant.classDetails[0]?._id,
-        className: participant.classDetails[0]?.name || "Unknown",
+        classId: participant.classDetails?.[0]?._id,
+        className: participant.classDetails?.[0]?.name || "Unknown",
         teamId: participant.teamDetails[0]?._id,
         teamName: participant.teamDetails[0]?.name || "Unknown",
         divisionId: participant.divisionDetails[0]?._id,
@@ -292,13 +300,21 @@ export async function GET(req, res) {
       const pipeline = [
         { $match: query },
         {
+          $addFields: {
+            userIdForLookup: {
+              $arrayElemAt: [{ $split: ["$_id", "-"] }, 0],
+            },
+          },
+        },
+        {
           $lookup: {
             from: "users",
-            localField: "_id",
+            localField: "userIdForLookup",
             foreignField: "_id",
             as: "userDetails",
           },
         },
+
         {
           $lookup: {
             from: "classes",
@@ -374,8 +390,8 @@ export async function GET(req, res) {
         ...participant,
         _id: participant._id,
         profilePic: participant.userDetails[0]?.profilePic,
-        classId: participant.classDetails[0]?._id,
-        className: participant.classDetails[0]?.name || "Unknown",
+        classId: participant.classDetails?.[0]?._id,
+        className: participant.classDetails?.[0]?.name || "Unknown",
         teamId: participant.teamDetails[0]?._id,
         teamName: participant.teamDetails[0]?.name || "Unknown",
         divisionId: participant.divisionDetails[0]?._id,
@@ -437,13 +453,21 @@ export async function GET(req, res) {
         { $skip: page * limit },
         { $limit: limit },
         {
+          $addFields: {
+            userIdForLookup: {
+              $arrayElemAt: [{ $split: ["$_id", "-"] }, 0],
+            },
+          },
+        },
+        {
           $lookup: {
             from: "users",
-            localField: "_id",
+            localField: "userIdForLookup",
             foreignField: "_id",
             as: "userDetails",
           },
         },
+
         {
           $lookup: {
             from: "classes",
@@ -485,8 +509,8 @@ export async function GET(req, res) {
         ...participant,
         _id: participant._id,
         profilePic: participant.userDetails[0]?.profilePic,
-        classId: participant.classDetails[0]?._id,
-        className: participant.classDetails[0]?.name || "Unknown",
+        classId: participant.classDetails?.[0]?._id,
+        className: participant.classDetails?.[0]?.name || "Unknown",
         teamId: participant.teamDetails[0]?._id,
         teamName: participant.teamDetails[0]?.name || "Unknown",
         divisionId: participant.divisionDetails[0]?._id,
@@ -538,11 +562,10 @@ export async function GET(req, res) {
       .sort(sortCriteria)
       .collation({ locale: "en_US", numericOrdering: true });
 
-    // Fetch profile pics for participants (participant._id is "userId-year")
     const userIds = participants.map((p) => String(p._id).split("-")[0]).filter(Boolean);
     const users = await User.find({ _id: { $in: userIds } }, "profilePic").lean();
-    const profilePicMap = {};
-    users.forEach((u) => { profilePicMap[String(u._id)] = u.profilePic?.url || null; });
+    const userMap = {};
+    users.forEach((u) => { userMap[String(u._id)] = u; });
 
     const total = await Participant.countDocuments(query);
 
@@ -550,10 +573,11 @@ export async function GET(req, res) {
 
     const formattedParticipants = participants.map((participant) => {
       const userId = String(participant._id).split("-")[0];
+      const user = userMap[userId];
       return {
       ...participant.toObject(),
       _id: participant._id,
-      profilePic: profilePicMap[userId] || null,
+      profilePic: user?.profilePic?.url || null,
       classId: participant.classId?._id,
       className: participant.classId?.name || "Unknown",
       teamId: participant.teamId?._id,
