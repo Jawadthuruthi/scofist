@@ -1,4 +1,4 @@
-import { fetchData, parseUser } from "@/lib/utils";
+import { fetchData, parseUser, sortTeachers } from "@/lib/utils";
 import { headers } from "next/headers";
 import ErrorPage from "@/components/ErrorPage";
 import HifzDoura from "@/components/HifzDoura";
@@ -12,14 +12,14 @@ const HifzDouraPage = async () => {
 
     const [classes, teachers] = await Promise.all([
       fetchData("classes", "status=Active&projection=_id,name,shortname", 0),
-      fetchData("users", "roles=Teacher&projection=_id,name", 0),
+      fetchData("users", "roles=Teacher&projection=_id,name,dateOfBirth", 0),
     ]);
 
     return (
       <HifzDoura
         apiKey={apiKey}
         classes={Array.isArray(classes) ? classes : []}
-        teachers={Array.isArray(teachers) ? teachers : []}
+        teachers={Array.isArray(teachers) ? sortTeachers(teachers) : []}
         currentUser={user}
       />
     );

@@ -1,6 +1,6 @@
 import PerformanceClient from "./PerformanceClient";
 import ErrorPage from "@/components/ErrorPage";
-import { fetchData, formatOptions, parseUser } from "@/lib/utils";
+import { fetchData, formatOptions, parseUser, sortTeachers } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
 
 export default async function PerformancePage() {
@@ -30,7 +30,7 @@ export default async function PerformancePage() {
     let teachers = [];
     try {
       const teachersData = await fetchData("users", "roles=Teacher&limit=1000&sort=asc", 0, "users");
-      teachers = formatOptions(teachersData);
+      teachers = formatOptions(sortTeachers(teachersData));
     } catch (e) {
       console.error("Error fetching teachers:", e);
     }

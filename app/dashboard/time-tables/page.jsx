@@ -1,7 +1,7 @@
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import TimeTablesManagements from "@/components/TimeTablesManagements";
-import { fetchData } from "@/lib/utils";
+import { fetchData, sortTeachers } from "@/lib/utils";
 
 const API_ENDPOINTS = [
   {
@@ -12,7 +12,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "users",
-    searchParams: "roles=Teacher&projection=_id,name",
+    searchParams: "roles=Teacher&projection=_id,name,dateOfBirth",
   },
   {
     pathname: "classes",
@@ -31,9 +31,7 @@ const TimeTablePage = async () => {
     );
 
     if (teachers && teachers.length > 0) {
-      teachers = [...teachers].sort((a, b) => {
-        return String(a._id).localeCompare(String(b._id), undefined, { numeric: true });
-      });
+      teachers = sortTeachers(teachers);
     }
 
     return (

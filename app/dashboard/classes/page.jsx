@@ -1,7 +1,7 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { fetchData, formatOptions } from "@/lib/utils";
+import { fetchData, formatOptions, sortTeachers } from "@/lib/utils";
 
 const API_ENDPOINTS = [
   {
@@ -10,7 +10,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "users",
-    searchParams: "roles=Teacher&projection=_id,name",
+    searchParams: "roles=Teacher&projection=_id,name,dateOfBirth",
   },
   {
     pathname: "subjects",
@@ -119,7 +119,7 @@ export default async function ClassesPage() {
         label: "Assign a teacher",
         type: "text",
         inputType: "select",
-        options: formatOptions(teachers),
+        options: formatOptions(sortTeachers(teachers)),
       },
       {
         name: "coreSubjectIds",
@@ -161,7 +161,7 @@ export default async function ClassesPage() {
         id: "teacherId",
         label: "Select a teacher",
         inputType: "select",
-        options: formatOptions(teachers),
+        options: formatOptions(sortTeachers(teachers)),
       },
       {
         id: "status",

@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import Header from "@/components/Header";
 import ClientOnlyAdvancedDataTable from "@/components/ClientOnlyAdvancedDataTable";
 import StudentAttendanceLookup from "@/components/StudentAttendanceLookupWrapper";
-import { fetchData, formatOptions, OPERATORS } from "@/lib/utils";
+import { fetchData, formatOptions, OPERATORS, sortTeachers } from "@/lib/utils";
 
 const API_ENDPOINTS = [
   {
@@ -24,7 +24,7 @@ const API_ENDPOINTS = [
   },
   {
     pathname: "users",
-    searchParams: "projection=_id,name,profilePic&roles=Teacher&limit=3000",
+    searchParams: "projection=_id,name,profilePic,dateOfBirth&roles=Teacher&limit=3000",
   },
 ];
 
@@ -71,7 +71,7 @@ const AttendanceTrackingPage = async () => {
     }));
 
     const formattedStudents = formatOptions(students);
-    const formattedTeachers = formatOptions(teachers);
+    const formattedTeachers = formatOptions(sortTeachers(teachers));
 
     const tabsConfig = [
       {

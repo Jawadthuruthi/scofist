@@ -1,6 +1,6 @@
 import ErrorPage from "@/components/ErrorPage";
 import IdentityCards from "@/components/IdentityCards";
-import { fetchData } from "@/lib/utils";
+import { fetchData, sortTeachers } from "@/lib/utils";
 import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +35,7 @@ const identityCardsPage = async () => {
         institution={settings.institution}
         idCardBackgroundImageUrl={settings.idCard?.backgroundImage?.url}
         classes={classes}
-        teachers={teachers}
+        teachers={sortTeachers(teachers)}
         userRole={activeRole}
         allRoles={user?.roles || []}
         userId={user?._id}

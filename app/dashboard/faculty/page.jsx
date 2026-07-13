@@ -1,7 +1,7 @@
 import FacultyProfileCard from "@/components/FacultyProfileCard";
 import Header from "@/components/Header";
 import ErrorPage from "@/components/ErrorPage";
-import { fetchData } from "@/lib/utils";
+import { fetchData, sortTeachers } from "@/lib/utils";
 
 export default async function FacultyPage() {
   try {
@@ -13,7 +13,7 @@ export default async function FacultyPage() {
     const classes = await fetchData("classes");
 
     // Sort teachers by date of birth (age seniority) - oldest first
-    teachers.sort((a, b) => new Date(a.dateOfBirth) - new Date(b.dateOfBirth));
+    const sortedTeachers = sortTeachers(teachers);
 
     return (
       <div className="flex flex-col space-y-6">
@@ -22,7 +22,7 @@ export default async function FacultyPage() {
           subTitle="View active teaching staff profile and information"
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {teachers?.map((teacher) => {
+          {sortedTeachers?.map((teacher) => {
             let assignedClass = classes.find((c) => (c.teacherId?._id || c.teacherId) === teacher._id)?.name || "No Class Assigned";
             if (teacher.teacherStatus === "Principal" || teacher.teacherStatus === "Guest") {
               assignedClass = teacher.teacherStatus;
