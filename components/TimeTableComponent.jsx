@@ -556,8 +556,8 @@ const TimeTableComponent = ({
               ))
               : filteredClasses.map((classItem) => (
                 <TableRow key={classItem?._id} className="hover:bg-accent/50">
-                  <TableCell className="border font-medium bg-accent sticky left-0 z-10">
-                    <div className="flex items-center text-xs whitespace-nowrap gap-2">
+                  <TableCell className="border font-medium bg-accent sticky left-0 z-10 text-center align-middle">
+                    <div className="flex justify-center items-center font-bold text-xs whitespace-nowrap gap-2">
                       {useShortName ? (classItem.shortname || classItem.name) : classItem.name}
                     </div>
                   </TableCell>
