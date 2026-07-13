@@ -275,7 +275,7 @@ export default async function BatchesPage() {
           apiFilters={apiFilters}
           printTitle={"Teachers"}
           enableSearch={true}
-          defaultSorting={[{ id: "_id", desc: false }]}
+          defaultSorting={[{ id: "dateOfBirth", desc: false }]}
           customTopRightButtons={<PendingTeacherRequestsWrapper key="pending-requests" apiKey={apiKey} />}
         />
       </>
