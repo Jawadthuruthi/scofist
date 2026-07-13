@@ -3,14 +3,19 @@ import ParticipantsCard from "@/components/ParticipantsCard";
 import { fetchData } from "@/lib/utils";
 
 export const revalidate = 60;
+import { cookies } from "next/headers";
 
 const participantsCardPage = async () => {
   try {
+    const cookiesStore = await cookies();
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
+
     const [participants, settings, divisions, teams] = await Promise.all([
-      fetchData("participants", "", 0),
+      fetchData("participants", `${yearParam}limit=1000`, 0),
       fetchData("settings"),
-      fetchData("divisions"),
-      fetchData("teams"),
+      fetchData("divisions", `${yearParam}limit=100`, 0),
+      fetchData("teams", `${yearParam}limit=100`, 0),
     ]);
 
     return (

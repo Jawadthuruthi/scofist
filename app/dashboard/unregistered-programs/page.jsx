@@ -12,6 +12,8 @@ export default async function RegistrationStatusPage() {
     const user = parseUser(headerStore);
     const activeRole = cookiesStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
 
     let programs, teams, divisions, participants;
 
@@ -19,17 +21,17 @@ export default async function RegistrationStatusPage() {
       [programs, teams, divisions, participants] = await Promise.all([
         fetchData(
           "programs",
-          "projection=_id,name,type,category,maxParticipants,divisionId",
+          `${yearParam}projection=_id,name,type,category,maxParticipants,divisionId`,
           0
         ),
-        fetchData("teams", "projection=_id,name", 0),
-        fetchData("divisions", "projection=_id,name", 0),
-        fetchData("participants", "projection=_id,name,teamId", 0),
+        fetchData("teams", `${yearParam}projection=_id,name`, 0),
+        fetchData("divisions", `${yearParam}projection=_id,name`, 0),
+        fetchData("participants", `${yearParam}projection=_id,name,teamId`, 0),
       ]);
     } else if (activeRole === "Program Leader") {
       const userTeams = await fetchData(
         "teams",
-        `leaderId=${user?.userId}&projection=_id,name`,
+        `${yearParam}leaderId=${user?.userId}&projection=_id,name`,
         0
       );
 
@@ -42,13 +44,13 @@ export default async function RegistrationStatusPage() {
       [programs, divisions, participants] = await Promise.all([
         fetchData(
           "programs",
-          "projection=_id,name,type,category,maxParticipants,divisionId",
+          `${yearParam}projection=_id,name,type,category,maxParticipants,divisionId`,
           0
         ),
-        fetchData("divisions", "projection=_id,name", 0),
+        fetchData("divisions", `${yearParam}projection=_id,name`, 0),
         fetchData(
           "participants",
-          `teamId=${teamIds[0]}&projection=_id,name,teamId`,
+          `${yearParam}teamId=${teamIds[0]}&projection=_id,name,teamId`,
           0
         ),
       ]);

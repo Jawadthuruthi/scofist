@@ -4,6 +4,8 @@ import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
 
+import { cookies } from "next/headers";
+
 const columnsConfig = [
   {
     accessorKey: "serialNo",
@@ -42,10 +44,13 @@ const columnsConfig = [
 
 export default async function PendingCodeLettersPage() {
   try {
+    const cookiesStore = await cookies();
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
     const apiKey = process.env.APIKEY;
 
     // Fetch divisions for filter options
-    const divisions = await fetchData("divisions", "projection=id,name", 0);
+    const divisions = await fetchData("divisions", `${yearParam}projection=id,name`, 0);
 
     // Filter configuration
     const filterConfig = [

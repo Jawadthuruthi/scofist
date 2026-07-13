@@ -3,6 +3,8 @@ import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
 
+import { cookies } from "next/headers";
+
 const columnsConfig = [
   {
     accessorKey: "serialNo",
@@ -29,13 +31,16 @@ const columnsConfig = [
 
 export default async function NonRespondersPage() {
   try {
+    const cookiesStore = await cookies();
     const apiKey = process.env.API_KEY;
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
 
     // Fetch related data for form options
     const [batches, teams, divisions] = await Promise.all([
       fetchData("batches", "projection=_id,name&status=Active", 0),
-      fetchData("teams", "projection=_id,name", 0),
-      fetchData("divisions", "projection=_id,name&type=Primary", 0),
+      fetchData("teams", `${yearParam}projection=_id,name`, 0),
+      fetchData("divisions", `${yearParam}projection=_id,name&type=Primary`, 0),
     ]);
 
     const filterConfig = [

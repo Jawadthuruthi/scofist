@@ -6,6 +6,7 @@ import Team from "@/models/Team";
 import Division from "@/models/Division";
 import User from "@/models/User";
 import Participant from "@/models/Participant";
+import { getYear } from "@/lib/getYear";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +14,10 @@ export async function GET(request) {
   try {
     await connectToDB();
 
+    const activeYear = await getYear(request);
+
     // Fetch declared results
-    const results = await Result.find({ isResultDeclared: true })
+    const results = await Result.find({ isResultDeclared: true, year: activeYear })
       .populate({
         path: "programId",
         select: "name type category divisionId pointScheme",

@@ -1,15 +1,22 @@
 // hooks/use-qr-code.js
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
-export function useQRCodeConfig() {
+export function useQRCodeConfig(activeYear) {
   const [size, setSize] = useState(350);
 
-  const resultsUrl = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    return `${window.location.origin}/results`;
-  }, []);
+  const [resultsUrl, setResultsUrl] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      let url = `${window.location.origin}/results`;
+      if (activeYear && activeYear !== "2025 november") {
+        url += `?year=${encodeURIComponent(activeYear)}`;
+      }
+      setResultsUrl(url);
+    }
+  }, [activeYear]);
 
   const qrOptions = useMemo(
     () => ({

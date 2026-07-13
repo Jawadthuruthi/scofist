@@ -3,6 +3,7 @@ import connectToDB from "@/lib/db";
 import Result from "@/models/Result";
 import Team from "@/models/Team";
 import Participant from "@/models/Participant";
+import { getYear } from "@/lib/getYear";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,9 @@ export async function GET(request) {
 
     await connectToDB();
 
-    // 1. Fetch all teams to initialize points
-    const teams = await Team.find().lean();
+    // 1. Fetch all teams for the active year to initialize points
+    const activeYear = await getYear(request);
+    const teams = await Team.find({ year: activeYear }).lean();
     const teamMap = {};
     teams.forEach(team => {
       teamMap[team._id.toString()] = {
@@ -28,7 +30,8 @@ export async function GET(request) {
     });
 
     // 2. Fetch declared results chronologically
-    const resultsQuery = Result.find({ isResultDeclared: true })
+    // 2. Fetch declared results chronologically
+    const resultsQuery = Result.find({ isResultDeclared: true, year: activeYear })
       .populate("participants.id")
       .sort({ updatedAt: 1 }); // Sorted oldest to newest
 

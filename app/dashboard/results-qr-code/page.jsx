@@ -3,12 +3,15 @@ import { Suspense } from "react";
 import ResultsQRCodeView from "./_components/ResultsQRCodeView";
 import { QRCodeSkeleton } from "./_components/QRCodeSkeleton";
 import ErrorPage from "@/components/ErrorPage";
+import { cookies } from "next/headers";
 
 export default async function ResultsQRCodePage() {
   try {
+    const cookiesStore = await cookies();
+    const activeYear = cookiesStore.get("active-year")?.value;
     return (
       <Suspense fallback={<QRCodeSkeleton />}>
-        <ResultsQRCodeView />
+        <ResultsQRCodeView activeYear={activeYear} />
       </Suspense>
     );
   } catch (error) {

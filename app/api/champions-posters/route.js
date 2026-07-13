@@ -4,6 +4,7 @@ import Result from "@/models/Result";
 import Team from "@/models/Team";
 import Participant from "@/models/Participant";
 import User from "@/models/User";
+import { getYear } from "@/lib/getYear";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +12,9 @@ export async function GET(request) {
   try {
     await connectToDB();
 
-    // 1. Fetch all teams
-    const teams = await Team.find().lean();
+    // 1. Fetch all teams for the active year
+    const activeYear = await getYear(request);
+    const teams = await Team.find({ year: activeYear }).lean();
     
     // Explicitly fetch all associated leaders to bypass Mongoose String-Ref bugs
     const leaderIds = [...new Set(teams.map(t => t.leaderId).filter(Boolean))];
@@ -37,7 +39,8 @@ export async function GET(request) {
     });
 
     // 2. Fetch all declared results and actively total up points
-    const declaredResults = await Result.find({ isResultDeclared: true })
+    // 2. Fetch all declared results and actively total up points
+    const declaredResults = await Result.find({ isResultDeclared: true, year: activeYear })
       .populate("participants.id")
       .lean();
 
@@ -54,8 +57,10 @@ export async function GET(request) {
       });
     });
 
-    // 3. Flatten, sort by points descending
-    const sortedTeams = Object.values(teamMap).sort((a, b) => b.points - a.points);
+    // 3. Flatten, sort by points descending, and filter out teams with 0 points
+    const sortedTeams = Object.values(teamMap)
+      .filter(t => t.points > 0)
+      .sort((a, b) => b.points - a.points);
 
     // 4. Slice top 3 strictly and map officially designated titles
     const tops = sortedTeams.slice(0, 3);

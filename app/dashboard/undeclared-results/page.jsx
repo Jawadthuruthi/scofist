@@ -4,6 +4,8 @@ import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
 
+import { cookies } from "next/headers";
+
 const columnsConfig = [
   {
     accessorKey: "serialNo",
@@ -51,12 +53,15 @@ const columnsConfig = [
 
 export default async function UndeclaredResultsPage() {
   try {
+    const cookiesStore = await cookies();
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
     const apiKey = process.env.APIKEY;
 
     // Fetch divisions and teams for filter options
     const [divisions, teams] = await Promise.all([
-      fetchData("divisions", "projection=id,name", 0),
-      fetchData("teams", "projection=id,name", 0),
+      fetchData("divisions", `${yearParam}projection=id,name`, 0),
+      fetchData("teams", `${yearParam}projection=id,name`, 0),
     ]);
 
     // Filter configuration

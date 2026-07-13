@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ async function fetchJSON(url) {
 }
 
 /* -------------------- main component ---------------------- */
-export default function PublicResultsPage() {
+function PublicResultsContent() {
   /* --------------- state --------------- */
   const [divisions, setDivisions] = useState([]);
   const [programs, setPrograms] = useState([]);
@@ -30,16 +31,21 @@ export default function PublicResultsPage() {
   const [error, setError] = useState("");
   const [showResults, setShowResults] = useState(false);
 
+  const searchParams = useSearchParams();
+  const yearParam = searchParams.get("year") || "2025 november";
+  const yearQuery = `year=${encodeURIComponent(yearParam)}&`;
+  const yearQueryOnly = `?year=${encodeURIComponent(yearParam)}`;
+
   /* --------------- fetch divisions on mount --------------- */
   useEffect(() => {
-    fetchJSON("/api/divisions?projection=_id,name")
+    fetchJSON(`/api/divisions?${yearQuery}projection=_id,name`)
       .then((d) => setDivisions(d.divisions ?? []))
       .catch(() => setError("Unable to load divisions"));
   }, []);
 
   /* --------------- fetch settings on mount --------------- */
   useEffect(() => {
-    fetchJSON("/api/settings")
+    fetchJSON(`/api/settings${yearQueryOnly}`)
       .then((data) => setSettings(data.settings || null))
       .catch(() => console.error("Unable to load settings"));
   }, []);
@@ -52,7 +58,7 @@ export default function PublicResultsPage() {
       return;
     }
     fetchJSON(
-      `/api/programs?divisionId=${selectedDivision}&projection=_id,name`
+      `/api/programs?${yearQuery}divisionId=${selectedDivision}&projection=_id,name`
     )
       .then((p) => setPrograms(p.programs ?? []))
       .catch(() => setError("Unable to load programs"));
@@ -72,7 +78,7 @@ export default function PublicResultsPage() {
     setLoading(true);
 
     fetchJSON(
-      `/api/results?programId=${selectedProgram}&isResultDeclared=true&resultNumber=${resultNo}`
+      `/api/results?${yearQuery}programId=${selectedProgram}&isResultDeclared=true&resultNumber=${resultNo}`
     )
       .then((r) => {
         const result = r.results?.[0];
@@ -384,5 +390,13 @@ export default function PublicResultsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function PublicResultsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PublicResultsContent />
+    </Suspense>
   );
 }

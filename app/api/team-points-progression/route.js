@@ -4,6 +4,7 @@ import Result from "@/models/Result";
 import Program from "@/models/Program";
 import Team from "@/models/Team";
 import Participant from "@/models/Participant";
+import { getYear } from "@/lib/getYear";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,8 @@ export async function GET(request) {
     await connectToDB();
 
     // 1. Fetch all teams purely to bootstrap our initial 0-point mapping
-    const teams = await Team.find({}).lean();
+    const activeYear = await getYear(request);
+    const teams = await Team.find({ year: activeYear }).lean();
     const activeTeamsArray = teams.map(t => t.name);
 
     // Initial state mapping dictionary
@@ -27,7 +29,8 @@ export async function GET(request) {
     });
 
     // 2. Fetch all fully declared programmatic results SORTED historically
-    const resultsQuery = Result.find({ isResultDeclared: true })
+    // 2. Fetch all fully declared programmatic results SORTED historically
+    const resultsQuery = Result.find({ isResultDeclared: true, year: activeYear })
       .sort({ updatedAt: 1 })
       .populate("programId", "name code")
       .populate({

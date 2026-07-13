@@ -7,13 +7,41 @@ import { NextResponse } from "next/server";
 export async function GET(req, res) {
   try {
     await connectToDB();
-    const settings = await Settings.findOne({});
+    const settings = await Settings.findOne({}).lean();
 
     if (!settings) {
       return NextResponse.json(
         { message: "No settings found. Please create settings." },
         { status: 404 }
       );
+    }
+
+    const { getYear } = await import("@/lib/getYear");
+    const activeYear = await getYear(req);
+    
+    // Inject session-specific festival settings
+    if (settings.festivals && settings.festivals.length > 0) {
+      const festivalForYear = settings.festivals.find(f => f.year === activeYear);
+      if (festivalForYear) {
+        settings.festival = festivalForYear;
+      } else {
+        // Do not bleed old session data into new sessions
+        settings.festival = { 
+          year: activeYear, 
+          festivalInfo: { year: parseInt(activeYear) || new Date().getFullYear() }, 
+          resultPosters: [] 
+        };
+      }
+    } else {
+      // If no festivals array yet, but activeYear is different from the legacy year
+      // (assuming legacy is "2025 november"), we still shouldn't bleed data.
+      if (activeYear && activeYear !== "2025 november") {
+        settings.festival = { 
+          year: activeYear, 
+          festivalInfo: { year: parseInt(activeYear) || new Date().getFullYear() }, 
+          resultPosters: [] 
+        };
+      }
     }
 
     console.log("GET Settings - Spark Posters count:", settings.spark?.committeePosters?.length);
@@ -604,64 +632,83 @@ export async function PUT(req) {
       data.instructions ||
       data.festival?.resultPosters
     ) {
-      updateData.festival = {
+      const { getYear } = await import("@/lib/getYear");
+      const reqYear = await getYear(req);
+      const currentFestivals = existingSettings?.festivals || [];
+      const existingFestivalForYear = currentFestivals.find(f => f.year === reqYear) || existingSettings?.festival || {};
+
+      const updatedFestivalForYear = {
+        year: reqYear,
         festivalInfo: {
           name:
             data.festival_name ??
-            existingSettings?.festival?.festivalInfo?.name,
+            existingFestivalForYear.festivalInfo?.name,
           theme:
             data.festival_theme ??
-            existingSettings?.festival?.festivalInfo?.theme,
+            existingFestivalForYear.festivalInfo?.theme,
           year:
             data.festival_year ??
-            existingSettings?.festival?.festivalInfo?.year,
+            existingFestivalForYear.festivalInfo?.year,
           dates: {
             startDate:
               data.festival_startDate ??
-              existingSettings?.festival?.festivalInfo?.dates?.startDate,
+              existingFestivalForYear.festivalInfo?.dates?.startDate,
             endDate:
               data.festival_endDate ??
-              existingSettings?.festival?.festivalInfo?.dates?.endDate,
+              existingFestivalForYear.festivalInfo?.dates?.endDate,
           },
           venue:
             data.festival_venue ??
-            existingSettings?.festival?.festivalInfo?.venue,
+            existingFestivalForYear.festivalInfo?.venue,
         },
         festivalNameImage:
-          data.festivalNameImage ?? existingSettings?.festival?.festivalNameImage,
+          data.festivalNameImage ?? existingFestivalForYear.festivalNameImage,
         printHeader:
-          data.printHeader ?? existingSettings?.festival?.printHeader,
+          data.printHeader ?? existingFestivalForYear.printHeader,
         registrationDeadline:
           data.registrationDeadline ??
-          existingSettings?.festival?.registrationDeadline,
+          existingFestivalForYear.registrationDeadline,
         participantsCard: {
           backgroundImage:
             data.participantsCard ??
-            existingSettings?.festival?.participantsCard?.backgroundImage,
+            existingFestivalForYear.participantsCard?.backgroundImage,
           textColor:
             data.textColor ??
-            existingSettings?.festival?.participantsCard?.textColor,
+            existingFestivalForYear.participantsCard?.textColor,
           textPositions: {
             right:
               data.right ??
-              existingSettings?.festival?.participantsCard?.textPositions
-                ?.right,
+              existingFestivalForYear.participantsCard?.textPositions?.right,
             bottom:
               data.bottom ??
-              existingSettings?.festival?.participantsCard?.textPositions
-                ?.bottom,
+              existingFestivalForYear.participantsCard?.textPositions?.bottom,
             left:
               data.left ??
-              existingSettings?.festival?.participantsCard?.textPositions?.left,
+              existingFestivalForYear.participantsCard?.textPositions?.left,
           },
         },
         instructions:
-          data.instructions ?? existingSettings?.festival?.instructions,
+          data.instructions ?? existingFestivalForYear.instructions,
         resultPosters:
           data.festival?.resultPosters ??
-          existingSettings?.festival?.resultPosters ??
+          existingFestivalForYear.resultPosters ??
           [],
       };
+
+      const existingIndex = currentFestivals.findIndex(f => f.year === reqYear);
+      let newFestivals = [...currentFestivals];
+      if (existingIndex >= 0) {
+        newFestivals[existingIndex] = updatedFestivalForYear;
+      } else {
+        newFestivals.push(updatedFestivalForYear);
+      }
+      updateData.festivals = newFestivals;
+      
+      // Update legacy object ONLY if we are editing the legacy year,
+      // otherwise we overwrite old session data!
+      if (reqYear === "2025 november") {
+        updateData.festival = updatedFestivalForYear;
+      }
     }
 
     if (data.years) {

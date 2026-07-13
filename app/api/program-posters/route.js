@@ -6,6 +6,7 @@ import Team from "@/models/Team";
 import Division from "@/models/Division";
 import User from "@/models/User";
 import Participant from "@/models/Participant";
+import { getYear } from "@/lib/getYear";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,8 @@ export async function GET(request) {
     await connectToDB();
 
     // Grouping registrations by programId
-    const registrations = await ProgramRegistration.find()
+    const activeYear = await getYear(request);
+    const registrations = await ProgramRegistration.find({ year: activeYear })
       .populate({
         path: "programId",
         select: "name type category divisionId",

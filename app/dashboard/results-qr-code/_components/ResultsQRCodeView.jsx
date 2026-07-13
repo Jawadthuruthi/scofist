@@ -10,9 +10,9 @@ import { useQRCodeConfig } from "@/hooks/use-qr-code";
 import { QrCode } from "lucide-react";
 import Header from "@/components/Header";
 
-export default function ResultsQRCodeView() {
+export default function ResultsQRCodeView({ activeYear }) {
   const printRef = useRef(null);
-  const { resultsUrl, qrOptions, size, setSize } = useQRCodeConfig();
+  const { resultsUrl, qrOptions, size, setSize } = useQRCodeConfig(activeYear);
 
   return (
     <div className="space-y-6">

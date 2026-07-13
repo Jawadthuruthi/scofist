@@ -10,6 +10,8 @@ export default async function ResultPage() {
     const cookiesStore = await cookies();
     const user = parseUser(headerStore);
     const activeRole = cookiesStore.get("active-role")?.value;
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
     const apiKey = process.env.API_KEY;
 
     // Check if user has permission to access results
@@ -25,10 +27,10 @@ export default async function ResultPage() {
     [programs, divisions] = await Promise.all([
       fetchData(
         "programs",
-        "projection=_id,name,type,category,divisionId,pointScheme",
+        `${yearParam}projection=_id,name,type,category,divisionId,pointScheme`,
         0
       ),
-      fetchData("divisions", "projection=_id,name,type", 0),
+      fetchData("divisions", `${yearParam}projection=_id,name,type`, 0),
     ]);
 
     // Sort data alphabetically

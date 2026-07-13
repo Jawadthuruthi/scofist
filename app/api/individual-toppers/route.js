@@ -5,6 +5,7 @@ import Participant from "@/models/Participant";
 import Team from "@/models/Team";
 import Division from "@/models/Division";
 import User from "@/models/User";
+import { getYear } from "@/lib/getYear";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,8 @@ export async function GET(request) {
     await connectToDB();
 
     // 1. Fetch all fully declared programmatic results and safely extract all active point awards
-    const declaredResults = await Result.find({ isResultDeclared: true }).lean();
+    const activeYear = await getYear(request);
+    const declaredResults = await Result.find({ isResultDeclared: true, year: activeYear }).lean();
 
     // Mapping Dictionary (Participant ID -> total accrued points)
     const pointsMap = {};
