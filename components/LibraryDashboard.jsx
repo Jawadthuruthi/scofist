@@ -293,6 +293,44 @@ export default function LibraryDashboard({
         return Array.from(all).sort();
     }, [categories, localBooks, activeFilters]);
 
+    const uniqueCategories = useMemo(() => {
+        if (!categories || !categories.length) return [];
+        return Object.values(
+            categories.reduce((acc, cat) => {
+                const key = normalizeCategoryName(cat.category);
+                if (!key) return acc;
+                if (acc[key]) {
+                    acc[key].count += cat.count || 0;
+                } else {
+                    let prefix = "-";
+                    const book = localBooks.find(b => normalizeCategoryName(b.category) === key && b.id);
+                    if (book && book.id) {
+                        const match = String(book.id).match(/^[A-Za-z]+/);
+                        if (match) prefix = match[0].toUpperCase();
+                    }
+                    acc[key] = { category: key, count: cat.count || 0, prefix };
+                }
+                return acc;
+            }, {})
+        ).sort((a, b) => a.category.localeCompare(b.category));
+    }, [categories, localBooks]);
+
+    const uniqueLanguages = useMemo(() => {
+        if (!languages || !languages.length) return [];
+        return Object.values(
+            languages.reduce((acc, lang) => {
+                const key = (lang.language || "").toUpperCase();
+                if (!key) return acc;
+                if (acc[key]) {
+                    acc[key].count += lang.count || 0;
+                } else {
+                    acc[key] = { language: key, count: lang.count || 0 };
+                }
+                return acc;
+            }, {})
+        ).sort((a, b) => a.language.localeCompare(b.language));
+    }, [languages]);
+
     // --- Configurations ---
 
     const bookFields = [
@@ -1398,7 +1436,7 @@ export default function LibraryDashboard({
                             <Book className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{counts?.total || 0}</div>
+                            <div className="text-2xl font-bold">{initialBooks.length || 0}</div>
                         </CardContent>
                     </Card>
                     <Card
@@ -1410,7 +1448,7 @@ export default function LibraryDashboard({
                             <BookOpen className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{counts?.available || 0}</div>
+                            <div className="text-2xl font-bold">{initialBooks.filter(b => b.status === "Available").length || 0}</div>
                         </CardContent>
                     </Card>
                     <Card
@@ -1422,7 +1460,7 @@ export default function LibraryDashboard({
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{counts?.pendingRentals || 0}</div>
+                            <div className="text-2xl font-bold">{initialPendingRentals.length || 0}</div>
                         </CardContent>
                     </Card>
 
@@ -1436,7 +1474,7 @@ export default function LibraryDashboard({
                             <BookOpen className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{categories?.length || 0}</div>
+                            <div className="text-2xl font-bold">{uniqueCategories.length || 0}</div>
                         </CardContent>
                     </Card>
                     <Card
@@ -1448,7 +1486,7 @@ export default function LibraryDashboard({
                             <BookOpen className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{languages?.length || 0}</div>
+                            <div className="text-2xl font-bold">{uniqueLanguages.length || 0}</div>
                         </CardContent>
                     </Card>
                     <Card
@@ -1857,27 +1895,8 @@ export default function LibraryDashboard({
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {categories.length > 0 ? (
-                                        Object.values(
-                                            categories.reduce((acc, cat) => {
-                                                const key = normalizeCategoryName(cat.category);
-                                                if (!key) return acc;
-                                                if (acc[key]) {
-                                                    acc[key].count += cat.count || 0;
-                                                } else {
-                                                    let prefix = "-";
-                                                    const book = localBooks.find(b => normalizeCategoryName(b.category) === key && b.id);
-                                                    if (book && book.id) {
-                                                        const match = String(book.id).match(/^[A-Za-z]+/);
-                                                        if (match) prefix = match[0].toUpperCase();
-                                                    }
-                                                    acc[key] = { category: key, count: cat.count || 0, prefix };
-                                                }
-                                                return acc;
-                                            }, {})
-                                        )
-                                        .sort((a, b) => a.category.localeCompare(b.category))
-                                        .map((cat, index) => (
+                                    {uniqueCategories.length > 0 ? (
+                                        uniqueCategories.map((cat, index) => (
                                             <TableRow key={cat.category}>
                                                 <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                                                 <TableCell className="font-bold text-primary">{cat.prefix}</TableCell>
@@ -1918,21 +1937,8 @@ export default function LibraryDashboard({
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {languages.length > 0 ? (
-                                        Object.values(
-                                            languages.reduce((acc, lang) => {
-                                                const key = (lang.language || "").toUpperCase();
-                                                if (!key) return acc;
-                                                if (acc[key]) {
-                                                    acc[key].count += lang.count || 0;
-                                                } else {
-                                                    acc[key] = { language: key, count: lang.count || 0 };
-                                                }
-                                                return acc;
-                                            }, {})
-                                        )
-                                        .sort((a, b) => a.language.localeCompare(b.language))
-                                        .map((lang, index) => (
+                                    {uniqueLanguages.length > 0 ? (
+                                        uniqueLanguages.map((lang, index) => (
                                             <TableRow key={lang.language}>
                                                 <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                                                 <TableCell className="font-bold uppercase">{lang.language}</TableCell>
