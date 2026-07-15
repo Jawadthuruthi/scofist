@@ -385,6 +385,14 @@ export default function LibraryDashboard({
 
     const rentalFields = [
         {
+            name: "rentedDate",
+            label: "Rented Date",
+            inputType: "date",
+            type: "date",
+            required: true,
+            defaultValue: new Date().toISOString().split("T")[0],
+        },
+        {
             name: "bookId",
             label: "Book ID",
             inputType: "async-text",
@@ -430,14 +438,6 @@ export default function LibraryDashboard({
                 key: "classId",
                 dependentField: "classId"
             }
-        },
-        {
-            name: "rentedDate",
-            label: "Rented Date",
-            inputType: "date",
-            type: "date",
-            required: true,
-            defaultValue: new Date().toISOString().split("T")[0],
         },
         {
             name: "receivedDate",
