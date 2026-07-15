@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle, XCircle, ArrowRight, CheckSquare, Square, Save } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, ArrowRight, CheckSquare, Square, Save, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatDateShort } from "@/lib/utils";
@@ -148,43 +148,43 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
 
     return (
       <div 
-        className={`grid grid-cols-12 py-2 border-b last:border-0 items-center gap-2 transition-colors ${
+        className={`grid grid-cols-12 py-2 border-b last:border-0 items-start gap-2 transition-colors ${
           isChanged ? (currentAction === "approve" ? "bg-green-50/30 dark:bg-green-900/10" : "bg-red-50/30 dark:bg-red-900/10") : ""
         }`}
       >
-        <div className="col-span-2 text-xs font-bold text-muted-foreground uppercase tracking-wider pl-2">{label}</div>
-        <div className="col-span-3 text-sm break-all text-muted-foreground">
+        <div className="col-span-3 text-xs font-bold text-muted-foreground uppercase tracking-wider pl-2 pt-1">{label}</div>
+        <div className="col-span-4 text-sm break-all text-muted-foreground pt-0.5">
           {typeof oldVal === 'object' && oldVal?.url ? (
             <img src={oldVal.url} alt="Old" className="h-10 w-10 object-cover rounded-md" crossOrigin="anonymous" />
           ) : typeof oldVal === 'object' ? JSON.stringify(oldVal) : String(oldVal || "-")}
         </div>
-        <div className="col-span-1 flex justify-center">
+        <div className="col-span-1 flex justify-center pt-1">
           {isChanged && <ArrowRight className={`h-4 w-4 ${currentAction === "approve" ? "text-green-500" : "text-red-500 opacity-30"}`} />}
         </div>
-        <div className={`col-span-4 text-sm break-all font-medium ${
-          isChanged 
-            ? (currentAction === "approve" 
-                ? "text-green-600 dark:text-green-400" 
-                : currentAction === "reject"
-                  ? "text-red-600 dark:text-red-400 opacity-60 line-through"
-                  : "text-blue-600 dark:text-blue-400"
-              ) 
-            : ""
-        }`}>
-          {typeof newVal === 'object' && newVal?.url ? (
-            <img src={newVal.url} alt="New" className="h-10 w-10 object-cover rounded-md" crossOrigin="anonymous" />
-          ) : typeof newVal === 'object' ? JSON.stringify(newVal) : String(newVal || "-")}
-        </div>
-        <div className="col-span-2 flex justify-center gap-1.5 pr-2">
+        <div className="col-span-4 flex flex-col gap-2 pt-0.5">
+          <div className={`text-sm break-all font-medium ${
+            isChanged 
+              ? (currentAction === "approve" 
+                  ? "text-green-600 dark:text-green-400" 
+                  : currentAction === "reject"
+                    ? "text-red-600 dark:text-red-400 opacity-60 line-through"
+                    : "text-blue-600 dark:text-blue-400"
+                ) 
+              : ""
+          }`}>
+            {typeof newVal === 'object' && newVal?.url ? (
+              <img src={newVal.url} alt="New" className="h-10 w-10 object-cover rounded-md" crossOrigin="anonymous" />
+            ) : typeof newVal === 'object' ? JSON.stringify(newVal) : String(newVal || "-")}
+          </div>
           {isChanged && (
-            <>
+            <div className="flex gap-2 pb-1">
               <Button
                 variant={currentAction === "approve" ? "default" : "outline"}
                 size="sm"
                 className={`h-7 px-2 text-[10px] gap-1 ${currentAction === "approve" ? "bg-green-600 hover:bg-green-700" : "text-green-600 border-green-200"}`}
                 onClick={() => setFieldActions(prev => ({ ...prev, [fieldPath]: "approve" }))}
               >
-                <CheckCircle className="h-3 w-3" /> {currentAction === "approve" ? "Approved" : "Approve"}
+                <CheckCircle className="h-3 w-3" /> <span className="hidden sm:inline">{currentAction === "approve" ? "Approved" : "Approve"}</span>
               </Button>
               <Button
                 variant={currentAction === "reject" ? "default" : "outline"}
@@ -192,9 +192,9 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
                 className={`h-7 px-2 text-[10px] gap-1 ${currentAction === "reject" ? "bg-red-600 hover:bg-red-700" : "text-red-600 border-red-200"}`}
                 onClick={() => setFieldActions(prev => ({ ...prev, [fieldPath]: "reject" }))}
               >
-                <XCircle className="h-3 w-3" /> {currentAction === "reject" ? "Rejected" : "Reject"}
+                <XCircle className="h-3 w-3" /> <span className="hidden sm:inline">{currentAction === "reject" ? "Rejected" : "Reject"}</span>
               </Button>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -203,27 +203,28 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between pr-8">
+      <DialogContent className="max-w-6xl max-h-[95vh] p-0 flex flex-col overflow-hidden gap-0 [&>button]:hidden">
+        <div className="px-6 py-4 shrink-0 bg-background border-b z-10">
+          <DialogHeader className="flex flex-row items-start justify-between space-y-0">
             <div>
               <DialogTitle className="text-xl font-bold">Review Profile Changes</DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">Review the prefilled details and select actions for modified fields.</p>
+              <p className="text-sm text-muted-foreground mt-1">Review the profile modified fields.</p>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-semibold text-foreground bg-muted px-2 py-1 rounded-md border">ID: <span className="font-mono text-xs ml-1">{student._id}</span></span>
-            </div>
-          </div>
-        </DialogHeader>
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-md hover:bg-muted shrink-0 text-muted-foreground">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </Button>
+          </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          <div className="grid grid-cols-12 gap-2 pb-2 border-b-2 font-bold text-xs uppercase tracking-widest text-muted-foreground bg-slate-50 dark:bg-slate-900/50 p-2 rounded-t">
-            <div className="col-span-2 pl-2">Field</div>
-            <div className="col-span-3">Current Value</div>
+          <div className="grid grid-cols-12 gap-2 mt-4 pb-2 border-b-2 font-bold text-xs uppercase tracking-widest text-muted-foreground bg-slate-50 dark:bg-slate-900/50 p-2 rounded-t">
+            <div className="col-span-3 pl-2">Field</div>
+            <div className="col-span-4">Current Value</div>
             <div className="col-span-1 text-center"></div>
             <div className="col-span-4">Requested Value</div>
-            <div className="col-span-2 text-center">Action</div>
           </div>
+        </div>
+
+        <div className="overflow-y-auto px-6 py-4 space-y-6 flex-1 bg-background">
 
           <div className="space-y-1">
             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-2 border-l-4 border-primary">Personal Details</h4>
@@ -285,20 +286,22 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
           )}
         </div>
 
-        <DialogFooter className="gap-3 sm:gap-0 border-t pt-4">
-          <div className="flex-1 text-xs text-muted-foreground italic">
-            * Select an action for each modified field to save changes.
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button disabled={loading} onClick={() => handleAction("approve")} className="gap-2 bg-blue-600 hover:bg-blue-700 min-w-[150px]">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save Selected Changes
-            </Button>
-          </div>
-        </DialogFooter>
+        <div className="px-6 py-4 border-t shrink-0 bg-background">
+          <DialogFooter className="gap-3 sm:gap-0">
+            <div className="flex-1 text-xs text-muted-foreground italic">
+              * Select an action for each modified field to save changes.
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose} disabled={loading}>
+                Cancel
+              </Button>
+              <Button disabled={loading} onClick={() => handleAction("approve")} className="gap-2 bg-blue-600 hover:bg-blue-700 min-w-[150px]">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Selected Changes
+              </Button>
+            </div>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

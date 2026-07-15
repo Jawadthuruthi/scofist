@@ -33,6 +33,7 @@ const MarkSchema = new mongoose.Schema(
                 remark: { type: String, required: true },
             },
         ],
+        isLocked: { type: Boolean, default: false },
     },
     { timestamps: true }
 );

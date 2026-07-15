@@ -533,10 +533,12 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
                         </div>
                     ) : (
                         <ComboBox
-                            items={students.map((student) => ({
-                                value: student._id,
-                                label: `${student.name} (${student._id})`,
-                            }))}
+                            items={[...students]
+                                .sort((a, b) => String(a._id).localeCompare(String(b._id), undefined, { numeric: true }))
+                                .map((student) => ({
+                                    value: student._id,
+                                    label: `${student.name} (${student._id})`,
+                                }))}
                             value={selectedStudentId}
                             onSelect={handleStudentChange}
                             placeholder="Select Student"

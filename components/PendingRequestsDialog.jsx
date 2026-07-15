@@ -60,7 +60,7 @@ const PendingRequestsDialog = ({ open, onClose, apiKey, onView, role = "Student"
           <Table>
             <TableHeader className="bg-muted/50 sticky top-0 z-10">
               <TableRow>
-                <TableHead className="w-[80px]">Sl No</TableHead>
+                <TableHead className="w-[50px]">Sl No</TableHead>
                 <TableHead>ID</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Date of Request</TableHead>

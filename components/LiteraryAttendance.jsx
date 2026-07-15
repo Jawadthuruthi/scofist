@@ -1,4 +1,4 @@
-"use client";
+/dashboard/students - reports"use client";
 
 import { formatDate, formatDateForDisplay } from "@/lib/utils";
 import Header from "./Header";
@@ -253,7 +253,7 @@ const LiteraryAttendance = ({
         });
         return merged;
       }
-    } catch (_) {}
+    } catch (_) { }
     return DEFAULT_CATEGORIES;
   });
 
@@ -263,7 +263,7 @@ const LiteraryAttendance = ({
   useEffect(() => {
     try {
       localStorage.setItem(LITERARY_STORAGE_KEY, JSON.stringify(categories));
-    } catch (_) {}
+    } catch (_) { }
   }, [categories]);
 
   const handleAddCategory = useCallback((cat) => {
@@ -492,8 +492,8 @@ const LiteraryAttendance = ({
                     </TableCell>
                     <TableCell className="w-16 text-center px-4">
                       {isAttendanceMarked(cls._id) && (
-                        <Button variant="ghost" size="icon" className="text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8" onClick={(e) => { 
-                          e.stopPropagation(); 
+                        <Button variant="ghost" size="icon" className="text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8" onClick={(e) => {
+                          e.stopPropagation();
                           const attRecord = attendanceData.find(att => att.classId === cls._id && att.category === apiCategory);
                           setPerformanceSlot({ classId: cls._id, className: cls.name, subjectId: { name: `Literary - ${apiCategory}` }, isGroup: false });
                           setPerformanceAttendanceRecord(attRecord);
@@ -589,8 +589,8 @@ const LiteraryAttendance = ({
                     </TableCell>
                     <TableCell className="w-12 text-center px-1">
                       {isAttendanceMarked(group._id) && (
-                        <Button variant="ghost" size="icon" className="text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8" onClick={(e) => { 
-                          e.stopPropagation(); 
+                        <Button variant="ghost" size="icon" className="text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8" onClick={(e) => {
+                          e.stopPropagation();
                           const attRecord = attendanceData.find(att => att.groupId === group._id && att.category === "GROUP");
                           setPerformanceSlot({ classId: group._id, className: group.name, subjectId: { name: `Literary - Group` }, isGroup: true });
                           setPerformanceAttendanceRecord(attRecord);
@@ -620,8 +620,8 @@ const LiteraryAttendance = ({
         }
       />
 
-      <ClassPerformanceModal 
-        open={performanceModalOpen} 
+      <ClassPerformanceModal
+        open={performanceModalOpen}
         onOpenChange={setPerformanceModalOpen}
         slot={performanceSlot}
         attendanceRecord={performanceAttendanceRecord}

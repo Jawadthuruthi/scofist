@@ -37,7 +37,10 @@ export async function GET(req) {
         projections[field.trim()] = 1;
       });
       // Always include classId to ensure frontend dropdown dependency filters work
-      projections["studentSpecificField.classId"] = 1;
+      // only if the parent object is not already projected to avoid path collision
+      if (!projections["studentSpecificField"]) {
+        projections["studentSpecificField.classId"] = 1;
+      }
     }
 
     // Build MongoDB query from filter params

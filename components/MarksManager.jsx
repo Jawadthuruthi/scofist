@@ -10,7 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Save, Plus, Printer, Trophy, Edit, Settings, X, User, Check, ChevronsUpDown, Search, FileSpreadsheet } from "lucide-react";
+import { Trash2, Save, Plus, Printer, Trophy, Edit, Settings, X, User, Check, ChevronsUpDown, Search, FileSpreadsheet, Lock, Unlock } from "lucide-react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { useReactToPrint } from "react-to-print";
@@ -915,6 +915,29 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
     const batchOptions = batches.map(b => ({ value: b._id, label: `${b.name}${b.endYear ? ` (${b.endYear})` : ""}` }));
     const studentOptions = availableStudents.map(s => ({ value: s._id, label: `${s.name} (${s._id})` }));
 
+    const handleToggleLock = async () => {
+        if (!selectedExam) return;
+        const newLockState = !selectedExam.isLocked;
+        try {
+            const res = await fetch(`/api/marks/${selectedExam._id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isLocked: newLockState }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success(newLockState ? "Exam locked successfully" : "Exam unlocked successfully");
+                setSelectedExam({ ...selectedExam, isLocked: newLockState });
+                setAllExams(prev => prev.map(e => e._id === selectedExam._id ? { ...e, isLocked: newLockState } : e));
+            } else {
+                toast.error(data.message || "Failed to update lock state");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Network error");
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Centered Save Success Popup */}
@@ -942,7 +965,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                             {/* Row 1 on mobile: Mode + Subject side by side */}
                             <div className={`grid gap-3 md:contents ${examReady ? 'grid-cols-2' : 'grid-cols-1'}`}>
                                 {/* Mode */}
-                                <div>
+                                <div className="md:order-1">
                                     <label className="text-sm font-medium mb-1 block">Mode</label>
                                     <Select
                                         value="entry"
@@ -965,7 +988,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
 
                                 {/* Subject */}
                                 {examReady && (
-                                    <div>
+                                    <div className="md:order-3">
                                         <label className="text-sm font-medium mb-1 block">Subject</label>
                                         <Select
                                             disabled={!examReady || subjects.length === 0}
@@ -984,7 +1007,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                             </div>
 
                             {/* Exam Name — full width on mobile, middle col on md+ */}
-                            <div className="md:order-first">
+                            <div className="md:order-2">
                                 <label className="text-sm font-medium mb-1 block">Exam Name</label>
                                 <Select
                                     value={selectedExam?._id || ""}
@@ -1118,6 +1141,15 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                             >
                                                 <X className="w-4 h-4" />
                                             </Button>
+                                            {selectedExam && (
+                                                <Button
+                                                    size="icon" variant={selectedExam.isLocked ? "destructive" : "outline"} className={`h-9 w-9 shrink-0 border ${selectedExam.isLocked ? '' : 'border-input bg-background text-muted-foreground hover:text-foreground'}`}
+                                                    onClick={handleToggleLock}
+                                                    title={selectedExam.isLocked ? "Unblock Marks Entry" : "Block Marks Entry"}
+                                                >
+                                                    {selectedExam.isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -1791,6 +1823,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                                                                 type="number" min={0} max={sc.maxMark || 100}
                                                                                 className={`w-14 mx-auto text-center h-7 text-xs ${isFailed ? "text-red-600 font-bold" : ""}`}
                                                                                 value={val ?? ""}
+                                                                                disabled={activeRole === "Teacher" && selectedExam?.isLocked}
                                                                                 onChange={e => handleMarkChange(st._id, i, e.target.value, j)}
                                                                                 onKeyDown={e => {
                                                                                     if (e.key === "Enter") {
@@ -1825,6 +1858,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                                                     type="number" min={0} max={subj.maxMark || 100}
                                                                     className={`w-14 mx-auto text-center h-7 text-xs ${isFailed ? "text-red-600 font-bold" : ""}`}
                                                                     value={val ?? ""}
+                                                                    disabled={activeRole === "Teacher" && selectedExam?.isLocked}
                                                                     onChange={e => handleMarkChange(st._id, i, e.target.value)}
                                                                     onKeyDown={e => {
                                                                         if (e.key === "Enter") {
@@ -1856,8 +1890,11 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                             </table>
                         </div>
 
-                        <div className="flex justify-end">
-                            <Button onClick={saveMarks} disabled={savingMarks}>
+                        <div className="flex justify-end items-center gap-3">
+                            {activeRole === "Teacher" && selectedExam?.isLocked && (
+                                <span className="text-sm font-medium text-destructive">Marks entry is locked by Admin</span>
+                            )}
+                            <Button onClick={saveMarks} disabled={savingMarks || (activeRole === "Teacher" && selectedExam?.isLocked)}>
                                 <Save className="w-4 h-4 mr-2" />
                                 {savingMarks ? "Saving..." : "Save Marks"}
                             </Button>
