@@ -9,7 +9,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 
-export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAbsentees, groups = [], classes = [], date, dateForDisplay }) {
+export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAbsentees, groups = [], classes = [], date, dateForDisplay, sessionLabel }) {
   const [open, setOpen] = useState(false);
 
   const { data: teachers = [], isLoading: loading } = useQuery({
@@ -17,6 +17,16 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
     queryFn: async () => {
       const res = await axios.get("/api/users?roles=Teacher");
       const sortedTeachers = (res.data.users || []).sort((a, b) => {
+        if (a.dateOfBirth && b.dateOfBirth) {
+          const timeA = new Date(a.dateOfBirth).getTime();
+          const timeB = new Date(b.dateOfBirth).getTime();
+          if (timeA !== timeB) return timeA - timeB; // Older (smaller date) first
+        } else if (a.dateOfBirth) {
+          return -1;
+        } else if (b.dateOfBirth) {
+          return 1;
+        }
+        
         const idA = a._id ? a._id.toString() : "";
         const idB = b._id ? b._id.toString() : "";
         return idA.localeCompare(idB, undefined, { numeric: true });
@@ -76,7 +86,15 @@ export default function LiteraryWhatsAppBulkAction({ table, allAbsentees: propAb
       finalDate = new Date().toLocaleDateString();
     }
 
-    let message = `*Literary Absentees*\n${finalDate}\n\n`;
+    let displayCategory = sessionLabel;
+    if (!displayCategory) {
+      if (allAbsentees.length > 0 && allAbsentees[0].category !== "ALL" && allAbsentees[0].category !== "GROUP") {
+        displayCategory = allAbsentees[0].category.charAt(0).toUpperCase() + allAbsentees[0].category.slice(1).toLowerCase();
+      } else {
+        displayCategory = "Literary";
+      }
+    }
+    let message = `*${displayCategory} Absentees*\n${finalDate}\n\n`;
 
     // The current table can be mixed (Group and General). We group them by Category, then by GroupName/ClassName.
     const groupedGeneral = {};

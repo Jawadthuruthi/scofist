@@ -17,6 +17,16 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
     queryFn: async () => {
       const res = await axios.get("/api/users?roles=Teacher");
       const sortedTeachers = (res.data.users || []).sort((a, b) => {
+        if (a.dateOfBirth && b.dateOfBirth) {
+          const timeA = new Date(a.dateOfBirth).getTime();
+          const timeB = new Date(b.dateOfBirth).getTime();
+          if (timeA !== timeB) return timeA - timeB; // Older (smaller date) first
+        } else if (a.dateOfBirth) {
+          return -1;
+        } else if (b.dateOfBirth) {
+          return 1;
+        }
+        
         const idA = a._id ? a._id.toString() : "";
         const idB = b._id ? b._id.toString() : "";
         return idA.localeCompare(idB, undefined, { numeric: true });
@@ -37,7 +47,7 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
       return;
     }
 
-    const { absentees, category, date, dateForDisplay } = rowData;
+    const { absentees, category, date, dateForDisplay, sessionLabel } = rowData;
     
     if (!absentees || absentees.length === 0) {
       toast.error("No absentees found for this date.");
@@ -46,7 +56,8 @@ export default function LiteraryWhatsAppAction({ rowData, groups = [] }) {
     
     const formattedDate = dateForDisplay || new Date(date).toLocaleDateString();
     
-    let message = `*Literary Absentees*\n${formattedDate}\n\n`;
+    const displayCategory = sessionLabel || (category === "ALL" || category === "GROUP" ? "Literary" : category.charAt(0).toUpperCase() + category.slice(1).toLowerCase());
+    let message = `*${displayCategory} Absentees*\n${formattedDate}\n\n`;
     
     if (category === "GROUP") {
       // Group attendance -> group by Team (groupId)

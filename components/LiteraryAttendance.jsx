@@ -385,7 +385,7 @@ const LiteraryAttendance = ({
     }
   }, [selectedCategory]);
 
-  const isLiterary = selectedCategory === "Literary";
+  const isLiterary = selectedCategory?.toLowerCase() === "literary";
 
   return (
     <div className="space-y-3">
@@ -432,7 +432,7 @@ const LiteraryAttendance = ({
                   <TableHead className="px-4">Class</TableHead>
                   <TableHead className="text-center w-24 px-4">Absent</TableHead>
                   <TableHead className="w-16 text-center px-4">
-                    <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === apiCategory)} groups={groups} classes={classes} date={formattedDate} dateForDisplay={date} />
+                    <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === apiCategory)} groups={groups} classes={classes} date={formattedDate} dateForDisplay={date} sessionLabel={selectedCategory} />
                   </TableHead>
                   <TableHead className="w-16 px-4"></TableHead>
                   <TableHead className="w-full"></TableHead>
@@ -487,7 +487,7 @@ const LiteraryAttendance = ({
                     </TableCell>
                     <TableCell className="w-16 text-center px-4">
                       {isAttendanceMarked(cls._id) && (
-                        <LiteraryWhatsAppAction rowData={{ absentees: classBasedAbsentees[cls._id] || [], category: apiCategory, date: formattedDate, dateForDisplay: date }} groups={groups} />
+                        <LiteraryWhatsAppAction rowData={{ absentees: classBasedAbsentees[cls._id] || [], category: apiCategory, date: formattedDate, dateForDisplay: date, sessionLabel: selectedCategory }} groups={groups} />
                       )}
                     </TableCell>
                     <TableCell className="w-16 text-center px-4">
@@ -519,7 +519,7 @@ const LiteraryAttendance = ({
                   <TableHead>Group</TableHead>
                   <TableHead className="text-center w-24">Absent</TableHead>
                   <TableHead className="w-12 text-center px-1">
-                    <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === "GROUP")} groups={groups} classes={classes} date={formattedDate} dateForDisplay={date} />
+                    <LiteraryWhatsAppBulkAction allAbsentees={absentees.filter(student => student.category === "GROUP")} groups={groups} classes={classes} date={formattedDate} dateForDisplay={date} sessionLabel={selectedCategory} />
                   </TableHead>
                   <TableHead className="w-12"></TableHead>
                   <TableHead className="w-full"></TableHead>
@@ -584,7 +584,7 @@ const LiteraryAttendance = ({
                     </TableCell>
                     <TableCell className="w-12 text-center px-1">
                       {isAttendanceMarked(group._id) && (
-                        <LiteraryWhatsAppAction rowData={{ absentees: groupBasedAbsentees[group._id] || [], category: "GROUP", date: formattedDate, dateForDisplay: date }} groups={groups} />
+                        <LiteraryWhatsAppAction rowData={{ absentees: groupBasedAbsentees[group._id] || [], category: "GROUP", date: formattedDate, dateForDisplay: date, sessionLabel: selectedCategory }} groups={groups} />
                       )}
                     </TableCell>
                     <TableCell className="w-12 text-center px-1">
