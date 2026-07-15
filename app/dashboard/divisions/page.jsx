@@ -30,9 +30,30 @@ const columnsConfig = [
     header: "Sub Divisions",
     type: ["array"],
   },
-  { accessorKey: "stageEvents", header: "Stage Events Count" },
-  { accessorKey: "offStageEvents", header: "Off-Stage Events Count" },
-  { accessorKey: "chestNumberStartsAt", header: "Chest Number Starts At" },
+  {
+    accessorKey: "stageEvents",
+    header: (
+      <div className="!whitespace-normal leading-tight">
+        Stage Events<br />Count
+      </div>
+    ),
+  },
+  {
+    accessorKey: "offStageEvents",
+    header: (
+      <div className="!whitespace-normal leading-tight">
+        Off-Stage Events<br />Count
+      </div>
+    ),
+  },
+  {
+    accessorKey: "chestNumberStartsAt",
+    header: (
+      <div className="!whitespace-normal leading-tight">
+        Chest Number<br />Starts At
+      </div>
+    ),
+  },
   {
     accessorKey: "participantsCount",
     header: "Participants",
