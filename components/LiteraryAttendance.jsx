@@ -1,4 +1,4 @@
-/dashboard/students - reports"use client";
+"use client";
 
 import { formatDate, formatDateForDisplay } from "@/lib/utils";
 import Header from "./Header";
