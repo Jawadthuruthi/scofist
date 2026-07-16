@@ -79,6 +79,16 @@ export const MultiSelect = React.forwardRef(
     const [searchQuery, setSearchQuery] = React.useState("");
     const [menuItems, setMenuItems] = React.useState(options || []);
     const [inputError, setInputError] = React.useState("");
+    const [focusedIndex, setFocusedIndex] = React.useState(-1);
+
+    React.useEffect(() => {
+        if (focusedIndex >= 0) {
+            const el = document.getElementById(`multiselect-option-${focusedIndex}`);
+            if (el) {
+                el.scrollIntoView({ block: "nearest" });
+            }
+        }
+    }, [focusedIndex]);
 
     React.useEffect(() => {
       setMenuItems(options);
@@ -245,9 +255,21 @@ export const MultiSelect = React.forwardRef(
     };
 
     const handleSearchInputKeyDown = (event) => {
-      if (event.key === "Enter" && freeSolo) {
+      if (event.key === "Enter" && freeSolo && canAddNewOption && focusedIndex === -1) {
         event.preventDefault();
         addNewOption(searchQuery);
+      } else if (event.key === "Enter" && focusedIndex >= 0 && focusedIndex < filteredOptions.length) {
+        event.preventDefault();
+        const option = filteredOptions[focusedIndex];
+        if (option && !readOnly) {
+          toggleOption(option.value);
+        }
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setFocusedIndex(prev => prev < filteredOptions.length - 1 ? prev + 1 : prev);
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setFocusedIndex(prev => prev > 0 ? prev - 1 : -1);
       } else if (event.key === "Backspace" && !searchQuery && multiSelect) {
         // Remove last selected item when backspacing with empty input
         const newSelectedValues = [...selectedValues];
@@ -257,6 +279,7 @@ export const MultiSelect = React.forwardRef(
       } else if (event.key === "Escape") {
         setSearchQuery("");
         setInputError("");
+        setFocusedIndex(-1);
         setIsPopoverOpen(false);
       }
     };
@@ -264,6 +287,7 @@ export const MultiSelect = React.forwardRef(
     const handleSearchChange = (e) => {
       const newValue = e.target.value;
       setSearchQuery(newValue);
+      setFocusedIndex(-1);
       if (freeSolo) {
         validateInput(newValue);
       }
@@ -565,19 +589,21 @@ export const MultiSelect = React.forwardRef(
                     <span>(Select All)</span>
                   </div>
                 )}
-                {filteredOptions.map((option) => {
+                {filteredOptions.map((option, index) => {
                   const isSelected = multiSelect
                     ? selectedValues.includes(option.value)
                     : option.value === selectedValues;
 
                   return (
                     <div
+                      id={`multiselect-option-${index}`}
                       key={option.value}
                       className={cn(
                         "flex items-center rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground",
-                        option.isCustom &&
-                        "bg-primary/5 border-l-2 border-primary/20"
+                        option.isCustom && "bg-primary/5 border-l-2 border-primary/20",
+                        focusedIndex === index && "bg-accent text-accent-foreground"
                       )}
+                      onMouseEnter={() => setFocusedIndex(index)}
                       onClick={() => {
                         if (!readOnly) toggleOption(option.value);
                       }}

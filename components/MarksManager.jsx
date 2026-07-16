@@ -38,7 +38,15 @@ import {
 function MultiSelect({ options = [], selected = [], onChange, placeholder = "Select...", disabled = false }) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
+    const [focusedIndex, setFocusedIndex] = useState(-1);
     const ref = useRef(null);
+
+    useEffect(() => {
+        if (focusedIndex >= 0) {
+            const el = document.getElementById(`marks-multiselect-option-${focusedIndex}`);
+            if (el) el.scrollIntoView({ block: "nearest" });
+        }
+    }, [focusedIndex]);
 
     useEffect(() => {
         const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -80,19 +88,40 @@ function MultiSelect({ options = [], selected = [], onChange, placeholder = "Sel
                             className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
                             placeholder="Search..."
                             value={search}
-                            onChange={e => setSearch(e.target.value)}
+                            onChange={e => {
+                                setSearch(e.target.value);
+                                setFocusedIndex(-1);
+                            }}
+                            onKeyDown={e => {
+                                if (e.key === "ArrowDown") {
+                                    e.preventDefault();
+                                    setFocusedIndex(prev => prev < filtered.length - 1 ? prev + 1 : prev);
+                                } else if (e.key === "ArrowUp") {
+                                    e.preventDefault();
+                                    setFocusedIndex(prev => prev > 0 ? prev - 1 : -1);
+                                } else if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    if (focusedIndex >= 0 && focusedIndex < filtered.length) {
+                                        toggle(filtered[focusedIndex].value);
+                                    }
+                                } else if (e.key === "Escape") {
+                                    setOpen(false);
+                                }
+                            }}
                         />
                         {search && <button onClick={() => setSearch("")}><X className="h-3 w-3 text-muted-foreground" /></button>}
                     </div>
                     <div className="max-h-52 overflow-y-auto py-1">
                         {filtered.length === 0 ? (
                             <div className="py-6 text-center text-xs text-muted-foreground">No results</div>
-                        ) : filtered.map(o => (
+                        ) : filtered.map((o, index) => (
                             <button
+                                id={`marks-multiselect-option-${index}`}
                                 key={o.value}
                                 type="button"
-                                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-accent rounded-sm"
+                                className={`flex items-center gap-2 w-full px-3 py-1.5 text-sm rounded-sm transition-colors ${focusedIndex === index ? "bg-accent" : "hover:bg-accent"}`}
                                 onClick={() => toggle(o.value)}
+                                onMouseEnter={() => setFocusedIndex(index)}
                             >
                                 <div className={`h-4 w-4 rounded border flex items-center justify-center ${selected.includes(o.value) ? "bg-primary border-primary" : "border-input"}`}>
                                     {selected.includes(o.value) && <Check className="h-3 w-3 text-primary-foreground" />}

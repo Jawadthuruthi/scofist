@@ -45,7 +45,17 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
     const [searchFocused, setSearchFocused] = useState(false);
+    const [focusedSuggestionIndex, setFocusedSuggestionIndex] = useState(-1);
     const [debtBalances, setDebtBalances] = useState([]);
+
+    useEffect(() => {
+        if (focusedSuggestionIndex >= 0) {
+            const el = document.getElementById(`report-suggestion-${focusedSuggestionIndex}`);
+            if (el) {
+                el.scrollIntoView({ block: "nearest" });
+            }
+        }
+    }, [focusedSuggestionIndex]);
 
     const filteredClasses = useMemo(() => {
         if (!Array.isArray(classes)) return [];
@@ -372,17 +382,35 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
                                 value={lookupSearchTerm}
                                 onChange={(e) => {
                                     setLookupSearchTerm(e.target.value);
+                                    setFocusedSuggestionIndex(-1);
                                 }}
                                 onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        handleStudentLookup();
-                                        setShowSuggestions(false);
+                                    if (e.key === "ArrowDown") {
+                                        e.preventDefault();
+                                        setFocusedSuggestionIndex((prev) => 
+                                            prev < suggestions.length - 1 ? prev + 1 : prev
+                                        );
+                                    } else if (e.key === "ArrowUp") {
+                                        e.preventDefault();
+                                        setFocusedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
+                                    } else if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        if (focusedSuggestionIndex >= 0 && focusedSuggestionIndex < suggestions.length) {
+                                            selectStudent(suggestions[focusedSuggestionIndex]);
+                                        } else {
+                                            handleStudentLookup();
+                                            setShowSuggestions(false);
+                                        }
+                                        setFocusedSuggestionIndex(-1);
                                     }
                                 }}
                                 onFocus={() => setSearchFocused(true)}
                                 onBlur={() => {
                                     // Delay to allow clicking on suggestions
-                                    setTimeout(() => setSearchFocused(false), 200);
+                                    setTimeout(() => {
+                                        setSearchFocused(false);
+                                        setFocusedSuggestionIndex(-1);
+                                    }, 200);
                                 }}
                                 className="w-full pr-10"
                             />
@@ -398,6 +426,7 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
                                         setSelectedStudentId("");
                                         setSelectedStudentData(null);
                                         setLookupError(false);
+                                        setFocusedSuggestionIndex(-1);
                                     }}
                                 >
                                     <X className="h-4 w-4" />
@@ -405,7 +434,7 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
                             )}
                             {showSuggestions && searchFocused && suggestions.length > 0 && (
                                 <div className="absolute z-[999] left-0 right-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-[400px] overflow-y-auto">
-                                    {suggestions.map((student) => {
+                                    {suggestions.map((student, index) => {
                                         const batch = batches.find(b => b._id === (student.batchId || student.studentSpecificField?.batchId));
                                         const cls = classes.find(c => c._id === (student.classId || student.studentSpecificField?.classId));
                                         const batchName = batch?.name || "No Batch";
@@ -413,12 +442,16 @@ export default function StudentsReportClient({ batches = [], classes = [], apiKe
                                         
                                         return (
                                             <div
+                                                id={`report-suggestion-${index}`}
                                                 key={student._id}
-                                                className="flex items-center gap-3 p-3 hover:bg-accent cursor-pointer border-b last:border-0 transition-colors"
+                                                className={`flex items-center gap-3 p-3 cursor-pointer border-b last:border-0 transition-colors ${
+                                                    focusedSuggestionIndex === index ? "bg-accent" : "hover:bg-accent"
+                                                }`}
                                                 onMouseDown={(e) => {
                                                     e.preventDefault(); // Prevent blur
                                                     selectStudent(student);
                                                 }}
+                                                onMouseEnter={() => setFocusedSuggestionIndex(index)}
                                             >
                                                 <Avatar className="h-10 w-10 border">
                                                     <AvatarImage src={student.profilePic?.url} />

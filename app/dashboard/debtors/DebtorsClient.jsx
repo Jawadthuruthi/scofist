@@ -57,6 +57,16 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
   const [hasLookedUp, setHasLookedUp] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [focusedSuggestionIndex, setFocusedSuggestionIndex] = useState(-1);
+
+  useEffect(() => {
+    if (focusedSuggestionIndex >= 0) {
+      const el = document.getElementById(`debtor-suggestion-${focusedSuggestionIndex}`);
+      if (el) {
+        el.scrollIntoView({ block: "nearest" });
+      }
+    }
+  }, [focusedSuggestionIndex]);
 
   // Total Collected Date Range State
   const [collectedFrom, setCollectedFrom] = useState("");
@@ -484,17 +494,37 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
                             onChange={(e) => {
                                 setLookupSearchTerm(e.target.value);
                                 setShowSearchResults(true);
+                                setFocusedSuggestionIndex(-1);
                             }}
                             onFocus={(e) => {
                                 e.target.select();
                                 setShowSearchResults(true);
                             }}
                             onBlur={() => {
-                                setTimeout(() => setShowSearchResults(false), 200);
+                                setTimeout(() => {
+                                    setShowSearchResults(false);
+                                    setFocusedSuggestionIndex(-1);
+                                }, 200);
                             }}
                             onKeyDown={(e) => { 
-                                if (e.key === "Enter") {
-                                    if (searchResults.length === 1) {
+                                if (e.key === "ArrowDown") {
+                                    e.preventDefault();
+                                    setFocusedSuggestionIndex((prev) => 
+                                        prev < searchResults.length - 1 ? prev + 1 : prev
+                                    );
+                                } else if (e.key === "ArrowUp") {
+                                    e.preventDefault();
+                                    setFocusedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
+                                } else if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    if (focusedSuggestionIndex >= 0 && focusedSuggestionIndex < searchResults.length) {
+                                        const s = searchResults[focusedSuggestionIndex];
+                                        setLookupStudent(s);
+                                        setHasLookedUp(true);
+                                        setLookupSearchTerm(s.name);
+                                        setShowSearchResults(false);
+                                        setFocusedSuggestionIndex(-1);
+                                    } else if (searchResults.length === 1) {
                                         const s = searchResults[0];
                                         setLookupStudent(s);
                                         setHasLookedUp(true);
@@ -512,7 +542,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
                                 variant="ghost" size="icon"
                                 className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-transparent"
                                 onClick={() => {
-                                    setLookupSearchTerm(""); setHasLookedUp(false); setLookupStudent(null); setShowSearchResults(false);
+                                    setLookupSearchTerm(""); setHasLookedUp(false); setLookupStudent(null); setShowSearchResults(false); setFocusedSuggestionIndex(-1);
                                 }}
                             >
                                 <X className="h-4 w-4" />
@@ -522,7 +552,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
                         {/* Search Results Dropdown */}
                         {showSearchResults && searchResults.length > 0 && (
                             <div className="absolute z-[999] left-0 right-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-[400px] overflow-y-auto">
-                                {searchResults.map((student) => {
+                                {searchResults.map((student, index) => {
                                     const batch = batches.find(b => b._id === (student.studentSpecificField?.batchId || student.batchId));
                                     const cls = classes.find(c => c._id === (student.studentSpecificField?.classId || student.classId));
                                     const batchName = batch?.name || "No Batch";
@@ -530,8 +560,11 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
                                     
                                     return (
                                         <div
+                                            id={`debtor-suggestion-${index}`}
                                             key={student._id}
-                                            className="flex items-center gap-3 p-3 hover:bg-accent cursor-pointer border-b last:border-0"
+                                            className={`flex items-center gap-3 p-3 cursor-pointer border-b last:border-0 transition-colors ${
+                                                focusedSuggestionIndex === index ? "bg-accent" : "hover:bg-accent"
+                                            }`}
                                             onMouseDown={(e) => {
                                                 e.preventDefault(); // Prevent blur
                                                 setLookupStudent(student);
@@ -539,6 +572,7 @@ export default function DebtorsClient({ batches, classes, categories: initialCat
                                                 setLookupSearchTerm(student.name);
                                                 setShowSearchResults(false);
                                             }}
+                                            onMouseEnter={() => setFocusedSuggestionIndex(index)}
                                         >
                                             <Avatar className="h-10 w-10 border">
                                                 <AvatarImage src={student.profilePic?.url} />
