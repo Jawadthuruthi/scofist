@@ -57,11 +57,15 @@ export default function PrintHeader({
             )}
 
             {/* Optional Title Below Header */}
-            {title && title.length > 0 && (
+            {title && (
               <div className="bg-accent text-accent-foreground py-1 text-center">
-                <h2 className="text-sm font-medium">
-                  {title.charAt(0).toUpperCase() + title.slice(1)}
-                </h2>
+                {typeof title === 'string' ? (
+                  <h2 className="text-xl font-bold uppercase">
+                    {title.charAt(0).toUpperCase() + title.slice(1)}
+                  </h2>
+                ) : (
+                  title
+                )}
               </div>
             )}
           </div>
@@ -142,9 +146,13 @@ export default function PrintHeader({
             )}
 
             {/* Black strip for document title */}
-            {title && title.length > 0 && (
+            {title && (
               <div className="bg-black text-white py-1 text-center">
-                <h2 className="text-lg font-medium">{title}</h2>
+                {typeof title === 'string' ? (
+                  <h2 className="text-lg font-medium">{title}</h2>
+                ) : (
+                  title
+                )}
               </div>
             )}
 

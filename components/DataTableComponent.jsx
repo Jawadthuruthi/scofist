@@ -1438,6 +1438,20 @@ const DataTableComponent = ({
             let baseTitle = printTitle || resource;
             let classLabel = "";
             let batchLabel = "";
+            let teamLabel = "";
+            let teamLeader = "";
+
+            if (filters["teamId"] && filterConfig) {
+              const config = filterConfig.find(f => f.id === "teamId");
+              if (config && config.options) {
+                const val = typeof filters["teamId"] === 'object' ? filters["teamId"].value : filters["teamId"];
+                const opt = config.options.find(o => String(o.value) === String(val));
+                if (opt) {
+                  teamLabel = opt.label;
+                  teamLeader = opt.leaderName || "N/A";
+                }
+              }
+            }
 
             if (filters["classId"] && filterConfig) {
               const config = filterConfig.find(f => f.id === "classId");
@@ -1455,6 +1469,18 @@ const DataTableComponent = ({
                 const opt = config.options.find(o => String(o.value) === String(val));
                 if (opt) batchLabel = opt.label;
               }
+            }
+
+            if (teamLabel) {
+              return (
+                <div className="flex flex-col items-center justify-center p-1">
+                  <h2 className="text-2xl font-bold uppercase tracking-wide">TEAM {teamLabel}</h2>
+                  {teamLeader && teamLeader !== "N/A" && (
+                    <h3 className="text-base font-semibold uppercase mt-0.5 text-black/80">Leader: {teamLeader}</h3>
+                  )}
+                  {classLabel && <p className="text-sm font-medium mt-0.5">Class: {classLabel}</p>}
+                </div>
+              );
             }
 
             if (classLabel && batchLabel) {

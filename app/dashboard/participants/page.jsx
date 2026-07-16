@@ -74,7 +74,7 @@ export default async function ParticipantsPage() {
           0
         ),
         fetchData("classes", "projection=_id,name&status=Active", 0),
-        fetchData("teams", `${yearParam}projection=_id,name`, 0),
+        fetchData("teams", `${yearParam}projection=_id,name,leaderId`, 0),
         fetchData("divisions", `${yearParam}projection=_id,name&type=Primary`, 0),
       ]);
     } else {
