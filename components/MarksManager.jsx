@@ -907,6 +907,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
             return {
                 studentId: entry.studentId?._id || entry.studentId,
                 studentName: entry.studentId?.name || entry.studentId,
+                profilePic: entry.studentId?.profilePic,
                 total,
                 percentage,
                 marksMap,
@@ -1609,8 +1610,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                                 <div className="flex items-center gap-3 sm:gap-6 mb-6 bg-slate-50 dark:bg-slate-900 p-3 sm:p-6 rounded-lg border">
                                                     <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-muted border-4 border-white dark:border-slate-800 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
                                                         {(() => {
-                                                            const studentObj = students.find(s => s._id === selectedStudentForIndividual || s._id === stat.studentId);
-                                                            const photoUrl = studentObj?.profilePic?.url || studentObj?.photo?.url;
+                                                            const photoUrl = stat.profilePic?.url;
                                                             if (photoUrl) return <img src={photoUrl} alt="Student" className="w-full h-full object-cover" />;
                                                             return <User className="w-8 h-8 sm:w-12 sm:h-12 text-slate-400" />;
                                                         })()}
