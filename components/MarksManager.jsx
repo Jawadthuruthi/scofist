@@ -354,7 +354,12 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                 headers: { "api-key": apiKey } 
             });
             const d = await res.json();
-            setAllExams(d.data || []);
+            const sortedExams = (d.data || []).sort((a, b) => {
+                const dateA = new Date(a.updatedAt || a.createdAt || 0);
+                const dateB = new Date(b.updatedAt || b.createdAt || 0);
+                return dateB - dateA;
+            });
+            setAllExams(sortedExams);
         } catch (e) {
             console.error("Failed to refresh exams", e);
         }
@@ -384,7 +389,12 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                 setInstitutionName(inst.name || "");
                 setInstitutionData(inst);
             }
-            setAllExams(marksData.data || []);
+            const sortedInitialExams = (marksData.data || []).sort((a, b) => {
+                const dateA = new Date(a.updatedAt || a.createdAt || 0);
+                const dateB = new Date(b.updatedAt || b.createdAt || 0);
+                return dateB - dateA;
+            });
+            setAllExams(sortedInitialExams);
         }).catch(err => console.error("Failed to fetch initial data", err));
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

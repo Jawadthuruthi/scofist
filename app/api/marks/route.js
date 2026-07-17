@@ -28,7 +28,7 @@ export async function GET(req) {
         }
 
         const marks = await Mark.find(filter)
-            .sort({ createdAt: -1 })
+            .sort({ updatedAt: -1 })
             .populate("classId", "name")
             .populate({
                 path: "students.studentId",
