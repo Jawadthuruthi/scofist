@@ -754,19 +754,29 @@ export default function PopupForm({
         }, 150);
       }
     } catch (error) {
-      console.error("Form submission failed:", error.message);
+      console.warn("Form submission failed:", error.message);
 
       // Attempt to set form errors if the error response provides field-level details
       if (error.details?.errors) {
-        Object.entries(error.details.errors).forEach(([field, message]) => {
-          // Find the label for the field to provide a more readable error
-          const fieldLabel = customFormFields.find(f => f.name === field)?.label || field;
-
-          form.setError(field, {
-            type: "manual",
-            message: `${fieldLabel} ${message}`,
+        if (Array.isArray(error.details.errors)) {
+          error.details.errors.forEach(({ field, message }) => {
+            const fieldLabel = customFormFields.find(f => f.name === field)?.label || field;
+            form.setError(field, {
+              type: "manual",
+              message: `${fieldLabel} ${message}`,
+            });
           });
-        });
+        } else {
+          Object.entries(error.details.errors).forEach(([field, message]) => {
+            // Find the label for the field to provide a more readable error
+            const fieldLabel = customFormFields.find(f => f.name === field)?.label || field;
+
+            form.setError(field, {
+              type: "manual",
+              message: `${fieldLabel} ${message}`,
+            });
+          });
+        }
       }
     } finally {
       setLoading(false);

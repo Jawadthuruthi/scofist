@@ -50,7 +50,8 @@ const DEFAULT_OPERATORS = {
 
 const getCurrentValue = (filterItem, currentFilter) => {
   if (currentFilter?.value !== undefined) return currentFilter.value;
-  if (typeof currentFilter !== "object") return currentFilter;
+  if (Array.isArray(currentFilter)) return currentFilter;
+  if (typeof currentFilter !== "object" || currentFilter === null) return currentFilter;
   if (filterItem.inputType === "dateRange") {
     return { startDate: "", endDate: "" };
   }

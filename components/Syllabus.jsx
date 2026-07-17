@@ -248,11 +248,17 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
   };
 
   const filteredSyllabus = useMemo(() => {
-    return fetchSyllabusQuery.data?.syllabuses || [];
-  }, [fetchSyllabusQuery.data]);
+    const data = fetchSyllabusQuery.data?.syllabuses || [];
+    return data.filter((item) => {
+      const matchCourse = filterCourse === "all" || item.course === filterCourse;
+      const matchYear = filterYear === "all" || String(item.year) === String(filterYear);
+      return matchCourse && matchYear;
+    });
+  }, [fetchSyllabusQuery.data, filterCourse, filterYear]);
 
-  const years = [1, 2, 3, 4, 5];
-  const courses = ["BSIc(5 Years)", "HSIc(3 Years)", "HSIc(2 Years)"];
+  const allSyllabuses = fetchSyllabusQuery.data?.syllabuses || [];
+  const years = Array.from(new Set(allSyllabuses.map(s => String(s.year)))).sort((a, b) => Number(a) - Number(b));
+  const courses = Array.from(new Set(allSyllabuses.map(s => s.course))).sort();
 
   return (
     <>

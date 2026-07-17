@@ -554,7 +554,12 @@ export default function LibraryDashboard({
         {
             accessorKey: "language",
             header: "Language",
-            filterFn: "equalsString",
+            filterFn: (row, columnId, filterValue) => {
+                if (!filterValue || filterValue.length === 0) return true;
+                const rowValue = row.getValue(columnId);
+                const filterArr = Array.isArray(filterValue) ? filterValue : [filterValue];
+                return filterArr.some(val => String(val).toLowerCase() === String(rowValue).toLowerCase());
+            },
             cell: ({ row }) => <span className="uppercase">{row.getValue("language")}</span>,
             meta: {
                 width: "1%",
@@ -565,8 +570,12 @@ export default function LibraryDashboard({
         {
             accessorKey: "category",
             header: "Category",
-            filterFn: (row, columnId, filterValue) =>
-                normalizeCategoryName(row.getValue(columnId)) === normalizeCategoryName(filterValue),
+            filterFn: (row, columnId, filterValue) => {
+                if (!filterValue || filterValue.length === 0) return true;
+                const rowValue = normalizeCategoryName(row.getValue(columnId));
+                const filterArr = Array.isArray(filterValue) ? filterValue : [filterValue];
+                return filterArr.some(val => normalizeCategoryName(val) === rowValue);
+            },
             cell: ({ row }) => <span className="uppercase">{normalizeCategoryName(row.getValue("category"))}</span>,
             meta: {
                 width: "1%",
@@ -597,7 +606,13 @@ export default function LibraryDashboard({
         {
             accessorKey: "status",
             header: "Status",
-            filterFn: "equalsString",
+            filterFn: (row, columnId, filterValue) => {
+                if (!filterValue || filterValue.length === 0) return true;
+                const status = row.getValue(columnId);
+                const displayStatus = (status === "Pending" || status === "Rented") ? "Rented" : (status || "Unknown");
+                const filterArr = Array.isArray(filterValue) ? filterValue : [filterValue];
+                return filterArr.includes(displayStatus) || filterArr.includes(status);
+            },
             cell: ({ row }) => {
                 const status = row.getValue("status");
                 const displayStatus = (status === "Pending" || status === "Rented") ? "Rented" : (status || "Unknown");
@@ -803,19 +818,19 @@ export default function LibraryDashboard({
         {
             id: "language",
             label: "Language",
-            inputType: "select",
+            inputType: "multiSelect",
             options: dynamicLanguages.map((l) => ({ value: l, label: l })),
         },
         {
             id: "category",
             label: "Category",
-            inputType: "select",
+            inputType: "multiSelect",
             options: dynamicCategories.map((c) => ({ value: c, label: c })),
         },
         {
             id: "status",
             label: "Status",
-            inputType: "select",
+            inputType: "multiSelect",
             options: [
                 { value: "Available", label: "Available" },
                 { value: "Rented", label: "Rented" },
