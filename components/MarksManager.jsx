@@ -10,7 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Save, Plus, Printer, Trophy, Edit, Settings, X, User, Check, ChevronsUpDown, Search, FileSpreadsheet, Lock, Unlock } from "lucide-react";
+import { Trash2, Save, Plus, Printer, Trophy, Edit, Settings, X, User, Check, ChevronsUpDown, Search, FileSpreadsheet, Lock, Unlock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { useReactToPrint } from "react-to-print";
@@ -967,6 +967,31 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
         }
     };
 
+    const handleToggleVisibility = async () => {
+        if (!selectedExam) return;
+        // Default to true if undefined
+        const currentVisibility = selectedExam.isVisibleToTeachers !== false;
+        const newVisibility = !currentVisibility;
+        try {
+            const res = await fetch(`/api/marks/${selectedExam._id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isVisibleToTeachers: newVisibility }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success(newVisibility ? "Results visible to teachers" : "Results hidden from teachers");
+                setSelectedExam({ ...selectedExam, isVisibleToTeachers: newVisibility });
+                setAllExams(prev => prev.map(e => e._id === selectedExam._id ? { ...e, isVisibleToTeachers: newVisibility } : e));
+            } else {
+                toast.error(data.message || "Failed to update visibility state");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Network error");
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Centered Save Success Popup */}
@@ -1171,13 +1196,22 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                                 <X className="w-4 h-4" />
                                             </Button>
                                             {selectedExam && (
-                                                <Button
-                                                    size="icon" variant={selectedExam.isLocked ? "destructive" : "outline"} className={`h-9 w-9 shrink-0 border ${selectedExam.isLocked ? '' : 'border-input bg-background text-muted-foreground hover:text-foreground'}`}
-                                                    onClick={handleToggleLock}
-                                                    title={selectedExam.isLocked ? "Unblock Marks Entry" : "Block Marks Entry"}
-                                                >
-                                                    {selectedExam.isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                                                </Button>
+                                                <>
+                                                    <Button
+                                                        size="icon" variant={selectedExam.isVisibleToTeachers !== false ? "outline" : "secondary"} className={`h-9 w-9 shrink-0 border ${selectedExam.isVisibleToTeachers !== false ? 'border-input bg-background text-muted-foreground hover:text-foreground' : 'text-muted-foreground'}`}
+                                                        onClick={handleToggleVisibility}
+                                                        title={selectedExam.isVisibleToTeachers !== false ? "Hide Results from Teachers" : "Show Results to Teachers"}
+                                                    >
+                                                        {selectedExam.isVisibleToTeachers !== false ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                                    </Button>
+                                                    <Button
+                                                        size="icon" variant={selectedExam.isLocked ? "destructive" : "outline"} className={`h-9 w-9 shrink-0 border ${selectedExam.isLocked ? '' : 'border-input bg-background text-muted-foreground hover:text-foreground'}`}
+                                                        onClick={handleToggleLock}
+                                                        title={selectedExam.isLocked ? "Unblock Marks Entry" : "Block Marks Entry"}
+                                                    >
+                                                        {selectedExam.isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                                                    </Button>
+                                                </>
                                             )}
                                         </div>
                                     )}

@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import connectToDB from "@/lib/db";
 import Mark from "@/models/Mark";
 
 export async function GET(req) {
     try {
         await connectToDB();
+        const cookieStore = await cookies();
+        const activeRole = cookieStore.get("active-role")?.value;
         const { searchParams } = new URL(req.url);
         const classId = searchParams.get("classId");
         const studentId = searchParams.get("studentId");
@@ -18,6 +21,11 @@ export async function GET(req) {
             filter.$or = [{ classId }, { classIds: classId }];
         }
         if (studentId) filter["students.studentId"] = studentId;
+
+        // Hide exams from teachers if visibility is toggled off
+        if (activeRole === "Teacher") {
+            filter.isVisibleToTeachers = { $ne: false };
+        }
 
         const marks = await Mark.find(filter)
             .sort({ createdAt: -1 })

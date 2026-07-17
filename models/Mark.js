@@ -34,6 +34,7 @@ const MarkSchema = new mongoose.Schema(
             },
         ],
         isLocked: { type: Boolean, default: false },
+        isVisibleToTeachers: { type: Boolean, default: true },
     },
     { timestamps: true }
 );
