@@ -821,10 +821,12 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
         if (!exam) return "";
         const ids = exam.classIds?.length ? exam.classIds : (exam.classId ? [exam.classId] : []);
         const labels = ids.map(id => {
-            const cls = classes.find(c => c._id === id);
+            const actualId = (id && typeof id === "object") ? id._id : id;
+            const cls = classes.find(c => c._id === actualId);
             if (cls) return cls.name;
-            const bat = batches.find(b => b._id === id);
+            const bat = batches.find(b => b._id === actualId);
             if (bat) return `${bat.name}${bat.endYear ? ` (${bat.endYear})` : ""}`;
+            if (id && typeof id === "object" && id.name) return id.name;
             return null;
         }).filter(Boolean);
         return labels.join(", ");
@@ -907,6 +909,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
             return {
                 studentId: entry.studentId?._id || entry.studentId,
                 studentName: entry.studentId?.name || entry.studentId,
+                studentClass: entry.studentId?.studentSpecificField?.classId?.name || "",
                 profilePic: entry.studentId?.profilePic,
                 total,
                 percentage,
@@ -1600,9 +1603,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                                             )}
                                                         </div>
                                                     </div>
-                                                    {getExamContextLabel(resultExam) && (
-                                                        <p className="text-muted-foreground text-sm sm:text-base">{getExamContextLabel(resultExam)}</p>
-                                                    )}
+                                                    {/* Class name removed as requested */}
                                                     <p className="text-xs sm:text-sm font-semibold mt-2 bg-muted inline-block px-3 py-1 rounded-full">
                                                         {resultExam.examName}
                                                     </p>

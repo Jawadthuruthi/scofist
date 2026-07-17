@@ -30,7 +30,14 @@ export async function GET(req) {
         const marks = await Mark.find(filter)
             .sort({ createdAt: -1 })
             .populate("classId", "name")
-            .populate("students.studentId", "name _id profilePic photo");
+            .populate({
+                path: "students.studentId",
+                select: "name _id profilePic photo studentSpecificField.classId",
+                populate: {
+                    path: "studentSpecificField.classId",
+                    select: "name"
+                }
+            });
         return NextResponse.json({ success: true, data: marks });
     } catch (error) {
         console.error("GET /api/marks error:", error);
