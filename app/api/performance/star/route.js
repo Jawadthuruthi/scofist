@@ -118,8 +118,8 @@ export async function GET(req) {
       StudentAttendance.find({ studentId: { $in: studentIds } }).lean(),
       StudentMasjidAttendance.find({ studentId: { $in: studentIds } }).lean(),
       StudentLiteraryAttendance.find({ studentId: { $in: studentIds } }).lean(),
-      Remark.find({ studentId: { $in: studentIds }, date: { $gte: startDate, $lte: endDate } }).lean(),
-      Performance.find({ studentId: { $in: studentIds }, date: { $gte: startDate, $lte: endDate } }).lean(),
+      Remark.find({ studentId: { $in: studentIds }, date: { $gte: startDate, $lte: endDate } }).populate('teacherId', 'name').lean(),
+      Performance.find({ studentId: { $in: studentIds }, date: { $gte: startDate, $lte: endDate } }).populate('teacherId', 'name').lean(),
       LeaveRecord.find({ studentId: { $in: studentIds }, dateOfLeave: { $gte: startDate, $lte: endDate } }).lean(),
       Class.find({ _id: { $in: Array.from(classIdsSet) } }).lean(),
       Settings.findOne().lean()
@@ -192,7 +192,15 @@ export async function GET(req) {
       if (!studentMap[sid]) return;
       const pts = getStatusPoints(remark.status);
       studentMap[sid].scores.remarks += pts;
-      studentMap[sid].details.remarks.push({ status: remark.status, points: pts, date: remark.date });
+      
+      const teacherName = remark.teacherId?.name || "Unknown Teacher";
+      studentMap[sid].details.remarks.push({ 
+        status: remark.status, 
+        points: pts, 
+        date: remark.date,
+        comments: remark.comments,
+        teacherName: teacherName
+      });
     });
 
     // Process Performance
@@ -201,7 +209,15 @@ export async function GET(req) {
       if (!studentMap[sid]) return;
       const pts = getStatusPoints(perf.status);
       studentMap[sid].scores.performance += pts;
-      studentMap[sid].details.performance.push({ status: perf.status, points: pts, date: perf.date });
+      
+      const teacherName = perf.teacherId?.name || "Unknown Teacher";
+      studentMap[sid].details.performance.push({ 
+        status: perf.status, 
+        points: pts, 
+        date: perf.date,
+        comments: perf.comments,
+        teacherName: teacherName
+      });
     });
 
     // Process Leaves
@@ -217,7 +233,12 @@ export async function GET(req) {
       
       const pts = getStatusPoints(leave.remark);
       studentMap[sid].scores.leaves += pts;
-      studentMap[sid].details.leaves.push({ status: leave.remark, points: pts, date: leave.dateOfLeave });
+      studentMap[sid].details.leaves.push({ 
+        status: leave.remark, 
+        points: pts, 
+        date: leave.dateOfLeave,
+        leaveReason: leave.leaveReason
+      });
     });
 
     // Determine the Star(s)
@@ -235,19 +256,31 @@ export async function GET(req) {
       s.className = classMap[cId] || "Unknown Class";
       allStudents.push(s);
 
-      if (!bestByClass[cId] || total > bestByClass[cId].totalScore) {
+      const studentData = {
+        student: { id: s.id, name: s.name, profilePic: s.profilePic, admnNo: s.admnNo },
+        breakdown: s.scores,
+        totalScore: total,
+        classId: cId,
+        className: s.className,
+        institutionName: settings?.institution?.name || "Institution Name"
+      };
+
+      if (!bestByClass[cId] || total > bestByClass[cId].maxScore) {
         bestByClass[cId] = {
-          student: { id: s.id, name: s.name, profilePic: s.profilePic, admnNo: s.admnNo },
-          breakdown: s.scores,
-          totalScore: total,
-          classId: cId,
-          className: s.className,
-          institutionName: settings?.institution?.name || "Institution Name"
+          maxScore: total,
+          winners: [studentData]
         };
+      } else if (total === bestByClass[cId].maxScore) {
+        bestByClass[cId].winners.push(studentData);
       }
     }
 
-    const results = Object.values(bestByClass).sort((a, b) => a.classId.localeCompare(b.classId));
+    let results = [];
+    Object.values(bestByClass).forEach(classData => {
+      results.push(...classData.winners);
+    });
+    
+    results = results.sort((a, b) => a.classId.localeCompare(b.classId));
 
     if (results.length === 0) {
       return NextResponse.json({ success: false, message: "No data available to calculate Star of the Month." });

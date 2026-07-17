@@ -129,7 +129,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
   };
 
   const handlePrintAll = async () => {
-    if (!starData || starData.length === 0) return;
+    if (!filteredStarData || filteredStarData.length === 0) return;
     
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -142,7 +142,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
     toast.info("Preparing posters for printing...");
     try {
       const images = [];
-      for (let i = 0; i < starData.length; i++) {
+      for (let i = 0; i < filteredStarData.length; i++) {
         const posterRef = posterRefs.current[i];
         if (posterRef) {
           const canvas = await html2canvas(posterRef, { useCORS: true, scale: 2 });
@@ -276,6 +276,12 @@ export default function StarOfTheMonthModal({ classes = [] }) {
     return allStudents.filter(s => s.classId === selectedClass);
   }, [allStudents, selectedClass]);
 
+  const filteredStarData = useMemo(() => {
+    if (!starData) return null;
+    if (selectedClass === 'all' || !selectedClass) return starData;
+    return starData.filter(data => data.classId === selectedClass);
+  }, [starData, selectedClass]);
+
   const currentMonthLabel = months.find(m => m.value === selectedMonth)?.label || '';
   const currentClassLabel = selectedClass === 'all' ? 'All Classes' : (classes.find(c => (c.value || c._id) === selectedClass)?.label || classes.find(c => (c.value || c._id) === selectedClass)?.name || '');
 
@@ -303,7 +309,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
               <SelectTrigger>
                 <SelectValue placeholder="Select Year" />
               </SelectTrigger>
-              <SelectContent className="max-h-56 overflow-y-auto">
+              <SelectContent className="max-h-96 overflow-y-auto">
                 {years.map(y => (
                   <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
                 ))}
@@ -317,7 +323,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
               <SelectTrigger>
                 <SelectValue placeholder="Select Month" />
               </SelectTrigger>
-              <SelectContent className="max-h-56 overflow-y-auto">
+              <SelectContent className="max-h-96 overflow-y-auto">
                 {months.map(m => (
                   <SelectItem key={m.value} value={m.value.toString()}>{m.label}</SelectItem>
                 ))}
@@ -332,7 +338,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                 <SelectTrigger>
                   <SelectValue placeholder="Select a class" />
                 </SelectTrigger>
-                <SelectContent className="max-h-56 overflow-y-auto">
+                <SelectContent className="max-h-96 overflow-y-auto">
                   <SelectItem value="all">All Classes</SelectItem>
                   {classes.map(c => (
                     <SelectItem key={c.value || c._id} value={c.value || c._id}>{c.label || c.name}</SelectItem>
@@ -368,7 +374,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
             <div className="flex flex-row gap-2 shrink-0">
               <Button 
                 onClick={handlePrintAll}
-                disabled={exporting || !starData || starData.length === 0}
+                disabled={exporting || !filteredStarData || filteredStarData.length === 0}
                 variant="outline"
                 className="bg-white border-indigo-600 text-indigo-700 hover:bg-indigo-50 h-9 w-9 p-0 md:h-10 md:w-auto md:px-4 md:py-2 flex items-center justify-center shrink-0"
                 title="Print Posters"
@@ -378,7 +384,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
               </Button>
               <Button 
                 onClick={handlePrintStars}
-                disabled={exporting || !starData || starData.length === 0}
+                disabled={exporting || !filteredStarData || filteredStarData.length === 0}
                 variant="outline"
                 className="bg-white border-indigo-600 text-indigo-700 hover:bg-indigo-50 h-9 w-9 p-0 md:h-10 md:w-auto md:px-4 md:py-2 flex items-center justify-center shrink-0"
                 title="Print Stars"
@@ -428,9 +434,9 @@ export default function StarOfTheMonthModal({ classes = [] }) {
           </div>
         )}
 
-        {starData && Array.isArray(starData) && (
+        {filteredStarData && Array.isArray(filteredStarData) && (
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-            {starData.map((data, index) => (
+            {filteredStarData.map((data, index) => (
               <div key={index} className="flex flex-col gap-4">
                 <div ref={el => posterRefs.current[index] = el} className="p-6 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white shadow-lg flex flex-col items-center justify-center relative overflow-hidden">
                   {bgImage ? (
@@ -576,7 +582,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                 </tr>
               </thead>
               <tbody>
-                {starData && starData.map((data, idx) => (
+                {filteredStarData && filteredStarData.map((data, idx) => (
                   <tr key={idx} className="border-b hover:bg-gray-50 print:border print:border-gray-300">
                     <td className="print:border print:border-gray-300 px-4 py-2 text-center">{idx + 1}</td>
                     <td className="print:border print:border-gray-300 px-4 py-2">{data.className}</td>
@@ -641,16 +647,20 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                    {formatPoints(selectedStudentForDetails.scores.remarks)}
                  </div>
                  {expandedDetail === 'remarks' && selectedStudentForDetails.details && (
-                   <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-32 overflow-y-auto">
-                     {selectedStudentForDetails.details.remarks?.length > 0 ? (
-                       <ul className="space-y-1">
-                         {selectedStudentForDetails.details.remarks.map((r, i) => (
-                           <li key={i} className="flex justify-between border-b border-gray-200 last:border-0 pb-1">
-                             <span>{r.status} <span className="text-xs text-gray-400">({new Date(r.date).toLocaleDateString()})</span></span>
-                             <span className={r.points > 0 ? "text-green-600" : "text-red-500"}>{r.points > 0 ? `+${r.points}` : r.points} pts</span>
-                           </li>
-                         ))}
-                       </ul>
+                     <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-48 overflow-y-auto">
+                       {selectedStudentForDetails.details.remarks?.length > 0 ? (
+                         <ul className="space-y-2">
+                           {selectedStudentForDetails.details.remarks.map((r, i) => (
+                             <li key={i} className="flex flex-col border-b border-gray-200 last:border-0 pb-1">
+                               <div className="flex justify-between">
+                                 <span><span className="font-medium">{r.status}</span> <span className="text-xs text-gray-400">({new Date(r.date).toLocaleDateString()})</span></span>
+                                 <span className={r.points > 0 ? "text-green-600" : "text-red-500"}>{r.points > 0 ? `+${r.points}` : r.points} pts</span>
+                               </div>
+                               {r.comments && <p className="text-xs text-gray-600 mt-0.5"><span className="font-semibold">Comment:</span> {r.comments}</p>}
+                               {r.teacherName && <p className="text-xs text-gray-500"><span className="font-semibold">Teacher:</span> {r.teacherName}</p>}
+                             </li>
+                           ))}
+                         </ul>
                      ) : (
                        <p className="text-gray-500 italic">No remarks in this month.</p>
                      )}
@@ -663,16 +673,20 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                    {formatPoints(selectedStudentForDetails.scores.performance)}
                  </div>
                  {expandedDetail === 'performance' && selectedStudentForDetails.details && (
-                   <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-32 overflow-y-auto">
-                     {selectedStudentForDetails.details.performance?.length > 0 ? (
-                       <ul className="space-y-1">
-                         {selectedStudentForDetails.details.performance.map((p, i) => (
-                           <li key={i} className="flex justify-between border-b border-gray-200 last:border-0 pb-1">
-                             <span>{p.status} <span className="text-xs text-gray-400">({new Date(p.date).toLocaleDateString()})</span></span>
-                             <span className={p.points > 0 ? "text-green-600" : "text-red-500"}>{p.points > 0 ? `+${p.points}` : p.points} pts</span>
-                           </li>
-                         ))}
-                       </ul>
+                     <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-48 overflow-y-auto">
+                       {selectedStudentForDetails.details.performance?.length > 0 ? (
+                         <ul className="space-y-2">
+                           {selectedStudentForDetails.details.performance.map((p, i) => (
+                             <li key={i} className="flex flex-col border-b border-gray-200 last:border-0 pb-1">
+                               <div className="flex justify-between">
+                                 <span><span className="font-medium">{p.status}</span> <span className="text-xs text-gray-400">({new Date(p.date).toLocaleDateString()})</span></span>
+                                 <span className={p.points > 0 ? "text-green-600" : "text-red-500"}>{p.points > 0 ? `+${p.points}` : p.points} pts</span>
+                               </div>
+                               {p.comments && <p className="text-xs text-gray-600 mt-0.5"><span className="font-semibold">Comment:</span> {p.comments}</p>}
+                               {p.teacherName && <p className="text-xs text-gray-500"><span className="font-semibold">Teacher:</span> {p.teacherName}</p>}
+                             </li>
+                           ))}
+                         </ul>
                      ) : (
                        <p className="text-gray-500 italic">No performance records in this month.</p>
                      )}
@@ -685,17 +699,20 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                    {formatPoints(selectedStudentForDetails.scores.leaves)}
                  </div>
                  {expandedDetail === 'leaves' && selectedStudentForDetails.details && (
-                   <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-32 overflow-y-auto">
-                     <p className="text-xs text-gray-500 mb-1">Base score: 10 pts (lost if leaves taken)</p>
-                     {selectedStudentForDetails.details.leaves?.length > 0 ? (
-                       <ul className="space-y-1">
-                         {selectedStudentForDetails.details.leaves.map((l, i) => (
-                           <li key={i} className="flex justify-between border-b border-gray-200 last:border-0 pb-1">
-                             <span>{l.status} <span className="text-xs text-gray-400">({new Date(l.date).toLocaleDateString()})</span></span>
-                             <span className={l.points > 0 ? "text-green-600" : "text-red-500"}>{l.points > 0 ? `+${l.points}` : l.points} pts</span>
-                           </li>
-                         ))}
-                       </ul>
+                     <div className="text-sm bg-gray-50 p-2 rounded mt-1 max-h-48 overflow-y-auto">
+                       <p className="text-xs text-gray-500 mb-1">Base score: 10 pts (lost if leaves taken)</p>
+                       {selectedStudentForDetails.details.leaves?.length > 0 ? (
+                         <ul className="space-y-2">
+                           {selectedStudentForDetails.details.leaves.map((l, i) => (
+                             <li key={i} className="flex flex-col border-b border-gray-200 last:border-0 pb-1">
+                               <div className="flex justify-between">
+                                 <span><span className="font-medium">{l.status}</span> <span className="text-xs text-gray-400">({new Date(l.date).toLocaleDateString()})</span></span>
+                                 <span className={l.points > 0 ? "text-green-600" : "text-red-500"}>{l.points > 0 ? `+${l.points}` : l.points} pts</span>
+                               </div>
+                               {l.leaveReason && <p className="text-xs text-gray-600 mt-0.5"><span className="font-semibold">Reason:</span> {l.leaveReason}</p>}
+                             </li>
+                           ))}
+                         </ul>
                      ) : (
                        <p className="text-green-600 italic">No leaves taken.</p>
                      )}
