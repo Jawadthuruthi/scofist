@@ -1447,9 +1447,9 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
                                     <div className="bg-black text-white text-center py-1.5">
                                         <h2 className="text-base font-semibold">Result</h2>
                                     </div>
-                                    {getExamContextLabel(resultExam) && (
+                                    {resultExam?.examName && (
                                         <div className="bg-gray-100 text-center py-1 border-b border-gray-300">
-                                            <p className="text-sm font-medium text-gray-700">{getExamContextLabel(resultExam)}</p>
+                                            <p className="text-sm font-medium text-gray-700">{resultExam.examName}</p>
                                         </div>
                                     )}
                                 </div>
