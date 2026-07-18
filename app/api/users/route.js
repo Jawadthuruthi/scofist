@@ -755,10 +755,25 @@ async function syncStudentClasses() {
   try {
     const ClassModel = User.db.model("Class");
     const classes = await ClassModel.find({}).lean();
-    const batchToClassMap = {};
+
+    // Build a map of batchId -> Set of valid classIds
+    // (a batch can have multiple classes e.g. "Plus Two" and "Plus Two B")
+    const batchToValidClassesMap = {};
+    // Also keep track of the first/default classId per batch (for students with no class)
+    const batchToDefaultClassMap = {};
     classes.forEach((cls) => {
       if (cls.batchId) {
-        batchToClassMap[cls.batchId] = cls._id;
+        if (!batchToValidClassesMap[cls.batchId]) {
+          batchToValidClassesMap[cls.batchId] = new Set();
+        }
+        // Only Active classes count as valid destinations
+        if (cls.status !== "Closed") {
+          batchToValidClassesMap[cls.batchId].add(cls._id);
+          // First active class becomes the default for students with no valid class
+          if (!batchToDefaultClassMap[cls.batchId]) {
+            batchToDefaultClassMap[cls.batchId] = cls._id;
+          }
+        }
       }
     });
 
@@ -768,15 +783,25 @@ async function syncStudentClasses() {
     students.forEach((student) => {
       const currentBatchId = student.studentSpecificField?.batchId;
       const currentClassId = student.studentSpecificField?.classId;
-      const expectedClassId = currentBatchId ? batchToClassMap[currentBatchId] : null;
+      const validClasses = currentBatchId ? batchToValidClassesMap[currentBatchId] : null;
 
-      if (currentClassId !== expectedClassId) {
+      // If the student already has a valid class for their batch, do NOT reassign them.
+      // Only update if they have no class or their classId is not in the valid set for their batch.
+      if (validClasses && currentClassId && validClasses.has(currentClassId)) {
+        // Student is already in a valid class for their batch — leave them alone
+        return;
+      }
+
+      const defaultClassId = currentBatchId ? batchToDefaultClassMap[currentBatchId] : null;
+      const newClassId = defaultClassId || null;
+
+      if (currentClassId !== newClassId) {
         bulkOps.push({
           updateOne: {
             filter: { _id: student._id },
             update: { 
               $set: { 
-                "studentSpecificField.classId": expectedClassId || null 
+                "studentSpecificField.classId": newClassId 
               } 
             }
           }

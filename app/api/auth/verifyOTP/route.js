@@ -42,6 +42,13 @@ export async function POST(req) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
+    if (user.roles?.includes("Teacher") && user.teacherSpecificField?.status === "Retired") {
+      return NextResponse.json(
+        { message: "Access denied. Retired teachers cannot log in." },
+        { status: 403 }
+      );
+    }
+
     const token = jwt.sign(
       { userId: user?._id, email },
       process.env.JWT_SECRET,

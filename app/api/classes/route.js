@@ -129,12 +129,8 @@ export async function POST(req, res) {
       status: status || "Active",
     });
 
-    if (newClass && batchId) {
-      await User.updateMany(
-        { roles: "Student", "studentSpecificField.batchId": batchId },
-        { $set: { "studentSpecificField.classId": _id } }
-      );
-    }
+    // Note: do NOT force-assign all students in the batch to this new class.
+    // syncStudentClasses() below will safely assign only students with no valid class.
 
     await syncStudentClasses();
 
@@ -179,12 +175,8 @@ export async function PUT(req, res) {
         }
       );
 
-      if (batchId) {
-        await User.updateMany(
-          { roles: "Student", "studentSpecificField.batchId": batchId },
-          { $set: { "studentSpecificField.classId": ids[0] } }
-        );
-      }
+      // Note: do NOT force-assign all students in the batch to this class.
+      // syncStudentClasses() below will safely handle any students with no valid class.
 
       await syncStudentClasses();
 
@@ -215,12 +207,8 @@ export async function PUT(req, res) {
       return NextResponse.json({ message: "Class not found" }, { status: 404 });
     }
 
-    if (batchId) {
-      await User.updateMany(
-        { roles: "Student", "studentSpecificField.batchId": batchId },
-        { $set: { "studentSpecificField.classId": _id } }
-      );
-    }
+    // Note: do NOT force-assign all students in the batch to this class.
+    // syncStudentClasses() below will safely handle any students with no valid class.
 
     await syncStudentClasses();
 
@@ -262,10 +250,25 @@ async function syncStudentClasses() {
   try {
     const UserModel = Class.db.model("User");
     const classes = await Class.find({}).lean();
-    const batchToClassMap = {};
+
+    // Build a map of batchId -> Set of valid classIds
+    // (a batch can have multiple classes e.g. "Plus Two" and "Plus Two B")
+    const batchToValidClassesMap = {};
+    // Also keep track of the first/default classId per batch (for students with no class)
+    const batchToDefaultClassMap = {};
     classes.forEach((cls) => {
       if (cls.batchId) {
-        batchToClassMap[cls.batchId] = cls._id;
+        if (!batchToValidClassesMap[cls.batchId]) {
+          batchToValidClassesMap[cls.batchId] = new Set();
+        }
+        // Only Active classes count as valid destinations
+        if (cls.status !== "Closed") {
+          batchToValidClassesMap[cls.batchId].add(cls._id);
+          // First active class becomes the default for students with no valid class
+          if (!batchToDefaultClassMap[cls.batchId]) {
+            batchToDefaultClassMap[cls.batchId] = cls._id;
+          }
+        }
       }
     });
 
@@ -275,15 +278,25 @@ async function syncStudentClasses() {
     students.forEach((student) => {
       const currentBatchId = student.studentSpecificField?.batchId;
       const currentClassId = student.studentSpecificField?.classId;
-      const expectedClassId = currentBatchId ? batchToClassMap[currentBatchId] : null;
+      const validClasses = currentBatchId ? batchToValidClassesMap[currentBatchId] : null;
 
-      if (currentClassId !== expectedClassId) {
+      // If the student already has a valid class for their batch, do NOT reassign them.
+      // Only update if they have no class or their classId is not in the valid set for their batch.
+      if (validClasses && currentClassId && validClasses.has(currentClassId)) {
+        // Student is already in a valid class for their batch — leave them alone
+        return;
+      }
+
+      const defaultClassId = currentBatchId ? batchToDefaultClassMap[currentBatchId] : null;
+      const newClassId = defaultClassId || null;
+
+      if (currentClassId !== newClassId) {
         bulkOps.push({
           updateOne: {
             filter: { _id: student._id },
             update: { 
               $set: { 
-                "studentSpecificField.classId": expectedClassId || null 
+                "studentSpecificField.classId": newClassId 
               } 
             }
           }

@@ -865,6 +865,16 @@ async function fetchUserProfile(userId, apiKey, origin) {
 }
 
 function prepareResponse(req, token, user, newProfileToken = null) {
+  if (user?.roles?.includes("Teacher") && user?.teacherSpecificField?.status === "Retired") {
+    const loginUrl = new URL("/login", req.url);
+    const logoutRes = NextResponse.redirect(loginUrl);
+    logoutRes.cookies.delete("auth-token");
+    logoutRes.cookies.delete("active-role");
+    logoutRes.cookies.delete("profile-cache");
+    logoutRes.cookies.delete("custom-member-token");
+    return logoutRes;
+  }
+
   const res = NextResponse.next();
 
   if (
