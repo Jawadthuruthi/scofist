@@ -4,11 +4,30 @@ import { NextResponse } from "next/server";
 import User from "@/models/User";
 
 export async function POST(req) {
-    const { studentId, mobileNumber } = await req.json();
+    const { studentId, dateOfBirth } = await req.json();
 
-    if (!studentId || !mobileNumber) {
+    if (!studentId || !dateOfBirth) {
         return NextResponse.json(
-            { message: "Student ID and Mobile Number are required" },
+            { message: "Student ID and Date of Birth are required" },
+            { status: 400 }
+        );
+    }
+
+    // Validate date format DD-MM-YYYY
+    const dobRegex = /^(\d{2})-(\d{2})-(\d{4})$/;
+    const match = dateOfBirth.match(dobRegex);
+    if (!match) {
+        return NextResponse.json(
+            { message: "Invalid Date of Birth format. Use DD-MM-YYYY" },
+            { status: 400 }
+        );
+    }
+
+    const [, day, month, year] = match;
+    const parsedDate = new Date(`${year}-${month}-${day}`);
+    if (isNaN(parsedDate.getTime())) {
+        return NextResponse.json(
+            { message: "Invalid Date of Birth" },
             { status: 400 }
         );
     }
@@ -34,10 +53,16 @@ export async function POST(req) {
             );
         }
 
-        // Validate password (mobile number)
-        if (user.contactNumber !== mobileNumber) {
+        // Validate date of birth
+        const storedDob = new Date(user.dateOfBirth);
+        const dobMatches =
+            storedDob.getUTCDate() === parseInt(day, 10) &&
+            storedDob.getUTCMonth() + 1 === parseInt(month, 10) &&
+            storedDob.getUTCFullYear() === parseInt(year, 10);
+
+        if (!dobMatches) {
             return NextResponse.json(
-                { message: "Invalid Mobile Number" },
+                { message: "Invalid Date of Birth" },
                 { status: 401 }
             );
         }

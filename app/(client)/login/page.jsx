@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader, Mail, Eye, EyeOff } from "lucide-react";
+import { Loader, Mail } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,10 +27,9 @@ export default function LoginPage() {
   const router = useRouter();
 
   const [studentId, setStudentId] = useState("");
-  const [mobileNumber, setMobileNumber] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [backgroundImage, setBackgroundImage] = useState("");
   const [settings, setSettings] = useState(null);
-  const [showMobileNumber, setShowMobileNumber] = useState(false);
   const [otpSentSuccess, setOtpSentSuccess] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
   const [formErrors, setFormErrors] = useState({
@@ -100,7 +99,7 @@ export default function LoginPage() {
     setFormErrors(prev => ({ ...prev, student: "" }));
     try {
       setLoading(true);
-      await axios.post("/api/auth/student-login", { studentId, mobileNumber });
+      await axios.post("/api/auth/student-login", { studentId, dateOfBirth });
       setLoginSuccess(true);
     } catch (error) {
       console.error("Error logging in:", error.message);
@@ -199,28 +198,30 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Mobile Number</Label>
-                  <div className="relative">
-                    <Input
-                      type={showMobileNumber ? "text" : "password"}
-                      placeholder="Enter Mobile Number"
-                      required
-                      value={mobileNumber}
-                      onChange={(e) => setMobileNumber(e.target.value)}
-                      className={`pr-10 ${formErrors.student ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowMobileNumber(!showMobileNumber)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                    >
-                      {showMobileNumber ? (
-                        <EyeOff size={18} />
-                      ) : (
-                        <Eye size={18} />
-                      )}
-                    </button>
-                  </div>
+                  <Label>Date of Birth</Label>
+                  <Input
+                    type="text"
+                    placeholder="DD-MM-YYYY"
+                    required
+                    value={dateOfBirth}
+                    onChange={(e) => {
+                      const isDeleting = e.nativeEvent.inputType === "deleteContentBackward" ||
+                                         e.nativeEvent.inputType === "deleteContentForward";
+                      const digits = e.target.value.replace(/[^0-9]/g, "").slice(0, 8);
+                      let val;
+                      if (digits.length <= 2) {
+                        val = digits + (digits.length === 2 && !isDeleting ? "-" : "");
+                      } else if (digits.length <= 4) {
+                        val = digits.slice(0, 2) + "-" + digits.slice(2) +
+                              (digits.length === 4 && !isDeleting ? "-" : "");
+                      } else {
+                        val = digits.slice(0, 2) + "-" + digits.slice(2, 4) + "-" + digits.slice(4);
+                      }
+                      setDateOfBirth(val);
+                    }}
+                    maxLength={10}
+                    className={formErrors.student ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  />
                 </div>
                 {formErrors.student && (
                   <p className="text-xs font-bold text-red-500 animate-in fade-in slide-in-from-top-1">
