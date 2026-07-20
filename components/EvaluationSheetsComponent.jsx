@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Printer, Filter, X, Loader, Users, FileText } from "lucide-react";
+import { Printer, X, Loader, Users, FileText } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "./PrintHeader";
@@ -26,11 +26,7 @@ import { formatOptions } from "@/lib/utils";
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-const EvaluationSheetsComponent = ({
-  programs = [],
-  divisions = [],
-  apiKey,
-}) => {
+const EvaluationSheetsComponent = ({ apiKey }) => {
   const [programRegistrations, setProgramRegistrations] = useState([]);
   const [filteredRegistrations, setFilteredRegistrations] = useState([]);
   const [selectedDivision, setSelectedDivision] = useState("");
@@ -57,20 +53,43 @@ const EvaluationSheetsComponent = ({
     }
   );
 
-  const filteredPrograms = useMemo(() => {
-    return programs.filter(
-      (program) =>
-        ((!selectedDivision || program.divisionId === selectedDivision) &&
-          category === "both") ||
-        program.category === category
+  // Derive available divisions from actual registrations (only those with data)
+  const availableDivisions = useMemo(() => {
+    const divMap = new Map();
+    programRegistrations.forEach((p) => {
+      if (p.divisionId && !divMap.has(p.divisionId)) {
+        divMap.set(p.divisionId, { _id: p.divisionId, name: p.divisionName || p.divisionId });
+      }
+    });
+    return Array.from(divMap.values()).sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "")
     );
-  }, [selectedDivision, programs, category]);
+  }, [programRegistrations]);
+
+  // Derive available programs from actual registrations, filtered by selected division & category
+  const availablePrograms = useMemo(() => {
+    const progMap = new Map();
+    programRegistrations.forEach((p) => {
+      const divMatch = !selectedDivision || p.divisionId?.toString() === selectedDivision;
+      const catMatch = category === "both" || p.programCategory === category;
+      if (divMatch && catMatch && !progMap.has(p.programId)) {
+        progMap.set(p.programId, {
+          _id: p.programId,
+          name: p.programName || p.programId,
+        });
+      }
+    });
+    return Array.from(progMap.values()).sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "")
+    );
+  }, [programRegistrations, selectedDivision, category]);
 
   // Process registrations data into programs with participants
+  // Key by programId + divisionId so each festival session's programs stay separate
   const processRegistrationsToPrograms = useCallback((registrations) => {
     if (!registrations || !registrations.length) return [];
 
-    // Group registrations by program
+    // Group registrations by composite key: programId + divisionId
     const programMap = new Map();
 
     registrations.forEach((registration) => {
@@ -85,9 +104,12 @@ const EvaluationSheetsComponent = ({
         participantsDetails = [],
       } = registration;
 
-      if (!programMap.has(programId)) {
-        programMap.set(programId, {
-          _id: programId,
+      // Use composite key so same program in different divisions is NOT merged
+      const compositeKey = `${programId}-${divisionId}`;
+
+      if (!programMap.has(compositeKey)) {
+        programMap.set(compositeKey, {
+          _id: compositeKey,
           programId,
           programName,
           programType,
@@ -98,7 +120,7 @@ const EvaluationSheetsComponent = ({
         });
       }
 
-      const program = programMap.get(programId);
+      const program = programMap.get(compositeKey);
 
       // Add participants with code letter
       participantsDetails.forEach((participant, index) => {
@@ -117,9 +139,12 @@ const EvaluationSheetsComponent = ({
       });
     });
 
-    return Array.from(programMap.values()).sort((a, b) =>
-      a.programName.localeCompare(b.programName)
-    );
+    // Sort by division first, then program name — keeps sessions grouped
+    return Array.from(programMap.values()).sort((a, b) => {
+      const divCmp = (a.divisionName || "").localeCompare(b.divisionName || "");
+      if (divCmp !== 0) return divCmp;
+      return (a.programName || "").localeCompare(b.programName || "");
+    });
   }, []);
 
   // Handle fetch errors
@@ -147,14 +172,16 @@ const EvaluationSheetsComponent = ({
     let filtered = programRegistrations;
 
     if (selectedDivision) {
+      // Compare as strings to handle ObjectId vs string mismatches
       filtered = filtered.filter(
-        (program) => program.divisionId === selectedDivision
+        (program) =>
+          program.divisionId?.toString() === selectedDivision.toString()
       );
     }
 
     if (selectedProgram) {
       filtered = filtered.filter(
-        (program) => program.programId === selectedProgram
+        (program) => program.programId?.toString() === selectedProgram.toString()
       );
     }
 
@@ -172,9 +199,9 @@ const EvaluationSheetsComponent = ({
     contentRef: printRef,
     documentTitle: `Evaluation Sheets - ${
       selectedProgram
-        ? programs.find((p) => p._id === selectedProgram)?.name
+        ? availablePrograms.find((p) => p._id?.toString() === selectedProgram)?.name
         : selectedDivision
-          ? divisions.find((d) => d._id === selectedDivision)?.name
+          ? availableDivisions.find((d) => d._id === selectedDivision)?.name
           : "All Programs"
     }`,
     pageStyle: `
@@ -285,6 +312,7 @@ const EvaluationSheetsComponent = ({
   const clearFilters = () => {
     setSelectedDivision("");
     setSelectedProgram("");
+    setCategory("both");
   };
 
   const isLoading = fetchRegistrationsQuery.isLoading;
@@ -297,28 +325,28 @@ const EvaluationSheetsComponent = ({
           {/* Filters Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="flex items-center gap-2">
-              <Select value={category} onValueChange={setCategory}>
+              <Select value={category} onValueChange={(val) => { setCategory(val); setSelectedProgram(""); }}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={"both"}>Both</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
                   <SelectItem value="Stage">Stage</SelectItem>
-                  <SelectItem value="off-Stage">Off Stage</SelectItem>
+                  <SelectItem value="Off-Stage">Off Stage</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="flex items-center gap-2">
               <Select
-                value={selectedDivision}
-                onValueChange={setSelectedDivision}
+                value={selectedDivision || "all"}
+                onValueChange={(val) => { setSelectedDivision(val === "all" ? "" : val); setSelectedProgram(""); }}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All Divisions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={null}>All Divisions</SelectItem>
-                  {divisions.map((division) => (
+                  <SelectItem value="all">All Divisions</SelectItem>
+                  {availableDivisions.map((division) => (
                     <SelectItem key={division._id} value={division._id}>
                       {division.name}
                     </SelectItem>
@@ -328,14 +356,14 @@ const EvaluationSheetsComponent = ({
             </div>
 
             <MultiSelect
-              options={formatOptions(filteredPrograms)}
+              options={formatOptions(availablePrograms)}
               value={selectedProgram}
               onValueChange={setSelectedProgram}
               placeholder="All Programs"
               multiSelect={false}
             />
 
-            {(selectedDivision || selectedProgram) && (
+            {(selectedDivision || selectedProgram || category !== "both") && (
               <Button
                 variant="outline"
                 size="sm"

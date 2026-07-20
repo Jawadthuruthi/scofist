@@ -220,84 +220,54 @@ const EvaluationComponent = ({
   }, [selectedDivision, programs, filteredRegistrations]);
 
   // Handle marks change for individual participant
-  const handleMarksChange = (participantUniqueId, marks) => {
+  // judgeIdx is the 0-based index of the judge column being edited
+  const handleMarksChange = (participantUniqueId, marks, judgeIdx) => {
     const marksValue = Math.max(0, Math.min(100, parseInt(marks) || 0));
 
-    const updatedPrograms = programRegistrations.map((program) => ({
-      ...program,
-      participants: program.participants.map((participant) => {
-        if (participant.uniqueId === participantUniqueId) {
-          const updatedMarksByJudges = [...(participant.marksByJudges || [])];
-          updatedMarksByJudges[judgeNumber - 1] = marksValue;
+    const updateParticipant = (participant) => {
+      if (participant.uniqueId !== participantUniqueId) return participant;
+      const updatedMarksByJudges = [...(participant.marksByJudges || [])];
+      updatedMarksByJudges[judgeIdx] = marksValue;
 
-          // Calculate average marks
-          const validMarks = updatedMarksByJudges.filter(
-            (m) => m !== undefined && m !== null
-          );
-          const averageMarks =
-            validMarks.length > 0
-              ? Math.round(
-                  validMarks.reduce((sum, mark) => sum + mark, 0) /
-                    validMarks.length
-                )
-              : 0;
+      // Average over all judges up to judgeNumber
+      const validMarks = updatedMarksByJudges
+        .slice(0, judgeNumber)
+        .filter((m) => m !== undefined && m !== null);
+      const averageMarks =
+        validMarks.length > 0
+          ? Math.round(
+              validMarks.reduce((sum, mark) => sum + mark, 0) / validMarks.length
+            )
+          : 0;
 
-          return {
-            ...participant,
-            marksByJudges: updatedMarksByJudges,
-            averageMarks,
-            totalMarks: averageMarks,
-            isEvaluated: averageMarks > 0,
-          };
-        }
-        return participant;
-      }),
-    }));
+      return {
+        ...participant,
+        marksByJudges: updatedMarksByJudges,
+        averageMarks,
+        totalMarks: averageMarks,
+        isEvaluated: averageMarks > 0,
+      };
+    };
 
-    setProgramRegistrations(updatedPrograms);
+    const applyUpdate = (list) =>
+      list.map((program) => ({
+        ...program,
+        participants: program.participants.map(updateParticipant),
+      }));
 
-    // Update filtered programs as well
-    const updatedFilteredPrograms = filteredRegistrations.map((program) => ({
-      ...program,
-      participants: program.participants.map((participant) => {
-        if (participant.uniqueId === participantUniqueId) {
-          const updatedMarksByJudges = [...(participant.marksByJudges || [])];
-          updatedMarksByJudges[judgeNumber - 1] = marksValue;
+    setProgramRegistrations((prev) => applyUpdate(prev));
+    setFilteredRegistrations((prev) => applyUpdate(prev));
 
-          const validMarks = updatedMarksByJudges.filter(
-            (m) => m !== undefined && m !== null
-          );
-          const averageMarks =
-            validMarks.length > 0
-              ? Math.round(
-                  validMarks.reduce((sum, mark) => sum + mark, 0) /
-                    validMarks.length
-                )
-              : 0;
-
-          return {
-            ...participant,
-            marksByJudges: updatedMarksByJudges,
-            averageMarks,
-            totalMarks: averageMarks,
-            isEvaluated: averageMarks > 0,
-          };
-        }
-        return participant;
-      }),
-    }));
-
-    setFilteredRegistrations(updatedFilteredPrograms);
-
-    // CRITICAL FIX: Store participant ID and registration info for backend matching
+    // Store change keyed by uniqueId + judgeIdx so multiple judges don't overwrite
+    const changeKey = `${participantUniqueId}__j${judgeIdx}`;
     const [registrationId, participantId] = participantUniqueId.split("-");
     setChanges((prev) => ({
       ...prev,
-      [participantUniqueId]: {
+      [changeKey]: {
         registrationId,
         participantId,
         marks: marksValue,
-        judgeIndex: judgeNumber - 1,
+        judgeIndex: judgeIdx,
       },
     }));
   };
@@ -510,7 +480,7 @@ const EvaluationComponent = ({
 
             <div className="flex items-center gap-2 col-span-10 xs:col-span-3 lg:col-span-2">
               <span className="text-sm font-medium whitespace-nowrap ">
-                Judge:
+                Judges:
               </span>
               <Select
                 value={judgeNumber.toString()}
@@ -671,9 +641,16 @@ const EvaluationComponent = ({
                             Code Letter
                           </TableHead>
 
-                          <TableHead className="w-28 text-center whitespace-nowrap border-t border-r border-border no-print">
-                            Judge{judgeNumber} Marks
-                          </TableHead>
+                          {/* Dynamic judge columns — one per judge */}
+                          {Array.from({ length: judgeNumber }, (_, i) => (
+                            <TableHead
+                              key={i}
+                              className="w-28 text-center whitespace-nowrap border-t border-r border-border no-print"
+                            >
+                              Judge {i + 1} Marks
+                            </TableHead>
+                          ))}
+
                           <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border no-print">
                             Average
                           </TableHead>
@@ -692,13 +669,6 @@ const EvaluationComponent = ({
                               a.codeLetter.localeCompare(b.codeLetter)
                             )
                             .map((participant, displayIndex) => {
-                              const currentJudgeMarks =
-                                participant.marksByJudges?.[judgeNumber - 1] ||
-                                "";
-                              const { grade, points } = getGradeForMarks(
-                                participant.averageMarks
-                              );
-
                               return (
                                 <TableRow key={participant.uniqueId}>
                                   <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border">
@@ -709,33 +679,44 @@ const EvaluationComponent = ({
                                     {participant.codeLetter || "-"}
                                   </TableCell>
 
-                                  <TableCell className="text-center border-t border-r border-border no-print">
-                                    {program.isResultDeclared ? (
-                                      <div className="font-bold whitespace-nowrap  ">
-                                        {currentJudgeMarks || "___"}
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <div className="hidden print:block font-bold whitespace-nowrap  ">
-                                          {currentJudgeMarks || "___"}
-                                        </div>
-                                        <Input
-                                          type="number"
-                                          min="0"
-                                          max="100"
-                                          value={currentJudgeMarks}
-                                          onChange={(e) =>
-                                            handleMarksChange(
-                                              participant.uniqueId,
-                                              e.target.value
-                                            )
-                                          }
-                                          className="no-print w-16 sm:w-20 text-center text-sm mx-auto"
-                                          placeholder="0-100"
-                                        />
-                                      </>
-                                    )}
-                                  </TableCell>
+                                  {/* One input cell per judge */}
+                                  {Array.from({ length: judgeNumber }, (_, judgeIdx) => {
+                                    const judgeMarks = participant.marksByJudges?.[judgeIdx] ?? "";
+                                    return (
+                                      <TableCell
+                                        key={judgeIdx}
+                                        className="text-center border-t border-r border-border no-print"
+                                      >
+                                        {program.isResultDeclared ? (
+                                          <div className="font-bold whitespace-nowrap">
+                                            {judgeMarks !== "" ? judgeMarks : "___"}
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <div className="hidden print:block font-bold whitespace-nowrap">
+                                              {judgeMarks !== "" ? judgeMarks : "___"}
+                                            </div>
+                                            <Input
+                                              type="number"
+                                              min="0"
+                                              max="100"
+                                              value={judgeMarks}
+                                              onChange={(e) =>
+                                                handleMarksChange(
+                                                  participant.uniqueId,
+                                                  e.target.value,
+                                                  judgeIdx
+                                                )
+                                              }
+                                              className="no-print w-16 sm:w-20 text-center text-sm mx-auto"
+                                              placeholder="0-100"
+                                            />
+                                          </>
+                                        )}
+                                      </TableCell>
+                                    );
+                                  })}
+
                                   <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border no-print">
                                     {participant.averageMarks > 0 ? (
                                       <Badge
