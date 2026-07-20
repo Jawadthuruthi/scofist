@@ -482,14 +482,14 @@ const EvaluationComponent = ({
             </div>
             <div className="col-span-12 xs:col-span-6 lg:col-span-3">
               <Select
-                value={selectedDivision}
-                onValueChange={setSelectedDivision}
+                value={selectedDivision || "all"}
+                onValueChange={(v) => setSelectedDivision(v === "all" ? "" : v)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All Divisions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={null}>All Divisions</SelectItem>
+                  <SelectItem value="all">All Divisions</SelectItem>
                   {divisions.map((division) => (
                     <SelectItem key={division._id} value={division._id}>
                       {division.name}

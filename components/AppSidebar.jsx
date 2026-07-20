@@ -501,7 +501,7 @@ const items = [
     icon: BookOpen,
   },
   {
-    title: "Program Registration",
+    title: "Registrations",
     url: "/dashboard/program-registration",
     allowedRoles: ["Program Leader", "Program Committee"],
     icon: ClipboardList,
@@ -531,7 +531,7 @@ const items = [
     icon: ListChecks,
   },
   {
-    title: "Poster Customizer",
+    title: "Posters",
     url: "/dashboard/poster-customizer",
     allowedRoles: ["Program Committee"],
     icon: LayoutGrid,
@@ -574,10 +574,22 @@ const items = [
         icon: ListChecks,
       },
       {
+        title: "Participants Card",
+        url: "/dashboard/participants-card",
+        icon: UserCheck,
+        allowedRoles: ["Program Committee"],
+      },
+      {
         title: "Unregistered Programs",
         url: "/dashboard/unregistered-programs",
         allowedRoles: ["Program Committee", "Program Leader"],
         icon: FileSearch,
+      },
+      {
+        title: "Pending Code Letters",
+        url: "/dashboard/pending-codeletters",
+        allowedRoles: ["Program Committee"],
+        icon: FileQuestion,
       },
       {
         title: "Evaluation Sheets",
@@ -586,16 +598,22 @@ const items = [
         icon: FileSpreadsheet,
       },
       {
-        title: "Participants Card",
-        url: "/dashboard/participants-card",
-        icon: UserCheck,
+        title: "Pending Evaluation",
+        url: "/dashboard/pending-evaluation",
         allowedRoles: ["Program Committee"],
+        icon: ClipboardList,
       },
       {
         title: "Declared Results",
         url: "/dashboard/declared-results",
         icon: CheckCircle,
         allowedRoles: ["Program Committee"],
+      },
+      {
+        title: "Undeclared Results",
+        url: "/dashboard/undeclared-results",
+        allowedRoles: ["Program Committee"],
+        icon: AlertCircle,
       },
       {
         title: "Winners List",
@@ -620,24 +638,6 @@ const items = [
         url: "/dashboard/individual-results",
         icon: User,
         allowedRoles: ["Program Committee"],
-      },
-      {
-        title: "Pending Code Letters",
-        url: "/dashboard/pending-codeletters",
-        allowedRoles: ["Program Committee"],
-        icon: FileQuestion,
-      },
-      {
-        title: "Pending Evaluation",
-        url: "/dashboard/pending-evaluation",
-        allowedRoles: ["Program Committee"],
-        icon: ClipboardList,
-      },
-      {
-        title: "Undeclared Results",
-        url: "/dashboard/undeclared-results",
-        allowedRoles: ["Program Committee"],
-        icon: AlertCircle,
       },
       {
         title: "Results QR Code",

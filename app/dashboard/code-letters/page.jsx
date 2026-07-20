@@ -10,6 +10,8 @@ export default async function CodeLettersPage() {
     const cookiesStore = await cookies();
     const user = parseUser(headerStore);
     const activeRole = cookiesStore.get("active-role")?.value;
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
     const apiKey = process.env.API_KEY;
 
     let programs, divisions;
@@ -18,10 +20,10 @@ export default async function CodeLettersPage() {
       [programs, divisions] = await Promise.all([
         fetchData(
           "programs",
-          "projection=_id,name,type,category,divisionId",
+          `${yearParam}projection=_id,name,type,category,divisionId`,
           0
         ),
-        fetchData("divisions", "projection=_id,name", 0),
+        fetchData("divisions", `${yearParam}projection=_id,name`, 0),
       ]);
     } else if (activeRole === "Program Leader") {
       const userTeams = await fetchData(
@@ -37,10 +39,10 @@ export default async function CodeLettersPage() {
       [programs, divisions] = await Promise.all([
         fetchData(
           "programs",
-          "projection=_id,name,type,category,divisionId",
+          `${yearParam}projection=_id,name,type,category,divisionId`,
           0
         ),
-        fetchData("divisions", "projection=_id,name", 0),
+        fetchData("divisions", `${yearParam}projection=_id,name`, 0),
       ]);
     } else {
       throw new Error("Unauthorized access");
@@ -92,4 +94,4 @@ export default async function CodeLettersPage() {
   }
 }
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";

@@ -3,7 +3,7 @@ import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions } from "@/lib/utils";
 import { cookies } from "next/headers";
-import { act } from "react";
+
 
 const columnsConfig = [
   {
