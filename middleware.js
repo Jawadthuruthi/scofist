@@ -400,6 +400,11 @@ const pages = [
     allowedRoles: ["Program Committee", "Program Leader"],
   },
   {
+    title: "Check List",
+    path: "/dashboard/check-list",
+    allowedRoles: ["Program Committee"],
+  },
+  {
     title: "Scratch cards",
     path: "/dashboard/scratch-cards",
     allowedRoles: ["Program Committee"],

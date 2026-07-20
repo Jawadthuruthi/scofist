@@ -568,6 +568,12 @@ const items = [
     allowedRoles: ["Program Committee", "Program Leader"],
     subItems: [
       {
+        title: "Check List",
+        url: "/dashboard/check-list",
+        allowedRoles: ["Program Committee"],
+        icon: ListChecks,
+      },
+      {
         title: "Unregistered Programs",
         url: "/dashboard/unregistered-programs",
         allowedRoles: ["Program Committee", "Program Leader"],
