@@ -54,6 +54,7 @@ const AVAILABLE_ROLES = [
   'Spark Admin',
   'Library Manager',
   'Librarian',
+  'Judge',
 ];
 
 // ─── Confirmation Dialog ────────────────────────────────────────────────────
@@ -339,20 +340,21 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
   const roleGroups = [];
 
   // Standard Roles
-  const allStandardRoles = [...new Set((users || []).flatMap(u => u.roles || []))]
+  const allStandardRoles = [...new Set([
+    ...AVAILABLE_ROLES,
+    ...(users || []).flatMap(u => u.roles || [])
+  ])]
     .filter(role => role !== 'Teacher' && role !== 'Student' && role !== 'Stationary' && role !== 'IT Lab')
     .sort();
 
   allStandardRoles.forEach(roleName => {
     const members = users.filter(u => u.roles?.includes(roleName));
-    if (members.length > 0) {
-      roleGroups.push({
-        name: roleName,
-        type: 'Standard',
-        members: members.map(m => ({ email: m.email, name: m.name, id: m._id })),
-        total: members.length
-      });
-    }
+    roleGroups.push({
+      name: roleName,
+      type: 'Standard',
+      members: members.map(m => ({ email: m.email, name: m.name, id: m._id })),
+      total: members.length
+    });
   });
 
   // Custom Roles

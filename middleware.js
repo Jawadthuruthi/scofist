@@ -350,6 +350,16 @@ const pages = [
     allowedRoles: ["Program Committee"],
   },
   {
+    title: "Judges",
+    path: "/dashboard/judges",
+    allowedRoles: ["Program Committee"],
+  },
+  {
+    title: "Judge Portal",
+    path: "/dashboard/judge-portal",
+    allowedRoles: ["Judge"],
+  },
+  {
     title: "Results",
     path: "/dashboard/results",
     allowedRoles: ["Program Committee"],
@@ -557,6 +567,10 @@ async function handleLoginPageRequest(req) {
 
     if (activeRole === "Teacher") {
       return NextResponse.redirect(new URL("/dashboard/my-periods", req.url));
+    }
+
+    if (activeRole === "Judge") {
+      return NextResponse.redirect(new URL("/dashboard/judge-portal", req.url));
     }
 
 
@@ -942,6 +956,11 @@ function prepareResponse(req, token, user, newProfileToken = null) {
     if (activeRole === "Gate Keeper" && req.nextUrl.pathname === "/dashboard") {
       return NextResponse.redirect(
         new URL("/dashboard/gate-pass", req.url)
+      );
+    }
+    if (activeRole === "Judge" && req.nextUrl.pathname === "/dashboard") {
+      return NextResponse.redirect(
+        new URL("/dashboard/judge-portal", req.url)
       );
     }
     return redirectTo404(req);

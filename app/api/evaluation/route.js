@@ -3,6 +3,7 @@ import connectToDB from "@/lib/db";
 import ProgramRegistration from "@/models/ProgramRegistration";
 import GradeScheme from "@/models/GradeScheme";
 import Result from "@/models/Result";
+import { getYear } from "@/lib/getYear";
 
 // Helper function to calculate grade from marks
 function calculateGrade(totalMarks, gradeSchemes) {
@@ -281,6 +282,8 @@ export async function PUT(request) {
 
     console.log(`Updated ${successCount} participant marks successfully`);
 
+    const activeYear = await getYear(request);
+
     // ----------------------------- Auto Generate Results -----------------------------
     const resultPromises = Array.from(affectedProgramIds).map(
       async (programId) => {
@@ -326,7 +329,7 @@ export async function PUT(request) {
           };
         });
 
-        let result = await Result.findOne({ programId });
+        let result = await Result.findOne({ programId, year: activeYear });
         if (result) {
           result.participants = participants;
           result.isResultDeclared = false;
@@ -336,6 +339,7 @@ export async function PUT(request) {
             programId,
             participants,
             isResultDeclared: false,
+            year: activeYear,
           });
         }
 

@@ -37,6 +37,10 @@ const programRegistrationSchema = new Schema(
           type: [Number],
           default: [],
         },
+        commentsByJudges: {
+          type: [String],
+          default: [],
+        },
         totalMarks: {
           type: Number,
           default: 0,

@@ -531,6 +531,18 @@ const items = [
     icon: ListChecks,
   },
   {
+    title: "Judges",
+    url: "/dashboard/judges",
+    allowedRoles: ["Program Committee"],
+    icon: UserCheck,
+  },
+  {
+    title: "Mark Entry Portal",
+    url: "/dashboard/judge-portal",
+    allowedRoles: ["Judge"],
+    icon: ListChecks,
+  },
+  {
     title: "Posters",
     url: "/dashboard/poster-customizer",
     allowedRoles: ["Program Committee"],
@@ -715,6 +727,8 @@ function ComboBox({ roles, role }) {
                       window.location.href = "/library-dashboard";
                     } else if (currentValue === "Gate Keeper") {
                       window.location.href = "/dashboard/gate-pass";
+                    } else if (currentValue === "Judge") {
+                      window.location.href = "/dashboard/judge-portal";
                     } else {
                       window.location.href = "/dashboard";
                     }
@@ -818,6 +832,7 @@ export function AppSidebar({ roles, activeRole, user }) {
       "Spark Admin",
       "Librarian",
       "Gate Keeper",
+      "Judge",
     ];
 
     return items
@@ -903,7 +918,7 @@ export function AppSidebar({ roles, activeRole, user }) {
         <div className="mx-4">
           <ComboBox roles={filteredRoles} role={role} />
         </div>
-        {(role === "Program Committee" || role === "Program Leader") && (
+        {(role === "Program Committee" || role === "Program Leader" || role === "Judge") && (
           <YearSwitcher />
         )}
         <SidebarGroup className="px-4">

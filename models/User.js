@@ -20,6 +20,7 @@ const ROLES = [
   "Literary Leader",
   "Spark Admin",
   "Librarian",
+  "Judge",
 ];
 
 const BLOOD_GROUPS = ["", "A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
