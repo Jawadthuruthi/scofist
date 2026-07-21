@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,8 +46,13 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   const [submitted, setSubmitted] = useState(false);
   const [judgeSignature, setJudgeSignature] = useState("");
 
-  const fetchAssignment = useCallback(async () => {
-    setLoading(true);
+  const currentAssignmentIdRef = useRef(null);
+  useEffect(() => {
+    currentAssignmentIdRef.current = assignment?._id;
+  }, [assignment]);
+
+  const fetchAssignment = useCallback(async (isPolling = false) => {
+    if (!isPolling) setLoading(true);
     try {
       const params = new URLSearchParams({ judgeId, year: activeYear });
       const res = await fetch(`/api/judge-assignments?${params}`, {
@@ -55,7 +60,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       });
       const data = await res.json();
       if (!data.success) {
-        toast.error(data.message);
+        if (!isPolling) toast.error(data.message);
         return;
       }
 
@@ -63,11 +68,19 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       const active = data.assignments.find((a) => !a.isCompleted);
       if (!active) {
         setAssignment(null);
-        setLoading(false);
+        return;
+      }
+
+      // If polling and we already have the same active assignment, do nothing 
+      // (to preserve user's typed marks/comments)
+      if (isPolling && currentAssignmentIdRef.current === active._id) {
         return;
       }
 
       setAssignment(active);
+      if (isPolling) {
+        setSubmitted(false);
+      }
 
       // Fetch registrations for this program
       const programIdStr = active.programId?._id || active.programId;
@@ -95,14 +108,21 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
         setComments(initialComments);
       }
     } catch {
-      toast.error("Failed to load assignment");
+      if (!isPolling) toast.error("Failed to load assignment");
     } finally {
-      setLoading(false);
+      if (!isPolling) setLoading(false);
     }
   }, [judgeId, activeYear, apiKey]);
 
   useEffect(() => {
     fetchAssignment();
+
+    // Poll every 5 seconds to check for new assignments automatically
+    const intervalId = setInterval(() => {
+      fetchAssignment(true);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
   }, [fetchAssignment]);
 
   const handleMarkChange = (key, value) => {
