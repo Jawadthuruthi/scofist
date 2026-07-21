@@ -2,15 +2,19 @@ import IndividualResultsComponent from "@/components/IndividualResultsComponent"
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData } from "@/lib/utils";
+import { cookies } from "next/headers";
 
 export default async function IndividualResultsPage() {
   try {
     const apiKey = process.env.API_KEY;
+    const cookiesStore = await cookies();
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
 
     let divisions;
 
     // Fetch required data
-    divisions = await fetchData("divisions", "projection=_id,name,type", 0);
+    divisions = await fetchData("divisions", `${yearParam}projection=_id,name,type`, 0);
 
     // Sort divisions alphabetically
     const sortedDivisions = divisions?.sort((a, b) =>

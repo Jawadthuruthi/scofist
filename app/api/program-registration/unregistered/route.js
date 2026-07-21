@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import connectToDB from "@/lib/db";
 import Program from "@/models/Program";
+import { getYear } from "@/lib/getYear";
 
 export async function GET(request) {
   try {
@@ -16,12 +17,14 @@ export async function GET(request) {
     const programType = searchParams.get("programType");
     const programCategory = searchParams.get("programCategory");
     const teamId = searchParams.get("teamId");
+    const year = await getYear(request);
 
     // Build aggregation pipeline for efficient filtering
     let pipeline = [
       // Match program criteria first
       {
         $match: {
+          year: year,
           ...(programId && { _id: new mongoose.Types.ObjectId(programId) }),
           ...(divisionId && {
             divisionId: divisionId,
@@ -76,7 +79,10 @@ export async function GET(request) {
         {
           $lookup: {
             from: "teams",
-            pipeline: [{ $project: { _id: 1, name: 1 } }],
+            pipeline: [
+              { $match: { year: year } },
+              { $project: { _id: 1, name: 1 } }
+            ],
             as: "allTeams",
           },
         },

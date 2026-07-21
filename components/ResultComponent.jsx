@@ -931,7 +931,7 @@ const ResultComponent = ({
                             <TableHead className="w-16 text-center whitespace-nowrap border-t border-r border-border print:border-black">
                               Rank
                             </TableHead>
-                            <TableHead className="w-20 whitespace-nowrap border-t border-r border-border print:border-black">
+                            <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black">
                               Chest Number
                             </TableHead>
                             <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border print:border-black">
@@ -974,7 +974,7 @@ const ResultComponent = ({
                                       </span>
                                     </div>
                                   </TableCell>
-                                  <TableCell className="font-medium whitespace-nowrap border-t border-r border-border print:border-black">
+                                  <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border print:border-black">
                                     {participant.participantDetails
                                       ?.chestNumber || "N/A"}
                                   </TableCell>
@@ -985,28 +985,18 @@ const ResultComponent = ({
                                     {participant.participantDetails?.name ||
                                       "N/A"}
                                   </TableCell>
-                                  <TableCell 
-                                    className="whitespace-nowrap border-t border-r border-border print:border-black font-bold text-xs uppercase tracking-wider relative overflow-hidden"
-                                    style={{ 
-                                      backgroundColor: participant.participantDetails?.teamId?.color || "#808080",
-                                      color: getContrastColor(participant.participantDetails?.teamId?.color || "#808080"),
-                                      textShadow: '0 1px 1px rgba(0,0,0,0.1)'
-                                    }}
-                                  >
-                                    <div className="absolute inset-0 bg-black/10 opacity-0 hover:opacity-100 transition-opacity" />
-                                    <span className="relative z-10 px-2">
-                                      {participant.participantDetails?.teamId?.name || "N/A"}
-                                    </span>
+                                  <TableCell className="font-medium whitespace-nowrap border-t border-r border-border print:border-black">
+                                    {participant.participantDetails?.teamId?.name || "N/A"}
                                   </TableCell>
                                   <TableCell className="text-center whitespace-nowrap border-t border-r border-border print:border-black">
                                     <Badge
                                       variant="outline"
                                       className="print:hidden"
                                     >
-                                      {participant.grade}
+                                      {!participant.grade || participant.grade.toLowerCase() === 'f' ? "-" : participant.grade}
                                     </Badge>
                                     <span className="hidden print:inline">
-                                      {participant.grade}
+                                      {!participant.grade || participant.grade.toLowerCase() === 'f' ? "-" : participant.grade}
                                     </span>
                                   </TableCell>
                                   <TableCell className="text-center font-medium whitespace-nowrap border-t border-r border-border print:border-black">
@@ -1061,15 +1051,6 @@ const ResultComponent = ({
   );
 };
 
-const getContrastColor = (hexcolor) => {
-  if (!hexcolor || hexcolor === "transparent" || hexcolor === "inherit") return "white";
-  const hex = hexcolor.replace("#", "");
-  if (hex.length !== 6) return "white";
-  const r = parseInt(hex.substr(0, 2), 16);
-  const g = parseInt(hex.substr(2, 2), 16);
-  const b = parseInt(hex.substr(4, 2), 16);
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  return yiq >= 128 ? "black" : "white";
-};
+
 
 export default ResultComponent;

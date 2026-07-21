@@ -245,7 +245,7 @@ const IndividualResultsComponent = ({ divisions = [], apiKey }) => {
         }
 
         .mobile-card { display: none !important; }
-        .desktop-table { display: table !important; }
+        .desktop-table { display: block !important; width: 100% !important; }
       }
     `,
   });

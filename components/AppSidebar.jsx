@@ -467,13 +467,13 @@ const items = [
   {
     title: "Divisions",
     url: "/dashboard/divisions",
-    allowedRoles: ["Program Leader", "Program Committee"],
+    allowedRoles: ["Program Committee"],
     icon: LayoutGrid,
   },
   {
     title: "Teams",
     url: "/dashboard/teams",
-    allowedRoles: ["Program Leader", "Program Committee"],
+    allowedRoles: ["Program Committee"],
     icon: UserSquare2,
   },
   {

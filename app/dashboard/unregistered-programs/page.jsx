@@ -129,10 +129,12 @@ export default async function RegistrationStatusPage() {
         : commonFilterConfig;
 
     let apiFilters = {};
+    if (activeYear) {
+      apiFilters.year = activeYear;
+    }
+    
     if (activeRole === "Program Leader" && teams?.length > 0) {
-      apiFilters = {
-        teamId: teams[0]._id || "Unknown",
-      };
+      apiFilters.teamId = teams[0]._id || "Unknown";
     }
 
     return (
