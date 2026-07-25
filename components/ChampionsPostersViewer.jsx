@@ -181,13 +181,6 @@ export default function ChampionsPostersViewer({ isOpen, onClose, onNavigate, ap
                     </h1>
                   </div>
 
-                  {!loading && (
-                    <div className="mt-12 animate-bounce">
-                      <div className={`px-8 py-4 rounded-2xl border-2 font-black tracking-[0.3em] uppercase text-xl md:text-3xl shadow-2xl ${isWhiteTheme ? 'bg-zinc-900 text-white border-zinc-700' : 'bg-white text-black border-zinc-200'}`}>
-                        Press [ ENTER ] to Reveal
-                      </div>
-                    </div>
-                  )}
               </div>
 
               <style jsx global>{`

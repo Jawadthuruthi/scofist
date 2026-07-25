@@ -385,24 +385,19 @@ export default function CodeLettersViewer({ isOpen, onClose, apiKey, onNavigate,
                     {!isDaisVisible ? (
                         /* INITIAL DISPLAY: BIG PROGRAM & DIVISION */
                         <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-1000 text-center">
-                            <div className={`text-3xl md:text-5xl font-bold uppercase tracking-[0.5em] opacity-60 ${isWhiteTheme ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                            <div className={`text-4xl md:text-6xl font-bold uppercase tracking-[0.5em] opacity-60 ${isWhiteTheme ? 'text-zinc-600' : 'text-zinc-400'}`}>
                                 {selectedProgram.divisionName}
                             </div>
                             <h1 className={`text-6xl md:text-[12rem] font-black uppercase tracking-tighter drop-shadow-2xl leading-[0.9] ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>
                                 {selectedProgram.name}
                             </h1>
-                            <div className="pt-8 animate-pulse">
-                                <p className={`text-xl md:text-3xl font-bold uppercase tracking-[0.3em] opacity-30 ${isWhiteTheme ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                                    Enter Code & Press Enter
-                                </p>
-                            </div>
                         </div>
                     ) : (
                         /* REVEAL DISPLAY: CINEMATIC STACK */
                         <div className="w-full space-y-2 md:space-y-4 animate-in fade-in slide-in-from-bottom-10 duration-700">
                             {/* Header: Division & Program Name */}
                             <div className="space-y-1 md:space-y-2 text-center">
-                                <div className={`text-3xl md:text-6xl font-extrabold uppercase tracking-[0.5em] opacity-80 ${isWhiteTheme ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                                <div className={`text-4xl md:text-7xl font-extrabold uppercase tracking-[0.5em] opacity-80 ${isWhiteTheme ? 'text-zinc-600' : 'text-zinc-400'}`}>
                                     {selectedProgram.divisionName}
                                 </div>
                                 <h1 className={`text-5xl md:text-[8rem] font-black uppercase tracking-tight drop-shadow-2xl leading-none ${isWhiteTheme ? 'text-zinc-900' : 'text-white'}`}>

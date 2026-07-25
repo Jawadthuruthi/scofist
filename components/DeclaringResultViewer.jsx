@@ -307,9 +307,6 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
             {step === STEPS.INPUT && (
                 <div className="w-full h-full flex flex-col items-center justify-center space-y-12 animate-in fade-in zoom-in-95 duration-700" onClick={(e) => e.stopPropagation()}>
                     <Announcement isWhiteTheme={isWhiteTheme} />
-                    <p className={`absolute bottom-20 text-sm font-bold uppercase tracking-[0.3em] animate-bounce ${isWhiteTheme ? 'text-zinc-300' : 'text-zinc-800'}`}>
-                        Type No. & Press Enter
-                    </p>
                 </div>
             )}
 
@@ -412,7 +409,7 @@ export default function DeclaringResultViewer({ isOpen, onClose, apiKey, onNavig
                                             </div>
                                             <div className="flex items-baseline gap-2">
                                                 <span className={`text-2xl md:text-4xl font-black italic ${isWhiteTheme ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                                                    {p.grade}
+                                                    {!p.grade || p.grade.toLowerCase() === 'f' ? "-" : p.grade}
                                                 </span>
                                                 <span className="text-3xl md:text-5xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600">
                                                     {p.points}
@@ -500,7 +497,7 @@ function PodiumCard({ rank, data, isWhiteTheme, isLarge = false }) {
             <div className={`w-full rounded-t-3xl border-t-8 border-x bg-gradient-to-b shadow-2xl relative flex flex-col items-center justify-start pt-6 ${theme.bg} ${theme.border} ${isLarge ? 'h-72 md:h-[28rem]' : rank === 2 ? 'h-52 md:h-[22rem]' : 'h-40 md:h-[18rem]'}`}>
                 <span className="text-5xl md:text-9xl font-black text-black/20">{rank}</span>
                 <span className="absolute bottom-4 font-black text-black/40 text-sm md:text-3xl tracking-widest uppercase">
-                    {data.grade} <span className="mx-1 opacity-50">/</span> {data.points} PTS
+                    {!data.grade || data.grade.toLowerCase() === 'f' ? "-" : data.grade} <span className="mx-1 opacity-50">/</span> {data.points} PTS
                 </span>
             </div>
         </div>
@@ -621,7 +618,7 @@ const SequentialWinnerCard = ({ p, rank, isWhiteTheme }) => {
                             <Sparkles className="w-16 h-16 md:w-24 md:h-24 animate-spin text-yellow-400" />
                             <div className="flex flex-col items-center md:items-start">
                                 <span className="text-xl md:text-3xl not-italic font-bold text-zinc-500 uppercase tracking-[0.2em] mb-1">Grade</span>
-                                <span className="leading-none">{p.grade}</span>
+                                <span className="leading-none">{!p.grade || p.grade.toLowerCase() === 'f' ? "-" : p.grade}</span>
                             </div>
                             <div className="h-20 md:h-32 w-1.5 md:w-2 bg-zinc-800/50 rounded-full mx-2 md:mx-4" />
                             <div className="flex flex-col items-center md:items-start">

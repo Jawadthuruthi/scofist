@@ -291,12 +291,12 @@ export default function WinnerPostersViewer({ isOpen, onClose, onNavigate, apiKe
                               )}
                             </div>
 
-                            {(p.grade !== "-" || p.points > 0) && (
+                            {(p.grade || p.points > 0) && (
                               <div className={`mt-4 pt-4 border-t flex flex-col items-center justify-center gap-2 w-full border-black/10`}>
-                                {p.grade && p.grade !== "-" && (
+                                {p.grade && (
                                   <div className="flex items-center gap-4">
                                     <span className={`font-mono text-xl md:text-3xl font-bold uppercase tracking-wider ${contrastText} opacity-60`}>GRADE</span>
-                                    <span className={`${contrastText} font-black text-4xl md:text-5xl drop-shadow-lg leading-none`}>{p.grade}</span>
+                                    <span className={`${contrastText} font-black text-4xl md:text-5xl drop-shadow-lg leading-none`}>{(!p.grade || p.grade.toLowerCase() === 'f') ? "-" : p.grade}</span>
                                   </div>
                                 )}
                                 {p.points > 0 && (
