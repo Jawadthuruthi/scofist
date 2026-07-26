@@ -41,6 +41,7 @@ import {
   AlertTriangle,
   Newspaper,
   TrendingUp,
+  ScanBarcode,
 } from "lucide-react";
 
 import {
@@ -408,6 +409,12 @@ const items = [
     title: "Requests",
     url: "/dashboard/library-requests",
     icon: MessageSquare,
+    allowedRoles: ["Librarian"],
+  },
+  {
+    title: "Barcodes",
+    url: "/dashboard/books/barcodes",
+    icon: ScanBarcode,
     allowedRoles: ["Librarian"],
   },
   {

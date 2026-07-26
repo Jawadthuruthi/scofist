@@ -2182,16 +2182,6 @@ export default function LibraryDashboard({
                             {selectedIds.length > 0 && (
                                 <>
                                     <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handlePrintBarcodes()}
-                                        className="bg-foreground text-background hover:bg-foreground/90 hover:text-background border-none h-8 w-8 p-0 md:w-auto md:px-3"
-                                        title="Barcodes"
-                                    >
-                                        <Scan className="h-4 w-4" />
-                                        <span className="hidden md:inline">Barcodes</span>
-                                    </Button>
-                                    <Button
                                         variant="destructive"
                                         size="sm"
                                         onClick={handleBulkDelete}

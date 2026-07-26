@@ -285,6 +285,11 @@ const pages = [
     allowedRoles: ["Librarian"],
   },
   {
+    title: "Barcodes",
+    path: "/dashboard/books/barcodes",
+    allowedRoles: ["Librarian"],
+  },
+  {
     title: "Rentals",
     path: "/dashboard/rentals",
     allowedRoles: ["Librarian"],
