@@ -332,19 +332,42 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
         </div>
       </div>
 
-      {/* Rules and Topics */}
-      {(assignment.programId?.rules || assignment.programId?.topics) && (
+      {/* Rules, Topics, and Criteria */}
+      {(assignment.programId?.rules || assignment.programId?.topics || (assignment.programId?.criteria && assignment.programId.criteria.length > 0)) && (
         <div className="bg-muted/30 border rounded-lg p-4 text-sm text-muted-foreground mt-3">
           {assignment.programId.topics && (
             <div className="mb-2">
               <strong className="text-foreground">Topics: </strong>
-              {assignment.programId.topics}
+              <span className="whitespace-pre-wrap">{assignment.programId.topics}</span>
             </div>
           )}
           {assignment.programId.rules && (
-            <div>
+            <div className="mb-2">
               <strong className="text-foreground">Rules: </strong>
-              {assignment.programId.rules}
+              <span className="whitespace-pre-wrap">{assignment.programId.rules}</span>
+            </div>
+          )}
+          {assignment.programId.criteria && assignment.programId.criteria.length > 0 && (
+            <div className="mt-4">
+              <strong className="text-foreground block mb-2 text-base">Evaluation Criteria:</strong>
+              <div className="overflow-x-auto">
+                <table className="w-full md:w-3/4 lg:w-1/2 text-sm text-left border-collapse border border-muted bg-background">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="px-4 py-2 font-medium border-b border-muted">Criteria</th>
+                      <th className="px-4 py-2 font-medium border-b border-muted w-24">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {assignment.programId.criteria.map((c, i) => (
+                      <tr key={i} className="border-b border-muted last:border-0 hover:bg-muted/20">
+                        <td className="px-4 py-2">{c.name}</td>
+                        <td className="px-4 py-2 font-medium">{c.score}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
