@@ -23,7 +23,7 @@ export async function GET(request) {
 
     const assignments = await JudgeAssignment.find(query)
       .sort({ judgeNumber: 1 })
-      .populate("programId", "rules topics");
+      .populate("programId", "rules topics criteria");
 
     return NextResponse.json({ success: true, assignments });
   } catch (error) {

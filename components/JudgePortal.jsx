@@ -45,6 +45,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [judgeSignature, setJudgeSignature] = useState("");
+  const [activeTab, setActiveTab] = useState("Topics");
 
   const currentAssignmentIdRef = useRef(null);
   useEffect(() => {
@@ -78,6 +79,11 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       }
 
       setAssignment(active);
+      if (active.programId) {
+        if (active.programId.topics) setActiveTab("Topics");
+        else if (active.programId.rules) setActiveTab("Rules");
+        else if (active.programId.criteria?.length > 0) setActiveTab("Criteria");
+      }
       if (isPolling) {
         setSubmitted(false);
       }
@@ -287,97 +293,112 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   return (
     <div className="space-y-5">
 
-      {/* ── Division + Program info cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* Division */}
-        <div className="flex items-center gap-3 rounded-xl border bg-muted/40 px-4 py-3">
-          <div className="w-9 h-9 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shrink-0">
-            <LayoutGrid className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">
-              Division
-            </p>
-            <p className="font-semibold text-sm truncate">
-              {assignment.divisionName || "—"}
-            </p>
-          </div>
+      {/* ── Top Header Section ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Unified Division + Program Info Card */}
+        <div className="flex flex-col items-center justify-center text-center gap-2 rounded-xl border bg-muted/40 px-6 py-6 h-full">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+            {assignment.divisionName || "—"}
+          </p>
+          <h2 className="font-bold text-3xl">
+            {assignment.programName}
+          </h2>
         </div>
 
-        {/* Program */}
-        <div className="sm:col-span-2 flex items-center gap-3 rounded-xl border bg-muted/40 px-4 py-3">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <BookOpen className="h-4 w-4 text-primary" />
+        {/* ── Instructions ── */}
+        <div className="flex flex-col justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-6 gap-4 h-full">
+          <div className="text-sm sm:text-base text-blue-700 dark:text-blue-400 text-center sm:text-left">
+            <strong>Instructions:</strong> Enter marks (0–100) and comments for each participant. Once submitted, marks cannot be changed.
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">
-              Program
-            </p>
-            <p className="font-bold text-base truncate">
-              {assignment.programName}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Badge
-              variant="outline"
-              className="font-semibold text-primary border-primary/30 bg-primary/5"
-            >
-              <Hash className="h-3 w-3 mr-1" />
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+            <Badge variant="outline" className="font-semibold text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700 bg-blue-100/50 dark:bg-blue-900/50 text-sm py-1">
+              <Hash className="h-4 w-4 mr-1" />
               Judge {assignment.judgeNumber}
             </Badge>
-            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-sm py-1">
               {filledCount}/{participantRows.length} filled
             </Badge>
           </div>
         </div>
       </div>
 
-      {/* Rules, Topics, and Criteria */}
-      {(assignment.programId?.rules || assignment.programId?.topics || (assignment.programId?.criteria && assignment.programId.criteria.length > 0)) && (
-        <div className="bg-muted/30 border rounded-lg p-4 text-sm text-muted-foreground mt-3">
-          {assignment.programId.topics && (
-            <div className="mb-2">
-              <strong className="text-foreground">Topics: </strong>
-              <span className="whitespace-pre-wrap">{assignment.programId.topics}</span>
-            </div>
-          )}
-          {assignment.programId.rules && (
-            <div className="mb-2">
-              <strong className="text-foreground">Rules: </strong>
-              <span className="whitespace-pre-wrap">{assignment.programId.rules}</span>
-            </div>
-          )}
-          {assignment.programId.criteria && assignment.programId.criteria.length > 0 && (
-            <div className="mt-4">
-              <strong className="text-foreground block mb-2 text-base">Evaluation Criteria:</strong>
-              <div className="overflow-x-auto">
-                <table className="w-full md:w-3/4 lg:w-1/2 text-sm text-left border-collapse border border-muted bg-background">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="px-4 py-2 font-medium border-b border-muted">Criteria</th>
-                      <th className="px-4 py-2 font-medium border-b border-muted w-24">Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {assignment.programId.criteria.map((c, i) => (
-                      <tr key={i} className="border-b border-muted last:border-0 hover:bg-muted/20">
-                        <td className="px-4 py-2">{c.name}</td>
-                        <td className="px-4 py-2 font-medium">{c.score}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+      {/* ── Main Content Grid ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
+        {/* Left Column: Rules, Topics, and Criteria */}
+        <div className="lg:sticky lg:top-4 space-y-4">
+          {(assignment.programId?.rules || assignment.programId?.topics || (assignment.programId?.criteria && assignment.programId.criteria.length > 0)) && (
+            <div className="bg-muted/30 border rounded-lg p-4 text-sm text-muted-foreground">
+              <div className="grid grid-cols-3 gap-2 mb-5 pb-4 border-b border-muted">
+                <Button 
+                  size="sm"
+                  variant={activeTab === "Topics" ? "default" : "outline"} 
+                  className={`w-full ${!assignment.programId?.topics ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => assignment.programId?.topics && setActiveTab("Topics")}
+                  disabled={!assignment.programId?.topics}
+                >
+                  Topics
+                </Button>
+                <Button 
+                  size="sm"
+                  variant={activeTab === "Rules" ? "default" : "outline"} 
+                  className={`w-full ${!assignment.programId?.rules ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => assignment.programId?.rules && setActiveTab("Rules")}
+                  disabled={!assignment.programId?.rules}
+                >
+                  Rules
+                </Button>
+                <Button 
+                  size="sm"
+                  variant={activeTab === "Criteria" ? "default" : "outline"} 
+                  className={`w-full ${!(assignment.programId?.criteria?.length > 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => assignment.programId?.criteria?.length > 0 && setActiveTab("Criteria")}
+                  disabled={!(assignment.programId?.criteria?.length > 0)}
+                >
+                  Criteria
+                </Button>
               </div>
+
+              {activeTab === "Topics" && assignment.programId?.topics && (
+                <div className="mb-2">
+                  <strong className="text-foreground">Topics: </strong>
+                  <span className="whitespace-pre-wrap font-google-sans text-base leading-relaxed">{assignment.programId.topics}</span>
+                </div>
+              )}
+              {activeTab === "Rules" && assignment.programId?.rules && (
+                <div className="mb-2">
+                  <strong className="text-foreground">Rules: </strong>
+                  <span className="whitespace-pre-wrap font-google-sans text-base leading-relaxed">{assignment.programId.rules}</span>
+                </div>
+              )}
+              {activeTab === "Criteria" && assignment.programId?.criteria && assignment.programId.criteria.length > 0 && (
+                <div className="mt-4">
+                  <strong className="text-foreground block mb-2 text-base">Evaluation Criteria:</strong>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left border-collapse border border-muted bg-background">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="px-4 py-2 font-medium border-b border-muted">Criteria</th>
+                          <th className="px-4 py-2 font-medium border-b border-muted w-24">Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {assignment.programId.criteria.map((c, i) => (
+                          <tr key={i} className="border-b border-muted last:border-0 hover:bg-muted/20">
+                            <td className="px-4 py-2 font-google-sans text-base">{c.name}</td>
+                            <td className="px-4 py-2 font-medium">{c.score}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
 
-      {/* ── Instructions ── */}
-      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-700 dark:text-blue-400">
-        <strong>Instructions:</strong> Enter marks (0–100) and comments for each participant.
-        Once submitted, marks cannot be changed.
-      </div>
+      {/* Right Column: Instructions, Table, Submit */}
+      <div className="space-y-5">
 
       {/* ── Marks Table ── */}
       {participantRows.length === 0 ? (
@@ -510,39 +531,41 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                   )}
                   Submit Marks
                 </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Submit Marks?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  You are about to submit marks for{" "}
-                  <strong>{assignment.programName}</strong>.{" "}
-                  {!allFilled && (
-                    <span className="text-amber-600 font-medium">
-                      {participantRows.length - filledCount} participant(s) have
-                      no marks — they will be skipped.{" "}
-                    </span>
-                  )}
-                  Once submitted you cannot edit the marks.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Review Again</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleSubmit}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Submit
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Submit Marks?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    You are about to submit marks for{" "}
+                    <strong>{assignment.programName}</strong>.{" "}
+                    {!allFilled && (
+                      <span className="text-amber-600 font-medium">
+                        {participantRows.length - filledCount} participant(s) have
+                        no marks — they will be skipped.{" "}
+                      </span>
+                    )}
+                    Once submitted you cannot edit the marks.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Review Again</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleSubmit}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Submit
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       )}
+      </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default JudgePortal;
