@@ -188,7 +188,6 @@ const MyAttendanceClient = ({ user, apiKey }) => {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead className="w-[80px]">Sl No</TableHead>
                   <TableHead>Month</TableHead>
                   <TableHead className="text-center font-semibold">Total Classes</TableHead>
                   <TableHead className="text-center font-semibold">Present</TableHead>
@@ -199,14 +198,13 @@ const MyAttendanceClient = ({ user, apiKey }) => {
               <TableBody>
                 {monthlyStats.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                       No attendance records found for {selectedYear}.
                     </TableCell>
                   </TableRow>
                 ) : (
                   monthlyStats.map((stat, index) => (
                     <TableRow key={stat.monthKey} className="hover:bg-muted/30 transition-colors">
-                      <TableCell>{index + 1}</TableCell>
                       <TableCell className="font-semibold text-primary">
                         {stat.monthName}
                       </TableCell>
@@ -262,7 +260,6 @@ const MyAttendanceClient = ({ user, apiKey }) => {
                   <Table>
                       <TableHeader className="bg-muted/50 sticky top-0 z-20">
                           <TableRow>
-                              <TableHead className="w-[50px] px-2 text-center text-xs">Sl No</TableHead>
                               <TableHead className="w-[100px] sm:w-[120px] px-2 text-xs">Date</TableHead>
                               <TableHead className="hidden md:table-cell text-center w-[70px] text-xs">Period</TableHead>
                               <TableHead className="hidden sm:table-cell w-[140px] text-xs">Class</TableHead>
@@ -273,7 +270,6 @@ const MyAttendanceClient = ({ user, apiKey }) => {
                       <TableBody>
                           {detailModal.records.map((rec, i) => (
                                <TableRow key={i} className="hover:bg-muted/30">
-                                   <TableCell className="px-2 text-center text-xs text-muted-foreground">{i + 1}</TableCell>
                                    <TableCell className="px-2 py-3">
                                        <div className="flex flex-col">
                                            <span className="text-sm font-medium whitespace-nowrap">

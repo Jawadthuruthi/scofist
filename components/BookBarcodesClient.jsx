@@ -14,7 +14,16 @@ import {
     X,
     CheckSquare,
     Square,
+    ArrowDownWideNarrow,
+    ArrowDownAZ,
+    CalendarDays,
 } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // ── Print-only sheet ───────────────────────────────────────────────────────────
 const PrintSheet = React.forwardRef(({ books }, ref) => (
@@ -63,7 +72,14 @@ const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort();
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function BookBarcodesClient({ initialBooks = [] }) {
-    const books = useMemo(() => sortBooks(initialBooks), [initialBooks]);
+    const [sortView, setSortView] = useState("name");
+
+    const books = useMemo(() => {
+        if (sortView === "date") {
+            return [...initialBooks].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        }
+        return sortBooks(initialBooks);
+    }, [initialBooks, sortView]);
 
     // Derived filter options
     const languages = useMemo(
@@ -240,6 +256,24 @@ export default function BookBarcodesClient({ initialBooks = [] }) {
                     title="Barcodes"
                     triggerClass="h-9 min-w-9 w-auto px-2 shrink-0"
                 />
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" title="Sort options">
+                            <ArrowDownWideNarrow className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                        <DropdownMenuItem onClick={() => setSortView("name")} className={sortView === "name" ? "bg-accent" : ""}>
+                            <ArrowDownAZ className="mr-2 h-4 w-4" />
+                            <span>Name Order (ID Ascending)</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setSortView("date")} className={sortView === "date" ? "bg-accent" : ""}>
+                            <CalendarDays className="mr-2 h-4 w-4" />
+                            <span>Date Added (Recent First)</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
 
                 {/* Search */}
                 <div className="relative flex-1 min-w-[200px]">
