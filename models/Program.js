@@ -24,6 +24,12 @@ const programSchema = new Schema(
       type: String,
       trim: true,
     },
+    criteria: [
+      {
+        name: { type: String, required: true, trim: true },
+        score: { type: Number, required: true },
+      },
+    ],
     type: {
       type: String,
       required: true,
@@ -55,6 +61,7 @@ const programSchema = new Schema(
 
 programSchema.index({ name: 1, divisionId: 1, year: 1 }, { unique: true });
 
+delete models.Program;
 const Program = models?.Program || model("Program", programSchema);
 
 export default Program;

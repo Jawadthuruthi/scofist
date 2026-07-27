@@ -142,6 +142,72 @@ const ProgramCard = ({
     onClearBoth(program);
   }, [onClearBoth, program]);
 
+  const handleCriteriaChange = useCallback(
+    (index, field, value) => {
+      onEditDataChange((prev) => {
+        const newCriteria = [...(prev.criteria || [])];
+        newCriteria[index] = { ...newCriteria[index], [field]: value };
+        return { ...prev, criteria: newCriteria };
+      });
+    },
+    [onEditDataChange]
+  );
+
+  const addCriteria = useCallback(() => {
+    onEditDataChange((prev) => ({
+      ...prev,
+      criteria: [...(prev.criteria || []), { name: "", score: "" }],
+    }));
+  }, [onEditDataChange]);
+
+  const removeCriteria = useCallback(
+    (index) => {
+      onEditDataChange((prev) => {
+        const newCriteria = [...(prev.criteria || [])];
+        newCriteria.splice(index, 1);
+        return { ...prev, criteria: newCriteria };
+      });
+    },
+    [onEditDataChange]
+  );
+
+  const handlePasteCriteria = useCallback(
+    (e, index) => {
+      const pasteData = e.clipboardData.getData("text");
+      if (!pasteData) return;
+
+      // Check if it's tabular data
+      if (pasteData.includes("\n") || pasteData.includes("\t")) {
+        e.preventDefault();
+
+        const rows = pasteData
+          .split(/\r?\n/)
+          .map((row) => row.trim())
+          .filter((row) => row);
+
+        const parsedCriteria = rows.map((row) => {
+          const columns = row.includes("\t") ? row.split("\t") : row.split(/\s{2,}/);
+          let name = columns[0] || "";
+          let scoreText = columns.length > 1 ? columns[columns.length - 1] : "";
+          let score = parseInt(scoreText.replace(/\D/g, ""), 10);
+          
+          if (isNaN(score)) score = "";
+          
+          return { name: name.trim(), score };
+        });
+
+        if (parsedCriteria.length > 0) {
+          onEditDataChange((prev) => {
+            const newCriteria = [...(prev.criteria || [])];
+            newCriteria.splice(index, 1, ...parsedCriteria);
+            return { ...prev, criteria: newCriteria };
+          });
+        }
+      }
+    },
+    [onEditDataChange]
+  );
+
   return (
     <Card className="break-inside-avoid">
       <CardHeader className="pb-3 sm:pb-4">
@@ -306,19 +372,56 @@ const ProgramCard = ({
         {isEditing ? (
           <div className="space-y-4 print:hidden">
             {(viewMode === "both" || viewMode === "rules") && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Rules
-                </label>
-                <Textarea
-                  value={editData.rules}
-                  onChange={handleRulesChange}
-                  placeholder="Enter program rules..."
-                  className="min-h-[100px] sm:min-h-[120px] resize-y text-sm"
-                  disabled={loading}
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Rules
+                  </label>
+                  <Textarea
+                    value={editData.rules}
+                    onChange={handleRulesChange}
+                    placeholder="Enter program rules..."
+                    className="min-h-[100px] sm:min-h-[120px] resize-y text-sm"
+                    disabled={loading}
+                  />
+                </div>
+                
+                <div className="space-y-2 mt-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Award className="w-4 h-4" />
+                      Evaluation Criteria
+                    </label>
+                    <Button type="button" variant="outline" size="sm" onClick={addCriteria} disabled={loading}>
+                      Add Criteria
+                    </Button>
+                  </div>
+                  {(editData.criteria || []).map((criterion, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <Input 
+                        placeholder="Criteria Name" 
+                        value={criterion.name || ""} 
+                        onChange={(e) => handleCriteriaChange(idx, "name", e.target.value)} 
+                        onPaste={(e) => handlePasteCriteria(e, idx)}
+                        disabled={loading}
+                        className="flex-1"
+                      />
+                      <Input 
+                        type="number"
+                        placeholder="Score" 
+                        value={criterion.score || ""} 
+                        onChange={(e) => handleCriteriaChange(idx, "score", e.target.value !== "" ? Number(e.target.value) : "")} 
+                        disabled={loading}
+                        className="w-24"
+                      />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeCriteria(idx)} disabled={loading}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
 
             {(viewMode === "both" || viewMode === "topics") && (
@@ -375,6 +478,27 @@ const ProgramCard = ({
                     {program.rules}
                   </div>
                 </div>
+                
+                {program.criteria && program.criteria.length > 0 && (
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="w-full text-sm text-left border-collapse border border-muted">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="px-4 py-2 font-medium border-b border-muted">Evaluation Criteria</th>
+                          <th className="px-4 py-2 font-medium border-b border-muted w-24">Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {program.criteria.map((c, i) => (
+                          <tr key={i} className="border-b border-muted last:border-0 hover:bg-muted/20">
+                            <td className="px-4 py-2">{c.name}</td>
+                            <td className="px-4 py-2 font-medium">{c.score}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 
@@ -511,6 +635,7 @@ const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
     setEditData({
       rules: program.rules || "",
       topics: program.topics || "",
+      criteria: program.criteria || [],
     });
   }, []);
 
@@ -548,6 +673,7 @@ const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
           data: {
             ids: [program._id],
             rules: "",
+            criteria: [],
           },
         });
         toast.success("Rules cleared successfully!");
@@ -593,6 +719,7 @@ const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
             ids: [program._id],
             rules: "",
             topics: "",
+            criteria: [],
           },
         });
         toast.success("Rules and topics cleared successfully!");
