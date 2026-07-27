@@ -4,6 +4,7 @@ import ProgramRegistration from "@/models/ProgramRegistration";
 import GradeScheme from "@/models/GradeScheme";
 import Result from "@/models/Result";
 import { getYear } from "@/lib/getYear";
+import { undeclareResultData } from "@/lib/resultHelpers";
 
 // Helper function to calculate grade from marks
 function calculateGrade(totalMarks, gradeSchemes) {
@@ -329,8 +330,11 @@ export async function PUT(request) {
           };
         });
 
-        let result = await Result.findOne({ programId, year: activeYear });
+        let result = await Result.findOne({ programId, year: activeYear }).populate("programId");
         if (result) {
+          if (result.isResultDeclared) {
+            await undeclareResultData(result);
+          }
           result.participants = participants;
           result.isResultDeclared = false;
           await result.save();
@@ -372,9 +376,11 @@ export async function PUT(request) {
 export async function DELETE(req) {
   try {
     const data = await req.json();
-    const { programId } = data;
+    const { programId, programIds } = data;
+    
+    const idsToClear = programIds || (programId ? [programId] : []);
 
-    if (!programId) {
+    if (idsToClear.length === 0) {
       return NextResponse.json(
         { success: false, message: "Program ID is required" },
         { status: 400 }
@@ -382,7 +388,7 @@ export async function DELETE(req) {
     }
 
     const registrations = await ProgramRegistration.find({
-      programId,
+      programId: { $in: idsToClear },
     });
 
     if (registrations.length === 0) {
@@ -392,8 +398,17 @@ export async function DELETE(req) {
       );
     }
 
+    const declaredResults = await Result.find({ 
+      programId: { $in: idsToClear },
+      isResultDeclared: true
+    }).populate("programId");
+
+    for (const res of declaredResults) {
+      await undeclareResultData(res);
+    }
+
     await ProgramRegistration.updateMany(
-      { programId },
+      { programId: { $in: idsToClear } },
       {
         $set: {
           "participants.$[].marksByJudges": [],
@@ -402,7 +417,7 @@ export async function DELETE(req) {
       }
     );
 
-    await Result.deleteOne({ programId });
+    await Result.deleteMany({ programId: { $in: idsToClear } });
 
     return NextResponse.json({
       success: true,

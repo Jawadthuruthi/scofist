@@ -474,7 +474,7 @@ const ProgramCard = ({
                   <h3 className="text-base sm:text-lg font-semibold">Rules</h3>
                 </div>
                 <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-primary">
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed break-words">
+                  <div className="font-google-sans text-base md:text-lg font-normal whitespace-pre-wrap leading-relaxed break-words">
                     {program.rules}
                   </div>
                 </div>
@@ -491,7 +491,7 @@ const ProgramCard = ({
                       <tbody>
                         {program.criteria.map((c, i) => (
                           <tr key={i} className="border-b border-muted last:border-0 hover:bg-muted/20">
-                            <td className="px-4 py-2">{c.name}</td>
+                            <td className="px-4 py-2 font-google-sans text-base font-normal">{c.name}</td>
                             <td className="px-4 py-2 font-medium">{c.score}</td>
                           </tr>
                         ))}
@@ -517,7 +517,7 @@ const ProgramCard = ({
                     </h3>
                   </div>
                   <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-green-500">
-                    <div className="whitespace-pre-wrap text-sm leading-relaxed break-words">
+                    <div className="font-google-sans text-base md:text-lg font-normal whitespace-pre-wrap leading-relaxed break-words">
                       {program.topics}
                     </div>
                   </div>

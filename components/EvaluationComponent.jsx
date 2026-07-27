@@ -134,18 +134,19 @@ const EvaluationComponent = ({
 
       // CRITICAL FIX: Use participant ID as unique identifier instead of index
       participantsDetails.forEach((participant, originalIndex) => {
+        const pId = participant.id?._id || participant.id;
         const participantData = {
           ...participant,
           registrationId,
           teamId,
           teamName,
           participantIndex: originalIndex, // Store original index for reference
-          participantId: participant.id, // Use participant ID as the key
-          uniqueId: `${registrationId}-${participant.id}`, // Use participant ID for uniqueId
+          participantId: pId, // Use string ID
+          uniqueId: `${registrationId}-${pId}`, // Ensure uniqueId is a string without [object Object]
           participantDetails: participant.participantDetails || {
-            name: participant.name || "Unknown",
-            chestNumber: participant.chestNumber || "N/A",
-            age: participant.age || "N/A",
+            name: participant.id?.name || participant.name || "Unknown",
+            chestNumber: participant.id?.chestNumber || participant.chestNumber || "N/A",
+            age: participant.id?.age || participant.age || "N/A",
           },
           marksByJudges: participant.marksByJudges || [],
           totalMarks: participant.totalMarks || 0,
@@ -222,7 +223,7 @@ const EvaluationComponent = ({
   // Handle marks change for individual participant
   // judgeIdx is the 0-based index of the judge column being edited
   const handleMarksChange = (participantUniqueId, marks, judgeIdx) => {
-    const marksValue = Math.max(0, Math.min(100, parseInt(marks) || 0));
+    const marksValue = marks === "" ? "" : Math.max(0, Math.min(100, parseInt(marks) || 0));
 
     const updateParticipant = (participant) => {
       if (participant.uniqueId !== participantUniqueId) return participant;
@@ -232,7 +233,7 @@ const EvaluationComponent = ({
       // Average over all judges up to judgeNumber
       const validMarks = updatedMarksByJudges
         .slice(0, judgeNumber)
-        .filter((m) => m !== undefined && m !== null);
+        .filter((m) => m !== undefined && m !== null && m !== "" && m > 0);
       const averageMarks =
         validMarks.length > 0
           ? Math.round(
@@ -399,19 +400,21 @@ const EvaluationComponent = ({
     }
   };
 
-  const handleDelete = async (programId) => {
+  const handleClearAllMarks = async () => {
+    if (filteredRegistrations.length === 0) return;
     try {
+      const programIds = filteredRegistrations.map(p => p.programId);
       await deleteEvaluation.mutateAsync({
         data: {
-          programId,
+          programIds,
         },
       });
 
       await fetchRegistrationsQuery.refetch();
-      toast.success("Marks deleted successfully!");
+      toast.success("Marks cleared successfully!");
     } catch (error) {
-      console.error("Error deleting marks:", error);
-      toast.error(error.message || "Failed to delete marks");
+      console.error("Error clearing marks:", error);
+      toast.error(error.message || "Failed to clear marks");
     }
   };
 
@@ -549,6 +552,45 @@ const EvaluationComponent = ({
                 Print
               </Button>
 
+              {filteredRegistrations.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      disabled={deleteEvaluation.isPending}
+                      className="flex-1 sm:flex-none"
+                    >
+                      {deleteEvaluation.isPending ? (
+                        <Loader className="animate-spin h-4 w-4 mr-2" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-2" />
+                      )}
+                      <span className="hidden sm:inline">Clear Marks</span>
+                      <span className="sm:hidden">Clear</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Clear all marks for displayed programs?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove all marks submitted by judges for the currently displayed programs. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleClearAllMarks}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Clear Marks
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+
               {showSaveButton && (
                 <Button
                   onClick={handleSave}
@@ -609,43 +651,6 @@ const EvaluationComponent = ({
                       </div>
                     </div>
 
-                    {!program?.isResultDeclared && (
-                      <div className="flex items-center gap-2 no-print">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              disabled={deleteEvaluation.isPending}
-                            >
-                              {deleteEvaluation.isPending ? (
-                                <Loader className="animate-spin h-4 w-4" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Are you sure you want to delete this?
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(program.programId)}
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    )}
                   </div>
                 </div>
 

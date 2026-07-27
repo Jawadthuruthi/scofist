@@ -45,7 +45,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [judgeSignature, setJudgeSignature] = useState("");
-  const [activeTab, setActiveTab] = useState("Topics");
+  const [activeTab, setActiveTab] = useState("Criteria");
 
   const currentAssignmentIdRef = useRef(null);
   useEffect(() => {
@@ -80,9 +80,9 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
 
       setAssignment(active);
       if (active.programId) {
-        if (active.programId.topics) setActiveTab("Topics");
+        if (active.programId.criteria?.length > 0) setActiveTab("Criteria");
         else if (active.programId.rules) setActiveTab("Rules");
-        else if (active.programId.criteria?.length > 0) setActiveTab("Criteria");
+        else if (active.programId.topics) setActiveTab("Topics");
       }
       if (isPolling) {
         setSubmitted(false);
@@ -143,11 +143,6 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
 
   const handleSubmit = async () => {
     if (!assignment) return;
-
-    if (!judgeSignature.trim()) {
-      toast.error("Please enter your name to confirm submission");
-      return;
-    }
 
     // Build marksData
     const marksData = [];
@@ -297,7 +292,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Unified Division + Program Info Card */}
         <div className="flex flex-col items-center justify-center text-center gap-2 rounded-xl border bg-muted/40 px-6 py-6 h-full">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+          <p className="text-sm md:text-base uppercase tracking-widest text-muted-foreground font-medium">
             {assignment.divisionName || "—"}
           </p>
           <h2 className="font-bold text-3xl">
@@ -308,16 +303,11 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
         {/* ── Instructions ── */}
         <div className="flex flex-col justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-6 gap-4 h-full">
           <div className="text-sm sm:text-base text-blue-700 dark:text-blue-400 text-center sm:text-left">
-            <strong>Instructions:</strong> Enter marks (0–100) and comments for each participant. Once submitted, marks cannot be changed.
-          </div>
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
-            <Badge variant="outline" className="font-semibold text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700 bg-blue-100/50 dark:bg-blue-900/50 text-sm py-1">
-              <Hash className="h-4 w-4 mr-1" />
-              Judge {assignment.judgeNumber}
-            </Badge>
-            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-sm py-1">
-              {filledCount}/{participantRows.length} filled
-            </Badge>
+            <strong className="block mb-2 text-base">Instructions:</strong>
+            <ul className="list-disc pl-5 leading-relaxed text-left space-y-1 inline-block sm:block">
+              <li>Enter marks (0–100) and comments for each participant.</li>
+              <li>Once submitted, marks cannot be changed.</li>
+            </ul>
           </div>
         </div>
       </div>
@@ -331,12 +321,12 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
               <div className="grid grid-cols-3 gap-2 mb-5 pb-4 border-b border-muted">
                 <Button 
                   size="sm"
-                  variant={activeTab === "Topics" ? "default" : "outline"} 
-                  className={`w-full ${!assignment.programId?.topics ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={() => assignment.programId?.topics && setActiveTab("Topics")}
-                  disabled={!assignment.programId?.topics}
+                  variant={activeTab === "Criteria" ? "default" : "outline"} 
+                  className={`w-full ${!(assignment.programId?.criteria?.length > 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => assignment.programId?.criteria?.length > 0 && setActiveTab("Criteria")}
+                  disabled={!(assignment.programId?.criteria?.length > 0)}
                 >
-                  Topics
+                  Criteria
                 </Button>
                 <Button 
                   size="sm"
@@ -349,27 +339,15 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                 </Button>
                 <Button 
                   size="sm"
-                  variant={activeTab === "Criteria" ? "default" : "outline"} 
-                  className={`w-full ${!(assignment.programId?.criteria?.length > 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={() => assignment.programId?.criteria?.length > 0 && setActiveTab("Criteria")}
-                  disabled={!(assignment.programId?.criteria?.length > 0)}
+                  variant={activeTab === "Topics" ? "default" : "outline"} 
+                  className={`w-full ${!assignment.programId?.topics ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => assignment.programId?.topics && setActiveTab("Topics")}
+                  disabled={!assignment.programId?.topics}
                 >
-                  Criteria
+                  Topics
                 </Button>
               </div>
 
-              {activeTab === "Topics" && assignment.programId?.topics && (
-                <div className="mb-2">
-                  <strong className="text-foreground">Topics: </strong>
-                  <span className="whitespace-pre-wrap font-google-sans text-base leading-relaxed">{assignment.programId.topics}</span>
-                </div>
-              )}
-              {activeTab === "Rules" && assignment.programId?.rules && (
-                <div className="mb-2">
-                  <strong className="text-foreground">Rules: </strong>
-                  <span className="whitespace-pre-wrap font-google-sans text-base leading-relaxed">{assignment.programId.rules}</span>
-                </div>
-              )}
               {activeTab === "Criteria" && assignment.programId?.criteria && assignment.programId.criteria.length > 0 && (
                 <div className="mt-4">
                   <strong className="text-foreground block mb-2 text-base">Evaluation Criteria:</strong>
@@ -384,13 +362,33 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                       <tbody>
                         {assignment.programId.criteria.map((c, i) => (
                           <tr key={i} className="border-b border-muted last:border-0 hover:bg-muted/20">
-                            <td className="px-4 py-2 font-google-sans text-base">{c.name}</td>
+                            <td className="px-4 py-2 font-google-sans font-normal text-sm md:text-base">{c.name}</td>
                             <td className="px-4 py-2 font-medium">{c.score}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+              {activeTab === "Rules" && assignment.programId?.rules && (
+                <div className="mb-2">
+                  <strong className="text-foreground block mb-2 text-sm md:text-base">Rules: </strong>
+                  <ul className="list-disc pl-5 font-google-sans font-normal text-sm md:text-base leading-relaxed space-y-1">
+                    {assignment.programId.rules.split('\n').filter(line => line.trim()).map((line, idx) => (
+                      <li key={idx}>{line.trim().replace(/^[\*\-]\s*/, '')}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {activeTab === "Topics" && assignment.programId?.topics && (
+                <div className="mb-2">
+                  <strong className="text-foreground block mb-2 text-sm md:text-base">Topics: </strong>
+                  <ul className="list-disc pl-5 font-google-sans font-normal text-sm md:text-base leading-relaxed space-y-1">
+                    {assignment.programId.topics.split('\n').filter(line => line.trim()).map((line, idx) => (
+                      <li key={idx}>{line.trim().replace(/^[\*\-]\s*/, '')}</li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
@@ -408,31 +406,30 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table className="min-w-full">
-              <TableHeader>
-                <TableRow>
-                  {/* Sl. */}
-                  <TableHead className="w-12 text-center whitespace-nowrap border-r border-border">
-                    Sl.
-                  </TableHead>
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow>
+                {/* Sl. */}
+                <TableHead className="w-10 text-center whitespace-nowrap border-r border-border">
+                  Sl.
+                </TableHead>
 
-                  {/* Code Letter */}
-                  <TableHead className="w-32 text-center whitespace-nowrap border-r border-border">
-                    Code Letter
-                  </TableHead>
+                {/* Code Letter */}
+                <TableHead className="w-20 text-center whitespace-nowrap border-r border-border">
+                  Code
+                </TableHead>
 
-                  {/* Comments */}
-                  <TableHead className="text-center whitespace-nowrap border-r border-border">
-                    Comments
-                  </TableHead>
+                {/* Comments */}
+                <TableHead className="text-center border-r border-border">
+                  Comments
+                </TableHead>
 
-                  {/* Marks */}
-                  <TableHead className="w-32 text-center whitespace-nowrap border-r border-border">
-                    Marks
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
+                {/* Marks */}
+                <TableHead className="w-24 text-center whitespace-nowrap border-r border-border">
+                  Marks
+                </TableHead>
+              </TableRow>
+            </TableHeader>
 
               <TableBody>
                 {participantRows.map((row, idx) => {
@@ -457,17 +454,17 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                       </TableCell>
 
                       {/* Comments */}
-                      <TableCell className="border-r border-border align-top">
+                      <TableCell className="border-r border-border align-top p-2">
                         <Textarea
                           value={comments[row.key] || ""}
                           onChange={(e) => handleCommentChange(row.key, e.target.value)}
-                          className="min-w-[200px] text-sm resize-y"
+                          className="w-full min-h-[60px] text-sm resize-y"
                           placeholder="Add comments..."
                         />
                       </TableCell>
 
                       {/* Judge marks input */}
-                      <TableCell className="text-center border-r border-border align-top">
+                      <TableCell className="text-center border-r border-border align-top p-2">
                         <Input
                           type="number"
                           min="0"
@@ -476,7 +473,7 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                           onChange={(e) =>
                             handleMarkChange(row.key, e.target.value)
                           }
-                          className="w-20 sm:w-24 mx-auto text-center font-mono text-sm"
+                          className="w-full mx-auto text-center font-mono text-sm px-1"
                           placeholder="0-100"
                         />
                       </TableCell>
@@ -485,43 +482,29 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                 })}
               </TableBody>
             </Table>
-          </div>
         </div>
       )}
 
       {/* ── Submit Button ── */}
       {participantRows.length > 0 && (
-        <div className="flex flex-col gap-4 pt-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {allFilled ? (
-                <span className="text-green-600 font-medium">
-                  ✓ All {participantRows.length} participants marked
-                </span>
-              ) : (
-                <span>
-                  {filledCount} of {participantRows.length} marks entered
-                </span>
-              )}
-            </p>
-            <Button variant="outline" onClick={() => window.print()} className="ml-auto print:hidden">
-              <Printer className="h-4 w-4 mr-2" />
-              Print
-            </Button>
-          </div>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+          <p className="text-sm text-muted-foreground text-center sm:text-left">
+            {allFilled ? (
+              <span className="text-green-600 font-medium">
+                ✓ All {participantRows.length} participants marked
+              </span>
+            ) : (
+              <span>
+                {filledCount} of {participantRows.length} marks entered
+              </span>
+            )}
+          </p>
 
-          <div className="flex items-center gap-3 self-end print:hidden">
-            <Input
-              type="text"
-              placeholder="Type your name to confirm..."
-              value={judgeSignature}
-              onChange={(e) => setJudgeSignature(e.target.value)}
-              className="w-64"
-            />
+          <div className="print:hidden w-full sm:w-auto">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
-                  className="bg-green-600 hover:bg-green-700 text-white min-w-36"
+                  className="bg-green-600 hover:bg-green-700 text-white w-full sm:min-w-36"
                   disabled={submitting}
                 >
                   {submitting ? (

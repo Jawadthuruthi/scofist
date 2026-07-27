@@ -70,6 +70,7 @@ const JudgesManagement = ({
 
   // Add form state
   const [newJudgeId, setNewJudgeId] = useState("");
+  const [newJudgeName, setNewJudgeName] = useState("");
   const [newJudgeNumber, setNewJudgeNumber] = useState("");
 
   const filteredPrograms = programs.filter(
@@ -132,6 +133,7 @@ const JudgesManagement = ({
         },
         body: JSON.stringify({
           judgeId: newJudgeId,
+          judgeName: newJudgeName,
           programId: selectedProgram,
           divisionId: selectedDivision || undefined,
           judgeNumber: parseInt(newJudgeNumber),
@@ -144,6 +146,7 @@ const JudgesManagement = ({
         toast.success("Judge assigned successfully!");
         setAddDialogOpen(false);
         setNewJudgeId("");
+        setNewJudgeName("");
         setNewJudgeNumber("");
         fetchAssignments();
       } else {
@@ -180,6 +183,7 @@ const JudgesManagement = ({
 
   const openAddDialog = () => {
     setNewJudgeId("");
+    setNewJudgeName("");
     setNewJudgeNumber(String(nextJudgeNumber));
     setAddDialogOpen(true);
   };
@@ -382,19 +386,31 @@ const JudgesManagement = ({
 
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>Judge</Label>
+              <Label>User</Label>
               <MultiSelect
                 options={availableJudgeOptions}
                 value={newJudgeId}
                 onValueChange={setNewJudgeId}
-                placeholder="Select a judge..."
+                placeholder="Select a user..."
                 multiSelect={false}
               />
               {availableJudgeOptions.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  All judges are already assigned to this program.
+                  All users are already assigned to this program.
                 </p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Judge Name (Optional)</Label>
+              <Input
+                value={newJudgeName}
+                onChange={(e) => setNewJudgeName(e.target.value)}
+                placeholder="Enter custom judge name..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave blank to use the user's default name.
+              </p>
             </div>
 
             <div className="space-y-2">

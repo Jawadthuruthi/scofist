@@ -8,6 +8,7 @@ import Division from "@/models/Division.js";
 import Participant from "@/models/Participant.js";
 import Team from "@/models/Team.js";
 import { getYear } from "@/lib/getYear";
+import { undeclareResultData } from "@/lib/resultHelpers";
 
 // Helper function to calculate grade from marks
 function calculateGrade(totalMarks, gradeSchemes) {
@@ -633,9 +634,21 @@ export async function DELETE(request) {
     let deletedCount = 0;
 
     if (resultId) {
-      const result = await Result.findByIdAndDelete(resultId);
-      deletedCount = result ? 1 : 0;
+      const result = await Result.findById(resultId).populate("programId");
+      if (result) {
+        if (result.isResultDeclared) {
+          await undeclareResultData(result);
+        }
+        await Result.findByIdAndDelete(resultId);
+        deletedCount = 1;
+      }
     } else if (programId) {
+      const resultsToDelete = await Result.find({ programId }).populate("programId");
+      for (const res of resultsToDelete) {
+        if (res.isResultDeclared) {
+          await undeclareResultData(res);
+        }
+      }
       const deleteResult = await Result.deleteMany({ programId });
       deletedCount = deleteResult.deletedCount;
     }

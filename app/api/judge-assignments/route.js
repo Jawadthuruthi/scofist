@@ -40,7 +40,7 @@ export async function POST(request) {
   try {
     await connectToDB();
     const body = await request.json();
-    const { judgeId, programId, divisionId, judgeNumber, year, createdBy } = body;
+    const { judgeId, programId, divisionId, judgeNumber, year, createdBy, judgeName } = body;
 
     if (!judgeId || !programId || !judgeNumber || !year) {
       return NextResponse.json(
@@ -102,7 +102,7 @@ export async function POST(request) {
 
     const assignment = await JudgeAssignment.create({
       judgeId: judgeUser._id.toString(),
-      judgeName: judgeUser.name,
+      judgeName: judgeName || judgeUser.name,
       programId,
       programName: program.name,
       divisionId: resolvedDivisionId || "",
