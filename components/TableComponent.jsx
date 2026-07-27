@@ -21,9 +21,11 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
 } from "@tanstack/react-table";
 import { useMemo, useRef, useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { useReactToPrint } from "react-to-print";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import useTableColumns from "@/hooks/use-table-columns";
 import PrintHeader from "./PrintHeader";
 import { SlidersHorizontal, Filter, Search, LayoutGrid, List, Download, Printer } from "lucide-react";
@@ -70,6 +72,7 @@ const TableComponent = forwardRef(({
   totalCountLabel = "Total Records",
   searchPlaceholder,
   onFiltersChange,
+  enablePagination = false,
 }, ref) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -79,6 +82,7 @@ const TableComponent = forwardRef(({
   const [viewMode, setViewMode] = useState(defaultViewMode); // list or grid
 
   const tableRef = useRef(null);
+  const tableContainerRef = useRef(null);
 
   useEffect(() => {
     if (onFiltersChange) {
@@ -103,10 +107,36 @@ const TableComponent = forwardRef(({
     return title;
   }, [printTitle, columnFilters]);
 
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 });
+  const [isPrinting, setIsPrinting] = useState(false);
+  const resolvePrintRef = useRef(null);
+
   const handlePrint = useReactToPrint({
     contentRef: tableRef,
     documentTitle: dynamicPrintTitle,
+    onBeforePrint: () => {
+      return new Promise((resolve) => {
+        setIsPrinting(true);
+        resolvePrintRef.current = resolve;
+      });
+    },
+    onAfterPrint: () => {
+      setIsPrinting(false);
+    }
   });
+
+  useEffect(() => {
+    if (isPrinting && resolvePrintRef.current) {
+      // Give React and the browser time to render all rows before resolving
+      const timer = setTimeout(() => {
+        if (resolvePrintRef.current) {
+          resolvePrintRef.current();
+          resolvePrintRef.current = null;
+        }
+      }, 500); // 500ms safety buffer for large tables to finish rendering
+      return () => clearTimeout(timer);
+    }
+  }, [isPrinting]);
 
   const handleExportCSV = () => {
     const visibleColumns = table.getVisibleLeafColumns()
@@ -120,7 +150,6 @@ const TableComponent = forwardRef(({
         if (col.id === "serialNo") {
           val = row.index + 1;
         } else if (col.columnDef.type?.includes("avatar")) {
-          // Skip exporting raw image URLs for avatars
           val = "";
         }
 
@@ -154,9 +183,11 @@ const TableComponent = forwardRef(({
     onRowSelectionChange: onRowSelectionChange,
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
-    onColumnFiltersChange: setColumnFilters, // Sync column filters
+    onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: (enablePagination && !isPrinting) ? getPaginationRowModel() : undefined,
     enableRowSelection: true,
     state: {
       sorting,
@@ -164,7 +195,17 @@ const TableComponent = forwardRef(({
       columnVisibility,
       globalFilter,
       columnFilters,
+      ...(enablePagination && !isPrinting ? { pagination } : {}),
     },
+  });
+
+  const { rows } = table.getRowModel();
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => 45, // default row height estimate
+    overscan: 10,
   });
 
   useImperativeHandle(ref, () => ({
@@ -398,8 +439,8 @@ const TableComponent = forwardRef(({
         </div>
       ) : (
         <div
-          ref={tableRef}
-          className="rounded-md border overflow-auto shadow-sm table-print relative  "
+          ref={tableContainerRef}
+          className="rounded-md border overflow-auto shadow-sm table-print relative"
           style={{
             maxHeight: tableHeight,
           }}
@@ -411,7 +452,7 @@ const TableComponent = forwardRef(({
               hidePrintLogo={hidePrintLogo}
             />
           )}
-          <div className="print-table-wrapper">
+          <div ref={tableRef} className="print-table-wrapper">
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -437,34 +478,81 @@ const TableComponent = forwardRef(({
                 ))}
               </TableHeader>
               <TableBody>
-                {table.getRowModel().rows.length > 0 ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() ? "selected" : undefined}
-                      className={cn(
-                        "break-inside-avoid transition-colors",
-                        onRowClick && "cursor-pointer hover:bg-muted/50"
+                {rows.length > 0 ? (
+                  isPrinting || enablePagination ? (
+                    rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() ? "selected" : undefined}
+                        className={cn(
+                          "break-inside-avoid transition-colors",
+                          onRowClick && "cursor-pointer hover:bg-muted/50"
+                        )}
+                        onClick={() => onRowClick && onRowClick(row)}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell
+                            style={getCellStyles(cell.column.columnDef.meta)}
+                            key={cell.id}
+                            className={cn(
+                              cell.column.id === "select" ? "print:hidden" : "",
+                              cell.column.columnDef.meta?.className
+                            )}
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <>
+                      {rowVirtualizer.getVirtualItems().length > 0 && rowVirtualizer.getVirtualItems()[0].start > 0 && (
+                        <tr>
+                          <td style={{ height: `${rowVirtualizer.getVirtualItems()[0].start}px` }} />
+                        </tr>
                       )}
-                      onClick={() => onRowClick && onRowClick(row)}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          style={getCellStyles(cell.column.columnDef.meta)}
-                          key={cell.id}
-                          className={cn(
-                            cell.column.id === "select" ? "print:hidden" : "",
-                            cell.column.columnDef.meta?.className
-                          )}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
+                      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                        const row = rows[virtualRow.index];
+                        return (
+                          <TableRow
+                            key={row.id}
+                            data-index={virtualRow.index}
+                            ref={rowVirtualizer.measureElement}
+                            data-state={row.getIsSelected() ? "selected" : undefined}
+                            className={cn(
+                              "break-inside-avoid transition-colors",
+                              onRowClick && "cursor-pointer hover:bg-muted/50"
+                            )}
+                            onClick={() => onRowClick && onRowClick(row)}
+                          >
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell
+                                style={getCellStyles(cell.column.columnDef.meta)}
+                                key={cell.id}
+                                className={cn(
+                                  cell.column.id === "select" ? "print:hidden" : "",
+                                  cell.column.columnDef.meta?.className
+                                )}
+                              >
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        );
+                      })}
+                      {rowVirtualizer.getVirtualItems().length > 0 && rowVirtualizer.getVirtualItems()[rowVirtualizer.getVirtualItems().length - 1].end < rowVirtualizer.getTotalSize() && (
+                        <tr>
+                          <td style={{ height: `${rowVirtualizer.getTotalSize() - rowVirtualizer.getVirtualItems()[rowVirtualizer.getVirtualItems().length - 1].end}px` }} />
+                        </tr>
+                      )}
+                    </>
+                  )
                 ) : (
                   <TableRow>
                     <TableCell
@@ -484,6 +572,33 @@ const TableComponent = forwardRef(({
         <div className="flex items-center mt-2 px-1 print:hidden">
           <div className="text-sm font-medium text-muted-foreground">
             {totalCountLabel}: {table.getFilteredRowModel().rows.length}
+          </div>
+        </div>
+      )}
+      
+      {/* Pagination Controls */}
+      {enablePagination && !isPrinting && table.getPageCount() > 1 && (
+        <div className="flex items-center justify-between mt-4 px-2 print:hidden">
+          <div className="text-sm text-muted-foreground">
+            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+            </Button>
           </div>
         </div>
       )}

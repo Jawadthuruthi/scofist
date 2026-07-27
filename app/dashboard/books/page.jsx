@@ -3,10 +3,12 @@ import LibraryDashboard from "@/components/LibraryDashboard";
 import { cookies } from "next/headers";
 
 export default async function Page() {
-    const initialBooks = await fetchData("library/books", "", 0, "data");
-    const initialPendingRequests = await fetchData("library/requests", "", 0, "data");
-    const classes = await fetchData("classes", "", 0);
-    const cookiesStore = await cookies();
+    const [initialBooks, initialPendingRequests, classes, cookiesStore] = await Promise.all([
+        fetchData("library/books", "", 0, "data"),
+        fetchData("library/requests", "", 0, "data"),
+        fetchData("classes", "", 0),
+        cookies()
+    ]);
     const activeRole = cookiesStore.get("active-role")?.value || "";
 
     const apiKey = process.env.API_KEY || "";

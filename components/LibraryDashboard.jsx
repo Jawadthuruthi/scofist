@@ -284,7 +284,12 @@ export default function LibraryDashboard({
         const selectedLanguage = activeFilters.find(f => f.id === 'language')?.value;
         let booksToExtract = localBooks;
         if (selectedLanguage) {
-            booksToExtract = localBooks.filter(b => b.language?.toUpperCase() === selectedLanguage.toUpperCase());
+            if (Array.isArray(selectedLanguage)) {
+                const selectedUpper = selectedLanguage.map(l => typeof l === 'string' ? l.toUpperCase() : String(l).toUpperCase());
+                booksToExtract = localBooks.filter(b => selectedUpper.includes(b.language?.toUpperCase()));
+            } else {
+                booksToExtract = localBooks.filter(b => b.language?.toUpperCase() === String(selectedLanguage).toUpperCase());
+            }
         }
         
         const fromBooks = booksToExtract.map(b => normalizeCategoryName(b.category)).filter(Boolean);
