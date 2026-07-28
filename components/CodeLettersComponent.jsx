@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Save, Printer, Filter, X, Loader, Users, Trash2 } from "lucide-react";
+import { Save, Printer, X, Loader, Trash2 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "./PrintHeader";
@@ -207,6 +207,21 @@ const CodeLettersComponent = ({
     }
   }, [selectedDivision, selectedProgram, programs, status, category]);
 
+  // Flat ordered list of non-evaluated participant uniqueIds for Enter-key navigation
+  const codeLetterInputIds = useMemo(() => {
+    const ids = [];
+    filteredPrograms.forEach((program) => {
+      [...program.participants]
+        .sort((a, b) => a.chestNumber - b.chestNumber)
+        .forEach((participant) => {
+          if (!participant.isEvaluated) {
+            ids.push(participant.uniqueId);
+          }
+        });
+    });
+    return ids;
+  }, [filteredPrograms]);
+
   // Handle code letter change for individual participant
   const handleCodeLetterChange = (participantUniqueId, value) => {
     const updatedPrograms = programs.map((program) => ({
@@ -235,6 +250,21 @@ const CodeLettersComponent = ({
       ...prev,
       [participantUniqueId]: value,
     }));
+  };
+
+  // Move focus to the next code letter input when Enter is pressed
+  const handleCodeLetterKeyDown = (e, participantUniqueId) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const currentIndex = codeLetterInputIds.indexOf(participantUniqueId);
+      const nextId = codeLetterInputIds[currentIndex + 1];
+      if (nextId) {
+        const nextInput = document.querySelector(
+          `input[data-codeletter-id="${nextId}"]`
+        );
+        if (nextInput) nextInput.focus();
+      }
+    }
   };
 
   // Save changes
@@ -432,58 +462,52 @@ const CodeLettersComponent = ({
     <div className="space-y-6 ">
       {/* Controls */}
       <div className="no-print">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4 w-full">
-            <div className="grid grid-cols-12 w-full gap-2">
-              <div className="col-span-12 xs:col-span-6 lg:col-span-3 xl:col-span-4">
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={"both"}>Both</SelectItem>
-                    <SelectItem value={"assigned"}>Assigned</SelectItem>
-                    <SelectItem value={"not-assigned"}>Not Assigned</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-12 xs:col-span-6 lg:col-span-3 xl:col-span-4">
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={"both"}>Both</SelectItem>
-                    <SelectItem value={"Stage"}>Stage</SelectItem>
-                    <SelectItem value={"Off-Stage"}>Off-Stage</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-12 xs:col-span-6 lg:col-span-3 xl:col-span-4">
-                <Select
-                  value={selectedDivision || "all"}
-                  onValueChange={(v) => setSelectedDivision(v === "all" ? "" : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Divisions" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Divisions</SelectItem>
-                    {divisions.map((division) => (
-                      <SelectItem key={division._id} value={division._id}>
-                        {division.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap lg:flex-nowrap items-center w-full gap-2">
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="w-auto min-w-[120px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={"both"}>Both</SelectItem>
+                <SelectItem value={"assigned"}>Assigned</SelectItem>
+                <SelectItem value={"not-assigned"}>Not Assigned</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="w-auto min-w-[120px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={"both"}>Both</SelectItem>
+                <SelectItem value={"Stage"}>Stage</SelectItem>
+                <SelectItem value={"Off-Stage"}>Off-Stage</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={selectedDivision || "all"}
+              onValueChange={(v) => setSelectedDivision(v === "all" ? "" : v)}
+            >
+              <SelectTrigger className="w-auto min-w-[140px]">
+                <SelectValue placeholder="All Divisions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Divisions</SelectItem>
+                {divisions.map((division) => (
+                  <SelectItem key={division._id} value={division._id}>
+                    {division.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2 flex-[2] min-w-[160px]">
               <MultiSelect
                 options={formatOptions(programsData)}
                 value={selectedProgram}
                 onValueChange={setSelectedProgram}
                 placeholder="All Programs"
                 multiSelect={false}
-                className="col-span-12 xs:col-span-6 lg:col-span-6 xl:col-span-4"
+                className="flex-1"
               />
               {(selectedDivision || selectedProgram) && (
                 <Button variant="outline" size="sm" onClick={clearFilter}>
@@ -491,39 +515,6 @@ const CodeLettersComponent = ({
                 </Button>
               )}
             </div>
-            <div className="text-sm text-muted-foreground flex items-center min-w-fit py-2 gap-1">
-              <Users className="h-4 w-4" />
-              {filteredPrograms.length} programs
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="default"
-              onClick={handlePrint}
-              disabled={filteredPrograms.length === 0}
-              className="flex-1 sm:flex-none"
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              Print
-            </Button>
-            {hasUnsavedChanges && (
-              <Button
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
-              >
-                <Save className="mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">
-                  {saving
-                    ? "Saving..."
-                    : `Save (${Object.keys(changes).length})`}
-                </span>
-                <span className="sm:hidden">
-                  {saving ? "Saving..." : "Save"}
-                </span>
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -601,6 +592,26 @@ const CodeLettersComponent = ({
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={handlePrint}
+                          disabled={filteredPrograms.length === 0}
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    {program?.hasEvaluatedParticipants && (
+                      <div className="flex items-center gap-2 no-print">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={handlePrint}
+                          disabled={filteredPrograms.length === 0}
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -668,6 +679,10 @@ const CodeLettersComponent = ({
                                           e.target.value.toUpperCase()
                                         )
                                       }
+                                      onKeyDown={(e) =>
+                                        handleCodeLetterKeyDown(e, participant.uniqueId)
+                                      }
+                                      data-codeletter-id={participant.uniqueId}
                                       className="no-print min-w-full min-h-full rounded-none border-none m-0 p-0 text-center text-sm mx-auto"
                                       maxLength={5}
                                       placeholder="Code"
@@ -693,6 +708,23 @@ const CodeLettersComponent = ({
                     </Table>
                   </div>
                 </div>
+
+                {/* Save button below table */}
+                {hasUnsavedChanges && (
+                  <div className="no-print flex justify-end mt-2">
+                    <Button
+                      onClick={handleSave}
+                      disabled={saving}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      {saving
+                        ? "Saving..."
+                        : `Save (${Object.keys(changes).length})`}
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

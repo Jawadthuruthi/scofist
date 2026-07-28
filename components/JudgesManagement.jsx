@@ -49,6 +49,7 @@ import {
   Users,
   BookOpen,
   Filter,
+  Pencil,
 } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { formatOptions } from "@/lib/utils";
@@ -67,6 +68,16 @@ const JudgesManagement = ({
   const [selectedProgram, setSelectedProgram] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Row selection state
+  const [selectedRows, setSelectedRows] = useState(new Set());
+
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState(null);
+  const [editJudgeId, setEditJudgeId] = useState("");
+  const [editJudgeName, setEditJudgeName] = useState("");
+  const [editJudgeNumber, setEditJudgeNumber] = useState("");
 
   // Add form state
   const [newJudgeId, setNewJudgeId] = useState("");
@@ -188,6 +199,66 @@ const JudgesManagement = ({
     setAddDialogOpen(true);
   };
 
+  // Toggle individual row selection
+  const toggleRow = (id) => {
+    setSelectedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Toggle all rows
+  const toggleAll = () => {
+    if (selectedRows.size === assignments.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(assignments.map((a) => a._id)));
+    }
+  };
+
+  const openEditDialog = (assignment) => {
+    setEditingAssignment(assignment);
+    setEditJudgeId(assignment.judgeId || "");
+    setEditJudgeName(assignment.judgeName || "");
+    setEditJudgeNumber(String(assignment.judgeNumber));
+    setEditDialogOpen(true);
+  };
+
+  const handleEdit = async () => {
+    if (!editingAssignment || !editJudgeNumber || !editJudgeId) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/judge-assignments", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": apiKey,
+        },
+        body: JSON.stringify({
+          assignmentId: editingAssignment._id,
+          judgeId: editJudgeId,
+          judgeName: editJudgeName,
+          judgeNumber: parseInt(editJudgeNumber),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Judge assignment updated!");
+        setEditDialogOpen(false);
+        setEditingAssignment(null);
+        fetchAssignments();
+      } else {
+        toast.error(data.message || "Failed to update assignment");
+      }
+    } catch {
+      toast.error("Failed to update assignment");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const selectedProgramName = programs.find((p) => p._id === selectedProgram)?.name;
   const selectedDivisionName = divisions.find((d) => d._id === selectedDivision)?.name;
 
@@ -293,81 +364,216 @@ const JudgesManagement = ({
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10 text-center">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 cursor-pointer accent-primary"
+                    checked={
+                      assignments.length > 0 &&
+                      selectedRows.size === assignments.length
+                    }
+                    onChange={toggleAll}
+                    title="Select all"
+                  />
+                </TableHead>
                 <TableHead className="text-center w-16">Judge #</TableHead>
+                <TableHead>User</TableHead>
                 <TableHead>Judge Name</TableHead>
                 <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-center w-20">Action</TableHead>
+                <TableHead className="text-center w-28">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {assignments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
                     <Users className="mx-auto h-8 w-8 mb-2 opacity-30" />
                     <p>No judges assigned to this program yet.</p>
                     <p className="text-xs mt-1">Click "Assign Judge" to add one.</p>
                   </TableCell>
                 </TableRow>
               ) : (
-                assignments.map((assignment) => (
-                  <TableRow key={assignment._id}>
-                    <TableCell className="text-center">
-                      <Badge variant="outline" className="font-mono">
-                        {assignment.judgeNumber}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {assignment.judgeName}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {assignment.isCompleted ? (
-                        <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Completed
+                assignments.map((assignment) => {
+                  const linkedUser = judges.find((j) => j._id === assignment.judgeId);
+                  return (
+                    <TableRow
+                      key={assignment._id}
+                      data-state={selectedRows.has(assignment._id) ? "selected" : undefined}
+                    >
+                      <TableCell className="text-center">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 cursor-pointer accent-primary"
+                          checked={selectedRows.has(assignment._id)}
+                          onChange={() => toggleRow(assignment._id)}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="font-mono">
+                          {assignment.judgeNumber}
                         </Badge>
-                      ) : (
-                        <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Pending
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {linkedUser?.name || assignment.judgeId || "—"}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {assignment.judgeName}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {assignment.isCompleted ? (
+                          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Completed
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Pending
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-primary"
+                            onClick={() => openEditDialog(assignment)}
+                            title="Edit assignment"
+                          >
+                            <Pencil className="h-4 w-4" />
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remove Judge Assignment?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will remove{" "}
-                              <strong>{assignment.judgeName}</strong> as Judge{" "}
-                              {assignment.judgeNumber} from this program. Any marks
-                              already submitted will remain.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              className="bg-destructive hover:bg-destructive/90"
-                              onClick={() => handleDelete(assignment._id)}
-                            >
-                              Remove
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </TableCell>
-                  </TableRow>
-                ))
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove Judge Assignment?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will remove{" "}
+                                  <strong>{assignment.judgeName}</strong> as Judge{" "}
+                                  {assignment.judgeNumber} from this program. Any marks
+                                  already submitted will remain.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive hover:bg-destructive/90"
+                                  onClick={() => handleDelete(assignment._id)}
+                                >
+                                  Remove
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
         </div>
       )}
+
+      {/* Edit Judge Assignment Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              Edit Judge Assignment
+            </DialogTitle>
+            <DialogDescription>
+              Update the assignment details for{" "}
+              <strong>{editingAssignment?.judgeName}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>User</Label>
+              <MultiSelect
+                options={judgeOptions.filter(
+                  (j) =>
+                    !assignedJudgeIds.has(j.value) ||
+                    j.value === editingAssignment?.judgeId
+                )}
+                value={editJudgeId}
+                onValueChange={setEditJudgeId}
+                placeholder="Select a user..."
+                multiSelect={false}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Judge Name (Optional)</Label>
+              <Input
+                value={editJudgeName}
+                onChange={(e) => setEditJudgeName(e.target.value)}
+                placeholder="Enter custom judge name..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave blank to use the user&apos;s default name.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Judge Number</Label>
+              <Select value={editJudgeNumber} onValueChange={setEditJudgeNumber}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select judge number" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <SelectItem
+                      key={n}
+                      value={String(n)}
+                      disabled={
+                        assignments.some(
+                          (a) =>
+                            a.judgeNumber === n &&
+                            a._id !== editingAssignment?._id
+                        )
+                      }
+                    >
+                      Judge {n}
+                      {assignments.some(
+                        (a) =>
+                          a.judgeNumber === n &&
+                          a._id !== editingAssignment?._id
+                      ) && " (taken)"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditDialogOpen(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleEdit} disabled={saving || !editJudgeNumber || !editJudgeId}>
+              {saving ? (
+                <Loader className="animate-spin h-4 w-4 mr-2" />
+              ) : (
+                <Pencil className="h-4 w-4 mr-2" />
+              )}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Judge Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
