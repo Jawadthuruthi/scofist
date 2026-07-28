@@ -490,7 +490,7 @@ const EvaluationComponent = ({
       <div className="no-print">
           {/* Filters Row */}
           <div className="grid grid-cols-12 gap-3">
-            <div className="col-span-12 xs:col-span-6 lg:col-span-2">
+            <div className="col-span-6 lg:col-span-2">
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger>
                   <SelectValue placeholder="Status" />
@@ -502,7 +502,7 @@ const EvaluationComponent = ({
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-12 xs:col-span-6 lg:col-span-3">
+            <div className="col-span-6 lg:col-span-3">
               <Select
                 value={selectedDivision || "all"}
                 onValueChange={(v) => setSelectedDivision(v === "all" ? "" : v)}
