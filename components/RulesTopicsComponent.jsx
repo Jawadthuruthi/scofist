@@ -49,6 +49,26 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+// Helper to render text items each on its own line with * prefix
+const renderItemsWithStar = (text) => {
+  if (!text) return null;
+  const items = text
+    .split(".")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  if (items.length === 0) return null;
+  return (
+    <div className="space-y-1">
+      {items.map((item, idx) => (
+        <div key={idx} className="flex items-start gap-2">
+          <span className="text-primary font-bold mt-0.5 shrink-0">*</span>
+          <span>{item}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // Full page loading component
 const FullPageLoading = () => (
   <Card>
@@ -474,8 +494,8 @@ const ProgramCard = ({
                   <h3 className="text-base sm:text-lg font-semibold">Rules</h3>
                 </div>
                 <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-primary">
-                  <div className="font-google-sans text-base md:text-lg font-normal whitespace-pre-wrap leading-relaxed break-words">
-                    {program.rules}
+                  <div className="font-google-sans text-base md:text-lg font-normal leading-relaxed break-words">
+                    {renderItemsWithStar(program.rules)}
                   </div>
                 </div>
                 
@@ -517,8 +537,8 @@ const ProgramCard = ({
                     </h3>
                   </div>
                   <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-green-500">
-                    <div className="font-google-sans text-base md:text-lg font-normal whitespace-pre-wrap leading-relaxed break-words">
-                      {program.topics}
+                    <div className="font-google-sans text-base md:text-lg font-normal leading-relaxed break-words">
+                      {renderItemsWithStar(program.topics)}
                     </div>
                   </div>
                 </div>
@@ -821,26 +841,72 @@ const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
           />
         </div>
 
-        {/* Mobile Filter Toggle */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Mobile: Filter + View Mode + PDF — single row */}
+        <div className="flex sm:hidden items-center justify-between gap-2">
+          {/* Filter button */}
           <Button
             variant="outline"
+            size="sm"
             onClick={() => setShowFilters(!showFilters)}
-            className="sm:hidden flex items-center justify-center gap-2"
+            className="flex items-center gap-1"
             disabled={isLoading}
           >
             <Filter className="w-4 h-4" />
-            Filters
             {hasActiveFilters && (
               <span className="w-2 h-2 bg-primary rounded-full" />
             )}
             <ChevronDown
-              className={`w-4 h-4 transition-transform ${showFilters ? "rotate-180" : ""}`}
+              className={`w-3 h-3 transition-transform ${showFilters ? "rotate-180" : ""}`}
             />
           </Button>
 
+          {/* View Mode Toggle */}
+          <div className="flex rounded-md border">
+            <Button
+              variant={viewMode === "both" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => handleViewModeChange("both")}
+              className="rounded-r-none text-xs px-2"
+              disabled={isLoading}
+            >
+              All
+            </Button>
+            <Button
+              variant={viewMode === "rules" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => handleViewModeChange("rules")}
+              className="rounded-none border-x-0 text-xs px-2"
+              disabled={isLoading}
+            >
+              <FileText className="w-3 h-3" />
+            </Button>
+            <Button
+              variant={viewMode === "topics" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => handleViewModeChange("topics")}
+              className="rounded-l-none text-xs px-2"
+              disabled={isLoading}
+            >
+              <BookOpen className="w-3 h-3" />
+            </Button>
+          </div>
+
+          {/* PDF button */}
+          <Button
+            onClick={handleDownloadPDF}
+            size="sm"
+            disabled={isLoading || filteredPrograms.length === 0}
+          >
+            <Download className="w-4 h-4 mr-1" />
+            PDF
+          </Button>
+        </div>
+
+
+        {/* Desktop: Filters + View Mode + Print — all in one row */}
+        <div className="hidden sm:flex sm:items-center justify-between gap-3">
           {/* Desktop Filters */}
-          <div className="hidden sm:flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             <Select
               value={selectedCategory}
               onValueChange={setSelectedCategory}
@@ -910,63 +976,48 @@ const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
             )}
           </div>
 
-          {/* View Mode and Actions */}
-          <div className="flex items-center justify-between sm:justify-end gap-2">
-            {/* View Mode Toggle - Compact on mobile */}
-            <div className="flex items-center gap-1 sm:gap-2">
-              <span className="text-xs sm:text-sm font-medium hidden sm:inline">
-                View:
-              </span>
-              <div className="flex rounded-md border">
-                <Button
-                  variant={viewMode === "both" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => handleViewModeChange("both")}
-                  className="rounded-r-none text-xs sm:text-sm px-2 sm:px-3"
-                  disabled={isLoading}
-                >
-                  <span className="hidden sm:inline">Both</span>
-                  <span className="sm:hidden">All</span>
-                </Button>
-                <Button
-                  variant={viewMode === "rules" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => handleViewModeChange("rules")}
-                  className="rounded-none border-x-0 text-xs sm:text-sm px-2 sm:px-3"
-                  disabled={isLoading}
-                >
-                  <FileText className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                  <span className="hidden sm:inline">Rules</span>
-                </Button>
-                <Button
-                  variant={viewMode === "topics" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => handleViewModeChange("topics")}
-                  className="rounded-l-none text-xs sm:text-sm px-2 sm:px-3"
-                  disabled={isLoading}
-                >
-                  <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                  <span className="hidden sm:inline">Topics</span>
-                </Button>
-              </div>
+          {/* Desktop View Mode and Print */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">View:</span>
+            <div className="flex rounded-md border">
+              <Button
+                variant={viewMode === "both" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleViewModeChange("both")}
+                className="rounded-r-none text-sm px-3"
+                disabled={isLoading}
+              >
+                Both
+              </Button>
+              <Button
+                variant={viewMode === "rules" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleViewModeChange("rules")}
+                className="rounded-none border-x-0 text-sm px-3"
+                disabled={isLoading}
+              >
+                <FileText className="w-4 h-4 mr-1" />
+                Rules
+              </Button>
+              <Button
+                variant={viewMode === "topics" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleViewModeChange("topics")}
+                className="rounded-l-none text-sm px-3"
+                disabled={isLoading}
+              >
+                <BookOpen className="w-4 h-4 mr-1" />
+                Topics
+              </Button>
             </div>
 
             <Button
-              onClick={isMobile ? handleDownloadPDF : handlePrint}
+              onClick={handlePrint}
               size="sm"
               disabled={isLoading || filteredPrograms.length === 0}
             >
-              {isMobile ? (
-                <>
-                  <Download className="w-4 h-4 mr-1" />
-                  PDF
-                </>
-              ) : (
-                <>
-                  <Printer className="w-4 h-4 mr-1" />
-                  Print
-                </>
-              )}
+              <Printer className="w-4 h-4 mr-1" />
+              Print
             </Button>
           </div>
         </div>
@@ -978,42 +1029,44 @@ const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
           className="sm:hidden"
         >
           <CollapsibleContent className="space-y-3 pt-2">
-            <div className="grid grid-cols-1 gap-3">
-              <Select
-                value={selectedCategory}
-                onValueChange={setSelectedCategory}
-                disabled={isLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All Categories</SelectItem>
-                  {filterValues.categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-2">
+                <Select
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Categories</SelectItem>
+                    {filterValues.categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              <Select
-                value={selectedType}
-                onValueChange={setSelectedType}
-                disabled={isLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All Types</SelectItem>
-                  {filterValues.types.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Select
+                  value={selectedType}
+                  onValueChange={setSelectedType}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Types</SelectItem>
+                    {filterValues.types.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               {filterValues.divisions.length > 0 && (
                 <Select
