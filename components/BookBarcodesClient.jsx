@@ -25,6 +25,12 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// ── Malayalam detection ──────────────────────────────────────────────────────────
+const isMalayalam = (text) => /[\u0D00-\u0D7F]/.test(text);
+
+// ── Arabic detection ─────────────────────────────────────────────────────────────
+const isArabic = (text) => /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
+
 // ── Print-only sheet ───────────────────────────────────────────────────────────
 const PrintSheet = React.forwardRef(({ books }, ref) => (
     <div ref={ref} className="p-4 bg-white text-black hidden print:block">
@@ -401,7 +407,7 @@ export default function BookBarcodesClient({ initialBooks = [] }) {
                                 {/* Book name (truncated) */}
                                 {book.name && (
                                     <span
-                                        className="text-[10px] text-muted-foreground text-center leading-tight line-clamp-2 w-full"
+                                        className={`text-[10px] text-muted-foreground text-center leading-tight line-clamp-2 w-full${isMalayalam(book.name) ? " font-google-sans" : isArabic(book.name) ? " font-sakkal-majalla" : ""}`}
                                         title={book.name}
                                     >
                                         {book.name}
