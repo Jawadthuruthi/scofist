@@ -33,6 +33,7 @@ import { SlidersHorizontal, Filter, Search, LayoutGrid, List, Download, Printer 
 import { cn } from "@/lib/utils";
 import PopupFilter from "./PopupFilter";
 import { Checkbox } from "@/components/ui/checkbox";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 const getCellStyles = (meta) => ({
   width: meta?.width || "auto",
@@ -46,6 +47,8 @@ const getCellStyles = (meta) => ({
   verticalAlign: meta?.verticalAlign || "middle", // Default to middle for consistency
   fontSize: meta?.fontSize,
 });
+
+const EMPTY_ARRAY = [];
 
 const TableComponent = forwardRef(({
   data = [],
@@ -71,8 +74,11 @@ const TableComponent = forwardRef(({
   showTotalCount = false,
   totalCountLabel = "Total Records",
   searchPlaceholder,
+  searchPlaceholderMobile,
   onFiltersChange,
   enablePagination = false,
+  inlineFilters = false,
+  requireFilterToRenderData = false,
 }, ref) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -89,6 +95,14 @@ const TableComponent = forwardRef(({
       onFiltersChange(columnFilters);
     }
   }, [columnFilters, onFiltersChange]);
+
+  // Clear row selection when filters change
+  useEffect(() => {
+    if (onRowSelectionChange && Object.keys(rowSelection || {}).length > 0) {
+      onRowSelectionChange({});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnFilters, globalFilter]);
 
   const columns = useMemo(() => {
     return useTableColumns(columnsConfig);
@@ -175,8 +189,18 @@ const TableComponent = forwardRef(({
     document.body.removeChild(link);
   };
 
+  const hasSearch = globalFilter && globalFilter.trim().length > 0;
+  const hasFilters = columnFilters && columnFilters.some(f => f.value && (Array.isArray(f.value) ? f.value.length > 0 : String(f.value).trim().length > 0));
+  const isAwaitingFilter = requireFilterToRenderData && !hasSearch && !hasFilters;
+
+  const displayData = useMemo(() => {
+    if (!requireFilterToRenderData) return data;
+    if (hasSearch || hasFilters) return data;
+    return EMPTY_ARRAY;
+  }, [data, requireFilterToRenderData, hasSearch, hasFilters]);
+
   const table = useReactTable({
-    data,
+    data: displayData,
     columns,
     getRowId,
     onSortingChange: setSorting,
@@ -210,19 +234,21 @@ const TableComponent = forwardRef(({
 
   useImperativeHandle(ref, () => ({
     getFilteredData: () => table.getFilteredRowModel().rows.map(row => row.original),
-    getFilters: () => columnFilters
+    getFilters: () => columnFilters,
+    printTable: handlePrint,
+    exportCSV: handleExportCSV
   }));
 
   return (
     <div className="space-y-4">
       {/* Unified Toolbar Container */}
       <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4">
-        <div className="flex items-center gap-2 order-1 w-full md:w-auto md:flex-1">
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-2 order-1 w-full md:flex-1">
           {/* Column Management - First */}
           {!hideColumnManagement && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-10 md:h-8 lg:flex shrink-0 order-1">
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0 flex items-center justify-center md:h-10 md:w-auto md:px-3 lg:flex shrink-0 order-3 md:order-1">
                   <SlidersHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -268,24 +294,87 @@ const TableComponent = forwardRef(({
                     );
                   })}
               </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+              </DropdownMenu>
+            )}
+
+            {/* View Toggle (Mobile) */}
+            {enableGrid && !hideViewToggle && (
+              <div className="flex md:hidden items-center border rounded-md overflow-hidden shrink-0 order-4">
+                <Button
+                  variant={viewMode === "list" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-8 w-8 px-0 rounded-none border-r flex items-center justify-center"
+                  onClick={() => setViewMode("list")}
+                  title="List View"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "grid" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-8 w-8 px-0 rounded-none flex items-center justify-center"
+                  onClick={() => setViewMode("grid")}
+                  title="Grid View"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Mobile Action Buttons (Right after Column Management and View Toggle) */}
+            {actionButtons && (
+              <div className="flex md:hidden items-center gap-2 flex-1 overflow-x-auto hide-scrollbar order-5">
+                {actionButtons}
+              </div>
+            )}
+
+          {/* Inline Filters */}
+          {inlineFilters && filterConfig.length > 0 && filterConfig.map((filter) => (
+             filter.inputType === "multiSelect" ? (
+               <div key={filter.id} className="w-[calc(50%-0.25rem)] md:w-[180px] md:flex-none order-1 md:order-3">
+                 <MultiSelect
+                   options={filter.options}
+                   onValueChange={(val) => {
+                     setColumnFilters((prev) => {
+                       const existing = prev.find((f) => f.id === filter.id);
+                       if (existing) {
+                         return prev.map((f) => (f.id === filter.id ? { ...f, value: val } : f));
+                       }
+                       return [...prev, { id: filter.id, value: val }];
+                     });
+                   }}
+                   value={columnFilters.find((f) => f.id === filter.id)?.value || []}
+                   placeholder={filter.label}
+                   variant="default"
+                   maxCount={1}
+                 />
+               </div>
+             ) : null
+          ))}
 
           {/* Global Search Button/Input - Moved next to Column Management */}
           {!hideSearch && (
-            <div className="relative flex items-center flex-1 md:flex-none order-3 md:order-2">
-              <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="relative flex items-center w-[calc(50%-0.25rem)] md:w-auto md:flex-1 order-2 md:order-last">
+              <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground z-10" />
               <Input
                 placeholder={searchPlaceholder || "Search..."}
                 value={globalFilter ?? ""}
                 onChange={(event) => setGlobalFilter(event.target.value)}
-                className="h-10 md:h-8 pl-8 w-full md:w-[250px]"
+                className={`h-10 pl-8 w-full ${searchPlaceholderMobile ? 'hidden md:flex' : ''}`}
               />
+              {searchPlaceholderMobile && (
+                <Input
+                  placeholder={searchPlaceholderMobile}
+                  value={globalFilter ?? ""}
+                  onChange={(event) => setGlobalFilter(event.target.value)}
+                  className="h-10 pl-8 w-full md:hidden flex"
+                />
+              )}
             </div>
           )}
 
           {/* Filters (Desktop) */}
-          {filterConfig.length > 0 && (
+          {!inlineFilters && filterConfig.length > 0 && (
             <PopupFilter
               filterConfig={filterConfig}
               filters={columnFilters.reduce((acc, filter) => {
@@ -306,17 +395,17 @@ const TableComponent = forwardRef(({
               }}
               clearFilters={() => setColumnFilters([])}
               hasFilters={columnFilters.length > 0}
-              triggerClass="hidden md:flex h-8 w-auto px-3 shrink-0 order-3"
+              triggerClass="hidden md:flex h-8 w-auto px-3 shrink-0 order-4"
             />
           )}
 
           {/* View Toggle (Desktop) */}
           {enableGrid && !hideViewToggle && (
-            <div className="hidden md:flex items-center border rounded-md overflow-hidden shrink-0">
+            <div className="hidden md:flex items-center border rounded-md overflow-hidden shrink-0 order-2">
               <Button
                 variant={viewMode === "list" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-10 w-10 md:h-8 md:w-8 px-0 rounded-none border-r"
+                className="h-10 w-10 px-0 rounded-none border-r"
                 onClick={() => setViewMode("list")}
                 title="List View"
               >
@@ -325,7 +414,7 @@ const TableComponent = forwardRef(({
               <Button
                 variant={viewMode === "grid" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-10 w-10 md:h-8 md:w-8 px-0 rounded-none"
+                className="h-10 w-10 px-0 rounded-none"
                 onClick={() => setViewMode("grid")}
                 title="Grid View"
               >
@@ -336,32 +425,10 @@ const TableComponent = forwardRef(({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-1 md:gap-2 order-2 md:order-3 ml-auto overflow-x-auto hide-scrollbar">
-          {/* View Toggle (Mobile) */}
-          {enableGrid && !hideViewToggle && (
-            <div className="flex md:hidden items-center border rounded-md overflow-hidden shrink-0">
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-8 w-8 px-0 rounded-none border-r"
-                onClick={() => setViewMode("list")}
-                title="List View"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "grid" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-8 w-8 px-0 rounded-none"
-                onClick={() => setViewMode("grid")}
-                title="Grid View"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+        <div className={`flex items-center gap-1 md:gap-2 order-2 md:order-3 ml-auto overflow-x-auto hide-scrollbar ${(!actionButtons && !showCsvBtn && hidePrintBtn) ? 'md:hidden' : ''}`}>
+
           {/* Filters (Mobile) */}
-          {filterConfig.length > 0 && (
+          {!inlineFilters && filterConfig.length > 0 && (
             <PopupFilter
               filterConfig={filterConfig}
               filters={columnFilters.reduce((acc, filter) => {
@@ -385,7 +452,9 @@ const TableComponent = forwardRef(({
               triggerClass="flex md:hidden h-8 w-8 px-0 p-0 shrink-0 justify-center items-center"
             />
           )}
-          {actionButtons}
+          <div className="hidden md:flex items-center gap-1 md:gap-2 shrink-0">
+            {actionButtons}
+          </div>
           {showCsvBtn && (
             <Button
               size="sm"
@@ -414,7 +483,17 @@ const TableComponent = forwardRef(({
 
 
 
-      {viewMode === "grid" && renderGridItem ? (
+      {isAwaitingFilter ? (
+        <div className="flex flex-col items-center justify-center p-12 text-center border rounded-md bg-muted/10 shadow-sm min-h-[300px]">
+          <div className="bg-primary/10 p-4 rounded-full mb-4">
+            <Search className="h-8 w-8 text-primary/60" />
+          </div>
+          <h3 className="text-xl font-semibold text-foreground mb-2">No Records Displayed</h3>
+          <p className="text-muted-foreground max-w-sm text-sm">
+            Please search for a book in the search bar or select options from the dropdowns above to view the records.
+          </p>
+        </div>
+      ) : viewMode === "grid" && renderGridItem ? (
         <div ref={tableRef}>
           {!hidePrintBtn && (
             <PrintHeader

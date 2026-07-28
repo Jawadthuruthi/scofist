@@ -8,7 +8,7 @@ import BestReaderCard from "./BestReaderCard";
 import MostReadBookCard from "./MostReadBookCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Book, Users, BookOpen, AlertCircle, Trash2, FileSpreadsheet, Check, X } from "lucide-react";
+import { Book, Users, BookOpen, AlertCircle, Trash2, FileSpreadsheet, Check, X, Printer } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -283,7 +283,11 @@ export default function LibraryDashboard({
     const dynamicCategories = useMemo(() => {
         const selectedLanguage = activeFilters.find(f => f.id === 'language')?.value;
         let booksToExtract = localBooks;
-        if (selectedLanguage) {
+        
+        // Handle case where selectedLanguage is an empty array
+        const hasSelectedLanguage = selectedLanguage && (!Array.isArray(selectedLanguage) || selectedLanguage.length > 0);
+
+        if (hasSelectedLanguage) {
             if (Array.isArray(selectedLanguage)) {
                 const selectedUpper = selectedLanguage.map(l => typeof l === 'string' ? l.toUpperCase() : String(l).toUpperCase());
                 booksToExtract = localBooks.filter(b => selectedUpper.includes(b.language?.toUpperCase()));
@@ -293,7 +297,7 @@ export default function LibraryDashboard({
         }
         
         const fromBooks = booksToExtract.map(b => normalizeCategoryName(b.category)).filter(Boolean);
-        const fromApi = selectedLanguage ? [] : (Array.isArray(categories) ? categories.map(c => normalizeCategoryName(c.category)) : (categories || []).map(c => typeof c === 'string' ? normalizeCategoryName(c) : c));
+        const fromApi = hasSelectedLanguage ? [] : (Array.isArray(categories) ? categories.map(c => normalizeCategoryName(c.category)) : (categories || []).map(c => typeof c === 'string' ? normalizeCategoryName(c) : c));
         const all = new Set([...fromApi, ...fromBooks]);
         return Array.from(all).sort();
     }, [categories, localBooks, activeFilters]);
@@ -2099,6 +2103,127 @@ export default function LibraryDashboard({
                         title="BOOKS MANAGEMENT"
                         subTitle="Manage library books inventory"
                     />
+                    {(() => {
+                        const actionButtonsContent = (
+                            <>
+                                {selectedIds.length > 0 && (
+                                    <>
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={handleBulkDelete}
+                                            title={`Delete (${selectedIds.length})`}
+                                            className="h-8 w-8 p-0"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleBulkMarkAvailable}
+                                            title={`Mark Available (${selectedIds.length})`}
+                                            className="h-8 w-8 p-0 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
+                                        >
+                                            <Check className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleBulkMarkNotAvailable}
+                                            title={`Mark Not Available (${selectedIds.length})`}
+                                            className="h-8 w-8 p-0 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </>
+                                )}
+                                {/* Always render Edit PopupForm (kept mounted) so it opens instantly */}
+                                <div className={!selectedBook ? "hidden" : ""}>
+                                    <PopupForm
+                                        title="Edit Book"
+                                        formFields={bookFields}
+                                        data={selectedBook || undefined}
+                                        onSubmit={(data) => handleUpdateBook(selectedBook?._id, data)}
+                                        loading={loading}
+                                        open={editPopupOpen && !!selectedBook}
+                                        onOpenChange={(open) => {
+                                            if (!open || selectedBook) setEditPopupOpen(open);
+                                        }}
+                                        trigger={
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 w-8 p-0"
+                                                title="Edit Book"
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                        }
+                                    />
+                                </div>
+                                {duplicateIdGroups.length > 0 && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setDuplicateIdsOpen(true)}
+                                        className="relative h-8 px-2 md:px-3 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
+                                        title={`${duplicateIdGroups.length} duplicate ID(s) found`}
+                                    >
+                                        <AlertCircle className="h-4 w-4" />
+                                        <span className="hidden md:inline ml-1">Duplicate IDs</span>
+                                        <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center text-[10px] font-bold bg-red-500 text-white rounded-full w-4 h-4">
+                                            {duplicateIdGroups.length}
+                                        </span>
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleExportExcel}
+                                    className="border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700 h-8 w-8 p-0 md:w-auto md:px-3"
+                                    title="Export Excel"
+                                >
+                                    <FileSpreadsheet className="h-4 w-4" />
+                                    <span className="hidden md:inline">Excel</span>
+                                </Button>
+                                <PopupForm
+                                    title="Add New Book"
+                                    formFields={bookFields}
+                                    onSubmit={handleCreateBook}
+                                    loading={loading}
+                                    triggerText="Add"
+                                    triggerVariant="default"
+                                    triggerClass="hidden md:flex items-center gap-1 h-8 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white border-none"
+                                />
+                                <PopupForm
+                                    title="Add New Book"
+                                    formFields={bookFields}
+                                    onSubmit={handleCreateBook}
+                                    loading={loading}
+                                    triggerVariant="default"
+                                    triggerClass="flex md:hidden h-8 w-8 p-0 bg-blue-600 hover:bg-blue-700 text-white border-none"
+                                />
+                                <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => tableRef.current?.printTable()}
+                                    className="h-8 w-8 p-0 md:w-auto md:px-3 shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
+                                    title="Print"
+                                >
+                                    <Printer className="h-4 w-4" />
+                                    <span className="hidden md:inline ml-2">Print</span>
+                                </Button>
+                            </>
+                        );
+
+                        return (
+                            <>
+                                <div className="hidden md:flex gap-2 items-center flex-wrap">
+                                    {actionButtonsContent}
+                                </div>
+                            </>
+                        );
+                    })()}
                 </div>
                 <TableComponent
                     ref={tableRef}
@@ -2108,11 +2233,113 @@ export default function LibraryDashboard({
                     onRowSelectionChange={setRowSelection}
                     getRowId={(originalRow) => originalRow._id}
                     filterConfig={filterConfig}
+                    actionButtons={
+                        <div className="flex md:hidden gap-2 items-center flex-wrap">
+                            {/* Duplicate logic for mobile rendering because IIFE scoped variables can't be passed outside directly. 
+                                Wait, I'll extract it properly above the return. */}
+                            {(() => {
+                                return (
+                                    <>
+                                        {selectedIds.length > 0 && (
+                                            <>
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    onClick={handleBulkDelete}
+                                                    title={`Delete (${selectedIds.length})`}
+                                                    className="h-8 w-8 p-0"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={handleBulkMarkAvailable}
+                                                    title={`Mark Available (${selectedIds.length})`}
+                                                    className="h-8 w-8 p-0 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
+                                                >
+                                                    <Check className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={handleBulkMarkNotAvailable}
+                                                    title={`Mark Not Available (${selectedIds.length})`}
+                                                    className="h-8 w-8 p-0 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        )}
+                                        <div className={!selectedBook ? "hidden" : ""}>
+                                            <PopupForm
+                                                title="Edit Book"
+                                                formFields={bookFields}
+                                                data={selectedBook || undefined}
+                                                onSubmit={(data) => handleUpdateBook(selectedBook?._id, data)}
+                                                loading={loading}
+                                                open={editPopupOpen && !!selectedBook}
+                                                onOpenChange={(open) => {
+                                                    if (!open || selectedBook) setEditPopupOpen(open);
+                                                }}
+                                                trigger={
+                                                    <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Edit Book">
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                }
+                                            />
+                                        </div>
+                                        {duplicateIdGroups.length > 0 && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setDuplicateIdsOpen(true)}
+                                                className="relative h-8 px-2 md:px-3 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
+                                                title={`${duplicateIdGroups.length} duplicate ID(s) found`}
+                                            >
+                                                <AlertCircle className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleExportExcel}
+                                            className="border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700 h-8 w-8 p-0 md:w-auto md:px-3"
+                                            title="Export Excel"
+                                        >
+                                            <FileSpreadsheet className="h-4 w-4" />
+                                        </Button>
+                                        <PopupForm
+                                            title="Add New Book"
+                                            formFields={bookFields}
+                                            onSubmit={handleCreateBook}
+                                            loading={loading}
+                                            triggerVariant="default"
+                                            triggerClass="flex h-8 w-8 p-0 bg-blue-600 hover:bg-blue-700 text-white border-none"
+                                        />
+                                        <Button
+                                            variant="default"
+                                            size="sm"
+                                            onClick={() => tableRef.current?.printTable()}
+                                            className="h-8 w-8 p-0 shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
+                                            title="Print"
+                                        >
+                                            <Printer className="h-4 w-4" />
+                                        </Button>
+                                    </>
+                                );
+                            })()}
+                        </div>
+                    }
+                    inlineFilters={true}
+                    requireFilterToRenderData={true}
+                    hidePrintBtn={true}
                     onFiltersChange={setActiveFilters}
                     enableGrid={true}
                     showTotalCount={true}
                     totalCountLabel="TOTAL NUMBER OF BOOKS"
                     searchPlaceholder="Search Book (Name, ID)..."
+                    searchPlaceholderMobile="Search Book"
                     printTitle="LIBRARY BOOKS"
                     apiKey={apiKey}
                     renderGridItem={(row) => {
@@ -2182,107 +2409,6 @@ export default function LibraryDashboard({
                             </Card>
                         );
                     }}
-                    actionButtons={
-                        <div className="flex gap-2">
-                            {selectedIds.length > 0 && (
-                                <>
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={handleBulkDelete}
-                                        title={`Delete (${selectedIds.length})`}
-                                        className="h-8 w-8 p-0"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleBulkMarkAvailable}
-                                        title={`Mark Available (${selectedIds.length})`}
-                                        className="h-8 w-8 p-0 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
-                                    >
-                                        <Check className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleBulkMarkNotAvailable}
-                                        title={`Mark Not Available (${selectedIds.length})`}
-                                        className="h-8 w-8 p-0 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                </>
-                            )}
-                            {/* Always render Edit PopupForm (kept mounted) so it opens instantly */}
-                            <div className={!selectedBook ? "hidden" : ""}>
-                                <PopupForm
-                                    title="Edit Book"
-                                    formFields={bookFields}
-                                    data={selectedBook || undefined}
-                                    onSubmit={(data) => handleUpdateBook(selectedBook?._id, data)}
-                                    loading={loading}
-                                    open={editPopupOpen && !!selectedBook}
-                                    onOpenChange={(open) => {
-                                        if (!open || selectedBook) setEditPopupOpen(open);
-                                    }}
-                                    trigger={
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-8 w-8 p-0"
-                                            title="Edit Book"
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                    }
-                                />
-                            </div>
-                            {duplicateIdGroups.length > 0 && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setDuplicateIdsOpen(true)}
-                                    className="relative h-8 px-2 md:px-3 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
-                                    title={`${duplicateIdGroups.length} duplicate ID(s) found`}
-                                >
-                                    <AlertCircle className="h-4 w-4" />
-                                    <span className="hidden md:inline ml-1">Duplicate IDs</span>
-                                    <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center text-[10px] font-bold bg-red-500 text-white rounded-full w-4 h-4">
-                                        {duplicateIdGroups.length}
-                                    </span>
-                                </Button>
-                            )}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleExportExcel}
-                                className="border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700 h-8 w-8 p-0 md:w-auto md:px-3"
-                                title="Export Excel"
-                            >
-                                <FileSpreadsheet className="h-4 w-4" />
-                                <span className="hidden md:inline">Excel</span>
-                            </Button>
-                            <PopupForm
-                                title="Add New Book"
-                                formFields={bookFields}
-                                onSubmit={handleCreateBook}
-                                loading={loading}
-                                triggerText="Add"
-                                triggerVariant="default"
-                                triggerClass="hidden md:flex items-center gap-1 h-8 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white border-none"
-                            />
-                            <PopupForm
-                                title="Add New Book"
-                                formFields={bookFields}
-                                onSubmit={handleCreateBook}
-                                loading={loading}
-                                triggerVariant="default"
-                                triggerClass="flex md:hidden h-8 w-8 p-0 bg-blue-600 hover:bg-blue-700 text-white border-none"
-                            />
-                        </div>
-                    }
                 />
                 <BarcodeSheet ref={barcodeSheetRef} books={localBooks.filter(b => selectedIds.includes(b._id))} />
 
