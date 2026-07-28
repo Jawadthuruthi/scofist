@@ -25,7 +25,6 @@ import {
   Filter,
   X,
   Loader,
-  Users,
   FileText,
   Trash2,
 } from "lucide-react";
@@ -62,7 +61,7 @@ const EvaluationComponent = ({
   const [saving, setSaving] = useState(false);
   const [changes, setChanges] = useState({});
   const [page, setPage] = useState(0);
-  const [judgeNumber, setJudgeNumber] = useState(1);
+  const [judgeNumber, setJudgeNumber] = useState("");
 
   const printRef = useRef();
 
@@ -216,9 +215,40 @@ const EvaluationComponent = ({
     );
     return programs?.filter(
       (program) =>
-        program.divisionId === selectedDivision && programIds.has(program._id)
+        (!selectedDivision || program.divisionId === selectedDivision) &&
+        programIds.has(program._id)
     );
   }, [selectedDivision, programs, filteredRegistrations]);
+
+  // Flat ordered list of participant uniqueIds for Enter-key navigation (same judge column)
+  const markInputOrder = useMemo(() => {
+    const ids = [];
+    filteredRegistrations.forEach((program) => {
+      [...program.participants]
+        .sort((a, b) => a.codeLetter.localeCompare(b.codeLetter))
+        .forEach((participant) => {
+          if (!program.isResultDeclared) {
+            ids.push(participant.uniqueId);
+          }
+        });
+    });
+    return ids;
+  }, [filteredRegistrations]);
+
+  // Move focus to next participant's input in the same judge column on Enter
+  const handleMarkKeyDown = (e, uniqueId, judgeIdx) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const currentIndex = markInputOrder.indexOf(uniqueId);
+      const nextId = markInputOrder[currentIndex + 1];
+      if (nextId) {
+        const nextInput = document.querySelector(
+          `input[data-mark-uid="${nextId}"][data-mark-judge="${judgeIdx}"]`
+        );
+        if (nextInput) nextInput.focus();
+      }
+    }
+  };
 
   // Handle marks change for individual participant
   // judgeIdx is the 0-based index of the judge column being edited
@@ -232,7 +262,7 @@ const EvaluationComponent = ({
 
       // Average over all judges up to judgeNumber
       const validMarks = updatedMarksByJudges
-        .slice(0, judgeNumber)
+        .slice(0, parseInt(judgeNumber) || 1)
         .filter((m) => m !== undefined && m !== null && m !== "" && m > 0);
       const averageMarks =
         validMarks.length > 0
@@ -458,7 +488,6 @@ const EvaluationComponent = ({
     <div className="space-y-6">
       {/* Controls */}
       <div className="no-print">
-        <div className="flex flex-col gap-4">
           {/* Filters Row */}
           <div className="grid grid-cols-12 gap-3">
             <div className="col-span-12 xs:col-span-6 lg:col-span-2">
@@ -510,7 +539,7 @@ const EvaluationComponent = ({
                 onValueChange={(v) => setJudgeNumber(parseInt(v))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue placeholder="Select..." />
                 </SelectTrigger>
                 <SelectContent>
                   {[1, 2, 3, 4, 5].map((num) => (
@@ -533,86 +562,6 @@ const EvaluationComponent = ({
               </Button>
             )}
           </div>
-
-          {/* Stats and Actions */}
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div className="text-sm text-muted-foreground flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              <span>{filteredRegistrations.length} programs</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="default"
-                onClick={handlePrint}
-                disabled={filteredRegistrations.length === 0}
-                className="flex-1 sm:flex-none"
-              >
-                <Printer className="mr-2 h-4 w-4" />
-                Print
-              </Button>
-
-              {filteredRegistrations.length > 0 && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      disabled={deleteEvaluation.isPending}
-                      className="flex-1 sm:flex-none"
-                    >
-                      {deleteEvaluation.isPending ? (
-                        <Loader className="animate-spin h-4 w-4 mr-2" />
-                      ) : (
-                        <Trash2 className="h-4 w-4 mr-2" />
-                      )}
-                      <span className="hidden sm:inline">Clear Marks</span>
-                      <span className="sm:hidden">Clear</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        Clear all marks for displayed programs?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will remove all marks submitted by judges for the currently displayed programs. This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleClearAllMarks}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Clear Marks
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-
-              {showSaveButton && (
-                <Button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">
-                    {saving
-                      ? "Saving..."
-                      : hasUnsavedChanges 
-                        ? `Save (${Object.keys(changes).length})`
-                        : "Save Results"}
-                  </span>
-                  <span className="sm:hidden">
-                    {saving ? "Saving..." : "Save"}
-                  </span>
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Printable Content */}
@@ -620,7 +569,18 @@ const EvaluationComponent = ({
         {/* Print Header */}
         <PrintHeader apiKey={apiKey} isFestival={true} />
         {/* Program Tables */}
-        {isLoading ? (
+        {!selectedProgram || judgeNumber === "" ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+            <FileText className="h-12 w-12 text-muted-foreground/40" />
+            <p className="text-muted-foreground text-sm">
+              {!selectedProgram && judgeNumber === ""
+                ? "Select a program and number of judges to begin evaluation"
+                : !selectedProgram
+                ? "Select a program to begin evaluation"
+                : "Select number of judges to begin evaluation"}
+            </p>
+          </div>
+        ) : isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="flex items-center space-x-2">
               <Loader className="animate-spin h-6 w-6" />
@@ -633,24 +593,79 @@ const EvaluationComponent = ({
               <div key={program._id} className="program-section">
                 {/* Program Header */}
                 <div className="mb-4 p-3 sm:p-4 bg-muted rounded-lg border">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                    <div className="mb-2 sm:mb-0">
-                      <div className="flex flex-wrap gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-foreground">
-                        <span className="whitespace-nowrap">
-                          <strong>Program:</strong> {program.programName}
-                        </span>
-                        <span className="whitespace-nowrap">
-                          <strong>Division:</strong> {program.divisionName}
-                        </span>
-                        <span className="capitalize whitespace-nowrap">
-                          <strong>Type:</strong> {program.programType}
-                        </span>
-                        <span className="capitalize whitespace-nowrap">
-                          <strong>Category:</strong> {program.programCategory}
-                        </span>
-                      </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex flex-wrap gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-foreground">
+                      <span className="whitespace-nowrap">
+                        <strong>Program:</strong> {program.programName}
+                      </span>
+                      <span className="whitespace-nowrap">
+                        <strong>Division:</strong> {program.divisionName}
+                      </span>
+                      <span className="capitalize whitespace-nowrap">
+                        <strong>Type:</strong> {program.programType}
+                      </span>
+                      <span className="capitalize whitespace-nowrap">
+                        <strong>Category:</strong> {program.programCategory}
+                      </span>
                     </div>
 
+                    {/* Action buttons in program header */}
+                    <div className="flex items-center gap-2 no-print shrink-0">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handlePrint}
+                        disabled={filteredRegistrations.length === 0}
+                      >
+                        <Printer className="h-4 w-4" />
+                      </Button>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={deleteEvaluation.isPending}
+                          >
+                            {deleteEvaluation.isPending ? (
+                              <Loader className="animate-spin h-4 w-4" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Clear all marks for displayed programs?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will remove all marks submitted by judges for the currently displayed programs. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleClearAllMarks}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Clear Marks
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      {showSaveButton && (
+                        <Button
+                          size="sm"
+                          onClick={handleSave}
+                          disabled={saving}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Save className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -735,6 +750,11 @@ const EvaluationComponent = ({
                                                   judgeIdx
                                                 )
                                               }
+                                              onKeyDown={(e) =>
+                                                handleMarkKeyDown(e, participant.uniqueId, judgeIdx)
+                                              }
+                                              data-mark-uid={participant.uniqueId}
+                                              data-mark-judge={judgeIdx}
                                               className="no-print w-16 sm:w-20 text-center text-sm mx-auto"
                                               placeholder="0-100"
                                             />

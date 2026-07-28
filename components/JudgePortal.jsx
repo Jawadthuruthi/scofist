@@ -458,8 +458,9 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
                         <Textarea
                           value={comments[row.key] || ""}
                           onChange={(e) => handleCommentChange(row.key, e.target.value)}
-                          className="w-full min-h-[60px] text-sm resize-y"
+                          className="w-full min-h-0 h-8 text-sm resize-none overflow-hidden"
                           placeholder="Add comments..."
+                          rows={1}
                         />
                       </TableCell>
 
