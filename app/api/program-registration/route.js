@@ -427,12 +427,27 @@ export async function POST(request) {
       }));
 
       const activeYear = await getYear(request);
-      const reg = await ProgramRegistration.create({
-        programId,
-        teamId,
-        participants: participantData,
-        year: activeYear,
-      });
+      let reg;
+      try {
+        reg = await ProgramRegistration.create({
+          programId,
+          teamId,
+          participants: participantData,
+          year: activeYear,
+        });
+      } catch (createError) {
+        // Handle MongoDB duplicate key (E11000) — team already registered for this program/year
+        if (createError.code === 11000) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: `Team already registered for this program in the active year`,
+            },
+            { status: 400 }
+          );
+        }
+        throw createError; // re-throw unexpected errors
+      }
       createdRegs.push(reg);
 
       // Add program to participants (preventing duplicates)
@@ -450,7 +465,11 @@ export async function POST(request) {
   } catch (error) {
     console.error("Error creating program registration:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to create program registration" },
+      {
+        success: false,
+        message: "Failed to create program registration",
+        ...(process.env.NODE_ENV !== "production" && { debug: error.message }),
+      },
       { status: 500 }
     );
   }

@@ -87,7 +87,7 @@ const participantSchema = new Schema(
   }
 );
 
-participantSchema.index({ "programs.id": 1 }, { unique: true, sparse: true });
+participantSchema.index({ "programs.id": 1 }); // Non-unique: multiple participants can share the same programId
 participantSchema.index({ _id: 1, year: 1 }, { unique: true });
 
 if (models.Participant) delete models.Participant;
