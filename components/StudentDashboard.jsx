@@ -889,6 +889,19 @@ function AwardsTabContent({ currentUser, apiKey }) {
   );
 }
 
+// Normalize common category misspellings
+const normalizeCategoryName = (name) => {
+    if (!name) return name;
+    const upper = name.toUpperCase().trim();
+    const corrections = {
+        "TRAVELOUGUE": "TRAVELOGUE",
+        "TRAVELOUGE": "TRAVELOGUE",
+        "TRAVLOGUE": "TRAVELOGUE",
+        "TRAVELOG": "TRAVELOGUE",
+    };
+    return corrections[upper] ?? upper;
+};
+
 export default function StudentDashboard({
   user,
   apiKey,
@@ -2335,32 +2348,53 @@ export default function StudentDashboard({
                     hideColumnManagement={true}
                     enableGrid={true}
                     defaultViewMode="grid"
+                    gridColsClass="grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
                     hideViewToggle={true}
+                    inlineFilters={true}
+                    requireFilterToRenderData={true}
                     columnsConfig={[
                       { accessorKey: "id", header: "Book ID", sortingFn: "alphanumeric" },
                       { accessorKey: "name", header: "Book Name" },
                       { accessorKey: "author", header: "Author" },
-                      { accessorKey: "category", header: "Category" },
-                      { accessorKey: "language", header: "Language" },
+                      { 
+                        accessorKey: "category", 
+                        header: "Category",
+                        filterFn: (row, columnId, filterValue) => {
+                            if (!filterValue || filterValue.length === 0) return true;
+                            const rowValue = normalizeCategoryName(row.getValue(columnId));
+                            const filterArr = Array.isArray(filterValue) ? filterValue : [filterValue];
+                            return filterArr.some(val => normalizeCategoryName(val) === rowValue);
+                        }
+                      },
+                      { 
+                        accessorKey: "language", 
+                        header: "Language",
+                        filterFn: (row, columnId, filterValue) => {
+                            if (!filterValue || filterValue.length === 0) return true;
+                            const rowValue = row.getValue(columnId);
+                            const filterArr = Array.isArray(filterValue) ? filterValue : [filterValue];
+                            return filterArr.some(val => String(val).toLowerCase() === String(rowValue).toLowerCase());
+                        }
+                      },
                       { accessorKey: "status", header: "Status" },
                     ]}
                     filterConfig={[
                       {
                         id: "category",
                         label: "Category",
-                        inputType: "select",
-                        options: Array.from(new Set(libraryBooks.map(b => b.category))).filter(Boolean).map(c => ({ value: c, label: c }))
+                        inputType: "multiSelect",
+                        options: Array.from(new Set(libraryBooks.map(b => normalizeCategoryName(b.category)))).filter(Boolean).sort().map(c => ({ value: c, label: c }))
                       },
                       {
                         id: "language",
                         label: "Language",
-                        inputType: "select",
-                        options: Array.from(new Set(libraryBooks.map(b => b.language))).filter(Boolean).map(l => ({ value: l, label: l }))
+                        inputType: "multiSelect",
+                        options: Array.from(new Set(libraryBooks.map(b => typeof b.language === 'string' ? b.language.toUpperCase() : b.language))).filter(Boolean).sort().map(l => ({ value: l, label: l }))
                       },
                       {
                         id: "status",
                         label: "Status",
-                        inputType: "select",
+                        inputType: "multiSelect",
                         options: [
                           { value: "Available", label: "Available" },
                           { value: "Rented", label: "Rented" },
@@ -2386,9 +2420,9 @@ export default function StudentDashboard({
                             </div>
                             <div className="flex-1 space-y-1 min-w-0 py-1 flex flex-col h-full">
                               <div className="flex-1">
-                                <h3 className="font-bold text-base leading-tight break-words mb-1 text-foreground" title={book.name}>{book.name}</h3>
-                                <div className="text-xs text-muted-foreground truncate" title={book.author}>Author: <span className="text-foreground font-medium">{book.author}</span></div>
-                                {book.publication && <div className="text-xs text-muted-foreground truncate" title={book.publication}>Pub: <span className="text-foreground">{book.publication}</span></div>}
+                                <h3 className="font-bold text-base leading-tight break-words mb-1 text-foreground book-text-font" title={book.name}>{book.name}</h3>
+                                <div className="text-xs text-muted-foreground truncate" title={book.author}>Author: <span className="text-foreground font-medium book-text-font">{book.author}</span></div>
+                                {book.publication && <div className="text-xs text-muted-foreground truncate" title={book.publication}>Pub: <span className="text-foreground book-text-font">{book.publication}</span></div>}
                                 <div className="text-[11px] mt-1 flex flex-wrap gap-1">
                                   <span className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{book.language}</span>
                                   <span className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{book.category}</span>

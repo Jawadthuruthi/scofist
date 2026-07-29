@@ -79,6 +79,7 @@ const TableComponent = forwardRef(({
   enablePagination = false,
   inlineFilters = false,
   requireFilterToRenderData = false,
+  gridColsClass = "grid-cols-1 lg:grid-cols-2",
 }, ref) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -331,7 +332,7 @@ const TableComponent = forwardRef(({
           {/* Inline Filters */}
           {inlineFilters && filterConfig.length > 0 && filterConfig.map((filter) => (
              filter.inputType === "multiSelect" ? (
-               <div key={filter.id} className="w-[calc(50%-0.25rem)] md:w-[180px] md:flex-none order-1 md:order-3">
+               <div key={filter.id} className="w-[calc(50%-0.25rem)] md:w-[240px] md:flex-none order-1 md:order-3">
                  <MultiSelect
                    options={filter.options}
                    onValueChange={(val) => {
@@ -502,7 +503,7 @@ const TableComponent = forwardRef(({
               hidePrintLogo={hidePrintLogo}
             />
           )}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className={`grid ${gridColsClass} gap-4`}>
             {table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map((row) => (
                 <div key={row.id}>

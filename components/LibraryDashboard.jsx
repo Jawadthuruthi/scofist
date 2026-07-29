@@ -2336,6 +2336,8 @@ export default function LibraryDashboard({
                     hidePrintBtn={true}
                     onFiltersChange={setActiveFilters}
                     enableGrid={true}
+                    defaultViewMode="grid"
+                    gridColsClass="grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
                     showTotalCount={true}
                     totalCountLabel="TOTAL NUMBER OF BOOKS"
                     searchPlaceholder="Search Book (Name, ID)..."
@@ -2368,22 +2370,22 @@ export default function LibraryDashboard({
                                                     <span className="text-xs text-muted-foreground">Invalid</span>
                                                 )}
                                             </div>
+                                            <div className={`mt-2 inline-block text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                                                {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex-1 space-y-1 min-w-0 py-1 flex flex-col h-full">
                                         <div className="flex-1">
-                                            <h3 className="font-bold text-lg leading-tight break-words mb-1" title={book.name}>{book.name}</h3>
-                                            <div className="text-sm text-muted-foreground break-words" title={book.author}>Author: <span className="text-foreground font-medium">{book.author}</span></div>
-                                            {book.publication && <div className="text-sm text-muted-foreground break-words" title={book.publication}>Publication: <span className="text-foreground">{book.publication}</span></div>}
+                                            <h3 className="font-bold text-2xl leading-tight break-words mb-1" title={book.name} style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.name}</h3>
+                                            <div className="text-sm text-muted-foreground break-words" title={book.author}>Author: <span className="text-foreground font-medium text-lg" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.author}</span></div>
+                                            {book.publication && <div className="text-sm text-muted-foreground break-words" title={book.publication}>Publication: <span className="text-foreground text-lg" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.publication}</span></div>}
                                             <div className="text-sm text-muted-foreground">Language: <span className="text-foreground">{book.language}</span></div>
                                             <div className="text-sm text-muted-foreground">Category: <span className="text-foreground">{book.category}</span></div>
                                         </div>
 
                                         <div className="pt-1 flex flex-col items-start gap-1 mt-auto">
                                             <div className="font-bold text-sm text-primary">₹{book.price?.toFixed(2) || "0.00"}</div>
-                                            <div className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
-                                                {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
-                                            </div>
                                             {activeRole === "Librarian" && (
                                                 <Button
                                                     size="sm"
