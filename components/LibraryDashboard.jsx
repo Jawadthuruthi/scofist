@@ -2349,43 +2349,43 @@ export default function LibraryDashboard({
                         return (
                             <Card className="h-full hover:shadow-md transition-shadow overflow-hidden">
                                 <CardContent className="p-4 flex gap-4 items-start">
-                                    <div className="flex-shrink-0 flex flex-col items-center gap-2 w-28">
-                                        <div className="bg-primary/10 p-3 rounded-md flex items-center justify-center h-24 w-24">
-                                            <BookOpen className="h-10 w-10 text-primary" />
+                                    <div className="flex-shrink-0 flex flex-col items-center gap-2 w-[72px]">
+                                        <div className="bg-primary/10 p-2 rounded-md flex items-center justify-center w-full aspect-square">
+                                            <BookOpen className="h-8 w-8 text-primary" />
                                         </div>
                                         <div className="text-center w-full space-y-1">
-                                            <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/50 py-0.5 rounded">ID: {book.id}</div>
-                                            <div className="flex justify-center items-center w-full h-[38px] overflow-hidden bg-white rounded p-1 border border-border/50 shadow-sm">
+                                            <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/50 py-0.5 rounded truncate">ID: {book.id}</div>
+                                            <div className="flex justify-center items-center w-full h-[32px] overflow-hidden bg-white rounded p-1 border border-border/50 shadow-sm">
                                                 {book.id && /^[\x20-\x7E]+$/.test(String(book.id)) ? (
                                                     <Barcode
                                                         value={String(book.id)}
-                                                        width={0.8}
-                                                        height={22}
+                                                        width={0.6}
+                                                        height={20}
                                                         fontSize={0}
                                                         margin={0}
                                                         displayValue={false}
                                                         background="transparent"
                                                     />
                                                 ) : (
-                                                    <span className="text-xs text-muted-foreground">Invalid</span>
+                                                    <span className="text-[10px] text-muted-foreground">Invalid</span>
                                                 )}
                                             </div>
-                                            <div className={`mt-2 inline-block text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                                            <div className={`mt-2 inline-block w-full text-[10px] px-1 py-0.5 rounded-full font-bold uppercase tracking-wider ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
                                                 {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
                                             </div>
+                                            <div className="font-bold text-[11px] text-primary mt-1">₹{book.price?.toFixed(2) || "0.00"}</div>
                                         </div>
                                     </div>
                                     <div className="flex-1 space-y-1 min-w-0 py-1 flex flex-col h-full">
                                         <div className="flex-1">
                                             <h3 className="font-bold text-2xl leading-tight break-words mb-1" title={book.name} style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.name}</h3>
-                                            <div className="text-sm text-muted-foreground break-words" title={book.author}>Author: <span className="text-foreground font-medium text-lg" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.author}</span></div>
-                                            {book.publication && <div className="text-sm text-muted-foreground break-words" title={book.publication}>Publication: <span className="text-foreground text-lg" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.publication}</span></div>}
-                                            <div className="text-sm text-muted-foreground">Language: <span className="text-foreground">{book.language}</span></div>
-                                            <div className="text-sm text-muted-foreground">Category: <span className="text-foreground">{book.category}</span></div>
+                                            <div className="text-sm text-muted-foreground break-words -mt-1" title={book.author}>Author: <span className="text-foreground font-medium text-lg leading-none" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.author}</span></div>
+                                            {book.publication && <div className="text-sm text-muted-foreground break-words -mt-1" title={book.publication}>Publication: <span className="text-foreground text-lg leading-none" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.publication}</span></div>}
+                                            <div className="text-sm text-muted-foreground -mt-1">Language: <span className="text-foreground text-lg leading-none" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.language}</span></div>
+                                            <div className="text-sm text-muted-foreground -mt-1">Category: <span className="text-foreground text-lg leading-none" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.category}</span></div>
                                         </div>
 
                                         <div className="pt-1 flex flex-col items-start gap-1 mt-auto">
-                                            <div className="font-bold text-sm text-primary">₹{book.price?.toFixed(2) || "0.00"}</div>
                                             {activeRole === "Librarian" && (
                                                 <Button
                                                     size="sm"

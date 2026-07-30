@@ -2406,26 +2406,26 @@ export default function StudentDashboard({
                       return (
                         <Card className="h-full hover:shadow-md transition-shadow overflow-hidden border border-border/50">
                           <CardContent className="p-4 flex gap-4 items-start">
-                            <div className="flex-shrink-0 flex flex-col items-center gap-1.5 w-20">
-                              <div className="bg-muted/50 dark:bg-muted/20 p-2 rounded-md flex items-center justify-center h-16 w-16 border border-border/50">
+                            <div className="flex-shrink-0 flex flex-col items-center gap-1.5 w-[72px]">
+                              <div className="bg-muted/50 dark:bg-muted/20 p-2 rounded-md flex items-center justify-center w-full aspect-square border border-border/50">
                                 <BookOpen className="h-6 w-6 text-muted-foreground" />
                               </div>
                               <div className="text-center w-full space-y-1">
-                                <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/80 py-0.5 rounded border">ID: {book.id}</div>
-                                <div className="font-bold text-[11px] text-foreground">₹{book.price?.toFixed(2) || "0.00"}</div>
-                                <div className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider inline-block ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                                <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/80 py-0.5 rounded border truncate">ID: {book.id}</div>
+                                <div className={`text-[8px] px-1 py-0.5 mt-1.5 rounded-full font-bold uppercase tracking-wider inline-block w-full ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
                                   {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
                                 </div>
+                                <div className="font-bold text-[11px] text-foreground">₹{book.price?.toFixed(2) || "0.00"}</div>
                               </div>
                             </div>
                             <div className="flex-1 space-y-1 min-w-0 py-1 flex flex-col h-full">
                               <div className="flex-1">
                                 <h3 className="font-bold text-base leading-tight break-words mb-1 text-foreground book-text-font" title={book.name}>{book.name}</h3>
-                                <div className="text-xs text-muted-foreground truncate" title={book.author}>Author: <span className="text-foreground font-medium book-text-font">{book.author}</span></div>
-                                {book.publication && <div className="text-xs text-muted-foreground truncate" title={book.publication}>Pub: <span className="text-foreground book-text-font">{book.publication}</span></div>}
-                                <div className="text-[11px] mt-1 flex flex-wrap gap-1">
-                                  <span className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{book.language}</span>
-                                  <span className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{book.category}</span>
+                                <div className="text-xs text-muted-foreground truncate -mt-1" title={book.author}>Author: <span className="text-foreground font-medium book-text-font leading-none">{book.author}</span></div>
+                                {book.publication && <div className="text-xs text-muted-foreground truncate -mt-1" title={book.publication}>Pub: <span className="text-foreground book-text-font leading-none">{book.publication}</span></div>}
+                                <div className="text-[13px] mt-0.5 flex flex-wrap gap-1">
+                                  <span className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground book-text-font leading-none">{book.language}</span>
+                                  <span className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground book-text-font leading-none">{book.category}</span>
                                 </div>
                               </div>
                               <div className="pt-1 flex flex-col gap-2 mt-auto">
