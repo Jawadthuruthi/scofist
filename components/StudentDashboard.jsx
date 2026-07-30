@@ -606,7 +606,6 @@ function AwardsTabContent({ currentUser, apiKey }) {
   React.useEffect(() => {
     const fetchAwards = async () => {
       setLoading(true);
-      const studentAwards = [];
       
       try {
         // Fetch Settings first for branding
@@ -621,237 +620,25 @@ function AwardsTabContent({ currentUser, apiKey }) {
             console.error("Settings fetch error:", err);
         }
 
-        const monthsToCheck = 36; // Check last 3 years
+        const res = await fetch(`/api/student-awards?studentId=${currentUser._id}&studentName=${encodeURIComponent(currentUser.name || "")}`, { cache: "no-store", headers: { "api-key": apiKey } });
+        const data = await res.json();
         
-        // 1. Fetch Best Reader awards
-        const bestReaderPromises = [];
-        for (let m = 1; m <= monthsToCheck; m++) { // Start from 1 to skip current uncompleted month
-            const date = new Date();
-            date.setMonth(date.getMonth() - m);
-            const month = date.getMonth();
-            const year = date.getFullYear();
-            const capturedDate = new Date(date);
-            bestReaderPromises.push(
-                fetch(`/api/library/stats/best-reader?month=${month}&year=${year}`, { cache: "no-store", headers: { "api-key": apiKey } })
-                    .then(r => r.json())
-                    .then(res => {
-                        const bestReaderId = res.data?.student?._id;
-                        if (res.success && bestReaderId && String(bestReaderId) === String(currentUser._id)) {
-                            studentAwards.push({
-                                type: "BEST READER",
-                                title: "Best Reader of the Month",
-                                subtitle: "Library Achievement",
-                                extraInfo: `${res.data.count} books borrowed`,
-                                period: formatMonthYear(capturedDate),
-                                date: new Date(capturedDate.getFullYear(), capturedDate.getMonth(), 1),
-                                icon: BookOpen,
-                                color: "amber",
-                                rankLabel: "Best Reader"
-                            });
-                        }
-                    })
-                    .catch(() => null)
-            );
+        if (data.success && data.awards) {
+           const { BookOpen, Calendar, Trophy, Award } = require("lucide-react");
+           const iconMap = { BookOpen, Calendar, Trophy, Award };
+           
+           const festName = currentFestSettings?.festival?.festivalInfo?.name || "STUDENTS FEST";
+           const festYear = currentFestSettings?.festival?.festivalInfo?.year || "";
+           
+           const processedAwards = data.awards.map(aw => {
+               const award = { ...aw, icon: iconMap[aw.iconName] || Trophy, date: new Date(aw.date) };
+               if (aw.isFestWinner) {
+                   award.type = `${festName} ${festYear}`.trim().toUpperCase();
+               }
+               return award;
+           });
+           setAwards(processedAwards);
         }
-
-        // 2. Fetch Attendance Topper awards (one per completed month, per class)
-        const attendancePromises = [];
-        for (let m = 1; m <= monthsToCheck; m++) { // Start from 1 to skip current uncompleted month
-            const date = new Date();
-            date.setMonth(date.getMonth() - m);
-            const firstDayDate = new Date(date.getFullYear(), date.getMonth(), 1);
-            const lastDayDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-            
-            const firstDay = formatDate(firstDayDate);
-            const lastDay = formatDate(lastDayDate);
-            const capturedDate = new Date(date);
-            
-            attendancePromises.push(
-                fetch(`/api/attendanceToppers?startDate=${firstDay}&endDate=${lastDay}&limit=100`, { cache: "no-store", headers: { "api-key": apiKey } })
-                    .then(r => r.json())
-                    .then(res => {
-                        if (res.success && res.attendanceToppers?.length > 0) {
-                            // res.attendanceToppers is an array: [{ classId, className, students: [{studentId, attendancePercentage, ...}] }, ...]
-                            res.attendanceToppers.forEach(classResult => {
-                                const topperEntry = classResult.students.find(s => String(s.studentId) === String(currentUser._id));
-                                if (topperEntry) {
-                                    studentAwards.push({
-                                        type: "ATTENDANCE TOPPER",
-                                        title: "Attendance Topper",
-                                        subtitle: classResult.className || "Class Topper",
-                                        extraInfo: topperEntry.attendancePercentage != null ? `${topperEntry.attendancePercentage}% Attendance` : undefined,
-                                        period: formatMonthYear(capturedDate),
-                                        date: new Date(capturedDate.getFullYear(), capturedDate.getMonth(), 1),
-                                        icon: Calendar,
-                                        color: "emerald",
-                                        rankLabel: "Topper"
-                                    });
-                                }
-                            });
-                        }
-                    })
-                    .catch(() => null)
-            );
-        }
-
-        // 3. Fetch Students Fest Awards (1st, 2nd, 3rd Place) from Winner Posters
-        const winnersPromise = fetch(`/api/winner-posters`, { cache: "no-store", headers: { "api-key": apiKey } })
-            .then(r => r.json())
-            .then(res => {
-                if (res.success && res.programs) {
-                    res.programs.forEach(prog => {
-                        prog.winners.forEach(w => {
-                            // Robust matching: check by _id (participant ID == user ID) or by name
-                            const winnerId = String(w._id || "").split("-")[0];
-                            const isMatch =
-                                winnerId === String(currentUser._id) ||
-                                String(w._id) === String(currentUser._id) ||
-                                (w.name && currentUser.name &&
-                                 w.name.trim().toUpperCase() === currentUser.name.trim().toUpperCase());
-
-                            if (isMatch) {
-                                let awardInfo = null;
-                                if (w.rank === 1) {
-                                    awardInfo = {
-                                        type: "STUDENTS FEST",
-                                        title: "1st Place 🥇",
-                                        color: "gold",
-                                        icon: Trophy,
-                                        rankLabel: "1st Place"
-                                    };
-                                } else if (w.rank === 2) {
-                                    awardInfo = {
-                                        type: "STUDENTS FEST",
-                                        title: "2nd Place 🥈",
-                                        color: "silver",
-                                        icon: Award,
-                                        rankLabel: "2nd Place"
-                                    };
-                                } else if (w.rank === 3) {
-                                    awardInfo = {
-                                        type: "STUDENTS FEST",
-                                        title: "3rd Place 🥉",
-                                        color: "bronze",
-                                        icon: Award,
-                                        rankLabel: "3rd Place"
-                                    };
-                                }
-
-                                if (awardInfo) {
-                                    const festName = currentFestSettings?.festival?.festivalInfo?.name || "STUDENTS FEST";
-                                    const festYear = currentFestSettings?.festival?.festivalInfo?.year || "";
-                                    
-                                    studentAwards.push({
-                                        ...awardInfo,
-                                        type: `${festName} ${festYear}`.trim().toUpperCase(),
-                                        subtitle: prog.name,
-                                        extraInfo: `Team: ${w.teamName} | Grade: ${w.grade || 'N/A'} | Points: ${w.points || 0}`,
-                                        period: prog.division || "Competition Result",
-                                        date: new Date(),
-                                    });
-                                }
-                            }
-                        });
-                    });
-                }
-            })
-            .catch(() => null);
-
-        // 4. Fetch Division Toppers (Individual Toppers)
-        const individualToppersPromise = fetch(`/api/individual-toppers`, { cache: "no-store", headers: { "api-key": apiKey } })
-            .then(r => r.json())
-            .then(res => {
-                if (res.success && res.data) {
-                    res.data.forEach(topper => {
-                        // Match by ID primarily (updated in API), then fallback to name
-                        if (topper._id === currentUser._id || topper.name === currentUser.name) {
-                             studentAwards.push({
-                                type: "TOPPER",
-                                title: "Overall Division Topper",
-                                subtitle: `${topper.divisionName} Category`,
-                                period: `Accrued ${topper.points} Points`,
-                                date: new Date(),
-                                icon: Award,
-                                color: "indigo"
-                            });
-                        }
-                    });
-                }
-            })
-            .catch(() => null);
-
-        // 5. Fetch Academic Toppers (Marks Toppers)
-        const marksToppersPromise = fetch(`/api/marks/toppers`, { cache: "no-store", headers: { "api-key": apiKey } })
-            .then(r => r.json())
-            .then(res => {
-                if (res.success && res.data) {
-                    res.data.forEach(examGroup => {
-                        const topperEntry = examGroup.toppers.find(t => String(t.studentId) === String(currentUser._id));
-                        if (topperEntry) {
-                            studentAwards.push({
-                                type: "MARKS TOPPER",
-                                title: "Academic Excellence",
-                                subtitle: `${examGroup.examName}`,
-                                extraInfo: `Score: ${topperEntry.total} (${topperEntry.percentage}%)`,
-                                period: examGroup.className,
-                                date: new Date(),
-                                icon: Trophy,
-                                color: "indigo",
-                                rankLabel: "Topper"
-                            });
-                        }
-                    });
-                }
-            })
-            .catch(() => null);
-
-        // 6. Fetch Star of the Month awards
-        const starPromises = [];
-        for (let m = 1; m <= monthsToCheck; m++) {
-            const date = new Date();
-            date.setMonth(date.getMonth() - m);
-            const monthNum = date.getMonth() + 1;
-            const year = date.getFullYear();
-            const capturedDate = new Date(date);
-            
-            starPromises.push(
-                fetch(`/api/performance/star?classId=all&month=${monthNum}&year=${year}`, { cache: "no-store", headers: { "api-key": apiKey } })
-                    .then(r => r.json())
-                    .then(res => {
-                        if (res.success && res.data) {
-                            res.data.forEach(starData => {
-                                if (starData.student && String(starData.student.id) === String(currentUser._id)) {
-                                    studentAwards.push({
-                                        type: "STAR OF THE MONTH",
-                                        title: "Star of the Month",
-                                        subtitle: starData.className || "Class Star",
-                                        extraInfo: `Total Score: ${starData.totalScore}`,
-                                        period: formatMonthYear(capturedDate),
-                                        date: new Date(capturedDate.getFullYear(), capturedDate.getMonth(), 1),
-                                        icon: Trophy,
-                                        color: "gold",
-                                        rankLabel: "Star Student"
-                                    });
-                                }
-                            });
-                        }
-                    })
-                    .catch(() => null)
-            );
-        }
-
-        await Promise.all([
-            ...bestReaderPromises, 
-            ...attendancePromises, 
-            ...starPromises,
-            winnersPromise, 
-            individualToppersPromise,
-            marksToppersPromise
-        ]);
-        
-        // Sort awards by date descending
-        studentAwards.sort((a, b) => b.date - a.date);
-        setAwards(studentAwards);
         setFestSettings(currentFestSettings);
       } catch (e) {
         console.error("Awards fetch error:", e);

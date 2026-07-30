@@ -5965,11 +5965,55 @@
           "subjectName": "BUSINESS",
           "teacherId": "TCH-008",
           "teacherName": "UNAIS SA-ADI"
+        },
+        {
+          "date": "2026-07-30T00:00:00.000Z",
+          "present": true,
+          "periodNumber": 2,
+          "classId": "CLS-2",
+          "className": "PLUS TWO",
+          "subjectId": "SBJ-03",
+          "subjectName": "الحديث",
+          "teacherId": "TCH-004",
+          "teacherName": "MUHYIDHEEN FAZILY"
+        },
+        {
+          "date": "2026-07-30T00:00:00.000Z",
+          "present": true,
+          "periodNumber": 3,
+          "classId": "CLS-2",
+          "className": "PLUS TWO",
+          "subjectId": "SBJ-01",
+          "subjectName": "الفقه",
+          "teacherId": "TCH-010",
+          "teacherName": "ANAS AHSANI"
+        },
+        {
+          "date": "2026-07-30T00:00:00.000Z",
+          "present": true,
+          "periodNumber": 8,
+          "classId": "CLS-2",
+          "className": "PLUS TWO",
+          "subjectId": "SBJ-18",
+          "subjectName": "ENGLISH",
+          "teacherId": "TCH-009",
+          "teacherName": "HUSAINAR ADANI"
+        },
+        {
+          "date": "2026-07-30T00:00:00.000Z",
+          "present": true,
+          "periodNumber": 1,
+          "classId": "CLS-2",
+          "className": "PLUS TWO",
+          "subjectId": "SBJ-04",
+          "subjectName": "النحو",
+          "teacherId": "TCH-006",
+          "teacherName": "SYD HIBATHULA AHSANI"
         }
       ]
     }
   ],
   "totalFormattedUsers": 1,
-  "totalRecordsForFirstUser": 542,
-  "originalRecordsCount": 1436
+  "totalRecordsForFirstUser": 546,
+  "originalRecordsCount": 1440
 }
