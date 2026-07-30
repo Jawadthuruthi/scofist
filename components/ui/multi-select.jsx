@@ -368,8 +368,8 @@ export const MultiSelect = React.forwardRef(
                 : selectedValues !== "" &&
                 selectedValues !== null &&
                 selectedValues !== undefined) ? (
-              <div className="flex justify-between items-center w-full">
-                <div className="flex flex-wrap items-center">
+              <div className="flex justify-between items-center w-full min-w-0 gap-1">
+                <div className="flex flex-wrap items-center gap-1 flex-1 min-w-0">
                   {/* Handle multiSelect = true (array) */}
                   {multiSelect && !showSelectedCount ? (
                     selectedValues.slice(0, maxCount).map((value) => {
@@ -382,17 +382,18 @@ export const MultiSelect = React.forwardRef(
                           key={value}
                           className={cn(
                             isAnimating ? "animate-bounce" : "",
-                            multiSelectVariants(badgeVariant)
+                            multiSelectVariants(badgeVariant),
+                            "max-w-full h-auto py-1"
                           )}
                           style={{ animationDuration: `${animation}s` }}
                           title={option?.isCustom ? "Custom option" : ""}
                         >
                           {IconComponent && (
-                            <IconComponent className="h-4 w-4 mr-2" />
+                            <IconComponent className="h-4 w-4 mr-2 flex-shrink-0" />
                           )}
-                          {option?.label || value}
+                          <span className="whitespace-normal break-words text-left">{option?.label || value}</span>
                           <XCircle
-                            className="ml-2 h-4 w-4 cursor-pointer"
+                            className="ml-2 h-4 w-4 cursor-pointer flex-shrink-0"
                             onClick={(event) => {
                               event.stopPropagation();
                               if (!readOnly) toggleOption(value);
@@ -431,22 +432,25 @@ export const MultiSelect = React.forwardRef(
                         <Badge
                           className={cn(
                             isAnimating ? "animate-bounce" : "",
-                            multiSelectVariants(badgeVariant)
+                            multiSelectVariants(badgeVariant),
+                            "max-w-full h-auto py-1"
                           )}
                           style={{ animationDuration: `${animation}s` }}
                           title={option?.isCustom ? "Custom option" : ""}
                         >
                           {IconComponent && (
-                            <IconComponent className="h-4 w-4 mr-2" />
+                            <IconComponent className="h-4 w-4 mr-2 flex-shrink-0" />
                           )}
-                          {option?.label ||
-                            (typeof selectedValues === "object"
-                              ? selectedValues?.label ||
-                              selectedValues?.name ||
-                              JSON.stringify(selectedValues)
-                              : selectedValues)}
+                          <span className="whitespace-normal break-words text-left">
+                            {option?.label ||
+                              (typeof selectedValues === "object"
+                                ? selectedValues?.label ||
+                                selectedValues?.name ||
+                                JSON.stringify(selectedValues)
+                                : selectedValues)}
+                          </span>
                           <XCircle
-                            className="ml-2 h-4 w-4 cursor-pointer"
+                            className="ml-2 h-4 w-4 cursor-pointer flex-shrink-0"
                             onClick={(event) => {
                               event.stopPropagation();
                               if (!readOnly) handleClear();
@@ -477,7 +481,7 @@ export const MultiSelect = React.forwardRef(
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-shrink-0">
                   <XIcon
                     className="h-4 mx-2 cursor-pointer text-muted-foreground"
                     onClick={(event) => {
@@ -503,7 +507,7 @@ export const MultiSelect = React.forwardRef(
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[--radix-popover-trigger-width] p-0"
+          className="w-auto min-w-[--radix-popover-trigger-width] max-w-[300px] p-0"
           align="start"
           onEscapeKeyDown={() => setIsPopoverOpen(false)}
         >

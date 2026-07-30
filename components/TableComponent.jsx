@@ -332,7 +332,7 @@ const TableComponent = forwardRef(({
           {/* Inline Filters */}
           {inlineFilters && filterConfig.length > 0 && filterConfig.map((filter) => (
              filter.inputType === "multiSelect" ? (
-               <div key={filter.id} className="w-[calc(50%-0.25rem)] md:w-[240px] md:flex-none order-1 md:order-3">
+               <div key={filter.id} className="w-[calc(50%-0.25rem)] md:w-auto md:max-w-[240px] md:flex-none order-1 md:order-3">
                  <MultiSelect
                    options={filter.options}
                    onValueChange={(val) => {
