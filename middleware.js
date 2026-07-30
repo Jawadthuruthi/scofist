@@ -855,7 +855,8 @@ function storeUserInCache(userId, user, customTtl = CACHE_TTL) {
 async function fetchUserProfile(userId, apiKey, origin) {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // Extend to 5 seconds
+    // Use 3 seconds to ensure we don't hit the Vercel middleware timeout (usually 10s, sometimes shorter depending on the phase)
+    const timeoutId = setTimeout(() => controller.abort(), 3000); 
 
     // Use origin passed from handleAuthRequest
     const response = await fetch(`${origin}/api/users/profile`, {
@@ -866,6 +867,7 @@ async function fetchUserProfile(userId, apiKey, origin) {
       },
       body: JSON.stringify({ userId }),
       cache: "no-store",
+      signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
