@@ -595,7 +595,7 @@ export default function LibraryDashboard({
         {
             accessorKey: "publication",
             header: "Publication",
-            cell: ({ row }) => <span className="uppercase book-text-font">{row.getValue("publication")}</span>,
+            cell: ({ row }) => <span className="uppercase">{row.getValue("publication")}</span>,
             meta: {
                 width: "120px",
                 whiteSpace: "normal",
@@ -2349,7 +2349,7 @@ export default function LibraryDashboard({
                         return (
                             <Card className="h-full hover:shadow-md transition-shadow overflow-hidden">
                                 <CardContent className="p-4 flex gap-4 items-start">
-                                    <div className="flex-shrink-0 flex flex-col items-center gap-2 w-[72px]">
+                                    <div className="flex-shrink-0 flex flex-col items-center gap-1 w-[72px]">
                                         <div className="bg-primary/10 p-2 rounded-md flex items-center justify-center w-full aspect-square">
                                             <BookOpen className="h-8 w-8 text-primary" />
                                         </div>
@@ -2373,16 +2373,16 @@ export default function LibraryDashboard({
                                             <div className={`mt-2 inline-block w-full text-[10px] px-1 py-0.5 rounded-full font-bold uppercase tracking-wider ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
                                                 {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
                                             </div>
-                                            <div className="font-bold text-[11px] text-primary mt-1">₹{book.price?.toFixed(2) || "0.00"}</div>
+                                            <div className="font-bold text-xs text-primary mt-1">₹{book.price?.toFixed(2) || "0.00"}</div>
                                         </div>
                                     </div>
                                     <div className="flex-1 space-y-1 min-w-0 py-1 flex flex-col h-full">
                                         <div className="flex-1">
                                             <h3 className="font-bold text-2xl leading-tight break-words mb-1" title={book.name} style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.name}</h3>
-                                            <div className="text-sm text-muted-foreground break-words -mt-1" title={book.author}>Author: <span className="text-foreground font-medium text-lg leading-none" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.author}</span></div>
-                                            {book.publication && <div className="text-sm text-muted-foreground break-words -mt-1" title={book.publication}>Publication: <span className="text-foreground text-lg leading-none" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.publication}</span></div>}
-                                            <div className="text-sm text-muted-foreground -mt-1">Language: <span className="text-foreground text-lg leading-none" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.language}</span></div>
-                                            <div className="text-sm text-muted-foreground -mt-1">Category: <span className="text-foreground text-lg leading-none" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.category}</span></div>
+                                            <div className="text-sm text-muted-foreground break-words mt-1" title={book.author}>Author: <span className="text-foreground font-medium text-lg leading-none" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.author}</span></div>
+                                            {book.publication && <div className="text-xs text-muted-foreground break-words mt-1" title={book.publication}>Publication: <span className="text-foreground leading-none">{book.publication}</span></div>}
+                                            <div className="text-xs text-muted-foreground mt-1">Language: <span className="text-foreground leading-none">{book.language}</span></div>
+                                            <div className="text-xs text-muted-foreground mt-1">Category: <span className="text-foreground leading-none">{book.category}</span></div>
                                         </div>
 
                                         <div className="pt-1 flex flex-col items-start gap-1 mt-auto">

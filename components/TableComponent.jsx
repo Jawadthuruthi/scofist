@@ -243,13 +243,14 @@ const TableComponent = forwardRef(({
   return (
     <div className="space-y-4">
       {/* Unified Toolbar Container */}
-      <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4">
-        <div className="flex flex-wrap md:flex-nowrap items-center gap-2 order-1 w-full md:flex-1">
-          {/* Column Management - First */}
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 w-full">
+        {/* Primary Row: Col Mgmt, Search, CSV, Print on Mobile. On Desktop: Col Mgmt, Search */}
+        <div className="flex items-center gap-2 w-full md:flex-1 order-1">
+          {/* Column Management */}
           {!hideColumnManagement && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 w-8 p-0 flex items-center justify-center md:h-10 md:w-auto md:px-3 lg:flex shrink-0 order-3 md:order-1">
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0 flex items-center justify-center md:h-10 md:w-auto md:px-3 lg:flex shrink-0">
                   <SlidersHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -295,44 +296,37 @@ const TableComponent = forwardRef(({
                     );
                   })}
               </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            </DropdownMenu>
+          )}
 
-            {/* View Toggle (Mobile) */}
-            {enableGrid && !hideViewToggle && (
-              <div className="flex md:hidden items-center border rounded-md overflow-hidden shrink-0 order-4">
-                <Button
-                  variant={viewMode === "list" ? "secondary" : "ghost"}
-                  size="sm"
-                  className="h-8 w-8 px-0 rounded-none border-r flex items-center justify-center"
-                  onClick={() => setViewMode("list")}
-                  title="List View"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "grid" ? "secondary" : "ghost"}
-                  size="sm"
-                  className="h-8 w-8 px-0 rounded-none flex items-center justify-center"
-                  onClick={() => setViewMode("grid")}
-                  title="Grid View"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
+          {/* View Toggle */}
+          {enableGrid && !hideViewToggle && (
+            <div className="flex items-center border rounded-md overflow-hidden shrink-0">
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 md:h-10 md:w-10 px-0 rounded-none border-r flex items-center justify-center"
+                onClick={() => setViewMode("list")}
+                title="List View"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "grid" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 md:h-10 md:w-10 px-0 rounded-none flex items-center justify-center"
+                onClick={() => setViewMode("grid")}
+                title="Grid View"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
 
-            {/* Mobile Action Buttons (Right after Column Management and View Toggle) */}
-            {actionButtons && (
-              <div className="flex md:hidden items-center gap-2 flex-1 overflow-x-auto hide-scrollbar order-5">
-                {actionButtons}
-              </div>
-            )}
-
-          {/* Inline Filters */}
+          {/* Inline Filters (Desktop) */}
           {inlineFilters && filterConfig.length > 0 && filterConfig.map((filter) => (
              filter.inputType === "multiSelect" ? (
-               <div key={filter.id} className="w-[calc(50%-0.25rem)] md:w-auto md:max-w-[240px] md:flex-none order-1 md:order-3">
+               <div key={filter.id} className="hidden md:block w-auto min-w-[180px]">
                  <MultiSelect
                    options={filter.options}
                    onValueChange={(val) => {
@@ -353,80 +347,25 @@ const TableComponent = forwardRef(({
              ) : null
           ))}
 
-          {/* Global Search Button/Input - Moved next to Column Management */}
+          {/* Global Search Button/Input (Desktop) */}
           {!hideSearch && (
-            <div className="relative flex items-center w-[calc(50%-0.25rem)] md:w-auto md:flex-1 order-2 md:order-last">
+            <div className="relative hidden md:flex items-center flex-1 min-w-0">
               <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground z-10" />
               <Input
                 placeholder={searchPlaceholder || "Search..."}
                 value={globalFilter ?? ""}
                 onChange={(event) => setGlobalFilter(event.target.value)}
-                className={`h-10 pl-8 w-full ${searchPlaceholderMobile ? 'hidden md:flex' : ''}`}
+                className="h-10 pl-8 w-full"
               />
-              {searchPlaceholderMobile && (
-                <Input
-                  placeholder={searchPlaceholderMobile}
-                  value={globalFilter ?? ""}
-                  onChange={(event) => setGlobalFilter(event.target.value)}
-                  className="h-10 pl-8 w-full md:hidden flex"
-                />
-              )}
             </div>
           )}
 
-          {/* Filters (Desktop) */}
-          {!inlineFilters && filterConfig.length > 0 && (
-            <PopupFilter
-              filterConfig={filterConfig}
-              filters={columnFilters.reduce((acc, filter) => {
-                acc[filter.id] = filter.value;
-                return acc;
-              }, {})}
-              setFilter={(id, value) => {
-                setColumnFilters((prev) => {
-                  const existing = prev.find((f) => f.id === id);
-                  if (existing) {
-                    return prev.map((f) => (f.id === id ? { ...f, value } : f));
-                  }
-                  return [...prev, { id, value }];
-                });
-              }}
-              removeFilter={(id) => {
-                setColumnFilters((prev) => prev.filter((f) => f.id !== id));
-              }}
-              clearFilters={() => setColumnFilters([])}
-              hasFilters={columnFilters.length > 0}
-              triggerClass="hidden md:flex h-8 w-auto px-3 shrink-0 order-4"
-            />
-          )}
-
-          {/* View Toggle (Desktop) */}
-          {enableGrid && !hideViewToggle && (
-            <div className="hidden md:flex items-center border rounded-md overflow-hidden shrink-0 order-2">
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-10 w-10 px-0 rounded-none border-r"
-                onClick={() => setViewMode("list")}
-                title="List View"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "grid" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-10 w-10 px-0 rounded-none"
-                onClick={() => setViewMode("grid")}
-                title="Grid View"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
+          {/* Mobile Action Buttons */}
+          {actionButtons && (
+            <div className="flex md:hidden items-center gap-1 overflow-x-auto hide-scrollbar shrink-0">
+              {actionButtons}
             </div>
           )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className={`flex items-center gap-1 md:gap-2 order-2 md:order-3 ml-auto overflow-x-auto hide-scrollbar ${(!actionButtons && !showCsvBtn && hidePrintBtn) ? 'md:hidden' : ''}`}>
 
           {/* Filters (Mobile) */}
           {!inlineFilters && filterConfig.length > 0 && (
@@ -450,33 +389,109 @@ const TableComponent = forwardRef(({
               }}
               clearFilters={() => setColumnFilters([])}
               hasFilters={columnFilters.length > 0}
-              triggerClass="flex md:hidden h-8 w-8 px-0 p-0 shrink-0 justify-center items-center"
+              triggerClass="flex h-8 w-8 md:h-10 md:w-auto md:px-3 p-0 shrink-0 justify-center items-center"
             />
           )}
-          <div className="hidden md:flex items-center gap-1 md:gap-2 shrink-0">
-            {actionButtons}
-          </div>
+
+          {/* CSV (Mobile) */}
           {showCsvBtn && (
             <Button
               size="sm"
               variant="outline"
               onClick={handleExportCSV}
-              className="h-8 w-8 p-0 md:w-auto md:px-3 shrink-0"
+              className="flex md:hidden h-8 w-8 p-0 shrink-0 items-center justify-center"
               title="Export CSV"
             >
               <Download className="h-4 w-4" />
-              <span className="hidden md:inline ml-2">Export CSV</span>
             </Button>
           )}
+
+          {/* Print (Mobile) */}
           {!hidePrintBtn && (
             <Button
               size="sm"
+              variant="outline"
               onClick={handlePrint}
-              className="h-8 w-8 p-0 md:w-auto md:px-3 shrink-0"
+              className="flex md:hidden h-8 w-8 p-0 shrink-0 items-center justify-center"
               title="Print"
             >
               <Printer className="h-4 w-4" />
-              <span className="hidden md:inline ml-2">Print</span>
+            </Button>
+          )}
+        </div>
+
+        {/* Secondary Row / Desktop Right Side */}
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-2 w-full md:w-auto md:ml-auto order-2">
+          
+          {/* Inline Filters (Mobile) */}
+          {inlineFilters && filterConfig.length > 0 && filterConfig.map((filter) => (
+             filter.inputType === "multiSelect" ? (
+               <div key={filter.id} className="w-[calc(50%-0.25rem)] md:hidden">
+                 <MultiSelect
+                   options={filter.options}
+                   onValueChange={(val) => {
+                     setColumnFilters((prev) => {
+                       const existing = prev.find((f) => f.id === filter.id);
+                       if (existing) {
+                         return prev.map((f) => (f.id === filter.id ? { ...f, value: val } : f));
+                       }
+                       return [...prev, { id: filter.id, value: val }];
+                     });
+                   }}
+                   value={columnFilters.find((f) => f.id === filter.id)?.value || []}
+                   placeholder={filter.label}
+                   variant="default"
+                   maxCount={1}
+                 />
+               </div>
+             ) : null
+          ))}
+
+          {/* Global Search Button/Input (Mobile) */}
+          {!hideSearch && (
+            <div className="relative flex md:hidden items-center w-[calc(50%-0.25rem)] min-w-0">
+              <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground z-10" />
+              <Input
+                placeholder={searchPlaceholderMobile || searchPlaceholder || "Search..."}
+                value={globalFilter ?? ""}
+                onChange={(event) => setGlobalFilter(event.target.value)}
+                className="h-10 pl-8 w-full"
+              />
+            </div>
+          )}
+
+          {/* Action Buttons (Desktop) */}
+          {actionButtons && (
+            <div className="hidden md:flex items-center gap-2 shrink-0">
+              {actionButtons}
+            </div>
+          )}
+
+          {/* CSV (Desktop) */}
+          {showCsvBtn && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportCSV}
+              className="hidden md:flex h-8 md:h-10 w-auto px-3 shrink-0"
+              title="Export CSV"
+            >
+              <Download className="h-4 w-4" />
+              <span className="ml-2">Export CSV</span>
+            </Button>
+          )}
+
+          {/* Print (Desktop) */}
+          {!hidePrintBtn && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handlePrint}
+              className="hidden md:flex h-8 md:h-10 w-auto px-3 shrink-0"
+              title="Print"
+            >
+              <Printer className="h-4 w-4" />
+              <span className="ml-2">Print</span>
             </Button>
           )}
         </div>
