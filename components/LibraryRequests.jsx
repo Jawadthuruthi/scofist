@@ -198,6 +198,7 @@ export default function LibraryRequests() {
         {
             accessorKey: "bookId.name",
             header: "Book Details",
+            meta: { padding: "0px 4px" },
             cell: ({ row }) => (
                 <div className="flex flex-col">
                     <span className="font-bold">{row.original.bookId?.name || "N/A"}</span>
@@ -270,7 +271,7 @@ export default function LibraryRequests() {
     ];
 
     return (
-        <div className="space-y-4 pt-2">
+        <div className="space-y-0 pt-2">
             <Header 
                 title="BOOKS REQUESTS" 
                 subTitle="Manage student library book requests"

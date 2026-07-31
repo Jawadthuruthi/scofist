@@ -340,8 +340,6 @@ export default function LibraryDashboard({
         ).sort((a, b) => a.language.localeCompare(b.language));
     }, [languages]);
 
-    // --- Configurations ---
-
     const bookFields = [
         {
             name: "id",
@@ -350,6 +348,14 @@ export default function LibraryDashboard({
             type: "text",
             required: true,
             enableScanner: true,
+            getWarning: (value) => {
+                if (!value) return null;
+                const exists = localBooks.find(b => String(b.id) === String(value));
+                if (exists && (!selectedBook || String(selectedBook.id) !== String(value))) {
+                    return "This ID already exists";
+                }
+                return null;
+            }
         },
         {
             name: "name",
@@ -662,27 +668,7 @@ export default function LibraryDashboard({
                 padding: "4px 8px",
                 className: "print:hidden",
             }
-        }] : []),
-        {
-            id: "barcode",
-            header: "Barcode",
-            cell: ({ row }) => (
-                <div className="flex flex-col items-center justify-center p-1 space-y-1">
-                    {row.original.id && /^[\x20-\x7E]+$/.test(String(row.original.id)) ? (
-                        <>
-                            <ScanBarcode className="h-6 w-6 text-muted-foreground" />
-                            <span className="font-mono text-[10px] uppercase tracking-widest">{row.original.id}</span>
-                        </>
-                    ) : (
-                        <span className="text-xs text-muted-foreground py-2">Invalid</span>
-                    )}
-                </div>
-            ),
-            meta: {
-                width: "130px",
-                padding: "2px",
-            }
-        },
+        }] : [])
     // eslint-disable-next-line react-hooks/exhaustive-deps
     ], [selectedIds.length]);
 
@@ -2104,6 +2090,10 @@ export default function LibraryDashboard({
                         subTitle="Manage library books inventory"
                     />
                     {(() => {
+                        const selectedBooks = localBooks.filter(b => selectedIds.includes(b._id));
+                        const allSelectedAvailable = selectedBooks.length > 0 && selectedBooks.every(b => b.status === 'Available');
+                        const allSelectedNotAvailable = selectedBooks.length > 0 && selectedBooks.every(b => b.status !== 'Available');
+                        
                         const actionButtonsContent = (
                             <>
                                 {selectedIds.length > 0 && (
@@ -2117,24 +2107,28 @@ export default function LibraryDashboard({
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={handleBulkMarkAvailable}
-                                            title={`Mark Available (${selectedIds.length})`}
-                                            className="h-8 w-8 p-0 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
-                                        >
-                                            <Check className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={handleBulkMarkNotAvailable}
-                                            title={`Mark Not Available (${selectedIds.length})`}
-                                            className="h-8 w-8 p-0 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
+                                        {!allSelectedAvailable && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleBulkMarkAvailable}
+                                                title={`Mark Available (${selectedIds.length})`}
+                                                className="h-8 w-8 p-0 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
+                                            >
+                                                <Check className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                        {!allSelectedNotAvailable && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleBulkMarkNotAvailable}
+                                                title={`Mark Not Available (${selectedIds.length})`}
+                                                className="h-8 w-8 p-0 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        )}
                                     </>
                                 )}
                                 {/* Always render Edit PopupForm (kept mounted) so it opens instantly */}
@@ -2238,6 +2232,10 @@ export default function LibraryDashboard({
                             {/* Duplicate logic for mobile rendering because IIFE scoped variables can't be passed outside directly. 
                                 Wait, I'll extract it properly above the return. */}
                             {(() => {
+                                const selectedBooks = localBooks.filter(b => selectedIds.includes(b._id));
+                                const allSelectedAvailable = selectedBooks.length > 0 && selectedBooks.every(b => b.status === 'Available');
+                                const allSelectedNotAvailable = selectedBooks.length > 0 && selectedBooks.every(b => b.status !== 'Available');
+
                                 return (
                                     <>
                                         {selectedIds.length > 0 && (
@@ -2251,24 +2249,28 @@ export default function LibraryDashboard({
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={handleBulkMarkAvailable}
-                                                    title={`Mark Available (${selectedIds.length})`}
-                                                    className="h-8 w-8 p-0 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
-                                                >
-                                                    <Check className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={handleBulkMarkNotAvailable}
-                                                    title={`Mark Not Available (${selectedIds.length})`}
-                                                    className="h-8 w-8 p-0 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </Button>
+                                                {!allSelectedAvailable && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={handleBulkMarkAvailable}
+                                                        title={`Mark Available (${selectedIds.length})`}
+                                                        className="h-8 w-8 p-0 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 dark:text-green-400 dark:border-green-700"
+                                                    >
+                                                        <Check className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                                {!allSelectedNotAvailable && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={handleBulkMarkNotAvailable}
+                                                        title={`Mark Not Available (${selectedIds.length})`}
+                                                        className="h-8 w-8 p-0 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:border-red-700"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                )}
                                             </>
                                         )}
                                         <div className={!selectedBook ? "hidden" : ""}>
@@ -2343,6 +2345,7 @@ export default function LibraryDashboard({
                     searchPlaceholder="Search Book (Name, ID)..."
                     searchPlaceholderMobile="Search Book"
                     printTitle="LIBRARY BOOKS"
+                    hidePrintLogo={true}
                     apiKey={apiKey}
                     renderGridItem={(row) => {
                         const book = row.original;
@@ -2423,16 +2426,42 @@ export default function LibraryDashboard({
                                     <AlertCircle className="h-5 w-5" />
                                     Duplicate Book IDs ({duplicateIdGroups.length} group{duplicateIdGroups.length !== 1 ? "s" : ""})
                                 </DialogTitle>
-                                {duplicateIdGroups.some(g => g.isSafe) && (
-                                    <Button
-                                        size="sm"
-                                        disabled={loading}
-                                        className="h-8 px-4 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none font-bold"
-                                        onClick={handleMergeAllSafe}
-                                    >
-                                        {loading ? "Merging…" : `Merge All Safe (${duplicateIdGroups.filter(g => g.isSafe).length} group${duplicateIdGroups.filter(g => g.isSafe).length > 1 ? "s" : ""})`}
-                                    </Button>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    {selectedIds.length > 0 && (
+                                        <>
+                                            {selectedIds.length === 1 && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => setEditPopupOpen(true)}
+                                                    className="h-8 text-xs font-bold"
+                                                >
+                                                    <Edit className="h-4 w-4 mr-2" />
+                                                    Edit
+                                                </Button>
+                                            )}
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={handleBulkDelete}
+                                                className="h-8 text-xs font-bold"
+                                            >
+                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                Delete ({selectedIds.length})
+                                            </Button>
+                                        </>
+                                    )}
+                                    {duplicateIdGroups.some(g => g.isSafe) && (
+                                        <Button
+                                            size="sm"
+                                            disabled={loading}
+                                            className="h-8 px-4 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none font-bold"
+                                            onClick={handleMergeAllSafe}
+                                        >
+                                            {loading ? "Merging…" : `Merge All Safe (${duplicateIdGroups.filter(g => g.isSafe).length} group${duplicateIdGroups.filter(g => g.isSafe).length > 1 ? "s" : ""})`}
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         </DialogHeader>
                         <div className="space-y-4 mt-2">
@@ -2465,6 +2494,21 @@ export default function LibraryDashboard({
                                         <Table>
                                             <TableHeader className="bg-muted/30">
                                                 <TableRow>
+                                                    <TableHead className="w-12 text-center text-xs">
+                                                        <Checkbox
+                                                            checked={books.length > 0 && books.every(b => rowSelection[b._id])}
+                                                            onCheckedChange={(checked) => {
+                                                                setRowSelection(prev => {
+                                                                    const next = { ...prev };
+                                                                    books.forEach(b => {
+                                                                        if (checked) next[b._id] = true;
+                                                                        else delete next[b._id];
+                                                                    });
+                                                                    return next;
+                                                                });
+                                                            }}
+                                                        />
+                                                    </TableHead>
                                                     <TableHead className="text-xs">Book Name</TableHead>
                                                     <TableHead className="text-xs">Author</TableHead>
                                                     <TableHead className="text-xs">Language</TableHead>
@@ -2475,6 +2519,19 @@ export default function LibraryDashboard({
                                             <TableBody>
                                                 {books.map((book, idx) => (
                                                     <TableRow key={book._id} className={`text-sm ${isSafe && idx > 0 ? "opacity-50" : ""}`}>
+                                                        <TableCell className="text-center w-12">
+                                                            <Checkbox
+                                                                checked={!!rowSelection[book._id]}
+                                                                onCheckedChange={(checked) => {
+                                                                    setRowSelection(prev => {
+                                                                        const next = { ...prev };
+                                                                        if (checked) next[book._id] = true;
+                                                                        else delete next[book._id];
+                                                                        return next;
+                                                                    });
+                                                                }}
+                                                            />
+                                                        </TableCell>
                                                         <TableCell className="book-text-font font-medium">
                                                             {isSafe && idx === 0 && <span className="mr-1 text-[10px] bg-emerald-100 text-emerald-700 rounded px-1 font-bold">KEEP</span>}
                                                             {isSafe && idx > 0 && <span className="mr-1 text-[10px] bg-red-100 text-red-600 rounded px-1 font-bold">DEL</span>}

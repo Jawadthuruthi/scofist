@@ -122,6 +122,24 @@ const TableComponent = forwardRef(({
     return title;
   }, [printTitle, columnFilters]);
 
+  const printSubTitleText = useMemo(() => {
+    let subTitle = "";
+    if (columnFilters && columnFilters.length > 0) {
+      const filterLabels = columnFilters
+        .filter(f => f.value && f.value.length > 0)
+        .map(f => {
+          const filterDef = filterConfig?.find(fc => fc.id === f.id);
+          const label = filterDef ? filterDef.label : f.id;
+          const valStr = Array.isArray(f.value) ? f.value.join(", ") : String(f.value);
+          return `${label}: ${valStr}`;
+        });
+      if (filterLabels.length > 0) {
+        subTitle = filterLabels.join(' | ');
+      }
+    }
+    return subTitle || undefined;
+  }, [columnFilters, filterConfig]);
+
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 });
   const [isPrinting, setIsPrinting] = useState(false);
   const resolvePrintRef = useRef(null);
@@ -250,7 +268,7 @@ const TableComponent = forwardRef(({
           {!hideColumnManagement && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 w-8 p-0 flex items-center justify-center md:h-10 md:w-auto md:px-3 lg:flex shrink-0">
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0 flex items-center justify-center md:w-auto md:px-3 lg:flex shrink-0">
                   <SlidersHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -305,7 +323,7 @@ const TableComponent = forwardRef(({
               <Button
                 variant={viewMode === "list" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-8 w-8 md:h-10 md:w-10 px-0 rounded-none border-r flex items-center justify-center"
+                className="h-8 w-8 px-0 rounded-none border-r flex items-center justify-center"
                 onClick={() => setViewMode("list")}
                 title="List View"
               >
@@ -314,7 +332,7 @@ const TableComponent = forwardRef(({
               <Button
                 variant={viewMode === "grid" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-8 w-8 md:h-10 md:w-10 px-0 rounded-none flex items-center justify-center"
+                className="h-8 w-8 px-0 rounded-none flex items-center justify-center"
                 onClick={() => setViewMode("grid")}
                 title="Grid View"
               >
@@ -347,18 +365,20 @@ const TableComponent = forwardRef(({
              ) : null
           ))}
 
-          {/* Global Search Button/Input (Desktop) */}
+          {/* Global Search Button/Input */}
           {!hideSearch && (
-            <div className="relative hidden md:flex items-center flex-1 min-w-0">
+            <div className={cn("relative items-center flex-1 min-w-0", inlineFilters ? "hidden md:flex" : "flex")}>
               <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground z-10" />
               <Input
-                placeholder={searchPlaceholder || "Search..."}
+                placeholder={searchPlaceholderMobile || searchPlaceholder || "Search..."}
                 value={globalFilter ?? ""}
                 onChange={(event) => setGlobalFilter(event.target.value)}
                 className="h-10 pl-8 w-full"
               />
             </div>
           )}
+
+
 
           {/* Mobile Action Buttons */}
           {actionButtons && (
@@ -389,7 +409,7 @@ const TableComponent = forwardRef(({
               }}
               clearFilters={() => setColumnFilters([])}
               hasFilters={columnFilters.length > 0}
-              triggerClass="flex h-8 w-8 md:h-10 md:w-auto md:px-3 p-0 shrink-0 justify-center items-center"
+              triggerClass="flex h-8 w-8 md:w-auto md:px-3 p-0 shrink-0 justify-center items-center"
             />
           )}
 
@@ -447,9 +467,9 @@ const TableComponent = forwardRef(({
              ) : null
           ))}
 
-          {/* Global Search Button/Input (Mobile) */}
-          {!hideSearch && (
-            <div className="relative flex md:hidden items-center w-[calc(50%-0.25rem)] min-w-0">
+          {/* Global Search Button/Input (Mobile, if inlineFilters) */}
+          {!hideSearch && inlineFilters && (
+            <div className="relative flex items-center w-[calc(50%-0.25rem)] md:hidden">
               <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground z-10" />
               <Input
                 placeholder={searchPlaceholderMobile || searchPlaceholder || "Search..."}
@@ -459,6 +479,8 @@ const TableComponent = forwardRef(({
               />
             </div>
           )}
+
+
 
           {/* Action Buttons (Desktop) */}
           {actionButtons && (
@@ -511,13 +533,12 @@ const TableComponent = forwardRef(({
         </div>
       ) : viewMode === "grid" && renderGridItem ? (
         <div ref={tableRef}>
-          {!hidePrintBtn && (
-            <PrintHeader
-              apiKey={apiKey}
-              title={printTitle}
-              hidePrintLogo={hidePrintLogo}
-            />
-          )}
+          <PrintHeader
+            apiKey={apiKey}
+            title={printTitle}
+            subTitle={printSubTitleText}
+            hidePrintLogo={hidePrintLogo}
+          />
           <div className={`grid ${gridColsClass} gap-4`}>
             {table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map((row) => (
@@ -540,14 +561,14 @@ const TableComponent = forwardRef(({
             maxHeight: tableHeight,
           }}
         >
-          {!hidePrintBtn && (
+          <div ref={tableRef}>
             <PrintHeader
               apiKey={apiKey}
               title={printTitle}
+              subTitle={printSubTitleText}
               hidePrintLogo={hidePrintLogo}
             />
-          )}
-          <div ref={tableRef} className="print-table-wrapper">
+            <div className="print-table-wrapper">
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -661,6 +682,7 @@ const TableComponent = forwardRef(({
               </TableBody>
             </Table>
           </div>
+        </div>
         </div>
       )}
       {showTotalCount && (

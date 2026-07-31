@@ -163,9 +163,10 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
   const depValue = useWatch({ control: form.control, name: depName || "__ignore_dep_watch__" });
 
   const isSelect = field.inputType === "select" || field.inputType === "multiSelect";
+  const needsWatch = isSelect || !!field.getWarning;
   const thisValue = useWatch({ 
     control: form.control, 
-    name: isSelect ? field.name : "__ignore_watch__" 
+    name: needsWatch ? field.name : "__ignore_watch__" 
   });
 
   // Auto-selection logic for fields like subjectTypeAssignments
@@ -451,6 +452,11 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
               )}
             </div>
           </FormControl>
+          {fieldToRender.getWarning && fieldToRender.getWarning(thisValue) && (
+            <p className="text-[13px] font-bold text-red-500 mt-1.5">
+              {fieldToRender.getWarning(thisValue)}
+            </p>
+          )}
           <FormMessage />
         </FormItem>
       )}
@@ -534,7 +540,20 @@ const FormContent = ({
       <form
         onKeyDown={handleKeyDown}
         onSubmit={form.handleSubmit(
-          (validatedValues) => handleSubmit(validatedValues),
+          (validatedValues) => {
+            const warnings = [];
+            formFields.forEach(field => {
+              if (field.getWarning) {
+                const msg = field.getWarning(validatedValues[field.name]);
+                if (msg) warnings.push(`${field.label || field.name}: ${msg}`);
+              }
+            });
+            if (warnings.length > 0) {
+              toast.error(`Cannot submit. Please fix errors: ${warnings.join(", ")}`);
+              return;
+            }
+            handleSubmit(validatedValues);
+          },
           (errors) => {
             console.warn("DEBUG: Full Validation Errors (Stringify):", JSON.stringify(errors, (key, val) => key === 'ref' ? undefined : val, 2));
             // Format for easy reading
