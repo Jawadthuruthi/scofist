@@ -117,12 +117,13 @@ export async function POST(req, res) {
   try {
     await connectToDB();
 
-    const { _id, name, shortname, batchId, teacherId, coreSubjectIds, majorSubjectIds, status } = await req.json();
+    const { _id, name, shortname, batchId, section, teacherId, coreSubjectIds, majorSubjectIds, status } = await req.json();
     const newClass = await Class.create({
       _id,
       name,
       shortname,
       batchId,
+      section,
       teacherId,
       coreSubjects: coreSubjectIds,
       majorSubjects: majorSubjectIds,
@@ -151,7 +152,7 @@ export async function PUT(req, res) {
     console.log("DEBUG: Class PUT rawBody:", JSON.stringify(rawBody, null, 2));
     const body = rawBody.data || rawBody;
     console.log("DEBUG: Class PUT body:", JSON.stringify(body, null, 2));
-    const { ids, name, shortname, batchId, teacherId, coreSubjectIds, majorSubjectIds, status } = body;
+    const { ids, name, shortname, batchId, section, teacherId, coreSubjectIds, majorSubjectIds, status } = body;
 
     if (!ids || !ids.length) {
       return NextResponse.json({ message: "No IDs provided" }, { status: 400 });
@@ -167,6 +168,7 @@ export async function PUT(req, res) {
             name,
             shortname,
             batchId,
+            section,
             teacherId,
             coreSubjects: coreSubjectIds,
             majorSubjects: majorSubjectIds,
@@ -194,6 +196,7 @@ export async function PUT(req, res) {
           name, 
           shortname, 
           batchId, 
+          section,
           teacherId, 
           coreSubjects: coreSubjectIds,
           majorSubjects: majorSubjectIds,

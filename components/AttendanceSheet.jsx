@@ -194,39 +194,44 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
     }, [filters.month, filters.year]);
 
     // 4. Fetch Attendance Data
-    const loadAttendance = async () => {
-        if ((!filters.classId && !filters.batchId) || !filters.subjectId) {
-            toast.error("Please select Batch/Class and Subject");
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            const params = {
-                subjectId: filters.subjectId,
-                month: filters.month,
-                year: filters.year
-            };
-            if (filters.classId) {
-                params.classId = filters.classId;
-            }
-            if (filters.batchId) {
-                params.batchId = filters.batchId;
+    useEffect(() => {
+        const loadAttendance = async () => {
+            if ((!filters.classId && !filters.batchId) || !filters.subjectId) {
+                return;
             }
 
-            const res = await axios.get("/api/attendance-sheet", {
-                headers: getHeaders(),
-                params
-            });
-            setData(res.data);
-        } catch (error) {
-            console.error(error);
-            toast.error("Failed to load attendance records");
-        } finally {
-            setLoading(false);
+            setLoading(true);
+
+            try {
+                const params = {
+                    subjectId: filters.subjectId,
+                    month: filters.month,
+                    year: filters.year
+                };
+                if (filters.classId) {
+                    params.classId = filters.classId;
+                }
+                if (filters.batchId) {
+                    params.batchId = filters.batchId;
+                }
+
+                const res = await axios.get("/api/attendance-sheet", {
+                    headers: getHeaders(),
+                    params
+                });
+                setData(res.data);
+            } catch (error) {
+                console.error(error);
+                toast.error("Failed to load attendance records");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (filters.subjectId) {
+            loadAttendance();
         }
-    };
+    }, [filters.subjectId, filters.month, filters.year, filters.classId, filters.batchId, apiKey, userId]);
 
     const exportToCSV = () => {
         if (!data.students || data.students.length === 0) {
@@ -338,8 +343,8 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
             </div>
 
             {/* Filters - Hidden in Print */}
-            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4 mb-6 print:hidden">
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-col xl:flex-row flex-wrap items-start xl:items-center gap-4 mb-6 print:hidden">
+                <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
                     <Select value={filters.year.toString()} onValueChange={(v) => setFilters(prev => ({ ...prev, year: parseInt(v) }))}>
                         <SelectTrigger className="flex-1 sm:flex-none sm:w-[120px]"><SelectValue placeholder="Year" /></SelectTrigger>
                         <SelectContent>
@@ -360,59 +365,46 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                             ))}
                         </SelectContent>
                     </Select>
+
+                    <Select value={filters.batchId || "none"} onValueChange={handleBatchChange}>
+                        <SelectTrigger className="flex-1 sm:flex-none sm:w-[160px]"><SelectValue placeholder="Select Batch" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">All/No Batch</SelectItem>
+                            {batches.map(b => (
+                                <SelectItem key={b._id} value={b._id}>
+                                    {b.name} {b.academicYear ? `(${b.academicYear})` : ""}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    
+                    <Select value={filters.classId || "none"} onValueChange={handleClassChange}>
+                        <SelectTrigger className="flex-1 sm:flex-none sm:w-[160px]"><SelectValue placeholder="Select Class" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">All/No Class</SelectItem>
+                            {filteredClasses.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    
+                    <Select value={filters.subjectId} onValueChange={(v) => setFilters(prev => ({ ...prev, subjectId: v }))} disabled={!filters.classId && !filters.batchId}>
+                        <SelectTrigger className="flex-1 sm:flex-none sm:w-[160px]"><SelectValue placeholder="Select Subject" /></SelectTrigger>
+                        <SelectContent>
+                            {subjects.map(s => (
+                                <SelectItem key={s._id || `s-${s}`} value={s._id || s}>
+                                    {s.name || s}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
                 
-                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:ml-auto">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" size="icon" className="shrink-0">
-                                <Filter className="h-4 w-4" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80" align="start">
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <h4 className="font-medium leading-none">Filter Options</h4>
-                                    <p className="text-sm text-muted-foreground">Set batch, class, and subject.</p>
-                                </div>
-                                <div className="grid gap-2">
-                                    <Select value={filters.batchId || "none"} onValueChange={handleBatchChange}>
-                                        <SelectTrigger><SelectValue placeholder="Select Batch" /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none">All/No Batch</SelectItem>
-                                            {batches.map(b => (
-                                                <SelectItem key={b._id} value={b._id}>
-                                                    {b.name} {b.academicYear ? `(${b.academicYear})` : ""}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <Select value={filters.classId || "none"} onValueChange={handleClassChange}>
-                                        <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none">All/No Class</SelectItem>
-                                            {filteredClasses.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <Select value={filters.subjectId} onValueChange={(v) => setFilters(prev => ({ ...prev, subjectId: v }))} disabled={!filters.classId && !filters.batchId}>
-                                        <SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger>
-                                        <SelectContent>
-                                            {subjects.map(s => (
-                                                <SelectItem key={s._id || `s-${s}`} value={s._id || s}>
-                                                    {s.name || s}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-
-                    <Button onClick={loadAttendance} disabled={loading} className="flex-1 sm:flex-none">
-                        {loading ? <Loader className="animate-spin h-4 w-4 mr-2" /> : null}
-                        Load Data
-                    </Button>
+                <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto xl:ml-auto">
+                    {loading && (
+                        <div className="flex items-center text-sm text-muted-foreground mr-2">
+                            <Loader className="animate-spin h-4 w-4 mr-2" />
+                            Loading...
+                        </div>
+                    )}
 
                     <Button variant="outline" onClick={exportToCSV} disabled={!data.students || data.students.length === 0} className="gap-2 flex-1 sm:flex-none">
                         <FileSpreadsheet className="h-4 w-4 text-green-600" /> Excel

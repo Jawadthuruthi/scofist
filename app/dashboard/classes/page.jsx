@@ -39,6 +39,7 @@ const columnsConfig = [
   { accessorKey: "name", header: "Name" },
   { accessorKey: "shortname", header: "Short Name" },
   { accessorKey: "batchName", header: "Batch" },
+  { accessorKey: "section", header: "Section" },
   { accessorKey: "teacherName", header: "Teacher" },
   { accessorKey: "coreSubjectsName", header: "Core Subjects", type: ["array"] },
   { accessorKey: "majorSubjectsName", header: "Major Subjects", type: ["array"] },
@@ -113,6 +114,17 @@ export default async function ClassesPage() {
         inputType: "select",
         required: true,
         options: formatOptions(sortedBatches),
+      },
+      {
+        name: "section",
+        label: "Section",
+        type: "text",
+        inputType: "select",
+        required: true,
+        options: [
+          { label: "Senior Da-awa", value: "Senior Da-awa" },
+          { label: "Junior Da-awa", value: "Junior Da-awa" },
+        ],
       },
       {
         name: "teacherId",

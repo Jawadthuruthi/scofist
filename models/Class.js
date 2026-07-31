@@ -33,6 +33,9 @@ const classSchema = new Schema(
       required: [true, "Batch is required"],
       ref: "Batch",
     },
+    section: {
+      type: String,
+    },
     teacherId: {
       type: String,
       ref: "User",
