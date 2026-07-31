@@ -113,60 +113,54 @@ export async function GET(req) {
 
     const studentIds = Object.keys(studentMap);
 
-    // 2-7. Run all independent queries in parallel
-    const [regAtt, masAtt, litAtt, remarks, performances, leaves, classes, settings] = await Promise.all([
-      StudentAttendance.find({ studentId: { $in: studentIds } }).lean(),
-      StudentMasjidAttendance.find({ studentId: { $in: studentIds } }).lean(),
-      StudentLiteraryAttendance.find({ studentId: { $in: studentIds } }).lean(),
-      Remark.find({ studentId: { $in: studentIds }, date: { $gte: startDate, $lte: endDate } }).populate('teacherId', 'name').lean(),
-      Performance.find({ studentId: { $in: studentIds }, date: { $gte: startDate, $lte: endDate } }).populate('teacherId', 'name').lean(),
-      LeaveRecord.find({ studentId: { $in: studentIds }, dateOfLeave: { $gte: startDate, $lte: endDate } }).lean(),
-      Class.find({ _id: { $in: Array.from(classIdsSet) } }).lean(),
-      Settings.findOne().lean()
-    ]);
+    const getAttStats = async (Model) => {
+      const stats = await Model.aggregate([
+        { $match: { studentId: { $in: studentIds } } },
+        { $unwind: "$attendanceRecords" },
+        { $match: { "attendanceRecords.date": { $gte: startDate, $lte: endDate } } },
+        { $group: {
+            _id: "$studentId",
+            total: { $sum: 1 },
+            present: { $sum: { $cond: [{ $eq: ["$attendanceRecords.present", true] }, 1, 0] } }
+        }}
+      ]);
+      const map = {};
+      stats.forEach(s => {
+        map[s._id] = { total: s.total, present: s.present };
+      });
+      return map;
+    };
+
+    // Sequential queries to avoid overwhelming the connection pool
+    const regAttMap = await getAttStats(StudentAttendance);
+    const masAttMap = await getAttStats(StudentMasjidAttendance);
+    const litAttMap = await getAttStats(StudentLiteraryAttendance);
+    
+    const remarks = await Remark.find({ studentId: { $in: studentIds }, date: { $gte: startDate, $lte: endDate } }).populate('teacherId', 'name').lean();
+    const performances = await Performance.find({ studentId: { $in: studentIds }, date: { $gte: startDate, $lte: endDate } }).populate('teacherId', 'name').lean();
+    const leaves = await LeaveRecord.find({ studentId: { $in: studentIds }, dateOfLeave: { $gte: startDate, $lte: endDate } }).lean();
+    const classes = await Class.find({ _id: { $in: Array.from(classIdsSet) } }).lean();
+    const settings = await Settings.findOne().lean();
 
     const classMap = {};
     classes.forEach(c => {
       classMap[c._id.toString()] = c.name;
     });
 
-    // Process Regular Attendance
-    regAtt.forEach(doc => {
-      const sid = doc.studentId.toString();
-      if (!studentMap[sid]) return;
-      doc.attendanceRecords.forEach(record => {
-        const recDate = new Date(record.date);
-        if (recDate >= startDate && recDate <= endDate) {
-          studentMap[sid].stats.regular.total += 1;
-          if (record.present) studentMap[sid].stats.regular.present += 1;
-        }
-      });
-    });
-
-    // Process Masjid Attendance
-    masAtt.forEach(doc => {
-      const sid = doc.studentId.toString();
-      if (!studentMap[sid]) return;
-      doc.attendanceRecords.forEach(record => {
-        const recDate = new Date(record.date);
-        if (recDate >= startDate && recDate <= endDate) {
-          studentMap[sid].stats.masjid.total += 1;
-          if (record.present) studentMap[sid].stats.masjid.present += 1;
-        }
-      });
-    });
-
-    // Process Literary Attendance
-    litAtt.forEach(doc => {
-      const sid = doc.studentId.toString();
-      if (!studentMap[sid]) return;
-      doc.attendanceRecords.forEach(record => {
-        const recDate = new Date(record.date);
-        if (recDate >= startDate && recDate <= endDate) {
-          studentMap[sid].stats.literary.total += 1;
-          if (record.present) studentMap[sid].stats.literary.present += 1;
-        }
-      });
+    // Assign stats directly
+    studentIds.forEach(sid => {
+      if (regAttMap[sid]) {
+        studentMap[sid].stats.regular.total = regAttMap[sid].total;
+        studentMap[sid].stats.regular.present = regAttMap[sid].present;
+      }
+      if (masAttMap[sid]) {
+        studentMap[sid].stats.masjid.total = masAttMap[sid].total;
+        studentMap[sid].stats.masjid.present = masAttMap[sid].present;
+      }
+      if (litAttMap[sid]) {
+        studentMap[sid].stats.literary.total = litAttMap[sid].total;
+        studentMap[sid].stats.literary.present = litAttMap[sid].present;
+      }
     });
 
     // Calculate attendance points
