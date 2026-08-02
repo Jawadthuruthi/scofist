@@ -613,6 +613,48 @@ export async function PUT(req) {
       }
     }
 
+    // Section-level working day toggles (Senior Da-awa / Junior Da-awa)
+    // Add historical tracking similar to general nonWorkingDays
+    if (data.seniorDaawa_isWorkingDay !== undefined) {
+      updateData["general.seniorDaawa.isWorkingDay"] = data.seniorDaawa_isWorkingDay;
+      const now = new Date();
+      const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+      const todayDS = `${todayIST.getUTCFullYear()}-${String(todayIST.getUTCMonth() + 1).padStart(2, "0")}-${String(todayIST.getUTCDate()).padStart(2, "0")}`;
+      let snwd = [...(existingSettings?.general?.seniorDaawaNonWorkingDays || [])];
+
+      if (data.seniorDaawa_isWorkingDay === false) {
+        if (!snwd.some((dt) => new Date(dt).toISOString().split("T")[0] === todayDS)) {
+          snwd.push(new Date(`${todayDS}T00:00:00.000Z`));
+        }
+      } else {
+        snwd = snwd.filter((dt) => new Date(dt).toISOString().split("T")[0] !== todayDS);
+      }
+      updateData["general.seniorDaawaNonWorkingDays"] = snwd;
+    }
+    if (data.seniorDaawa_occasion !== undefined) {
+      updateData["general.seniorDaawa.occasion"] = data.seniorDaawa_occasion;
+    }
+
+    if (data.juniorDaawa_isWorkingDay !== undefined) {
+      updateData["general.juniorDaawa.isWorkingDay"] = data.juniorDaawa_isWorkingDay;
+      const now = new Date();
+      const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+      const todayDS = `${todayIST.getUTCFullYear()}-${String(todayIST.getUTCMonth() + 1).padStart(2, "0")}-${String(todayIST.getUTCDate()).padStart(2, "0")}`;
+      let jnwd = [...(existingSettings?.general?.juniorDaawaNonWorkingDays || [])];
+
+      if (data.juniorDaawa_isWorkingDay === false) {
+        if (!jnwd.some((dt) => new Date(dt).toISOString().split("T")[0] === todayDS)) {
+          jnwd.push(new Date(`${todayDS}T00:00:00.000Z`));
+        }
+      } else {
+        jnwd = jnwd.filter((dt) => new Date(dt).toISOString().split("T")[0] !== todayDS);
+      }
+      updateData["general.juniorDaawaNonWorkingDays"] = jnwd;
+    }
+    if (data.juniorDaawa_occasion !== undefined) {
+      updateData["general.juniorDaawa.occasion"] = data.juniorDaawa_occasion;
+    }
+
     // Festival - Build carefully
     if (
       data.festival_name ||

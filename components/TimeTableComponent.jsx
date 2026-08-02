@@ -285,6 +285,7 @@ const TimeTableComponent = ({
   useShortName = false,
   hideEmptyClassRows = false,
   role,
+  settings,
 }) => {
   const timeTableRef = useRef(null);
   const [absenteesDialogOpen, setAbsenteesDialogOpen] = useState(false);
@@ -394,16 +395,27 @@ const TimeTableComponent = ({
   );
 
   const filteredClasses = useMemo(() => {
-    if (!hideEmptyClassRows || teacherId) return classes;
+    // First apply section working-day filter
+    const isSeniorOn = settings?.general?.seniorDaawa?.isWorkingDay !== false;
+    const isJuniorOn = settings?.general?.juniorDaawa?.isWorkingDay !== false;
 
-    return classes.filter((classItem) => {
+    const sectionFiltered = classes.filter((classItem) => {
+      const section = classItem.section || "";
+      if (section === "Senior Da-awa" && !isSeniorOn) return false;
+      if (section === "Junior Da-awa" && !isJuniorOn) return false;
+      return true;
+    });
+
+    if (!hideEmptyClassRows || teacherId) return sectionFiltered;
+
+    return sectionFiltered.filter((classItem) => {
       return timeTableData.timeSlots?.some(
         (slot) =>
           (slot.classId?._id || slot.classId)?.toString() === classItem._id?.toString() &&
           (slot.subjectId || slot.teacherId)
       );
     });
-  }, [classes, hideEmptyClassRows, teacherId, timeTableData.timeSlots]);
+  }, [classes, hideEmptyClassRows, teacherId, timeTableData.timeSlots, settings]);
 
   const showAbsenteesDialog = useCallback(
     (periodNumber, day, cellData, absenteesList) => {

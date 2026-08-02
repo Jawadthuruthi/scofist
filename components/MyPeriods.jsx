@@ -255,9 +255,19 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const filteredSlots = useMemo(() => {
     if (!timeTablesQuery.data?.timeTables || !periods.length) return [];
 
+    // Section working day status from settings
+    const isSeniorOn = settings?.general?.seniorDaawa?.isWorkingDay !== false;
+    const isJuniorOn = settings?.general?.juniorDaawa?.isWorkingDay !== false;
+
     // Process all timeTables in one pass
     const teachersSlots = timeTablesQuery.data.timeTables.flatMap(
       (timeTable) => {
+        const classSection = timeTable.classId?.section || "";
+
+        // Skip slots from off sections
+        if (classSection === "Senior Da-awa" && !isSeniorOn) return [];
+        if (classSection === "Junior Da-awa" && !isJuniorOn) return [];
+
         return timeTable.timeSlots
           .filter(
             (slot) => slot.teacherId?._id === teacherId && slot.day === today && !slot.validTo
@@ -273,7 +283,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     );
 
     return teachersSlots.sort((a, b) => a.periodNumber - b.periodNumber);
-  }, [timeTablesQuery.data?.timeTables, periods, teacherId, today]);
+  }, [timeTablesQuery.data?.timeTables, periods, teacherId, today, settings]);
 
   // Precompute attendance status once
   const attendanceStatus = useMemo(() => {
@@ -832,9 +842,25 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
             </div>
           ) : (
             <div className="text-center p-8 border rounded-md font-bold text-muted-foreground text-lg">
-              {!settings?.general?.isWorkingDay
-                ? settings?.general?.occasion || "Today is a non-working day."
-                : "No periods scheduled for " + today + "."}
+              {(() => {
+                if (!settings?.general?.isWorkingDay) {
+                  return settings?.general?.occasion || "Today is a non-working day.";
+                }
+                const isSeniorOn = settings?.general?.seniorDaawa?.isWorkingDay !== false;
+                const isJuniorOn = settings?.general?.juniorDaawa?.isWorkingDay !== false;
+                if (!isSeniorOn && !isJuniorOn) {
+                  return settings?.general?.seniorDaawa?.occasion
+                    || settings?.general?.juniorDaawa?.occasion
+                    || "Both sections are off today.";
+                }
+                if (!isSeniorOn) {
+                  return settings?.general?.seniorDaawa?.occasion || "Senior Da-awa section is off today.";
+                }
+                if (!isJuniorOn) {
+                  return settings?.general?.juniorDaawa?.occasion || "Junior Da-awa section is off today.";
+                }
+                return "No periods scheduled for " + today + ".";
+              })()}
             </div>
           )}
         </div>

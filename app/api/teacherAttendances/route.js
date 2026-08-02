@@ -69,17 +69,28 @@ export async function GET(req, res) {
     if (isNaN(startDate.getTime())) startDate = new Date();
     if (isNaN(endDate.getTime())) endDate = new Date(startDate);
 
-    // 2. Fetch TimeTables and Settings for synthesis
-    const [timeTables, settings] = await Promise.all([
+    // 2. Fetch TimeTables, Settings, and Classes for synthesis
+    const [timeTables, settings, allClasses] = await Promise.all([
       TimeTable.find({}).lean(),
       Settings.findOne({}).lean(),
+      Class.find({}, "_id section").lean(),
     ]);
+
+    // Build fast classId -> section lookup
+    const classSectionMap = {};
+    allClasses.forEach(cls => { classSectionMap[String(cls._id)] = cls.section || ""; });
 
     // Build a fast lookup set of non-working date strings from Settings
     const nonWorkingDaySet = new Set(
       (settings?.general?.nonWorkingDays || []).map(
         (dt) => getDS(dt)
       )
+    );
+    const seniorDaawaNonWorkingDaySet = new Set(
+      (settings?.general?.seniorDaawaNonWorkingDays || []).map((dt) => getDS(dt))
+    );
+    const juniorDaawaNonWorkingDaySet = new Set(
+      (settings?.general?.juniorDaawaNonWorkingDays || []).map((dt) => getDS(dt))
     );
 
     // 6. Synthesize Attendance History
@@ -113,6 +124,9 @@ export async function GET(req, res) {
     });
 
     const isTodayGlobalWorking = settings?.general?.isWorkingDay !== false;
+    // Section-level working day status (only affects today)
+    const isSeniorDaawaWorking = settings?.general?.seniorDaawa?.isWorkingDay !== false;
+    const isJuniorDaawaWorking = settings?.general?.juniorDaawa?.isWorkingDay !== false;
 
     // 5. Fetch all data in parallel
     const teacherIds = allTeachers.map(t => t._id.toString());
@@ -192,8 +206,18 @@ export async function GET(req, res) {
           const isWorkingDay = !isNonWorkingDay;
           const isEffectivelyWorking = (dateString === todayDS) ? isTodayGlobalWorking : isWorkingDay;
 
-          // Skip counting as absent if it's a non-working day
-          if (!isEffectivelyWorking && !actual.present) {
+          // For today only: skip if the slot's class section is toggled off
+          const slotSection = classSectionMap[String(actual.classId)] || "";
+          const isSectionWorking = dateString !== todayDS
+            ? (slotSection === "Senior Da-awa" ? !seniorDaawaNonWorkingDaySet.has(dateString)
+              : slotSection === "Junior Da-awa" ? !juniorDaawaNonWorkingDaySet.has(dateString)
+              : true)
+            : (slotSection === "Senior Da-awa" ? isSeniorDaawaWorking
+              : slotSection === "Junior Da-awa" ? isJuniorDaawaWorking
+              : true);
+
+          // Skip counting as absent if it's a non-working day or the section is off today
+          if ((!isEffectivelyWorking || !isSectionWorking) && !actual.present) {
             return;
           }
 
@@ -255,6 +279,20 @@ export async function GET(req, res) {
           ?? null;
 
         const key = `${ds}_${lrClassId}_${String(subjectId)}_${lr.periodNumber}`;
+        const slotSection = classSectionMap[lrClassId] || "";
+        const isSectionWorking = ds !== todayDS
+          ? (slotSection === "Senior Da-awa" ? !seniorDaawaNonWorkingDaySet.has(ds)
+            : slotSection === "Junior Da-awa" ? !juniorDaawaNonWorkingDaySet.has(ds)
+            : true)
+          : (slotSection === "Senior Da-awa" ? isSeniorDaawaWorking
+            : slotSection === "Junior Da-awa" ? isJuniorDaawaWorking
+            : true);
+
+        // Skip adding absent record if section is off today
+        if (!isSectionWorking) {
+          return;
+        }
+
         if (!processedKeys.has(key)) {
           records.push({
             _id: `synth_leave_${teacher._id}_${ds}_${lr.periodNumber}`,
@@ -312,7 +350,17 @@ export async function GET(req, res) {
           // Only add synthetic absent record for scheduled slots not yet claimed by
           // Steps 1 or 1.5. If the teacher actually conducted the class, Step 1.5
           // already added it as present:true and put it in processedKeys.
-          if (!processedKeys.has(key) && isEffectivelyWorking && dateString <= todayDS && isStarted && isNotEnded) {
+          // For today only: also skip if the slot's class section is toggled off
+          const slotSection = classSectionMap[String(slot.classId)] || "";
+          const isSectionWorking = dateString !== todayDS
+            ? (slotSection === "Senior Da-awa" ? !seniorDaawaNonWorkingDaySet.has(dateString)
+              : slotSection === "Junior Da-awa" ? !juniorDaawaNonWorkingDaySet.has(dateString)
+              : true)
+            : (slotSection === "Senior Da-awa" ? isSeniorDaawaWorking
+              : slotSection === "Junior Da-awa" ? isJuniorDaawaWorking
+              : true);
+
+          if (!processedKeys.has(key) && isEffectivelyWorking && isSectionWorking && dateString <= todayDS && isStarted && isNotEnded) {
             records.push({
               _id: `synth_abs_${teacher._id}_${dateString}_${slot.periodNumber}`,
               teacherId: teacher._id,

@@ -1,6 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import CommitteePostersSettings from "@/components/CommitteePostersSettings";
+import SectionWorkingDayToggle from "@/components/SectionWorkingDayToggle";
 
 const FormComponent = dynamic(() => import("@/components/FormComponent"), {
   ssr: false,
@@ -365,6 +366,10 @@ export default function SettingsClient({
             resource="settings"
             title="General"
             description="Customize Your System Settings"
+          />
+          <SectionWorkingDayToggle
+            apiKey={apiKey}
+            general={general}
           />
           <FormComponent
             formFields={institutionFormField}
