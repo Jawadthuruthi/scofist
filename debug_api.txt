@@ -1,0 +1,14 @@
+{"time":"2026-08-03T11:38:06.397Z","countUsers":137,"findUsers":96,"findAttendances":9323,"findLookups":225,"mapping":20,"total":9801}
+{"time":"2026-08-03T11:38:41.379Z","countUsers":80,"findUsers":75,"findAttendances":9363,"findLookups":230,"mapping":18,"total":9766}
+{"time":"2026-08-03T11:39:54.688Z","countUsers":208,"findUsers":67,"findAttendances":18887,"findLookups":241,"mapping":11,"total":19414}
+{"time":"2026-08-03T11:40:26.238Z","countUsers":63,"findUsers":68,"findAttendances":15482,"findLookups":446,"mapping":137,"total":16196}
+{"time":"2026-08-03T11:41:34.277Z","countUsers":235,"findUsers":163,"findAttendances":23296,"findLookups":775,"mapping":14,"total":24483}
+{"time":"2026-08-03T11:41:47.887Z","countUsers":279,"findUsers":610,"findAttendances":19089,"findLookups":6525,"mapping":9,"total":26512}
+{"time":"2026-08-03T11:42:14.634Z","countUsers":66,"findUsers":76,"findAttendances":11552,"findLookups":262,"mapping":11,"total":11967}
+{"time":"2026-08-03T11:42:22.880Z","countUsers":201,"findUsers":121,"findAttendances":11763,"findLookups":224,"mapping":7,"total":12316}
+{"time":"2026-08-03T11:42:49.258Z","countUsers":60,"findUsers":72,"findAttendances":29448,"findLookups":8006,"mapping":213,"total":37799}
+{"time":"2026-08-03T11:43:14.900Z","countUsers":62,"findUsers":69,"findAttendances":18749,"findLookups":254,"mapping":40,"total":19174}
+{"time":"2026-08-03T11:43:42.260Z","countUsers":61,"findUsers":69,"findAttendances":22087,"findLookups":233,"mapping":6,"total":22456}
+{"time":"2026-08-03T11:44:09.213Z","countUsers":65,"findUsers":74,"findAttendances":21415,"findLookups":229,"mapping":9,"total":21792}
+{"time":"2026-08-03T11:44:27.401Z","countUsers":65,"findUsers":69,"findAttendances":15806,"findLookups":278,"mapping":6,"total":16224}
+{"time":"2026-08-03T11:45:04.003Z","countUsers":60,"findUsers":68,"findAttendances":28648,"findLookups":229,"mapping":6,"total":29011}

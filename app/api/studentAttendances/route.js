@@ -231,113 +231,79 @@ export async function GET(req, res) {
     ];
 
     if (!isToppersOnly) {
-      let userQuery = { roles: "Student" };
-      if (documentQuery.studentId) {
-        if (documentQuery.studentId === "NULL_USER_ID") {
+      if (documentQuery.studentId && documentQuery.studentId === "NULL_USER_ID") {
           return NextResponse.json({
             studentAttendances: [],
             pagination: { page, limit, total: 0, totalPages: 0 },
             message: "No students found"
           }, { status: 200 });
-        }
-        userQuery._id = documentQuery.studentId;
       }
+
+      const countPipelineLocal = [ ...pipeline, { $count: "total" } ];
+      const countResult = await StudentAttendance.aggregate(countPipelineLocal).exec();
+      const total = countResult.length > 0 ? countResult[0].total : 0;
+
+      const paginatedPipeline = [
+        ...pipeline,
+        { $skip: limit === Infinity ? 0 : page * limit },
+        { $limit: limit === Infinity ? (total || 1) : limit }
+      ];
+
+      const attendances = await StudentAttendance.aggregate(paginatedPipeline).exec();
+      const userIds = attendances.map(a => a.studentId);
       
-      const total = await User.countDocuments(userQuery);
-      const users = await User.find(userQuery, "_id name")
-        .skip(limit === Infinity ? 0 : page * limit)
-        .limit(limit === Infinity ? 0 : limit)
-        .lean();
-        
-      const userIds = users.map(u => u._id);
+      const users = await User.find({ _id: { $in: userIds } }, "_id name").lean();
+      const userMap = new Map(users.map(u => [u._id.toString(), u.name]));
       
-      const attendances = await StudentAttendance.find({ studentId: { $in: userIds } })
-        .populate("attendanceRecords.classId", "name")
-        .populate("attendanceRecords.subjectId", "name")
-        .populate("attendanceRecords.teacherId", "name")
-        .lean();
-        
-      const attendanceMap = {};
-      attendances.forEach(doc => {
-        attendanceMap[doc.studentId] = doc.attendanceRecords || [];
-      });
+      const allClassesList = await Class.find({}, "_id name").lean();
+      const allClassesMap = new Map(allClassesList.map(c => [c._id.toString(), c.name]));
       
-      const formattedStudentAttendances = users.map(user => {
-        let records = attendanceMap[user._id] || [];
+      let allSubjectsList = [];
+      try {
+        const SubjectModel = (await import("@/models/Subject")).default;
+        allSubjectsList = await SubjectModel.find({}, "_id name").lean();
+      } catch(e) {}
+      const allSubjectsMap = new Map(allSubjectsList.map(s => [s._id.toString(), s.name]));
+      
+      const allTeachersList = await User.find({ roles: "Teacher" }, "_id name").lean();
+      const allTeachersMap = new Map(allTeachersList.map(t => [t._id.toString(), t.name]));
+
+      const formattedStudentAttendances = attendances.map(doc => {
+        let records = doc.attendanceRecords || [];
         
-        // Debug
-        if (recordFilters.batchId && records.length > 0) {
-          console.log(`Student ${user.name} records before batch filter: ${records.length}. sample batchId in record: ${records[0].batchId}`);
-        }
-        
-        // Apply record filters
-        if (recordFilters.classId) {
-          const classIds = String(recordFilters.classId).split(',').map(s => s.trim());
-          records = records.filter(r => classIds.includes(r.classId?._id?.toString() || r.classId?.toString()));
-        }
-        if (recordFilters.batchId) {
-          const batchIds = String(recordFilters.batchId).split(',').map(s => s.trim());
-          records = records.filter(r => {
-            const bid = r.batchId?._id?.toString() || r.batchId?.toString();
-            // Handle corrupted database records where batchId was saved as "[object Object]"
-            return batchIds.includes(bid) || bid === "[object Object]";
-          });
-        }
-        
-        if (recordFilters.subjectId) {
-          const subjectIds = String(recordFilters.subjectId).split(',').map(s => s.trim());
-          records = records.filter(r => subjectIds.includes(r.subjectId?._id?.toString() || r.subjectId?.toString()));
-        }
-        if (dateFilter?.start) {
-          records = records.filter(r => new Date(r.date) >= dateFilter.start);
-        }
-        if (dateFilter?.end) {
-          records = records.filter(r => new Date(r.date) <= dateFilter.end);
-        }
-        
-        // Filter for CORE and MAJOR subjects if they are defined, otherwise show all
+        // Filter for CORE and MAJOR subjects if they are defined
         records = records.filter(r => {
-          const cId = r.classId?._id?.toString() || r.classId?.toString();
-          const sId = r.subjectId?._id?.toString() || r.subjectId?.toString();
+          const cId = r.classId?.toString();
+          const sId = r.subjectId?.toString();
           const subjects = classSubjectMap[cId];
           if (!subjects) return false;
-          // If class has no CORE/MAJOR subjects assigned, allow all subjects for that class
           if (subjects.core.length === 0 && subjects.major.length === 0) return true;
           return subjects.core.includes(sId) || subjects.major.includes(sId);
         });
-        
+
         return {
-          _id: user._id,
-          name: user.name,
-          attendanceRecords: records.map(r => ({
-            date: r.date,
-            present: r.present ?? false,
-            periodNumber: r.periodNumber,
-            classId: r.classId?._id || r.classId,
-            className: r.classId?.name || "Unknown",
-            subjectId: r.subjectId?._id || r.subjectId,
-            subjectName: r.subjectId?.name || "Unknown",
-            teacherId: r.teacherId?._id || r.teacherId,
-            teacherName: r.teacherId?.name || "N/A"
-          }))
+          _id: doc.studentId,
+          name: userMap.get(doc.studentId.toString()) || "Unknown Student",
+          attendanceRecords: records.map(r => {
+            const classIdStr = r.classId?.toString();
+            const subjectIdStr = r.subjectId?.toString();
+            const teacherIdStr = r.teacherId?.toString();
+            
+            return {
+              date: r.date,
+              present: r.present ?? false,
+              periodNumber: r.periodNumber,
+              classId: classIdStr,
+              className: allClassesMap.get(classIdStr) || "Unknown",
+              subjectId: subjectIdStr,
+              subjectName: allSubjectsMap.get(subjectIdStr) || "Unknown",
+              teacherId: teacherIdStr,
+              teacherName: allTeachersMap.get(teacherIdStr) || "N/A"
+            };
+          })
         };
       });
-      
-      // DEBUG: WRITE TO FILE
-      const fs = require('fs');
-      try {
-        fs.writeFileSync('debug_api.json', JSON.stringify({
-          recordFilters,
-          dateFilter,
-          sampleUsers: formattedStudentAttendances.slice(0, 2),
-          totalFormattedUsers: formattedStudentAttendances.length,
-          totalRecordsForFirstUser: formattedStudentAttendances[0]?.attendanceRecords?.length || 0,
-          originalRecordsCount: attendanceMap[formattedStudentAttendances[0]?._id]?.length || 0
-        }, null, 2));
-      } catch (e) {
-        console.error("Failed to write debug file", e);
-      }
-      
+
       return NextResponse.json({
         studentAttendances: formattedStudentAttendances,
         pagination: {

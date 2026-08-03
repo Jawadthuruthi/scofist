@@ -76,6 +76,8 @@ const AdvancedDataTableComponent = ({
           printTitle={table.printTitle}
           dateRangeInPopup={table.dateRangeInPopup}
           enableMonthYearFilter={table.enableMonthYearFilter}
+          trailingToolbar={table.trailingToolbar}
+          highlightHighest={table.highlightHighest}
           limit={table.limit}
           defaultSorting={table.defaultSorting}
         />

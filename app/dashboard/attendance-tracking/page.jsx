@@ -37,7 +37,7 @@ const AttendanceTrackingPage = async () => {
 
     const [batches, classes, subjects, students, teachers] = await Promise.all(
       API_ENDPOINTS.map((endpoint) =>
-        fetchData(endpoint.pathname, endpoint.searchParams)
+        fetchData(endpoint.pathname, endpoint.searchParams, 3600)
       )
     );
 
@@ -388,7 +388,7 @@ const AttendanceTrackingPage = async () => {
           groupBy: "attendanceRecords.0.className",
           className: "bg-green-100/50"
         },
-        trailingToolbar: <StudentAttendanceLookup students={students} />,
+        trailingToolbar: <StudentAttendanceLookup students={formattedStudents} classes={formatOptions(formattedClasses)} />,
         limit: 1000,
         tableHeight: "calc(100vh - 250px)",
         defaultSorting: [],
@@ -433,4 +433,3 @@ const AttendanceTrackingPage = async () => {
 
 export default AttendanceTrackingPage;
 
-export const revalidate = 0;
