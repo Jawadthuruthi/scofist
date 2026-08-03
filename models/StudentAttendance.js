@@ -60,6 +60,9 @@ const studentAttendanceSchema = new Schema(
 studentAttendanceSchema.index({ "attendanceRecords.classId": 1 });
 studentAttendanceSchema.index({ "attendanceRecords.batchId": 1 });
 studentAttendanceSchema.index({ "attendanceRecords.date": 1 });
+// Compound indexes for date-range queries scoped to a student or class
+studentAttendanceSchema.index({ studentId: 1, "attendanceRecords.date": 1 });
+studentAttendanceSchema.index({ "attendanceRecords.classId": 1, "attendanceRecords.date": 1 });
 
 // FIXED: Static method to get attendance toppers
 studentAttendanceSchema.statics.getAttendanceToppers = async function (

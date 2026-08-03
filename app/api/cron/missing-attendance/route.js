@@ -147,17 +147,24 @@ export async function GET(req) {
     await DailyTimetableSnapshot.updateOne(
       { dateString: todayDS },
       {
-        $set: {
+        // $setOnInsert: only writes if this is a new document (upsert creating one).
+        // If a snapshot already exists for today (e.g., saved by the PUT handler when
+        // the timetable was edited), this call is a no-op — the original state is preserved.
+        $setOnInsert: {
           date: todayUTCMidnight,
           dateString: todayDS,
           isWorkingDay: true,
-          slots: expectedPeriods.map(ep => ({
-            classId:      ep.classId,
-            teacherId:    ep.teacherId,
-            subjectId:    ep.subjectId,
-            periodNumber: ep.periodNumber,
-            day:          todayDay,
-          })),
+          // Only store slots that have at least a teacher or subject assigned.
+          // Slots cleared/reset to null are omitted so the date-view shows them as empty.
+          slots: expectedPeriods
+            .filter(ep => ep.teacherId || ep.subjectId)
+            .map(ep => ({
+              classId:      ep.classId,
+              teacherId:    ep.teacherId,
+              subjectId:    ep.subjectId,
+              periodNumber: ep.periodNumber,
+              day:          todayDay,
+            })),
         },
       },
       { upsert: true }

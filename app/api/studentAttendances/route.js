@@ -3,6 +3,7 @@ import connectToDB from "@/lib/db";
 import StudentAttendance from "@/models/StudentAttendance";
 import User from "@/models/User";
 import Class from "@/models/Class";
+import Subject from "@/models/Subject";
 import { NextResponse } from "next/server";
 
 export async function GET(req, res) {
@@ -154,12 +155,25 @@ export async function GET(req, res) {
       };
     });
 
-    // For better performance and to handle string IDs correctly, use aggregation with $lookup
-    const pipeline = [
-      // First match at document level (studentId filter)
-      { $match: documentQuery },
+    // Build a pre-match for the date range at the document level.
+    // MongoDB can use the index on attendanceRecords.date to prune documents
+    // before the more expensive per-record $filter runs.
+    const datePreMatch = {};
+    if (dateFilter?.start || dateFilter?.end) {
+      datePreMatch["attendanceRecords.date"] = {
+        ...(dateFilter.start ? { $gte: dateFilter.start } : {}),
+        ...(dateFilter.end  ? { $lte: dateFilter.end  } : {}),
+      };
+    }
 
-      // Add the filtered records field using $filter operator
+    // Combined document-level match: studentId filter + date pre-filter
+    const fullDocumentQuery = { ...documentQuery, ...datePreMatch };
+
+    // Aggregation pipeline — date pre-filter applied in first $match so index is used
+    const pipeline = [
+      { $match: fullDocumentQuery },
+
+      // Fine-grained per-record filter
       {
         $addFields: {
           attendanceRecords: {
@@ -170,51 +184,27 @@ export async function GET(req, res) {
                 $and: [
                   // Filter by class if specified
                   ...(recordFilters.classId
-                    ? [
-                      {
-                        $in: [{ $toString: "$$record.classId" }, recordFilters.classId.split(',').map(s => s.trim())],
-                      },
-                    ]
+                    ? [{ $in: [{ $toString: "$$record.classId" }, recordFilters.classId.split(',').map(s => s.trim())] }]
                     : []),
 
                   // Filter by batch if specified
                   ...(recordFilters.batchId
-                    ? [
-                      {
+                    ? [{
                         $or: [
                           { $in: [{ $toString: "$$record.batchId" }, recordFilters.batchId.split(',').map(s => s.trim())] },
                           { $eq: [{ $toString: "$$record.batchId" }, "[object Object]"] }
                         ]
-                      },
-                    ]
+                      }]
                     : []),
 
                   // Filter by subject if specified
                   ...(recordFilters.subjectId
-                    ? [
-                      {
-                        $in: [{ $toString: "$$record.subjectId" }, recordFilters.subjectId.split(',').map(s => s.trim())],
-                      },
-                    ]
+                    ? [{ $in: [{ $toString: "$$record.subjectId" }, recordFilters.subjectId.split(',').map(s => s.trim())] }]
                     : []),
 
-                  // Date filtering - start date if specified
-                  ...(dateFilter?.start
-                    ? [
-                      {
-                        $gte: ["$$record.date", dateFilter.start],
-                      },
-                    ]
-                    : []),
-
-                  // Date filtering - end date if specified
-                  ...(dateFilter?.end
-                    ? [
-                      {
-                        $lte: ["$$record.date", dateFilter.end],
-                      },
-                    ]
-                    : []),
+                  // Date filtering
+                  ...(dateFilter?.start ? [{ $gte: ["$$record.date", dateFilter.start] }] : []),
+                  ...(dateFilter?.end   ? [{ $lte: ["$$record.date", dateFilter.end]   }] : []),
                 ],
               },
             },
@@ -222,55 +212,56 @@ export async function GET(req, res) {
         },
       },
 
-      // Now project to only include documents with matching records
-      {
-        $match: {
-          "attendanceRecords.0": { $exists: true }, // Ensures at least one record matched
-        },
-      },
+      // Only keep documents that have at least one matching record
+      { $match: { "attendanceRecords.0": { $exists: true } } },
     ];
 
     if (!isToppersOnly) {
       if (documentQuery.studentId && documentQuery.studentId === "NULL_USER_ID") {
-          return NextResponse.json({
-            studentAttendances: [],
-            pagination: { page, limit, total: 0, totalPages: 0 },
-            message: "No students found"
-          }, { status: 200 });
+        return NextResponse.json({
+          studentAttendances: [],
+          pagination: { page, limit, total: 0, totalPages: 0 },
+          message: "No students found"
+        }, { status: 200 });
       }
 
-      const countPipelineLocal = [ ...pipeline, { $count: "total" } ];
-      const countResult = await StudentAttendance.aggregate(countPipelineLocal).exec();
-      const total = countResult.length > 0 ? countResult[0].total : 0;
-
-      const paginatedPipeline = [
+      // Use $facet to get count AND paginated data in a SINGLE aggregation pass
+      // instead of two separate aggregation executions.
+      const facetPipeline = [
         ...pipeline,
-        { $skip: limit === Infinity ? 0 : page * limit },
-        { $limit: limit === Infinity ? (total || 1) : limit }
+        {
+          $facet: {
+            metadata: [{ $count: "total" }],
+            data: [
+              { $skip: limit === Infinity ? 0 : page * limit },
+              ...(limit !== Infinity ? [{ $limit: limit }] : []),
+            ],
+          },
+        },
       ];
 
-      const attendances = await StudentAttendance.aggregate(paginatedPipeline).exec();
+      const [facetResult] = await StudentAttendance.aggregate(facetPipeline).exec();
+      const total = facetResult?.metadata?.[0]?.total ?? 0;
+      const attendances = facetResult?.data ?? [];
+
       const userIds = attendances.map(a => a.studentId);
-      
-      const users = await User.find({ _id: { $in: userIds } }, "_id name").lean();
-      const userMap = new Map(users.map(u => [u._id.toString(), u.name]));
-      
-      const allClassesList = await Class.find({}, "_id name").lean();
-      const allClassesMap = new Map(allClassesList.map(c => [c._id.toString(), c.name]));
-      
-      let allSubjectsList = [];
-      try {
-        const SubjectModel = (await import("@/models/Subject")).default;
-        allSubjectsList = await SubjectModel.find({}, "_id name").lean();
-      } catch(e) {}
+
+      // Fetch names in parallel — reuse allClasses already fetched above for classSubjectMap
+      const [users, allSubjectsList, allTeachersList] = await Promise.all([
+        User.find({ _id: { $in: userIds } }, "_id name").lean(),
+        Subject.find({}, "_id name").lean(),
+        User.find({ roles: "Teacher" }, "_id name").lean(),
+      ]);
+
+      const userMap        = new Map(users.map(u => [u._id.toString(), u.name]));
+      // Build class name map from the allClasses already fetched at the top of this handler
+      const allClassesMap  = new Map(allClasses.map(c => [c._id.toString(), c.name]));
       const allSubjectsMap = new Map(allSubjectsList.map(s => [s._id.toString(), s.name]));
-      
-      const allTeachersList = await User.find({ roles: "Teacher" }, "_id name").lean();
       const allTeachersMap = new Map(allTeachersList.map(t => [t._id.toString(), t.name]));
 
       const formattedStudentAttendances = attendances.map(doc => {
         let records = doc.attendanceRecords || [];
-        
+
         // Filter for CORE and MAJOR subjects if they are defined
         records = records.filter(r => {
           const cId = r.classId?.toString();
@@ -285,10 +276,9 @@ export async function GET(req, res) {
           _id: doc.studentId,
           name: userMap.get(doc.studentId.toString()) || "Unknown Student",
           attendanceRecords: records.map(r => {
-            const classIdStr = r.classId?.toString();
+            const classIdStr   = r.classId?.toString();
             const subjectIdStr = r.subjectId?.toString();
             const teacherIdStr = r.teacherId?.toString();
-            
             return {
               date: r.date,
               present: r.present ?? false,

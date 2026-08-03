@@ -1,7 +1,104 @@
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import TimeTable from "@/models/TimeTable";
+import DailyTimetableSnapshot from "@/models/DailyTimetableSnapshot";
+import Settings from "@/models/Settings";
 import { NextResponse } from "next/server";
+
+// Helper — get YYYY-MM-DD in IST from any date
+const getISTDateString = (date = new Date()) => {
+  const d = new Date(date);
+  const ist = new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
+  const y = ist.getUTCFullYear();
+  const m = String(ist.getUTCMonth() + 1).padStart(2, "0");
+  const dy = String(ist.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${dy}`;
+};
+
+const WEEKDAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+/**
+ * Locks today's snapshot BEFORE any timetable mutation.
+ *
+ * Uses $setOnInsert so it is fully idempotent — if a snapshot already exists
+ * for today (e.g., cron already ran, or this is the second edit of the day)
+ * the document is never overwritten. Only the very first call per day writes
+ * a new snapshot.
+ */
+const ensureTodaySnapshotExists = async () => {
+  try {
+    const todayDS  = getISTDateString();
+    const todayDay = WEEKDAYS[new Date().getUTCDay()]; // UTC day matches IST weekday for snapshot purposes
+
+    // Use IST weekday for accuracy
+    const nowIST   = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000);
+    const dayName  = WEEKDAYS[nowIST.getUTCDay()];
+
+    // Check if snapshot already exists — skip the expensive read if so
+    const exists = await DailyTimetableSnapshot.countDocuments({ dateString: todayDS });
+    if (exists > 0) return; // Already locked — nothing to do
+
+    // Check non-working day via Settings
+    const settings = await Settings.findOne({}).lean();
+    const nonWorkingSet = new Set(
+      (settings?.general?.nonWorkingDays || []).map(getISTDateString)
+    );
+    const isNonWorking =
+      !settings?.general?.isWorkingDay || nonWorkingSet.has(todayDS);
+
+    const [istY, istM, istD] = todayDS.split("-").map(Number);
+    const todayUTCMidnight   = new Date(Date.UTC(istY, istM - 1, istD));
+
+    if (isNonWorking) {
+      // Permanently mark as a non-working day with empty slots
+      await DailyTimetableSnapshot.updateOne(
+        { dateString: todayDS },
+        { $setOnInsert: { date: todayUTCMidnight, dateString: todayDS, isWorkingDay: false, slots: [] } },
+        { upsert: true }
+      );
+      return;
+    }
+
+    // Build today's active slots from the live timetable
+    const timeTables = await TimeTable.find({}).lean();
+    const slots = [];
+
+    timeTables.forEach((tt) => {
+      (tt.timeSlots || []).forEach((slot) => {
+        if (slot.day !== dayName) return;
+        if (!slot.teacherId && !slot.subjectId) return; // skip empty/reset slots
+
+        const effectiveVF = slot.validFrom || tt.updatedAt || tt.createdAt;
+        const vfDS = effectiveVF ? getISTDateString(effectiveVF) : null;
+        const vtDS = slot.validTo  ? getISTDateString(slot.validTo)  : null;
+
+        const isStarted  = !vfDS || vfDS <= todayDS;
+        const isNotEnded = !vtDS || vtDS >  todayDS;
+
+        if (isStarted && isNotEnded) {
+          slots.push({
+            classId:      String(tt.classId),
+            teacherId:    slot.teacherId ? String(slot.teacherId) : undefined,
+            subjectId:    slot.subjectId ? String(slot.subjectId) : undefined,
+            periodNumber: slot.periodNumber,
+            day:          dayName,
+          });
+        }
+      });
+    });
+
+    // $setOnInsert guarantees this never overwrites an existing snapshot
+    await DailyTimetableSnapshot.updateOne(
+      { dateString: todayDS },
+      { $setOnInsert: { date: todayUTCMidnight, dateString: todayDS, isWorkingDay: true, slots } },
+      { upsert: true }
+    );
+  } catch (err) {
+    // Non-fatal — log and continue so the timetable update itself isn't blocked
+    console.error("[ensureTodaySnapshotExists] Failed to lock today's snapshot:", err.message);
+  }
+};
+
 
 // Constants
 const DEFAULT_PAGE = 0;
@@ -177,6 +274,10 @@ export async function PUT(req) {
         { status: 400 }
       );
     }
+
+    // Lock today's timetable as an immutable snapshot BEFORE applying any change.
+    // Uses $setOnInsert so subsequent edits on the same day never overwrite it.
+    await ensureTodaySnapshotExists();
 
     // Limit batch size to prevent timeouts
     const batchSize = Math.min(body.length, MONGODB_MAX_BATCH_SIZE);

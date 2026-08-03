@@ -62,6 +62,8 @@ attendanceSchema.index(
   { classId: 1, subjectId: 1, date: 1, periodNumber: 1 },
   { unique: true }
 );
+// Index for queries scoped by teacher + date (used by teacherAttendances API)
+attendanceSchema.index({ teacherId: 1, date: 1 });
 
 // Pre-save validation to ensure teacherId has Teacher role
 attendanceSchema.pre("save", async function (next) {

@@ -37,7 +37,73 @@ export async function GET(req) {
       return NextResponse.json({ error: "date param required" }, { status: 400 });
     }
 
-    const snapshot = await DailyTimetableSnapshot.findOne({ dateString: date }).lean();
+    let snapshot = await DailyTimetableSnapshot.findOne({ dateString: date }).lean();
+
+    // If no snapshot exists AND the date is strictly in the past, auto-backfill it
+    // so this date is permanently recorded and future timetable changes can't affect it.
+    if (!snapshot) {
+      const todayDS = getDS(new Date());
+      if (date < todayDS) {
+        // Reconstruct the slot state for this past date from validFrom/validTo history
+        const [timeTables, settings] = await Promise.all([
+          TimeTable.find({}).lean(),
+          Settings.findOne({}).lean(),
+        ]);
+
+        const nonWorkingSet = new Set(
+          (settings?.general?.nonWorkingDays || []).map((dt) => getDS(dt))
+        );
+        const isNonWorking = nonWorkingSet.has(date);
+
+        const [y, m, d] = date.split("-").map(Number);
+        const dateUTC = new Date(Date.UTC(y, m - 1, d));
+        // Derive weekday from the date string reliably
+        const dayName = WEEKDAYS[dateUTC.getUTCDay()];
+
+        if (isNonWorking) {
+          await DailyTimetableSnapshot.updateOne(
+            { dateString: date },
+            { $setOnInsert: { date: dateUTC, dateString: date, isWorkingDay: false, slots: [] } },
+            { upsert: true }
+          );
+        } else {
+          const slots = [];
+          timeTables.forEach((tt) => {
+            (tt.timeSlots || []).forEach((slot) => {
+              if (slot.day !== dayName) return;
+              if (!slot.teacherId && !slot.subjectId) return; // skip reset/empty slots
+
+              const effectiveVF = slot.validFrom || tt.updatedAt || tt.createdAt;
+              const vfDS = effectiveVF ? getDS(effectiveVF) : null;
+              const vtDS = slot.validTo  ? getDS(slot.validTo)  : null;
+
+              const isStarted  = !vfDS || vfDS <= date;
+              const isNotEnded = !vtDS || vtDS >  date;
+
+              if (isStarted && isNotEnded) {
+                slots.push({
+                  classId:      String(tt.classId),
+                  teacherId:    slot.teacherId ? String(slot.teacherId) : undefined,
+                  subjectId:    slot.subjectId ? String(slot.subjectId) : undefined,
+                  periodNumber: slot.periodNumber,
+                  day:          dayName,
+                });
+              }
+            });
+          });
+
+          await DailyTimetableSnapshot.updateOne(
+            { dateString: date },
+            { $setOnInsert: { date: dateUTC, dateString: date, isWorkingDay: true, slots } },
+            { upsert: true }
+          );
+        }
+
+        // Return the freshly created snapshot
+        snapshot = await DailyTimetableSnapshot.findOne({ dateString: date }).lean();
+      }
+    }
+
     return NextResponse.json({ snapshot: snapshot || null });
   } catch (error) {
     console.error("Error fetching timetable snapshot:", error);

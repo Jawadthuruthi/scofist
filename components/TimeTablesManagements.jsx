@@ -723,33 +723,64 @@ const TimeTablesManagements = ({
       }
 
       // If no pending change, check existing data
-      // Use allTimeTablesQuery for a more comprehensive source in date view
-      const sourceTimeTables = category === "date" 
-        ? (allTimeTablesQuery.data?.timeTables || []) 
-        : (timeTableData.timeSlots ? [timeTableData] : []);
-
       let existingSlot;
       if (category === "date") {
-        const targetTimeTable = sourceTimeTables.find(
-          (tt) => (tt.classId?._id || tt.classId)?.toString() === targetClassId
-        );
-        
-        // Find the slot that was active on this specific date
-        existingSlot = targetTimeTable?.timeSlots?.find((slot) => {
-          if (slot.periodNumber !== periodNumber || slot.day !== day) return false;
-          
-          if (!date) return !slot.validTo; // If no date selected, show current
-          
-          const effectiveValidFrom = slot.validFrom || targetTimeTable.updatedAt || targetTimeTable.createdAt;
-          const validFromDS = effectiveValidFrom ? new Date(effectiveValidFrom).toISOString().split('T')[0] : null;
-          const validToDS = slot.validTo ? new Date(slot.validTo).toISOString().split('T')[0] : null;
-          
-          // Slot is valid if it was created before/on this date AND (not yet invalidated OR invalidated after this date)
-          const isStarted = !validFromDS || validFromDS <= date;
-          const isNotEnded = !validToDS || validToDS > date;
-          
-          return isStarted && isNotEnded;
-        });
+        // PRIORITY 1: If a snapshot exists for this past date, look up the slot
+        // directly from timeTableData.timeSlots (which holds the snapshot slots).
+        // Snapshot slots use plain string IDs so we enrich them with names from props.
+        // Skip slots where teacher AND subject are both missing (genuinely reset/empty periods).
+        if (snapshotData) {
+          const rawSlot = timeTableData.timeSlots?.find(
+            (slot) =>
+              slot.periodNumber === periodNumber &&
+              slot.day === day &&
+              slot.classId?.toString() === targetClassId
+          );
+          // Only use the snapshot slot if it has at least one of teacher or subject
+          if (rawSlot && (rawSlot.teacherId || rawSlot.subjectId)) {
+            const subjectIdStr = rawSlot.subjectId ? rawSlot.subjectId.toString() : null;
+            const teacherIdStr = rawSlot.teacherId ? rawSlot.teacherId.toString() : null;
+            const classIdStr   = rawSlot.classId   ? rawSlot.classId.toString()   : null;
+            existingSlot = {
+              ...rawSlot,
+              subjectId: subjectIdStr
+                ? { _id: subjectIdStr, name: subjects.find((s) => s._id === subjectIdStr)?.name || subjectIdStr }
+                : null,
+              teacherId: teacherIdStr
+                ? { _id: teacherIdStr, name: teachers.find((t) => t._id === teacherIdStr)?.name || teacherIdStr }
+                : null,
+              classId: classIdStr
+                ? { _id: classIdStr, name: classes.find((c) => c._id === classIdStr)?.name || classIdStr }
+                : null,
+              _fromSnapshot: true,
+            };
+          }
+        }
+
+        // PRIORITY 2: No snapshot — fall back to live timetable with validFrom/validTo filtering
+        if (!existingSlot) {
+          const sourceTimeTables = allTimeTablesQuery.data?.timeTables || [];
+          const targetTimeTable = sourceTimeTables.find(
+            (tt) => (tt.classId?._id || tt.classId)?.toString() === targetClassId
+          );
+
+          // Find the slot that was active on this specific date
+          existingSlot = targetTimeTable?.timeSlots?.find((slot) => {
+            if (slot.periodNumber !== periodNumber || slot.day !== day) return false;
+
+            if (!date) return !slot.validTo; // If no date selected, show current
+
+            const effectiveValidFrom = slot.validFrom || targetTimeTable.updatedAt || targetTimeTable.createdAt;
+            const validFromDS = effectiveValidFrom ? new Date(effectiveValidFrom).toISOString().split('T')[0] : null;
+            const validToDS = slot.validTo ? new Date(slot.validTo).toISOString().split('T')[0] : null;
+
+            // Slot is valid if it was created before/on this date AND (not yet invalidated OR invalidated after this date)
+            const isStarted = !validFromDS || validFromDS <= date;
+            const isNotEnded = !validToDS || validToDS > date;
+
+            return isStarted && isNotEnded;
+          });
+        }
       } else {
         // For standard views, only show currently active slots (no validTo date)
         existingSlot = timeTableData.timeSlots?.find(
@@ -810,6 +841,7 @@ const TimeTablesManagements = ({
     [
       timeTableData.timeSlots,
       allTimeTablesQuery.data?.timeTables,
+      snapshotData,
       pendingChanges,
       subjects,
       teachers,

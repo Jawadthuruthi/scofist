@@ -131,7 +131,33 @@ export async function GET(req, res) {
     // 5. Fetch all data in parallel
     const teacherIds = allTeachers.map(t => t._id.toString());
     const [existingAttendances, conductedClasses, leaveRecords] = await Promise.all([
-      TeacherAttendance.find({ teacherId: { $in: teacherIds } }).lean(),
+      // KEY PERF FIX: filter TeacherAttendance at the DB level to only documents
+      // that have at least one record in the requested date window.
+      // Previously this fetched ALL historical records for ALL teachers.
+      TeacherAttendance.aggregate([
+        {
+          $match: {
+            teacherId: { $in: teacherIds },
+            "attendanceRecords.date": { $gte: startDate, $lte: endDate },
+          },
+        },
+        {
+          $addFields: {
+            attendanceRecords: {
+              $filter: {
+                input: "$attendanceRecords",
+                as: "rec",
+                cond: {
+                  $and: [
+                    { $gte: ["$$rec.date", startDate] },
+                    { $lte: ["$$rec.date", endDate] },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      ]).exec(),
       // Student attendance — ground truth for teacher presence.
       Attendance.find({
         teacherId: { $in: teacherIds },
@@ -143,6 +169,7 @@ export async function GET(req, res) {
         date: { $gte: startDate, $lte: endDate },
       }, "teacherId classId periodNumber date leaveReason").lean(),
     ]);
+
 
     // Build lookup: teacherId -> [attendance objects] for Step 1.5
     // Also build conductedSlotSubjectMap as a fallback subjectId source:

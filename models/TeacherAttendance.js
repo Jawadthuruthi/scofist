@@ -61,6 +61,9 @@ const teacherAttendanceSchema = new Schema(
   }
 );
 
+// Compound index for date-range queries scoped to a teacher
+teacherAttendanceSchema.index({ teacherId: 1, "attendanceRecords.date": 1 });
+
 // Pre-save validation to ensure teacherId has Teacher role
 teacherAttendanceSchema.pre("save", async function (next) {
   try {
