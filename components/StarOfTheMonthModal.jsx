@@ -156,32 +156,30 @@ export default function StarOfTheMonthModal({ classes = [] }) {
           <head>
             <title>Print Posters</title>
             <style>
-              @page { size: A4 landscape; margin: 0; }
+              @page { size: A4 portrait; margin: 0; }
               body { margin: 0; padding: 0; box-sizing: border-box; background: #fff; }
               .page {
-                width: 297mm;
-                height: 210mm;
+                width: 210mm;
                 page-break-after: always;
-                display: flex;
-                flex-direction: row;
-                justify-content: center;
-                align-items: center;
-                gap: 10mm;
-                padding: 0;
+                break-after: page;
+                padding: 5mm;
                 box-sizing: border-box;
+                overflow: hidden;
               }
               .poster {
-                width: 143.5mm;
-                height: 210mm;
-                object-fit: fill; /* Stretches the generated image to fit the height while accommodating the center margin */
+                width: 95mm;
+                height: 135mm;
+                margin: 2.5mm;
+                float: left;
+                object-fit: fill;
               }
             </style>
           </head>
           <body>
             ${images.reduce((acc, img, i) => {
-              if (i % 2 === 0) acc += '<div class="page">';
+              if (i % 4 === 0) acc += '<div class="page">';
               acc += '<img src="' + img + '" class="poster" />';
-              if (i % 2 === 1 || i === images.length - 1) acc += '</div>';
+              if (i % 4 === 3 || i === images.length - 1) acc += '</div>';
               return acc;
             }, '')}
             <script>
@@ -451,11 +449,11 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                   
                   {data.student ? (
                     <>
-                      <div className="text-center z-10 w-full mb-2 border-b border-indigo-100/50 pb-2">
+                      <div className="relative text-center z-10 w-full mb-2 border-b border-indigo-100/50 pb-2">
                         <h2 className="text-sm font-bold text-gray-800 uppercase tracking-widest">{data.institutionName}</h2>
                       </div>
 
-                      <div className="text-center z-10 mb-4 mt-2">
+                      <div className="relative text-center z-10 mb-4 mt-2">
                         <h3 className="text-3xl font-extrabold text-indigo-800 mb-1" style={{ color: "#3730a3" }}>
                           STAR OF THE MONTH
                         </h3>
@@ -483,20 +481,20 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                         </div>
                       </div>
 
-                      <div className="text-center z-10 space-y-1 mb-6">
+                      <div className="relative text-center z-10 space-y-1 mb-6">
                         <h2 className="text-2xl font-bold text-gray-900">{data.student.name}</h2>
                         <p className="text-gray-500 font-medium">{data.className}</p>
                       </div>
 
-                      <div className="w-full bg-white/90 backdrop-blur-md rounded-xl p-5 shadow-sm border border-indigo-50 z-10" data-html2canvas-ignore="true">
-                        <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
+                      <div className="relative w-full bg-white/90 backdrop-blur-md rounded-xl p-5 shadow-sm border border-indigo-50 z-10">
+                        <div className="flex justify-between items-center">
                           <span className="font-semibold text-gray-700 tracking-wide uppercase text-xs">Total Score</span>
                           <span className={`text-xl md:text-2xl font-black drop-shadow-sm ${data.totalScore > 0 ? 'text-green-600' : data.totalScore < 0 ? 'text-red-500' : 'text-gray-700'}`}>
                             {data.totalScore > 0 ? '+' : ''}{data.totalScore} pts
                           </span>
                         </div>
                         
-                        <div className="grid grid-cols-1 gap-y-2 text-sm">
+                        <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 gap-y-2 text-sm" data-html2canvas-ignore="true">
                           <div className="flex justify-between">
                             <span className="text-gray-500">Class Attendance</span>
                             {formatPoints(data.breakdown.regularAttendance)}
@@ -524,7 +522,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                         </div>
                       </div>
                       
-                      <div className="mt-auto pt-6 pb-2 w-full flex flex-col items-center justify-center z-10 text-center">
+                      <div className="relative mt-auto pt-6 pb-2 w-full flex flex-col items-center justify-center z-10 text-center">
                         <div className="px-3 md:px-5 py-1.5 md:py-2 bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400 rounded-full shadow-lg border-2 border-white transform hover:scale-105 transition-transform">
                           <span className="text-base md:text-lg font-black tracking-wider uppercase text-indigo-900 drop-shadow-sm block">
                             Congratulations!
@@ -534,7 +532,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
                       </div>
                     </>
                   ) : (
-                    <div className="py-10 text-center z-10">
+                    <div className="relative py-10 text-center z-10">
                       <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Star className="h-8 w-8 text-gray-400" />
                       </div>
