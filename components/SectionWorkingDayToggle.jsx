@@ -1,12 +1,20 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader, BookOpen, GraduationCap, PowerOff, Power } from "lucide-react";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Loader, BookOpen, GraduationCap, Layers, History, Calendar } from "lucide-react";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -36,7 +44,6 @@ function SectionCard({
   occasion,
   onToggle,
   onOccasionChange,
-  onSave,
   loading,
 }) {
   const isOn = isWorkingDay !== false;
@@ -92,19 +99,9 @@ function SectionCard({
             placeholder="Occasion (e.g. Exam, Holiday…)"
             value={occasion || ""}
             onChange={(e) => onOccasionChange(e.target.value)}
-            className="h-8 text-sm bg-white dark:bg-slate-900"
+            className="h-8 text-sm bg-white dark:bg-slate-900 w-full"
             disabled={loading}
           />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={onSave}
-            disabled={loading}
-            className="h-8 px-3 shrink-0"
-            aria-label={`Save ${label} occasion`}
-          >
-            {loading ? <Loader className="h-3.5 w-3.5 animate-spin" /> : "Save"}
-          </Button>
         </div>
       )}
     </div>
@@ -114,6 +111,9 @@ function SectionCard({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function SectionWorkingDayToggle({ apiKey, general }) {
+  const [bothOn, setBothOn] = useState(general?.isWorkingDay !== false);
+  const [bothOccasion, setBothOccasion] = useState(general?.occasion || "");
+
   const [seniorOn, setSeniorOn] = useState(
     general?.seniorDaawa?.isWorkingDay !== false
   );
@@ -126,213 +126,215 @@ export default function SectionWorkingDayToggle({ apiKey, general }) {
   const [juniorOccasion, setJuniorOccasion] = useState(
     general?.juniorDaawa?.occasion || ""
   );
-  const [seniorLoading, setSeniorLoading] = useState(false);
-  const [juniorLoading, setJuniorLoading] = useState(false);
-  const [bothLoading, setBothLoading] = useState(false);
+  
+  const [loading, setLoading] = useState(false);
 
-  // ── Senior toggle ──────────────────────────────────────────────────────────
-  const handleSeniorToggle = useCallback(
-    async (checked) => {
-      setSeniorLoading(true);
+  // Compute history data
+  const historyData = [];
+  
+  const nonWorkingLogDates = new Map();
+  if (general?.nonWorkingDaysLog) {
+    general.nonWorkingDaysLog.forEach(log => {
       try {
-        await patchSettings(
-          {
-            seniorDaawa_isWorkingDay: checked,
-            ...(checked ? {} : { seniorDaawa_occasion: seniorOccasion }),
-          },
-          apiKey
-        );
-        setSeniorOn(checked);
-        if (checked) setSeniorOccasion("");
-        toast.success(
-          checked
-            ? "Senior Da-awa marked as Working Day"
-            : "Senior Da-awa marked as Day Off"
-        );
-      } catch (err) {
-        toast.error(err.message);
-      } finally {
-        setSeniorLoading(false);
-      }
-    },
-    [apiKey, seniorOccasion]
-  );
-
-  const handleSeniorOccasionSave = useCallback(async () => {
-    setSeniorLoading(true);
-    try {
-      await patchSettings({ seniorDaawa_occasion: seniorOccasion }, apiKey);
-      toast.success("Senior Da-awa occasion saved");
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setSeniorLoading(false);
-    }
-  }, [apiKey, seniorOccasion]);
-
-  // ── Junior toggle ──────────────────────────────────────────────────────────
-  const handleJuniorToggle = useCallback(
-    async (checked) => {
-      setJuniorLoading(true);
+        const dateStr = new Date(log.date).toISOString().split('T')[0];
+        nonWorkingLogDates.set(dateStr, { date: log.date, occasion: log.occasion });
+      } catch (e) {}
+    });
+  }
+  
+  const seniorDates = new Set();
+  if (general?.seniorDaawaNonWorkingDays) {
+    general.seniorDaawaNonWorkingDays.forEach(date => {
       try {
-        await patchSettings(
-          {
-            juniorDaawa_isWorkingDay: checked,
-            ...(checked ? {} : { juniorDaawa_occasion: juniorOccasion }),
-          },
-          apiKey
-        );
-        setJuniorOn(checked);
-        if (checked) setJuniorOccasion("");
-        toast.success(
-          checked
-            ? "Junior Da-awa marked as Working Day"
-            : "Junior Da-awa marked as Day Off"
-        );
-      } catch (err) {
-        toast.error(err.message);
-      } finally {
-        setJuniorLoading(false);
-      }
-    },
-    [apiKey, juniorOccasion]
-  );
-
-  const handleJuniorOccasionSave = useCallback(async () => {
-    setJuniorLoading(true);
-    try {
-      await patchSettings({ juniorDaawa_occasion: juniorOccasion }, apiKey);
-      toast.success("Junior Da-awa occasion saved");
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setJuniorLoading(false);
+        seniorDates.add(new Date(date).toISOString().split('T')[0]);
+      } catch (e) {}
+    });
+  }
+  
+  const juniorDates = new Set();
+  if (general?.juniorDaawaNonWorkingDays) {
+    general.juniorDaawaNonWorkingDays.forEach(date => {
+      try {
+        juniorDates.add(new Date(date).toISOString().split('T')[0]);
+      } catch (e) {}
+    });
+  }
+  
+  const allDateStrs = new Set([...nonWorkingLogDates.keys(), ...seniorDates, ...juniorDates]);
+  
+  allDateStrs.forEach(dateStr => {
+    const inLog = nonWorkingLogDates.has(dateStr);
+    const inSenior = seniorDates.has(dateStr);
+    const inJunior = juniorDates.has(dateStr);
+    
+    const dateObj = inLog ? nonWorkingLogDates.get(dateStr).date : new Date(`${dateStr}T00:00:00.000Z`);
+    const occasion = inLog ? (nonWorkingLogDates.get(dateStr).occasion || "Not specified") : "Not specified";
+    
+    if (inLog || (inSenior && inJunior)) {
+      historyData.push({
+        date: dateObj,
+        occasion,
+        section: "Both Sections"
+      });
+    } else if (inSenior) {
+      historyData.push({
+        date: dateObj,
+        occasion,
+        section: "Senior Da-awa"
+      });
+    } else if (inJunior) {
+      historyData.push({
+        date: dateObj,
+        occasion,
+        section: "Junior Da-awa"
+      });
     }
-  }, [apiKey, juniorOccasion]);
+  });
 
-  // ── Both Off ───────────────────────────────────────────────────────────────
-  const handleBothOff = useCallback(async () => {
-    setBothLoading(true);
-    try {
-      await patchSettings(
-        {
-          seniorDaawa_isWorkingDay: false,
-          juniorDaawa_isWorkingDay: false,
-        },
-        apiKey
-      );
-      setSeniorOn(false);
-      setJuniorOn(false);
-      toast.success("Both sections marked as Day Off");
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setBothLoading(false);
-    }
-  }, [apiKey]);
+  historyData.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  // ── Both On ────────────────────────────────────────────────────────────────
-  const handleBothOn = useCallback(async () => {
-    setBothLoading(true);
-    try {
-      await patchSettings(
-        {
-          seniorDaawa_isWorkingDay: true,
-          juniorDaawa_isWorkingDay: true,
-        },
-        apiKey
-      );
-      setSeniorOn(true);
-      setJuniorOn(true);
+  const handleBothToggle = (checked) => {
+    setBothOn(checked);
+    setSeniorOn(checked);
+    setJuniorOn(checked);
+    if (checked) {
+      setBothOccasion("");
       setSeniorOccasion("");
       setJuniorOccasion("");
-      toast.success("Both sections marked as Working Day");
+    }
+  };
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      await patchSettings(
+        {
+          isWorkingDay: bothOn,
+          occasion: bothOn ? "" : bothOccasion,
+          seniorDaawa_isWorkingDay: seniorOn,
+          seniorDaawa_occasion: seniorOn ? "" : seniorOccasion,
+          juniorDaawa_isWorkingDay: juniorOn,
+          juniorDaawa_occasion: juniorOn ? "" : juniorOccasion,
+        },
+        apiKey
+      );
+      toast.success("Settings saved successfully");
     } catch (err) {
       toast.error(err.message);
     } finally {
-      setBothLoading(false);
+      setLoading(false);
     }
-  }, [apiKey]);
-
-  const bothAreOff = !seniorOn && !juniorOn;
-  const bothAreOn = seniorOn && juniorOn;
+  };
 
   return (
-    <div className="rounded-xl border bg-card p-5 shadow-sm space-y-4">
-      {/* Card header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h3 className="font-semibold text-base">Section Working Days</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Toggle working day status for each Da-awa section independently
+    <Card>
+      <CardHeader className="p-6 pb-0">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1.5">
+            <h2 className="text-2xl font-semibold tracking-tight">Working Days</h2>
+            <p className="text-sm text-muted-foreground">Manage working days for all sections</p>
+          </div>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <History className="h-4 w-4" />
+                <span className="hidden sm:inline">History</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Non-Working Days History</DialogTitle>
+              </DialogHeader>
+              <div className="mt-4 space-y-4">
+                {historyData.length > 0 ? (
+                  historyData.map((item, idx) => (
+                    <div key={idx} className="flex items-start justify-between border-b pb-3 last:border-0">
+                      <div>
+                        <div className="font-medium flex items-center gap-2">
+                          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                          {new Date(item.date).toLocaleDateString("en-IN", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          Occasion: {item.occasion}
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {item.section}
+                      </Badge>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    No history found.
+                  </p>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardHeader>
+      <CardContent className="p-6">
+        <div className="space-y-6">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+            <SectionCard
+              label="Both Sections"
+              icon={Layers}
+              isWorkingDay={bothOn}
+              occasion={bothOccasion}
+              onToggle={handleBothToggle}
+              onOccasionChange={(val) => {
+                setBothOccasion(val);
+                setSeniorOccasion(val);
+                setJuniorOccasion(val);
+              }}
+              loading={loading}
+            />
+            <SectionCard
+              label="Senior Da-awa"
+              icon={GraduationCap}
+              isWorkingDay={seniorOn}
+              occasion={seniorOccasion}
+              onToggle={(checked) => {
+                setSeniorOn(checked);
+                if (!checked && !juniorOn) setBothOn(false);
+                else if (checked && juniorOn) setBothOn(true);
+              }}
+              onOccasionChange={setSeniorOccasion}
+              loading={loading}
+            />
+            <SectionCard
+              label="Junior Da-awa"
+              icon={BookOpen}
+              isWorkingDay={juniorOn}
+              occasion={juniorOccasion}
+              onToggle={(checked) => {
+                setJuniorOn(checked);
+                if (!checked && !seniorOn) setBothOn(false);
+                else if (checked && seniorOn) setBothOn(true);
+              }}
+              onOccasionChange={setJuniorOccasion}
+              loading={loading}
+            />
+          </div>
+          
+          <p className="text-xs text-muted-foreground mt-4">
+            When a section is <strong>Off</strong>, its periods are hidden in Today&apos;s Schedule and My Periods,
+            and teachers will not be counted as absent for those periods today.
+            Past days&apos; records are never affected.
           </p>
+
+          <div className="flex justify-end pt-4 border-t">
+            <Button onClick={handleSave} disabled={loading}>
+              {loading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+              Save changes
+            </Button>
+          </div>
         </div>
-
-        {/* Bulk actions */}
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant={bothAreOff ? "destructive" : "outline"}
-            onClick={handleBothOff}
-            disabled={bothLoading || bothAreOff}
-            className="h-8 gap-1.5 text-xs"
-            aria-label="Mark both sections as day off"
-          >
-            {bothLoading ? (
-              <Loader className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <PowerOff className="h-3.5 w-3.5" />
-            )}
-            Both Off
-          </Button>
-          <Button
-            size="sm"
-            variant={bothAreOn ? "default" : "outline"}
-            onClick={handleBothOn}
-            disabled={bothLoading || bothAreOn}
-            className="h-8 gap-1.5 text-xs"
-            aria-label="Mark both sections as working day"
-          >
-            {bothLoading ? (
-              <Loader className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Power className="h-3.5 w-3.5" />
-            )}
-            Both On
-          </Button>
-        </div>
-      </div>
-
-      {/* Section cards */}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <SectionCard
-          label="Senior Da-awa"
-          icon={GraduationCap}
-          isWorkingDay={seniorOn}
-          occasion={seniorOccasion}
-          onToggle={handleSeniorToggle}
-          onOccasionChange={setSeniorOccasion}
-          onSave={handleSeniorOccasionSave}
-          loading={seniorLoading}
-        />
-        <SectionCard
-          label="Junior Da-awa"
-          icon={BookOpen}
-          isWorkingDay={juniorOn}
-          occasion={juniorOccasion}
-          onToggle={handleJuniorToggle}
-          onOccasionChange={setJuniorOccasion}
-          onSave={handleJuniorOccasionSave}
-          loading={juniorLoading}
-        />
-      </div>
-
-      {/* Info note */}
-      <p className="text-xs text-muted-foreground border-t pt-3">
-        When a section is <strong>Off</strong>, its periods are hidden in Today&apos;s Schedule and My Periods,
-        and teachers will not be counted as absent for those periods today.
-        Past days&apos; records are never affected.
-      </p>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

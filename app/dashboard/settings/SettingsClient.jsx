@@ -7,27 +7,7 @@ const FormComponent = dynamic(() => import("@/components/FormComponent"), {
   ssr: false,
 });
 
-const generalFormField = [
-  {
-    name: "isWorkingDay",
-    label: "Working Day",
-    required: true,
-    type: "boolean",
-    inputType: "toggle",
-    defaultValue: true,
-    hideLabel: true,
-    className: "col-span-2",
-  },
-  {
-    name: "occasion",
-    label: "Occasion",
-    required: true,
-    conditionalRender: {
-      dependentField: "isWorkingDay",
-      expectedValue: false,
-    },
-  },
-];
+
 
 const institutionFormField = [
   {
@@ -359,14 +339,6 @@ export default function SettingsClient({
     <div className="space-y-8">
       {activeRole === "College Admin" && (
         <>
-          <FormComponent
-            formFields={generalFormField}
-            apiKey={apiKey}
-            data={general}
-            resource="settings"
-            title="General"
-            description="Customize Your System Settings"
-          />
           <SectionWorkingDayToggle
             apiKey={apiKey}
             general={general}

@@ -344,7 +344,7 @@ function RoleSummaryTab({ users, customRoles, loading, refresh }) {
     ...AVAILABLE_ROLES,
     ...(users || []).flatMap(u => u.roles || [])
   ])]
-    .filter(role => role !== 'Teacher' && role !== 'Student' && role !== 'Stationary' && role !== 'IT Lab')
+    .filter(role => role !== 'Teacher' && role !== 'Student' && role !== 'Stationary' && role !== 'IT Lab' && role !== 'Finance' && role !== 'Library Manager')
     .sort();
 
   allStandardRoles.forEach(roleName => {
