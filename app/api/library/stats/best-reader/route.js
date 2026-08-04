@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import connectToDB from "@/lib/db";
 import Rental from "@/models/Rental";
 import User from "@/models/User"; // Ensure User model is registered
@@ -81,13 +82,24 @@ export async function GET(req) {
             studentSpecificField: { classId: { name: "Unknown" } }
         };
 
+        // Fetch the books read by this student in this period
+        const rentals = await Rental.find({
+            studentId: bestReaderId,
+            rentedDate: { $gte: startDate, $lte: endDate }
+        })
+        .populate("bookId")
+        .sort({ rentedDate: -1 })
+        .lean();
+
         return NextResponse.json({
             success: true,
             data: {
                 student: studentData,
-                count: stats[0].count
+                count: stats[0].count,
+                books: rentals
             }
         }, { status: 200 });
+
 
     } catch (error) {
         console.error("Error fetching best reader:", error);

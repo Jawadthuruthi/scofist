@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import connectToDB from "@/lib/db";
 import Rental from "@/models/Rental";
 import LibraryBook from "@/models/LibraryBook";
@@ -18,11 +19,18 @@ export async function GET(req) {
         const studentId = url.searchParams.get("studentId");
         const bookId = url.searchParams.get("bookId");
         const status = url.searchParams.get("status");
+        const startDate = url.searchParams.get("startDate");
+        const endDate = url.searchParams.get("endDate");
 
         const query = {};
         if (studentId) query.studentId = studentId;
         if (bookId) query.bookId = bookId;
         if (status === "pending") query.receivedDate = null;
+        if (startDate || endDate) {
+            query.rentedDate = {};
+            if (startDate) query.rentedDate.$gte = new Date(startDate);
+            if (endDate) query.rentedDate.$lte = new Date(endDate);
+        }
 
         const rentals = await Rental.find(query)
             .populate("bookId")

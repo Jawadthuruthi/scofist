@@ -1504,21 +1504,13 @@ export default function LibraryDashboard({
                         onClick={() => { fetchRequests(); setRequestsPopupOpen(true); }}
                     >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium flex items-center gap-2">
+                            <CardTitle className="text-sm font-medium">
                                 Book Requests
-                                {pendingRequestsCount > 0 && (
-                                    <span className="inline-flex items-center justify-center text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full w-4 h-4">
-                                        {pendingRequestsCount}
-                                    </span>
-                                )}
                             </CardTitle>
                             <AlertCircle className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{localRequests.length}</div>
-                            {pendingRequestsCount > 0 && (
-                                <p className="text-xs text-destructive font-medium mt-1">{pendingRequestsCount} pending</p>
-                            )}
+                            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{pendingRequestsCount}</div>
                         </CardContent>
                     </Card>
                 </div>
@@ -1754,8 +1746,8 @@ export default function LibraryDashboard({
                             <div className="flex items-center justify-center h-32">
                                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                             </div>
-                        ) : localRequests.length === 0 ? (
-                            <div className="text-center text-muted-foreground py-12">No book requests found.</div>
+                        ) : localRequests.filter(r => r.status === "Pending").length === 0 ? (
+                            <div className="text-center text-muted-foreground py-12">No pending book requests.</div>
                         ) : (
                             <div className="rounded-md border overflow-x-auto">
                                 <Table>
@@ -1765,12 +1757,11 @@ export default function LibraryDashboard({
                                             <TableHead>Book Details</TableHead>
                                             <TableHead>Student Details</TableHead>
                                             <TableHead>Requested On</TableHead>
-                                            <TableHead>Status</TableHead>
                                             <TableHead>Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {localRequests.map((req, i) => (
+                                        {localRequests.filter(r => r.status === "Pending").map((req, i) => (
                                             <TableRow key={req._id}>
                                                 <TableCell className="text-center text-muted-foreground text-xs">{i + 1}</TableCell>
                                                 <TableCell>
@@ -1789,39 +1780,26 @@ export default function LibraryDashboard({
                                                     {req.createdAt ? format(new Date(req.createdAt), "PPP") : "-"}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                                        req.status === "Pending"
-                                                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                                                            : req.status === "Approved"
-                                                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                                                    }`}>
-                                                        {req.status}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {req.status === "Pending" && (
-                                                        <div className="flex gap-1.5">
-                                                            <Button
-                                                                size="sm"
-                                                                className="h-7 px-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none"
-                                                                onClick={() => {
-                                                                    setSelectedRequest(req);
-                                                                    setRentalFromRequestOpen(true);
-                                                                }}
-                                                            >
-                                                                <Check className="h-3 w-3 mr-1" /> Approve
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="destructive"
-                                                                className="h-7 px-2 text-xs"
-                                                                onClick={() => handleRejectRequest(req._id)}
-                                                            >
-                                                                <X className="h-3 w-3 mr-1" /> Reject
-                                                            </Button>
-                                                        </div>
-                                                    )}
+                                                    <div className="flex gap-1.5">
+                                                        <Button
+                                                            size="sm"
+                                                            className="h-7 px-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                                                            onClick={() => {
+                                                                setSelectedRequest(req);
+                                                                setRentalFromRequestOpen(true);
+                                                            }}
+                                                        >
+                                                            <Check className="h-3 w-3 mr-1" /> Approve
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="destructive"
+                                                            className="h-7 px-2 text-xs"
+                                                            onClick={() => handleRejectRequest(req._id)}
+                                                        >
+                                                            <X className="h-3 w-3 mr-1" /> Reject
+                                                        </Button>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))}

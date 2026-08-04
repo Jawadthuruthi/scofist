@@ -268,7 +268,7 @@ const TableComponent = forwardRef(({
           {!hideColumnManagement && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 w-8 p-0 flex items-center justify-center md:w-auto md:px-3 lg:flex shrink-0">
+                <Button variant="outline" size="sm" className="h-10 w-10 p-0 flex items-center justify-center md:w-auto md:px-3 lg:flex shrink-0">
                   <SlidersHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -409,7 +409,7 @@ const TableComponent = forwardRef(({
               }}
               clearFilters={() => setColumnFilters([])}
               hasFilters={columnFilters.length > 0}
-              triggerClass="flex h-8 w-8 md:w-auto md:px-3 p-0 shrink-0 justify-center items-center"
+              triggerClass="flex h-10 w-10 md:h-8 md:w-auto md:px-3 p-0 shrink-0 justify-center items-center"
             />
           )}
 
@@ -419,7 +419,7 @@ const TableComponent = forwardRef(({
               size="sm"
               variant="outline"
               onClick={handleExportCSV}
-              className="flex md:hidden h-8 w-8 p-0 shrink-0 items-center justify-center"
+              className="flex md:hidden h-10 w-10 p-0 shrink-0 items-center justify-center"
               title="Export CSV"
             >
               <Download className="h-4 w-4" />
@@ -430,9 +430,8 @@ const TableComponent = forwardRef(({
           {!hidePrintBtn && (
             <Button
               size="sm"
-              variant="outline"
               onClick={handlePrint}
-              className="flex md:hidden h-8 w-8 p-0 shrink-0 items-center justify-center"
+              className="flex md:hidden h-10 w-10 p-0 shrink-0 items-center justify-center bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0"
               title="Print"
             >
               <Printer className="h-4 w-4" />
@@ -507,9 +506,8 @@ const TableComponent = forwardRef(({
           {!hidePrintBtn && (
             <Button
               size="sm"
-              variant="outline"
               onClick={handlePrint}
-              className="hidden md:flex h-8 md:h-10 w-auto px-3 shrink-0"
+              className="hidden md:flex h-8 md:h-10 w-auto px-3 shrink-0 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 border-0"
               title="Print"
             >
               <Printer className="h-4 w-4" />
