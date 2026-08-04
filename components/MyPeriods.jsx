@@ -68,6 +68,13 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const [selectedRecordId, setSelectedRecordId] = useState("");
   const [error, setError] = useState(false);
 
+  // ── Bulk reason state ────────────────────────────────────────────────
+  const [bulkReasonOpen, setBulkReasonOpen] = useState(false);
+  const [bulkReason, setBulkReason] = useState("");
+  const [bulkComboboxOpen, setBulkComboboxOpen] = useState(false);
+  const [bulkError, setBulkError] = useState(false);
+  const [bulkExistingRecordIds, setBulkExistingRecordIds] = useState([]); // _ids of existing leave records
+
   // ── Hifz & Doura state ───────────────────────────────────────────────
   const [hifzEnrollments, setHifzEnrollments] = useState([]);
   const [hifzLoadingEnroll, setHifzLoadingEnroll] = useState(true);
@@ -328,6 +335,66 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
     },
     [attendanceStatus]
   );
+
+  const handleBulkLeave = async () => {
+    if (bulkReason.trim() !== "" && bulkReason.length > 20) {
+      setBulkError(true);
+      toast.error("Leave reason should not exceed 20 characters.");
+      return;
+    }
+
+    // Only apply to slots that don't already have attendance marked
+    const slotsToUpdate = filteredSlots.filter((slot) => !isAttendanceMarked(slot));
+    if (slotsToUpdate.length === 0) {
+      toast.info("All periods already have attendance marked.");
+      setBulkReasonOpen(false);
+      return;
+    }
+
+    try {
+      await Promise.all(
+        slotsToUpdate.map((slot) =>
+          addLeaveRecord.mutateAsync({
+            teacherId,
+            classId: slot.classId._id,
+            periodNumber: slot.periodNumber,
+            date: new Date(),
+            leaveReason: bulkReason,
+          })
+        )
+      );
+      toast.success("Leave reason applied to all periods.");
+      setBulkReasonOpen(false);
+      setBulkReason("");
+      setBulkError(false);
+      await leaveRecordQuery.refetch();
+      router.refresh();
+    } catch (error) {
+      console.error("Error submitting bulk leave reason:", error);
+      toast.error(error.message || "Error submitting leave reason");
+    }
+  };
+
+  const handleBulkClear = async () => {
+    if (bulkExistingRecordIds.length === 0) return;
+    try {
+      await Promise.all(
+        bulkExistingRecordIds.map((id) =>
+          deleteLeaveRecord.mutateAsync({ data: { _id: id } })
+        )
+      );
+      toast.success("Leave reasons cleared for all periods.");
+      setBulkReasonOpen(false);
+      setBulkReason("");
+      setBulkExistingRecordIds([]);
+      setBulkError(false);
+      await leaveRecordQuery.refetch();
+      router.refresh();
+    } catch (error) {
+      console.error("Error clearing bulk leave reasons:", error);
+      toast.error(error.message || "Error clearing leave reasons");
+    }
+  };
 
   const handleLeave = async () => {
     if (reason.trim() !== "" && reason.length > 20) {
@@ -735,7 +802,38 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
                     <TableHead className="hidden md:table-cell">
                       Subject
                     </TableHead>
-                    <TableHead className="text-left md:text-center w-24 md:w-auto"></TableHead>
+                    <TableHead className="text-left md:text-center w-24 md:w-auto pl-0 md:pl-4">
+                      <div
+                        className="flex justify-start md:justify-center items-center pl-1 md:pl-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Pre-populate with existing reason from non-attended slots
+                          const nonAttendedSlots = filteredSlots.filter((slot) => !isAttendanceMarked(slot));
+                          const existingRecords = nonAttendedSlots
+                            .map((slot) =>
+                              leaveRecords.find(
+                                (record) =>
+                                  String(record.classId?._id || record.classId) === String(slot.classId?._id) &&
+                                  record.periodNumber === slot.periodNumber &&
+                                  formatDate(new Date(record.date)) === formattedDate
+                              )
+                            )
+                            .filter(Boolean);
+                          const existingIds = existingRecords.map((r) => r._id).filter(Boolean);
+                          // Use the first found reason to pre-fill
+                          const firstReason = existingRecords[0]?.leaveReason || "";
+                          setBulkExistingRecordIds(existingIds);
+                          setBulkReason(firstReason);
+                          setBulkError(false);
+                          setBulkReasonOpen(true);
+                        }}
+                      >
+                        <FileText className="text-muted-foreground h-5 w-5 md:hidden cursor-pointer" title="Add reason for all periods" />
+                        <Button size="sm" className="hidden md:inline-flex">
+                          Reason
+                        </Button>
+                      </div>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1374,6 +1472,99 @@ Teacher: ${teacherName || "Teacher"}`;
                   </Table>
                 );
               })()}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ── Bulk Reason Dialog ── */}
+        <Dialog open={bulkReasonOpen} onOpenChange={(o) => { setBulkReasonOpen(o); if (!o) { setBulkReason(""); setBulkError(false); setBulkExistingRecordIds([]); } }}>
+          <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Reason for All Periods
+            </DialogTitle>
+            <DialogDescription>
+              This reason will be applied to all periods that don&apos;t have attendance marked yet.
+            </DialogDescription>
+            <div className="relative">
+              <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 z-10" />
+              <div className="relative">
+                <Input
+                  placeholder="Select or type a reason..."
+                  value={bulkReason}
+                  onChange={(e) => {
+                    if (e.target.value.length > 20) {
+                      setBulkError(true);
+                    } else {
+                      setBulkError(false);
+                    }
+                    setBulkReason(e.target.value);
+                  }}
+                  className="pl-10 pr-10"
+                />
+                <Popover open={bulkComboboxOpen} onOpenChange={setBulkComboboxOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    >
+                      <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="end">
+                    <Command>
+                      <CommandList>
+                        <CommandGroup>
+                          {leaveReasons.map((r) => (
+                            <CommandItem
+                              key={r}
+                              value={r}
+                              onSelect={(currentValue) => {
+                                setBulkReason(currentValue);
+                                setBulkComboboxOpen(false);
+                                setBulkError(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  bulkReason === r ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {r}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              {bulkError && (
+                <p className="text-destructive text-xs p-1">
+                  Leave reason should not exceed 20 characters.
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {bulkExistingRecordIds.length > 0 && (
+                <Button
+                  variant="outline"
+                  className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
+                  disabled={deleteLeaveRecord.isPending}
+                  onClick={handleBulkClear}
+                >
+                  Clear All
+                </Button>
+              )}
+              <Button
+                disabled={addLeaveRecord.isPending || bulkError}
+                onClick={handleBulkLeave}
+                className={bulkExistingRecordIds.length > 0 ? "flex-1" : "w-full"}
+              >
+                {bulkExistingRecordIds.length > 0 ? "Update All" : "Apply to All Periods"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
