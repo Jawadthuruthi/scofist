@@ -40,6 +40,7 @@ export async function GET(req) {
     const daysInMonth = new Date(year, month, 0).getDate();
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
+    endDate.setHours(23, 59, 59, 999);
     const dates = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month - 1, i + 1));
 
     const [timeTables, snapshots, attendancesRaw, leaveRecordsRaw] = await Promise.all([
@@ -57,10 +58,12 @@ export async function GET(req) {
     const attendances = attendancesRaw || [];
     const leaveRecords = leaveRecordsRaw || [];
 
-    // Calculate official teacher for each subject in this specific month
-    const teacherFrequencyBySubject = {};
+    // We no longer calculate a single official teacher per subject.
+    // Instead, we will map substitute attendances back to the teacher scheduled for that specific day.
+    
     const teacherNameMap = {};
     const subjectNameMap = {};
+    const subjectsTaughtThisMonth = new Set();
     
     attendances.forEach((att) => {
       if (att.subjectId && att.teacherId) {
@@ -69,16 +72,8 @@ export async function GET(req) {
         
         subjectNameMap[sid] = att.subjectId.name;
         teacherNameMap[tid] = att.teacherId.name;
-        
-        if (!teacherFrequencyBySubject[sid]) teacherFrequencyBySubject[sid] = {};
-        teacherFrequencyBySubject[sid][tid] = (teacherFrequencyBySubject[sid][tid] || 0) + 1;
+        subjectsTaughtThisMonth.add(sid);
       }
-    });
-
-    const officialTeacherBySubject = {};
-    Object.keys(teacherFrequencyBySubject).forEach(sid => {
-      const teachers = teacherFrequencyBySubject[sid];
-      officialTeacherBySubject[sid] = Object.keys(teachers).reduce((a, b) => teachers[a] > teachers[b] ? a : b);
     });
 
     const fallbackDayScheduleMap = {};
@@ -105,11 +100,6 @@ export async function GET(req) {
         
         if (!sid || !tid) return;
         knownSubjects.add(sid);
-
-        // Swap to the official teacher who actually taught this month
-        if (officialTeacherBySubject[sid]) {
-          tid = officialTeacherBySubject[sid];
-        }
         
         const key = `${sid}__${tid}`;
 
@@ -159,7 +149,7 @@ export async function GET(req) {
         if (!s.subjectId || !s.teacherId) return;
         const sid = s.subjectId._id?.toString() || s.subjectId.toString();
         const tid = s.teacherId._id?.toString() || s.teacherId.toString();
-        const accessor = `${sid}-${tid}`;
+        const accessor = `${sid}__${tid}`;
         if (!subjectTeacherPairs[accessor]) {
           subjectTeacherPairs[accessor] = {
             subjectId: sid,
@@ -180,8 +170,8 @@ export async function GET(req) {
 
       Object.entries(fallbackDayScheduleMap[dayName] || {}).forEach(([accessor, slots]) => {
         const sid = accessor.split('__')[0];
-        const hasHistoricalProof = officialTeacherBySubject[sid] !== undefined;
-
+        const hasHistoricalProof = subjectsTaughtThisMonth.has(sid);
+        
         const active = slots.some((s) => {
           const effectiveValidFrom = s.validFrom || earliestValidFrom;
           const isOfficiallyActive = (effectiveValidFrom <= isoDate) && (!s.validTo || s.validTo > isoDate);
@@ -218,10 +208,10 @@ export async function GET(req) {
     resolvedTeachers.forEach((t) => { resolvedTeacherNames[t._id.toString()] = t.name; });
 
     Object.values(subjectTeacherPairs).forEach((pair) => {
-      if (!pair.subjectName) {
+      if (!pair.subjectName || pair.subjectName === pair.subjectId) {
         pair.subjectName = resolvedSubjectNames[pair.subjectId] || fallbackSubjectNames[pair.subjectId] || pair.subjectId;
       }
-      if (!pair.teacherName) {
+      if (!pair.teacherName || pair.teacherName === pair.teacherId) {
         pair.teacherName = resolvedTeacherNames[pair.teacherId] || fallbackTeacherNames[pair.teacherId] || pair.teacherId;
       }
     });
@@ -233,21 +223,52 @@ export async function GET(req) {
       if (att.subjectId && att.teacherId) {
         const isoDate = getDS(new Date(att.date));
         const sid = att.subjectId._id.toString();
-        const tid = att.teacherId._id.toString();
+        let tid = att.teacherId._id.toString();
         
-        // Match attendance precisely to the official teacher (who swapped the column)
-        const officialTid = officialTeacherBySubject[sid] || tid;
-        const accessor = `${sid}__${officialTid}`;
-        
-        markedAttendances.add(`${isoDate}-${sid}-${officialTid}`);
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const [y, m, d] = isoDate.split('-');
+        const dayName = days[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
 
-        // If the subject was completely deleted from the current TimeTable, we MUST restore it!
-        if (!knownSubjects.has(sid) && !subjectTeacherPairs[accessor]) {
+        let scheduledTid = tid;
+        
+        let foundInSnap = false;
+        if (snapshotByDate[isoDate] && snapshotDaySchedule[isoDate]) {
+            for (const [key, periods] of Object.entries(snapshotDaySchedule[isoDate])) {
+                const [schSid, schTid] = key.split('__');
+                if (schSid === sid && periods.length > 0) {
+                    scheduledTid = schTid;
+                    foundInSnap = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!foundInSnap) {
+            const daySchedule = fallbackDayScheduleMap[dayName] || {};
+            for (const [key, slots] of Object.entries(daySchedule)) {
+                const [schSid, schTid] = key.split('__');
+                if (schSid === sid) {
+                    const isActive = slots.some((s) => {
+                        const effectiveValidFrom = s.validFrom || earliestValidFrom;
+                        return (effectiveValidFrom <= isoDate) && (!s.validTo || s.validTo > isoDate);
+                    });
+                    if (isActive) {
+                        scheduledTid = schTid;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        const accessor = `${sid}__${scheduledTid}`;
+        markedAttendances.add(`${isoDate}-${sid}-${scheduledTid}`);
+
+        if (!subjectTeacherPairs[accessor]) {
           subjectTeacherPairs[accessor] = {
             subjectId: sid,
-            teacherId: officialTid,
+            teacherId: scheduledTid,
             subjectName: att.subjectId.name,
-            teacherName: teacherNameMap[officialTid] || att.teacherId.name,
+            teacherName: teacherNameMap[scheduledTid] || fallbackTeacherNames[scheduledTid] || att.teacherId.name,
           };
         }
       }
@@ -283,52 +304,15 @@ export async function GET(req) {
         }
       });
 
-      const monthLegacyDays = legacyDates
-        .map((dt) => new Date(dt))
-        .filter((d) => d.getUTCFullYear() === year && d.getUTCMonth() === month - 1)
-        .map((d) => d.getUTCDate())
-        .sort((a, b) => a - b);
-
-      if (monthLegacyDays.length > 0) {
-        const daySet = new Set(monthLegacyDays);
-        const maxDay = monthLegacyDays[monthLegacyDays.length - 1];
-        let blockStart = maxDay;
-        for (let day = maxDay - 1; day >= 1; day--) {
-          const dow = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-          if (daySet.has(day)) blockStart = day;
-          else if (dow === 5) continue;
-          else break;
-        }
-        monthLegacyDays.forEach((day) => {
+      legacyDates.forEach((dt) => {
+        const d = new Date(dt);
+        if (d.getUTCFullYear() === year && d.getUTCMonth() === month - 1) {
+          const day = d.getUTCDate();
           if (!(day in nonWorkingDaysMap)) {
-            nonWorkingDaysMap[day] = day >= blockStart ? currentOccasion : '';
-          }
-        });
-      }
-
-      if (isCurrentlyNonWorking) {
-        const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
-        const todayYear = nowIST.getUTCFullYear();
-        const todayMonth = nowIST.getUTCMonth();
-        const todayDate = nowIST.getUTCDate();
-        if (todayYear === year && todayMonth === month - 1 && monthLegacyDays.length > 0) {
-          const maxDay = monthLegacyDays[monthLegacyDays.length - 1];
-          for (let day = maxDay + 1; day < todayDate; day++) {
-            if (!(day in nonWorkingDaysMap)) nonWorkingDaysMap[day] = currentOccasion;
+            nonWorkingDaysMap[day] = '';
           }
         }
-        const todayInLegacy = legacyDates.some((dt) => {
-          const d = new Date(dt);
-          return d.getUTCFullYear() === todayYear && d.getUTCMonth() === todayMonth && d.getUTCDate() === todayDate;
-        });
-        const todayInLog = log.some((entry) => {
-          const d = new Date(entry.date);
-          return d.getUTCFullYear() === todayYear && d.getUTCMonth() === todayMonth && d.getUTCDate() === todayDate;
-        });
-        if ((todayInLegacy || todayInLog) && todayYear === year && todayMonth === month - 1) {
-          if (!(todayDate in nonWorkingDaysMap)) nonWorkingDaysMap[todayDate] = currentOccasion;
-        }
-      }
+      });
     } catch (settingsErr) {
       console.error('Failed to fetch non-working days from settings:', settingsErr);
     }
@@ -393,7 +377,7 @@ export async function GET(req) {
         } else {
           const fallbackSlots = fallbackDayScheduleMap[dayName]?.[internalAccessor] || [];
           const sid = pair.subjectId;
-          const hasHistoricalProof = officialTeacherBySubject[sid] !== undefined;
+          const hasHistoricalProof = subjectsTaughtThisMonth.has(sid);
 
           scheduledPeriods = fallbackSlots
             .filter((s) => {
