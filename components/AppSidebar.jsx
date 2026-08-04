@@ -545,7 +545,7 @@ const items = [
   },
   {
     title: "Mark Entry Portal",
-    url: "/dashboard/judge-portal",
+    url: "/judge-portal",
     allowedRoles: ["Judge"],
     icon: ListChecks,
   },
@@ -735,7 +735,7 @@ function ComboBox({ roles, role }) {
                     } else if (currentValue === "Gate Keeper") {
                       window.location.href = "/dashboard/gate-pass";
                     } else if (currentValue === "Judge") {
-                      window.location.href = "/dashboard/judge-portal";
+                      window.location.href = "/judge-portal";
                     } else {
                       window.location.href = "/dashboard";
                     }

@@ -361,7 +361,7 @@ const pages = [
   },
   {
     title: "Judge Portal",
-    path: "/dashboard/judge-portal",
+    path: "/judge-portal",
     allowedRoles: ["Judge"],
   },
   {
@@ -575,7 +575,7 @@ async function handleLoginPageRequest(req) {
     }
 
     if (activeRole === "Judge") {
-      return NextResponse.redirect(new URL("/dashboard/judge-portal", req.url));
+      return NextResponse.redirect(new URL("/judge-portal", req.url));
     }
 
 
@@ -967,7 +967,7 @@ function prepareResponse(req, token, user, newProfileToken = null) {
     }
     if (activeRole === "Judge" && req.nextUrl.pathname === "/dashboard") {
       return NextResponse.redirect(
-        new URL("/dashboard/judge-portal", req.url)
+        new URL("/judge-portal", req.url)
       );
     }
     return redirectTo404(req);
