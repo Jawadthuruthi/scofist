@@ -16,7 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useTheme } from "next-themes";
 
-export function Topbar({ user }) {
+export function Topbar({ user, hideSidebarToggle = false }) {
   const { toggleSidebar } = useSidebar();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -68,14 +68,16 @@ export function Topbar({ user }) {
   return (
     <header className="fixed top-0 left-0 w-full z-10 h-14 bg-background border-b shadow-sm flex items-center px-4 justify-between no-print">
       {/* Sidebar Toggle Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={toggleSidebar}
-        aria-label="Toggle sidebar"
-      >
-        <Menu className="w-5 h-5" />
-      </Button>
+      {!hideSidebarToggle && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleSidebar}
+          aria-label="Toggle sidebar"
+        >
+          <Menu className="w-5 h-5" />
+        </Button>
+      )}
 
       {/* User Profile / Actions */}
       <div className="flex items-center gap-2">

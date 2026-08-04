@@ -90,6 +90,23 @@ const EvaluationComponent = ({
     }
   );
 
+  const { useFetchItems: useFetchAssignments } = useCrud("judge-assignments", apiKey);
+  const fetchAssignmentsQuery = useFetchAssignments(
+    0,
+    1000,
+    {
+      ...(selectedDivision && { divisionId: selectedDivision }),
+      ...(selectedProgram && { programId: selectedProgram }),
+    },
+    {
+      retry: 2,
+    }
+  );
+
+  const judgeAssignments = useMemo(() => {
+    return fetchAssignmentsQuery.data?.assignments || [];
+  }, [fetchAssignmentsQuery.data]);
+
   // Process registrations data into programs with participants
   const processRegistrationsToPrograms = useCallback((registrations) => {
     if (!registrations || !registrations.length) return [];
@@ -800,6 +817,28 @@ const EvaluationComponent = ({
                     </Table>
                   </div>
                 </div>
+
+                {/* Judge Signatures */}
+                {judgeNumber > 0 && (
+                  <div className="grid mt-6 gap-6" style={{ gridTemplateColumns: `repeat(${judgeNumber}, minmax(0, 1fr))` }}>
+                    {Array.from({ length: judgeNumber }, (_, i) => {
+                      const judgeNum = i + 1;
+                      const assignment = judgeAssignments.find(
+                        (ja) => (ja.programId?._id === program._id || ja.programId === program._id) && ja.judgeNumber === judgeNum
+                      );
+                      return (
+                        <div key={i} className="text-center">
+                          <div className="mb-2 font-semibold">Judge {judgeNum}</div>
+                          <div className="mt-4 mx-auto w-3/4 max-w-[250px] border-b border-foreground/30 print:border-black pb-1">
+                            <div className="text-sm">
+                              Name & Signature : {assignment ? <span className="font-semibold">{assignment.judgeName}</span> : ""}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))}
           </div>

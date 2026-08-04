@@ -27,13 +27,11 @@ export default async function JudgePortalPage() {
           title="MARK ENTRY PORTAL"
           subTitle="Enter marks for your assigned program."
         />
-        <div className="p-4">
-          <JudgePortal
-            judgeId={user.userId}
-            activeYear={activeYear}
-            apiKey={apiKey}
-          />
-        </div>
+        <JudgePortal
+          judgeId={user.userId}
+          activeYear={activeYear}
+          apiKey={apiKey}
+        />
       </>
     );
   } catch (error) {

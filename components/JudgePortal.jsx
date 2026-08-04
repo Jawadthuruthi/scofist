@@ -36,6 +36,26 @@ import {
   Printer,
 } from "lucide-react";
 
+// Helper to render text items each on its own line with * prefix
+const renderItemsWithStar = (text) => {
+  if (!text) return null;
+  const items = text
+    .split(".")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  if (items.length === 0) return null;
+  return (
+    <div className="space-y-1">
+      {items.map((item, idx) => (
+        <div key={idx} className="flex items-start gap-2">
+          <span className="text-primary font-bold mt-0.5 shrink-0">*</span>
+          <span>{item}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   const [assignment, setAssignment] = useState(null);
   const [registrations, setRegistrations] = useState([]);
@@ -374,21 +394,21 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
               {activeTab === "Rules" && assignment.programId?.rules && (
                 <div className="mb-2">
                   <strong className="text-foreground block mb-2 text-sm md:text-base">Rules: </strong>
-                  <ul className="list-disc pl-5 font-google-sans font-normal text-sm md:text-base leading-relaxed space-y-1">
-                    {assignment.programId.rules.split('\n').filter(line => line.trim()).map((line, idx) => (
-                      <li key={idx}>{line.trim().replace(/^[\*\-]\s*/, '')}</li>
-                    ))}
-                  </ul>
+                  <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-primary">
+                    <div className="font-google-sans text-sm md:text-base font-normal leading-relaxed break-words">
+                      {renderItemsWithStar(assignment.programId.rules)}
+                    </div>
+                  </div>
                 </div>
               )}
               {activeTab === "Topics" && assignment.programId?.topics && (
                 <div className="mb-2">
                   <strong className="text-foreground block mb-2 text-sm md:text-base">Topics: </strong>
-                  <ul className="list-disc pl-5 font-google-sans font-normal text-sm md:text-base leading-relaxed space-y-1">
-                    {assignment.programId.topics.split('\n').filter(line => line.trim()).map((line, idx) => (
-                      <li key={idx}>{line.trim().replace(/^[\*\-]\s*/, '')}</li>
-                    ))}
-                  </ul>
+                  <div className="bg-muted/30 p-3 sm:p-4 rounded-lg border-l-4 border-green-500">
+                    <div className="font-google-sans text-sm md:text-base font-normal leading-relaxed break-words">
+                      {renderItemsWithStar(assignment.programId.topics)}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
