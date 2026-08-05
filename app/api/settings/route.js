@@ -140,6 +140,7 @@ export async function POST(req, res) {
         isWorkingDay:
           data.isWorkingDay ?? existingSettings?.general?.isWorkingDay,
         occasion: data.occasion ?? existingSettings?.general?.occasion,
+        appIcon: data.appIcon ?? existingSettings?.general?.appIcon,
       },
       festival: {
         festivalInfo: {
@@ -438,6 +439,9 @@ export async function PUT(req) {
       }
       if (data.occasion !== undefined) {
         updateData["general.occasion"] = data.occasion;
+      }
+      if (data.appIcon !== undefined) {
+        updateData["general.appIcon"] = data.appIcon;
       }
 
       // Auto-track non-working days: record today's date in IST when admin marks it as non-working

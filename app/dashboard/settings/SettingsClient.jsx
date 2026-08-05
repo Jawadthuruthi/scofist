@@ -7,6 +7,19 @@ const FormComponent = dynamic(() => import("@/components/FormComponent"), {
   ssr: false,
 });
 
+const appIconFormField = [
+  {
+    name: "appIcon",
+    label: "App Icon (PWA)",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/jpeg", "image/png", "image/svg+xml"],
+    defaultValue: {},
+  },
+];
+
 
 
 const institutionFormField = [
@@ -351,6 +364,16 @@ export default function SettingsClient({
             title="Institution Profile"
             description="Configure Your Institution Details"
           />
+          <div className="mt-8">
+            <FormComponent
+              formFields={appIconFormField}
+              apiKey={apiKey}
+              data={general}
+              resource="settings"
+              title="App Icon"
+              description="Configure the PWA App Icon"
+            />
+          </div>
         </>
       )}
       {activeRole === "Program Committee" && (

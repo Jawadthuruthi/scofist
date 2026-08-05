@@ -17,118 +17,117 @@ const notoSansMalayalam = Noto_Sans_Malayalam({
   display: "swap",
 });
 
-export const metadata = {
-  title: "Sa-adiya Da-awa College - Islamic College Of Integrated Studies",
-  description:
-    "Sadiya Dawa College (Sa-adiya Da-awa College) offers comprehensive Islamic and integrated studies, promoting academic excellence and spiritual growth. Leading Islamic college for higher education and spiritual development.",
-  authors: [{ name: "Jawad TS" }],
-  keywords: [
-    // Primary variations
-    "Sadiya Dawa College",
-    "Sa-adiya Da-awa College",
-    "Saadiya Daawa College",
-    "Sa adiya Da awa College",
+import connectToDB from "@/lib/db";
+import Settings from "@/models/Settings";
 
-    // Institution types
-    "Islamic College",
-    "Islamic College of Integrated Studies",
-    "Integrated Studies College",
-    "Islamic University",
-    "Islamic Education Institution",
+export async function generateMetadata() {
+  let appIconUrl = "/favicon.svg";
+  
+  try {
+    await connectToDB();
+    const settings = await Settings.findOne({}).lean();
+    if (settings?.general?.appIcon?.url) {
+      appIconUrl = settings.general.appIcon.url;
+    }
+  } catch (error) {
+    console.error("Error fetching app icon for metadata:", error);
+  }
 
-    // Location-based (add your actual location)
-    "Islamic College Kerala",
-    "Islamic College India",
-    "Sadiya Dawa College Kerala",
-
-    // Educational terms
-    "Islamic Higher Education",
-    "Islamic Studies Programs",
-    "Da-awa Education",
-    "Islamic Academic Excellence",
-    "Spiritual Growth Education",
-    "Islamic Integrated Learning",
-
-    // Brand variations
-    "Jamia Sa Adiya Arabia",
-    "SCOFIST",
-    "Sa-adiya College",
-    "Dawa College",
-
-    // Long-tail keywords
-    "best islamic college integrated studies",
-    "islamic education academic excellence",
-    "sadiya dawa college admission",
-    "islamic college spiritual growth",
-    "integrated studies islamic education",
-
-    // other
-    "sadiya",
-    "sa-adiya",
-    "saadiya",
-    "sa adiya",
-    "daawa",
-    "da awa",
-    "da-awa",
-    "college",
-  ].join(", "),
-
-  robots:
-    "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
-
-  // Structured data for better search understanding
-  alternates: {
-    canonical: "https://www.scofist.com",
-  },
-
-  openGraph: {
-    title: "Sadiya Dawa College | Islamic College for Integrated Studies",
+  return {
+    title: "Sa-adiya Da-awa College - Islamic College Of Integrated Studies",
     description:
-      "Join Sadiya Dawa College (Sa-adiya Da-awa College), where Islamic and academic excellence meet. Premier Islamic institution offering comprehensive programs for intellectual and spiritual development.",
-    url: "https://www.scofist.com",
-    type: "website",
-    locale: "en_US",
-    siteName: "Sadiya Dawa College",
-    images: [
-      {
-        url: "/logo.svg", //
-        width: 1200,
-        height: 630,
-        alt: "Sadiya Dawa College - Islamic College of Integrated Studies",
-      },
-    ],
-  },
+      "Sadiya Dawa College (Sa-adiya Da-awa College) offers comprehensive Islamic and integrated studies, promoting academic excellence and spiritual growth. Leading Islamic college for higher education and spiritual development.",
+    authors: [{ name: "Jawad TS" }],
+    keywords: [
+      "Sadiya Dawa College",
+      "Sa-adiya Da-awa College",
+      "Saadiya Daawa College",
+      "Sa adiya Da awa College",
+      "Islamic College",
+      "Islamic College of Integrated Studies",
+      "Integrated Studies College",
+      "Islamic University",
+      "Islamic Education Institution",
+      "Islamic College Kerala",
+      "Islamic College India",
+      "Sadiya Dawa College Kerala",
+      "Islamic Higher Education",
+      "Islamic Studies Programs",
+      "Da-awa Education",
+      "Islamic Academic Excellence",
+      "Spiritual Growth Education",
+      "Islamic Integrated Learning",
+      "Jamia Sa Adiya Arabia",
+      "SCOFIST",
+      "Sa-adiya College",
+      "Dawa College",
+      "best islamic college integrated studies",
+      "islamic education academic excellence",
+      "sadiya dawa college admission",
+      "islamic college spiritual growth",
+      "integrated studies islamic education",
+      "sadiya",
+      "sa-adiya",
+      "saadiya",
+      "sa adiya",
+      "daawa",
+      "da awa",
+      "da-awa",
+      "college",
+    ].join(", "),
 
-  metadataBase: new URL("https://www.scofist.com"),
+    robots:
+      "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
 
-  // Additional structured data
-  other: {
-    "DC.title": "Sadiya Dawa College",
-    "DC.description":
-      "Islamic College of Integrated Studies offering comprehensive education",
-    "DC.subject": "Islamic Education, Higher Education, Integrated Studies",
-    "DC.language": "en",
-    "geo.region": "IN-KL", // Kerala, India - adjust as needed
-    "geo.placename": "Kasaragod",
-    ICBM: "Your coordinates",
-  },
+    alternates: {
+      canonical: "https://www.scofist.com",
+    },
 
-  manifest: "/manifest.json",
+    openGraph: {
+      title: "Sadiya Dawa College | Islamic College for Integrated Studies",
+      description:
+        "Join Sadiya Dawa College (Sa-adiya Da-awa College), where Islamic and academic excellence meet. Premier Islamic institution offering comprehensive programs for intellectual and spiritual development.",
+      url: "https://www.scofist.com",
+      type: "website",
+      locale: "en_US",
+      siteName: "Sadiya Dawa College",
+      images: [
+        {
+          url: "/logo.svg",
+          width: 1200,
+          height: 630,
+          alt: "Sadiya Dawa College - Islamic College of Integrated Studies",
+        },
+      ],
+    },
 
-  icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
-  },
+    metadataBase: new URL("https://www.scofist.com"),
 
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Sadiya Dawa College",
-  },
+    other: {
+      "DC.title": "Sadiya Dawa College",
+      "DC.description":
+        "Islamic College of Integrated Studies offering comprehensive education",
+      "DC.subject": "Islamic Education, Higher Education, Integrated Studies",
+      "DC.language": "en",
+      "geo.region": "IN-KL",
+      "geo.placename": "Kasaragod",
+      ICBM: "Your coordinates",
+    },
 
-  // Category for app stores
-  category: "Education",
-};
+    icons: {
+      icon: [{ url: appIconUrl }],
+      apple: [{ url: appIconUrl, sizes: "180x180" }],
+    },
+
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: "Sadiya Dawa College",
+    },
+
+    category: "Education",
+  };
+}
 
 // Additional JSON-LD structured data for your pages
 export const structuredData = {
