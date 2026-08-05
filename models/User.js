@@ -48,6 +48,10 @@ const studentSpecificSchema = new Schema({
       message: "Invalid 12-digit Aadhar number",
     },
   },
+  sslcRegisterNumber: {
+    type: String,
+    trim: true,
+  },
   bloodGroup: {
     type: String,
     trim: true,

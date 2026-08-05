@@ -57,6 +57,7 @@ export const getStudentColumns = ({ classes, pageTitle, onNameClick, onProfileRe
             ),
         },
         { accessorKey: "email", header: "Email" },
+        { accessorKey: "sslcRegisterNumber", header: "SSLC Register No" },
         {
             accessorKey: "contactNumber",
             header: "Contact Number",

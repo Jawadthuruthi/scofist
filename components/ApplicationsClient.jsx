@@ -329,6 +329,7 @@ export default function ApplicationsClient({ batches, classes, apiKey, lastStude
       contactNumber: app.guardianContactNumber || "", // Pre-fill student contact with guardian's
       alternativeNumber: app.guardianAlternativeNumber || "",
       admissionClassId: classId,
+      sslcRegisterNumber: app.sslcRegistrationNumber,
       islamicQualification: app.islamicEducationQualification,
       academicQualification: app.academicEducationQualification,
       status: "Active",
