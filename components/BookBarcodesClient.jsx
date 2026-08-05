@@ -24,6 +24,9 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { QRCodeCanvas } from "qrcode.react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { QrCode, Download } from "lucide-react";
 
 // ── Malayalam detection ──────────────────────────────────────────────────────────
 const isMalayalam = (text) => /[\u0D00-\u0D7F]/.test(text);
@@ -79,6 +82,13 @@ const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort();
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function BookBarcodesClient({ initialBooks = [] }) {
     const [sortView, setSortView] = useState("name");
+    const [qrUrl, setQrUrl] = useState("https://www.scofist.com/library");
+
+    React.useEffect(() => {
+        if (typeof window !== "undefined") {
+            setQrUrl(`${window.location.origin}/library`);
+        }
+    }, []);
 
     const books = useMemo(() => {
         if (sortView === "date") {
@@ -171,6 +181,7 @@ export default function BookBarcodesClient({ initialBooks = [] }) {
 
     // ── Print ref ──
     const printRef = useRef(null);
+    const qrPrintRef = useRef(null);
 
     // Filtered list
     const filtered = useMemo(() => {
@@ -242,6 +253,23 @@ export default function BookBarcodesClient({ initialBooks = [] }) {
         documentTitle: "Book Barcodes",
     });
 
+    const handlePrintQR = useReactToPrint({
+        contentRef: qrPrintRef,
+        documentTitle: "Library QR Code",
+    });
+
+    const downloadQR = () => {
+        const canvas = document.getElementById("library-qr-canvas");
+        if (!canvas) return;
+        const pngUrl = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+        let downloadLink = document.createElement("a");
+        downloadLink.href = pngUrl;
+        downloadLink.download = "Library_QR.png";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    };
+
     return (
         <div className="space-y-4">
             <div className="space-y-2">
@@ -302,14 +330,45 @@ export default function BookBarcodesClient({ initialBooks = [] }) {
                     )}
                 </div>
 
+                {/* QR Code button */}
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" title="Show Library QR Code" className="px-2 md:px-4">
+                            <QrCode className="h-4 w-4 md:mr-2" />
+                            <span className="hidden md:inline">QR Code</span>
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-6">
+                        <DialogHeader>
+                            <DialogTitle className="text-center mb-4">Library Access QR Code</DialogTitle>
+                        </DialogHeader>
+                        <div ref={qrPrintRef} className="bg-white p-4 rounded-xl shadow-sm border inline-block flex flex-col items-center">
+                            <div className="mb-4 text-xl font-bold print:block hidden">Library Books</div>
+                            <QRCodeCanvas id="library-qr-canvas" value={qrUrl} size={250} />
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-4 text-center">
+                            Scan to view the library books
+                        </p>
+                        <div className="flex gap-3 mt-4">
+                            <Button variant="outline" size="sm" onClick={downloadQR}>
+                                <Download className="h-4 w-4 mr-2" /> Download
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={handlePrintQR}>
+                                <Printer className="h-4 w-4 mr-2" /> Print
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
                 {/* Print button */}
                 <Button
                     id="barcode-print-btn"
                     onClick={handlePrint}
                     disabled={selected.size === 0}
+                    className="px-2 md:px-4"
                 >
-                    <Printer className="h-4 w-4 mr-2" />
-                    Print{selected.size > 0 ? ` (${selected.size})` : ""}
+                    <Printer className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">Print{selected.size > 0 ? ` (${selected.size})` : ""}</span>
                 </Button>
             </div>
             </div>
