@@ -2,7 +2,8 @@
 
 import React, { useMemo } from "react";
 import TableComponent from "@/components/TableComponent";
-import { Book, User, Hash, Languages, Tag, AlertCircle } from "lucide-react";
+import { Book, User, Hash, Languages, Tag, AlertCircle, BookOpen } from "lucide-react";
+import Barcode from "react-barcode";
 import PublicHeader from "@/components/PublicHeader"; // Or any public header if exists
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +22,8 @@ const normalizeCategoryName = (name) => {
 };
 
 export default function PublicLibraryClient({ initialBooks = [] }) {
+    const [filteredCount, setFilteredCount] = React.useState(initialBooks.length);
+
     // Sort books alphabetically by ID initially
     const books = useMemo(() => {
         return [...initialBooks].sort((a, b) => {
@@ -46,23 +49,15 @@ export default function PublicLibraryClient({ initialBooks = [] }) {
             label: "Language",
             inputType: "multiSelect",
             options: dynamicLanguages.map((l) => ({ value: l, label: l })),
+            className: "hidden md:block w-auto min-w-[280px]"
         },
         {
             id: "category",
             label: "Category",
             inputType: "multiSelect",
             options: dynamicCategories.map((c) => ({ value: c, label: c })),
-        },
-        {
-            id: "status",
-            label: "Status",
-            inputType: "multiSelect",
-            options: [
-                { value: "Available", label: "Available" },
-                { value: "Rented", label: "Rented" },
-                { value: "Not Available", label: "Not Available" },
-            ],
-        },
+            className: "hidden md:block w-auto min-w-[280px]"
+        }
     ], [dynamicLanguages, dynamicCategories]);
 
     const bookColumns = useMemo(() => [
@@ -116,39 +111,29 @@ export default function PublicLibraryClient({ initialBooks = [] }) {
 
     const renderGridItem = (row) => {
         const book = row.original;
-        const displayStatus = (book.status === "Pending" || book.status === "Rented") ? "Rented" : (book.status || "Unknown");
-        const isAvailable = displayStatus === "Available";
-
+        
         return (
-            <Card className="overflow-hidden hover:shadow-md transition-all h-full border-2 hover:border-primary/50">
-                <CardContent className="p-4 flex flex-col h-full gap-3">
-                    <div className="flex justify-between items-start gap-2">
-                        <div className="flex-1">
-                            <h3 className="font-bold text-lg leading-tight mb-1 text-primary book-text-font line-clamp-2">
-                                {book.name || "Unknown Book"}
-                            </h3>
-                            <div className="flex items-center text-sm text-muted-foreground gap-1.5 uppercase">
-                                <User className="h-3.5 w-3.5" />
-                                <span className="truncate">{book.author || "Unknown"}</span>
+            <Card className="h-full hover:shadow-md transition-shadow overflow-hidden border-2">
+                <CardContent className="p-4 flex gap-4 items-start h-full">
+                    <div className="flex-shrink-0 flex flex-col items-center gap-1 w-[72px]">
+                        <div className="bg-primary/10 p-2 rounded-md flex items-center justify-center w-full aspect-square">
+                            <BookOpen className="h-8 w-8 text-primary" />
+                        </div>
+                        <div className="text-center w-full space-y-1">
+                            <div className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/50 py-0.5 rounded truncate">ID: {book.id}</div>
+                            <div className="font-bold text-sm text-primary mt-1">₹{book.price?.toFixed(2) || "0.00"}</div>
+                            <div className={`mt-2 inline-block w-full text-[10px] px-1 py-0.5 rounded-full font-bold uppercase tracking-wider ${book.status === 'Available' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                                {(book.status === 'Pending' || book.status === 'Rented') ? 'Rented' : (book.status || "Unknown")}
                             </div>
                         </div>
-                        <Badge variant={isAvailable ? "default" : "destructive"} className="shrink-0">
-                            {displayStatus}
-                        </Badge>
                     </div>
-
-                    <div className="mt-auto grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Hash className="h-3.5 w-3.5 shrink-0" />
-                            <span className="font-semibold text-foreground">{book.id}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Languages className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate uppercase">{book.language || "-"}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-muted-foreground col-span-2">
-                            <Tag className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate uppercase">{normalizeCategoryName(book.category) || "-"}</span>
+                    <div className="flex-1 space-y-1 min-w-0 py-1 flex flex-col h-full">
+                        <div className="flex-1">
+                            <h3 className="font-bold text-2xl leading-tight break-words mb-1" title={book.name} style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.name}</h3>
+                            <div className="text-sm text-muted-foreground break-words mt-1" title={book.author}>Author: <span className="text-foreground font-medium text-lg leading-none" style={{ fontFamily: '"Sakkal Majalla", serif' }}>{book.author}</span></div>
+                            {book.publication && <div className="text-xs text-muted-foreground break-words mt-1" title={book.publication}>Publication: <span className="text-foreground leading-none">{book.publication}</span></div>}
+                            <div className="text-xs text-muted-foreground mt-1">Language: <span className="text-foreground leading-none">{book.language}</span></div>
+                            <div className="text-xs text-muted-foreground mt-1">Category: <span className="text-foreground leading-none">{book.category}</span></div>
                         </div>
                     </div>
                 </CardContent>
@@ -157,18 +142,24 @@ export default function PublicLibraryClient({ initialBooks = [] }) {
     };
 
     return (
-        <div className="container max-w-6xl mx-auto py-6 space-y-6">
-            <div className="text-center space-y-2 mb-8">
-                <h1 className="text-3xl font-bold tracking-tight text-primary">Library Catalog</h1>
-                <p className="text-muted-foreground">Browse and search our entire library collection.</p>
+        <div className="container max-w-7xl mx-auto py-6 space-y-4">
+            <div className="text-center space-y-2 mb-2">
+                <h1 className="text-3xl font-bold tracking-tight text-primary">Library Books</h1>
+                <p className="text-muted-foreground">Browse our entire library collection.</p>
+                <div className="pt-2">
+                    <span className="inline-block bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-bold transition-all">
+                        {filteredCount} Total Books
+                    </span>
+                </div>
             </div>
 
-            <div className="bg-card rounded-xl border shadow-sm p-4 md:p-6">
+            <div className="md:bg-card md:rounded-xl border-0 md:border shadow-none md:shadow-sm p-0 md:p-6">
                 <TableComponent
                     data={books}
                     columnsConfig={bookColumns}
                     getRowId={(originalRow) => originalRow._id}
                     filterConfig={filterConfig}
+                    inlineFilters={true}
                     enableGrid={true}
                     renderGridItem={renderGridItem}
                     defaultViewMode="grid"
@@ -178,7 +169,8 @@ export default function PublicLibraryClient({ initialBooks = [] }) {
                     showTotalCount={true}
                     totalCountLabel="Total Books"
                     searchPlaceholder="Search by title, author, or ID..."
-                    gridColsClass="grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+                    gridColsClass="grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                    onFilteredDataChange={(rows) => setFilteredCount(rows.length)}
                 />
             </div>
         </div>

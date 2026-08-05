@@ -80,6 +80,7 @@ const TableComponent = forwardRef(({
   inlineFilters = false,
   requireFilterToRenderData = false,
   gridColsClass = "grid-cols-1 lg:grid-cols-2",
+  onFilteredDataChange,
 }, ref) => {
   const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -244,6 +245,12 @@ const TableComponent = forwardRef(({
 
   const { rows } = table.getRowModel();
 
+  useEffect(() => {
+    if (onFilteredDataChange) {
+      onFilteredDataChange(rows);
+    }
+  }, [rows, onFilteredDataChange]);
+
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => tableContainerRef.current,
@@ -344,7 +351,7 @@ const TableComponent = forwardRef(({
           {/* Inline Filters (Desktop) */}
           {inlineFilters && filterConfig.length > 0 && filterConfig.map((filter) => (
              filter.inputType === "multiSelect" ? (
-               <div key={filter.id} className="hidden md:block w-auto min-w-[180px]">
+               <div key={filter.id} className={filter.className || "hidden md:block w-auto min-w-[180px]"}>
                  <MultiSelect
                    options={filter.options}
                    onValueChange={(val) => {
@@ -445,7 +452,7 @@ const TableComponent = forwardRef(({
           {/* Inline Filters (Mobile) */}
           {inlineFilters && filterConfig.length > 0 && filterConfig.map((filter) => (
              filter.inputType === "multiSelect" ? (
-               <div key={filter.id} className="w-[calc(50%-0.25rem)] md:hidden">
+               <div key={filter.id} className={filter.mobileClassName || "w-[calc(50%-0.25rem)] md:hidden"}>
                  <MultiSelect
                    options={filter.options}
                    onValueChange={(val) => {
@@ -468,7 +475,7 @@ const TableComponent = forwardRef(({
 
           {/* Global Search Button/Input (Mobile, if inlineFilters) */}
           {!hideSearch && inlineFilters && (
-            <div className="relative flex items-center w-[calc(50%-0.25rem)] md:hidden">
+            <div className="relative flex items-center w-full md:hidden">
               <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground z-10" />
               <Input
                 placeholder={searchPlaceholderMobile || searchPlaceholder || "Search..."}
