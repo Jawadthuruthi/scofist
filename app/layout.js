@@ -17,117 +17,100 @@ const notoSansMalayalam = Noto_Sans_Malayalam({
   display: "swap",
 });
 
-import connectToDB from "@/lib/db";
-import Settings from "@/models/Settings";
+export const metadata = {
+  title: "Sa-adiya Da-awa College - Islamic College Of Integrated Studies",
+  description:
+    "Sadiya Dawa College (Sa-adiya Da-awa College) offers comprehensive Islamic and integrated studies, promoting academic excellence and spiritual growth. Leading Islamic college for higher education and spiritual development.",
+  authors: [{ name: "Jawad TS" }],
+  keywords: [
+    "Sadiya Dawa College",
+    "Sa-adiya Da-awa College",
+    "Saadiya Daawa College",
+    "Sa adiya Da awa College",
+    "Islamic College",
+    "Islamic College of Integrated Studies",
+    "Integrated Studies College",
+    "Islamic University",
+    "Islamic Education Institution",
+    "Islamic College Kerala",
+    "Islamic College India",
+    "Sadiya Dawa College Kerala",
+    "Islamic Higher Education",
+    "Islamic Studies Programs",
+    "Da-awa Education",
+    "Islamic Academic Excellence",
+    "Spiritual Growth Education",
+    "Islamic Integrated Learning",
+    "Jamia Sa Adiya Arabia",
+    "SCOFIST",
+    "Sa-adiya College",
+    "Dawa College",
+    "best islamic college integrated studies",
+    "islamic education academic excellence",
+    "sadiya dawa college admission",
+    "islamic college spiritual growth",
+    "integrated studies islamic education",
+    "sadiya",
+    "sa-adiya",
+    "saadiya",
+    "sa adiya",
+    "daawa",
+    "da awa",
+    "da-awa",
+    "college",
+  ].join(", "),
 
-export async function generateMetadata() {
-  let appIconUrl = "/favicon.svg";
-  
-  try {
-    await connectToDB();
-    const settings = await Settings.findOne({}).lean();
-    if (settings?.general?.appIcon?.url) {
-      appIconUrl = settings.general.appIcon.url;
-    }
-  } catch (error) {
-    console.error("Error fetching app icon for metadata:", error);
-  }
+  robots:
+    "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
 
-  return {
-    title: "Sa-adiya Da-awa College - Islamic College Of Integrated Studies",
+  alternates: {
+    canonical: "https://www.scofist.com",
+  },
+
+  openGraph: {
+    title: "Sadiya Dawa College | Islamic College for Integrated Studies",
     description:
-      "Sadiya Dawa College (Sa-adiya Da-awa College) offers comprehensive Islamic and integrated studies, promoting academic excellence and spiritual growth. Leading Islamic college for higher education and spiritual development.",
-    authors: [{ name: "Jawad TS" }],
-    keywords: [
-      "Sadiya Dawa College",
-      "Sa-adiya Da-awa College",
-      "Saadiya Daawa College",
-      "Sa adiya Da awa College",
-      "Islamic College",
-      "Islamic College of Integrated Studies",
-      "Integrated Studies College",
-      "Islamic University",
-      "Islamic Education Institution",
-      "Islamic College Kerala",
-      "Islamic College India",
-      "Sadiya Dawa College Kerala",
-      "Islamic Higher Education",
-      "Islamic Studies Programs",
-      "Da-awa Education",
-      "Islamic Academic Excellence",
-      "Spiritual Growth Education",
-      "Islamic Integrated Learning",
-      "Jamia Sa Adiya Arabia",
-      "SCOFIST",
-      "Sa-adiya College",
-      "Dawa College",
-      "best islamic college integrated studies",
-      "islamic education academic excellence",
-      "sadiya dawa college admission",
-      "islamic college spiritual growth",
-      "integrated studies islamic education",
-      "sadiya",
-      "sa-adiya",
-      "saadiya",
-      "sa adiya",
-      "daawa",
-      "da awa",
-      "da-awa",
-      "college",
-    ].join(", "),
+      "Join Sadiya Dawa College (Sa-adiya Da-awa College), where Islamic and academic excellence meet. Premier Islamic institution offering comprehensive programs for intellectual and spiritual development.",
+    url: "https://www.scofist.com",
+    type: "website",
+    locale: "en_US",
+    siteName: "Sadiya Dawa College",
+    images: [
+      {
+        url: "/logo.svg",
+        width: 1200,
+        height: 630,
+        alt: "Sadiya Dawa College - Islamic College of Integrated Studies",
+      },
+    ],
+  },
 
-    robots:
-      "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+  metadataBase: new URL("https://www.scofist.com"),
 
-    alternates: {
-      canonical: "https://www.scofist.com",
-    },
+  other: {
+    "DC.title": "Sadiya Dawa College",
+    "DC.description":
+      "Islamic College of Integrated Studies offering comprehensive education",
+    "DC.subject": "Islamic Education, Higher Education, Integrated Studies",
+    "DC.language": "en",
+    "geo.region": "IN-KL",
+    "geo.placename": "Kasaragod",
+    ICBM: "Your coordinates",
+  },
 
-    openGraph: {
-      title: "Sadiya Dawa College | Islamic College for Integrated Studies",
-      description:
-        "Join Sadiya Dawa College (Sa-adiya Da-awa College), where Islamic and academic excellence meet. Premier Islamic institution offering comprehensive programs for intellectual and spiritual development.",
-      url: "https://www.scofist.com",
-      type: "website",
-      locale: "en_US",
-      siteName: "Sadiya Dawa College",
-      images: [
-        {
-          url: "/logo.svg",
-          width: 1200,
-          height: 630,
-          alt: "Sadiya Dawa College - Islamic College of Integrated Studies",
-        },
-      ],
-    },
+  icons: {
+    icon: [{ url: "/api/app-icon" }],
+    apple: [{ url: "/api/app-icon", sizes: "180x180" }],
+  },
 
-    metadataBase: new URL("https://www.scofist.com"),
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Sadiya Dawa College",
+  },
 
-    other: {
-      "DC.title": "Sadiya Dawa College",
-      "DC.description":
-        "Islamic College of Integrated Studies offering comprehensive education",
-      "DC.subject": "Islamic Education, Higher Education, Integrated Studies",
-      "DC.language": "en",
-      "geo.region": "IN-KL",
-      "geo.placename": "Kasaragod",
-      ICBM: "Your coordinates",
-    },
-
-    icons: {
-      icon: [{ url: appIconUrl }],
-      apple: [{ url: appIconUrl, sizes: "180x180" }],
-    },
-
-    appleWebApp: {
-      capable: true,
-      statusBarStyle: "default",
-      title: "Sadiya Dawa College",
-    },
-
-    category: "Education",
-  };
-}
+  category: "Education",
+};
 
 // Additional JSON-LD structured data for your pages
 export const structuredData = {

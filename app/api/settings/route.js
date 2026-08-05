@@ -431,7 +431,7 @@ export async function PUT(req) {
     }
 
     // General
-    if (data.isWorkingDay !== undefined || data.occasion !== undefined) {
+    if (data.isWorkingDay !== undefined || data.occasion !== undefined || data.appIcon !== undefined) {
       // Use dot notation for all general fields to avoid MongoDB $set conflicts
       // with general.nonWorkingDays and general.nonWorkingDaysLog sub-paths
       if (data.isWorkingDay !== undefined) {
