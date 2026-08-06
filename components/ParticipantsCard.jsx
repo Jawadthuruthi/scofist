@@ -94,107 +94,111 @@ const ParticipantsCard = ({
         subTitle="Official Identity for Festival Participants"
       />
 
-      {/* Filters Row */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="w-full md:w-1/4">
-          <label htmlFor="division-select" className="sr-only">
-            Select a Division
-          </label>
-          <Select value={selectedDivision} onValueChange={setSelectedDivision}>
-            <SelectTrigger className="w-full" id="division-select">
-              <SelectValue placeholder="Select a Division" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value={null}>All Divisions</SelectItem>
-                {divisions.map((division) => (
-                  <SelectItem key={division._id} value={division._id}>
-                    {division.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="w-full md:w-1/4">
-          <label htmlFor="team-select" className="sr-only">
-            Select a Team
-          </label>
-          <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-            <SelectTrigger className="w-full" id="team-select">
-              <SelectValue placeholder="Select a Team" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value={null}>All Teams</SelectItem>
-                {teamsInSelectedDivision.map((team) => (
-                  <SelectItem key={team._id} value={team._id}>
-                    {team.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-        {selectedTeam && (
-          <div className="w-full md:w-1/4">
-            <MultiSelect
-              options={formatOptions(filteredOptions)}
-              value={selectedParticipant}
-              onValueChange={setSelectedParticipant}
-              multiSelect={false}
-              placeholder="Select a Participant"
-            />
+      {/* Top Controls Container */}
+      <div className="flex flex-col lg:flex-row gap-4 mb-6 lg:items-center lg:justify-between">
+        {/* Filters Row */}
+        <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-4 w-full lg:w-auto lg:flex-1">
+          <div className="w-full md:w-1/3 lg:w-56 xl:w-64">
+            <label htmlFor="division-select" className="sr-only">
+              Select a Division
+            </label>
+            <Select value={selectedDivision} onValueChange={setSelectedDivision}>
+              <SelectTrigger className="w-full" id="division-select">
+                <SelectValue placeholder="Select a Division" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value={null}>All Divisions</SelectItem>
+                  {divisions.map((division) => (
+                    <SelectItem key={division._id} value={division._id}>
+                      {division.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
-        )}
-      </div>
+          <div className="w-full md:w-1/3 lg:w-56 xl:w-64">
+            <label htmlFor="team-select" className="sr-only">
+              Select a Team
+            </label>
+            <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+              <SelectTrigger className="w-full" id="team-select">
+                <SelectValue placeholder="Select a Team" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value={null}>All Teams</SelectItem>
+                  {teamsInSelectedDivision.map((team) => (
+                    <SelectItem key={team._id} value={team._id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          {selectedTeam && (
+            <div className="col-span-2 md:col-span-1 w-full md:w-1/3 lg:w-56 xl:w-64">
+              <MultiSelect
+                options={formatOptions(filteredOptions)}
+                value={selectedParticipant}
+                onValueChange={setSelectedParticipant}
+                multiSelect={false}
+                placeholder="Select a Participant"
+              />
+            </div>
+          )}
+        </div>
 
-      {/* View Mode Filter and Print Button Row */}
-      <div className="flex flex-row justify-between items-center gap-4 mb-8">
-        {/* View Mode Filter */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          <span className="text-xs sm:text-sm font-medium hidden sm:inline">
-            View:
-          </span>
-          <div className="flex rounded-md border">
-            <Button
-              variant={viewMode === "both" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => handleViewModeChange("both")}
-              className="rounded-r-none text-xs sm:text-sm px-2 sm:px-3"
-            >
-              <span className="hidden sm:inline">Both</span>
-              <span className="sm:hidden">All</span>
-            </Button>
-            <Button
-              variant={viewMode === "front" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => handleViewModeChange("front")}
-              className="rounded-none border-x-0 text-xs sm:text-sm px-2 sm:px-3"
-            >
-              <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-              <span className="hidden sm:inline">Front</span>
-            </Button>
-            <Button
-              variant={viewMode === "back" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => handleViewModeChange("back")}
-              className="rounded-l-none text-xs sm:text-sm px-2 sm:px-3"
-            >
-              <ListTodo className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-              <span className="hidden sm:inline">Back</span>
-            </Button>
+        {/* View Mode Filter and Print Button */}
+        <div className="flex flex-row justify-between md:justify-end items-center gap-2 md:gap-4 w-full lg:w-auto">
+          {/* View Mode Filter */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="text-xs sm:text-sm font-medium hidden sm:inline">
+              View:
+            </span>
+            <div className="flex rounded-md border">
+              <Button
+                variant={viewMode === "both" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleViewModeChange("both")}
+                className="rounded-r-none text-xs sm:text-sm px-2 sm:px-3"
+              >
+                <span className="hidden sm:inline">Both</span>
+                <span className="sm:hidden">All</span>
+              </Button>
+              <Button
+                variant={viewMode === "front" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleViewModeChange("front")}
+                className="rounded-none border-x-0 text-xs sm:text-sm px-2 sm:px-3"
+              >
+                <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                <span className="hidden sm:inline">Front</span>
+              </Button>
+              <Button
+                variant={viewMode === "back" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleViewModeChange("back")}
+                className="rounded-l-none text-xs sm:text-sm px-2 sm:px-3"
+              >
+                <ListTodo className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                <span className="hidden sm:inline">Back</span>
+              </Button>
+            </div>
           </div>
+          {/* Print Button */}
+          <Button
+            onClick={handlePrint}
+            aria-label="Print Participant Cards"
+            variant="default"
+            className="whitespace-nowrap"
+          >
+            <Printer size={16} className="mr-2" />
+            Print
+          </Button>
         </div>
-        {/* Print Button */}
-        <Button
-          onClick={handlePrint}
-          aria-label="Print Participant Cards"
-          variant="default"
-        >
-          <Printer size={16} />
-          Print
-        </Button>
       </div>
 
       {/* Screen Preview */}
