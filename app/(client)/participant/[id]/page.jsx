@@ -64,16 +64,34 @@ export default function ParticipantPage({ params }) {
       <Card className="w-full max-w-sm overflow-hidden border border-gray-200 shadow-xl bg-white">
         <CardContent className="p-5 flex flex-col min-h-[400px]">
           {/* Header */}
-          <div className="border-b border-gray-200 pb-3 mb-4 flex flex-col items-center text-center">
-            <h2 className="text-xl font-bold text-gray-800">
-              Chest No: {participant.chestNumber}
-            </h2>
-            <h3 className="text-md font-semibold text-gray-600 mt-1 uppercase">
-              {participant.name}
-            </h3>
-            <p className="text-xs text-gray-500 mt-1">
-              TEAM: {participant.teamName} | DIV: {participant.divisionName}
-            </p>
+          <div className="border-b border-gray-200 pb-3 mb-4 flex items-center">
+            {/* Top Left Profile Picture */}
+            <div className="flex-shrink-0 mr-4">
+              {participant.profilePic ? (
+                <img 
+                  src={participant.profilePic} 
+                  alt={participant.name}
+                  className="w-16 h-16 rounded-full object-cover border-2 border-indigo-100 shadow-sm"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gray-200 border-2 border-gray-300 shadow-sm flex items-center justify-center text-gray-500 font-bold text-xl uppercase">
+                  {participant.name?.charAt(0) || "P"}
+                </div>
+              )}
+            </div>
+            
+            {/* Participant Details */}
+            <div className="flex flex-col flex-grow">
+              <h2 className="text-xl font-bold text-gray-800">
+                Chest No: {participant.chestNumber}
+              </h2>
+              <h3 className="text-md font-semibold text-gray-600 mt-1 uppercase">
+                {participant.name}
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">
+                TEAM: {participant.teamName} | DIV: {participant.divisionName}
+              </p>
+            </div>
           </div>
 
           <div className="flex-grow space-y-4">
