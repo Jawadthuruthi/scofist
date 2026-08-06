@@ -8,9 +8,15 @@ export default async function SettingsPage() {
   try {
     const cookiesStore = await cookies();
     const activeRole = cookiesStore.get("active-role")?.value;
+    const activeYear = cookiesStore.get("active-year")?.value;
     const apiKey = process.env.API_KEY;
 
-    const data = await fetchData("settings", "", 0);
+    // Fetch data using the activeYear query parameter so the API returns the session-specific festival settings
+    const data = await fetchData(
+      "settings",
+      activeYear ? `year=${encodeURIComponent(activeYear)}` : "",
+      0
+    );
 
     const general = {
       ...data.general,
