@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Printer, CreditCard, ListTodo } from "lucide-react";
@@ -15,6 +15,8 @@ import {
 } from "./ui/select";
 import { MultiSelect } from "./ui/multi-select";
 import { formatOptions } from "@/lib/utils";
+import Barcode from "react-barcode";
+import { QRCodeSVG } from "qrcode.react";
 
 const ParticipantsCard = ({
   participants = [],
@@ -26,6 +28,7 @@ const ParticipantsCard = ({
   const [selectedTeam, setSelectedTeam] = useState("");
   const [selectedParticipant, setSelectedParticipant] = useState("");
   const [viewMode, setViewMode] = useState("both"); // New state for view mode
+  const [baseUrl, setBaseUrl] = useState("");
 
   const pageRef = useRef(null);
 
@@ -34,10 +37,13 @@ const ParticipantsCard = ({
     documentTitle: "Participants Cards",
   });
 
-  // Handle view mode change
   const handleViewModeChange = (mode) => {
     setViewMode(mode);
   };
+
+  useEffect(() => {
+    setBaseUrl(typeof window !== "undefined" ? window.location.origin : "");
+  }, []);
 
   // Memoize filtered participants to prevent recalculation on every render
   const filteredParticipants = useMemo(() => {
@@ -209,6 +215,7 @@ const ParticipantsCard = ({
             participant={participant}
             festivalSettings={festivalSettings}
             viewMode={viewMode}
+            baseUrl={baseUrl}
           />
         ))}
       </div>
@@ -247,6 +254,7 @@ const ParticipantsCard = ({
                   participant={participant}
                   festivalSettings={festivalSettings}
                   viewMode={viewMode}
+                  baseUrl={baseUrl}
                 />
               ))}
           </div>
@@ -307,7 +315,7 @@ const ParticipantsCard = ({
 export default ParticipantsCard;
 
 // Extracted component for participant card preview
-const ParticipantCard = ({ participant, festivalSettings, viewMode }) => {
+const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl }) => {
   const participantsCardSettings = festivalSettings?.participantsCard || {};
   const participantsCardBackgroundUrl =
     participantsCardSettings?.backgroundImage?.url || "";
@@ -368,7 +376,7 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode }) => {
                 </div>
 
                 {/* Team and Division with enhanced visibility */}
-                <div className="text-xs text-center">
+                <div className="text-xs text-center flex flex-col items-center">
                   <div className="backdrop-enhanced">
                     <p
                       className="font-semibold text-shadow-strong"
@@ -377,7 +385,7 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode }) => {
                       TEAM: {participant.teamName}
                     </p>
                   </div>
-                  <div className="backdrop-enhanced">
+                  <div className="backdrop-enhanced mb-1">
                     <p
                       className="font-semibold text-shadow-strong"
                       style={{ color: textColor }}
@@ -385,7 +393,28 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode }) => {
                       DIVISION: {participant.divisionName}
                     </p>
                   </div>
+                  {/* Barcode encoding Chest Number */}
+                  <div className="bg-white px-2 py-0.5 rounded shadow-sm inline-block">
+                    <Barcode
+                      value={participant.chestNumber || "000"}
+                      width={1.2}
+                      height={25}
+                      displayValue={false}
+                      margin={0}
+                      background="transparent"
+                    />
+                  </div>
                 </div>
+              </div>
+
+              {/* Bottom Left QR Code: Participant Programs */}
+              <div className="absolute bottom-3 left-3 bg-white p-1 rounded shadow-md border border-gray-200">
+                <QRCodeSVG value={`${baseUrl}/participant/${participant._id}`} size={45} />
+              </div>
+
+              {/* Bottom Right QR Code: Results Page */}
+              <div className="absolute bottom-3 right-3 bg-white p-1 rounded shadow-md border border-gray-200">
+                <QRCodeSVG value={`${baseUrl}/results`} size={45} />
               </div>
             </div>
           </CardContent>
@@ -469,6 +498,7 @@ const PrintableParticipantCard = ({
   participant,
   festivalSettings,
   viewMode,
+  baseUrl,
 }) => {
   const participantsCardSettings = festivalSettings?.participantsCard || {};
   const participantsCardBackgroundUrl =
@@ -546,7 +576,7 @@ const PrintableParticipantCard = ({
               </div>
 
               {/* Team and Division - Print Version */}
-              <div className="text-xs">
+              <div className="text-xs flex flex-col items-center">
                 <div className="">
                   <p
                     className="font-semibold"
@@ -557,7 +587,7 @@ const PrintableParticipantCard = ({
                     TEAM: {participant.teamName}
                   </p>
                 </div>
-                <div className="">
+                <div className="mb-1">
                   <p
                     className="font-semibold"
                     style={{
@@ -567,7 +597,28 @@ const PrintableParticipantCard = ({
                     DIV: {participant.divisionName}
                   </p>
                 </div>
+                {/* Barcode encoding Chest Number */}
+                <div className="bg-white px-2 py-0.5 rounded shadow-sm inline-block">
+                  <Barcode
+                    value={participant.chestNumber || "000"}
+                    width={1.2}
+                    height={25}
+                    displayValue={false}
+                    margin={0}
+                    background="transparent"
+                  />
+                </div>
               </div>
+            </div>
+
+            {/* Bottom Left QR Code: Participant Programs */}
+            <div className="absolute bottom-3 left-3 bg-white p-1 rounded shadow-sm border border-gray-100">
+              <QRCodeSVG value={`${baseUrl}/participant/${participant._id}`} size={45} />
+            </div>
+
+            {/* Bottom Right QR Code: Results Page */}
+            <div className="absolute bottom-3 right-3 bg-white p-1 rounded shadow-sm border border-gray-100">
+              <QRCodeSVG value={`${baseUrl}/results`} size={45} />
             </div>
           </div>
         </div>
