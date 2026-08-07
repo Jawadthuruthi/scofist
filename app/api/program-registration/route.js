@@ -45,6 +45,12 @@ export async function GET(request) {
     await connectToDB();
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page")) || 0;
+    
+    // Extract user and role for authorization
+    const activeRole = request.cookies?.get("active-role")?.value;
+    const userStr = request.headers?.get("x-user");
+    const user = userStr ? JSON.parse(userStr) : {};
+    const userId = user?.userId || user?._id;
     const limit = parseInt(searchParams.get("limit")) || 50; // Reduced default limit
     const skip = page * limit;
 
@@ -55,6 +61,39 @@ export async function GET(request) {
     const isCodeLetter = searchParams.get("isCodeLetter") === "true";
     const isResultDeclared = searchParams.get("isResultDeclared");
 
+    // Check leader teams
+    let matchTeamCondition = null;
+    if (activeRole === "Program Leader") {
+      if (!userId) {
+        return NextResponse.json({ success: false, message: "User not authenticated" }, { status: 401 });
+      }
+      const leaderTeams = await Team.find({ leaderId: userId }).select("_id");
+      const leaderTeamIds = leaderTeams.map((t) => t._id.toString());
+      
+      if (leaderTeamIds.length === 0) {
+        return NextResponse.json({
+          success: true,
+          registrations: [],
+          pagination: { page, totalPages: 0, total: 0, hasNextPage: false, hasPrevPage: false },
+        });
+      }
+
+      if (teamId) {
+        if (!leaderTeamIds.includes(teamId)) {
+          return NextResponse.json({
+            success: true,
+            registrations: [],
+            pagination: { page, totalPages: 0, total: 0, hasNextPage: false, hasPrevPage: false },
+          });
+        }
+        matchTeamCondition = teamId;
+      } else {
+        matchTeamCondition = { $in: leaderTeamIds };
+      }
+    } else if (teamId) {
+      matchTeamCondition = teamId;
+    }
+
     // Build optimized aggregation pipeline with early filtering
     let pipeline = [
       // EARLY FILTERING - Most restrictive filters first
@@ -64,8 +103,8 @@ export async function GET(request) {
           ...(programId && {
             programId: new mongoose.Types.ObjectId(programId),
           }),
-          ...(teamId && {
-            teamId: teamId,
+          ...(matchTeamCondition && {
+            teamId: matchTeamCondition,
           }),
           ...(isResultDeclared !== null && {
             isResultDeclared: isResultDeclared === "true",

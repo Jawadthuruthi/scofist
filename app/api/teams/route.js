@@ -13,11 +13,15 @@ export async function GET(req) {
     const page = parseInt(url.searchParams.get("page")) || 0;
     const limit = parseInt(url.searchParams.get("limit")) || 20;
     const name = url.searchParams.get("name");
+    const leaderId = url.searchParams.get("leaderId");
     const projectionParam = url.searchParams.get("projection");
 
     const query = {};
     if (name) {
       query.name = { $regex: name, $options: "i" };
+    }
+    if (leaderId) {
+      query.leaderId = leaderId;
     }
 
     // Add year to query
