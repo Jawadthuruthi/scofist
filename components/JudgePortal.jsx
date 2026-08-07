@@ -49,7 +49,7 @@ const renderItemsWithStar = (text) => {
       {items.map((item, idx) => (
         <div key={idx} className="flex items-start gap-2">
           <span className="text-primary font-bold mt-0.5 shrink-0">*</span>
-          <span>{item}</span>
+          <span className="book-text-font text-base md:text-lg leading-relaxed">{item}</span>
         </div>
       ))}
     </div>
@@ -320,8 +320,8 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
           </h2>
         </div>
 
-        {/* ── Instructions ── */}
-        <div className="flex flex-col justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-6 gap-4 h-full">
+        {/* ── Instructions (Desktop) ── */}
+        <div className="hidden lg:flex flex-col justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-6 gap-4 h-full">
           <div className="text-sm sm:text-base text-blue-700 dark:text-blue-400 text-center sm:text-left">
             <strong className="block mb-2 text-base">Instructions:</strong>
             <ul className="list-disc pl-5 leading-relaxed text-left space-y-1 inline-block sm:block">
@@ -413,9 +413,20 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
               )}
             </div>
           )}
+
+          {/* ── Instructions (Mobile) ── */}
+          <div className="flex lg:hidden flex-col justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-6 gap-4">
+            <div className="text-sm sm:text-base text-blue-700 dark:text-blue-400 text-center sm:text-left">
+              <strong className="block mb-2 text-base">Instructions:</strong>
+              <ul className="list-disc pl-5 leading-relaxed text-left space-y-1 inline-block sm:block">
+                <li>Enter marks (0–100) and comments for each participant.</li>
+                <li>Once submitted, marks cannot be changed.</li>
+              </ul>
+            </div>
+          </div>
         </div>
 
-      {/* Right Column: Instructions, Table, Submit */}
+      {/* Right Column: Table, Submit */}
       <div className="space-y-5">
 
       {/* ── Marks Table ── */}

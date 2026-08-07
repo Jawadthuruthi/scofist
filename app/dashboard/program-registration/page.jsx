@@ -67,7 +67,7 @@ export default async function ProgramRegistrationPage() {
         // include divisionId for participant option-level filtering
         fetchData("participants", `${yearParam}projection=_id,name,teamId,divisionId`, 60),
         fetchData("divisions", `${yearParam}projection=_id,name`, 60),
-        fetchData("settings", "projection=festival", 60),
+        fetchData("settings", `${yearParam}projection=festival`, 60),
       ]);
     } else if (activeRole === "Program Leader") {
       const userTeams = await fetchData(
@@ -95,7 +95,7 @@ export default async function ProgramRegistrationPage() {
           60
         ),
         fetchData("divisions", `${yearParam}projection=_id,name`, 60),
-        fetchData("settings", "projection=festival", 60),
+        fetchData("settings", `${yearParam}projection=festival`, 60),
       ]);
 
       teams = userTeams;
@@ -252,7 +252,7 @@ export default async function ProgramRegistrationPage() {
           }
           alertDescription={
             activeRole === "Program Leader" && deadline > new Date()
-              ? `Please register before ${deadline.toLocaleDateString()}.`
+              ? `Please register before ${String(deadline.getDate()).padStart(2, "0")}-${String(deadline.getMonth() + 1).padStart(2, "0")}-${deadline.getFullYear()}.`
               : ""
           }
         />

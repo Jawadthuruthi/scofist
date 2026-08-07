@@ -21,9 +21,22 @@ export async function GET(request) {
     if (judgeId) query.judgeId = judgeId;
     if (year) query.year = year;
 
-    const assignments = await JudgeAssignment.find(query)
+    const rawAssignments = await JudgeAssignment.find(query)
       .sort({ judgeNumber: 1 })
-      .populate("programId", "rules topics criteria");
+      .populate("programId", "name rules topics criteria")
+      .populate("divisionId", "name");
+
+    const assignments = rawAssignments.map(a => {
+      const doc = a.toObject();
+      if (doc.programId && typeof doc.programId === 'object') {
+        doc.programName = doc.programId.name || doc.programName;
+      }
+      if (doc.divisionId && typeof doc.divisionId === 'object') {
+        doc.divisionName = doc.divisionId.name || doc.divisionName;
+        doc.divisionId = doc.divisionId._id; // Restore to string ID just in case client needs it
+      }
+      return doc;
+    });
 
     return NextResponse.json({ success: true, assignments });
   } catch (error) {

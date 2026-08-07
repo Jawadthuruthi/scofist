@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +30,11 @@ const InstructionsComponent = ({ data = "", apiKey, readOnly = false }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { useUpdateItem } = useCrud("settings", apiKey);
 
@@ -265,7 +270,22 @@ Examples:
                         {/* Instructions Content */}
                         <div className="bg-muted/30 p-4 sm:p-6 rounded-lg border-l-4 border-primary">
                           <div className="whitespace-pre-wrap text-sm sm:text-base leading-relaxed break-words">
-                            {originalInstructions}
+                            {originalInstructions.split('\n').map((line, i, arr) => {
+                              const trimmedLine = line.trim();
+                              if (/^[a-zA-Z]\)/.test(trimmedLine)) {
+                                return (
+                                  <div key={i} className="font-bold text-lg md:text-xl mt-4 mb-2 text-foreground">
+                                    {line}
+                                  </div>
+                                );
+                              }
+                              return (
+                                <span key={i}>
+                                  {line}
+                                  {i < arr.length - 1 && <br />}
+                                </span>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
@@ -298,7 +318,7 @@ Examples:
       {/* Print Footer */}
       <div className="hidden print:block text-center text-xs text-muted-foreground mt-8 pt-4 border-t">
         <p>
-          Generated on {new Date().toLocaleDateString()} | Festival Instructions
+          Generated on {mounted ? new Date().toLocaleDateString() : ""} | Festival Instructions
         </p>
       </div>
     </div>

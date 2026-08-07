@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useMemo, useCallback, memo } from "react";
+import { useState, useRef, useMemo, useCallback, memo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,7 +62,7 @@ const renderItemsWithStar = (text) => {
       {items.map((item, idx) => (
         <div key={idx} className="flex items-start gap-2">
           <span className="text-primary font-bold mt-0.5 shrink-0">*</span>
-          <span>{item}</span>
+          <span className="book-text-font text-lg md:text-xl leading-relaxed">{item}</span>
         </div>
       ))}
     </div>
@@ -402,7 +402,7 @@ const ProgramCard = ({
                     value={editData.rules}
                     onChange={handleRulesChange}
                     placeholder="Enter program rules..."
-                    className="min-h-[100px] sm:min-h-[120px] resize-y text-sm"
+                    className="min-h-[100px] sm:min-h-[120px] resize-y text-sm book-text-font"
                     disabled={loading}
                   />
                 </div>
@@ -454,7 +454,7 @@ const ProgramCard = ({
                   value={editData.topics}
                   onChange={handleTopicsChange}
                   placeholder="Enter program topics..."
-                  className="min-h-[100px] sm:min-h-[120px] resize-y text-sm"
+                  className="min-h-[100px] sm:min-h-[120px] resize-y text-sm book-text-font"
                   disabled={loading}
                 />
               </div>
@@ -581,6 +581,11 @@ const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
   const [viewMode, setViewMode] = useState("both");
   const [loading, setLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const printRef = useRef();
   const isMobile = useIsMobile();
@@ -1166,7 +1171,7 @@ const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
 
       {/* Print Footer */}
       <div className="hidden print:block text-center text-xs text-muted-foreground mt-8 pt-4 border-t">
-        <p>Generated on {new Date().toLocaleDateString()} | Rules & Topics</p>
+        <p>Generated on {mounted ? new Date().toLocaleDateString() : ""} | Rules & Topics</p>
       </div>
     </div>
   );

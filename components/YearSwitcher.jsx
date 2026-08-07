@@ -197,7 +197,7 @@ const YearSwitcher = () => {
           <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
             Festival Session
           </label>
-          {currentRole !== "Program Leader" && (
+          {currentRole !== "Program Leader" && currentRole !== "Judge" && (
             <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
               <DialogTrigger asChild>
                 <Button
@@ -316,9 +316,9 @@ const YearSwitcher = () => {
             </div>
           </SelectTrigger>
           <SelectContent className="z-[10000]">
-            {((currentRole === "Program Leader" || currentRole === "Program Committee") ? years.filter(y => !blockedYears.includes(y)) : years).map((year) => (
+            {years.filter(y => !blockedYears.includes(y)).map((year) => (
               <SelectItem key={year} value={year} className="cursor-pointer">
-                {year} {blockedYears.includes(year) && currentRole !== "Program Leader" && currentRole !== "Program Committee" && "(Blocked)"}
+                {year}
               </SelectItem>
             ))}
           </SelectContent>

@@ -13,7 +13,7 @@ const participantsCardPage = async () => {
 
     const [participants, settings, divisions, teams] = await Promise.all([
       fetchData("participants", `${yearParam}limit=1000`, 0),
-      fetchData("settings"),
+      fetchData("settings", `${yearParam}`),
       fetchData("divisions", `${yearParam}limit=100`, 0),
       fetchData("teams", `${yearParam}limit=100`, 0),
     ]);

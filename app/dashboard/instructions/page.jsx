@@ -11,8 +11,11 @@ export default async function InstructionsPage() {
     const activeRole = cookiesStore.get("active-role")?.value;
     const apiKey = process.env.API_KEY;
 
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}` : "";
+
     // Fetch settings which contain instructions
-    const settings = await fetchData("settings", "", 0);
+    const settings = await fetchData("settings", yearParam, 0);
 
     return (
       <>
