@@ -658,26 +658,27 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
 
       {/* ── Alert Notification Popup ── */}
       <AlertDialog open={!!assignment.alertActive}>
-        <AlertDialogContent className="max-w-md border-amber-200 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-800">
+        <AlertDialogContent className="max-w-2xl border-amber-200 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-800 p-8">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-500 text-xl">
-              <BellRing className="h-6 w-6 animate-pulse" />
+            <AlertDialogTitle className="flex items-center gap-4 text-amber-700 dark:text-amber-500 text-3xl font-bold">
+              <BellRing className="h-10 w-10 animate-pulse" />
               Alert from Program Committee
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-amber-900 dark:text-amber-200 mt-4 text-base bg-white dark:bg-amber-950/50 p-4 rounded-md border border-amber-100 dark:border-amber-800 shadow-inner break-words">
+            <AlertDialogDescription className="text-amber-900 dark:text-amber-200 mt-6 text-2xl leading-relaxed bg-white dark:bg-amber-950/50 p-6 rounded-lg border border-amber-100 dark:border-amber-800 shadow-inner break-words font-medium">
               {assignment.alertMessage || "You have a new message from the committee."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="sm:justify-center mt-6">
+          <AlertDialogFooter className="sm:justify-center mt-8">
             <Button
               onClick={handleDismissAlert}
               disabled={dismissingAlert}
-              className="bg-amber-600 hover:bg-amber-700 text-white min-w-32"
+              size="lg"
+              className="bg-amber-600 hover:bg-amber-700 text-white w-full sm:w-auto min-w-48 h-14 text-xl"
             >
               {dismissingAlert ? (
-                <Loader className="animate-spin h-4 w-4 mr-2" />
+                <Loader className="animate-spin h-6 w-6 mr-3" />
               ) : (
-                <CheckCircle className="h-4 w-4 mr-2" />
+                <CheckCircle className="h-6 w-6 mr-3" />
               )}
               Got it
             </Button>
