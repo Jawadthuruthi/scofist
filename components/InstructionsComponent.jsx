@@ -23,10 +23,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "./PrintHeader";
+import Header from "@/components/Header";
 
-const InstructionsComponent = ({ data = "", apiKey, readOnly = false }) => {
+const InstructionsComponent = ({ data = "", isInstructionsVisible = true, apiKey, readOnly = false }) => {
   const [instructions, setInstructions] = useState(data);
   const [originalInstructions, setOriginalInstructions] = useState(data);
+  const [isVisible, setIsVisible] = useState(isInstructionsVisible);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -124,12 +126,63 @@ const InstructionsComponent = ({ data = "", apiKey, readOnly = false }) => {
     }
   }, []);
 
-  const toggleExpanded = useCallback(() => {
-    setIsExpanded(!isExpanded);
-  }, [isExpanded]);
+  const toggleVisibility = useCallback(async () => {
+    try {
+      const newVisibility = !isVisible;
+      setIsVisible(newVisibility);
+      
+      await updateItem.mutateAsync({
+        data: {
+          isInstructionsVisible: newVisibility,
+        },
+      });
+      
+      toast.success(newVisibility ? "Instructions are now visible to Program Leaders" : "Instructions are now hidden from Program Leaders");
+    } catch (error) {
+      setIsVisible(isVisible); // revert on error
+      toast.error("Failed to update visibility");
+    }
+  }, [isVisible, updateItem]);
+
+  const actionControls = (
+    <div className="flex items-center gap-2">
+      {!readOnly && !isEditing && (
+        <Button variant="outline" onClick={handleEdit} size="sm">
+          <Edit3 className="w-4 h-4 mr-1" />
+          Edit
+        </Button>
+      )}
+
+      <Button
+        onClick={isMobile ? handleDownloadPDF : handlePrint}
+        size="sm"
+      >
+        {isMobile ? (
+          <>
+            <Download className="w-4 h-4 mr-1" />
+            PDF
+          </>
+        ) : (
+          <>
+            <Printer className="w-4 h-4 mr-1" />
+            Print
+          </>
+        )}
+      </Button>
+    </div>
+  );
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Page Header */}
+      <div className="print:hidden">
+        <Header
+          title="FESTIVAL INSTRUCTIONS"
+          subTitle="Guidelines and Important Information"
+          rightAction={<div className="hidden md:block">{actionControls}</div>}
+        />
+      </div>
+
       {/* Header Controls - Hidden in Print */}
       <div className="print:hidden space-y-4">
         {/* Status Alerts */}
@@ -142,33 +195,9 @@ const InstructionsComponent = ({ data = "", apiKey, readOnly = false }) => {
           </Alert>
         )}
 
-        {/* Action Controls */}
-        <div className="flex items-center justify-end gap-3">
-          <div className="flex items-center gap-2">
-            {!readOnly && !isEditing && (
-              <Button variant="outline" onClick={handleEdit} size="sm">
-                <Edit3 className="w-4 h-4 mr-1" />
-                Edit
-              </Button>
-            )}
-
-            <Button
-              onClick={isMobile ? handleDownloadPDF : handlePrint}
-              size="sm"
-            >
-              {isMobile ? (
-                <>
-                  <Download className="w-4 h-4 mr-1" />
-                  PDF
-                </>
-              ) : (
-                <>
-                  <Printer className="w-4 h-4 mr-1" />
-                  Print
-                </>
-              )}
-            </Button>
-          </div>
+        {/* Action Controls for Mobile */}
+        <div className="md:hidden flex items-center justify-end gap-3">
+          {actionControls}
         </div>
       </div>
 
@@ -181,8 +210,8 @@ const InstructionsComponent = ({ data = "", apiKey, readOnly = false }) => {
           isFestival={true}
         />
 
-        <Card className="break-inside-avoid">
-          <CardHeader className="pb-3 sm:pb-4">
+        <Card>
+          <CardHeader className="pb-3 sm:pb-4 print:hidden">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1 min-w-0 flex-1">
                 <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
@@ -190,21 +219,22 @@ const InstructionsComponent = ({ data = "", apiKey, readOnly = false }) => {
                   General Instructions
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Important guidelines for all festival participants
+                  Important guidelines for participants
                 </p>
               </div>
 
-              {!isEditing && originalInstructions && (
+              {!isEditing && originalInstructions && !readOnly && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={toggleExpanded}
+                  onClick={toggleVisibility}
                   className="print:hidden h-8 w-8 p-0"
+                  title={isVisible ? "Hide from Program Leaders" : "Show to Program Leaders"}
                 >
-                  {isExpanded ? (
-                    <EyeOff className="w-4 h-4" />
+                  {isVisible ? (
+                    <Eye className="w-5 h-5 text-green-600" />
                   ) : (
-                    <Eye className="w-4 h-4" />
+                    <EyeOff className="w-5 h-5 text-red-600" />
                   )}
                 </Button>
               )}
@@ -263,13 +293,25 @@ Examples:
               </div>
             ) : (
               <div className="space-y-4">
-                <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-                  <CollapsibleContent>
+                {readOnly && !isVisible ? (
+                  <div className="text-center py-8 sm:py-12 text-muted-foreground">
+                    <FileText className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-4 opacity-50" />
+                    <h3 className="text-base sm:text-lg font-semibold mb-2">
+                      Instructions Unavailable
+                    </h3>
+                    <p className="text-sm mb-4 px-4">
+                      Instructions are currently hidden by the program committee.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
                     {originalInstructions ? (
                       <div className="space-y-4">
                         {/* Instructions Content */}
                         <div className="bg-muted/30 p-4 sm:p-6 rounded-lg border-l-4 border-primary">
-                          <div className="whitespace-pre-wrap text-sm sm:text-base leading-relaxed break-words">
+                          <div 
+                            className="whitespace-pre-wrap text-sm sm:text-base leading-relaxed break-words font-google-sans"
+                          >
                             {originalInstructions.split('\n').map((line, i, arr) => {
                               const trimmedLine = line.trim();
                               if (/^[a-zA-Z]\)/.test(trimmedLine)) {
@@ -307,8 +349,8 @@ Examples:
                         )}
                       </div>
                     )}
-                  </CollapsibleContent>
-                </Collapsible>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

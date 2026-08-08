@@ -111,6 +111,10 @@ const FestivalSchema = new Schema({
     type: String,
     trim: true,
   },
+  isInstructionsVisible: {
+    type: Boolean,
+    default: true,
+  },
 
   resultPosters: [
     {

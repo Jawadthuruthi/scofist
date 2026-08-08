@@ -201,6 +201,8 @@ export async function POST(req, res) {
         },
         instructions:
           data.instructions ?? existingSettings?.festival?.instructions,
+        isInstructionsVisible:
+          data.isInstructionsVisible ?? existingSettings?.festival?.isInstructionsVisible ?? true,
         resultPosters:
           data.festival?.resultPosters ??
           existingSettings?.festival?.resultPosters ??
@@ -687,7 +689,8 @@ export async function PUT(req) {
       data.right !== undefined ||
       data.bottom !== undefined ||
       data.left !== undefined ||
-      data.instructions ||
+      data.instructions !== undefined ||
+      data.isInstructionsVisible !== undefined ||
       data.festival?.resultPosters ||
       data.chairmanName !== undefined ||
       data.chairmanPhone !== undefined ||
@@ -753,6 +756,8 @@ export async function PUT(req) {
         },
         instructions:
           data.instructions ?? existingFestivalForYear.instructions,
+        isInstructionsVisible:
+          data.isInstructionsVisible ?? existingFestivalForYear.isInstructionsVisible ?? true,
         resultPosters:
           data.festival?.resultPosters ??
           existingFestivalForYear.resultPosters ??

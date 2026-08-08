@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import ErrorPage from "@/components/ErrorPage";
-import Header from "@/components/Header";
+
 import InstructionsComponent from "@/components/InstructionsComponent";
 import { fetchData } from "@/lib/utils";
 import { cookies } from "next/headers";
@@ -19,13 +19,11 @@ export default async function InstructionsPage() {
 
     return (
       <>
-        <Header
-          title="FESTIVAL INSTRUCTIONS"
-          subTitle="Guidelines and Important Information"
-        />
+
         <Suspense fallback={<div className="p-4">Loading instructions...</div>}>
           <InstructionsComponent
             data={settings?.festival?.instructions || ""}
+            isInstructionsVisible={settings?.festival?.isInstructionsVisible ?? true}
             apiKey={apiKey}
             readOnly={activeRole !== "Program Committee"}
           />

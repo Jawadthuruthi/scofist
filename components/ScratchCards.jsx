@@ -102,7 +102,7 @@ export default function ScratchCards() {
                 {totalCards}
               </span>
               {" • "}
-              Codes Revealed:{" "}
+              Revealed:{" "}
               <span className="font-semibold text-foreground">
                 {revealedCards}
               </span>
@@ -166,7 +166,7 @@ export default function ScratchCards() {
         <Card className="p-6 text-center bg-green-50 border-green-200">
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-green-800">
-              🎉 All Codes Revealed!
+              🎉 All Revealed!
             </h3>
             <p className="text-green-700">
               All {totalCards} participant codes have been revealed. Everyone
