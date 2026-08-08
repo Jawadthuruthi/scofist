@@ -245,7 +245,7 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
                                 {/* Title row */}
                                 <tr>
                                     <th
-                                        colSpan={sortedPrograms.length + 3}
+                                        colSpan={sortedPrograms.length + 4}
                                         className="bg-primary text-primary-foreground text-center py-2 px-3 text-base font-bold tracking-wide uppercase"
                                     >
                                         {selectedCategory} Programs
@@ -267,6 +267,21 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
                                     </th>
                                     <th className="border border-border px-3 py-2 text-left whitespace-nowrap min-w-[160px] text-xs font-semibold">
                                         Participant
+                                    </th>
+                                    <th className="border border-border px-1 py-2 text-center min-w-[36px] max-w-[48px] w-[40px]">
+                                        <div
+                                            className="text-xs font-semibold leading-tight text-muted-foreground"
+                                            style={{
+                                                writingMode: "vertical-rl",
+                                                transform: "rotate(180deg)",
+                                                maxHeight: "130px",
+                                                overflow: "hidden",
+                                                whiteSpace: "normal",
+                                                wordBreak: "break-word",
+                                            }}
+                                        >
+                                            Total<br />Programs <span className="opacity-60 font-normal">({sortedPrograms.length})</span>
+                                        </div>
                                     </th>
                                     {sortedPrograms.map((prog) => (
                                         <th
@@ -323,8 +338,12 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
                                             {/* Participant name */}
                                             <td className="border border-border px-3 py-2 whitespace-nowrap">
                                                 <div className="font-medium text-sm leading-tight">
-                                                    {participant.name} ({participant.programs?.length || 0})
+                                                    {participant.name}
                                                 </div>
+                                            </td>
+                                            {/* Total Programs */}
+                                            <td className="border border-border px-3 py-2 text-center text-sm font-semibold whitespace-nowrap">
+                                                {registeredCount}
                                             </td>
                                             {/* Program cells */}
                                             {sortedPrograms.map((prog) => {
@@ -352,7 +371,7 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
                             <tfoot>
                                 <tr className="bg-muted/50 font-semibold">
                                     <td
-                                        colSpan={3}
+                                        colSpan={4}
                                         className="border border-border px-3 py-2 text-xs text-right text-muted-foreground"
                                     >
                                         Registrations per program →
