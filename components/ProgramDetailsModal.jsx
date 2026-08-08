@@ -252,11 +252,6 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
             <TabsContent value="results" className="pt-4">
               {result && result.isResultDeclared ? (
                 <div className="space-y-4">
-                  <div className="text-center pb-2">
-                    <h3 className="text-lg font-bold text-gray-800">
-                      {program?.divisionName || program?.divisionId?.name} - {program?.name}
-                    </h3>
-                  </div>
                   <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
                     <ul className="divide-y divide-gray-100">
                       {result.participants
