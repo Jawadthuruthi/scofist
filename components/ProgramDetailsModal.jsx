@@ -135,18 +135,14 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
                 {program?.name || "Loading..."}
               </DialogTitle>
               {program && (
-                <>
-                  <p className="text-sm font-semibold text-gray-500 uppercase mt-1">
-                    {program?.divisionName || program?.divisionId?.name}
-                  </p>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="outline">{program.category}</Badge>
-                    <Badge variant="outline">{program.type}</Badge>
-                    {status.text !== "Unscheduled" && (
-                      <Badge className={status.color} variant="secondary">{status.text}</Badge>
-                    )}
-                  </div>
-                </>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Badge variant="outline">{program?.divisionName || program?.divisionId?.name}</Badge>
+                  <Badge variant="outline">{program.category}</Badge>
+                  <Badge variant="outline">{program.type}</Badge>
+                  {status.text !== "Unscheduled" && (
+                    <Badge className={status.color} variant="secondary">{status.text}</Badge>
+                  )}
+                </div>
               )}
             </div>
           </div>
