@@ -6,7 +6,7 @@ export default function ScratchPage() {
     <>
       <Header
         title="SCRATCH CARDS"
-        subTitle="Generate and scratch cards to reveal hidden letters"
+        subTitle="Generate and scratch cards to reveal letters"
       />
       <ScratchCards />
     </>

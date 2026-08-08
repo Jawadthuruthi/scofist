@@ -68,11 +68,11 @@ export default function ScratchCards() {
     <div className="w-full space-y-6">
       {/* Control Panel */}
       <Card className="p-6">
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
-          <div className="flex-1 max-w-xs">
+        <div className="flex flex-row gap-3 sm:gap-4 items-end w-full">
+          <div className="flex-1 min-w-0 max-w-xs">
             <label
               htmlFor="card-count"
-              className="block text-sm font-medium mb-2"
+              className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 truncate"
             >
               Number of Participants
             </label>
@@ -83,13 +83,13 @@ export default function ScratchCards() {
               value={cardCount}
               onChange={handleCountChange}
               onBlur={handleInputBlur}
-              className="w-full"
+              className="w-full h-10"
               placeholder="1-26"
             />
           </div>
 
-          <Button onClick={handleGenerate} size="default" className="px-8">
-            Generate Cards
+          <Button onClick={handleGenerate} size="default" className="px-4 sm:px-8 shrink-0 h-10">
+            Generate
           </Button>
         </div>
 

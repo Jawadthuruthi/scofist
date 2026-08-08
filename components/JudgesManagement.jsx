@@ -666,8 +666,8 @@ const JudgesManagement = ({
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleSendAlert} 
+            <Button
+              onClick={handleSendAlert}
               disabled={saving || !alertMessage.trim()}
               className="bg-amber-500 hover:bg-amber-600 text-white"
             >
