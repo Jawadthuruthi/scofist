@@ -104,6 +104,25 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
     }
   };
 
+  const renderItemsWithStar = (text) => {
+    if (!text) return null;
+    const items = text
+      .split(".")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+    if (items.length === 0) return <p className="text-sm text-gray-500 italic">No information available.</p>;
+    return (
+      <div className="space-y-1 mt-2">
+        {items.map((item, idx) => (
+          <div key={idx} className="flex items-start gap-2">
+            <span className="text-indigo-600 font-bold mt-0.5 shrink-0">*</span>
+            <span className="text-sm text-gray-600 leading-relaxed">{item}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const status = getStatus();
 
   return (
@@ -119,7 +138,9 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
                 <div className="flex gap-2 mt-2">
                   <Badge variant="outline">{program.category}</Badge>
                   <Badge variant="outline">{program.type}</Badge>
-                  <Badge className={status.color} variant="secondary">{status.text}</Badge>
+                  {status.text !== "Unscheduled" && (
+                    <Badge className={status.color} variant="secondary">{status.text}</Badge>
+                  )}
                 </div>
               )}
             </div>
@@ -151,31 +172,41 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
                   <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
                     <Info className="w-4 h-4 text-indigo-600" /> Topic
                   </h3>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                    {program.topics || "No topic specified."}
-                  </p>
+                  <div className="text-sm text-gray-600 whitespace-pre-wrap">
+                    {program.topics ? renderItemsWithStar(program.topics) : "No topic specified."}
+                  </div>
                 </div>
                 
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                   <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
                     <FileText className="w-4 h-4 text-indigo-600" /> Rules
                   </h3>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                    {program.rules || "No rules specified."}
-                  </p>
+                  <div className="text-sm text-gray-600 whitespace-pre-wrap">
+                    {program.rules ? renderItemsWithStar(program.rules) : "No rules specified."}
+                  </div>
                 </div>
               </div>
 
               {program.criteria && program.criteria.length > 0 && (
                 <div className="mt-6">
                   <h3 className="font-semibold text-gray-800 border-b pb-2 mb-3">Evaluation Criteria</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {program.criteria.map((c, i) => (
-                      <div key={i} className="bg-white border rounded p-3 flex justify-between items-center shadow-sm">
-                        <span className="text-sm font-medium text-gray-700">{c.name}</span>
-                        <Badge variant="secondary" className="bg-indigo-100 text-indigo-800">{c.score} pts</Badge>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left border-collapse border border-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 font-medium border-b border-gray-200 text-gray-700">Criteria Name</th>
+                          <th className="px-4 py-2 font-medium border-b border-gray-200 w-24 text-gray-700 text-center">Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {program.criteria.map((c, i) => (
+                          <tr key={i} className="border-b border-gray-200 last:border-0 hover:bg-gray-50">
+                            <td className="px-4 py-2 font-medium text-gray-700">{c.name}</td>
+                            <td className="px-4 py-2 font-medium text-center text-indigo-700 bg-indigo-50/50">{c.score}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
@@ -220,27 +251,13 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
             {/* RESULTS TAB */}
             <TabsContent value="results" className="pt-4">
               {result && result.isResultDeclared ? (
-                <div className="space-y-6">
-                  {/* Result Posters generated from settings */}
-                  {settings && settings.festival?.resultPosters && settings.festival.resultPosters.length > 0 && (
-                    <div className="bg-gray-50 rounded-xl p-4 border overflow-hidden">
-                      <ResultPostersSection 
-                        resultData={{
-                          ...result,
-                          programName: program.name,
-                          divisionName: program.divisionId?.name || "N/A",
-                        }} 
-                        settings={settings} 
-                      />
-                    </div>
-                  )}
-
-                  {/* Fallback/Text Winners List if posters aren't enough */}
-                  <div className="bg-white border rounded-lg shadow-sm overflow-hidden mt-4">
-                    <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center gap-2">
-                      <Trophy className="w-5 h-5 text-yellow-500" />
-                      <h3 className="font-semibold text-gray-800">Winners List</h3>
-                    </div>
+                <div className="space-y-4">
+                  <div className="text-center pb-2">
+                    <h3 className="text-lg font-bold text-gray-800">
+                      {program?.divisionName || program?.divisionId?.name} - {program?.name}
+                    </h3>
+                  </div>
+                  <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
                     <ul className="divide-y divide-gray-100">
                       {result.participants
                         ?.filter(p => p.rank > 0)
@@ -260,8 +277,13 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
                                 <p className="text-xs text-gray-500 uppercase">{p.participantDetails?.teamId?.name || "Unknown Team"}</p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <Badge variant="outline" className="font-medium bg-white">{p.grade}</Badge>
+                            <div className="text-right flex items-center gap-2">
+                              {p.points > 0 && (
+                                <Badge variant="secondary" className="font-medium bg-gray-100">{p.points} Pts</Badge>
+                              )}
+                              {p.grade && p.grade !== "-" && (
+                                <Badge variant="outline" className="font-medium bg-white">{p.grade}</Badge>
+                              )}
                             </div>
                           </li>
                         ))}
