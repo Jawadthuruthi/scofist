@@ -219,10 +219,11 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
         const valueToMatch = depValue;
         const filteredOptions = (field.options || []).filter((option) => {
           if (!valueToMatch) return true;
-          if (key) {
-            return option?.[dependentFieldName]?.[key] === valueToMatch;
+          const optionValue = key ? option?.[dependentFieldName]?.[key] : option?.[dependentFieldName];
+          if (Array.isArray(optionValue)) {
+            return optionValue.includes(valueToMatch);
           }
-          return option?.[dependentFieldName] === valueToMatch;
+          return optionValue === valueToMatch;
         });
         const selectedOptions = (field.options || []).filter((option) =>
           Array.isArray(thisValue)
@@ -244,10 +245,11 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
           const valueToMatch = watchedValues[dependentFieldName];
           if (valueToMatch) {
             filteredOptions = filteredOptions.filter((option) => {
-              if (key) {
-                return option?.[dependentFieldName]?.[key] === valueToMatch;
+              const optionValue = key ? option?.[dependentFieldName]?.[key] : option?.[dependentFieldName];
+              if (Array.isArray(optionValue)) {
+                return optionValue.includes(valueToMatch);
               }
-              return option?.[dependentFieldName] === valueToMatch;
+              return optionValue === valueToMatch;
             });
           }
         });

@@ -66,7 +66,7 @@ export default async function ProgramRegistrationPage() {
         fetchData("teams", `${yearParam}projection=_id,name`, 60),
         // include divisionId for participant option-level filtering
         fetchData("participants", `${yearParam}projection=_id,name,teamId,divisionId`, 60),
-        fetchData("divisions", `${yearParam}projection=_id,name`, 60),
+        fetchData("divisions", `${yearParam}projection=_id,name,type,subDivisions`, 60),
         fetchData("settings", `${yearParam}projection=festival`, 60),
       ]);
     } else if (activeRole === "Program Leader") {
@@ -94,7 +94,7 @@ export default async function ProgramRegistrationPage() {
           `${yearParam}teamId=${teamIds[0]}&projection=_id,name,teamId,divisionId`,
           60
         ),
-        fetchData("divisions", `${yearParam}projection=_id,name`, 60),
+        fetchData("divisions", `${yearParam}projection=_id,name,type,subDivisions`, 60),
         fetchData("settings", `${yearParam}projection=festival`, 60),
       ]);
 
@@ -102,6 +102,19 @@ export default async function ProgramRegistrationPage() {
     } else {
       throw new Error("Unauthorized access");
     }
+
+    const enhancedParticipants = (participants || []).map(p => {
+      const validDivisions = [p.divisionId];
+      (divisions || []).forEach(d => {
+        if (d.type === 'Secondary' && d.subDivisions && d.subDivisions.includes(p.divisionId)) {
+          validDivisions.push(d._id);
+        }
+      });
+      return {
+        ...p,
+        divisionId: validDivisions,
+      };
+    });
 
     // Forms
     const programCommitteeFormFields = [
@@ -138,7 +151,7 @@ export default async function ProgramRegistrationPage() {
         label: "Participants",
         type: "array",
         inputType: "multiSelect",
-        options: formatOptions(participants),
+        options: formatOptions(enhancedParticipants),
         required: true,
         placeholder: "Select participants",
         validators: {
@@ -179,7 +192,7 @@ export default async function ProgramRegistrationPage() {
         label: "Participants",
         type: "array",
         inputType: "multiSelect",
-        options: formatOptions(participants),
+        options: formatOptions(enhancedParticipants),
         required: true,
         placeholder: "Select participants",
         validators: {
