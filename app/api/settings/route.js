@@ -205,6 +205,18 @@ export async function POST(req, res) {
           data.festival?.resultPosters ??
           existingSettings?.festival?.resultPosters ??
           [],
+        committeeContacts: {
+          chairman: {
+            name: data.chairmanName ?? existingSettings?.festival?.committeeContacts?.chairman?.name,
+            phone: data.chairmanPhone ?? existingSettings?.festival?.committeeContacts?.chairman?.phone,
+            whatsapp: data.chairmanWhatsapp ?? existingSettings?.festival?.committeeContacts?.chairman?.whatsapp,
+          },
+          convenor: {
+            name: data.convenorName ?? existingSettings?.festival?.committeeContacts?.convenor?.name,
+            phone: data.convenorPhone ?? existingSettings?.festival?.committeeContacts?.convenor?.phone,
+            whatsapp: data.convenorWhatsapp ?? existingSettings?.festival?.committeeContacts?.convenor?.whatsapp,
+          },
+        },
       },
       years: data.years ?? existingSettings?.years ?? ["2025 november"],
       blockedYears: data.blockedYears ?? existingSettings?.blockedYears ?? [],
@@ -676,7 +688,13 @@ export async function PUT(req) {
       data.bottom !== undefined ||
       data.left !== undefined ||
       data.instructions ||
-      data.festival?.resultPosters
+      data.festival?.resultPosters ||
+      data.chairmanName !== undefined ||
+      data.chairmanPhone !== undefined ||
+      data.chairmanWhatsapp !== undefined ||
+      data.convenorName !== undefined ||
+      data.convenorPhone !== undefined ||
+      data.convenorWhatsapp !== undefined
     ) {
       const { getYear } = await import("@/lib/getYear");
       const reqYear = await getYear(req);
@@ -739,6 +757,18 @@ export async function PUT(req) {
           data.festival?.resultPosters ??
           existingFestivalForYear.resultPosters ??
           [],
+        committeeContacts: {
+          chairman: {
+            name: data.chairmanName ?? existingFestivalForYear.committeeContacts?.chairman?.name,
+            phone: data.chairmanPhone ?? existingFestivalForYear.committeeContacts?.chairman?.phone,
+            whatsapp: data.chairmanWhatsapp ?? existingFestivalForYear.committeeContacts?.chairman?.whatsapp,
+          },
+          convenor: {
+            name: data.convenorName ?? existingFestivalForYear.committeeContacts?.convenor?.name,
+            phone: data.convenorPhone ?? existingFestivalForYear.committeeContacts?.convenor?.phone,
+            whatsapp: data.convenorWhatsapp ?? existingFestivalForYear.committeeContacts?.convenor?.whatsapp,
+          },
+        },
       };
 
       const existingIndex = currentFestivals.findIndex(f => f.year === reqYear);

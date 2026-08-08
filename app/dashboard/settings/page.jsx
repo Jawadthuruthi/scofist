@@ -60,6 +60,12 @@ export default async function SettingsPage() {
         }
       })(),
       instructions: data.festival?.instructions || "",
+      chairmanName: data.festival?.committeeContacts?.chairman?.name || "",
+      chairmanPhone: data.festival?.committeeContacts?.chairman?.phone || "",
+      chairmanWhatsapp: data.festival?.committeeContacts?.chairman?.whatsapp || "",
+      convenorName: data.festival?.committeeContacts?.convenor?.name || "",
+      convenorPhone: data.festival?.committeeContacts?.convenor?.phone || "",
+      convenorWhatsapp: data.festival?.committeeContacts?.convenor?.whatsapp || "",
     };
 
     const idCard = {

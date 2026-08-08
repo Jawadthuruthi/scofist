@@ -48,6 +48,14 @@ const judgeAssignmentSchema = new Schema(
       ref: "User",
       trim: true,
     },
+    alertMessage: {
+      type: String,
+      trim: true,
+    },
+    alertActive: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

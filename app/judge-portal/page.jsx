@@ -1,7 +1,9 @@
 import JudgePortal from "@/components/JudgePortal";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { parseUser } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+import ContactCommitteeDropdown from "@/components/ContactCommitteeDropdown";
+import { fetchData, parseUser } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
 
 export default async function JudgePortalPage() {
@@ -21,11 +23,25 @@ export default async function JudgePortalPage() {
       throw new Error("User not authenticated");
     }
 
+    const settingsData = await fetchData(
+      "settings", 
+      activeYear ? `year=${encodeURIComponent(activeYear)}` : "", 
+      0
+    );
+    const phone = settingsData?.institution?.contact?.primaryPhone;
+    const committeeContacts = settingsData?.festival?.committeeContacts;
+
     return (
       <>
         <Header
           title="MARK ENTRY PORTAL"
           subTitle="Enter marks for your assigned program."
+          rightAction={
+            <ContactCommitteeDropdown 
+              contacts={committeeContacts} 
+              fallbackPhone={phone} 
+            />
+          }
         />
         <JudgePortal
           judgeId={user.userId}

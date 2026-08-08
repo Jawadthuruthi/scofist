@@ -82,6 +82,24 @@ export async function POST(request) {
       );
     }
 
+    // Check if this judge (User) is already assigned to another program and it's still pending
+    const pendingAssignment = await JudgeAssignment.findOne({
+      judgeId,
+      year,
+      isCompleted: false,
+    }).populate("programId", "name");
+
+    if (pendingAssignment) {
+      const pendingProgramName = pendingAssignment.programName || pendingAssignment.programId?.name || "another program";
+      return NextResponse.json(
+        {
+          success: false,
+          message: `This judge is already assigned to "${pendingProgramName}" and it is still pending. Mark it as completed before assigning them to a new program.`,
+        },
+        { status: 409 }
+      );
+    }
+
     // Fetch program (divisionId is a plain String in the Program model)
     const program = await Program.findById(programId).select("name divisionId");
 
@@ -169,6 +187,63 @@ export async function DELETE(request) {
     console.error("Error deleting judge assignment:", error);
     return NextResponse.json(
       { success: false, message: "Failed to delete judge assignment" },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Update a judge assignment (edit judge, or send/dismiss alert)
+export async function PATCH(request) {
+  try {
+    await connectToDB();
+    const body = await request.json();
+    const { assignmentId, judgeId, judgeName, judgeNumber, alertMessage, alertActive } = body;
+
+    if (!assignmentId) {
+      return NextResponse.json(
+        { success: false, message: "Assignment ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const updateFields = {};
+    if (judgeId !== undefined) updateFields.judgeId = judgeId;
+    if (judgeName !== undefined) updateFields.judgeName = judgeName;
+    if (judgeNumber !== undefined) updateFields.judgeNumber = judgeNumber;
+    if (alertMessage !== undefined) updateFields.alertMessage = alertMessage;
+    if (alertActive !== undefined) updateFields.alertActive = alertActive;
+
+    const assignment = await JudgeAssignment.findByIdAndUpdate(
+      assignmentId,
+      { $set: updateFields },
+      { new: true }
+    );
+
+    if (!assignment) {
+      return NextResponse.json(
+        { success: false, message: "Assignment not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Judge assignment updated",
+      assignment,
+    });
+  } catch (error) {
+    console.error("Error updating judge assignment:", error);
+    if (error.code === 11000) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "A judge with this number is already assigned to this program.",
+        },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json(
+      { success: false, message: "Failed to update judge assignment" },
       { status: 500 }
     );
   }

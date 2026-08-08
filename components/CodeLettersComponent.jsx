@@ -19,10 +19,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Save, Printer, X, Loader, Trash2 } from "lucide-react";
+import { Save, Printer, X, Loader, Trash2, Filter } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "./PrintHeader";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -412,8 +418,8 @@ const CodeLettersComponent = ({
         table th, table td {
           border: 1px solid #000 !important;
           padding: 2px 4px !important;
-          text-align: left;
-          vertical-align: middle;
+          text-align: center !important;
+          vertical-align: middle !important;
           line-height: 1.1 !important;
           height: 25px !important;
           overflow: hidden;
@@ -440,6 +446,11 @@ const CodeLettersComponent = ({
           font-size: 10px !important;
         }
         
+        /* Participant name column - left alignment for print */
+        .participant-name-col {
+          text-align: left !important;
+        }
+        
         /* Sign column width */
         .sign-column {
           width: 60px !important;
@@ -459,23 +470,47 @@ const CodeLettersComponent = ({
   const isLoading = fetchRegistrationsQuery.isLoading;
 
   return (
-    <div className="space-y-6 ">
+    <div className="space-y-4">
       {/* Controls */}
       <div className="no-print">
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap lg:flex-nowrap items-center w-full gap-2">
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="w-auto min-w-[120px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={"both"}>Both</SelectItem>
-                <SelectItem value={"assigned"}>Assigned</SelectItem>
-                <SelectItem value={"not-assigned"}>Not Assigned</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="flex flex-col sm:flex-row flex-wrap lg:flex-nowrap items-center w-full gap-2">
+          {/* Top row on mobile: Filter icon, Stage, Division */}
+          <div className="flex items-center w-full sm:w-auto gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-9 w-9 shrink-0 sm:hidden">
+                  <Filter className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setStatus('both')} className={status === 'both' ? 'font-bold' : ''}>
+                  Both
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatus('assigned')} className={status === 'assigned' ? 'font-bold' : ''}>
+                  Assigned
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatus('not-assigned')} className={status === 'not-assigned' ? 'font-bold' : ''}>
+                  Not Assigned
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Desktop Status Select */}
+            <div className="hidden sm:block">
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="w-auto min-w-[120px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={"both"}>Both</SelectItem>
+                  <SelectItem value={"assigned"}>Assigned</SelectItem>
+                  <SelectItem value={"not-assigned"}>Not Assigned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="w-auto min-w-[120px]">
+              <SelectTrigger className="flex-1 sm:flex-none sm:w-auto sm:min-w-[120px]">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -484,11 +519,12 @@ const CodeLettersComponent = ({
                 <SelectItem value={"Off-Stage"}>Off-Stage</SelectItem>
               </SelectContent>
             </Select>
+
             <Select
               value={selectedDivision || "all"}
               onValueChange={(v) => setSelectedDivision(v === "all" ? "" : v)}
             >
-              <SelectTrigger className="w-auto min-w-[140px]">
+              <SelectTrigger className="flex-1 sm:flex-none sm:w-auto sm:min-w-[140px]">
                 <SelectValue placeholder="All Divisions" />
               </SelectTrigger>
               <SelectContent>
@@ -500,21 +536,23 @@ const CodeLettersComponent = ({
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-2 flex-[2] min-w-[160px]">
-              <MultiSelect
-                options={formatOptions(programsData)}
-                value={selectedProgram}
-                onValueChange={setSelectedProgram}
-                placeholder="All Programs"
-                multiSelect={false}
-                className="flex-1"
-              />
-              {(selectedDivision || selectedProgram) && (
-                <Button variant="outline" size="sm" onClick={clearFilter}>
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
+          </div>
+
+          {/* Bottom row on mobile / Right side on desktop: Program select */}
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-[2] sm:min-w-[160px]">
+            <MultiSelect
+              options={formatOptions(programsData)}
+              value={selectedProgram}
+              onValueChange={setSelectedProgram}
+              placeholder="All Programs"
+              multiSelect={false}
+              className="flex-1"
+            />
+            {(selectedDivision || selectedProgram) && (
+              <Button variant="outline" size="icon" onClick={clearFilter}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -537,7 +575,7 @@ const CodeLettersComponent = ({
                 <PrintHeader
                   apiKey={apiKey}
                   isFestival={true}
-                  title="CodeLetter"
+                  title="CODE LETTERS"
                 />
                 {/* Program Header */}
                 <div className="program-info mb-4 p-3 sm:p-4 bg-muted rounded-lg border print:bg-transparent print:border-none print:p-1 print:mb-1">
@@ -558,7 +596,7 @@ const CodeLettersComponent = ({
                     </div>
 
                     {!program?.hasEvaluatedParticipants && (
-                      <div className="flex items-center gap-2 no-print">
+                      <div className="flex items-center justify-center sm:justify-end w-full sm:w-auto mt-3 sm:mt-0 gap-2 no-print">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -603,7 +641,7 @@ const CodeLettersComponent = ({
                       </div>
                     )}
                     {program?.hasEvaluatedParticipants && (
-                      <div className="flex items-center gap-2 no-print">
+                      <div className="flex items-center justify-center sm:justify-end w-full sm:w-auto mt-3 sm:mt-0 gap-2 no-print">
                         <Button
                           variant="default"
                           size="sm"
@@ -629,7 +667,7 @@ const CodeLettersComponent = ({
                           <TableHead className="w-24 text-center whitespace-nowrap border-t border-r border-border print:border-black">
                             Chest No.
                           </TableHead>
-                          <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border print:border-black">
+                          <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border print:border-black participant-name-col">
                             Participant Name
                           </TableHead>
                           <TableHead className="min-w-[120px] whitespace-nowrap border-t border-r border-border print:border-black">
@@ -655,7 +693,7 @@ const CodeLettersComponent = ({
                                 <TableCell className="text-center border-t border-r border-border print:border-black">
                                   {participant.chestNumber || "-"}
                                 </TableCell>
-                                <TableCell className="font-medium border-t border-r whitespace-nowrap border-border print:border-black">
+                                <TableCell className="font-medium border-t border-r whitespace-nowrap border-border print:border-black participant-name-col">
                                   {participant.name || "N/A"}
                                 </TableCell>
                                 <TableCell className="border-t border-r border-border print:border-black">
@@ -663,9 +701,9 @@ const CodeLettersComponent = ({
                                 </TableCell>
 
                                 <TableCell className="text-center border-t border-r border-border p-0 print:border-black code-letter-cell">
-                                  <div className="hidden print:block text-center font-bold text-lg p-2 whitespace-nowrap">
+                                  <span className="hidden print:inline font-bold whitespace-nowrap">
                                     {participant.codeLetter || ""}
-                                  </div>
+                                  </span>
                                   {participant.isEvaluated ? (
                                     <span className="no-print font-medium p-2 text-red-600 whitespace-nowrap">
                                       {participant.codeLetter || "-"}

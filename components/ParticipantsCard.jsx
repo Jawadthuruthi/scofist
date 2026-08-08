@@ -408,13 +408,15 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl }) =
               </div>
 
               {/* Bottom Left QR Code: Participant Programs */}
-              <div className="absolute bottom-3 left-3 bg-white p-1 rounded shadow-md border border-gray-200">
+              <div className="absolute bottom-3 left-3 bg-white p-1 rounded shadow-md border border-gray-200 flex flex-col items-center">
                 <QRCodeSVG value={`${baseUrl}/participant/${participant._id}`} size={45} />
+                <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Programs</span>
               </div>
 
               {/* Bottom Right QR Code: Results Page */}
-              <div className="absolute bottom-3 right-3 bg-white p-1 rounded shadow-md border border-gray-200">
+              <div className="absolute bottom-3 right-3 bg-white p-1 rounded shadow-md border border-gray-200 flex flex-col items-center">
                 <QRCodeSVG value={`${baseUrl}/results`} size={45} />
+                <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Results</span>
               </div>
             </div>
           </CardContent>
@@ -612,13 +614,15 @@ const PrintableParticipantCard = ({
             </div>
 
             {/* Bottom Left QR Code: Participant Programs */}
-            <div className="absolute bottom-3 left-3 bg-white p-1 rounded shadow-sm border border-gray-100">
+            <div className="absolute bottom-3 left-3 bg-white p-1 rounded shadow-sm border border-gray-100 flex flex-col items-center">
               <QRCodeSVG value={`${baseUrl}/participant/${participant._id}`} size={45} />
+              <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Programs</span>
             </div>
 
             {/* Bottom Right QR Code: Results Page */}
-            <div className="absolute bottom-3 right-3 bg-white p-1 rounded shadow-sm border border-gray-100">
+            <div className="absolute bottom-3 right-3 bg-white p-1 rounded shadow-sm border border-gray-100 flex flex-col items-center">
               <QRCodeSVG value={`${baseUrl}/results`} size={45} />
+              <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Results</span>
             </div>
           </div>
         </div>

@@ -158,6 +158,7 @@ const FormContent = ({
   loading,
   apiKey,
   hideSubmitOn,
+  gridCols = "grid-cols-2 md:grid-cols-2",
 }) => {
   const sectionRefs = React.useRef([]);
 
@@ -212,7 +213,7 @@ const FormContent = ({
           {sectionOrder.map((section, index) => (
             <div
               key={section}
-              className={`grid grid-cols-2 gap-4 ${activeSectionIndex === index ? "block" : "hidden"
+              className={`grid gap-4 ${gridCols} ${activeSectionIndex === index ? "block" : "hidden"
                 }`}
             >
               {section !== "undefined" && (
@@ -279,6 +280,7 @@ export default function FormComponent({
   returnBack = false,
   hideSubmitOn,
   onSuccess,
+  gridCols,
 }) {
   const [customizedFormField, setCustomizedFormField] =
     React.useState(formFields);
@@ -388,6 +390,7 @@ export default function FormComponent({
           loading={loading}
           apiKey={apiKey}
           hideSubmitOn={hideSubmitOn}
+          gridCols={gridCols}
         />
       </CardContent>
     </Card>

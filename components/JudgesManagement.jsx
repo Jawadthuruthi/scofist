@@ -50,6 +50,7 @@ import {
   BookOpen,
   Filter,
   Pencil,
+  Bell,
 } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { formatOptions } from "@/lib/utils";
@@ -84,19 +85,22 @@ const JudgesManagement = ({
   const [newJudgeName, setNewJudgeName] = useState("");
   const [newJudgeNumber, setNewJudgeNumber] = useState("");
 
+  // Alert dialog state
+  const [alertDialogOpen, setAlertDialogOpen] = useState(false);
+  const [alertAssignment, setAlertAssignment] = useState(null);
+  const [alertMessage, setAlertMessage] = useState("");
+
   const filteredPrograms = programs.filter(
     (p) => !selectedDivision || p.divisionId === selectedDivision
   );
 
   const fetchAssignments = useCallback(async () => {
-    if (!selectedProgram) {
-      setAssignments([]);
-      return;
-    }
     setLoading(true);
     try {
-      const params = new URLSearchParams({ programId: selectedProgram });
-      if (activeYear) params.set("year", activeYear);
+      const params = new URLSearchParams();
+      if (selectedProgram) params.append("programId", selectedProgram);
+      if (selectedDivision) params.append("divisionId", selectedDivision);
+      if (activeYear) params.append("year", activeYear);
       const res = await fetch(`/api/judge-assignments?${params}`, {
         headers: { "api-key": apiKey },
       });
@@ -111,7 +115,7 @@ const JudgesManagement = ({
     } finally {
       setLoading(false);
     }
-  }, [selectedProgram, activeYear, apiKey]);
+  }, [selectedProgram, selectedDivision, activeYear, apiKey]);
 
   useEffect(() => {
     fetchAssignments();
@@ -120,13 +124,7 @@ const JudgesManagement = ({
   // Reset program when division changes
   useEffect(() => {
     setSelectedProgram("");
-    setAssignments([]);
   }, [selectedDivision]);
-
-  // Get next judge number
-  const nextJudgeNumber = assignments.length > 0
-    ? Math.max(...assignments.map((a) => a.judgeNumber)) + 1
-    : 1;
 
   const handleAdd = async () => {
     if (!newJudgeId || !newJudgeNumber || !selectedProgram) {
@@ -259,6 +257,45 @@ const JudgesManagement = ({
     }
   };
 
+  const openAlertDialog = (assignment) => {
+    setAlertAssignment(assignment);
+    setAlertMessage("");
+    setAlertDialogOpen(true);
+  };
+
+  const handleSendAlert = async () => {
+    if (!alertAssignment || !alertMessage.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/judge-assignments", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": apiKey,
+        },
+        body: JSON.stringify({
+          assignmentId: alertAssignment._id,
+          alertMessage: alertMessage.trim(),
+          alertActive: true,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Alert sent to judge successfully!");
+        setAlertDialogOpen(false);
+        setAlertAssignment(null);
+        setAlertMessage("");
+        fetchAssignments();
+      } else {
+        toast.error(data.message || "Failed to send alert");
+      }
+    } catch {
+      toast.error("Failed to send alert");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const selectedProgramName = programs.find((p) => p._id === selectedProgram)?.name;
   const selectedDivisionName = divisions.find((d) => d._id === selectedDivision)?.name;
 
@@ -268,11 +305,18 @@ const JudgesManagement = ({
     label: j.name,
   }));
 
-  // Judges already assigned to this program
-  const assignedJudgeIds = new Set(assignments.map((a) => a.judgeId));
+  // Judges already assigned to the relevant program
+  const relevantProgramId = editingAssignment ? editingAssignment.programId : selectedProgram;
+  const programAssignments = assignments.filter((a) => a.programId === relevantProgramId);
+  const assignedJudgeIds = new Set(programAssignments.map((a) => a.judgeId));
   const availableJudgeOptions = judgeOptions.filter(
     (j) => !assignedJudgeIds.has(j.value)
   );
+
+  // Get next judge number
+  const nextJudgeNumber = programAssignments.length > 0
+    ? Math.max(...programAssignments.map((a) => a.judgeNumber)) + 1
+    : 1;
 
   return (
     <div className="space-y-6">
@@ -349,18 +393,13 @@ const JudgesManagement = ({
       )}
 
       {/* Assignments Table */}
-      {!selectedProgram ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Filter className="mx-auto h-10 w-10 mb-3 opacity-30" />
-          <p className="font-medium">Select a program to view judge assignments</p>
-        </div>
-      ) : loading ? (
+      {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader className="animate-spin h-6 w-6 mr-2" />
           <span>Loading assignments...</span>
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -377,6 +416,8 @@ const JudgesManagement = ({
                   />
                 </TableHead>
                 <TableHead className="text-center w-16">Judge #</TableHead>
+                <TableHead>Division</TableHead>
+                <TableHead>Program</TableHead>
                 <TableHead>User</TableHead>
                 <TableHead>Judge Name</TableHead>
                 <TableHead className="text-center">Status</TableHead>
@@ -386,10 +427,10 @@ const JudgesManagement = ({
             <TableBody>
               {assignments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
                     <Users className="mx-auto h-8 w-8 mb-2 opacity-30" />
-                    <p>No judges assigned to this program yet.</p>
-                    <p className="text-xs mt-1">Click "Assign Judge" to add one.</p>
+                    <p>No judges assigned{selectedProgram ? ' to this program ' : ' '}yet.</p>
+                    {selectedProgram && <p className="text-xs mt-1">Click "Assign Judge" to add one.</p>}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -412,6 +453,12 @@ const JudgesManagement = ({
                         <Badge variant="outline" className="font-mono">
                           {assignment.judgeNumber}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium text-sm">
+                        {assignment.divisionName || "—"}
+                      </TableCell>
+                      <TableCell className="font-medium text-sm">
+                        {assignment.programName || "—"}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {linkedUser?.name || assignment.judgeId || "—"}
@@ -442,6 +489,15 @@ const JudgesManagement = ({
                             title="Edit assignment"
                           >
                             <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                            onClick={() => openAlertDialog(assignment)}
+                            title="Send Alert"
+                          >
+                            <Bell className="h-4 w-4" />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -535,7 +591,7 @@ const JudgesManagement = ({
                       key={n}
                       value={String(n)}
                       disabled={
-                        assignments.some(
+                        programAssignments.some(
                           (a) =>
                             a.judgeNumber === n &&
                             a._id !== editingAssignment?._id
@@ -543,7 +599,7 @@ const JudgesManagement = ({
                       }
                     >
                       Judge {n}
-                      {assignments.some(
+                      {programAssignments.some(
                         (a) =>
                           a.judgeNumber === n &&
                           a._id !== editingAssignment?._id
@@ -570,6 +626,57 @@ const JudgesManagement = ({
                 <Pencil className="h-4 w-4 mr-2" />
               )}
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Alert Dialog */}
+      <Dialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-amber-500" />
+              Send Alert to Judge
+            </DialogTitle>
+            <DialogDescription>
+              Send an alert notification to{" "}
+              <strong>{alertAssignment?.judgeName}</strong>. It will appear on their Mark Entry screen.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Alert Message</Label>
+              <textarea
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                value={alertMessage}
+                onChange={(e) => setAlertMessage(e.target.value)}
+                placeholder="Type your alert message here..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAlertDialogOpen(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSendAlert} 
+              disabled={saving || !alertMessage.trim()}
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              {saving ? (
+                <Loader className="animate-spin h-4 w-4 mr-2" />
+              ) : (
+                <Bell className="h-4 w-4 mr-2" />
+              )}
+              Send Alert
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -633,10 +740,10 @@ const JudgesManagement = ({
                     <SelectItem
                       key={n}
                       value={String(n)}
-                      disabled={assignments.some((a) => a.judgeNumber === n)}
+                      disabled={programAssignments.some((a) => a.judgeNumber === n)}
                     >
                       Judge {n}
-                      {assignments.some((a) => a.judgeNumber === n) &&
+                      {programAssignments.some((a) => a.judgeNumber === n) &&
                         " (taken)"}
                     </SelectItem>
                   ))}

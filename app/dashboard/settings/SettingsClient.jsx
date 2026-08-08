@@ -226,6 +226,45 @@ const festivalFormField = [
   },
 ];
 
+const committeeContactsFormField = [
+  {
+    name: "chairmanName",
+    label: "Chairman Name",
+    placeholder: "Enter Chairman's Name",
+    className: "col-span-1",
+  },
+  {
+    name: "chairmanPhone",
+    label: "Chairman Contact Number",
+    placeholder: "Enter Chairman's Phone",
+    className: "col-span-1",
+  },
+  {
+    name: "chairmanWhatsapp",
+    label: "Chairman WhatsApp Number",
+    placeholder: "Enter Chairman's WhatsApp (with country code)",
+    className: "col-span-1",
+  },
+  {
+    name: "convenorName",
+    label: "Convenor Name",
+    placeholder: "Enter Convenor's Name",
+    className: "col-span-1",
+  },
+  {
+    name: "convenorPhone",
+    label: "Convenor Contact Number",
+    placeholder: "Enter Convenor's Phone",
+    className: "col-span-1",
+  },
+  {
+    name: "convenorWhatsapp",
+    label: "Convenor WhatsApp Number",
+    placeholder: "Enter Convenor's WhatsApp (with country code)",
+    className: "col-span-1",
+  },
+];
+
 const sparkFormField = [
   {
     name: "spark_logo",
@@ -377,14 +416,27 @@ export default function SettingsClient({
         </>
       )}
       {activeRole === "Program Committee" && (
-        <FormComponent
-          formFields={festivalFormField}
-          apiKey={apiKey}
-          data={festival}
-          resource="settings"
-          title="Festival Settings"
-          description="Configure Festival Details"
-        />
+        <>
+          <FormComponent
+            formFields={festivalFormField}
+            apiKey={apiKey}
+            data={festival}
+            resource="settings"
+            title="Festival Settings"
+            description="Configure Festival Details"
+          />
+          <div className="mt-8">
+            <FormComponent
+              formFields={committeeContactsFormField}
+              apiKey={apiKey}
+              data={festival}
+              resource="settings"
+              title="Committee Contacts"
+              description="Contact details for Chairman and Convenor"
+              gridCols="grid-cols-1 md:grid-cols-3"
+            />
+          </div>
+        </>
       )}
       {activeRole === "Spark Admin" && (
         <>

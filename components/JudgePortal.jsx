@@ -34,7 +34,40 @@ import {
   Hash,
   Users,
   Printer,
+  BellRing,
 } from "lucide-react";
+
+const playAlertSound = () => {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    // Create a high-pitched piercing triple beep sound
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(2500, audioCtx.currentTime); // 2.5kHz
+    
+    const beeps = 3;
+    const beepDuration = 0.1;
+    const beepPause = 0.05;
+    
+    for (let i = 0; i < beeps; i++) {
+      const startTime = audioCtx.currentTime + i * (beepDuration + beepPause);
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.setValueAtTime(0.2, startTime + 0.01); // Sharp attack
+      gainNode.gain.setValueAtTime(0.2, startTime + beepDuration - 0.01); // Sustain
+      gainNode.gain.linearRampToValueAtTime(0, startTime + beepDuration); // Release
+    }
+    
+    oscillator.start(audioCtx.currentTime);
+    oscillator.stop(audioCtx.currentTime + (beeps * (beepDuration + beepPause)));
+  } catch (e) {
+    console.error("Audio play failed:", e);
+  }
+};
 
 // Helper to render text items each on its own line with * prefix
 const renderItemsWithStar = (text) => {
@@ -68,8 +101,17 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   const [activeTab, setActiveTab] = useState("Criteria");
 
   const currentAssignmentIdRef = useRef(null);
+  const [dismissingAlert, setDismissingAlert] = useState(false);
+  const prevAlertActiveRef = useRef(false);
+
   useEffect(() => {
     currentAssignmentIdRef.current = assignment?._id;
+    
+    // Play sound when alert becomes active
+    if (assignment?.alertActive && !prevAlertActiveRef.current) {
+      playAlertSound();
+    }
+    prevAlertActiveRef.current = !!assignment?.alertActive;
   }, [assignment]);
 
   const fetchAssignment = useCallback(async (isPolling = false) => {
@@ -92,9 +134,16 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
         return;
       }
 
-      // If polling and we already have the same active assignment, do nothing 
-      // (to preserve user's typed marks/comments)
+      // If polling and we already have the same active assignment, we just check if alert state changed
+      // (to preserve user's typed marks/comments while still receiving alerts)
       if (isPolling && currentAssignmentIdRef.current === active._id) {
+        setAssignment((prev) => {
+          if (!prev) return prev;
+          if (prev.alertActive !== active.alertActive || prev.alertMessage !== active.alertMessage) {
+            return { ...prev, alertActive: active.alertActive, alertMessage: active.alertMessage };
+          }
+          return prev;
+        });
         return;
       }
 
@@ -143,10 +192,10 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
   useEffect(() => {
     fetchAssignment();
 
-    // Poll every 5 seconds to check for new assignments automatically
+    // Poll every 1 second to check for new assignments and alerts automatically
     const intervalId = setInterval(() => {
       fetchAssignment(true);
-    }, 5000);
+    }, 1000);
 
     return () => clearInterval(intervalId);
   }, [fetchAssignment]);
@@ -210,6 +259,34 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
       toast.error("Failed to submit marks");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDismissAlert = async () => {
+    if (!assignment) return;
+    setDismissingAlert(true);
+    try {
+      const res = await fetch("/api/judge-assignments", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": apiKey,
+        },
+        body: JSON.stringify({
+          assignmentId: assignment._id,
+          alertActive: false,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAssignment((prev) => ({ ...prev, alertActive: false }));
+      } else {
+        toast.error(data.message || "Failed to dismiss alert");
+      }
+    } catch {
+      toast.error("Failed to dismiss alert");
+    } finally {
+      setDismissingAlert(false);
     }
   };
 
@@ -578,6 +655,35 @@ const JudgePortal = ({ judgeId, activeYear, apiKey }) => {
         </div>
       )}
       </div>
+
+      {/* ── Alert Notification Popup ── */}
+      <AlertDialog open={!!assignment.alertActive}>
+        <AlertDialogContent className="max-w-md border-amber-200 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-800">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-500 text-xl">
+              <BellRing className="h-6 w-6 animate-pulse" />
+              Alert from Program Committee
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-amber-900 dark:text-amber-200 mt-4 text-base bg-white dark:bg-amber-950/50 p-4 rounded-md border border-amber-100 dark:border-amber-800 shadow-inner break-words">
+              {assignment.alertMessage || "You have a new message from the committee."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center mt-6">
+            <Button
+              onClick={handleDismissAlert}
+              disabled={dismissingAlert}
+              className="bg-amber-600 hover:bg-amber-700 text-white min-w-32"
+            >
+              {dismissingAlert ? (
+                <Loader className="animate-spin h-4 w-4 mr-2" />
+              ) : (
+                <CheckCircle className="h-4 w-4 mr-2" />
+              )}
+              Got it
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   </div>
 );

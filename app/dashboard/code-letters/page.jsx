@@ -65,7 +65,7 @@ export default async function CodeLettersPage() {
               : "Assign Code Letters to Your Team's Programs"
           }
         />
-        <div className="p-4">
+        <div className="px-4 pb-4 pt-0">
           <CodeLettersComponent
             data={sortedPrograms}
             divisions={divisions}

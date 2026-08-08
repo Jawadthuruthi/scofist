@@ -82,20 +82,41 @@ const ImageUploader = ({
   const [renderedDims, setRenderedDims] = React.useState({ width: 0, height: 0 });
   const imgRef = React.useRef(null);
 
+  const targetRatio = React.useMemo(() => {
+    if (aspectRatio) {
+      return parseAspectRatio(aspectRatio);
+    }
+    if (minWidth && minHeight) {
+      return minWidth / minHeight;
+    }
+    return null;
+  }, [aspectRatio, minWidth, minHeight]);
+
   const handleImageLoad = (e) => {
     const img = e.currentTarget;
     const rw = img.width;
     const rh = img.height;
     setRenderedDims({ width: rw, height: rh });
     
-    // Center a rectangle crop box inside the image boundaries (80% of width and height)
     const w = rw * 0.8;
     const h = rh * 0.8;
+    
+    let cropW = w;
+    let cropH = h;
+    
+    if (targetRatio) {
+      if (cropW / cropH > targetRatio) {
+        cropW = cropH * targetRatio;
+      } else {
+        cropH = cropW / targetRatio;
+      }
+    }
+
     setCropBox({
-      x: (rw - w) / 2,
-      y: (rh - h) / 2,
-      w: w,
-      h: h,
+      x: (rw - cropW) / 2,
+      y: (rh - cropH) / 2,
+      w: cropW,
+      h: cropH,
     });
   };
 
@@ -128,31 +149,82 @@ const ImageUploader = ({
       const newY = Math.max(0, Math.min(startBox.current.y + dy, rh - cropBox.h));
       setCropBox((prev) => ({ ...prev, x: newX, y: newY }));
     } else {
-      // Resize crop box from 4 sides freely
-      let newX = cropBox.x;
-      let newY = cropBox.y;
-      let newW = cropBox.w;
-      let newH = cropBox.h;
+      // Resize crop box
+      let newX = startBox.current.x;
+      let newY = startBox.current.y;
+      let newW = startBox.current.w;
+      let newH = startBox.current.h;
       
-      if (dragMode === "s") {
-        // Dragging bottom side down/up
-        newH = Math.max(50, Math.min(startBox.current.h + dy, rh - startBox.current.y));
-      } else if (dragMode === "n") {
-        // Dragging top side up/down (bottom edge is stationary)
-        newY = Math.max(0, Math.min(startBox.current.y + dy, startBox.current.y + startBox.current.h - 50));
+      if (dragMode.includes("s")) {
+        newH = Math.max(50, startBox.current.h + dy);
+      } else if (dragMode.includes("n")) {
+        newY = Math.min(startBox.current.y + dy, startBox.current.y + startBox.current.h - 50);
         newH = (startBox.current.y + startBox.current.h) - newY;
-      } else if (dragMode === "e") {
-        // Dragging right side right/left
-        newW = Math.max(50, Math.min(startBox.current.w + dx, rw - startBox.current.x));
-      } else if (dragMode === "w") {
-        // Dragging left side left/right (right edge is stationary)
-        newX = Math.max(0, Math.min(startBox.current.x + dx, startBox.current.x + startBox.current.w - 50));
+      }
+      
+      if (dragMode.includes("e")) {
+        newW = Math.max(50, startBox.current.w + dx);
+      } else if (dragMode.includes("w")) {
+        newX = Math.min(startBox.current.x + dx, startBox.current.x + startBox.current.w - 50);
         newW = (startBox.current.x + startBox.current.w) - newX;
+      }
+      
+      if (targetRatio) {
+        // Enforce aspect ratio
+        let primary = "w";
+        if (dragMode === "n" || dragMode === "s") primary = "h";
+        if (dragMode.includes("e") || dragMode.includes("w")) primary = "w";
+
+        if (primary === "w") {
+          newH = newW / targetRatio;
+        } else {
+          newW = newH * targetRatio;
+        }
+
+        // Adjust X/Y if dragging from Left or Top to keep Right/Bottom stationary
+        if (dragMode.includes("w")) newX = startBox.current.x + startBox.current.w - newW;
+        if (dragMode.includes("n")) newY = startBox.current.y + startBox.current.h - newH;
+
+        // Boundary checks to scale back down if it exceeds boundaries
+        if (newX < 0) {
+          newX = 0;
+          newW = startBox.current.x + startBox.current.w;
+          newH = newW / targetRatio;
+          if (dragMode.includes("n")) newY = startBox.current.y + startBox.current.h - newH;
+        }
+        if (newY < 0) {
+          newY = 0;
+          newH = startBox.current.y + startBox.current.h;
+          newW = newH * targetRatio;
+          if (dragMode.includes("w")) newX = startBox.current.x + startBox.current.w - newW;
+        }
+        if (newX + newW > rw) {
+          newW = rw - newX;
+          newH = newW / targetRatio;
+          if (dragMode.includes("n")) newY = startBox.current.y + startBox.current.h - newH;
+        }
+        if (newY + newH > rh) {
+          newH = rh - newY;
+          newW = newH * targetRatio;
+          if (dragMode.includes("w")) newX = startBox.current.x + startBox.current.w - newW;
+        }
+      } else {
+         // Cap to boundaries for free-form
+         if (newX < 0) {
+           newW += newX;
+           newX = 0;
+         }
+         if (newY < 0) {
+           newH += newY;
+           newY = 0;
+         }
+         if (newX + newW > rw) newW = rw - newX;
+         if (newY + newH > rh) newH = rh - newY;
       }
       
       setCropBox({ x: newX, y: newY, w: newW, h: newH });
     }
-  }, [dragMode, renderedDims, cropBox.w, cropBox.h]);
+  }, [dragMode, renderedDims, cropBox.w, cropBox.h, targetRatio]);
 
   const handleDragEnd = React.useCallback(() => {
     setDragMode(null);
@@ -387,14 +459,7 @@ const ImageUploader = ({
         return;
       }
 
-      // Validate image dimensions if specified
-      if (aspectRatio || minWidth || minHeight || maxWidth || maxHeight) {
-        const dimensionValidation = await validateImageDimensions(file);
-        if (!dimensionValidation.valid) {
-          toast.error(dimensionValidation.error);
-          return;
-        }
-      }
+      // Note: We skip dimension validation here because the user will crop the image next
 
       // Read as base64 to open in cropper modal
       const reader = new FileReader();
@@ -425,17 +490,30 @@ const ImageUploader = ({
       const sourceWidth = cropBox.w * scaleX;
       const sourceHeight = cropBox.h * scaleY;
 
-      // Define target high-res dimensions (max 800px)
+      // Define target dimensions
       let targetWidth = sourceWidth;
       let targetHeight = sourceHeight;
-      const maxDim = 800;
-      if (sourceWidth > maxDim || sourceHeight > maxDim) {
-        if (sourceWidth > sourceHeight) {
+      
+      // Ensure we meet min dimensions if specified
+      if (minWidth && targetWidth < minWidth) {
+        const scale = minWidth / targetWidth;
+        targetWidth = minWidth;
+        targetHeight *= scale;
+      }
+      if (minHeight && targetHeight < minHeight) {
+        const scale = minHeight / targetHeight;
+        targetHeight = minHeight;
+        targetWidth *= scale;
+      }
+
+      const maxDim = 4000; // Allow large images for print
+      if (targetWidth > maxDim || targetHeight > maxDim) {
+        if (targetWidth > targetHeight) {
+          targetHeight = maxDim * (targetHeight / targetWidth);
           targetWidth = maxDim;
-          targetHeight = maxDim * (sourceHeight / sourceWidth);
         } else {
+          targetWidth = maxDim * (targetWidth / targetHeight);
           targetHeight = maxDim;
-          targetWidth = maxDim * (sourceWidth / sourceHeight);
         }
       }
 
@@ -778,6 +856,12 @@ const ImageUploader = ({
                     >
                       <div className="w-1 h-8 bg-white border border-zinc-400 rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.3)] pointer-events-none" />
                     </div>
+
+                    {/* Corner handles */}
+                    <div className="absolute -top-[6px] -left-[6px] w-[12px] h-[12px] cursor-nwse-resize z-20 bg-white border border-zinc-400 rounded-full shadow-sm" onMouseDown={(e) => handleDragStart(e, "nw")} onTouchStart={(e) => handleDragStart(e, "nw")} />
+                    <div className="absolute -top-[6px] -right-[6px] w-[12px] h-[12px] cursor-nesw-resize z-20 bg-white border border-zinc-400 rounded-full shadow-sm" onMouseDown={(e) => handleDragStart(e, "ne")} onTouchStart={(e) => handleDragStart(e, "ne")} />
+                    <div className="absolute -bottom-[6px] -left-[6px] w-[12px] h-[12px] cursor-nesw-resize z-20 bg-white border border-zinc-400 rounded-full shadow-sm" onMouseDown={(e) => handleDragStart(e, "sw")} onTouchStart={(e) => handleDragStart(e, "sw")} />
+                    <div className="absolute -bottom-[6px] -right-[6px] w-[12px] h-[12px] cursor-nwse-resize z-20 bg-white border border-zinc-400 rounded-full shadow-sm" onMouseDown={(e) => handleDragStart(e, "se")} onTouchStart={(e) => handleDragStart(e, "se")} />
                   </div>
                 </div>
               </div>
@@ -790,7 +874,9 @@ const ImageUploader = ({
 
           {/* Controls Panel */}
           <div className="flex items-center justify-between py-2">
-            <span className="text-xs font-semibold text-zinc-400">Ratio: 1:1 Square</span>
+            <span className="text-xs font-semibold text-zinc-400">
+              Ratio: {aspectRatio || (targetRatio ? `${minWidth}:${minHeight}` : 'Free Form')}
+            </span>
             <Button
               type="button"
               variant="outline"

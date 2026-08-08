@@ -239,6 +239,18 @@ const FestivalSchema = new Schema({
       },
     },
   ],
+  committeeContacts: {
+    chairman: {
+      name: { type: String, trim: true, default: "" },
+      phone: { type: String, trim: true, default: "" },
+      whatsapp: { type: String, trim: true, default: "" },
+    },
+    convenor: {
+      name: { type: String, trim: true, default: "" },
+      phone: { type: String, trim: true, default: "" },
+      whatsapp: { type: String, trim: true, default: "" },
+    },
+  },
 });
 
 const SettingsSchema = new Schema(
