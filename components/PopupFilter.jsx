@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { MultiSelect } from "./ui/multi-select";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Define all available operators
 const OPERATORS = {
@@ -81,7 +82,10 @@ export default function PopupFilter({
   hasFilters,
   title = "Table",
   triggerClass = "",
+  inlineOnDesktop = false,
 }) {
+  const isMobile = useIsMobile();
+  const isInline = inlineOnDesktop && !isMobile;
   const [open, setOpen] = useState(false);
   const [localFilters, setLocalFilters] = useState(filters);
   // Sync local filters with props
@@ -325,12 +329,124 @@ export default function PopupFilter({
     [handleFilterChange, removeFilter]
   );
 
+
+
   // Handle clearing filters and closing the dialog
   const handleClearFilters = useCallback(() => {
     clearFilters();
     setLocalFilters({});
     setOpen(false);
   }, [clearFilters]);
+
+  const renderFilterItem = (filterItem, inline = false) => {
+    const filterId = filterItem.id;
+    const currentFilter = filters[filterId] || {};
+    const currentValue = getCurrentValue(filterItem, currentFilter);
+
+    const displayName = filterItem.label || filterId;
+    const inputType = filterItem.inputType || "text";
+    const operator =
+      currentFilter.operator ||
+      filterItem.operator ||
+      DEFAULT_OPERATORS[inputType] ||
+      OPERATORS.CONTAINS;
+    const availableOptions = getFilteredOptions(filterItem);
+    const type = filterItem.type || "text";
+    const nestedArrayField = filterItem.nestedArrayField || null;
+    const className = filterItem.className || "";
+
+    return (
+      <div key={filterId} className={inline ? `w-40 shrink-0 ${className}` : `space-y-2 ${className}`}>
+        {!inline && (
+          <label className="text-sm font-medium block">
+            {displayName}
+          </label>
+        )}
+
+        {inputType === "dateRange" ? (
+          <div className="flex flex-col space-y-2">
+            <div className="flex items-center space-x-2">
+              <Input
+                type="date"
+                value={currentValue.startDate || ""}
+                placeholder="Start date"
+                onChange={(e) =>
+                  handleDateRangeChange(
+                    filterId,
+                    "startDate",
+                    e.target.value,
+                    currentValue,
+                    OPERATORS.DATE_RANGE,
+                    nestedArrayField
+                  )
+                }
+                className="flex-1 h-8 text-xs"
+              />
+              <span className="text-xs">to</span>
+              <Input
+                type="date"
+                value={currentValue.endDate || ""}
+                placeholder="End date"
+                onChange={(e) =>
+                  handleDateRangeChange(
+                    filterId,
+                    "endDate",
+                    e.target.value,
+                    currentValue,
+                    OPERATORS.DATE_RANGE,
+                    nestedArrayField
+                  )
+                }
+                className="flex-1 h-8 text-xs"
+              />
+            </div>
+          </div>
+        ) : inputType === "multiSelect" || inputType === "select" ? (
+          <MultiSelect
+            options={availableOptions}
+            value={currentValue}
+            onValueChange={(value) =>
+              handleFilterChange(
+                filterId,
+                value,
+                operator,
+                nestedArrayField
+              )
+            }
+            placeholder={inline ? displayName : `Select ${displayName}...`}
+            multiSelect={inputType === "multiSelect"}
+          />
+        ) : (
+          <Input
+            placeholder={inline ? displayName : `Filter by ${displayName}...`}
+            value={currentValue}
+            type={type}
+            onChange={(e) =>
+              handleFilterChange(
+                filterId,
+                e.target.value,
+                operator,
+                nestedArrayField
+              )
+            }
+          />
+        )}
+      </div>
+    );
+  };
+
+  if (isInline) {
+    return (
+      <div className="flex items-center gap-2">
+        {filterConfig.map((filterItem) => renderFilterItem(filterItem, true))}
+        {hasFilters && (
+          <Button variant="ghost" onClick={handleClearFilters} className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground shrink-0">
+            Clear
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
@@ -354,101 +470,7 @@ export default function PopupFilter({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Individual Filters */}
-              {filterConfig.map((filterItem) => {
-                const filterId = filterItem.id;
-                const currentFilter = filters[filterId] || {};
-                const currentValue = getCurrentValue(filterItem, currentFilter);
-
-                const displayName = filterItem.label || filterId;
-                const inputType = filterItem.inputType || "text";
-                const operator =
-                  currentFilter.operator ||
-                  filterItem.operator ||
-                  DEFAULT_OPERATORS[inputType] ||
-                  OPERATORS.CONTAINS;
-                const availableOptions = getFilteredOptions(filterItem);
-                const type = filterItem.type || "text";
-                const nestedArrayField = filterItem.nestedArrayField || null;
-                const className = filterItem.className || "";
-
-                return (
-                  <div key={filterId} className={`space-y-2 ${className}`}>
-                    <label className="text-sm font-medium block">
-                      {displayName}
-                    </label>
-
-                    {inputType === "dateRange" ? (
-                      <div className="flex flex-col space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Input
-                            type="date"
-                            value={currentValue.startDate || ""}
-                            placeholder="Start date"
-                            onChange={(e) =>
-                              handleDateRangeChange(
-                                filterId,
-                                "startDate",
-                                e.target.value,
-                                currentValue,
-                                OPERATORS.DATE_RANGE,
-                                nestedArrayField
-                              )
-                            }
-                            className="flex-1 h-8 text-xs"
-                          />
-                          <span className="text-xs">to</span>
-                          <Input
-                            type="date"
-                            value={currentValue.endDate || ""}
-                            placeholder="End date"
-                            onChange={(e) =>
-                              handleDateRangeChange(
-                                filterId,
-                                "endDate",
-                                e.target.value,
-                                currentValue,
-                                OPERATORS.DATE_RANGE,
-                                nestedArrayField
-                              )
-                            }
-                            className="flex-1 h-8 text-xs"
-                          />
-                        </div>
-                      </div>
-                    ) : inputType === "multiSelect" ||
-                      inputType === "select" ? (
-                      <MultiSelect
-                        options={availableOptions}
-                        value={currentValue}
-                        onValueChange={(value) =>
-                          handleFilterChange(
-                            filterId,
-                            value,
-                            operator,
-                            nestedArrayField
-                          )
-                        }
-                        placeholder={`Select ${displayName}...`}
-                        multiSelect={inputType === "multiSelect"}
-                      />
-                    ) : (
-                      <Input
-                        placeholder={`Filter by ${displayName}...`}
-                        value={currentValue}
-                        type={type}
-                        onChange={(e) =>
-                          handleFilterChange(
-                            filterId,
-                            e.target.value,
-                            operator,
-                            nestedArrayField
-                          )
-                        }
-                      />
-                    )}
-                  </div>
-                );
-              })}
+              {filterConfig.map((filterItem) => renderFilterItem(filterItem, false))}
             </div>
 
             <DialogFooter className="flex justify-between">

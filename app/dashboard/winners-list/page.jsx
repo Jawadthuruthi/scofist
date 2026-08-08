@@ -85,6 +85,8 @@ export default async function WinnersListPage() {
           }}
           filterConfig={filterConfig}
           isFestival={true}
+          inlineFiltersOnDesktop={true}
+          enableSearch={true}
         />
       </>
     );

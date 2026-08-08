@@ -10,12 +10,14 @@ import { Sliders } from "lucide-react";
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const ColumnCustomization = ({ table, columnsConfig }) => {
+import { cn } from "@/lib/utils";
+
+const ColumnCustomization = ({ table, columnsConfig, className }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="h-9 w-9 p-0 flex items-center justify-center shrink-0">
+        <Button variant="outline" className={cn("h-9 w-9 p-0 flex items-center justify-center shrink-0", className)}>
           <Sliders className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>

@@ -192,7 +192,7 @@ export async function GET(request) {
           from: "participants",
           let: { participantIds: "$participants.id" },
           pipeline: [
-            { $match: { $expr: { $in: ["$_id", "$$participantIds"] } } },
+            { $match: { $expr: { $in: [{ $toString: "$_id" }, "$$participantIds"] } } },
             { $project: { name: 1, chestNumber: 1, age: 1 } },
           ],
           as: "participantDetails",

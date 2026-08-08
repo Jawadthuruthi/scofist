@@ -2,6 +2,7 @@
 import { useEffect, useState, use } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import ProgramDetailsModal from "@/components/ProgramDetailsModal";
 
 export default function ParticipantPage({ params }) {
   const unwrappedParams = use(params);
@@ -9,6 +10,8 @@ export default function ParticipantPage({ params }) {
   const [participant, setParticipant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedProgramId, setSelectedProgramId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchParticipant = async () => {
@@ -109,7 +112,14 @@ export default function ParticipantPage({ params }) {
                     </h4>
                     <ul className="space-y-1 pl-1">
                       {stageIndividual.map((program, index) => (
-                        <li key={index} className="text-sm text-gray-700 font-medium">
+                        <li 
+                          key={index} 
+                          className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-indigo-50 p-1.5 rounded transition-colors"
+                          onClick={() => {
+                            setSelectedProgramId(program.id);
+                            setIsModalOpen(true);
+                          }}
+                        >
                           {index + 1}. {program.name || "Unknown Program"}
                         </li>
                       ))}
@@ -125,7 +135,14 @@ export default function ParticipantPage({ params }) {
                     </h4>
                     <ul className="space-y-1 pl-1">
                       {stageGroup.map((program, index) => (
-                        <li key={index} className="text-sm text-gray-700 font-medium">
+                        <li 
+                          key={index} 
+                          className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-indigo-50 p-1.5 rounded transition-colors"
+                          onClick={() => {
+                            setSelectedProgramId(program.id);
+                            setIsModalOpen(true);
+                          }}
+                        >
                           {index + 1}. {program.name || "Unknown Program"}
                         </li>
                       ))}
@@ -141,7 +158,14 @@ export default function ParticipantPage({ params }) {
                     </h4>
                     <ul className="space-y-1 pl-1">
                       {offStageIndividual.map((program, index) => (
-                        <li key={index} className="text-sm text-gray-700 font-medium">
+                        <li 
+                          key={index} 
+                          className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-teal-50 p-1.5 rounded transition-colors"
+                          onClick={() => {
+                            setSelectedProgramId(program.id);
+                            setIsModalOpen(true);
+                          }}
+                        >
                           {index + 1}. {program.name || "Unknown Program"}
                         </li>
                       ))}
@@ -157,7 +181,14 @@ export default function ParticipantPage({ params }) {
                     </h4>
                     <ul className="space-y-1 pl-1">
                       {offStageGroup.map((program, index) => (
-                        <li key={index} className="text-sm text-gray-700 font-medium">
+                        <li 
+                          key={index} 
+                          className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-teal-50 p-1.5 rounded transition-colors"
+                          onClick={() => {
+                            setSelectedProgramId(program.id);
+                            setIsModalOpen(true);
+                          }}
+                        >
                           {index + 1}. {program.name || "Unknown Program"}
                         </li>
                       ))}
@@ -173,6 +204,12 @@ export default function ParticipantPage({ params }) {
           </div>
         </CardContent>
       </Card>
+
+      <ProgramDetailsModal 
+        programId={selectedProgramId} 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
     </div>
   );
 }

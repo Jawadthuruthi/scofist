@@ -150,6 +150,7 @@ const DataTableComponent = ({
   searchBarClassName = "",
   extraSearchFields = DEFAULT_ARRAY,
   activeRole = "",
+  inlineFiltersOnDesktop = false,
 }) => {
   const [sorting, setSorting] = useState(defaultSorting);
   const [loading, setLoading] = useState(false);
@@ -1149,6 +1150,7 @@ const DataTableComponent = ({
               hasFilters={hasFilters || Object.keys(filters).length > 0}
               title={filterTitle || capitalize(resource)}
               filterType={filterType}
+              inlineOnDesktop={additionalProps?.inlineFiltersOnDesktop || inlineFiltersOnDesktop}
             />
 
             {resource === "performance" && activeRole === "College Admin" && (
@@ -1307,7 +1309,7 @@ const DataTableComponent = ({
               {additionalProps?.customToolbar && (
                 <div className="mr-2">{additionalProps.customToolbar}</div>
               )}
-              <ColumnCustomization table={table} columnsConfig={columnsConfig} />
+              <ColumnCustomization table={table} columnsConfig={columnsConfig} className={(additionalProps?.inlineFiltersOnDesktop || inlineFiltersOnDesktop) ? "h-10 w-10" : ""} />
 
               <PopupFilter
                 filterConfig={dateRangeInPopup ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
@@ -1320,6 +1322,7 @@ const DataTableComponent = ({
                 hasFilters={hasFilters || Object.keys(filters).length > 0}
                 title={filterTitle || capitalize(resource)}
                 filterType={filterType}
+                inlineOnDesktop={additionalProps?.inlineFiltersOnDesktop || inlineFiltersOnDesktop}
               />
 
               {resource === "performance" && activeRole === "College Admin" && (
@@ -1333,7 +1336,7 @@ const DataTableComponent = ({
                     placeholder={desktopSearchPlaceholder}
                     value={globalFilter ?? ""}
                     onChange={(e) => handleSetGlobalFilter(e.target.value)}
-                    className={cn("h-9 pl-9", searchBarClassName || "w-[180px] lg:w-[280px] xl:w-[320px]")}
+                    className={cn((additionalProps?.inlineFiltersOnDesktop || inlineFiltersOnDesktop) ? "h-10 pl-9" : "h-9 pl-9", searchBarClassName || "w-[180px] lg:w-[280px] xl:w-[320px]")}
                   />
                 </div>
               )}

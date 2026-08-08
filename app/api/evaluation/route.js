@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import connectToDB from "@/lib/db";
 import ProgramRegistration from "@/models/ProgramRegistration";
 import GradeScheme from "@/models/GradeScheme";
@@ -229,20 +230,22 @@ export async function PUT(request) {
         }
 
         // Calculate new average marks from all valid marks
-        const validMarks = finalMarksByJudges.filter(
+        // Also map any empty strings to 0 or null so MongoDB doesn't throw CastError
+        const sanitizedMarks = finalMarksByJudges.map(m => (m === "" ? 0 : m));
+        const validMarks = sanitizedMarks.filter(
           (m) => m !== undefined && m !== null && m > 0
         );
         const averageMarks =
           validMarks.length > 0
             ? Math.round(
-                validMarks.reduce((sum, mark) => sum + mark, 0) /
+                validMarks.reduce((sum, mark) => sum + Number(mark), 0) /
                   validMarks.length
               )
             : 0;
 
         console.log(`Updating participant ${participantId}:`, {
           participantIndex,
-          finalMarksByJudges,
+          finalMarksByJudges: sanitizedMarks,
           newAverageMarks: averageMarks,
         });
 
@@ -250,13 +253,12 @@ export async function PUT(request) {
         bulkOps.push({
           updateOne: {
             filter: {
-              _id: registrationId,
+              _id: new mongoose.Types.ObjectId(registrationId),
               [`participants.${participantIndex}.id`]: participantId,
             },
             update: {
               $set: {
-                [`participants.${participantIndex}.marksByJudges`]:
-                  finalMarksByJudges,
+                [`participants.${participantIndex}.marksByJudges`]: sanitizedMarks,
                 [`participants.${participantIndex}.totalMarks`]: averageMarks,
               },
             },
