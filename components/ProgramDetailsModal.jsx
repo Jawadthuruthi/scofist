@@ -135,13 +135,18 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
                 {program?.name || "Loading..."}
               </DialogTitle>
               {program && (
-                <div className="flex gap-2 mt-2">
-                  <Badge variant="outline">{program.category}</Badge>
-                  <Badge variant="outline">{program.type}</Badge>
-                  {status.text !== "Unscheduled" && (
-                    <Badge className={status.color} variant="secondary">{status.text}</Badge>
-                  )}
-                </div>
+                <>
+                  <p className="text-sm font-semibold text-gray-500 uppercase mt-1">
+                    {program?.divisionName || program?.divisionId?.name}
+                  </p>
+                  <div className="flex gap-2 mt-2">
+                    <Badge variant="outline">{program.category}</Badge>
+                    <Badge variant="outline">{program.type}</Badge>
+                    {status.text !== "Unscheduled" && (
+                      <Badge className={status.color} variant="secondary">{status.text}</Badge>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -272,13 +277,21 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
                                 <p className="text-xs text-gray-500 uppercase">{p.participantDetails?.teamId?.name || "Unknown Team"}</p>
                               </div>
                             </div>
-                            <div className="text-right flex items-center gap-2">
-                              {p.points > 0 && (
-                                <Badge variant="secondary" className="font-medium bg-gray-100">{p.points} Pts</Badge>
-                              )}
-                              {p.grade && p.grade !== "-" && (
-                                <Badge variant="outline" className="font-medium bg-white">{p.grade}</Badge>
-                              )}
+                            <div className="text-right flex items-center justify-end gap-2">
+                              {(() => {
+                                let displayGrade = p.grade || "-";
+                                if (displayGrade.toLowerCase() === "no grade" || displayGrade.toLowerCase() === "f") {
+                                  displayGrade = "-";
+                                }
+                                return (
+                                  <>
+                                    <Badge variant="outline" className="font-medium bg-white min-w-[24px] text-center">{displayGrade}</Badge>
+                                    {p.points > 0 && (
+                                      <Badge variant="secondary" className="font-medium bg-gray-100">{p.points} Pts</Badge>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </div>
                           </li>
                         ))}
