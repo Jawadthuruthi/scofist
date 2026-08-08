@@ -19,11 +19,11 @@ export default async function Layout({ children }) {
       disableTransitionOnChange
     >
       <SidebarProvider defaultOpen={false}>
-        <div className="flex h-screen overflow-hidden min-w-full max-w-full">
+        <div className="flex h-screen print:h-auto overflow-hidden print:overflow-visible min-w-full max-w-full">
           <AppSidebar roles={user?.roles} activeRole={activeRole} user={user} />
-          <div className="flex flex-col flex-1 min-w-0">
+          <div className="flex flex-col flex-1 min-w-0 print:block">
             <Topbar user={user} />
-            <main className="flex-1 px-4 lg:p-6 mt-14 overflow-auto container">
+            <main className="flex-1 px-4 lg:p-6 mt-14 print:mt-0 overflow-auto print:overflow-visible container print:block print:p-0">
               {children}
               <div className="h-16 no-print"></div>
             </main>

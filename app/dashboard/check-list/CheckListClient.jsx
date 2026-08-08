@@ -117,12 +117,12 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
 
     // ─── Render ─────────────────────────────────────────────────────────────────
     return (
-        <div className="flex flex-col space-y-4 pb-8">
+        <div className="flex flex-col space-y-2 pb-8">
             {/* Header */}
             <div className="no-print">
                 <Header
                     title="CHECK LIST"
-                    subTitle="Cross-reference participants and programs by team & division"
+                    subTitle="Cross-reference participants and programs"
                     icon={<ListChecks className="h-5 w-5 text-muted-foreground" />}
                 />
             </div>
@@ -130,17 +130,8 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
             {/* Filters Card */}
             <Card className="border-primary/20 shadow-sm no-print">
                 <div className="absolute top-0 left-0 w-1 h-full bg-primary rounded-l-lg" />
-                <CardHeader className="pb-3 pt-4 border-b bg-muted/10">
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <ListChecks className="h-4 w-4 text-primary" />
-                        Filter Options
-                    </CardTitle>
-                    <CardDescription>
-                        Select team, division, and stage category to generate the check list
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <CardContent className="pt-3 pb-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {/* Team Dropdown */}
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium">Team</label>
@@ -176,7 +167,7 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
                         </div>
 
                         {/* Stage / Off-Stage Dropdown */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 col-span-2 sm:col-span-1">
                             <label className="text-sm font-medium">Category</label>
                             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                                 <SelectTrigger id="checklist-category-select">
@@ -239,7 +230,7 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
                         <Button
                             variant="outline"
                             size="sm"
-                            className="gap-2"
+                            className="gap-2 bg-black text-white hover:bg-black/90 hover:text-white dark:bg-white dark:text-black dark:hover:bg-white/90"
                             onClick={() => window.print()}
                         >
                             <Printer className="h-4 w-4" />
@@ -248,13 +239,13 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
                     </div>
 
                     {/* Scrollable matrix table */}
-                    <div className="overflow-x-auto rounded-lg border shadow-sm">
+                    <div className="overflow-x-auto print:overflow-visible print:border-none print:shadow-none rounded-lg border shadow-sm">
                         <table className="checklist-table w-full border-collapse text-sm">
                             <thead>
                                 {/* Title row */}
                                 <tr>
                                     <th
-                                        colSpan={sortedPrograms.length + 2}
+                                        colSpan={sortedPrograms.length + 3}
                                         className="bg-primary text-primary-foreground text-center py-2 px-3 text-base font-bold tracking-wide uppercase"
                                     >
                                         {selectedCategory} Programs
@@ -268,6 +259,9 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
                                 </tr>
                                 {/* Column headers */}
                                 <tr className="bg-muted/60">
+                                    <th className="border border-border px-3 py-2 text-center whitespace-nowrap min-w-[40px] text-xs font-semibold text-muted-foreground">
+                                        Sl No
+                                    </th>
                                     <th className="border border-border px-3 py-2 text-center whitespace-nowrap min-w-[40px] text-xs font-semibold text-muted-foreground">
                                         Chest No
                                     </th>
@@ -318,20 +312,19 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
                                                     : "bg-muted/20 hover:bg-muted/40 transition-colors"
                                             }
                                         >
-                                            {/* Chest number / serial */}
-                                            <td className="border border-border px-3 py-2 text-center text-xs font-mono text-muted-foreground whitespace-nowrap">
-                                                {participant.chestNumber ?? rowIndex + 1}
+                                            {/* Sl no */}
+                                            <td className="border border-border px-3 py-2 text-center text-xs text-muted-foreground whitespace-nowrap">
+                                                {rowIndex + 1}
+                                            </td>
+                                            {/* Chest number */}
+                                            <td className="border border-border px-3 py-2 text-center text-sm font-medium whitespace-nowrap">
+                                                {participant.chestNumber ?? "-"}
                                             </td>
                                             {/* Participant name */}
                                             <td className="border border-border px-3 py-2 whitespace-nowrap">
                                                 <div className="font-medium text-sm leading-tight">
-                                                    {participant.name}
+                                                    {participant.name} ({participant.programs?.length || 0})
                                                 </div>
-                                                {registeredCount > 0 && (
-                                                    <div className="text-[10px] text-primary font-semibold mt-0.5">
-                                                        {registeredCount} program{registeredCount !== 1 ? "s" : ""}
-                                                    </div>
-                                                )}
                                             </td>
                                             {/* Program cells */}
                                             {sortedPrograms.map((prog) => {
@@ -359,7 +352,7 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
                             <tfoot>
                                 <tr className="bg-muted/50 font-semibold">
                                     <td
-                                        colSpan={2}
+                                        colSpan={3}
                                         className="border border-border px-3 py-2 text-xs text-right text-muted-foreground"
                                     >
                                         Registrations per program →
