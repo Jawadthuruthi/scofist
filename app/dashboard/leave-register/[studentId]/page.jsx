@@ -171,4 +171,4 @@ export default async function IndividualLeaveRegisterPage({ params }) {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 0;

@@ -194,4 +194,4 @@ export default async function GroupsPage() {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 0;

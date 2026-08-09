@@ -37,4 +37,4 @@ export default async function RulesAndTopicsPage() {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 0;

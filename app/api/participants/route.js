@@ -780,15 +780,7 @@ export async function PUT(req, res) {
         Division.updateOne(
           { _id: updateData.divisionId },
           { $addToSet: { participantsId: participantId } }
-        ),
-        ProgramRegistration.updateMany(
-          { "participants.id": participantId },
-          { $pull: { participants: { id: participantId } } }
-        ),
-        Result.updateMany(
-          { "participants.id": participantId },
-          { $pull: { participants: { id: participantId } } }
-        ),
+        )
       ]);
     }
 
@@ -802,8 +794,28 @@ export async function PUT(req, res) {
         Team.updateOne(
           { _id: updateData.teamId },
           { $addToSet: { membersId: participantId } }
-        ),
+        )
       ]);
+    }
+    
+    // If either division or team changed, wipe their registrations
+    if ((updateData.divisionId && updateData.divisionId !== oldDivisionId) ||
+        (updateData.teamId && updateData.teamId !== oldTeamId)) {
+      await Promise.all([
+        ProgramRegistration.updateMany(
+          { "participants.id": participantId },
+          { $pull: { participants: { id: participantId } } }
+        ),
+        Result.updateMany(
+          { "participants.id": participantId },
+          { $pull: { participants: { id: participantId } } }
+        ),
+        Participant.updateOne(
+          { _id: participantId },
+          { $set: { programs: [] } }
+        )
+      ]);
+      updatedParticipant.programs = []; // reflect in returned object
     }
 
     return NextResponse.json(

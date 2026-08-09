@@ -178,4 +178,4 @@ export default async function RegistrationStatusPage() {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 0;

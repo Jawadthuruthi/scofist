@@ -70,4 +70,4 @@ const StudentsFundPage = async () => {
 
 export default StudentsFundPage;
 
-export const revalidate = 60;
+export const revalidate = 0;

@@ -109,4 +109,4 @@ export default async function IndividualPointsPage() {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 0;

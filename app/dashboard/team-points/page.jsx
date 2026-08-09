@@ -74,4 +74,4 @@ export default async function TeamPointsPage() {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 0;

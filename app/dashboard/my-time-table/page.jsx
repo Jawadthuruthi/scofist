@@ -68,4 +68,4 @@ const MyTimeTablePage = async () => {
 
 export default MyTimeTablePage;
 
-export const revalidate = 60;
+export const revalidate = 0;

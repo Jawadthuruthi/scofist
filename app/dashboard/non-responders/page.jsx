@@ -98,4 +98,4 @@ export default async function NonRespondersPage() {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 0;

@@ -46,7 +46,9 @@ const ParticipantsCard = ({
   }, []);
 
   // Memoize filtered participants to prevent recalculation on every render
-  const filteredParticipants = useMemo(() => {
+  const MAX_PROGRAMS = 16;
+
+  const previewParticipants = useMemo(() => {
     return participants
       .filter(
         (participant) =>
@@ -54,15 +56,83 @@ const ParticipantsCard = ({
           (!selectedTeam || participant.teamId === selectedTeam) &&
           (!selectedParticipant || participant._id === selectedParticipant)
       )
-      .map((participant) => ({
-        ...participant,
-        programs: participant?.programs?.filter(
-          (program) =>
-            program?.type === "Individual" &&
-            program?.divisionType === "Primary"
-        ),
-      }));
+      .map((participant) => {
+        const rawPrograms = participant?.programs || [];
+        
+        if (rawPrograms.length === 0) {
+          return {
+            ...participant,
+            processedPrograms: [],
+            totalPages: 1,
+            allPrograms: [],
+          };
+        }
+
+        // Sort programs so they are grouped sequentially across pages, mirroring the exact render order
+        const allPrograms = [...rawPrograms].sort((a, b) => {
+          // 1. Primary programs first, then Secondary
+          const aIsSec = a.divisionType === "Secondary";
+          const bIsSec = b.divisionType === "Secondary";
+          if (aIsSec !== bIsSec) return aIsSec ? 1 : -1;
+
+          // 2. If both are secondary, group by their exact division ID
+          if (aIsSec && bIsSec && a.divisionId !== b.divisionId) {
+            return (a.divisionId || "").localeCompare(b.divisionId || "");
+          }
+
+          // 3. Stage before Off Stage
+          if (a.category !== b.category) return a.category === "Stage" ? -1 : 1;
+          
+          return 0;
+        });
+
+        let counts = {};
+
+        const processedPrograms = allPrograms.map((p) => {
+          // Create a unique key for each grouping so numbering resets per heading
+          const key = p.divisionType === "Secondary" 
+            ? `Sec-${p.divisionId}-${p.category}` 
+            : `Pri-${p.category}`;
+            
+          if (!counts[key]) counts[key] = 0;
+          counts[key]++;
+          
+          return { ...p, displayIndex: counts[key] };
+        });
+
+        const totalPages = Math.ceil(processedPrograms.length / MAX_PROGRAMS);
+        return {
+           ...participant,
+           processedPrograms,
+           totalPages,
+           allPrograms
+        };
+      });
   }, [participants, selectedDivision, selectedTeam, selectedParticipant]);
+
+  const printParticipants = useMemo(() => {
+    const result = [];
+    previewParticipants.forEach(p => {
+       if (!p.processedPrograms || p.processedPrograms.length === 0) {
+          result.push({
+             ...p,
+             displayedPrograms: [],
+             pageIndex: 0
+          });
+          return;
+       }
+       for (let i = 0; i < p.totalPages; i++) {
+          result.push({
+             ...p,
+             _id: p.totalPages > 1 ? `${p._id}-page-${i}` : p._id,
+             originalId: p._id,
+             displayedPrograms: p.processedPrograms.slice(i * MAX_PROGRAMS, (i + 1) * MAX_PROGRAMS),
+             pageIndex: i
+          });
+       }
+    });
+    return result;
+  }, [previewParticipants]);
 
   // Memoize filtered teams based on selected division
   const teamsInSelectedDivision = useMemo(() => {
@@ -209,13 +279,15 @@ const ParticipantsCard = ({
 
       {/* Screen Preview */}
       <div className="grid grid-cols-12 gap-4 print:hidden">
-        {filteredParticipants.map((participant) => (
+        {previewParticipants.map((participant) => (
           <ParticipantCard
             key={participant._id}
             participant={participant}
             festivalSettings={festivalSettings}
             viewMode={viewMode}
             baseUrl={baseUrl}
+            divisions={divisions}
+            maxPrograms={MAX_PROGRAMS}
           />
         ))}
       </div>
@@ -224,7 +296,7 @@ const ParticipantsCard = ({
       <div ref={pageRef} className="hidden print:block">
         {Array.from({
           length: Math.ceil(
-            filteredParticipants.length / (viewMode === "both" ? 4 : 8)
+            printParticipants.length / (viewMode === "both" ? 4 : 8)
           ),
         }).map((_, pageIndex) => (
           <div
@@ -243,7 +315,7 @@ const ParticipantsCard = ({
               Page {pageIndex + 1}
             </div>
 
-            {filteredParticipants
+            {printParticipants
               .slice(
                 pageIndex * (viewMode === "both" ? 4 : 8),
                 (pageIndex + 1) * (viewMode === "both" ? 4 : 8)
@@ -255,6 +327,7 @@ const ParticipantsCard = ({
                   festivalSettings={festivalSettings}
                   viewMode={viewMode}
                   baseUrl={baseUrl}
+                  divisions={divisions}
                 />
               ))}
           </div>
@@ -315,7 +388,9 @@ const ParticipantsCard = ({
 export default ParticipantsCard;
 
 // Extracted component for participant card preview
-const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl }) => {
+const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl, maxPrograms = 16, divisions = [] }) => {
+  const [currentPage, setCurrentPage] = useState(0);
+  
   const participantsCardSettings = festivalSettings?.participantsCard || {};
   const participantsCardBackgroundUrl =
     participantsCardSettings?.backgroundImage?.url || "";
@@ -323,7 +398,29 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl }) =
   // Single text color for all elements
   const textColor = participantsCardSettings?.textColor || "#000000";
 
-  // Determine grid columns based on view mode
+  // Determine current page programs
+  const displayedPrograms = participant.processedPrograms
+     ? participant.processedPrograms.slice(currentPage * maxPrograms, (currentPage + 1) * maxPrograms)
+     : [];
+
+  const paginatedParticipant = {
+     ...participant,
+     displayedPrograms,
+     pageIndex: currentPage,
+     totalPages: participant.totalPages || 1,
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < (participant.totalPages - 1)) {
+      setCurrentPage(c => c + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(c => c - 1);
+    }
+  };
 
   return (
     <div
@@ -409,7 +506,7 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl }) =
 
               {/* Bottom Left QR Code: Participant Programs */}
               <div className="absolute bottom-3 left-3 bg-white p-1 rounded shadow-md border border-gray-200 flex flex-col items-center">
-                <QRCodeSVG value={`${baseUrl}/participant/${participant._id}`} size={45} />
+                <QRCodeSVG value={`${baseUrl}/participant/${participant.originalId || participant._id}`} size={45} />
                 <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Programs</span>
               </div>
 
@@ -427,13 +524,21 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl }) =
       {(viewMode === "both" || viewMode === "back") && (
         <Card className="overflow-hidden border border-gray-200 dark:border-gray-700">
           <CardContent className="p-4 flex flex-col h-full md:aspect-[1/1.4] bg-white dark:bg-gray-800">
-            <div className="border-b border-gray-200 dark:border-gray-600 pb-2 mb-3">
+            <div className="border-b border-gray-200 dark:border-gray-600 pb-1 mb-1">
               <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 text-center">
-                {participant.chestNumber} - Individual Programs
+                {participant.chestNumber} - {participant.name}
               </h3>
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 text-center mt-0.5">
+                {participant.teamName} | {participant.divisionName}
+              </p>
             </div>
 
-            <ParticipantPrograms participant={participant} />
+            <ParticipantPrograms 
+              participant={paginatedParticipant}
+              onNextPage={handleNextPage}
+              onPrevPage={handlePrevPage}
+              divisions={divisions}
+            />
           </CardContent>
         </Card>
       )}
@@ -441,55 +546,107 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl }) =
   );
 };
 
+// Helper component to render a program group
+const ProgramGroup = ({ title, items }) => {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="mb-2 last:mb-0">
+      <h2 className="text-xs font-bold text-gray-800 dark:text-gray-200 mb-0.5">
+        {title}
+      </h2>
+      {items.map((program, index) => (
+        <div key={`${program._id || program.id || index}`} className="ml-2">
+          <div className="font-semibold text-gray-800 text-[11px] leading-tight dark:text-gray-200 truncate">
+            {program.displayIndex || index + 1}. {program.name || "Unknown Program"}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // Extracted component for participant programs
-const ParticipantPrograms = ({ participant }) => {
-  const programs = participant.programs || [];
-  const stagePrograms = programs.filter(
-    (program) => program.category === "Stage"
-  );
-  const offStagePrograms = programs.filter(
-    (program) => program.category !== "Stage"
-  );
+const ParticipantPrograms = ({ participant, onNextPage, onPrevPage, divisions = [] }) => {
+  const programs = participant.displayedPrograms || participant.programs || [];
+  
+  // Primary (or general/undefined) programs
+  const stagePrograms = programs.filter(p => p.category === "Stage" && p.divisionType !== "Secondary");
+  const offStagePrograms = programs.filter(p => p.category !== "Stage" && p.divisionType !== "Secondary");
+
+  // Secondary programs - group by division ID to get precise names
+  const secondaryPrograms = programs.filter(p => p.divisionType === "Secondary");
+  const secondaryByDiv = {};
+  secondaryPrograms.forEach(p => {
+    if (!secondaryByDiv[p.divisionId]) secondaryByDiv[p.divisionId] = [];
+    secondaryByDiv[p.divisionId].push(p);
+  });
+
+  const secondaryDivisions = Object.keys(secondaryByDiv).map(divId => {
+    const divName = divisions.find(d => d._id === divId)?.name || "Secondary";
+    const divProgs = secondaryByDiv[divId];
+    return {
+      id: divId,
+      name: divName,
+      stagePrograms: divProgs.filter(p => p.category === "Stage"),
+      offStagePrograms: divProgs.filter(p => p.category !== "Stage"),
+    };
+  });
+
+  const hasNextPage = participant.pageIndex !== undefined && participant.totalPages !== undefined 
+    ? participant.pageIndex < participant.totalPages - 1 
+    : false;
+    
+  const hasPrevPage = participant.pageIndex !== undefined ? participant.pageIndex > 0 : false;
 
   return (
-    <div className="relative flex-grow">
-      <div className="relative z-10">
+    <div className="relative flex-grow flex flex-col h-full">
+      <div className="relative z-10 flex-grow">
         {programs.length > 0 ? (
           <div>
-            {stagePrograms?.length > 0 && (
-              <>
-                <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                  Stage Programs
-                </h2>
-                {stagePrograms.map((program, index) => (
-                  <div key={index}>
-                    <div className="font-semibold text-gray-800 text-xs dark:text-gray-200">
-                      {index + 1}. {program.name || "Unknown Program"}
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-            {offStagePrograms?.length > 0 && (
-              <>
-                <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mt-3">
-                  Off Stage Programs
-                </h2>
-                {offStagePrograms.map((program, index) => (
-                  <div key={index}>
-                    <div className="font-semibold text-gray-800 text-xs dark:text-gray-200">
-                      {index + 1}. {program.name || "Unknown Program"}
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
+            <ProgramGroup title="Stage Programs" items={stagePrograms} />
+            <ProgramGroup title="Off Stage Programs" items={offStagePrograms} />
+
+            {/* Dynamically render secondary divisions with exact division name */}
+            {secondaryDivisions.map(secDiv => (
+              <div key={secDiv.id}>
+                <ProgramGroup title={`${secDiv.name} Stage Programs`} items={secDiv.stagePrograms} />
+                <ProgramGroup title={`${secDiv.name} Off Stage Programs`} items={secDiv.offStagePrograms} />
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="text-center text-gray-500 dark:text-gray-400 text-sm">
+          <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-4">
             No programs registered
           </div>
         )}
+      </div>
+
+      {/* Footer Area */}
+      <div className="mt-auto pt-2 flex justify-between items-end border-t border-gray-100 dark:border-gray-700 w-full shrink-0">
+        <div className="text-[9px] text-gray-600 dark:text-gray-400 font-medium leading-tight w-full pr-1">
+          {/* Spacer for layout consistency when there are no arrows */}
+        </div>
+        
+        <div className="flex gap-2 shrink-0">
+          {hasPrevPage && onPrevPage && (
+            <div 
+              className="text-gray-800 dark:text-gray-200 font-bold flex items-center cursor-pointer hover:text-blue-600"
+              onClick={onPrevPage}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              <span className="text-[10px] ml-0.5">Prev</span>
+            </div>
+          )}
+          {hasNextPage && (
+            <div 
+              className={`text-gray-800 dark:text-gray-200 font-bold flex items-center ${onNextPage ? 'cursor-pointer hover:text-blue-600' : ''}`}
+              onClick={onNextPage}
+            >
+              <span className="text-[10px] mr-0.5">Next</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -501,6 +658,7 @@ const PrintableParticipantCard = ({
   festivalSettings,
   viewMode,
   baseUrl,
+  divisions = []
 }) => {
   const participantsCardSettings = festivalSettings?.participantsCard || {};
   const participantsCardBackgroundUrl =
@@ -615,7 +773,7 @@ const PrintableParticipantCard = ({
 
             {/* Bottom Left QR Code: Participant Programs */}
             <div className="absolute bottom-3 left-3 bg-white p-1 rounded shadow-sm border border-gray-100 flex flex-col items-center">
-              <QRCodeSVG value={`${baseUrl}/participant/${participant._id}`} size={45} />
+              <QRCodeSVG value={`${baseUrl}/participant/${participant.originalId || participant._id}`} size={45} />
               <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Programs</span>
             </div>
 
@@ -630,15 +788,18 @@ const PrintableParticipantCard = ({
 
       {/* Back Side Card */}
       {(viewMode === "both" || viewMode === "back") && (
-        <div className={`border rounded shadow ${cardClass} overflow-hidden`}>
-          <div className="p-2 bg-white aspect-[1/1.4] flex flex-col">
-            <div className="border-b border-gray-200 pb-1 mb-2">
-              <h3 className="text-xs font-bold text-gray-800 text-center">
-                {participant.chestNumber} - Individual Programs
+        <div className={`border rounded shadow ${cardClass} overflow-hidden h-full`}>
+          <div className="p-2 bg-white aspect-[1/1.4] flex flex-col h-full">
+            <div className="border-b border-gray-200 pb-1 mb-1">
+              <h3 className="text-[13px] font-bold text-gray-800 text-center leading-tight">
+                {participant.chestNumber} - {participant.name}
               </h3>
+              <p className="text-[10px] font-semibold text-gray-600 text-center mt-0.5 leading-tight">
+                {participant.teamName} | {participant.divisionName}
+              </p>
             </div>
 
-            <ParticipantPrograms participant={participant} />
+            <ParticipantPrograms participant={participant} divisions={divisions} />
           </div>
         </div>
       )}

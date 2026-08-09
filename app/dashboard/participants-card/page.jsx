@@ -2,7 +2,7 @@ import ErrorPage from "@/components/ErrorPage";
 import ParticipantsCard from "@/components/ParticipantsCard";
 import { fetchData } from "@/lib/utils";
 
-export const revalidate = 60;
+export const revalidate = 0;
 import { cookies } from "next/headers";
 
 const participantsCardPage = async () => {

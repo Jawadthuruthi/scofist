@@ -198,4 +198,4 @@ export default async function ProgramsPage() {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 0;

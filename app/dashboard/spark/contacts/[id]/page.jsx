@@ -70,4 +70,4 @@ const SparkContactsListPage = async ({ params, searchParams }) => {
 };
 
 export default SparkContactsListPage;
-export const revalidate = 60;
+export const revalidate = 0;

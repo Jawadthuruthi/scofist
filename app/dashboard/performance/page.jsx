@@ -57,4 +57,4 @@ export default async function PerformancePage() {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 0;

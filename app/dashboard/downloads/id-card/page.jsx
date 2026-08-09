@@ -4,7 +4,7 @@ import { parseUser, fetchData } from "@/lib/utils";
 import StudentIdentityCard from "@/components/StudentIdentityCard";
 import { redirect } from "next/navigation";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 const StudentIdCardPage = async () => {
     const headerStore = await headers();

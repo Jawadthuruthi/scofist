@@ -676,6 +676,17 @@ export async function PUT(request) {
       await addProgramToParticipants(teamParticipants, program._id);
     }
 
+    // Clean up participants that were removed from this registration
+    const originalParticipantIds = existingReg.participants.map(p => p.id?.toString?.() || String(p.id));
+    const removedParticipantIds = originalParticipantIds.filter(oldId => !participants.includes(oldId));
+    
+    if (removedParticipantIds.length > 0) {
+      await Participant.updateMany(
+        { _id: { $in: removedParticipantIds } },
+        { $pull: { programs: { id: program._id } } }
+      );
+    }
+
     return NextResponse.json(
       {
         success: true,

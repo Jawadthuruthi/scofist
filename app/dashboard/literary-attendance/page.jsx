@@ -39,4 +39,4 @@ const literaryAttendancePage = async () => {
 };
 
 export default literaryAttendancePage;
-export const revalidate = 60;
+export const revalidate = 0;
