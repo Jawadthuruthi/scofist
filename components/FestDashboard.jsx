@@ -56,20 +56,28 @@ function StatCard({ title, value, icon: Icon, color, isLoading, onClick }) {
 }
 
 // ===== LIST DIALOG =====
-function ListDialog({ open, onClose, title, icon: Icon, color, isLoading, children }) {
+function ListDialog({ open, onClose, onBack, title, icon: Icon, color, isLoading, children }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-card rounded-2xl shadow-2xl border w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
         <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ background: `${color}10` }}>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="p-1.5 -ml-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            >
+              <ChevronRight className="w-5 h-5 rotate-180" />
+            </button>
+          )}
           <div className="p-2 rounded-lg" style={{ background: `${color}20` }}>
             <Icon className="w-5 h-5" style={{ color }} />
           </div>
           <h2 className="font-semibold text-lg flex-1">{title}</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
           >
             <X className="w-4 h-4" />
           </button>
@@ -88,9 +96,12 @@ function ListDialog({ open, onClose, title, icon: Icon, color, isLoading, childr
   );
 }
 
-function ListRow({ index, primary, secondary, badge, badgeColor }) {
+function ListRow({ index, primary, secondary, badge, badgeColor, onClick }) {
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/60 transition-colors">
+    <div 
+      onClick={onClick}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${onClick ? 'cursor-pointer hover:bg-muted/80' : 'hover:bg-muted/60'}`}
+    >
       <span className="text-xs font-bold text-muted-foreground w-6 text-right flex-shrink-0">
         {index}.
       </span>
@@ -111,7 +122,7 @@ function ListRow({ index, primary, secondary, badge, badgeColor }) {
 }
 
 // ===== MAIN DASHBOARD COMPONENT =====
-export default function FestDashboard({ apiKey, activeRole }) {
+export default function FestDashboard({ apiKey, activeRole, user }) {
   const currentDate = formatDateForDisplay(new Date());
   const [showPosters, setShowPosters] = useState(false);
   const [showWinners, setShowWinners] = useState(false);
@@ -145,6 +156,14 @@ export default function FestDashboard({ apiKey, activeRole }) {
 
   // ===== DIALOG STATE =====
   const [openDialog, setOpenDialog] = useState(null);
+  const [selectedDivisionId, setSelectedDivisionId] = useState(null);
+  const [selectedTeamId, setSelectedTeamId] = useState(null);
+
+  const handleCloseDialog = () => {
+    setOpenDialog(null);
+    setSelectedDivisionId(null);
+    setSelectedTeamId(null);
+  };
 
   // Lazy full-list queries — only triggered when their dialog opens
   const participantsListQuery = useFetchParticipants(0, 0, {}, {
@@ -227,29 +246,84 @@ export default function FestDashboard({ apiKey, activeRole }) {
   const getDialogProps = () => {
     switch (openDialog) {
       case "participants":
+        if (activeRole === "Program Leader") {
+          const myTeam = teams.find(t => t.leaderId === user?._id);
+          const teamParticipants = myTeam ? participants.filter(p => p.teamName === myTeam.name) : [];
+          return {
+            title: myTeam ? `My Team: ${myTeam.name} (${teamParticipants.length})` : `My Team`,
+            icon: Users, color: "#6366f1",
+            isLoading: participantsListQuery.isLoading || participantsListQuery.isFetching,
+            content: teamParticipants.length === 0
+              ? <p className="text-center text-muted-foreground py-8 text-sm">No members found</p>
+              : <div className="space-y-1">{teamParticipants.map((p, i) => (
+                  <ListRow key={p._id} index={i + 1} primary={p.name}
+                    secondary={`${p.divisionName ? p.divisionName : ""}`}
+                    badge={p.chestNumber != null ? `#${p.chestNumber}` : undefined} badgeColor="#6366f1" />
+                ))}</div>,
+          };
+        }
+
+        if (!selectedTeamId) {
+          return {
+            title: `Participants by Team`,
+            icon: UserSquare2, color: "#6366f1",
+            isLoading: teamsAllQuery.isLoading || teamsAllQuery.isFetching,
+            content: teams.length === 0
+              ? <p className="text-center text-muted-foreground py-8 text-sm">No teams found</p>
+              : <div className="space-y-1">{teams.map((t, i) => (
+                  <ListRow key={t._id} index={i + 1} primary={t.name}
+                    secondary={`${t.membersCount || 0} Members`}
+                    onClick={() => setSelectedTeamId(t._id)} />
+                ))}</div>,
+          };
+        }
+
+        const selectedTeamForParticipants = teams.find(t => t._id === selectedTeamId);
+        const teamParticipants = participants.filter(p => p.teamName === selectedTeamForParticipants?.name);
+
         return {
-          title: `Participants (${participantsCountQuery.data?.pagination?.total ?? "…"})`,
+          title: `Members of ${selectedTeamForParticipants?.name || ""} (${teamParticipants.length})`,
           icon: Users, color: "#6366f1",
+          onBack: () => setSelectedTeamId(null),
           isLoading: participantsListQuery.isLoading || participantsListQuery.isFetching,
-          content: participants.length === 0
-            ? <p className="text-center text-muted-foreground py-8 text-sm">No participants found</p>
-            : <div className="space-y-1">{participants.map((p, i) => (
+          content: teamParticipants.length === 0
+            ? <p className="text-center text-muted-foreground py-8 text-sm">No members found</p>
+            : <div className="space-y-1">{teamParticipants.map((p, i) => (
                 <ListRow key={p._id} index={i + 1} primary={p.name}
-                  secondary={`${p.teamName || ""}${p.divisionName ? " · " + p.divisionName : ""}`}
+                  secondary={`${p.divisionName ? p.divisionName : ""}`}
                   badge={p.chestNumber != null ? `#${p.chestNumber}` : undefined} badgeColor="#6366f1" />
               ))}</div>,
         };
 
       case "programs":
+        if (!selectedDivisionId) {
+          return {
+            title: `Programs by Division`,
+            icon: LayoutGrid, color: "#0ea5e9",
+            isLoading: divisionsAllQuery.isLoading || divisionsAllQuery.isFetching,
+            content: divisions.length === 0
+              ? <p className="text-center text-muted-foreground py-8 text-sm">No divisions found</p>
+              : <div className="space-y-1">{divisions.map((d, i) => (
+                  <ListRow key={d._id} index={i + 1} primary={d.name}
+                    secondary={`${d.programsCount || 0} Programs`}
+                    onClick={() => setSelectedDivisionId(d._id)} />
+                ))}</div>,
+          };
+        }
+        
+        const selectedDivisionForPrograms = divisions.find(d => d._id === selectedDivisionId);
+        const divPrograms = programs.filter(p => p.divisionName === selectedDivisionForPrograms?.name);
+        
         return {
-          title: `Programs (${programsCountQuery.data?.pagination?.total ?? "…"})`,
+          title: `Programs in ${selectedDivisionForPrograms?.name || ""} (${divPrograms.length})`,
           icon: BookOpen, color: "#0ea5e9",
+          onBack: () => setSelectedDivisionId(null),
           isLoading: programsListQuery.isLoading || programsListQuery.isFetching,
-          content: programs.length === 0
+          content: divPrograms.length === 0
             ? <p className="text-center text-muted-foreground py-8 text-sm">No programs found</p>
-            : <div className="space-y-1">{programs.map((p, i) => (
+            : <div className="space-y-1">{divPrograms.map((p, i) => (
                 <ListRow key={p._id} index={i + 1} primary={p.name}
-                  secondary={`${p.category} · ${p.type}${p.divisionName ? " · " + p.divisionName : ""}`}
+                  secondary={`${p.category} · ${p.type}`}
                   badge={p.pointScheme} badgeColor="#0ea5e9" />
               ))}</div>,
         };
@@ -368,7 +442,8 @@ export default function FestDashboard({ apiKey, activeRole }) {
       {dialogProps && (
         <ListDialog
           open={!!openDialog}
-          onClose={() => setOpenDialog(null)}
+          onClose={handleCloseDialog}
+          onBack={dialogProps.onBack}
           title={dialogProps.title}
           icon={dialogProps.icon}
           color={dialogProps.color}

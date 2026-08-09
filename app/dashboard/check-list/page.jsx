@@ -24,7 +24,7 @@ const CheckListPage = async () => {
 
         const [teams, divisions] = await Promise.all([
             fetchData("teams", `${yearParam}projection=_id,name`),
-            fetchData("divisions", `${yearParam}type=Primary&projection=_id,name`),
+            fetchData("divisions", `${yearParam}projection=_id,name,stageEvents,offStageEvents`),
         ]);
 
         return (

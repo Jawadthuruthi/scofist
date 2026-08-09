@@ -18,7 +18,7 @@ export function QRCodeGenerator({ resultsUrl, qrOptions, printRef }) {
         <div
           ref={printRef}
           id="qr-code-canvas"
-          className="flex flex-col items-center justify-center space-y-4 p-8 bg-white rounded-lg"
+          className="flex flex-col items-center justify-center space-y-4 p-4 sm:p-8 bg-white rounded-lg max-w-full overflow-hidden"
         >
           <QRCodeCanvas
             value={resultsUrl}
@@ -27,6 +27,7 @@ export function QRCodeGenerator({ resultsUrl, qrOptions, printRef }) {
             marginSize={qrOptions.margin}
             bgColor={qrOptions.color.light}
             fgColor={qrOptions.color.dark}
+            style={{ maxWidth: "100%", height: "auto" }}
           />
           <p className="text-sm text-center text-muted-foreground mt-4">
             Scan to view festival results

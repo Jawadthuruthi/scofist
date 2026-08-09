@@ -61,7 +61,9 @@ export default async function DashboardPage() {
     const apiKey = process.env.API_KEY;
 
     if (["Program Committee", "Program Leader"].includes(activeRole)) {
-      return <FestDashboard activeRole={activeRole} apiKey={apiKey} />;
+      const headersList = headers();
+      const user = headersList.get("x-user") ? JSON.parse(headersList.get("x-user")) : null;
+      return <FestDashboard activeRole={activeRole} apiKey={apiKey} user={user} />;
     }
 
     if (activeRole === "Spark Admin") {

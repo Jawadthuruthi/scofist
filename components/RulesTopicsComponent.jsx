@@ -62,7 +62,7 @@ const renderItemsWithStar = (text) => {
       {items.map((item, idx) => (
         <div key={idx} className="flex items-start gap-2">
           <span className="text-primary font-bold mt-0.5 shrink-0">*</span>
-          <span className="book-text-font text-lg md:text-xl leading-relaxed">{item}</span>
+          <span className="book-text-font text-lg md:text-xl leading-relaxed min-w-0 flex-1 break-words">{item}</span>
         </div>
       ))}
     </div>
@@ -229,7 +229,7 @@ const ProgramCard = ({
   );
 
   return (
-    <Card className="break-inside-avoid">
+    <Card className="break-inside-avoid overflow-hidden max-w-full">
       <CardHeader className="pb-3 sm:pb-4">
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-2 min-w-0 flex-1">
@@ -425,7 +425,7 @@ const ProgramCard = ({
                         onChange={(e) => handleCriteriaChange(idx, "name", e.target.value)} 
                         onPaste={(e) => handlePasteCriteria(e, idx)}
                         disabled={loading}
-                        className="flex-1"
+                        className="flex-1 min-w-0"
                       />
                       <Input 
                         type="number"
@@ -433,7 +433,7 @@ const ProgramCard = ({
                         value={criterion.score || ""} 
                         onChange={(e) => handleCriteriaChange(idx, "score", e.target.value !== "" ? Number(e.target.value) : "")} 
                         disabled={loading}
-                        className="w-24"
+                        className="w-16 sm:w-24 shrink-0"
                       />
                       <Button type="button" variant="ghost" size="icon" onClick={() => removeCriteria(idx)} disabled={loading}>
                         <Trash2 className="w-4 h-4 text-destructive" />
@@ -847,7 +847,7 @@ const RulesTopicsComponent = ({ apiKey, readOnly = false }) => {
         </div>
 
         {/* Mobile: Filter + View Mode + PDF — single row */}
-        <div className="flex sm:hidden items-center justify-between gap-2">
+        <div className="flex sm:hidden flex-wrap items-center justify-between gap-2">
           {/* Filter button */}
           <Button
             variant="outline"

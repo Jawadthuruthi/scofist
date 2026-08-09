@@ -37,6 +37,12 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
         [divisions, selectedDivision]
     );
 
+    const maxEventsCount = useMemo(() => {
+        const div = divisions.find((d) => d._id === selectedDivision);
+        if (!div) return 0;
+        return selectedCategory === "Stage" ? (div.stageEvents || 0) : (div.offStageEvents || 0);
+    }, [divisions, selectedDivision, selectedCategory]);
+
     // Sort programs alphabetically
     const sortedPrograms = useMemo(
         () => [...programs].sort((a, b) => a.name.localeCompare(b.name)),
@@ -265,16 +271,22 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
                                     <th className="border border-border px-3 py-2 text-center whitespace-nowrap min-w-[40px] text-xs font-semibold text-muted-foreground">
                                         Chest No
                                     </th>
-                                    <th className="border border-border px-3 py-2 text-left whitespace-nowrap min-w-[160px] text-xs font-semibold">
-                                        Participant
+                                    <th className="border border-border px-3 py-2 text-left whitespace-nowrap min-w-[160px] text-xs font-semibold relative">
+                                        <span>Participant</span>
+                                        {maxEventsCount > 0 && (
+                                            <div className="absolute bottom-2 right-3 font-bold text-sm text-primary">
+                                                Max Events: {maxEventsCount}
+                                            </div>
+                                        )}
                                     </th>
-                                    <th className="border border-border px-1 py-2 text-center min-w-[36px] max-w-[48px] w-[40px]">
+                                    <th className="border border-border px-1 py-2 text-center align-middle min-w-[36px] max-w-[48px] w-[40px]">
                                         <div
-                                            className="text-xs font-semibold leading-tight text-muted-foreground"
+                                            className="text-xs font-semibold leading-tight text-muted-foreground mx-auto text-center"
                                             style={{
                                                 writingMode: "vertical-rl",
                                                 transform: "rotate(180deg)",
-                                                maxHeight: "130px",
+                                                maxHeight: "160px",
+                                                minHeight: "120px",
                                                 overflow: "hidden",
                                                 whiteSpace: "normal",
                                                 wordBreak: "break-word",
@@ -286,14 +298,15 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
                                     {sortedPrograms.map((prog) => (
                                         <th
                                             key={prog._id}
-                                            className="border border-border px-1 py-2 text-center min-w-[36px] max-w-[48px] w-[40px]"
+                                            className="border border-border px-1 py-2 text-center align-middle min-w-[36px] max-w-[48px] w-[40px]"
                                         >
                                             <div
-                                                className="text-xs font-semibold leading-tight"
+                                                className="text-xs font-semibold leading-tight mx-auto text-center"
                                                 style={{
                                                     writingMode: "vertical-rl",
                                                     transform: "rotate(180deg)",
-                                                    maxHeight: "110px",
+                                                    maxHeight: "140px",
+                                                    minHeight: "110px",
                                                     overflow: "hidden",
                                                     whiteSpace: "normal",
                                                     wordBreak: "break-word",
