@@ -196,7 +196,7 @@ const ClassesSkeleton = memo(() => (
 ClassesSkeleton.displayName = "ClassesSkeleton";
 
 // ===== MAIN COMPONENTS =====
-const StatCard = memo(({ title, value, icon: Icon, description, onClick, clickLabel }) => (
+const StatCard = memo(({ title, value, icon: Icon, description, onClick, clickLabel, subStats }) => (
   <Card
     className={`overflow-hidden hover:shadow-md transition-shadow duration-300 border-l-4 border-l-primary${onClick ? " cursor-pointer active:scale-[0.98]" : ""}`}
     role="region"
@@ -214,6 +214,17 @@ const StatCard = memo(({ title, value, icon: Icon, description, onClick, clickLa
         >
           {value}
         </div>
+        {subStats && (
+          <div className="flex items-center gap-3 pt-1">
+            {subStats.map((s) => (
+              <span key={s.label} className="text-xs text-muted-foreground flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/60" />
+                <span className="font-medium text-foreground">{s.value}</span>
+                <span>{s.label}</span>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       <div className="p-3 bg-primary/10 rounded-full">
         <Icon className="h-8 w-8 text-primary" aria-hidden="true" />
@@ -228,9 +239,7 @@ const StatCard = memo(({ title, value, icon: Icon, description, onClick, clickLa
           {description}
         </p>
       )}
-      {onClick && (
-        <p className="text-xs text-primary font-medium mt-1">{clickLabel || "Click to view details →"}</p>
-      )}
+
     </CardContent>
   </Card>
 ));
@@ -524,6 +533,10 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       description: "Currently attending classes",
       onClick: () => setActiveStudentsDialogOpen(true),
       clickLabel: "Click to view chart →",
+      subStats: [
+        { label: "Senior", value: totalStats.seniorActiveStudents ?? 0 },
+        { label: "Junior", value: totalStats.juniorActiveStudents ?? 0 },
+      ],
     },
     {
       title: "Graduated Students",
@@ -548,6 +561,10 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       description: "Students currently on leave",
       onClick: () => setOnLeaveDialogOpen(true),
       clickLabel: "Click to view students →",
+      subStats: [
+        { label: "Senior", value: totalStats.seniorLeaveStudents ?? 0 },
+        { label: "Junior", value: totalStats.juniorLeaveStudents ?? 0 },
+      ],
     },
   ];
 
@@ -1327,6 +1344,45 @@ export default function Dashboard({
         })
       );
 
+    // Build classId -> section map for Senior/Junior Da-awa breakdowns
+    const classIdToSection = {};
+    sortedClasses.forEach((cls) => {
+      if (cls._id && cls.section) {
+        classIdToSection[String(cls._id)] = cls.section;
+      }
+    });
+
+    const getStudentSection = (student) => {
+      const classId =
+        student.studentSpecificField?.classId?._id ||
+        student.studentSpecificField?.classId ||
+        student.classId?._id ||
+        student.classId ||
+        "";
+      return classIdToSection[String(classId)] || "";
+    };
+
+    const seniorActiveStudents = activeStudents.filter(
+      (s) => getStudentSection(s) === "Senior Da-awa"
+    ).length;
+    const juniorActiveStudents = activeStudents.filter(
+      (s) => getStudentSection(s) === "Junior Da-awa"
+    ).length;
+
+    const onLeaveFilter = (student) => {
+      const studentLeaves = leaveRecords.filter(
+        (record) => String(record.studentId?._id || record.studentId) === String(student._id)
+      );
+      return studentLeaves.some(record => !record.arrivedDate);
+    };
+
+    const onLeaveStudentsAll = students.filter(onLeaveFilter);
+    const seniorLeaveStudents = onLeaveStudentsAll.filter(
+      (s) => getStudentSection(s) === "Senior Da-awa"
+    ).length;
+    const juniorLeaveStudents = onLeaveStudentsAll.filter(
+      (s) => getStudentSection(s) === "Junior Da-awa"
+    ).length;
 
     return {
       students,
@@ -1345,23 +1401,13 @@ export default function Dashboard({
         activeStudents: activeStudents.length,
         graduatedStudents: graduatedStudents.length,
         activeClasses: activeClasses.length,
-        leaveStudents: students.filter(student => {
-          const studentLeaves = leaveRecords.filter(
-            (record) => String(record.studentId?._id || record.studentId) === String(student._id)
-          );
-          return studentLeaves.some(record => {
-            if (record.arrivedDate) return false;
-            return !record.arrivedDate;
-          });
-        }).length,
+        leaveStudents: onLeaveStudentsAll.length,
+        seniorActiveStudents,
+        juniorActiveStudents,
+        seniorLeaveStudents,
+        juniorLeaveStudents,
       },
-        onLeaveStudentsList: students
-          .filter(student => {
-            const studentLeaves = leaveRecords.filter(
-              (record) => String(record.studentId?._id || record.studentId) === String(student._id)
-            );
-            return studentLeaves.some(record => !record.arrivedDate);
-          })
+        onLeaveStudentsList: onLeaveStudentsAll
           .map(student => {
             const studentLeaves = leaveRecords.filter(
               (record) => String(record.studentId?._id || record.studentId) === String(student._id)
