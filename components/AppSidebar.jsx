@@ -42,6 +42,7 @@ import {
   Newspaper,
   TrendingUp,
   ScanBarcode,
+  Monitor,
 } from "lucide-react";
 
 import {
@@ -94,6 +95,12 @@ const items = [
       "Finance",
       "Literary Leader",
     ],
+  },
+  {
+    title: "Screen",
+    url: "/dashboard/screen",
+    icon: Monitor,
+    allowedRoles: ["Program Committee"],
   },
   {
     title: "Academic Calendar",
