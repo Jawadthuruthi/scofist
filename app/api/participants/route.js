@@ -601,6 +601,7 @@ export async function GET(req, res) {
         category: program?.id?.category,
         divisionId: program?.id?.divisionId?._id,
         divisionType: program?.id?.divisionId?.type,
+        divisionName: program?.id?.divisionId?.name,
       })),
     };
     });

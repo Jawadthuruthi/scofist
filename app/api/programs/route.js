@@ -55,7 +55,11 @@ export async function GET(req, res) {
       query.category = filterParams.category;
     }
     if (filterParams.divisionId) {
-      query.divisionId = filterParams.divisionId;
+      if (filterParams.divisionId.includes(",")) {
+        query.divisionId = { $in: filterParams.divisionId.split(",") };
+      } else {
+        query.divisionId = filterParams.divisionId;
+      }
     }
     if (filterParams.pointScheme) {
       query.pointScheme = filterParams.pointScheme;

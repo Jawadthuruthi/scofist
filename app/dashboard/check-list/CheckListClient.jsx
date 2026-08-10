@@ -44,22 +44,43 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
     }, [divisions, selectedDivision, selectedCategory]);
 
     // Sort programs alphabetically
-    const sortedPrograms = useMemo(
-        () => [...programs].sort((a, b) => a.name.localeCompare(b.name)),
-        [programs]
-    );
+    const sortedPrograms = useMemo(() => {
+        let progs = [...programs];
+        
+        // For secondary divisions, only list programs that actually have students assigned from this team
+        const selDiv = divisions.find((d) => d._id === selectedDivision);
+        if (selDiv?.type === "Secondary") {
+            const assignedProgramIds = new Set();
+            participants.forEach(p => {
+                (p.programs || []).forEach(pr => assignedProgramIds.add(String(pr.id)));
+            });
+            progs = progs.filter(p => assignedProgramIds.has(String(p._id)));
+        }
+
+        return progs.sort((a, b) => a.name.localeCompare(b.name));
+    }, [programs, participants, divisions, selectedDivision]);
 
     // Sort participants by chest number, then name
-    const sortedParticipants = useMemo(
-        () =>
-            [...participants].sort((a, b) => {
-                if (a.chestNumber && b.chestNumber) return a.chestNumber - b.chestNumber;
-                if (a.chestNumber) return -1;
-                if (b.chestNumber) return 1;
-                return a.name.localeCompare(b.name);
-            }),
-        [participants]
-    );
+    const sortedParticipants = useMemo(() => {
+        let filtered = [...participants];
+        
+        // If a secondary division (like GENERAL) is selected, we fetch all participants in the team.
+        // To avoid showing many empty rows, filter out participants who don't have any programs in the current list.
+        const selDiv = divisions.find((d) => d._id === selectedDivision);
+        if (selDiv?.type === "Secondary") {
+            filtered = filtered.filter(p => {
+                const progSet = new Set((p.programs || []).map((pr) => String(pr.id)));
+                return programs.some(prog => progSet.has(String(prog._id)));
+            });
+        }
+
+        return filtered.sort((a, b) => {
+            if (a.chestNumber && b.chestNumber) return a.chestNumber - b.chestNumber;
+            if (a.chestNumber) return -1;
+            if (b.chestNumber) return 1;
+            return a.name.localeCompare(b.name);
+        });
+    }, [participants, programs, divisions, selectedDivision]);
 
     // Set of participant program IDs for O(1) lookup
     // participantProgramMap[participantId] = Set<programId>
@@ -77,13 +98,35 @@ export default function CheckListClient({ teams = [], divisions = [], apiKey }) 
 
         setLoading(true);
         try {
+            // Find if the selected division is "GENERAL"
+            const selDiv = divisions.find(d => d._id === selectedDivision);
+            const isSecondary = selDiv?.type === "Secondary";
+            const isGeneral = selDiv?.name?.toUpperCase() === "GENERAL";
+
+            let programsDivId = selectedDivision;
+            let participantsDivId = selectedDivision;
+
+            if (isSecondary) {
+                // Fetch ALL participants in the team (do not filter by division) since their primary division varies
+                participantsDivId = "";
+                
+                if (isGeneral) {
+                    // For "GENERAL", fetch programs for all Secondary divisions
+                    const secondaryDivIds = divisions.filter(d => d.type === "Secondary").map(d => d._id);
+                    programsDivId = secondaryDivIds.join(",");
+                }
+            }
+
+            const participantsUrl = `/api/participants?teamId=${encodeURIComponent(selectedTeam)}&limit=500` + 
+                                    (participantsDivId ? `&divisionId=${encodeURIComponent(participantsDivId)}` : "");
+
             const [programsRes, participantsRes] = await Promise.all([
                 fetch(
-                    `/api/programs?divisionId=${encodeURIComponent(selectedDivision)}&category=${encodeURIComponent(selectedCategory)}&limit=200`,
+                    `/api/programs?divisionId=${encodeURIComponent(programsDivId)}&category=${encodeURIComponent(selectedCategory)}&limit=200`,
                     { headers: { "api-key": apiKey, "Content-Type": "application/json" } }
                 ),
                 fetch(
-                    `/api/participants?teamId=${encodeURIComponent(selectedTeam)}&divisionId=${encodeURIComponent(selectedDivision)}&limit=500`,
+                    participantsUrl,
                     { headers: { "api-key": apiKey, "Content-Type": "application/json" } }
                 ),
             ]);

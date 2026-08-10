@@ -53,14 +53,32 @@ export default function ParticipantPage({ params }) {
     );
   }
 
-  // Filter programs based on stage/offstage and individual/group
+  // Categorize programs for display
   const programs = participant.programs || [];
   
-  // Categorize programs for display
-  const stageIndividual = programs.filter(p => p.category === "Stage" && p.type === "Individual");
-  const stageGroup = programs.filter(p => p.category === "Stage" && p.type === "Group");
-  const offStageIndividual = programs.filter(p => p.category !== "Stage" && p.type === "Individual");
-  const offStageGroup = programs.filter(p => p.category !== "Stage" && p.type === "Group");
+  // Primary (or general/undefined) programs
+  const stagePrograms = programs.filter(p => p.category === "Stage" && p.divisionType !== "Secondary");
+  const offStagePrograms = programs.filter(p => p.category !== "Stage" && p.divisionType !== "Secondary");
+
+  // Secondary programs - group by division ID to get precise names
+  const secondaryPrograms = programs.filter(p => p.divisionType === "Secondary");
+  const secondaryByDiv = {};
+  secondaryPrograms.forEach(p => {
+    if (!secondaryByDiv[p.divisionId]) secondaryByDiv[p.divisionId] = [];
+    secondaryByDiv[p.divisionId].push(p);
+  });
+
+  const secondaryDivisions = Object.keys(secondaryByDiv).map(divId => {
+    // divisionName is now passed from the backend
+    const divName = secondaryByDiv[divId][0]?.divisionName || "Secondary";
+    const divProgs = secondaryByDiv[divId];
+    return {
+      id: divId,
+      name: divName,
+      stagePrograms: divProgs.filter(p => p.category === "Stage"),
+      offStagePrograms: divProgs.filter(p => p.category !== "Stage"),
+    };
+  });
 
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center items-start p-4 pt-10">
@@ -104,17 +122,17 @@ export default function ParticipantPage({ params }) {
             
             {programs.length > 0 ? (
               <div className="space-y-4">
-                {/* Stage Individual */}
-                {stageIndividual.length > 0 && (
+                {/* Stage Programs */}
+                {stagePrograms.length > 0 && (
                   <div>
                     <h4 className="text-sm font-bold text-gray-800 text-indigo-700 mb-1 border-b pb-1">
-                      Stage Programs (Individual)
+                      Stage Programs
                     </h4>
                     <ul className="space-y-1 pl-1">
-                      {stageIndividual.map((program, index) => (
+                      {stagePrograms.map((program, index) => (
                         <li 
-                          key={index} 
-                          className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-indigo-50 p-1.5 rounded transition-colors"
+                          key={program.id || index} 
+                          className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-indigo-50 p-1.5 rounded transition-colors ml-2"
                           onClick={() => {
                             setSelectedProgramId(program.id);
                             setIsModalOpen(true);
@@ -127,17 +145,17 @@ export default function ParticipantPage({ params }) {
                   </div>
                 )}
                 
-                {/* Stage Group */}
-                {stageGroup.length > 0 && (
+                {/* Off Stage Programs */}
+                {offStagePrograms.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-bold text-gray-800 text-indigo-700 mb-1 border-b pb-1">
-                      Stage Programs (Group)
+                    <h4 className="text-sm font-bold text-gray-800 text-teal-700 mb-1 border-b pb-1">
+                      Off Stage Programs
                     </h4>
                     <ul className="space-y-1 pl-1">
-                      {stageGroup.map((program, index) => (
+                      {offStagePrograms.map((program, index) => (
                         <li 
-                          key={index} 
-                          className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-indigo-50 p-1.5 rounded transition-colors"
+                          key={program.id || index} 
+                          className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-teal-50 p-1.5 rounded transition-colors ml-2"
                           onClick={() => {
                             setSelectedProgramId(program.id);
                             setIsModalOpen(true);
@@ -150,51 +168,54 @@ export default function ParticipantPage({ params }) {
                   </div>
                 )}
 
-                {/* Off Stage Individual */}
-                {offStageIndividual.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-800 text-teal-700 mb-1 border-b pb-1">
-                      Off Stage Programs (Individual)
-                    </h4>
-                    <ul className="space-y-1 pl-1">
-                      {offStageIndividual.map((program, index) => (
-                        <li 
-                          key={index} 
-                          className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-teal-50 p-1.5 rounded transition-colors"
-                          onClick={() => {
-                            setSelectedProgramId(program.id);
-                            setIsModalOpen(true);
-                          }}
-                        >
-                          {index + 1}. {program.name || "Unknown Program"}
-                        </li>
-                      ))}
-                    </ul>
+                {/* Secondary Divisions */}
+                {secondaryDivisions.map((secDiv) => (
+                  <div key={secDiv.id} className="space-y-4">
+                    {secDiv.stagePrograms.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-800 text-indigo-700 mb-1 border-b pb-1">
+                          {secDiv.name} Stage Programs
+                        </h4>
+                        <ul className="space-y-1 pl-1">
+                          {secDiv.stagePrograms.map((program, index) => (
+                            <li 
+                              key={program.id || index} 
+                              className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-indigo-50 p-1.5 rounded transition-colors ml-2"
+                              onClick={() => {
+                                setSelectedProgramId(program.id);
+                                setIsModalOpen(true);
+                              }}
+                            >
+                              {index + 1}. {program.name || "Unknown Program"}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {secDiv.offStagePrograms.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-800 text-teal-700 mb-1 border-b pb-1">
+                          {secDiv.name} Off Stage Programs
+                        </h4>
+                        <ul className="space-y-1 pl-1">
+                          {secDiv.offStagePrograms.map((program, index) => (
+                            <li 
+                              key={program.id || index} 
+                              className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-teal-50 p-1.5 rounded transition-colors ml-2"
+                              onClick={() => {
+                                setSelectedProgramId(program.id);
+                                setIsModalOpen(true);
+                              }}
+                            >
+                              {index + 1}. {program.name || "Unknown Program"}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
-                )}
-
-                {/* Off Stage Group */}
-                {offStageGroup.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-800 text-teal-700 mb-1 border-b pb-1">
-                      Off Stage Programs (Group)
-                    </h4>
-                    <ul className="space-y-1 pl-1">
-                      {offStageGroup.map((program, index) => (
-                        <li 
-                          key={index} 
-                          className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-teal-50 p-1.5 rounded transition-colors"
-                          onClick={() => {
-                            setSelectedProgramId(program.id);
-                            setIsModalOpen(true);
-                          }}
-                        >
-                          {index + 1}. {program.name || "Unknown Program"}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                ))}
               </div>
             ) : (
               <div className="text-center text-gray-500 text-sm py-8 bg-gray-50 rounded border border-dashed border-gray-200">
