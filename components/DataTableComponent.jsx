@@ -830,6 +830,11 @@ const DataTableComponent = ({
         baseData = [...baseData].sort((a, b) => {
           return String(b._id).localeCompare(String(a._id), undefined, { numeric: true, sensitivity: 'base' });
         });
+      } else if (resource === "participants") {
+        // Sort participants by ID ascending
+        baseData = [...baseData].sort((a, b) =>
+          String(a._id).localeCompare(String(b._id), undefined, { numeric: true, sensitivity: 'base' })
+        );
       } else {
         // Default sort by createdAt descending so newest records appear first
         baseData = [...baseData].sort((a, b) => {

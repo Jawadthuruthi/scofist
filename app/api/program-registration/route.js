@@ -421,7 +421,11 @@ export async function POST(request) {
           "participants.id": { $in: teamParticipants },
         }).populate({
           path: "programId",
-          select: "category type",
+          select: "category type divisionId",
+          populate: {
+            path: "divisionId",
+            select: "type",
+          },
         });
 
         for (const participantId of teamParticipants) {
@@ -432,7 +436,8 @@ export async function POST(request) {
           const currentCategoryCount = participantRegistrations.filter(
             (reg) =>
               reg.programId.category === program.category &&
-              reg.programId.type === "Individual"
+              reg.programId.type === "Individual" &&
+              reg.programId.divisionId?.type === "Primary"
           ).length;
 
           let maxAllowed;
@@ -606,7 +611,11 @@ export async function PUT(request) {
           "participants.id": { $in: teamParticipants },
         }).populate({
           path: "programId",
-          select: "category type",
+          select: "category type divisionId",
+          populate: {
+            path: "divisionId",
+            select: "type",
+          },
         });
 
         for (const participantId of teamParticipants) {
@@ -617,7 +626,8 @@ export async function PUT(request) {
           const currentCategoryCount = participantRegistrations.filter(
             (reg) =>
               reg.programId.category === program.category &&
-              reg.programId.type === "Individual"
+              reg.programId.type === "Individual" &&
+              reg.programId.divisionId?.type === "Primary"
           ).length;
 
           let maxAllowed;

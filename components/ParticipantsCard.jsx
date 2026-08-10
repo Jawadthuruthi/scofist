@@ -178,6 +178,29 @@ const ParticipantsCard = ({
       <div className="flex flex-col lg:flex-row gap-4 mb-6 lg:items-center lg:justify-between">
         {/* Filters Row */}
         <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-4 w-full lg:w-auto lg:flex-1">
+          {/* Team Filter - Hidden for Program Leaders */}
+          {!isProgramLeader && (
+            <div className="w-full md:w-1/3 lg:w-48 xl:w-56">
+              <label htmlFor="team-select" className="sr-only">
+                Select a Team
+              </label>
+              <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                <SelectTrigger className="w-full" id="team-select">
+                  <SelectValue placeholder="Select a Team" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value={null}>All Teams</SelectItem>
+                    {teamsInSelectedDivision.map((team) => (
+                      <SelectItem key={team._id} value={team._id}>
+                        {team.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="w-full md:w-1/3 lg:w-56 xl:w-64">
             <label htmlFor="division-select" className="sr-only">
               Select a Division
@@ -198,32 +221,6 @@ const ParticipantsCard = ({
               </SelectContent>
             </Select>
           </div>
-          {/* Team Filter - Hidden for Program Leaders */}
-          {!isProgramLeader && (
-            <div className="flex flex-col w-full md:w-1/3 lg:w-48 xl:w-56 space-y-1">
-              <label
-                htmlFor="team-select"
-                className="text-sm font-semibold text-gray-700 dark:text-gray-300 ml-1"
-              >
-                Team
-              </label>
-              <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                <SelectTrigger className="w-full" id="team-select">
-                  <SelectValue placeholder="Select a Team" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value={null}>All Teams</SelectItem>
-                    {teamsInSelectedDivision.map((team) => (
-                      <SelectItem key={team._id} value={team._id}>
-                        {team.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
           {(selectedTeam || isProgramLeader) && selectedDivision && (
             <div className="col-span-2 md:col-span-1 w-full md:w-1/3 lg:w-56 xl:w-64">
               <MultiSelect

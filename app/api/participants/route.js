@@ -30,8 +30,8 @@ export async function assignChestNumbers(divisionId, participantCount) {
     // Fetch all existing participants in this division
     const existingParticipants = await Participant.find(
       { divisionId },
-      { chestNumber: 1, createdAt: 1 }
-    ).sort({ createdAt: 1 });
+      { chestNumber: 1 }
+    ).sort({ _id: 1 });
 
     // Track all taken numbers
     const usedChestNumbers = new Set(
@@ -426,7 +426,7 @@ export async function GET(req, res) {
     }
 
     // Determine sort criteria
-    let sortCriteria = { chestNumber: 1 }; // default sort
+    let sortCriteria = { _id: 1 }; // default sort by participant ID ascending
 
     if (sortByPoints) {
       // Sort by total points (descending), then by chest number (ascending)
@@ -694,6 +694,11 @@ export async function POST(req, res) {
     } catch (error) {
       return NextResponse.json({ message: error.message }, { status: 400 });
     }
+
+    // Sort users by _id ascending so chest numbers are assigned in participant ID order
+    users.sort((a, b) =>
+      String(a._id).localeCompare(String(b._id), undefined, { numeric: true, sensitivity: 'base' })
+    );
 
     // Create participant documents with assigned chest numbers
     const participantsToCreate = users.map((user, index) => ({
