@@ -23,11 +23,15 @@ const ParticipantsCard = ({
   divisions = [],
   teams = [],
   festivalSettings = {},
+  activeRole,
+  activeTeamId,
 }) => {
+  const isProgramLeader = activeRole === "Program Leader";
+
   const [selectedDivision, setSelectedDivision] = useState("");
-  const [selectedTeam, setSelectedTeam] = useState("");
+  const [selectedTeam, setSelectedTeam] = useState(isProgramLeader && activeTeamId ? activeTeamId : "");
   const [selectedParticipant, setSelectedParticipant] = useState("");
-  const [viewMode, setViewMode] = useState("both"); // New state for view mode
+  const [viewMode, setViewMode] = useState(isProgramLeader ? "back" : "both"); // Force back for program leaders
   const [baseUrl, setBaseUrl] = useState("");
 
   const pageRef = useRef(null);
@@ -194,27 +198,33 @@ const ParticipantsCard = ({
               </SelectContent>
             </Select>
           </div>
-          <div className="w-full md:w-1/3 lg:w-56 xl:w-64">
-            <label htmlFor="team-select" className="sr-only">
-              Select a Team
-            </label>
-            <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-              <SelectTrigger className="w-full" id="team-select">
-                <SelectValue placeholder="Select a Team" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value={null}>All Teams</SelectItem>
-                  {teamsInSelectedDivision.map((team) => (
-                    <SelectItem key={team._id} value={team._id}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-          {selectedTeam && (
+          {/* Team Filter - Hidden for Program Leaders */}
+          {!isProgramLeader && (
+            <div className="flex flex-col w-full md:w-1/3 lg:w-48 xl:w-56 space-y-1">
+              <label
+                htmlFor="team-select"
+                className="text-sm font-semibold text-gray-700 dark:text-gray-300 ml-1"
+              >
+                Team
+              </label>
+              <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                <SelectTrigger className="w-full" id="team-select">
+                  <SelectValue placeholder="Select a Team" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value={null}>All Teams</SelectItem>
+                    {teamsInSelectedDivision.map((team) => (
+                      <SelectItem key={team._id} value={team._id}>
+                        {team.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {(selectedTeam || isProgramLeader) && selectedDivision && (
             <div className="col-span-2 md:col-span-1 w-full md:w-1/3 lg:w-56 xl:w-64">
               <MultiSelect
                 options={formatOptions(filteredOptions)}
@@ -229,41 +239,43 @@ const ParticipantsCard = ({
 
         {/* View Mode Filter and Print Button */}
         <div className="flex flex-row justify-between md:justify-end items-center gap-2 md:gap-4 w-full lg:w-auto">
-          {/* View Mode Filter */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            <span className="text-xs sm:text-sm font-medium hidden sm:inline">
-              View:
-            </span>
-            <div className="flex rounded-md border">
-              <Button
-                variant={viewMode === "both" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleViewModeChange("both")}
-                className="rounded-r-none text-xs sm:text-sm px-2 sm:px-3"
-              >
-                <span className="hidden sm:inline">Both</span>
-                <span className="sm:hidden">All</span>
-              </Button>
-              <Button
-                variant={viewMode === "front" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleViewModeChange("front")}
-                className="rounded-none border-x-0 text-xs sm:text-sm px-2 sm:px-3"
-              >
-                <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                <span className="hidden sm:inline">Front</span>
-              </Button>
-              <Button
-                variant={viewMode === "back" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleViewModeChange("back")}
-                className="rounded-l-none text-xs sm:text-sm px-2 sm:px-3"
-              >
-                <ListTodo className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                <span className="hidden sm:inline">Back</span>
-              </Button>
+          {/* View Mode Filter - Hidden for Program Leaders */}
+          {!isProgramLeader && (
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="text-xs sm:text-sm font-medium hidden sm:inline">
+                View:
+              </span>
+              <div className="flex rounded-md border">
+                <Button
+                  variant={viewMode === "both" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => handleViewModeChange("both")}
+                  className="rounded-r-none text-xs sm:text-sm px-2 sm:px-3"
+                >
+                  <span className="hidden sm:inline">Both</span>
+                  <span className="sm:hidden">All</span>
+                </Button>
+                <Button
+                  variant={viewMode === "front" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => handleViewModeChange("front")}
+                  className="rounded-none border-x-0 text-xs sm:text-sm px-2 sm:px-3"
+                >
+                  <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Front</span>
+                </Button>
+                <Button
+                  variant={viewMode === "back" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => handleViewModeChange("back")}
+                  className="rounded-l-none text-xs sm:text-sm px-2 sm:px-3"
+                >
+                  <ListTodo className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Back</span>
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
           {/* Print Button */}
           <Button
             onClick={handlePrint}

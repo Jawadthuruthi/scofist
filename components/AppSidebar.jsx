@@ -603,7 +603,7 @@ const items = [
         title: "Participants Card",
         url: "/dashboard/participants-card",
         icon: UserCheck,
-        allowedRoles: ["Program Committee"],
+        allowedRoles: ["Program Committee", "Program Leader"],
       },
       {
         title: "Unregistered Programs",
