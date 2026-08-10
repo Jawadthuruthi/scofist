@@ -30,7 +30,7 @@ const ParticipantsCard = ({
 
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedTeam, setSelectedTeam] = useState(isProgramLeader && activeTeamId ? activeTeamId : "");
-  const [selectedParticipant, setSelectedParticipant] = useState("");
+  const [selectedParticipant, setSelectedParticipant] = useState([]);
   const [viewMode, setViewMode] = useState(isProgramLeader ? "back" : "both"); // Force back for program leaders
   const [baseUrl, setBaseUrl] = useState("");
 
@@ -58,7 +58,7 @@ const ParticipantsCard = ({
         (participant) =>
           (!selectedDivision || participant.divisionId === selectedDivision) &&
           (!selectedTeam || participant.teamId === selectedTeam) &&
-          (!selectedParticipant || participant._id === selectedParticipant)
+          (!selectedParticipant || selectedParticipant.length === 0 || selectedParticipant.includes(participant._id))
       )
       .map((participant) => {
         const rawPrograms = participant?.programs || [];
@@ -221,17 +221,16 @@ const ParticipantsCard = ({
               </SelectContent>
             </Select>
           </div>
-          {(selectedTeam || isProgramLeader) && selectedDivision && (
-            <div className="col-span-2 md:col-span-1 w-full md:w-1/3 lg:w-56 xl:w-64">
-              <MultiSelect
-                options={formatOptions(filteredOptions)}
-                value={selectedParticipant}
-                onValueChange={setSelectedParticipant}
-                multiSelect={false}
-                placeholder="Select a Participant"
-              />
-            </div>
-          )}
+          <div className="col-span-2 md:col-span-1 w-full md:w-1/3 lg:w-56 xl:w-64">
+            <MultiSelect
+              options={formatOptions(filteredOptions)}
+              value={selectedParticipant}
+              onValueChange={setSelectedParticipant}
+              multiSelect={true}
+              showSelectedCount={selectedParticipant.length > 1}
+              placeholder="Select Participants"
+            />
+          </div>
         </div>
 
         {/* View Mode Filter and Print Button */}
