@@ -146,7 +146,7 @@ export async function GET(req, res) {
     console.log("Filters:", { documentQuery, recordFilters, dateFilter });
 
     // Fetch all classes to determine core/major subjects for filtering
-    const allClasses = await Class.find({}, "coreSubjects majorSubjects").lean();
+    const allClasses = await Class.find({}, "name coreSubjects majorSubjects").lean();
     const classSubjectMap = {};
     allClasses.forEach(c => {
       classSubjectMap[c._id] = {
