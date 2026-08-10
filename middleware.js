@@ -860,8 +860,9 @@ function storeUserInCache(userId, user, customTtl = CACHE_TTL) {
 async function fetchUserProfile(userId, apiKey, origin) {
   try {
     const controller = new AbortController();
-    // Use 3 seconds to ensure we don't hit the Vercel middleware timeout (usually 10s, sometimes shorter depending on the phase)
-    const timeoutId = setTimeout(() => controller.abort(), 3000); 
+    // Use 5 seconds to reduce slow-load issues on cold starts while staying
+    // safely within the Vercel middleware timeout (usually 10s)
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     // Use origin passed from handleAuthRequest
     const response = await fetch(`${origin}/api/users/profile`, {
@@ -908,10 +909,39 @@ function prepareResponse(req, token, user, newProfileToken = null) {
 
   const res = NextResponse.next();
 
-  if (
-    req.cookies.has("active-role") &&
-    !isUserAllowed(req.cookies.get("active-role")?.value, req.nextUrl.pathname)
-  ) {
+  // Resolve the active role FIRST — before any access checks.
+  // This prevents a stale `active-role` cookie (from a previous session
+  // with a different role) from causing a false 404 redirect.
+  let activeRole = req.cookies.get("active-role")?.value;
+
+  // If the current cookie value is missing or not one of the user's roles, reset it
+  if (!activeRole || !user.roles.includes(activeRole)) {
+    activeRole = user.roles.includes("Teacher") ? "Teacher" : user.roles[0];
+
+    res.cookies.set("active-role", activeRole, {
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
+
+  // Now validate access using the resolved (possibly corrected) active role
+  if (!isUserAllowed(activeRole, req.nextUrl.pathname)) {
+    if (activeRole === "Librarian" && req.nextUrl.pathname === "/dashboard") {
+      return NextResponse.redirect(
+        new URL("/library-dashboard", req.url)
+      );
+    }
+    if (activeRole === "Gate Keeper" && req.nextUrl.pathname === "/dashboard") {
+      return NextResponse.redirect(
+        new URL("/dashboard/gate-pass", req.url)
+      );
+    }
+    if (activeRole === "Judge" && req.nextUrl.pathname === "/dashboard") {
+      return NextResponse.redirect(
+        new URL("/judge-portal", req.url)
+      );
+    }
     return redirectTo404(req);
   }
 
@@ -940,42 +970,6 @@ function prepareResponse(req, token, user, newProfileToken = null) {
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
     });
-  }
-
-  // Set cookie if not present
-  // Get current activeRole from cookie or default to first valid role
-  let activeRole = req.cookies.get("active-role")?.value;
-
-  // If the current cookie value is not one of the user's roles, reset it
-  if (!activeRole || !user.roles.includes(activeRole)) {
-    activeRole = user.roles.includes("Teacher") ? "Teacher" : user.roles[0];
-
-    res.cookies.set("active-role", activeRole, {
-      path: "/",
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-    });
-  }
-
-  // Now validate access
-  if (!isUserAllowed(activeRole, req.nextUrl.pathname)) {
-
-    if (activeRole === "Librarian" && req.nextUrl.pathname === "/dashboard") {
-      return NextResponse.redirect(
-        new URL("/library-dashboard", req.url)
-      );
-    }
-    if (activeRole === "Gate Keeper" && req.nextUrl.pathname === "/dashboard") {
-      return NextResponse.redirect(
-        new URL("/dashboard/gate-pass", req.url)
-      );
-    }
-    if (activeRole === "Judge" && req.nextUrl.pathname === "/dashboard") {
-      return NextResponse.redirect(
-        new URL("/judge-portal", req.url)
-      );
-    }
-    return redirectTo404(req);
   }
 
   return res;

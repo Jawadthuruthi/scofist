@@ -70,6 +70,12 @@ export async function POST(req) {
       path: "/",
     });
 
+    // Clear stale session cookies from a previous login (different role).
+    // The middleware will re-compute and set the correct active-role on the
+    // first authenticated request, preventing false 404s for role changes.
+    response.cookies.delete("active-role");
+    response.cookies.delete("profile-cache");
+
     return response;
   } catch (error) {
     console.error("Error verifying OTP:", error.message);

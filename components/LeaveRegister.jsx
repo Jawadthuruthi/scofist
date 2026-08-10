@@ -26,6 +26,8 @@ import { Button } from "./ui/button";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
+const STORAGE_KEY = "leaveRegister_selectedClass";
+
 const LeaveRegister = ({ apiKey, role, teacherId }) => {
   const [selectedClass, setSelectedClass] = useState("");
 
@@ -145,6 +147,21 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
     });
     return stats;
   }, [students, leaveRecords]);
+
+  // Restore persisted class selection on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      setSelectedClass(saved);
+    }
+  }, []);
+
+  // Persist class selection to localStorage on every change
+  useEffect(() => {
+    if (selectedClass) {
+      localStorage.setItem(STORAGE_KEY, selectedClass);
+    }
+  }, [selectedClass]);
 
   useEffect(() => {
     if (role === "Teacher" && classes.length > 0 && !selectedClass) {
