@@ -28,10 +28,19 @@ export async function GET(req) {
             return NextResponse.json({ success: false, msg: "Missing studentId" }, { status: 400 });
         }
 
-        const monthsToCheck = 36;
         const bestReaderPromises = [];
         const attendancePromises = [];
         const starPromises = [];
+
+        // Star of the Month cutoff: only completed months from July 2026 onwards
+        // July 2026 = month index 6 (0-based), year 2026
+        const STAR_CUTOFF_YEAR = 2026;
+        const STAR_CUTOFF_MONTH = 6; // July (0-based)
+
+        const now = new Date();
+        // "Current month" is the ongoing month — not yet complete, so exclude it.
+        // We only show fully-completed months: month < now's month (if same year) or year < now's year.
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         
         // Helper to construct a mock request for internal routing
         const createMockReq = (path) => {
@@ -41,12 +50,21 @@ export async function GET(req) {
             });
         };
 
-        for (let m = 1; m <= monthsToCheck; m++) {
-            const date = new Date();
-            date.setMonth(date.getMonth() - m);
+        // Build list of completed months from July 2026 up to (but not including) current month
+        const monthsToIterate = [];
+        {
+            // Start from July 2026
+            let iterDate = new Date(STAR_CUTOFF_YEAR, STAR_CUTOFF_MONTH, 1);
+            while (iterDate < currentMonthStart) {
+                monthsToIterate.push(new Date(iterDate));
+                iterDate.setMonth(iterDate.getMonth() + 1);
+            }
+        }
+
+        for (const date of monthsToIterate) {
             const month = date.getMonth();
             const year = date.getFullYear();
-            
+
             const firstDayDate = new Date(year, month, 1);
             const lastDayDate = new Date(year, month + 1, 0);
             const firstDay = formatDate(firstDayDate);
@@ -68,7 +86,8 @@ export async function GET(req) {
                     .catch(() => null)
             );
 
-            // Star of the month
+            // Star of the Month — only for completed months from July 2026 onwards
+            // (already guaranteed by monthsToIterate range above)
             starPromises.push(
                 getStar(createMockReq(`/api/performance/star?classId=all&month=${month + 1}&year=${year}`))
                     .then(res => res.json())
