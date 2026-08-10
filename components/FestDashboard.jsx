@@ -20,7 +20,7 @@ import CodeLettersViewer from "./CodeLettersViewer";
 import GeneralDisplayViewer from "./GeneralDisplayViewer";
 
 // ===== STAT CARD =====
-function StatCard({ title, value, icon: Icon, color, isLoading, onClick }) {
+function StatCard({ title, value, icon: Icon, color, isLoading, onClick, subStats }) {
   return (
     <div
       onClick={onClick}
@@ -45,6 +45,21 @@ function StatCard({ title, value, icon: Icon, color, isLoading, onClick }) {
             <p className="text-3xl font-bold tracking-tight mt-0.5" style={{ color }}>
               {value ?? "—"}
             </p>
+          )}
+          {subStats && subStats.length > 0 && (
+            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+              {subStats.map((s) => (
+                <span key={s.label} className="text-xs font-medium text-muted-foreground">
+                  <span
+                    className="inline-block px-1.5 py-0.5 rounded-md font-bold mr-1"
+                    style={{ background: `${color}18`, color }}
+                  >
+                    {isLoading ? "…" : (s.value ?? "—")}
+                  </span>
+                  {s.label}
+                </span>
+              ))}
+            </div>
           )}
         </div>
         {onClick && (
@@ -156,6 +171,10 @@ export default function FestDashboard({ apiKey, activeRole, user }) {
   // Count-only queries (limit=1)
   const participantsCountQuery = useFetchParticipants(0, 1, {}, { enabled: isProgramRole, staleTime: 30000 });
   const programsCountQuery = useFetchPrograms(0, 1, {}, { enabled: isProgramRole, staleTime: 30000 });
+  const stageProgramsCountQuery = useFetchPrograms(0, 1, { category: "Stage" }, { enabled: isProgramRole, staleTime: 30000 });
+  const offStageProgramsCountQuery = useFetchPrograms(0, 1, { category: "Off-Stage" }, { enabled: isProgramRole, staleTime: 30000 });
+  const groupProgramsCountQuery = useFetchPrograms(0, 1, { type: "Group" }, { enabled: isProgramRole, staleTime: 30000 });
+  const individualProgramsCountQuery = useFetchPrograms(0, 1, { type: "Individual" }, { enabled: isProgramRole, staleTime: 30000 });
   const declaredResultsCountQuery = useFetchResults(0, 1, { isResultDeclared: "true" }, { enabled: isProgramRole, staleTime: 30000 });
 
   // Full data (used for teams/divisions stats AND their dialogs)
@@ -305,17 +324,73 @@ export default function FestDashboard({ apiKey, activeRole, user }) {
 
       case "programs":
         if (!selectedDivisionId) {
+          const stageTotal = stageProgramsCountQuery.data?.pagination?.total ?? 0;
+          const offStageTotal = offStageProgramsCountQuery.data?.pagination?.total ?? 0;
+          const groupTotal = groupProgramsCountQuery.data?.pagination?.total ?? 0;
+          const individualTotal = individualProgramsCountQuery.data?.pagination?.total ?? 0;
           return {
             title: `Programs by Division`,
             icon: LayoutGrid, color: "#0ea5e9",
             isLoading: divisionsAllQuery.isLoading || divisionsAllQuery.isFetching,
-            content: divisions.length === 0
-              ? <p className="text-center text-muted-foreground py-8 text-sm">No divisions found</p>
-              : <div className="space-y-1">{divisions.map((d, i) => (
-                  <ListRow key={d._id} index={i + 1} primary={d.name}
-                    secondary={`${d.programsCount || 0} Programs`}
-                    onClick={() => setSelectedDivisionId(d._id)} />
-                ))}</div>,
+            content: (
+              <div>
+                {/* Stage / Off-Stage / Group / Individual — single row */}
+                <div className="flex flex-wrap gap-2 mb-3 px-1">
+                  {[
+                    { label: "Stage", query: stageProgramsCountQuery, value: stageTotal },
+                    { label: "Off-Stage", query: offStageProgramsCountQuery, value: offStageTotal },
+                    { label: "Group", query: groupProgramsCountQuery, value: groupTotal },
+                    { label: "Individual", query: individualProgramsCountQuery, value: individualTotal },
+                  ].map(({ label, query, value }) => (
+                    <span key={label} className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full" style={{ background: "#0ea5e915", color: "#0ea5e9", border: "1px solid #0ea5e930" }}>
+                      <span className="font-bold text-sm">{query.isLoading ? "…" : value}</span>
+                      {label}
+                    </span>
+                  ))}
+                </div>
+                {divisions.length === 0
+                  ? <p className="text-center text-muted-foreground py-8 text-sm">No divisions found</p>
+                  : <div className="space-y-1">{divisions.map((d, i) => {
+                      const divProgs = programs.filter(p => p.divisionName === d.name);
+                      const isProgsLoading = programsListQuery.isLoading || programsListQuery.isFetching;
+                      const total = d.programsCount || 0;
+                      const stage = divProgs.filter(p => p.category === "Stage").length;
+                      const offStage = divProgs.filter(p => p.category === "Off-Stage").length;
+                      const group = divProgs.filter(p => p.type === "Group").length;
+                      const individual = divProgs.filter(p => p.type === "Individual").length;
+                      return (
+                        <div
+                          key={d._id}
+                          onClick={() => setSelectedDivisionId(d._id)}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-muted/80 transition-colors"
+                        >
+                          <span className="text-xs font-bold text-muted-foreground w-6 text-right flex-shrink-0">{i + 1}.</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm">{d.name}</p>
+                            {isProgsLoading ? (
+                              <div className="h-3 w-40 rounded bg-muted animate-pulse mt-1" />
+                            ) : (
+                              <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5 text-xs text-muted-foreground">
+                                <span className="w-full sm:w-auto flex gap-3">
+                                  <span>Stage <span className="font-semibold" style={{ color: "#0ea5e9" }}>{stage}</span></span>
+                                  <span>Off-Stage <span className="font-semibold" style={{ color: "#0ea5e9" }}>{offStage}</span></span>
+                                </span>
+                                <span className="w-full sm:w-auto flex gap-3">
+                                  <span>Group <span className="font-semibold" style={{ color: "#0ea5e9" }}>{group}</span></span>
+                                  <span>Individual <span className="font-semibold" style={{ color: "#0ea5e9" }}>{individual}</span></span>
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "#0ea5e918", color: "#0ea5e9" }}>
+                            {total}
+                          </span>
+                        </div>
+                      );
+                    })}</div>
+                }
+              </div>
+            ),
           };
         }
         
