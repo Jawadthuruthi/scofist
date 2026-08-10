@@ -759,7 +759,7 @@ function ComboBox({ roles, role }) {
   );
 }
 
-export function AppSidebar({ roles, activeRole, user }) {
+export function AppSidebar({ roles, activeRole, user, settingsData, initialActiveYear }) {
   const filteredRoles = roles?.filter(r => r !== "Stationary" && r !== "IT Lab") || [];
   const sidebarRef = useRef(null);
   const { setOpen, setOpenMobile } = useSidebar();
@@ -933,7 +933,7 @@ export function AppSidebar({ roles, activeRole, user }) {
           <ComboBox roles={filteredRoles} role={role} />
         </div>
         {(role === "Program Committee" || role === "Program Leader" || role === "Judge") && (
-          <YearSwitcher />
+          <YearSwitcher initialData={settingsData} activeRole={role} initialActiveYear={initialActiveYear} />
         )}
         <SidebarGroup className="px-4">
           <SidebarGroupContent>

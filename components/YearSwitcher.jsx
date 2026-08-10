@@ -16,18 +16,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-const YearSwitcher = () => {
-  const [years, setYears] = useState([]);
-  const [blockedYears, setBlockedYears] = useState([]);
-  const [activeYear, setActiveYear] = useState("");
+const YearSwitcher = ({ initialData, activeRole, initialActiveYear }) => {
+  const [years, setYears] = useState(initialData?.years || []);
+  const [blockedYears, setBlockedYears] = useState(initialData?.blockedYears || []);
+  // initialActiveYear is resolved on the server (from cookie + settings logic)
+  // so the initial render is identical between SSR and client hydration.
+  const [activeYear, setActiveYear] = useState(initialActiveYear || "");
   const [newYear, setNewYear] = useState("");
-  const [loading, setLoading] = useState(true);
-  const currentRole = Cookies.get("active-role");
+  const [loading, setLoading] = useState(!initialData); // skip skeleton if server data provided
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [editingYear, setEditingYear] = useState(null);
   const [editValue, setEditValue] = useState("");
 
   useEffect(() => {
+    // Always fetch in background to keep data fresh for mutation actions
+    // If we already had initialData, don't show loading skeleton
     fetchSettings();
   }, []);
 
@@ -43,7 +46,7 @@ const YearSwitcher = () => {
       const recentYear = fetchedYears.length > 0 ? fetchedYears[fetchedYears.length - 1] : "2025 november";
       let currentYear = Cookies.get("active-year");
 
-      if (currentRole === "Program Committee" || currentRole === "Program Leader") {
+      if (activeRole === "Program Committee" || activeRole === "Program Leader") {
         if (!currentYear) currentYear = recentYear;
       } else {
         if (!currentYear) currentYear = settings.activeYear || recentYear;
@@ -53,7 +56,7 @@ const YearSwitcher = () => {
         currentYear = recentYear;
       }
 
-      if ((currentRole === "Program Leader" || currentRole === "Program Committee") && fetchedBlockedYears.includes(currentYear)) {
+      if ((activeRole === "Program Leader" || activeRole === "Program Committee") && fetchedBlockedYears.includes(currentYear)) {
         const unblockedYears = fetchedYears.filter(y => !fetchedBlockedYears.includes(y));
         currentYear = unblockedYears.length > 0 ? unblockedYears[unblockedYears.length - 1] : currentYear;
       }
@@ -197,7 +200,7 @@ const YearSwitcher = () => {
           <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
             Festival Session
           </label>
-          {currentRole !== "Program Leader" && currentRole !== "Judge" && (
+          {activeRole !== "Program Leader" && activeRole !== "Judge" && (
             <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
               <DialogTrigger asChild>
                 <Button
@@ -265,7 +268,7 @@ const YearSwitcher = () => {
                         <>
                           <span className="font-medium text-sm">{year} {blockedYears.includes(year) && <span className="text-xs text-red-500 ml-2">(Blocked)</span>}</span>
                           <div className="flex items-center gap-1">
-                            {currentRole === "Program Committee" && (
+                            {activeRole === "Program Committee" && (
                               <Button
                                 variant="ghost"
                                 size="icon"

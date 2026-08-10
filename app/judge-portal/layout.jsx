@@ -1,7 +1,7 @@
 import { AppSidebar } from "@/components/AppSidebar";
 import { Topbar } from "@/components/Topbar";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { parseUser } from "@/lib/utils";
+import { parseUser, fetchData } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
@@ -10,6 +10,37 @@ export default async function Layout({ children }) {
   const cookiesStore = await cookies();
   const user = parseUser(headerStore);
   const activeRole = cookiesStore.get("active-role")?.value;
+
+  let settingsData = null;
+  let initialActiveYear = "";
+  try {
+    settingsData = await fetchData("settings", "", 60);
+    if (settingsData && (activeRole === "Program Committee" || activeRole === "Program Leader" || activeRole === "Judge")) {
+      const fetchedYears = settingsData.years || ["2025 november"];
+      const fetchedBlockedYears = settingsData.blockedYears || [];
+      const recentYear = fetchedYears.length > 0 ? fetchedYears[fetchedYears.length - 1] : "2025 november";
+      let currentYear = cookiesStore.get("active-year")?.value;
+
+      if (activeRole === "Program Committee" || activeRole === "Program Leader") {
+        if (!currentYear) currentYear = recentYear;
+      } else {
+        if (!currentYear) currentYear = settingsData.activeYear || recentYear;
+      }
+
+      if (fetchedYears.length > 0 && !fetchedYears.includes(currentYear)) {
+        currentYear = recentYear;
+      }
+
+      if ((activeRole === "Program Leader" || activeRole === "Program Committee") && fetchedBlockedYears.includes(currentYear)) {
+        const unblockedYears = fetchedYears.filter(y => !fetchedBlockedYears.includes(y));
+        currentYear = unblockedYears.length > 0 ? unblockedYears[unblockedYears.length - 1] : currentYear;
+      }
+
+      initialActiveYear = currentYear || "";
+    }
+  } catch {
+    // Non-critical — YearSwitcher will fetch it client-side as fallback
+  }
 
   return (
     <ThemeProvider
@@ -20,7 +51,7 @@ export default async function Layout({ children }) {
     >
       <SidebarProvider defaultOpen={false}>
         <div className="flex h-screen overflow-hidden min-w-full max-w-full">
-          <AppSidebar roles={user?.roles} activeRole={activeRole} user={user} />
+          <AppSidebar roles={user?.roles} activeRole={activeRole} user={user} settingsData={settingsData} initialActiveYear={initialActiveYear} />
           <div className="flex flex-col flex-1 min-w-0">
             <Topbar user={user} />
             <main className="flex-1 p-4 mt-14 overflow-auto container">

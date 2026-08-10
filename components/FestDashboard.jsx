@@ -96,7 +96,7 @@ function ListDialog({ open, onClose, onBack, title, icon: Icon, color, isLoading
   );
 }
 
-function ListRow({ index, primary, secondary, badge, badgeColor, onClick }) {
+function ListRow({ index, primary, secondary, secondaryExtra, badge, badgeColor, onClick }) {
   return (
     <div 
       onClick={onClick}
@@ -106,8 +106,16 @@ function ListRow({ index, primary, secondary, badge, badgeColor, onClick }) {
         {index}.
       </span>
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm truncate">{primary}</p>
-        {secondary && <p className="text-xs text-muted-foreground truncate">{secondary}</p>}
+        <p className="font-medium text-sm break-words">{primary}</p>
+        {secondary && (
+          <p className="text-xs text-muted-foreground truncate">
+            {secondary}
+            {secondaryExtra && <span className="hidden sm:inline">  ·  {secondaryExtra}</span>}
+          </p>
+        )}
+        {secondaryExtra && (
+          <p className="text-xs text-muted-foreground truncate sm:hidden">{secondaryExtra}</p>
+        )}
       </div>
       {badge !== undefined && (
         <span
@@ -379,7 +387,8 @@ export default function FestDashboard({ apiKey, activeRole, user }) {
             ? <p className="text-center text-muted-foreground py-8 text-sm">No teams found</p>
             : <div className="space-y-1">{teams.map((t, i) => (
                 <ListRow key={t._id} index={i + 1} primary={t.name}
-                  secondary={`Leader: ${t.leaderName || "N/A"}  ·  Members: ${t.membersCount ?? 0}`}
+                  secondary={`Leader: ${t.leaderName || "N/A"}`}
+                  secondaryExtra={`Members: ${t.membersCount ?? 0}`}
                   badge={t.totalPoints} badgeColor="#ec4899" />
               ))}</div>,
         };
