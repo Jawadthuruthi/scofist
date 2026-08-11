@@ -3,7 +3,6 @@ import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions, parseUser } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
-import ReassignChestNumbersButton from "./ReassignChestNumbersButton";
 
 const columnsConfig = [
   {
@@ -226,11 +225,6 @@ export default async function ParticipantsPage() {
             title="PARTICIPANTS MANAGEMENT"
             subTitle="Organize and Oversee Participants"
           />
-          {activeRole === "Program Committee" && (
-            <div className="pt-1">
-              <ReassignChestNumbersButton apiKey={apiKey} />
-            </div>
-          )}
         </div>
         <DynamicDataTable
           resource="participants"
