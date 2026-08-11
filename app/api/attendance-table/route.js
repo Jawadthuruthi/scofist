@@ -289,6 +289,8 @@ export async function GET(req) {
       }
     });
 
+    const classInfo = await Class.findById(classId).lean();
+
     try {
       const settings = await Settings.findOne({}).select('general').lean();
       const log = settings?.general?.nonWorkingDaysLog || [];
@@ -313,11 +315,67 @@ export async function GET(req) {
           }
         }
       });
+
+      let classSection = classInfo?.section || '';
+      if (!classSection && classInfo?.name) {
+          if (classInfo.name.toLowerCase().includes("senior")) classSection = "Senior Da-awa";
+          if (classInfo.name.toLowerCase().includes("junior")) classSection = "Junior Da-awa";
+      }
+
+      if (classSection === 'Senior Da-awa' || classSection === 'Junior Da-awa') {
+        const section = classSection === 'Senior Da-awa' ? 'seniorDaawa' : 'juniorDaawa';
+        let specificDates = settings?.general?.[`${section}NonWorkingDays`] || [];
+        const specificOccasion = settings?.general?.[section]?.occasion || 'Holiday';
+        const isSectionOff = settings?.general?.[section]?.isWorkingDay === false;
+        
+        const now = new Date();
+        const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+        todayIST.setUTCHours(23, 59, 59, 999);
+        
+        specificDates = specificDates.filter(dt => new Date(dt) <= todayIST);
+        
+        const getLatestBlock = (datesArray, isOff) => {
+            const block = new Set();
+            if (!isOff || !datesArray || datesArray.length === 0) return block;
+            const sorted = [...datesArray].map(dt => new Date(dt)).sort((a,b) => a-b);
+            let curr = sorted[sorted.length - 1];
+            const dateStrs = new Set(sorted.map(d => d.toISOString().split("T")[0]));
+
+            const todayStr = `${todayIST.getUTCFullYear()}-${String(todayIST.getUTCMonth() + 1).padStart(2, "0")}-${String(todayIST.getUTCDate()).padStart(2, "0")}`;
+
+            for(let i=0; i<365; i++) {
+                const currStr = curr.toISOString().split("T")[0];
+                
+                if (dateStrs.has(currStr)) {
+                    block.add(currStr);
+                    curr = new Date(curr.getTime() - 24*60*60*1000);
+                } else if (curr.getUTCDay() === 5) { // Skip Fridays
+                    curr = new Date(curr.getTime() - 24*60*60*1000);
+                } else {
+                    break;
+                }
+            }
+            return block;
+        };
+
+        const latestBlock = getLatestBlock(specificDates, isSectionOff);
+        
+        specificDates.forEach((dt) => {
+          const d = new Date(dt);
+          if (d.getUTCFullYear() === year && d.getUTCMonth() === month - 1) {
+            const day = d.getUTCDate();
+            const dtStr = d.toISOString().split("T")[0];
+            if (latestBlock.has(dtStr)) {
+              if (!(day in nonWorkingDaysMap) || !nonWorkingDaysMap[day]) {
+                nonWorkingDaysMap[day] = specificOccasion;
+              }
+            }
+          }
+        });
+      }
     } catch (settingsErr) {
       console.error('Failed to fetch non-working days from settings:', settingsErr);
     }
-
-    const classInfo = await Class.findById(classId).lean();
     const coreSubjects = classInfo?.coreSubjects?.map((s) => s.toString()) || [];
     const majorSubjects = classInfo?.majorSubjects?.map((s) => s.toString()) || [];
 
