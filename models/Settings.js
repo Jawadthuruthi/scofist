@@ -269,9 +269,6 @@ const SettingsSchema = new Schema(
         type: String,
         trim: true,
         default: "",
-        required: function () {
-          return !this.isWorkingDay;
-        },
       },
       // Persistent log of all dates marked as non-working by the college admin
       nonWorkingDays: {
