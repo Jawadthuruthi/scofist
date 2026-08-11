@@ -622,16 +622,16 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               Distribution of active students across different classes
             </DialogDescription>
           </DialogHeader>
+          <ClassStudentsTable
+            classes={dashboardData?.activeClasses}
+            batches={dashboardData?.batches}
+            students={dashboardData?.activeStudents}
+          />
           <ClassChart
             classes={dashboardData?.activeClasses}
             batches={dashboardData?.batches}
             students={dashboardData?.activeStudents}
             isLoading={isLoadingCharts}
-          />
-          <ClassStudentsTable
-            classes={dashboardData?.activeClasses}
-            batches={dashboardData?.batches}
-            students={dashboardData?.activeStudents}
           />
         </DialogContent>
       </Dialog>

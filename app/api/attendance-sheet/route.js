@@ -42,9 +42,17 @@ export async function GET(request) {
 
         let students = [];
 
+        let classSection = "";
+
         if (classId) {
             // 1. Get Class Details to determine subject type (CORE or MAJOR)
-            const classDoc = await Class.findById(classId).select("coreSubjects majorSubjects batchId").lean();
+            const classDoc = await Class.findById(classId).select("coreSubjects majorSubjects batchId section name").lean();
+            
+            classSection = classDoc?.section || "";
+            if (!classSection && classDoc?.name) {
+                if (classDoc.name.toLowerCase().includes("senior")) classSection = "Senior Da-awa";
+                if (classDoc.name.toLowerCase().includes("junior")) classSection = "Junior Da-awa";
+            }
             if (!classDoc) {
                 return NextResponse.json({ message: "Class not found" }, { status: 404 });
             }
@@ -157,21 +165,24 @@ export async function GET(request) {
         // Map: studentId -> { dateStr: { present: bool, markedBy: string, markedAt: date } }
         const attendanceMap = {};
         const leavesMap = {}; // studentId -> { day: reason }
-
+        const daysWithAttendance = new Set();
         attendanceRecords.forEach((record) => {
-            const day = record.date.getDate(); // 1-31
-
+            const date = new Date(record.date);
+            const day = date.getDate();
+            const dtStr = date.toISOString().split("T")[0];
             record.attendanceData.forEach((entry) => {
-                if (!attendanceMap[entry.studentId]) {
-                    attendanceMap[entry.studentId] = {};
+                const studentId = entry.studentId.toString();
+                if (!attendanceMap[studentId]) {
+                    attendanceMap[studentId] = {};
                 }
 
-                attendanceMap[entry.studentId][day] = {
+                attendanceMap[studentId][day] = {
                     present: entry.present,
                     markedBy: record.teacherId?.name || "Unknown",
                     markedAt: record.updatedAt || record.createdAt,
                     recordId: record._id
                 };
+                daysWithAttendance.add(dtStr);
             });
         });
 
@@ -216,6 +227,82 @@ export async function GET(request) {
                     }
                 }
             });
+
+            const getLatestBlock = (datesArray, isOff, daysWithAtt) => {
+                const block = new Set();
+                if (!isOff || !datesArray || datesArray.length === 0) return block;
+                const sorted = [...datesArray].map(dt => new Date(dt)).sort((a,b) => a-b);
+                let curr = sorted[sorted.length - 1];
+                const dateStrs = new Set(sorted.map(d => d.toISOString().split("T")[0]));
+
+                const now = new Date();
+                const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+                const todayStr = `${todayIST.getUTCFullYear()}-${String(todayIST.getUTCMonth() + 1).padStart(2, "0")}-${String(todayIST.getUTCDate()).padStart(2, "0")}`;
+
+                for(let i=0; i<365; i++) {
+                    const currStr = curr.toISOString().split("T")[0];
+                    
+                    if (currStr !== todayStr && daysWithAtt && daysWithAtt.has(currStr)) {
+                        break;
+                    }
+
+                    if (dateStrs.has(currStr)) {
+                        block.add(currStr);
+                        curr = new Date(curr.getTime() - 24*60*60*1000);
+                    } else if (curr.getUTCDay() === 5) {
+                        curr = new Date(curr.getTime() - 24*60*60*1000);
+                    } else {
+                        break;
+                    }
+                }
+                return block;
+            };
+
+            const now = new Date();
+            const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+            todayIST.setUTCHours(23, 59, 59, 999);
+
+            if (classSection === "Senior Da-awa") {
+                let seniorDates = settings?.general?.seniorDaawaNonWorkingDays || [];
+                seniorDates = seniorDates.filter(dt => new Date(dt) <= todayIST);
+                
+                const seniorOccasion = settings?.general?.seniorDaawa?.occasion || "Holiday";
+                const isSeniorOff = settings?.general?.seniorDaawa?.isWorkingDay === false;
+                const latestSeniorBlock = getLatestBlock(seniorDates, isSeniorOff, daysWithAttendance);
+                
+                seniorDates.forEach((dt) => {
+                    const d = new Date(dt);
+                    if (d.getUTCFullYear() === year && d.getUTCMonth() === month) {
+                        const day = d.getUTCDate();
+                        const dtStr = d.toISOString().split("T")[0];
+                        if (latestSeniorBlock.has(dtStr)) {
+                            if (!(day in nonWorkingDaysMap) || !nonWorkingDaysMap[day]) {
+                                nonWorkingDaysMap[day] = seniorOccasion;
+                            }
+                        }
+                    }
+                });
+            } else if (classSection === "Junior Da-awa") {
+                let juniorDates = settings?.general?.juniorDaawaNonWorkingDays || [];
+                juniorDates = juniorDates.filter(dt => new Date(dt) <= todayIST);
+
+                const juniorOccasion = settings?.general?.juniorDaawa?.occasion || "Holiday";
+                const isJuniorOff = settings?.general?.juniorDaawa?.isWorkingDay === false;
+                const latestJuniorBlock = getLatestBlock(juniorDates, isJuniorOff, daysWithAttendance);
+
+                juniorDates.forEach((dt) => {
+                    const d = new Date(dt);
+                    if (d.getUTCFullYear() === year && d.getUTCMonth() === month) {
+                        const day = d.getUTCDate();
+                        const dtStr = d.toISOString().split("T")[0];
+                        if (latestJuniorBlock.has(dtStr)) {
+                            if (!(day in nonWorkingDaysMap) || !nonWorkingDaysMap[day]) {
+                                nonWorkingDaysMap[day] = juniorOccasion;
+                            }
+                        }
+                    }
+                });
+            }
 
             console.log("[AttendanceSheet] nonWorkingDays count:", legacyDates.length, "| nonWorkingDaysLog count:", log.length, "| month:", month, "year:", year, "| map:", JSON.stringify(nonWorkingDaysMap));
         } catch (settingsErr) {
