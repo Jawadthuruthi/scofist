@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { apiResponse } from "@/lib/apiResponse";
 import connectToDB from "@/lib/db";
 import Program from "@/models/Program";
