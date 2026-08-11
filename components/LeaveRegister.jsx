@@ -30,6 +30,7 @@ const STORAGE_KEY = "leaveRegister_selectedClass";
 
 const LeaveRegister = ({ apiKey, role, teacherId }) => {
   const [selectedClass, setSelectedClass] = useState("");
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const router = useRouter();
 
@@ -154,6 +155,7 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
     if (saved) {
       setSelectedClass(saved);
     }
+    setIsInitialized(true);
   }, []);
 
   // Persist class selection to localStorage on every change
@@ -164,10 +166,10 @@ const LeaveRegister = ({ apiKey, role, teacherId }) => {
   }, [selectedClass]);
 
   useEffect(() => {
-    if (role === "Teacher" && classes.length > 0 && !selectedClass) {
+    if (isInitialized && role === "Teacher" && classes.length > 0 && !selectedClass) {
       setSelectedClass(classes[0]._id);
     }
-  }, [classes, role, selectedClass]);
+  }, [classes, role, selectedClass, isInitialized]);
 
   const getStatusBadge = (status) => {
     const variants = {
