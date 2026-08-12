@@ -180,16 +180,21 @@
 @media print {
   html, body {
     color-scheme: light !important;
+    background-color: white !important;
   }
 
   @page {
     margin: 1rem;
   }
 
-  /* Force all elements to be visible with black text in print mode */
+  /* Ultimate fallback: force everything to black text on transparent/white background */
   * {
     color: black !important;
+    background: transparent !important;
     text-shadow: none !important;
+    box-shadow: none !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
   }
 
   /* Reset dark mode variables to light mode for printing */
