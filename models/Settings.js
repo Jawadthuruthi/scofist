@@ -294,12 +294,30 @@ const SettingsSchema = new Schema(
         type: [Date],
         default: [],
       },
+      seniorDaawaNonWorkingDaysLog: {
+        type: [
+          {
+            date: { type: Date, required: true },
+            occasion: { type: String, trim: true, default: "" },
+          },
+        ],
+        default: [],
+      },
       juniorDaawa: {
         isWorkingDay: { type: Boolean, default: true },
         occasion: { type: String, trim: true, default: "" },
       },
       juniorDaawaNonWorkingDays: {
         type: [Date],
+        default: [],
+      },
+      juniorDaawaNonWorkingDaysLog: {
+        type: [
+          {
+            date: { type: Date, required: true },
+            occasion: { type: String, trim: true, default: "" },
+          },
+        ],
         default: [],
       },
       appIcon: {
@@ -491,7 +509,7 @@ const SettingsSchema = new Schema(
 SettingsSchema.index({}, { unique: true });
 
 // Check if model exists but is missing the new fields (Hot Reload fix)
-if (models.Settings && (!models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel") || !models.Settings.schema.path("general.nonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDays"))) {
+if (models.Settings && (!models.Settings.schema.path("spark.committeePosters") || !models.Settings.schema.path("festival.festivalNameImage") || !models.Settings.schema.path("institution.contact.whatsappChannel") || !models.Settings.schema.path("general.nonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDays") || !models.Settings.schema.path("general.seniorDaawaNonWorkingDaysLog"))) {
   console.log("Detecting outdated Settings model. Refreshing...");
   delete models.Settings;
 }

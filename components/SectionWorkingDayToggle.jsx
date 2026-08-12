@@ -142,51 +142,111 @@ export default function SectionWorkingDayToggle({ apiKey, general }) {
     });
   }
   
-  const seniorDates = new Set();
+  const seniorDates = new Map();
   if (general?.seniorDaawaNonWorkingDays) {
     general.seniorDaawaNonWorkingDays.forEach(date => {
       try {
-        seniorDates.add(new Date(date).toISOString().split('T')[0]);
+        const dateStr = new Date(date).toISOString().split('T')[0];
+        seniorDates.set(dateStr, { date });
+      } catch (e) {}
+    });
+  }
+  if (general?.seniorDaawaNonWorkingDaysLog) {
+    general.seniorDaawaNonWorkingDaysLog.forEach(log => {
+      try {
+        const dateStr = new Date(log.date).toISOString().split('T')[0];
+        if (seniorDates.has(dateStr)) {
+          seniorDates.get(dateStr).occasion = log.occasion;
+        }
       } catch (e) {}
     });
   }
   
-  const juniorDates = new Set();
+  const juniorDates = new Map();
   if (general?.juniorDaawaNonWorkingDays) {
     general.juniorDaawaNonWorkingDays.forEach(date => {
       try {
-        juniorDates.add(new Date(date).toISOString().split('T')[0]);
+        const dateStr = new Date(date).toISOString().split('T')[0];
+        juniorDates.set(dateStr, { date });
       } catch (e) {}
     });
   }
+  if (general?.juniorDaawaNonWorkingDaysLog) {
+    general.juniorDaawaNonWorkingDaysLog.forEach(log => {
+      try {
+        const dateStr = new Date(log.date).toISOString().split('T')[0];
+        if (juniorDates.has(dateStr)) {
+          juniorDates.get(dateStr).occasion = log.occasion;
+        }
+      } catch (e) {}
+    });
+  }
+
+  const now = new Date();
+  const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+  const todayDS = `${todayIST.getUTCFullYear()}-${String(todayIST.getUTCMonth() + 1).padStart(2, "0")}-${String(todayIST.getUTCDate()).padStart(2, "0")}`;
+
+  const backfillMissingUI = (dateMap, isOff, occasionStr) => {
+    if (!isOff) return;
+    if (dateMap.size === 0) {
+      dateMap.set(todayDS, { date: new Date(`${todayDS}T00:00:00.000Z`), occasion: occasionStr });
+      return;
+    }
+    const dates = Array.from(dateMap.keys()).sort();
+    const latestDate = dates[dates.length - 1];
+    
+    let curr = new Date(`${latestDate}T00:00:00.000Z`);
+    curr = new Date(curr.getTime() + 24 * 60 * 60 * 1000);
+    const end = new Date(`${todayDS}T00:00:00.000Z`);
+    while (curr <= end) {
+      const ds = `${curr.getUTCFullYear()}-${String(curr.getUTCMonth() + 1).padStart(2, "0")}-${String(curr.getUTCDate()).padStart(2, "0")}`;
+      if (!dateMap.has(ds)) {
+        dateMap.set(ds, { date: new Date(curr), occasion: occasionStr });
+      }
+      curr = new Date(curr.getTime() + 24 * 60 * 60 * 1000);
+    }
+  };
+
+  backfillMissingUI(nonWorkingLogDates, general?.isWorkingDay === false, general?.occasion || "Not specified");
+  backfillMissingUI(seniorDates, general?.seniorDaawa?.isWorkingDay === false, general?.seniorDaawa?.occasion || "Not specified");
+  backfillMissingUI(juniorDates, general?.juniorDaawa?.isWorkingDay === false, general?.juniorDaawa?.occasion || "Not specified");
   
-  const allDateStrs = new Set([...nonWorkingLogDates.keys(), ...seniorDates, ...juniorDates]);
+  const allDateStrs = new Set([...nonWorkingLogDates.keys(), ...seniorDates.keys(), ...juniorDates.keys()]);
   
   allDateStrs.forEach(dateStr => {
     const inLog = nonWorkingLogDates.has(dateStr);
     const inSenior = seniorDates.has(dateStr);
     const inJunior = juniorDates.has(dateStr);
     
-    const dateObj = inLog ? nonWorkingLogDates.get(dateStr).date : new Date(`${dateStr}T00:00:00.000Z`);
-    const occasion = inLog ? (nonWorkingLogDates.get(dateStr).occasion || "Not specified") : "Not specified";
-    
-    if (inLog || (inSenior && inJunior)) {
-      historyData.push({
-        date: dateObj,
-        occasion,
-        section: "Both Sections"
-      });
+    let dateObj = new Date(`${dateStr}T00:00:00.000Z`);
+    let occasion = "Not specified";
+    let section = "";
+
+    if (inLog) {
+      dateObj = nonWorkingLogDates.get(dateStr).date;
+      occasion = nonWorkingLogDates.get(dateStr).occasion || "Not specified";
+      section = "Both Sections";
+    } else if (inSenior && inJunior) {
+      dateObj = seniorDates.get(dateStr).date;
+      const sOccasion = seniorDates.get(dateStr).occasion || "Not specified";
+      const jOccasion = juniorDates.get(dateStr).occasion || "Not specified";
+      occasion = sOccasion === jOccasion ? sOccasion : `${sOccasion} / ${jOccasion}`;
+      section = "Both Sections";
     } else if (inSenior) {
-      historyData.push({
-        date: dateObj,
-        occasion,
-        section: "Senior Da-awa"
-      });
+      dateObj = seniorDates.get(dateStr).date;
+      occasion = seniorDates.get(dateStr).occasion || "Not specified";
+      section = "Senior Da-awa";
     } else if (inJunior) {
+      dateObj = juniorDates.get(dateStr).date;
+      occasion = juniorDates.get(dateStr).occasion || "Not specified";
+      section = "Junior Da-awa";
+    }
+    
+    if (section) {
       historyData.push({
         date: dateObj,
         occasion,
-        section: "Junior Da-awa"
+        section
       });
     }
   });
@@ -241,11 +301,14 @@ export default function SectionWorkingDayToggle({ apiKey, general }) {
                 <span className="hidden sm:inline">History</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Non-Working Days History</DialogTitle>
+            <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto p-0 gap-0">
+              <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0" style={{ background: `#64748b10` }}>
+                <div className="p-2 rounded-lg" style={{ background: `#64748b20` }}>
+                  <History className="w-5 h-5 text-[#64748b]" />
+                </div>
+                <DialogTitle className="font-semibold text-lg flex-1 m-0 text-left">Non-Working Days History</DialogTitle>
               </DialogHeader>
-              <div className="mt-4 space-y-4">
+              <div className="p-5 space-y-4">
                 {historyData.length > 0 ? (
                   historyData.map((item, idx) => (
                     <div key={idx} className="flex items-start justify-between border-b pb-3 last:border-0">

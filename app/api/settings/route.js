@@ -639,15 +639,40 @@ export async function PUT(req) {
       const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
       const todayDS = `${todayIST.getUTCFullYear()}-${String(todayIST.getUTCMonth() + 1).padStart(2, "0")}-${String(todayIST.getUTCDate()).padStart(2, "0")}`;
       let snwd = [...(existingSettings?.general?.seniorDaawaNonWorkingDays || [])];
+      let snwdLog = [...(existingSettings?.general?.seniorDaawaNonWorkingDaysLog || [])];
+      const prevOccasion = existingSettings?.general?.seniorDaawa?.occasion || "Holiday";
 
       if (data.seniorDaawa_isWorkingDay === false) {
         if (!snwd.some((dt) => new Date(dt).toISOString().split("T")[0] === todayDS)) {
           snwd.push(new Date(`${todayDS}T00:00:00.000Z`));
         }
+        if (!snwdLog.some((l) => new Date(l.date).toISOString().split("T")[0] === todayDS)) {
+          snwdLog.push({ date: new Date(`${todayDS}T00:00:00.000Z`), occasion: data.seniorDaawa_occasion || prevOccasion });
+        }
       } else {
+        // Backfill intermediate days if it was previously false
+        if (existingSettings?.general?.seniorDaawa?.isWorkingDay === false && existingSettings?.updatedAt) {
+          let curr = new Date(existingSettings.updatedAt);
+          while (curr <= now) {
+            const cIST = new Date(curr.getTime() + 5.5 * 60 * 60 * 1000);
+            const ds = `${cIST.getUTCFullYear()}-${String(cIST.getUTCMonth() + 1).padStart(2, "0")}-${String(cIST.getUTCDate()).padStart(2, "0")}`;
+            if (ds !== todayDS) {
+              const cMidnight = new Date(`${ds}T00:00:00.000Z`);
+              if (!snwd.some((dt) => new Date(dt).toISOString().split("T")[0] === ds)) {
+                snwd.push(cMidnight);
+              }
+              if (!snwdLog.some((l) => new Date(l.date).toISOString().split("T")[0] === ds)) {
+                snwdLog.push({ date: cMidnight, occasion: prevOccasion });
+              }
+            }
+            curr = new Date(curr.getTime() + 24 * 60 * 60 * 1000);
+          }
+        }
         snwd = snwd.filter((dt) => new Date(dt).toISOString().split("T")[0] !== todayDS);
+        snwdLog = snwdLog.filter((l) => new Date(l.date).toISOString().split("T")[0] !== todayDS);
       }
       updateData["general.seniorDaawaNonWorkingDays"] = snwd;
+      updateData["general.seniorDaawaNonWorkingDaysLog"] = snwdLog;
     }
     if (data.seniorDaawa_occasion !== undefined) {
       updateData["general.seniorDaawa.occasion"] = data.seniorDaawa_occasion;
@@ -659,15 +684,40 @@ export async function PUT(req) {
       const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
       const todayDS = `${todayIST.getUTCFullYear()}-${String(todayIST.getUTCMonth() + 1).padStart(2, "0")}-${String(todayIST.getUTCDate()).padStart(2, "0")}`;
       let jnwd = [...(existingSettings?.general?.juniorDaawaNonWorkingDays || [])];
+      let jnwdLog = [...(existingSettings?.general?.juniorDaawaNonWorkingDaysLog || [])];
+      const prevOccasion = existingSettings?.general?.juniorDaawa?.occasion || "Holiday";
 
       if (data.juniorDaawa_isWorkingDay === false) {
         if (!jnwd.some((dt) => new Date(dt).toISOString().split("T")[0] === todayDS)) {
           jnwd.push(new Date(`${todayDS}T00:00:00.000Z`));
         }
+        if (!jnwdLog.some((l) => new Date(l.date).toISOString().split("T")[0] === todayDS)) {
+          jnwdLog.push({ date: new Date(`${todayDS}T00:00:00.000Z`), occasion: data.juniorDaawa_occasion || prevOccasion });
+        }
       } else {
+        // Backfill intermediate days if it was previously false
+        if (existingSettings?.general?.juniorDaawa?.isWorkingDay === false && existingSettings?.updatedAt) {
+          let curr = new Date(existingSettings.updatedAt);
+          while (curr <= now) {
+            const cIST = new Date(curr.getTime() + 5.5 * 60 * 60 * 1000);
+            const ds = `${cIST.getUTCFullYear()}-${String(cIST.getUTCMonth() + 1).padStart(2, "0")}-${String(cIST.getUTCDate()).padStart(2, "0")}`;
+            if (ds !== todayDS) {
+              const cMidnight = new Date(`${ds}T00:00:00.000Z`);
+              if (!jnwd.some((dt) => new Date(dt).toISOString().split("T")[0] === ds)) {
+                jnwd.push(cMidnight);
+              }
+              if (!jnwdLog.some((l) => new Date(l.date).toISOString().split("T")[0] === ds)) {
+                jnwdLog.push({ date: cMidnight, occasion: prevOccasion });
+              }
+            }
+            curr = new Date(curr.getTime() + 24 * 60 * 60 * 1000);
+          }
+        }
         jnwd = jnwd.filter((dt) => new Date(dt).toISOString().split("T")[0] !== todayDS);
+        jnwdLog = jnwdLog.filter((l) => new Date(l.date).toISOString().split("T")[0] !== todayDS);
       }
       updateData["general.juniorDaawaNonWorkingDays"] = jnwd;
+      updateData["general.juniorDaawaNonWorkingDaysLog"] = jnwdLog;
     }
     if (data.juniorDaawa_occasion !== undefined) {
       updateData["general.juniorDaawa.occasion"] = data.juniorDaawa_occasion;
