@@ -309,6 +309,12 @@ const ParticipantsCard = ({
               print-color-adjust: exact !important;
               color-adjust: exact !important;
             }
+            .force-print-color {
+              color: var(--print-text-color, #ffffff) !important;
+            }
+            .force-print-bg-white {
+              background-color: #ffffff !important;
+            }
           }
         `}} />
         {Array.from({
@@ -710,7 +716,7 @@ const PrintableParticipantCard = ({
   const { containerClass, cardClass } = getCardLayout();
 
   return (
-    <div className={containerClass} style={{ pageBreakInside: "avoid" }}>
+    <div className={containerClass} style={{ pageBreakInside: "avoid", "--print-text-color": textColor }}>
       {/* Front Side Card */}
       {(viewMode === "both" || viewMode === "front") && (
         <div
@@ -743,7 +749,7 @@ const PrintableParticipantCard = ({
               {/* Chest Number - Print Version */}
               <div className="">
                 <h2
-                  className="font-bold text-lg"
+                  className="font-bold text-lg force-print-color"
                   style={{
                     color: textColor,
                   }}
@@ -755,7 +761,7 @@ const PrintableParticipantCard = ({
               {/* Name - Print Version */}
               <div className="">
                 <h3
-                  className="font-bold text-base"
+                  className="font-bold text-base force-print-color"
                   style={{
                     color: textColor,
                   }}
@@ -768,7 +774,7 @@ const PrintableParticipantCard = ({
               <div className="text-xs flex flex-col items-center">
                 <div className="">
                   <p
-                    className="font-semibold"
+                    className="font-semibold force-print-color"
                     style={{
                       color: textColor,
                     }}
@@ -778,7 +784,7 @@ const PrintableParticipantCard = ({
                 </div>
                 <div className="mb-1">
                   <p
-                    className="font-semibold"
+                    className="font-semibold force-print-color"
                     style={{
                       color: textColor,
                     }}
@@ -787,7 +793,7 @@ const PrintableParticipantCard = ({
                   </p>
                 </div>
                 {/* Barcode encoding Chest Number */}
-                <div className="bg-white px-2 py-0.5 rounded shadow-sm inline-block">
+                <div className="bg-white force-print-bg-white px-2 py-0.5 rounded shadow-sm inline-block">
                   <Barcode
                     value={participant.chestNumber || "000"}
                     width={1.2}
@@ -801,13 +807,13 @@ const PrintableParticipantCard = ({
             </div>
 
             {/* Bottom Left QR Code: Participant Programs */}
-            <div className="absolute bottom-3 left-3 bg-white p-1 rounded shadow-sm border border-gray-100 flex flex-col items-center">
+            <div className="absolute bottom-3 left-3 bg-white force-print-bg-white p-1 rounded shadow-sm border border-gray-100 flex flex-col items-center">
               <QRCodeSVG value={`${baseUrl}/participant/${participant.originalId || participant._id}`} size={45} />
               <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Programs</span>
             </div>
 
             {/* Bottom Right QR Code: Results Page */}
-            <div className="absolute bottom-3 right-3 bg-white p-1 rounded shadow-sm border border-gray-100 flex flex-col items-center">
+            <div className="absolute bottom-3 right-3 bg-white force-print-bg-white p-1 rounded shadow-sm border border-gray-100 flex flex-col items-center">
               <QRCodeSVG value={`${baseUrl}/results`} size={45} />
               <span className="text-[9px] font-bold mt-0.5 text-gray-800 uppercase tracking-tight">Results</span>
             </div>
