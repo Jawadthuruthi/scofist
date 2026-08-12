@@ -302,6 +302,15 @@ const ParticipantsCard = ({
 
       {/* Print Layout - A4 Landscape with Front-Back-Front-Back pattern */}
       <div ref={pageRef} className="hidden print:block">
+        <style dangerouslySetInnerHTML={{__html: `
+          @media print {
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+          }
+        `}} />
         {Array.from({
           length: Math.ceil(
             printParticipants.length / (viewMode === "both" ? 4 : 8)
@@ -350,11 +359,15 @@ const ParticipantsCard = ({
             margin: 0;
           }
 
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+
           body {
             margin: 0;
             padding: 0;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
           }
 
           .preview-container {
@@ -440,17 +453,21 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl, max
           <CardContent className="p-0">
             <div
               style={{
-                backgroundImage: participantsCardBackgroundUrl
-                  ? `url(${participantsCardBackgroundUrl})`
-                  : undefined,
                 backgroundColor: participantsCardBackgroundUrl
                   ? undefined
                   : "#f8f9fa",
               }}
-              className={`relative bg-cover bg-center w-full aspect-[1/1.4] p-3 rounded shadow ${
+              className={`relative overflow-hidden w-full aspect-[1/1.4] p-3 rounded shadow z-0 ${
                 !participantsCardBackgroundUrl ? "bg-card" : ""
               }`}
             >
+              {participantsCardBackgroundUrl && (
+                <img
+                  src={participantsCardBackgroundUrl}
+                  alt="Background"
+                  className="absolute inset-0 w-full h-full object-cover -z-10"
+                />
+              )}
               {/* Participant Details */}
               <div
                 className="absolute text-center"
@@ -630,7 +647,7 @@ const ParticipantPrograms = ({ participant, onNextPage, onPrevPage, divisions = 
       </div>
 
       {/* Footer Area */}
-      <div className="mt-auto pt-2 flex justify-between items-end border-t border-gray-100 dark:border-gray-700 w-full shrink-0">
+      <div className="print:hidden mt-auto pt-2 flex justify-between items-end border-t border-gray-100 dark:border-gray-700 w-full shrink-0">
         <div className="text-[9px] text-gray-600 dark:text-gray-400 font-medium leading-tight w-full pr-1">
           {/* Spacer for layout consistency when there are no arrows */}
         </div>
@@ -701,15 +718,19 @@ const PrintableParticipantCard = ({
         >
           <div
             style={{
-              backgroundImage: participantsCardBackgroundUrl
-                ? `url(${participantsCardBackgroundUrl})`
-                : undefined,
               backgroundColor: participantsCardBackgroundUrl
                 ? undefined
                 : "#ffffff",
             }}
-            className="relative bg-cover bg-center w-full aspect-[1/1.4] p-3 rounded shadow flex flex-col"
+            className="relative overflow-hidden w-full aspect-[1/1.4] p-3 rounded shadow flex flex-col z-0"
           >
+            {participantsCardBackgroundUrl && (
+              <img
+                src={participantsCardBackgroundUrl}
+                alt="Background"
+                className="absolute inset-0 w-full h-full object-cover -z-10 print:block"
+              />
+            )}
             {/* Participant Details */}
             <div
               className="absolute text-center"
