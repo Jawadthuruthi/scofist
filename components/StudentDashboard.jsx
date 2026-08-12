@@ -799,8 +799,6 @@ export default function StudentDashboard({
         const fundsMap = new Map();
 
         (fundsResult.studentFunds || []).forEach(fund => {
-          // Filter to only include funds for the student's current batch
-          if (fund.batchId !== currentUser?.studentSpecificField?.batchId) return;
 
           let label = "Students Fund";
           let subLabel = "";
@@ -893,7 +891,7 @@ export default function StudentDashboard({
       }
     };
 
-    if (currentUser?._id && currentUser?.studentSpecificField?.batchId && apiKey) {
+    if (currentUser?._id && apiKey) {
       fetchFunds();
     } else {
       setFundsLoading(false);
