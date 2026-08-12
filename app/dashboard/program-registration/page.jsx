@@ -283,7 +283,7 @@ export default async function ProgramRegistrationPage() {
           editSuccessMessage={statusMessages.edit}
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filteredFilterConfig}
-          limit={20}
+          limit={0}
           readOnly={
             !(
               activeRole === "Program Committee" ||

@@ -51,8 +51,9 @@ export async function GET(request) {
     const userStr = request.headers?.get("x-user");
     const user = userStr ? JSON.parse(userStr) : {};
     const userId = user?.userId || user?._id;
-    const limit = parseInt(searchParams.get("limit")) || 50; // Reduced default limit
-    const skip = page * limit;
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam !== null ? parseInt(limitParam) : 50;
+    const skip = page * (limit || 1);
 
     const programId = searchParams.get("programId");
     const teamId = searchParams.get("teamId");
@@ -224,15 +225,18 @@ export async function GET(request) {
       { $sort: { programName: 1, "team.name": 1 } },
     ];
 
-    // Get total count efficiently
     const countPipeline = [...pipeline, { $count: "total" }];
+
+    const paginationStages = limit > 0 ? [
+        { $skip: skip },
+        { $limit: limit },
+    ] : [];
 
     const [countResult, results] = await Promise.all([
       ProgramRegistration.aggregate(countPipeline),
       ProgramRegistration.aggregate([
         ...pipeline,
-        { $skip: skip },
-        { $limit: limit },
+        ...paginationStages
       ]),
     ]);
 
