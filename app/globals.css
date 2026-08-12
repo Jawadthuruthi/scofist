@@ -179,6 +179,15 @@
 }
 
 @media print {
+  /* Absolute global print reset to guarantee text visibility on ALL mobile devices */
+  * {
+    color: black !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
   html, body {
     color-scheme: light !important;
     background-color: white !important;
@@ -192,11 +201,6 @@
   tr, td, th, tbody {
     page-break-inside: auto !important;
     break-inside: auto !important;
-  }
-
-  /* Force table text to be black to prevent invisible white text in dark mode prints */
-  td, th, td *, th * {
-    color: black !important;
   }
 
   /* Reset dark mode variables to light mode for printing */
