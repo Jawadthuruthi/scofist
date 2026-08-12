@@ -1,1 +1,0 @@
-require('dotenv').config({path: '.env.local'}); const mongoose=require('mongoose'); mongoose.connect(process.env.MONGODB_URI).then(async ()=>{ const User=require('./models/User.js').default; const users = await User.find({ roles: { $regex: /judge/i } }).select('name roles'); console.log(users); process.exit(0); })
