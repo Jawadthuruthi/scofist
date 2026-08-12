@@ -301,14 +301,14 @@ export default function SectionWorkingDayToggle({ apiKey, general }) {
                 <span className="hidden sm:inline">History</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto p-0 gap-0">
+            <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md max-h-[80vh] flex flex-col overflow-hidden p-0 gap-0">
               <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0" style={{ background: `#64748b10` }}>
                 <div className="p-2 rounded-lg" style={{ background: `#64748b20` }}>
                   <History className="w-5 h-5 text-[#64748b]" />
                 </div>
                 <DialogTitle className="font-semibold text-lg flex-1 m-0 text-left">Non-Working Days History</DialogTitle>
               </DialogHeader>
-              <div className="p-5 space-y-4">
+              <div className="p-5 space-y-4 flex-1 overflow-y-auto">
                 {historyData.length > 0 ? (
                   historyData.map((item, idx) => (
                     <div key={idx} className="flex items-start justify-between border-b pb-3 last:border-0">

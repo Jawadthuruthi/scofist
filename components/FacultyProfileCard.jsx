@@ -30,21 +30,21 @@ const FacultyProfileCard = memo(({ faculty, assignedClass }) => (
           </div>
         )}
       </div>
-      <div className="p-2 md:p-4">
+      <div className="p-2 md:p-4 flex-1 min-w-0">
         <div className="flex justify-between mb-1 md:mb-2">
-          <div>
-            <h3 id={`faculty-${faculty._id}`} className="font-semibold text-sm">
+          <div className="truncate">
+            <h3 id={`faculty-${faculty._id}`} className="font-semibold text-sm truncate">
               {faculty.name}
             </h3>
-            <p className="text-muted-foreground text-xs">{faculty.place}</p>
+            <p className="text-muted-foreground text-xs truncate">{faculty.address?.place || faculty.place}</p>
           </div>
         </div>
         <div className="text-xs space-y-1">
-          <div className="whitespace-nowrap">
+          <div className="truncate">
             <span className="text-muted-foreground">Contact: </span>
             <span>{faculty.contactNumber || "N/A"}</span>
           </div>
-          <div className="whitespace-nowrap">
+          <div className="truncate">
             <span className="text-muted-foreground">Class: </span>
             <span>{assignedClass || "N/A"}</span>
           </div>
