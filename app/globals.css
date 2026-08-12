@@ -178,8 +178,18 @@
 }
 
 @media print {
+  html, body {
+    color-scheme: light !important;
+  }
+
   @page {
     margin: 1rem;
+  }
+
+  /* Force all elements to be visible with black text in print mode */
+  * {
+    color: black !important;
+    text-shadow: none !important;
   }
 
   /* Reset dark mode variables to light mode for printing */
@@ -203,7 +213,6 @@
     --border: 240 5.9% 80%;
     --input: 240 5.9% 90%;
     --ring: 240 10% 3.9%;
-    color: black !important;
   }
 
   body {
