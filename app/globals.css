@@ -188,6 +188,17 @@
     margin: 1rem;
   }
 
+  /* Fix webkit/blink bug where table rows disappear if they have break-inside-avoid */
+  tr, td, th, tbody {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  /* Force table text to be black to prevent invisible white text in dark mode prints */
+  td, th, td *, th * {
+    color: black !important;
+  }
+
   /* Reset dark mode variables to light mode for printing */
   .dark {
     --background: 0 0% 100%;
@@ -227,8 +238,11 @@
   }
 
   .table-print {
-    max-height: 100% !important;
+    max-height: none !important;
+    height: auto !important;
     overflow: visible !important;
+    position: static !important;
+    display: block !important;
   }
 
   .scrollable {
