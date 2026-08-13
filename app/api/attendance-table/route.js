@@ -338,9 +338,11 @@ export async function GET(req) {
       }
 
       let classSection = classInfo?.section || '';
-      if (!classSection && classInfo?.name) {
-          if (classInfo.name.toLowerCase().includes("senior")) classSection = "Senior Da-awa";
-          if (classInfo.name.toLowerCase().includes("junior")) classSection = "Junior Da-awa";
+      let className = classInfo?.name || '';
+      if (classSection.toLowerCase().includes("senior") || className.toLowerCase().includes("senior")) {
+          classSection = "Senior Da-awa";
+      } else if (classSection.toLowerCase().includes("junior") || className.toLowerCase().includes("junior")) {
+          classSection = "Junior Da-awa";
       }
 
       if (classSection === 'Senior Da-awa' || classSection === 'Junior Da-awa') {
@@ -490,6 +492,8 @@ export async function GET(req) {
             row[accessor] = { status: 'LEAVE', message: reason, leaveReason: reason };
           } else if (markedAttendances.has(attendanceLookupKey)) {
             row[accessor] = { status: 'MARKED', message: 'Marked' };
+          } else if (isNonWorkingDay) {
+            row[accessor] = { status: 'NO_PERIOD', message: 'No Period' };
           } else {
             row[accessor] = { status: 'NOT_MARKED', message: 'Not Marked' };
           }

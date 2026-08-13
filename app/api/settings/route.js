@@ -651,8 +651,9 @@ export async function PUT(req) {
         }
       } else {
         // Backfill intermediate days if it was previously false
-        if (existingSettings?.general?.seniorDaawa?.isWorkingDay === false && existingSettings?.updatedAt) {
-          let curr = new Date(existingSettings.updatedAt);
+        if (existingSettings?.general?.seniorDaawa?.isWorkingDay === false && snwd.length > 0) {
+          const latestDate = new Date(Math.max(...snwd.map(d => new Date(d).getTime())));
+          let curr = new Date(latestDate);
           while (curr <= now) {
             const cIST = new Date(curr.getTime() + 5.5 * 60 * 60 * 1000);
             const ds = `${cIST.getUTCFullYear()}-${String(cIST.getUTCMonth() + 1).padStart(2, "0")}-${String(cIST.getUTCDate()).padStart(2, "0")}`;
@@ -696,8 +697,9 @@ export async function PUT(req) {
         }
       } else {
         // Backfill intermediate days if it was previously false
-        if (existingSettings?.general?.juniorDaawa?.isWorkingDay === false && existingSettings?.updatedAt) {
-          let curr = new Date(existingSettings.updatedAt);
+        if (existingSettings?.general?.juniorDaawa?.isWorkingDay === false && jnwd.length > 0) {
+          const latestDate = new Date(Math.max(...jnwd.map(d => new Date(d).getTime())));
+          let curr = new Date(latestDate);
           while (curr <= now) {
             const cIST = new Date(curr.getTime() + 5.5 * 60 * 60 * 1000);
             const ds = `${cIST.getUTCFullYear()}-${String(cIST.getUTCMonth() + 1).padStart(2, "0")}-${String(cIST.getUTCDate()).padStart(2, "0")}`;
