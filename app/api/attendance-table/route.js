@@ -487,13 +487,13 @@ export async function GET(req) {
           const leavePeriod = scheduledPeriods.find((pn) =>
             leaveMap[`${isoDate}-${pair.teacherId}-${pn}`]
           );
-          if (leavePeriod) {
+          if (isNonWorkingDay) {
+            row[accessor] = { status: 'NO_PERIOD', message: 'No Period' };
+          } else if (leavePeriod) {
             const reason = leaveMap[`${isoDate}-${pair.teacherId}-${leavePeriod}`];
             row[accessor] = { status: 'LEAVE', message: reason, leaveReason: reason };
           } else if (markedAttendances.has(attendanceLookupKey)) {
             row[accessor] = { status: 'MARKED', message: 'Marked' };
-          } else if (isNonWorkingDay) {
-            row[accessor] = { status: 'NO_PERIOD', message: 'No Period' };
           } else {
             row[accessor] = { status: 'NOT_MARKED', message: 'Not Marked' };
           }
