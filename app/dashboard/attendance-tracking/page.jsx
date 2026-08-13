@@ -185,7 +185,7 @@ const AttendanceTrackingPage = async () => {
         trailingToolbar: <StudentAttendanceLookup students={formattedStudents} classes={formatOptions(formattedClasses)} />,
         limit: 1000,
         tableHeight: "calc(100vh - 250px)",
-        defaultSorting: [],
+        defaultSorting: [{ id: "absent", desc: true }, { id: "present", desc: true }],
       },
       {
         label: "Teachers",
@@ -283,7 +283,7 @@ const AttendanceTrackingPage = async () => {
         trailingToolbar: <StudentAttendanceLookup students={formattedTeachers} type="teacher" />,
         limit: 1000,
         tableHeight: "calc(100vh - 250px)",
-        defaultSorting: [],
+        defaultSorting: [{ id: "absent", desc: true }, { id: "present", desc: true }],
       },
     ];
     const tabsConfig2 = [
@@ -391,7 +391,7 @@ const AttendanceTrackingPage = async () => {
         trailingToolbar: <StudentAttendanceLookup students={formattedStudents} classes={formatOptions(formattedClasses)} />,
         limit: 1000,
         tableHeight: "calc(100vh - 250px)",
-        defaultSorting: [],
+        defaultSorting: [{ id: "absent", desc: true }, { id: "present", desc: true }],
       },
     ];
 

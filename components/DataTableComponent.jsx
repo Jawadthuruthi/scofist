@@ -679,39 +679,7 @@ const DataTableComponent = ({
       viewType: col.header === "Absentees" ? "studentList" : "recordList"
     });
     setDetailedRecords(records);
-
-    // If it's attendance history, fetch extra details (like teacher names)
-    if (resource === "studentAttendances" || resource === "teacherAttendances") {
-      setDetailsLoading(true);
-      try {
-        // Use the month/year filter from the current table if available
-        const m = filterMonth || (new Date().getMonth() + 1);
-        const y = filterYear || new Date().getFullYear();
-        
-        const endpoint = resource === "studentAttendances" 
-          ? `/api/student-attendance-lookup?studentId=${studentId}&month=${m}&year=${y}`
-          : `/api/teacher-attendance-lookup?teacherId=${studentId}&month=${m}&year=${y}`;
-
-        const res = await fetch(endpoint);
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.error(`Fetch failed with status ${res.status}:`, errorText);
-          throw new Error(`API error: ${res.status}`);
-        }
-        const data = await res.json();
-        
-        if (data.records) {
-          // Filter the fetched records to match the specific "Present" or "Absent" status requested
-          const filtered = data.records.filter(r => r.present === col.filterValue);
-          setDetailedRecords(filtered);
-        }
-      } catch (err) {
-        console.error("Error fetching details:", err);
-      } finally {
-        setDetailsLoading(false);
-      }
-    }
-  }, [resource, filterMonth, filterYear]);
+  }, [onCellClick]);
 
   const columns = useMemo(() => {
     return useTableColumns(columnsConfig, handleCellClick);

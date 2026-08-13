@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Loader2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, Loader2, RefreshCw, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -171,11 +171,11 @@ export default function TodayStatusModal({ type = "student", students = [], clas
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="max-w-xl max-h-[85vh] flex flex-col p-6">
-                <DialogHeader className="mb-2 sm:mb-4 flex flex-col sm:flex-row items-center justify-center relative gap-2 sm:gap-0">
-                    <DialogTitle className="sm:absolute sm:left-0 w-full text-center sm:text-left">Status</DialogTitle>
+            <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-xl max-h-[85vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+                <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+                    <DialogTitle className="flex-1 text-xl font-bold m-0 text-left">Status</DialogTitle>
                     
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center justify-end gap-2">
                         <div className="flex items-center gap-1 bg-neutral-100 rounded-md p-0.5 border border-neutral-200">
                             <Button
                                 size="icon"
@@ -213,14 +213,17 @@ export default function TodayStatusModal({ type = "student", students = [], clas
                             onClick={fetchTodayRecords} 
                             disabled={loading || !selectedPerson}
                             title="Refresh Status"
-                            className="ml-3 h-8 w-8 text-muted-foreground hover:text-black transition-colors rounded-full bg-neutral-100/50 hover:bg-neutral-100 shrink-0"
+                            className="h-8 w-8 text-muted-foreground hover:text-black transition-colors rounded-full bg-neutral-100/50 hover:bg-neutral-100 shrink-0"
                         >
                             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
                         </Button>
+                        <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                            <X className="h-5 w-5" />
+                        </DialogClose>
                     </div>
                 </DialogHeader>
 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 p-5 overflow-y-auto">
                     {type === "student" ? (
                         <div className="flex gap-4 w-full">
                             <div className="flex-1 flex flex-col gap-1.5">

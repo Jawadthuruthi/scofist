@@ -413,8 +413,8 @@ const ClassCard = memo(
 
         {/* Active Students Popup */}
         <Dialog open={activeOpen} onOpenChange={setActiveOpen}>
-          <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
-            <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-primary/5 sticky top-0 z-20 backdrop-blur-md bg-background/95">
+          <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+            <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
               <div className="p-2 rounded-lg bg-primary/10">
                 <Users className="h-5 w-5 text-primary" />
               </div>
@@ -451,8 +451,8 @@ const ClassCard = memo(
 
         {/* Leave Students Popup */}
         <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
-          <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
-            <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-red-50 dark:bg-red-950/20 sticky top-0 z-20 backdrop-blur-md bg-background/95">
+          <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+            <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
               <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
                 <Users className="h-5 w-5 text-red-500" />
               </div>
@@ -598,7 +598,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       {/* Faculty Profiles Dialog */}
       <Dialog open={facultyDialogOpen} onOpenChange={setFacultyDialogOpen}>
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-primary/5 sticky top-0 z-20 backdrop-blur-md bg-background/95">
+          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <UserCheck className="h-5 w-5 text-primary" />
             </div>
@@ -635,7 +635,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       {/* Active Students Chart Dialog */}
       <Dialog open={activeStudentsDialogOpen} onOpenChange={setActiveStudentsDialogOpen}>
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-primary/5 sticky top-0 z-20 backdrop-blur-md bg-background/95">
+          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <BarChart className="h-5 w-5 text-primary" />
             </div>
@@ -671,7 +671,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       {/* Graduated Students Chart Dialog */}
       <Dialog open={graduatedStudentsDialogOpen} onOpenChange={setGraduatedStudentsDialogOpen}>
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-primary/5 sticky top-0 z-20 backdrop-blur-md bg-background/95">
+          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <BarChart className="h-5 w-5 text-primary" />
             </div>
@@ -704,7 +704,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       {/* Total Students Charts Dialog */}
       <Dialog open={totalStudentsDialogOpen} onOpenChange={setTotalStudentsDialogOpen}>
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-primary/5 sticky top-0 z-20 backdrop-blur-md bg-background/95">
+          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <Users className="h-5 w-5 text-primary" />
             </div>
@@ -751,7 +751,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       {/* On Leave Students Dialog */}
       <Dialog open={onLeaveDialogOpen} onOpenChange={setOnLeaveDialogOpen}>
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md max-h-[70vh] overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-primary/5 sticky top-0 z-20 backdrop-blur-md bg-background/95">
+          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <Users className="h-5 w-5 text-primary" />
             </div>
@@ -804,7 +804,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       {/* Active Classes Dialog */}
       <Dialog open={classesDialogOpen} onOpenChange={setClassesDialogOpen}>
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-primary/5 sticky top-0 z-20 backdrop-blur-md bg-background/95">
+          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <BookOpen className="h-5 w-5 text-primary" />
             </div>

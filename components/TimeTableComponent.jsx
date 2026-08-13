@@ -12,13 +12,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertCircle, Check, ChevronsUpDown, FileText, Loader, UserX } from "lucide-react";
+import { AlertCircle, Check, ChevronsUpDown, FileText, Loader, UserX, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -80,40 +81,48 @@ const AbsenteesDialog = ({
 }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {day} - Period {periodNumber} Absentees
-          </DialogTitle>
-          <DialogDescription>
-            {cellData?.subjectId?.name
-              ? `Subject: ${cellData.subjectId.name}`
-              : ""}
-            {" • Class: "}
-            {useShortName ? (cellData?.classId?.shortname || cellData?.classId?.name || "") : (cellData?.classId?.name || "")}
-            {cellData?.classId?.batchId?.name
-              ? ` (${cellData.classId.batchId.name})`
-              : ""}
-          </DialogDescription>
+      <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+        <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-red-50 dark:bg-red-950/20 sticky top-0 z-20 backdrop-blur-md">
+          <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+            <UserX className="h-5 w-5 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1 text-left space-y-0.5">
+            <DialogTitle className="text-xl font-bold m-0 text-red-700 dark:text-red-400">
+              {day} - Period {periodNumber} Absentees
+            </DialogTitle>
+            <DialogDescription className="m-0 text-xs">
+              {cellData?.subjectId?.name
+                ? `Subject: ${cellData.subjectId.name}`
+                : ""}
+              {" • Class: "}
+              {useShortName ? (cellData?.classId?.shortname || cellData?.classId?.name || "") : (cellData?.classId?.name || "")}
+              {cellData?.classId?.batchId?.name
+                ? ` (${cellData.classId.batchId.name})`
+                : ""}
+            </DialogDescription>
+          </div>
+          <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <X className="h-5 w-5" />
+          </DialogClose>
         </DialogHeader>
         {absenteesList.length > 0 ? (
-          <div className="mt-4">
+          <div className="text-sm border-0 p-4 max-h-80 overflow-y-auto bg-muted/5 space-y-1 flex-1">
             <h4 className="text-sm font-medium mb-2">
               Absent Students ({absenteesList.length})
             </h4>
-            <div className="max-h-60 overflow-y-auto">
+            <div className="border rounded-md overflow-hidden bg-background">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-red-50 dark:bg-red-950/20">
                   <TableRow>
-                    <TableHead>Student ID</TableHead>
-                    <TableHead>Student Name</TableHead>
+                    <TableHead className="h-9 py-1">Student ID</TableHead>
+                    <TableHead className="h-9 py-1">Student Name</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {absenteesList.map((student) => (
                     <TableRow key={student.studentId}>
-                      <TableCell>{student.studentId || "Unknown"}</TableCell>
-                      <TableCell>{student.studentName || "-"}</TableCell>
+                      <TableCell className="py-2 text-xs text-muted-foreground font-mono">{student.studentId || "Unknown"}</TableCell>
+                      <TableCell className="py-2 font-medium">{student.studentName || "-"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -121,8 +130,9 @@ const AbsenteesDialog = ({
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center p-6">
-            <p>Full attendance for this period</p>
+          <div className="flex flex-col items-center justify-center p-8 text-muted-foreground flex-1 bg-muted/5">
+            <Check className="h-10 w-10 text-green-500 mb-2 opacity-80" />
+            <p className="font-medium">Full attendance for this period</p>
           </div>
         )}
       </DialogContent>
