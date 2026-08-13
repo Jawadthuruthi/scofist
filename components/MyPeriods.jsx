@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Loader, CheckCircle2, FileText, AlertCircle, Check, ChevronsUpDown, CalendarDays, ChevronRight, TrendingUp, BookOpenCheck, Save } from "lucide-react";
+import { Loader, CheckCircle2, FileText, AlertCircle, Check, ChevronsUpDown, CalendarDays, ChevronRight, TrendingUp, BookOpenCheck, Save, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -27,6 +27,7 @@ import {
   DialogDescription,
   DialogTitle,
   DialogHeader,
+  DialogClose,
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { toast } from "sonner";
@@ -1478,15 +1479,25 @@ Teacher: ${teacherName || "Teacher"}`;
 
         {/* ── Bulk Reason Dialog ── */}
         <Dialog open={bulkReasonOpen} onOpenChange={(o) => { setBulkReasonOpen(o); if (!o) { setBulkReason(""); setBulkError(false); setBulkExistingRecordIds([]); } }}>
-          <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              Reason for All Periods
-            </DialogTitle>
-            <DialogDescription>
-              This reason will be applied to all periods that don&apos;t have attendance marked yet.
-            </DialogDescription>
-            <div className="relative">
+          <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+            <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 text-left space-y-0.5">
+                <DialogTitle className="text-xl font-bold m-0">
+                  Reason for All Periods
+                </DialogTitle>
+                <DialogDescription className="m-0 text-xs">
+                  This reason will be applied to all periods that don&apos;t have attendance marked yet.
+                </DialogDescription>
+              </div>
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                <X className="h-5 w-5" />
+              </DialogClose>
+            </DialogHeader>
+            <div className="p-5 space-y-4 bg-muted/5 flex-1 overflow-y-auto">
+              <div className="relative">
               <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 z-10" />
               <div className="relative">
                 <Input
@@ -1542,13 +1553,13 @@ Teacher: ${teacherName || "Teacher"}`;
                 </Popover>
               </div>
               {bulkError && (
-                <p className="text-destructive text-xs p-1">
+                <p className="text-destructive text-xs p-1 mt-1">
                   Leave reason should not exceed 20 characters.
                 </p>
               )}
-            </div>
-            <div className="flex gap-2">
-              {bulkExistingRecordIds.length > 0 && (
+              </div>
+              <div className="flex gap-2">
+                {bulkExistingRecordIds.length > 0 && (
                 <Button
                   variant="outline"
                   className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
@@ -1566,14 +1577,30 @@ Teacher: ${teacherName || "Teacher"}`;
                 {bulkExistingRecordIds.length > 0 ? "Update All" : "Apply to All Periods"}
               </Button>
             </div>
+            </div>
           </DialogContent>
         </Dialog>
 
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
-            <DialogTitle>Leave Reason</DialogTitle>
-            <DialogDescription>Provide a leave reason.</DialogDescription>
-            <div className="relative">
+          <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+            <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 text-left space-y-0.5">
+                <DialogTitle className="text-xl font-bold m-0">
+                  Leave Reason
+                </DialogTitle>
+                <DialogDescription className="m-0 text-xs">
+                  Provide a leave reason.
+                </DialogDescription>
+              </div>
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                <X className="h-5 w-5" />
+              </DialogClose>
+            </DialogHeader>
+            <div className="p-5 space-y-4 bg-muted/5 flex-1 overflow-y-auto">
+              <div className="relative">
               <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 z-10" />
               <div className="relative">
                 <Input
@@ -1625,14 +1652,14 @@ Teacher: ${teacherName || "Teacher"}`;
                   </PopoverContent>
                 </Popover>
               </div>{" "}
-              {error && (
-                <p className="text-destructive text-xs p-1">
-                  Leave reason should not exceed 20 characters.
-                </p>
-              )}
-            </div>
-            <div className="flex gap-2">
-              {selectedRecordId && (
+                {error && (
+                  <p className="text-destructive text-xs p-1 mt-1">
+                    Leave reason should not exceed 20 characters.
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {selectedRecordId && (
                 <Button 
                   variant="outline" 
                   className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
@@ -1642,13 +1669,14 @@ Teacher: ${teacherName || "Teacher"}`;
                   Clear
                 </Button>
               )}
-              <Button 
-                disabled={addLeaveRecord.isPending} 
-                onClick={handleLeave}
-                className={selectedRecordId ? "flex-1" : "w-full"}
-              >
-                Submit
-              </Button>
+                <Button 
+                  disabled={addLeaveRecord.isPending || error} 
+                  onClick={handleLeave}
+                  className={selectedRecordId ? "flex-1" : "w-full"}
+                >
+                  Submit
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
