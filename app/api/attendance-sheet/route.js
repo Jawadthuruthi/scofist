@@ -228,80 +228,75 @@ export async function GET(request) {
                 }
             });
 
-            const getLatestBlock = (datesArray, isOff, daysWithAtt) => {
-                const block = new Set();
-                if (!isOff || !datesArray || datesArray.length === 0) return block;
-                const sorted = [...datesArray].map(dt => new Date(dt)).sort((a,b) => a-b);
-                let curr = sorted[sorted.length - 1];
-                const dateStrs = new Set(sorted.map(d => d.toISOString().split("T")[0]));
-
+            // Dynamically fill ongoing general non-working days
+            if (isCurrentlyNonWorking && legacyDates.length > 0) {
+                let latestDate = new Date(Math.max(...legacyDates.map(d => new Date(d).getTime())));
+                latestDate.setUTCHours(0, 0, 0, 0);
+                
                 const now = new Date();
                 const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-                const todayStr = `${todayIST.getUTCFullYear()}-${String(todayIST.getUTCMonth() + 1).padStart(2, "0")}-${String(todayIST.getUTCDate()).padStart(2, "0")}`;
+                todayIST.setUTCHours(0, 0, 0, 0);
 
-                for(let i=0; i<365; i++) {
-                    const currStr = curr.toISOString().split("T")[0];
-                    
-                    if (currStr !== todayStr && daysWithAtt && daysWithAtt.has(currStr)) {
-                        break;
-                    }
-
-                    if (dateStrs.has(currStr)) {
-                        block.add(currStr);
-                        curr = new Date(curr.getTime() - 24*60*60*1000);
-                    } else if (curr.getUTCDay() === 5) {
-                        curr = new Date(curr.getTime() - 24*60*60*1000);
-                    } else {
-                        break;
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const curr = new Date(Date.UTC(year, month, i));
+                    if (curr >= latestDate && curr <= todayIST) {
+                        if (!(i in nonWorkingDaysMap)) {
+                            nonWorkingDaysMap[i] = currentOccasion || "";
+                        }
                     }
                 }
-                return block;
-            };
+            }
 
-            const now = new Date();
-            const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-            todayIST.setUTCHours(23, 59, 59, 999);
-
-            if (classSection === "Senior Da-awa") {
-                let seniorDates = settings?.general?.seniorDaawaNonWorkingDays || [];
-                seniorDates = seniorDates.filter(dt => new Date(dt) <= todayIST);
+            if (classSection === "Senior Da-awa" || classSection === "Junior Da-awa") {
+                const section = classSection === "Senior Da-awa" ? "seniorDaawa" : "juniorDaawa";
                 
-                const seniorOccasion = settings?.general?.seniorDaawa?.occasion || "Holiday";
-                const isSeniorOff = settings?.general?.seniorDaawa?.isWorkingDay === false;
-                const latestSeniorBlock = getLatestBlock(seniorDates, isSeniorOff, daysWithAttendance);
+                const sectionLog = settings?.general?.[`${section}NonWorkingDaysLog`] || [];
+                const specificDates = settings?.general?.[`${section}NonWorkingDays`] || [];
+                const specificOccasion = settings?.general?.[section]?.occasion || "Holiday";
                 
-                seniorDates.forEach((dt) => {
-                    const d = new Date(dt);
+                // Process logged occasions
+                sectionLog.forEach((entry) => {
+                    const d = new Date(entry.date);
                     if (d.getUTCFullYear() === year && d.getUTCMonth() === month) {
                         const day = d.getUTCDate();
-                        const dtStr = d.toISOString().split("T")[0];
-                        if (latestSeniorBlock.has(dtStr)) {
-                            if (!(day in nonWorkingDaysMap) || !nonWorkingDaysMap[day]) {
-                                nonWorkingDaysMap[day] = seniorOccasion;
-                            }
+                        if (!(day in nonWorkingDaysMap) || !nonWorkingDaysMap[day]) {
+                            nonWorkingDaysMap[day] = entry.occasion || specificOccasion;
                         }
                     }
                 });
-            } else if (classSection === "Junior Da-awa") {
-                let juniorDates = settings?.general?.juniorDaawaNonWorkingDays || [];
-                juniorDates = juniorDates.filter(dt => new Date(dt) <= todayIST);
 
-                const juniorOccasion = settings?.general?.juniorDaawa?.occasion || "Holiday";
-                const isJuniorOff = settings?.general?.juniorDaawa?.isWorkingDay === false;
-                const latestJuniorBlock = getLatestBlock(juniorDates, isJuniorOff, daysWithAttendance);
-
-                juniorDates.forEach((dt) => {
+                // Also process specificDates for backward compatibility or unlogged dates
+                specificDates.forEach((dt) => {
                     const d = new Date(dt);
                     if (d.getUTCFullYear() === year && d.getUTCMonth() === month) {
                         const day = d.getUTCDate();
-                        const dtStr = d.toISOString().split("T")[0];
-                        if (latestJuniorBlock.has(dtStr)) {
-                            if (!(day in nonWorkingDaysMap) || !nonWorkingDaysMap[day]) {
-                                nonWorkingDaysMap[day] = juniorOccasion;
-                            }
+                        if (!(day in nonWorkingDaysMap) || !nonWorkingDaysMap[day]) {
+                            nonWorkingDaysMap[day] = specificOccasion;
                         }
                     }
                 });
+
+                // Dynamically fill ongoing non-working days if currently off
+                const isSectionOff = settings?.general?.[section]?.isWorkingDay === false;
+                if (isSectionOff && specificDates.length > 0) {
+                    let latestDate = new Date(Math.max(...specificDates.map(d => new Date(d).getTime())));
+                    latestDate.setUTCHours(0, 0, 0, 0);
+                    
+                    const now = new Date();
+                    const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+                    todayIST.setUTCHours(0, 0, 0, 0);
+
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    for (let i = 1; i <= daysInMonth; i++) {
+                        const curr = new Date(Date.UTC(year, month, i));
+                        if (curr >= latestDate && curr <= todayIST) {
+                            if (!(i in nonWorkingDaysMap) || !nonWorkingDaysMap[i]) {
+                                nonWorkingDaysMap[i] = specificOccasion;
+                            }
+                        }
+                    }
+                }
             }
 
             console.log("[AttendanceSheet] nonWorkingDays count:", legacyDates.length, "| nonWorkingDaysLog count:", log.length, "| month:", month, "year:", year, "| map:", JSON.stringify(nonWorkingDaysMap));

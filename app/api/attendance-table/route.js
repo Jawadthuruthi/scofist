@@ -290,10 +290,11 @@ export async function GET(req) {
     });
 
     const classInfo = await Class.findById(classId).lean();
+    let settings = null;
 
     try {
-      const settings = await Settings.findOne({}).select('general').lean();
-      const log = settings?.general?.nonWorkingDaysLog || [];
+        settings = await Settings.findOne({}).select('general').lean();
+        const log = settings?.general?.nonWorkingDaysLog || [];
       const legacyDates = settings?.general?.nonWorkingDays || [];
       const currentOccasion = settings?.general?.occasion || '';
       const isCurrentlyNonWorking = settings?.general?.isWorkingDay === false;
@@ -316,6 +317,26 @@ export async function GET(req) {
         }
       });
 
+      // Dynamically fill ongoing general non-working days
+      if (isCurrentlyNonWorking && legacyDates.length > 0) {
+        let latestDate = new Date(Math.max(...legacyDates.map(d => new Date(d).getTime())));
+        latestDate.setUTCHours(0, 0, 0, 0);
+        
+        const now = new Date();
+        const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+        todayIST.setUTCHours(0, 0, 0, 0);
+
+        const daysInMonth = new Date(year, month, 0).getDate();
+        for (let i = 1; i <= daysInMonth; i++) {
+          const curr = new Date(Date.UTC(year, month - 1, i));
+          if (curr >= latestDate && curr <= todayIST) {
+            if (!(i in nonWorkingDaysMap)) {
+              nonWorkingDaysMap[i] = currentOccasion || '';
+            }
+          }
+        }
+      }
+
       let classSection = classInfo?.section || '';
       if (!classSection && classInfo?.name) {
           if (classInfo.name.toLowerCase().includes("senior")) classSection = "Senior Da-awa";
@@ -324,54 +345,56 @@ export async function GET(req) {
 
       if (classSection === 'Senior Da-awa' || classSection === 'Junior Da-awa') {
         const section = classSection === 'Senior Da-awa' ? 'seniorDaawa' : 'juniorDaawa';
-        let specificDates = settings?.general?.[`${section}NonWorkingDays`] || [];
+        
+        const sectionLog = settings?.general?.[`${section}NonWorkingDaysLog`] || [];
+        const specificDates = settings?.general?.[`${section}NonWorkingDays`] || [];
         const specificOccasion = settings?.general?.[section]?.occasion || 'Holiday';
-        const isSectionOff = settings?.general?.[section]?.isWorkingDay === false;
         
-        const now = new Date();
-        const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-        todayIST.setUTCHours(23, 59, 59, 999);
+        console.log(`[DEBUG] Section: ${section}, sectionLog:`, sectionLog.length, `specificDates:`, specificDates.length);
         
-        specificDates = specificDates.filter(dt => new Date(dt) <= todayIST);
-        
-        const getLatestBlock = (datesArray, isOff) => {
-            const block = new Set();
-            if (!isOff || !datesArray || datesArray.length === 0) return block;
-            const sorted = [...datesArray].map(dt => new Date(dt)).sort((a,b) => a-b);
-            let curr = sorted[sorted.length - 1];
-            const dateStrs = new Set(sorted.map(d => d.toISOString().split("T")[0]));
-
-            const todayStr = `${todayIST.getUTCFullYear()}-${String(todayIST.getUTCMonth() + 1).padStart(2, "0")}-${String(todayIST.getUTCDate()).padStart(2, "0")}`;
-
-            for(let i=0; i<365; i++) {
-                const currStr = curr.toISOString().split("T")[0];
-                
-                if (dateStrs.has(currStr)) {
-                    block.add(currStr);
-                    curr = new Date(curr.getTime() - 24*60*60*1000);
-                } else if (curr.getUTCDay() === 5) { // Skip Fridays
-                    curr = new Date(curr.getTime() - 24*60*60*1000);
-                } else {
-                    break;
-                }
+        // Process logged occasions
+        sectionLog.forEach((entry) => {
+          const d = new Date(entry.date);
+          if (d.getUTCFullYear() === year && d.getUTCMonth() === month - 1) {
+            const day = d.getUTCDate();
+            if (!(day in nonWorkingDaysMap) || !nonWorkingDaysMap[day]) {
+              nonWorkingDaysMap[day] = entry.occasion || specificOccasion;
             }
-            return block;
-        };
+          }
+        });
 
-        const latestBlock = getLatestBlock(specificDates, isSectionOff);
-        
+        // Also process specificDates for backward compatibility or unlogged dates
         specificDates.forEach((dt) => {
           const d = new Date(dt);
           if (d.getUTCFullYear() === year && d.getUTCMonth() === month - 1) {
             const day = d.getUTCDate();
-            const dtStr = d.toISOString().split("T")[0];
-            if (latestBlock.has(dtStr)) {
-              if (!(day in nonWorkingDaysMap) || !nonWorkingDaysMap[day]) {
-                nonWorkingDaysMap[day] = specificOccasion;
-              }
+            if (!(day in nonWorkingDaysMap) || !nonWorkingDaysMap[day]) {
+              nonWorkingDaysMap[day] = specificOccasion;
             }
           }
         });
+
+        // Dynamically fill ongoing non-working days if currently off
+        const isSectionOff = settings?.general?.[section]?.isWorkingDay === false;
+
+        if (isSectionOff && specificDates.length > 0) {
+          let latestDate = new Date(Math.max(...specificDates.map(d => new Date(d).getTime())));
+          latestDate.setUTCHours(0, 0, 0, 0);
+          
+          const now = new Date();
+          const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+          todayIST.setUTCHours(0, 0, 0, 0);
+
+          const daysInMonth = new Date(year, month, 0).getDate();
+          for (let i = 1; i <= daysInMonth; i++) {
+            const curr = new Date(Date.UTC(year, month - 1, i));
+            if (curr >= latestDate && curr <= todayIST) {
+              if (!(i in nonWorkingDaysMap) || !nonWorkingDaysMap[i]) {
+                nonWorkingDaysMap[i] = specificOccasion;
+              }
+            }
+          }
+        }
       }
     } catch (settingsErr) {
       console.error('Failed to fetch non-working days from settings:', settingsErr);
@@ -478,7 +501,10 @@ export async function GET(req) {
       return row;
     });
 
-    return NextResponse.json({ tableData, columns });
+      return NextResponse.json({
+        tableData,
+        columns
+      });
   } catch (error) {
     console.error('Error in /api/attendance-table:', error);
     return NextResponse.json(
