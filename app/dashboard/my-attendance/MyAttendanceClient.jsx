@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Loader, AlertCircle } from "lucide-react";
+import { Loader, AlertCircle, UserCheck, UserX, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -25,6 +25,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 
@@ -244,16 +246,26 @@ const MyAttendanceClient = ({ user, apiKey }) => {
         open={detailModal.isOpen} 
         onOpenChange={(open) => setDetailModal(prev => ({ ...prev, isOpen: open }))}
       >
-        <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[85vh] flex flex-col p-0 overflow-hidden">
-          <DialogHeader className="p-6 pb-0">
-            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                <span className={detailModal.type === "Present" ? "text-green-600" : "text-red-500"}>
-                    {detailModal.type} Records
-                </span>
-                <span className="text-muted-foreground font-normal text-lg">
-                    - {detailModal.monthName}
-                </span>
-            </DialogTitle>
+        <DialogContent className="rounded-2xl sm:rounded-2xl sm:max-w-xl md:max-w-2xl max-h-[70vh] sm:max-h-[80vh] flex flex-col p-0 gap-0 overflow-hidden [&>button.absolute]:hidden">
+          <DialogHeader className={`flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md bg-background/95 ${detailModal.type === "Present" ? "bg-green-50 dark:bg-green-950/20" : "bg-red-50 dark:bg-red-950/20"}`}>
+            <div className={`p-2 rounded-lg ${detailModal.type === "Present" ? "bg-green-100 dark:bg-green-900/30" : "bg-red-100 dark:bg-red-900/30"}`}>
+              {detailModal.type === "Present" ? (
+                <UserCheck className={`h-5 w-5 ${detailModal.type === "Present" ? "text-green-600 dark:text-green-500" : "text-red-500"}`} />
+              ) : (
+                <UserX className={`h-5 w-5 ${detailModal.type === "Present" ? "text-green-600 dark:text-green-500" : "text-red-500"}`} />
+              )}
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className={`text-xl font-bold m-0 ${detailModal.type === "Present" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                {detailModal.type} Records - {detailModal.monthName}
+              </DialogTitle>
+              <DialogDescription className="m-0 text-sm opacity-80">
+                ({detailModal.records.length} records)
+              </DialogDescription>
+            </div>
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-6 pt-4">
               <div className="rounded-md border">
