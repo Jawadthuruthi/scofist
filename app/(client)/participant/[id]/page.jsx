@@ -96,7 +96,7 @@ export default function ParticipantPage({ params }) {
         
         {/* Festival Name Image */}
         {settings?.festival?.festivalNameImage?.url && (
-          <div className="w-full bg-white flex justify-center py-4 px-2 border-b shrink-0">
+          <div className="w-full bg-amber-100/60 flex justify-center py-4 px-2 border-b shrink-0">
              <img 
                 src={settings.festival.festivalNameImage.url} 
                 alt="Festival Name" 
@@ -106,7 +106,7 @@ export default function ParticipantPage({ params }) {
         )}
 
         {/* Header mimicking Dashboard Card Popups */}
-        <div className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-yellow-50/90 dark:bg-yellow-900/30 sticky top-0 z-20 backdrop-blur-md shrink-0">
+        <div className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
           <div className="p-2 rounded-lg bg-primary/10 shrink-0">
             {participant.profilePic ? (
               <img 

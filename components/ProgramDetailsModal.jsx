@@ -128,7 +128,7 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] overflow-hidden flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
-        <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-yellow-50/90 dark:bg-yellow-900/30 sticky top-0 z-20 backdrop-blur-md shrink-0">
+        <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-amber-100/80 dark:bg-amber-900/30 sticky top-0 z-20 backdrop-blur-md shrink-0">
           <div className="p-2 rounded-lg bg-primary/10 shrink-0">
             <FileText className="h-6 w-6 text-primary" />
           </div>
