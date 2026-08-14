@@ -100,13 +100,13 @@ export default function ParticipantPage({ params }) {
              <img 
                 src={settings.festival.festivalNameImage.url} 
                 alt="Festival Name" 
-                className="h-10 object-contain drop-shadow-sm" 
+                className="h-14 object-contain drop-shadow-sm" 
              />
           </div>
         )}
 
         {/* Header mimicking Dashboard Card Popups */}
-        <div className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+        <div className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-yellow-50/90 dark:bg-yellow-900/30 sticky top-0 z-20 backdrop-blur-md shrink-0">
           <div className="p-2 rounded-lg bg-primary/10 shrink-0">
             {participant.profilePic ? (
               <img 
