@@ -57,7 +57,6 @@ import { useReactToPrint } from "react-to-print";
 import { Input } from "./ui/input";
 import ConfirmationPopup from "./ConfirmationPopup";
 
-// Absentees Dialog Component - Extracted to improve readability
 const AbsenteesDialog = ({
   open,
   setOpen,
@@ -68,7 +67,7 @@ const AbsenteesDialog = ({
 }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md gap-0">
         <DialogHeader>
           <DialogTitle>
             {day} - Period {periodNumber} Absentees
@@ -83,7 +82,7 @@ const AbsenteesDialog = ({
           </DialogDescription>
         </DialogHeader>
         {absenteesList.length > 0 ? (
-          <div className="mt-4">
+          <div className="mt-0">
             <h4 className="text-sm font-medium mb-2">
               Absent Students ({absenteesList.length})
             </h4>

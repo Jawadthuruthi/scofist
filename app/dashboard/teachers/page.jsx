@@ -277,6 +277,7 @@ export default async function BatchesPage() {
           enableSearch={true}
           defaultSorting={[{ id: "dateOfBirth", desc: false }]}
           customTopRightButtons={<PendingTeacherRequestsWrapper key="pending-requests" apiKey={apiKey} />}
+          formClassName="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl"
         />
       </>
     );

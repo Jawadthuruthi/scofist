@@ -1690,7 +1690,7 @@ const DataTableComponent = ({
       </div>
       {/* Detail View Modal for drill-down */}
       <Dialog open={!!detailView} onOpenChange={(open) => !open && setDetailView(null)}>
-        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col p-0 gap-0 overflow-hidden">
           <DialogHeader className="p-4 md:p-6 pb-4 border-b bg-background z-50 shrink-0">
             <div className="flex items-start justify-between w-full relative">
               <DialogTitle className="flex flex-col text-left">
@@ -1745,7 +1745,7 @@ const DataTableComponent = ({
             </div>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto p-6 pt-4 bg-muted/5">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 pt-0 md:pt-0 bg-muted/5">
             {detailsLoading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary opacity-70" />
