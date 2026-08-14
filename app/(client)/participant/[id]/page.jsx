@@ -92,7 +92,7 @@ export default function ParticipantPage({ params }) {
 
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center items-start p-4 pt-10 pb-10">
-      <div className="w-full max-w-md rounded-2xl sm:rounded-2xl overflow-hidden max-h-[85vh] flex flex-col p-0 gap-0 border border-gray-200 shadow-xl bg-white">
+      <div className="w-full max-w-md rounded-2xl sm:rounded-2xl overflow-hidden max-h-[70vh] sm:max-h-[80vh] flex flex-col p-0 gap-0 border border-gray-200 shadow-xl bg-white">
         
         {/* Festival Name Image */}
         {settings?.festival?.festivalNameImage?.url && (
