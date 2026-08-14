@@ -414,7 +414,7 @@ const ClassCard = memo(
         {/* Active Students Popup */}
         <Dialog open={activeOpen} onOpenChange={setActiveOpen}>
           <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
-            <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+            <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
               <div className="p-2 rounded-lg bg-primary/10">
                 <Users className="h-5 w-5 text-primary" />
               </div>
@@ -452,7 +452,7 @@ const ClassCard = memo(
         {/* Leave Students Popup */}
         <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
           <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
-            <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+            <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
               <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
                 <Users className="h-5 w-5 text-red-500" />
               </div>
@@ -598,7 +598,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       {/* Faculty Profiles Dialog */}
       <Dialog open={facultyDialogOpen} onOpenChange={setFacultyDialogOpen}>
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <UserCheck className="h-5 w-5 text-primary" />
             </div>
@@ -635,16 +635,16 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       {/* Active Students Chart Dialog */}
       <Dialog open={activeStudentsDialogOpen} onOpenChange={setActiveStudentsDialogOpen}>
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <BarChart className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0">
-                Active Students By Class ({dashboardData?.activeStudents?.length ?? 0})
+                Active Students By Class
               </DialogTitle>
               <DialogDescription className="m-0">
-              Distribution of active students across different classes
+              Distribution of active students.
             </DialogDescription>
             </div>
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
@@ -671,16 +671,16 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       {/* Graduated Students Chart Dialog */}
       <Dialog open={graduatedStudentsDialogOpen} onOpenChange={setGraduatedStudentsDialogOpen}>
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <BarChart className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0">
-                Graduated Students By Batch ({dashboardData?.graduatedStudents?.length ?? 0})
+                Graduated Students By Batch
               </DialogTitle>
               <DialogDescription className="m-0">
-              Distribution of graduated students across different batches
+              Distribution of graduated students.
             </DialogDescription>
             </div>
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
@@ -704,16 +704,16 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       {/* Total Students Charts Dialog */}
       <Dialog open={totalStudentsDialogOpen} onOpenChange={setTotalStudentsDialogOpen}>
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <Users className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0">
-                Total Students ({dashboardData?.students?.length ?? 0})
+                Total Students
               </DialogTitle>
               <DialogDescription className="m-0">
-              Student status distribution and breakdown by batch
+              Student status distribution.
             </DialogDescription>
             </div>
             <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
@@ -750,14 +750,14 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       </Dialog>
       {/* On Leave Students Dialog */}
       <Dialog open={onLeaveDialogOpen} onOpenChange={setOnLeaveDialogOpen}>
-        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md max-h-[70vh] overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md max-h-[70vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <Users className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0">
-                Students On Leave ({dashboardData?.onLeaveStudentsList?.length ?? 0})
+                Students On Leave
               </DialogTitle>
               <DialogDescription className="m-0">
               Students currently on active leave
@@ -767,30 +767,43 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
-          <div className="space-y-1 p-5">
+          <div className="space-y-4 p-5">
             {dashboardData?.onLeaveStudentsList?.length > 0 ? (
-              dashboardData.onLeaveStudentsList.map((student, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50"
-                >
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">
-                      {index + 1}. {student.name} {student.admissionNumber ? `(${student.admissionNumber})` : ""}
-                    </span>
-                    {student.leaveReason && (
-                      <span className="text-xs text-red-600 dark:text-red-400 mt-0.5 font-medium">
-                        {student.leaveReason}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded h-fit">{student.className}</span>
-                    {student.id && (
-                      <span className="text-xs text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm h-fit">
-                        {student.id}
-                      </span>
-                    )}
+              Object.entries(
+                dashboardData.onLeaveStudentsList.reduce((acc, student) => {
+                  const className = student.className || "Unknown Class";
+                  if (!acc[className]) acc[className] = [];
+                  acc[className].push(student);
+                  return acc;
+                }, {})
+              ).map(([className, students]) => (
+                <div key={className} className="space-y-2 border-b pb-4 last:border-0 last:pb-0">
+                  <h4 className="font-semibold text-sm text-primary">{className}</h4>
+                  <div className="space-y-1">
+                    {students.map((student, index) => (
+                      <div
+                        key={student.id || index}
+                        className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">
+                            {index + 1}. {student.name} {student.admissionNumber ? `(${student.admissionNumber})` : ""}
+                          </span>
+                          {student.leaveReason && (
+                            <span className="text-xs text-red-600 dark:text-red-400 mt-0.5 font-medium">
+                              {student.leaveReason}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          {student.id && (
+                            <span className="text-xs text-muted-foreground bg-white dark:bg-slate-900 border px-2 py-0.5 rounded shadow-sm h-fit">
+                              {student.id}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))
@@ -804,7 +817,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       {/* Active Classes Dialog */}
       <Dialog open={classesDialogOpen} onOpenChange={setClassesDialogOpen}>
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <BookOpen className="h-5 w-5 text-primary" />
             </div>
