@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, useState, use } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, User } from "lucide-react";
