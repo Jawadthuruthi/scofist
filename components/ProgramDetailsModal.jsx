@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Calendar, Clock, MapPin, Trophy, FileText, Info } from "lucide-react";
+import { Loader2, Calendar, Clock, MapPin, Trophy, FileText, Info, X } from "lucide-react";
 import ResultPostersSection from "./ResultPostersSection";
 
 const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
@@ -127,26 +127,37 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-start justify-between pr-6">
-            <div>
-              <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                {program?.name || "Loading..."}
-              </DialogTitle>
+      <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
+        <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+            <FileText className="h-6 w-6 text-primary" />
+          </div>
+          <div className="flex-1 text-left space-y-0.5 min-w-0">
+            <DialogTitle className="text-xl font-bold m-0 text-foreground truncate">
+              {program?.name || "Loading..."}
+            </DialogTitle>
+            <div className="flex flex-wrap gap-1.5 mt-1">
               {program && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge variant="outline">{program?.divisionName || program?.divisionId?.name}</Badge>
-                  <Badge variant="outline">{program.category}</Badge>
-                  <Badge variant="outline">{program.type}</Badge>
+                <>
+                  <Badge variant="outline" className="text-[10px] h-5">{program?.divisionName || program?.divisionId?.name}</Badge>
+                  <Badge variant="outline" className="text-[10px] h-5">{program.category}</Badge>
+                  <Badge variant="outline" className="text-[10px] h-5">{program.type}</Badge>
                   {status.text !== "Unscheduled" && (
-                    <Badge className={status.color} variant="secondary">{status.text}</Badge>
+                    <Badge className={`${status.color} text-[10px] h-5 border-0`} variant="secondary">{status.text}</Badge>
                   )}
-                </div>
+                </>
               )}
             </div>
           </div>
+          <button 
+            onClick={() => onClose()} 
+            className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </DialogHeader>
+
+        <div className="text-sm border-0 p-5 overflow-y-auto bg-muted/5 space-y-4 flex-1">
 
         {loading ? (
           <div className="flex justify-center items-center py-12">
@@ -303,6 +314,7 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
             </TabsContent>
           </Tabs>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -1,29 +1,38 @@
-"use client";
 import { useEffect, useState, use } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, User } from "lucide-react";
 import ProgramDetailsModal from "@/components/ProgramDetailsModal";
 
 export default function ParticipantPage({ params }) {
   const unwrappedParams = use(params);
   const id = unwrappedParams.id;
   const [participant, setParticipant] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedProgramId, setSelectedProgramId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    const fetchParticipant = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch(`/api/participants?_id=${id}`);
-        if (!res.ok) throw new Error("Failed to fetch participant");
-        const data = await res.json();
+        const [participantRes, settingsRes] = await Promise.all([
+           fetch(`/api/participants?_id=${id}`),
+           fetch(`/api/settings`)
+        ]);
+        
+        if (!participantRes.ok) throw new Error("Failed to fetch participant");
+        const data = await participantRes.json();
         
         if (data.participants && data.participants.length > 0) {
           setParticipant(data.participants[0]);
         } else {
           setError("Participant not found");
+        }
+
+        if (settingsRes.ok) {
+           const setData = await settingsRes.json();
+           setSettings(setData.settings || null);
         }
       } catch (err) {
         setError(err.message);
@@ -32,7 +41,7 @@ export default function ParticipantPage({ params }) {
       }
     };
     
-    if (id) fetchParticipant();
+    if (id) fetchData();
   }, [id]);
 
   if (loading) {
@@ -81,46 +90,50 @@ export default function ParticipantPage({ params }) {
   });
 
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center items-start p-4 pt-10">
-      <Card className="w-full max-w-sm overflow-hidden border border-gray-200 shadow-xl bg-white">
-        <CardContent className="p-5 flex flex-col min-h-[400px]">
-          {/* Header */}
-          <div className="border-b border-gray-200 pb-3 mb-4 flex items-center">
-            {/* Top Left Profile Picture */}
-            <div className="flex-shrink-0 mr-4">
-              {participant.profilePic ? (
-                <img 
-                  src={participant.profilePic} 
-                  alt={participant.name}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-indigo-100 shadow-sm"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-gray-200 border-2 border-gray-300 shadow-sm flex items-center justify-center text-gray-500 font-bold text-xl uppercase">
-                  {participant.name?.charAt(0) || "P"}
-                </div>
-              )}
-            </div>
-            
-            {/* Participant Details */}
-            <div className="flex flex-col flex-grow">
-              <h2 className="text-xl font-bold text-gray-800">
-                Chest No: {participant.chestNumber}
-              </h2>
-              <h3 className="text-md font-semibold text-gray-600 mt-1 uppercase">
-                {participant.name}
-              </h3>
-              <p className="text-xs text-gray-500 mt-1">
-                TEAM: {participant.teamName} | DIV: {participant.divisionName}
-              </p>
-            </div>
+    <div className="min-h-screen bg-gray-100 flex justify-center items-start p-4 pt-10 pb-10">
+      <div className="w-full max-w-md rounded-2xl sm:rounded-2xl overflow-hidden max-h-[85vh] flex flex-col p-0 gap-0 border border-gray-200 shadow-xl bg-white">
+        
+        {/* Festival Name Image */}
+        {settings?.festival?.festivalNameImage?.url && (
+          <div className="w-full bg-white flex justify-center py-4 px-2 border-b shrink-0">
+             <img 
+                src={settings.festival.festivalNameImage.url} 
+                alt="Festival Name" 
+                className="h-10 object-contain drop-shadow-sm" 
+             />
           </div>
+        )}
 
-          <div className="flex-grow space-y-4">
-            <h3 className="text-sm font-bold text-gray-800 bg-gray-100 p-2 rounded text-center mb-2 uppercase">
-              Assigned Programs
-            </h3>
-            
-            {programs.length > 0 ? (
+        {/* Header mimicking Dashboard Card Popups */}
+        <div className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+            {participant.profilePic ? (
+              <img 
+                src={participant.profilePic} 
+                alt={participant.name}
+                className="h-8 w-8 rounded-full object-cover border border-primary/20 shadow-sm"
+              />
+            ) : (
+              <User className="h-8 w-8 text-primary p-1" />
+            )}
+          </div>
+          
+          <div className="flex-1 text-left space-y-0.5 min-w-0">
+            <h2 className="text-xl font-bold m-0 text-foreground truncate">
+              {participant.name}
+            </h2>
+            <p className="text-sm text-muted-foreground m-0 truncate">
+              Chest No: {participant.chestNumber} | {participant.teamName} | {participant.divisionName}
+            </p>
+          </div>
+        </div>
+
+        <div className="text-sm border-0 p-5 overflow-y-auto bg-muted/5 space-y-4 flex-1">
+          <h3 className="text-sm font-bold text-gray-800 bg-gray-100 p-2 rounded text-center mb-2 uppercase">
+            Assigned Programs
+          </h3>
+          
+          {programs.length > 0 ? (
               <div className="space-y-4">
                 {/* Stage Programs */}
                 {stagePrograms.length > 0 && (
@@ -222,9 +235,8 @@ export default function ParticipantPage({ params }) {
                 No programs assigned to this participant.
               </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <ProgramDetailsModal 
         programId={selectedProgramId} 
