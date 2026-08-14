@@ -229,26 +229,40 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
               {schedule ? (
                 <div className="bg-white border rounded-lg p-6 shadow-sm">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg">
-                      <Calendar className="w-8 h-8 text-indigo-500 mb-2" />
-                      <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Date</span>
-                      <span className="text-lg font-bold text-gray-800">
-                        {new Date(schedule.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
+                    <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="p-3 bg-indigo-100 rounded-full shrink-0">
+                        <Calendar className="w-6 h-6 text-indigo-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">Date</div>
+                        <div className="text-sm font-bold text-gray-800 truncate">
+                          {new Date(schedule.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg">
-                      <Clock className="w-8 h-8 text-teal-500 mb-2" />
-                      <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Time</span>
-                      <span className="text-lg font-bold text-gray-800">
-                        {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
-                      </span>
+                    
+                    <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="p-3 bg-teal-100 rounded-full shrink-0">
+                        <Clock className="w-6 h-6 text-teal-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">Time</div>
+                        <div className="text-sm font-bold text-gray-800 truncate">
+                          {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg">
-                      <MapPin className="w-8 h-8 text-rose-500 mb-2" />
-                      <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Stage</span>
-                      <span className="text-lg font-bold text-gray-800">
-                        {schedule.stageNumber ? `Stage ${schedule.stageNumber}` : "TBA"}
-                      </span>
+                    
+                    <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="p-3 bg-rose-100 rounded-full shrink-0">
+                        <MapPin className="w-6 h-6 text-rose-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">Stage</div>
+                        <div className="text-sm font-bold text-gray-800 truncate">
+                          {schedule.stageNumber ? `Stage ${schedule.stageNumber}` : "TBA"}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
