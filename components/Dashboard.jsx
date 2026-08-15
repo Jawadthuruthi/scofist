@@ -652,7 +652,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
             </DialogClose>
           </DialogHeader>
 
-          <div className="p-5 space-y-6">
+          <div className="px-5 pb-5 pt-2 space-y-6">
           <ClassStudentsTable
             classes={dashboardData?.activeClasses}
             batches={dashboardData?.batches}
@@ -687,7 +687,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
-          <div className="p-5 space-y-6">
+          <div className="px-5 pb-5 pt-2 space-y-6">
           <BatchStudentsTable
             batches={dashboardData?.batches}
             students={dashboardData?.graduatedStudents}
@@ -720,7 +720,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
-          <div className="space-y-6 p-5">
+          <div className="space-y-6 px-5 pb-5 pt-2">
             <BatchStudentsTable
               batches={dashboardData?.batches}
               students={dashboardData?.students}
@@ -903,8 +903,8 @@ const BatchStudentsTable = memo(({ batches = [], students = [], showStatusColumn
   const cellPadding = showStatusColumns ? "px-3.5 py-2 text-xs" : "px-5 py-2.5";
 
   return (
-    <div className={`mt-6 border rounded-md overflow-x-auto ${showStatusColumns ? "w-fit" : ""}`}>
-      <table className={`${showStatusColumns ? "w-max" : "w-full"} text-sm text-left`}>
+    <div className={`border rounded-md overflow-x-auto w-full`}>
+      <table className={`w-full text-sm text-left`}>
         <thead className="bg-muted text-muted-foreground text-xs uppercase sticky top-0 z-10 shadow-sm bg-muted/95 backdrop-blur">
           <tr>
             <th className={`${cellPadding} font-medium border-b whitespace-nowrap`}>Sl No</th>
@@ -1093,8 +1093,8 @@ const ClassStudentsTable = memo(({ classes = [], batches = [], students = [] }) 
   const cellPadding = "px-3.5 py-2 text-xs";
 
   return (
-    <div className={`mt-6 border rounded-md overflow-x-auto w-fit`}>
-      <table className={`w-max text-sm text-left`}>
+    <div className={`border rounded-md overflow-x-auto w-full`}>
+      <table className={`w-full text-sm text-left`}>
         <thead className="bg-muted text-muted-foreground text-xs uppercase sticky top-0 z-10 shadow-sm bg-muted/95 backdrop-blur">
           <tr>
             <th className={`${cellPadding} font-medium border-b whitespace-nowrap`}>Sl No</th>
