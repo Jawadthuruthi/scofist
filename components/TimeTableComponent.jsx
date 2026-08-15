@@ -112,7 +112,7 @@ const AbsenteesDialog = ({
           </DialogClose>
         </DialogHeader>
         {absenteesList.length > 0 ? (
-          <div className="text-sm border-0 p-4 max-h-80 overflow-y-auto bg-muted/5 space-y-1 flex-1">
+          <div className="text-sm border-0 px-4 pb-4 pt-2 max-h-80 overflow-y-auto bg-muted/5 space-y-1 flex-1">
             <div className="border rounded-md overflow-hidden bg-background">
               <Table>
                 <TableHeader className="bg-red-50 dark:bg-red-950/20">
