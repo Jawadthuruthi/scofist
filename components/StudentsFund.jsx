@@ -38,6 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -54,6 +55,7 @@ import {
   Search,
   ScanBarcode,
   X,
+  Download,
 } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
@@ -1272,15 +1274,19 @@ const StudentsFund = ({
 
         {/* History Sidebar */}
         <div className="lg:col-span-1">
-          <Card className="sticky top-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" />
-                Transaction History
-              </CardTitle>
-              <CardDescription>Recent fund activities</CardDescription>
+          <Card className="sticky top-6 overflow-hidden">
+            <CardHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+              <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                <History className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 text-left space-y-0.5">
+                <CardTitle className="text-xl font-bold m-0">
+                  Transaction History
+                </CardTitle>
+                <CardDescription className="m-0">Recent fund activities</CardDescription>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               {selectedStudents.length <= 1 && !department ? (
                 <div className="space-y-4">
                   <div className="max-h-[320px] overflow-y-auto hide-scrollbar">
@@ -1341,21 +1347,44 @@ const StudentsFund = ({
                         View Full History
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl h-[80vh]">
-                      <div
-                        className="space-y-4 max-h-full overflow-y-auto hide-scrollbar  "
-                      >
-                        <DialogHeader>
-                          <DialogTitle>
-                            Complete Transaction History
+                    <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
+                      <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                        <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                          <History className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 text-left space-y-0.5">
+                          <DialogTitle className="text-xl font-bold m-0">
+                            Transaction History
                           </DialogTitle>
-                          <DialogDescription>
-                            All transactions for{" "}
+                          <DialogDescription className="m-0">
                             {selectedStudentData
-                              ? selectedStudentData.name
+                              ? `${selectedStudentData.name} (${selectedStudentData.studentSpecificField?.admissionNumber || selectedStudentData.admissionNumber || selectedStudentData._id})`
                               : selectedBatchData?.name}
                           </DialogDescription>
-                        </DialogHeader>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <Button
+                            size="icon"
+                            onClick={handleDownloadPDF}
+                            className="md:hidden bg-foreground text-background hover:bg-foreground/90"
+                          >
+                            <Download className="h-5 w-5" />
+                          </Button>
+                          <Button
+                            onClick={handlePrint}
+                            className="hidden md:flex gap-2 bg-foreground text-background hover:bg-foreground/90 btn-print"
+                          >
+                            <Printer className="h-5 w-5" />
+                            Print
+                          </Button>
+                          <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                            <X className="h-5 w-5" />
+                          </DialogClose>
+                        </div>
+                      </DialogHeader>
+                      <div
+                        className="space-y-4 flex-1 overflow-y-auto hide-scrollbar p-5"
+                      >
 
                         {transactionsWithBalance?.map((transaction) => (
                           <div
@@ -1406,23 +1435,6 @@ const StudentsFund = ({
                           </div>
                         ))}
                       </div>
-                      <DialogFooter>
-                        <div className="flex items-center justify-between w-full gap-2">
-                          <Button
-                            variant="default"
-                            onClick={handleDownloadPDF}
-                            className="md:hidden"
-                          >
-                            Download
-                          </Button>
-                          <Button
-                            onClick={handlePrint}
-                            className="hidden md:flex btn-print"
-                          >
-                            Print
-                          </Button>
-                        </div>
-                      </DialogFooter>
                     </DialogContent>
                   </Dialog>
                   <Dialog
@@ -1437,19 +1449,51 @@ const StudentsFund = ({
                         </Button>
                       )}
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl h-[80vh]">
+                    <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
+                      <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                        <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                          <FileText className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 text-left space-y-0.5">
+                          <DialogTitle className="text-xl font-bold m-0">All Students Balance</DialogTitle>
+                          <DialogDescription className="m-0">
+                            {selectedBatchData?.name}
+                          </DialogDescription>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <Button
+                            size="icon"
+                            onClick={handleAllStudentsFundDownloadPDF}
+                            className="md:hidden bg-foreground text-background hover:bg-foreground/90"
+                          >
+                            <Download className="h-5 w-5" />
+                          </Button>
+                          <Button
+                            onClick={handleAllStudentsFundPrint}
+                            className="hidden md:flex gap-2 bg-foreground text-background hover:bg-foreground/90 btn-print"
+                          >
+                            <Printer className="h-5 w-5" />
+                            Print
+                          </Button>
+                          <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                            <X className="h-5 w-5" />
+                          </DialogClose>
+                        </div>
+                      </DialogHeader>
                       <div
-                        className="max-h-full overflow-y-auto hide-scrollbar "
+                        className="flex-1 overflow-y-auto hide-scrollbar p-5 pt-2"
                         ref={allStudentsFundRef}
                       >
-                        <DialogHeader>
-                          <DialogTitle>All Students Balance</DialogTitle>
-                          <DialogDescription>
-                            Review the current fund balance for each student of{" "}
-                            {selectedBatchData?.name}.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="flex justify-between border border-border items-center bg-accent/10 p-2 rounded-md my-4">
+                        <div className="hidden print:flex flex-col items-center text-center mb-6">
+                          <h1 className="text-2xl font-bold">All Students Balance</h1>
+                          <p className="text-muted-foreground">
+                            Batch: {selectedBatchData?.name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Report Generated on {currentDate}
+                          </p>
+                        </div>
+                        <div className="flex justify-between border border-border items-center bg-accent/10 p-2 rounded-md mb-4">
                           <span className="text-base font-medium text-muted-foreground">
                             Total Balance
                           </span>
@@ -1476,7 +1520,7 @@ const StudentsFund = ({
                                       ? `${student.studentId.name} (${student.studentId.studentSpecificField?.admissionNumber || student.studentId._id})`
                                       : selectedBatchData?.name}
                                   </TableCell>
-                                  <TableCell>
+                                  <TableCell className={student.balance < 0 ? "text-destructive font-medium" : ""}>
                                     {student.balance?.toFixed(2)}
                                   </TableCell>
                                 </TableRow>
@@ -1485,22 +1529,6 @@ const StudentsFund = ({
                           </Table>
                         </div>
                       </div>
-                      <DialogFooter>
-                        <Button
-                          variant="default"
-                          onClick={handleAllStudentsFundDownloadPDF}
-                          className="md:hidden"
-                        >
-                          Download
-                        </Button>
-                        <Button
-                          variant="default"
-                          onClick={handleAllStudentsFundPrint}
-                          className="hidden md:flex"
-                        >
-                          Print
-                        </Button>
-                      </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </div>
@@ -1598,19 +1626,51 @@ const StudentsFund = ({
                         )}
                       </DialogTrigger>
                       {/* ... rest of balance dialog ... */}
-                      <DialogContent className="max-w-4xl h-[80vh]">
+                      <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
+                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                            <FileText className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="flex-1 text-left space-y-0.5">
+                            <DialogTitle className="text-xl font-bold m-0">All Students Balance</DialogTitle>
+                            <DialogDescription className="m-0">
+                              {selectedBatchData?.name}
+                            </DialogDescription>
+                          </div>
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <Button
+                              size="icon"
+                              onClick={handleAllStudentsFundDownloadPDF}
+                              className="md:hidden bg-foreground text-background hover:bg-foreground/90"
+                            >
+                              <Download className="h-5 w-5" />
+                            </Button>
+                            <Button
+                              onClick={handleAllStudentsFundPrint}
+                              className="hidden md:flex gap-2 bg-foreground text-background hover:bg-foreground/90 btn-print"
+                            >
+                              <Printer className="h-5 w-5" />
+                              Print
+                            </Button>
+                            <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                              <X className="h-5 w-5" />
+                            </DialogClose>
+                          </div>
+                        </DialogHeader>
                         <div
-                          className="max-h-full overflow-y-auto hide-scrollbar "
+                          className="flex-1 overflow-y-auto hide-scrollbar p-5 pt-2"
                           ref={allStudentsFundRef}
                         >
-                          <DialogHeader>
-                            <DialogTitle>All Students Balance</DialogTitle>
-                            <DialogDescription>
-                              Review the current fund balance for each student
-                              of {selectedBatchData?.name}.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="flex justify-between border border-border items-center bg-accent/10 p-2 rounded-md my-4">
+                          <div className="hidden print:flex flex-col items-center text-center mb-6">
+                            <h1 className="text-2xl font-bold">All Students Balance</h1>
+                            <p className="text-muted-foreground">
+                              Batch: {selectedBatchData?.name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Report Generated on {currentDate}
+                            </p>
+                          </div>
+                          <div className="flex justify-between border border-border items-center bg-accent/10 p-2 rounded-md mb-4">
                             <span className="text-base font-medium text-muted-foreground">
                               Total Balance
                             </span>
@@ -1637,7 +1697,7 @@ const StudentsFund = ({
                                         ? `${student.studentId.name} (${student.studentId.studentSpecificField?.admissionNumber || student.studentId._id})`
                                         : selectedBatchData?.name}
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className={student.balance < 0 ? "text-destructive font-medium" : ""}>
                                       {student.balance?.toFixed(2)}
                                     </TableCell>
                                   </TableRow>
@@ -1646,21 +1706,6 @@ const StudentsFund = ({
                             </Table>
                           </div>
                         </div>
-                        <DialogFooter>
-                          <Button
-                            variant="default"
-                            onClick={handleAllStudentsFundDownloadPDF}
-                            className="md:hidden"
-                          >
-                            Download
-                          </Button>
-                          <Button
-                            onClick={handleAllStudentsFundPrint}
-                            className="hidden md:flex btn-print"
-                          >
-                            Print
-                          </Button>
-                        </DialogFooter>
                       </DialogContent>
                     </Dialog>
                   )}
@@ -1725,11 +1770,11 @@ const StudentsFund = ({
       {/* Hidden Print Content */}
       <div className="hidden">
         <div ref={printRef} className="p-8 space-y-4">
-          <div className="flex flex-col gap-2 mb-6">
+          <div className="flex flex-col items-center text-center gap-2 mb-6">
             <h1 className="text-2xl font-bold">Transaction History</h1>
             <p className="text-muted-foreground">
               {selectedStudentData
-                ? `Student: ${selectedStudentData.name}`
+                ? `Student: ${selectedStudentData.name} (${selectedStudentData.studentSpecificField?.admissionNumber || selectedStudentData.admissionNumber || selectedStudentData._id})`
                 : `Batch: ${selectedBatchData?.name}`}
             </p>
             <p className="text-sm text-muted-foreground">
