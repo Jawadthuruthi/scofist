@@ -212,7 +212,7 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
             <DialogTitle className="text-xl font-bold m-0">Review Profile Changes</DialogTitle>
             <p className="text-sm text-muted-foreground m-0">Review the profile modified fields.</p>
           </div>
-          <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+          <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
             <X className="h-5 w-5" />
           </DialogClose>
         </DialogHeader>

@@ -168,8 +168,12 @@ const Attendance = ({ apiKey, teacherId }) => {
 
   // Memoize subject name for performance
   const subjectName = useMemo(() => {
-    return classDetails?.subjects?.find((subject) => subject._id === subjectId)
-      ?.name;
+    if (!classDetails) return undefined;
+    const allSubjects = [
+      ...(classDetails.coreSubjects || []),
+      ...(classDetails.majorSubjects || [])
+    ];
+    return allSubjects.find((subject) => String(subject._id) === String(subjectId))?.name;
   }, [classDetails, subjectId]);
 
   // Process leave records to determine student status
@@ -553,17 +557,17 @@ const Attendance = ({ apiKey, teacherId }) => {
         <div className="flex-1 -mb-4 md:mb-0">
           <Header
             title="ATTENDANCE MANAGEMENT"
-            subTitle={`Mark Attendance For ${classDetails?.name} - ${subjectName}`}
+            subTitle={`${classDetails?.name || "Class"} - ${subjectName || "Subject"}`}
           />
         </div>
 
         {/* Metadata */}
-        <div className="flex items-center gap-4 text-muted-foreground px-3 md:px-0 pb-2 md:pb-0">
+        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 text-muted-foreground px-3 md:px-0 pb-0 md:pb-0 -mb-1 md:mb-0">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span className="text-sm font-medium">{today}</span>
           </div>
-          <div className="h-4 w-px bg-border"></div>
+          <div className="hidden md:block h-4 w-px bg-border"></div>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             <span className="text-sm font-medium">
@@ -692,6 +696,7 @@ const Attendance = ({ apiKey, teacherId }) => {
       <div className="flex justify-between">
         <Button
           variant="outline"
+          className="border border-border"
           onClick={handleDeleteAttendance}
           disabled={!attendanceExists || saving}
         >

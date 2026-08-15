@@ -88,7 +88,7 @@ const AbsenteesDialog = ({
           </div>
           <div className="flex-1 text-left space-y-0.5">
             <DialogTitle className="text-xl font-bold m-0 text-red-700 dark:text-red-400">
-              Absentees
+              Absentees ({absenteesList.length})
             </DialogTitle>
             <DialogDescription className="m-0 text-xs flex flex-col gap-1 text-muted-foreground mt-1">
               <span className="flex flex-wrap gap-x-2">
@@ -107,15 +107,12 @@ const AbsenteesDialog = ({
               </span>
             </DialogDescription>
           </div>
-          <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+          <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
             <X className="h-5 w-5" />
           </DialogClose>
         </DialogHeader>
         {absenteesList.length > 0 ? (
           <div className="text-sm border-0 p-4 max-h-80 overflow-y-auto bg-muted/5 space-y-1 flex-1">
-            <h4 className="text-sm font-medium mb-2">
-              Absent Students ({absenteesList.length})
-            </h4>
             <div className="border rounded-md overflow-hidden bg-background">
               <Table>
                 <TableHeader className="bg-red-50 dark:bg-red-950/20">

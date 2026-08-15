@@ -53,16 +53,13 @@ const AbsenteesDialog = ({ open, setOpen, date, absentees }) => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Literary Absentees</DialogTitle>
+          <DialogTitle>Literary Absentees ({absentees.length})</DialogTitle>
           <DialogDescription>
             The following students were absent on {date}.
           </DialogDescription>
         </DialogHeader>
         {absentees.length > 0 ? (
           <div className="mt-4">
-            <h4 className="text-sm font-medium mb-2">
-              Absent Students ({absentees.length})
-            </h4>
             <div className="max-h-60 overflow-y-auto">
               <Table>
                 <TableHeader>

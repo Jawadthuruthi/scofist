@@ -126,6 +126,7 @@ const StudentsFund = ({
   const [showScanner, setShowScanner] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [focusedSuggestionIndex, setFocusedSuggestionIndex] = useState(-1);
+  const [balanceFilter, setBalanceFilter] = useState("all");
 
   useEffect(() => {
     if (focusedSuggestionIndex >= 0) {
@@ -243,8 +244,14 @@ const StudentsFund = ({
       }
     });
 
-    return Array.from(uniqueStudentsMap.values());
-  }, [fetchStudentFundQuery.data, selectedBatch, selectedClass, groupType, department, classes]);
+    let result = Array.from(uniqueStudentsMap.values());
+    if (balanceFilter === "debit") {
+      result = result.filter(student => (student.balance || 0) > 0);
+    } else if (balanceFilter === "credit") {
+      result = result.filter(student => (student.balance || 0) < 0);
+    }
+    return result;
+  }, [fetchStudentFundQuery.data, selectedBatch, selectedClass, groupType, department, classes, balanceFilter]);
 
   const allStudentBalance = useMemo(() => {
     return allStudentsFund.reduce((total, studentFund) => {
@@ -918,9 +925,9 @@ const StudentsFund = ({
           <Card>
             <CardContent className="p-5 space-y-6">
               <>
-                <div className="flex flex-col sm:flex-row gap-4 items-end">
-                  <div className="flex flex-row gap-4 w-full sm:w-auto items-end">
-                    <div className="w-[110px] shrink-0">
+                <div className="flex flex-col sm:flex-row gap-4 items-stretch">
+                  <div className="flex flex-row gap-4 w-full sm:w-auto items-stretch">
+                    <div className="w-[110px] shrink-0 h-full">
                       <Select
                         value={groupType}
                         onValueChange={(val) => {
@@ -930,7 +937,7 @@ const StudentsFund = ({
                           setSelectedStudents([]);
                         }}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="h-full min-h-10">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -939,7 +946,7 @@ const StudentsFund = ({
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex-1 w-full max-w-[250px]">
+                    <div className="flex-1 w-full max-w-[250px] h-full">
                       {groupType === "batch" ? (
                         <Select
                           value={selectedBatch}
@@ -948,7 +955,7 @@ const StudentsFund = ({
                             setSelectedStudents([]);
                           }}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="h-full min-h-10">
                             <SelectValue placeholder="Select a batch" />
                           </SelectTrigger>
                           <SelectContent>
@@ -967,7 +974,7 @@ const StudentsFund = ({
                             setSelectedStudents([]);
                           }}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="h-full min-h-10">
                             <SelectValue placeholder="Select a class" />
                           </SelectTrigger>
                           <SelectContent>
@@ -982,15 +989,127 @@ const StudentsFund = ({
                     </div>
                   </div>
                   {(selectedBatch || selectedClass) && (
-                    <div className="space-y-2 flex-1 w-full">
-                      <MultiSelect
-                        options={dropdownOptions}
-                        onValueChange={setSelectedStudents}
-                        value={selectedStudents}
-                        placeholder="Select students"
-                        multiSelect={true}
-                      />
-                    </div>
+                    <>
+                      <div className="space-y-2 flex-1 w-full">
+                        <MultiSelect
+                          options={dropdownOptions}
+                          onValueChange={setSelectedStudents}
+                          value={selectedStudents}
+                          placeholder="Select students"
+                          multiSelect={true}
+                        />
+                      </div>
+                      {!department && (
+                        <div className="w-full sm:w-auto flex flex-col justify-end">
+                          <Dialog
+                            open={showBalanceDialog}
+                            onOpenChange={setShowBalanceDialog}
+                          >
+                            <DialogTrigger asChild>
+                              <Button variant="outline" className="w-full sm:w-auto h-10">
+                                <FileText className="h-4 w-4 mr-2" />
+                                View All Students Balance
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-2xl h-[90vh] sm:h-[70vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
+                              <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                                <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                                  <FileText className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="flex-1 text-left space-y-0.5">
+                                  <DialogTitle className="text-xl font-bold m-0">All Students Balance</DialogTitle>
+                                  <DialogDescription className="m-0">
+                                    {selectedBatchData?.name}
+                                  </DialogDescription>
+                                </div>
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <Button
+                                    size="icon"
+                                    onClick={handleAllStudentsFundDownloadPDF}
+                                    className="md:hidden bg-foreground text-background hover:bg-foreground/90"
+                                  >
+                                    <Download className="h-5 w-5" />
+                                  </Button>
+                                  <Button
+                                    onClick={handleAllStudentsFundPrint}
+                                    className="hidden md:flex gap-2 bg-foreground text-background hover:bg-foreground/90 btn-print"
+                                  >
+                                    <Printer className="h-5 w-5" />
+                                    Print
+                                  </Button>
+                                  <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                                    <X className="h-5 w-5" />
+                                  </DialogClose>
+                                </div>
+                              </DialogHeader>
+                              <div
+                                className="flex-1 overflow-y-auto hide-scrollbar p-5 pt-2"
+                                ref={allStudentsFundRef}
+                              >
+                                <div className="hidden print:flex flex-col items-center text-center mb-6">
+                                  <h1 className="text-2xl font-bold">All Students Balance</h1>
+                                  <p className="text-muted-foreground">
+                                    Batch: {selectedBatchData?.name}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Report Generated on {currentDate}
+                                  </p>
+                                </div>
+                                <div className="flex justify-between border border-border items-center bg-accent/10 p-2 rounded-md mb-4">
+                                  <span className="text-base font-medium text-muted-foreground">
+                                    {balanceFilter === 'debit' ? 'Total Debit Balance' : balanceFilter === 'credit' ? 'Total Credit Balance' : 'Total Balance'}
+                                  </span>
+                                  <span className="text-lg font-extrabold text-primary">
+                                    {allStudentBalance?.toFixed(2)}
+                                  </span>
+                                </div>
+                                <div className="overflow-x-auto">
+                                  <Table className="border border-border w-full">
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>Student Name</TableHead>
+                                        <TableHead className="p-0 text-right">
+                                          <Select
+                                            value={balanceFilter}
+                                            onValueChange={setBalanceFilter}
+                                          >
+                                            <SelectTrigger className="h-10 border-none shadow-none font-medium text-muted-foreground hover:text-foreground justify-end px-4 bg-transparent focus:ring-0 w-full">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="all">Balance</SelectItem>
+                                              <SelectItem value="debit">Debit</SelectItem>
+                                              <SelectItem value="credit">Credit</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {allStudentsFund.map((student) => (
+                                        <TableRow
+                                          key={student._id}
+                                          className="break-inside-avoid"
+                                        >
+                                          <TableCell>
+                                            {student.studentId?.name 
+                                              ? `${student.studentId.name} (${student.studentId.studentSpecificField?.admissionNumber || student.studentId._id})`
+                                              : selectedBatchData?.name}
+                                          </TableCell>
+                                          <TableCell className={`text-right pr-8 ${student.balance < 0 ? "text-destructive font-medium" : ""}`}>
+                                            {student.balance?.toFixed(2)}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -1226,7 +1345,21 @@ const StudentsFund = ({
                         <TableHead className="w-[80px]">Sl No</TableHead>
                         <TableHead>Student ID</TableHead>
                         <TableHead>Student Name</TableHead>
-                        <TableHead className="text-right">Balance</TableHead>
+                        <TableHead className="p-0 text-right">
+                          <Select
+                            value={balanceFilter}
+                            onValueChange={setBalanceFilter}
+                          >
+                            <SelectTrigger className="h-10 border-none shadow-none font-medium text-muted-foreground hover:text-foreground justify-end px-4 bg-transparent focus:ring-0 w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Balance</SelectItem>
+                              <SelectItem value="debit">Debit</SelectItem>
+                              <SelectItem value="credit">Credit</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1244,7 +1377,7 @@ const StudentsFund = ({
                               : "Unknown"}
                           </TableCell>
                           <TableCell
-                            className={`text-right font-medium ${(student.balance || 0) < 0
+                            className={`text-right pr-8 font-medium ${(student.balance || 0) < 0
                               ? "text-destructive"
                               : "text-green-600"
                               } ${department ? "cursor-pointer hover:underline" : ""}`}
@@ -1347,7 +1480,7 @@ const StudentsFund = ({
                         View Full History
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
+                    <DialogContent className="sm:max-w-2xl h-[80vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
                       <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
                         <div className="p-2 rounded-lg bg-primary/10 shrink-0">
                           <History className="h-5 w-5 text-primary" />
@@ -1377,7 +1510,7 @@ const StudentsFund = ({
                             <Printer className="h-5 w-5" />
                             Print
                           </Button>
-                          <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                          <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
                             <X className="h-5 w-5" />
                           </DialogClose>
                         </div>
@@ -1437,100 +1570,7 @@ const StudentsFund = ({
                       </div>
                     </DialogContent>
                   </Dialog>
-                  <Dialog
-                    open={showBalanceDialog}
-                    onOpenChange={setShowBalanceDialog}
-                  >
-                    <DialogTrigger asChild>
-                      {!department && (
-                        <Button variant="outline" className="w-full">
-                          <FileText className="h-4 w-4 mr-2" />
-                          View All Students Balance
-                        </Button>
-                      )}
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
-                      <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                        <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                          <FileText className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex-1 text-left space-y-0.5">
-                          <DialogTitle className="text-xl font-bold m-0">All Students Balance</DialogTitle>
-                          <DialogDescription className="m-0">
-                            {selectedBatchData?.name}
-                          </DialogDescription>
-                        </div>
-                        <div className="flex items-center gap-1 sm:gap-2">
-                          <Button
-                            size="icon"
-                            onClick={handleAllStudentsFundDownloadPDF}
-                            className="md:hidden bg-foreground text-background hover:bg-foreground/90"
-                          >
-                            <Download className="h-5 w-5" />
-                          </Button>
-                          <Button
-                            onClick={handleAllStudentsFundPrint}
-                            className="hidden md:flex gap-2 bg-foreground text-background hover:bg-foreground/90 btn-print"
-                          >
-                            <Printer className="h-5 w-5" />
-                            Print
-                          </Button>
-                          <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
-                            <X className="h-5 w-5" />
-                          </DialogClose>
-                        </div>
-                      </DialogHeader>
-                      <div
-                        className="flex-1 overflow-y-auto hide-scrollbar p-5 pt-2"
-                        ref={allStudentsFundRef}
-                      >
-                        <div className="hidden print:flex flex-col items-center text-center mb-6">
-                          <h1 className="text-2xl font-bold">All Students Balance</h1>
-                          <p className="text-muted-foreground">
-                            Batch: {selectedBatchData?.name}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Report Generated on {currentDate}
-                          </p>
-                        </div>
-                        <div className="flex justify-between border border-border items-center bg-accent/10 p-2 rounded-md mb-4">
-                          <span className="text-base font-medium text-muted-foreground">
-                            Total Balance
-                          </span>
-                          <span className="text-lg font-extrabold text-primary">
-                            {allStudentBalance?.toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <Table className="border border-border w-full">
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Student Name</TableHead>
-                                <TableHead>Balance</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {allStudentsFund.map((student) => (
-                                <TableRow
-                                  key={student._id}
-                                  className="break-inside-avoid"
-                                >
-                                  <TableCell>
-                                    {student.studentId?.name 
-                                      ? `${student.studentId.name} (${student.studentId.studentSpecificField?.admissionNumber || student.studentId._id})`
-                                      : selectedBatchData?.name}
-                                  </TableCell>
-                                  <TableCell className={student.balance < 0 ? "text-destructive font-medium" : ""}>
-                                    {student.balance?.toFixed(2)}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -1612,103 +1652,7 @@ const StudentsFund = ({
                     </div>
                   )}
 
-                  {(selectedBatch || selectedClass) && (
-                    <Dialog
-                      open={showBalanceDialog}
-                      onOpenChange={setShowBalanceDialog}
-                    >
-                      <DialogTrigger asChild>
-                        {!department && (
-                          <Button variant="outline" className="w-full">
-                            <FileText className="h-4 w-4 mr-2" />
-                            View All Students Balance
-                          </Button>
-                        )}
-                      </DialogTrigger>
-                      {/* ... rest of balance dialog ... */}
-                      <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
-                        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                            <FileText className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="flex-1 text-left space-y-0.5">
-                            <DialogTitle className="text-xl font-bold m-0">All Students Balance</DialogTitle>
-                            <DialogDescription className="m-0">
-                              {selectedBatchData?.name}
-                            </DialogDescription>
-                          </div>
-                          <div className="flex items-center gap-1 sm:gap-2">
-                            <Button
-                              size="icon"
-                              onClick={handleAllStudentsFundDownloadPDF}
-                              className="md:hidden bg-foreground text-background hover:bg-foreground/90"
-                            >
-                              <Download className="h-5 w-5" />
-                            </Button>
-                            <Button
-                              onClick={handleAllStudentsFundPrint}
-                              className="hidden md:flex gap-2 bg-foreground text-background hover:bg-foreground/90 btn-print"
-                            >
-                              <Printer className="h-5 w-5" />
-                              Print
-                            </Button>
-                            <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
-                              <X className="h-5 w-5" />
-                            </DialogClose>
-                          </div>
-                        </DialogHeader>
-                        <div
-                          className="flex-1 overflow-y-auto hide-scrollbar p-5 pt-2"
-                          ref={allStudentsFundRef}
-                        >
-                          <div className="hidden print:flex flex-col items-center text-center mb-6">
-                            <h1 className="text-2xl font-bold">All Students Balance</h1>
-                            <p className="text-muted-foreground">
-                              Batch: {selectedBatchData?.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Report Generated on {currentDate}
-                            </p>
-                          </div>
-                          <div className="flex justify-between border border-border items-center bg-accent/10 p-2 rounded-md mb-4">
-                            <span className="text-base font-medium text-muted-foreground">
-                              Total Balance
-                            </span>
-                            <span className="text-lg font-extrabold text-primary">
-                              {allStudentBalance?.toFixed(2)}
-                            </span>
-                          </div>
-                          <div className="overflow-x-auto">
-                            <Table className="border border-border w-full">
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Student Name</TableHead>
-                                  <TableHead>Balance</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {allStudentsFund.map((student) => (
-                                  <TableRow
-                                    key={student._id}
-                                    className="break-inside-avoid"
-                                  >
-                                    <TableCell>
-                                      {student.studentId?.name 
-                                        ? `${student.studentId.name} (${student.studentId.studentSpecificField?.admissionNumber || student.studentId._id})`
-                                        : selectedBatchData?.name}
-                                    </TableCell>
-                                    <TableCell className={student.balance < 0 ? "text-destructive font-medium" : ""}>
-                                      {student.balance?.toFixed(2)}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  )}
+
                 </div>
               )}
             </CardContent>

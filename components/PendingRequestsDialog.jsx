@@ -60,7 +60,7 @@ const PendingRequestsDialog = ({ open, onClose, apiKey, onView, role = "Student"
               {role}s who have requested
             </DialogDescription>
           </div>
-          <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+          <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
             <X className="h-5 w-5" />
           </DialogClose>
         </DialogHeader>

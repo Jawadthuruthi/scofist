@@ -1710,7 +1710,7 @@ const DataTableComponent = ({
                 </Badge>
               </div>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" onClick={() => setDetailView(null)}>
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" onClick={() => setDetailView(null)}>
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>

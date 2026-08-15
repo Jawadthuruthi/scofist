@@ -426,7 +426,7 @@ const ClassCard = memo(
                 List of all active students in {classData.name} ({classStudentsList.length} students)
               </DialogDescription>
               </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -464,7 +464,7 @@ const ClassCard = memo(
                 Students on leave today in {classData.name} ({sortedLeaveStudents.length} students)
               </DialogDescription>
               </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -610,7 +610,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               View active teaching staff profiles
             </DialogDescription>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -647,7 +647,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               Distribution of active students.
             </DialogDescription>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -683,7 +683,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               Distribution of graduated students.
             </DialogDescription>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -716,7 +716,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               Student status distribution.
             </DialogDescription>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -763,7 +763,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               Students currently on active leave
             </DialogDescription>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -829,7 +829,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               informations about active classes
             </DialogDescription>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>

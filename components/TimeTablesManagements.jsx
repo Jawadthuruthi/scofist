@@ -70,7 +70,7 @@ const AbsenteesDialog = ({
       <DialogContent className="max-w-md gap-0">
         <DialogHeader>
           <DialogTitle>
-            {day} - Period {periodNumber} Absentees
+            {day} - Period {periodNumber} Absentees ({absenteesList.length})
           </DialogTitle>
           <DialogDescription>
             {cellData?.subjectId?.name
@@ -83,9 +83,6 @@ const AbsenteesDialog = ({
         </DialogHeader>
         {absenteesList.length > 0 ? (
           <div className="mt-0">
-            <h4 className="text-sm font-medium mb-2">
-              Absent Students ({absenteesList.length})
-            </h4>
             <div className="max-h-60 overflow-y-auto">
               <Table>
                 <TableHeader>

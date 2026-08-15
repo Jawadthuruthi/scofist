@@ -1492,7 +1492,7 @@ Teacher: ${teacherName || "Teacher"}`;
                   This reason will be applied to all periods that don&apos;t have attendance marked yet.
                 </DialogDescription>
               </div>
-              <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
                 <X className="h-5 w-5" />
               </DialogClose>
             </DialogHeader>
@@ -1595,7 +1595,7 @@ Teacher: ${teacherName || "Teacher"}`;
                   Provide a leave reason.
                 </DialogDescription>
               </div>
-              <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
                 <X className="h-5 w-5" />
               </DialogClose>
             </DialogHeader>
