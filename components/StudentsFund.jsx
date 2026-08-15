@@ -56,6 +56,7 @@ import {
   ScanBarcode,
   X,
   Download,
+  AlertTriangle,
 } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
@@ -1664,26 +1665,33 @@ const StudentsFund = ({
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent
+          className="sm:max-w-lg flex flex-col p-0 gap-0 overflow-hidden"
           onOpenAutoFocus={(e) => {
             e.preventDefault();
             finalConfirmButtonRef.current?.focus();
           }}
         >
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Transaction</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to {transactionType.toLowerCase()} ₹{amount}{" "}
-              {transactionType === "Deposit" ? "to" : "from"}{" "}
-              {selectedStudents.length > 1
-                ? `${selectedStudents.length} selected students`
-                : selectedStudentData
-                  ? selectedStudentData.name
-                  : selectedBatchData?.name}
-              's account?
-            </AlertDialogDescription>
+          <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
+            <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+              <AlertTriangle className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <AlertDialogTitle className="text-xl font-bold m-0 text-foreground">Confirm Transaction</AlertDialogTitle>
+              <AlertDialogDescription className="m-0 text-sm text-muted-foreground">
+                Are you sure you want to {transactionType.toLowerCase()} ₹{amount}{" "}
+                {transactionType === "Deposit" ? "to" : "from"}{" "}
+                {selectedStudents.length > 1
+                  ? `${selectedStudents.length} selected students`
+                  : selectedStudentData
+                    ? selectedStudentData.name
+                    : selectedBatchData?.name}
+                's account?
+              </AlertDialogDescription>
+            </div>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="p-5 flex justify-between gap-4 sm:space-x-0">
             <AlertDialogCancel
+              className="flex-1 mt-0"
               ref={cancelButtonRef}
               onKeyDown={(e) => {
                 if (e.key === "ArrowRight") {
@@ -1701,11 +1709,11 @@ const StudentsFund = ({
                   cancelButtonRef.current?.focus();
                 }
               }}
-              className={
+              className={`flex-1 ${
                 transactionType === "Withdrawal"
                   ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   : ""
-              }
+              }`}
             >
               Confirm
             </AlertDialogAction>
@@ -1767,29 +1775,42 @@ const StudentsFund = ({
         open={showClearHistoryDialogue}
         onOpenChange={setShowClearHistoryDialogue}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Clear History</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to clear the history
-              for {selectedStudentData?.name}?
-            </DialogDescription>
+        <DialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-xl font-bold m-0 text-foreground">Clear History</DialogTitle>
+              <DialogDescription asChild>
+                <div className="m-0 text-sm text-muted-foreground">
+                  Are you sure you want to clear the history
+                  for {selectedStudentData?.name}?
+                </div>
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                <X className="h-5 w-5" />
+              </DialogClose>
+            </div>
           </DialogHeader>
-          <DialogFooter className="gap-2">
+          <div className="p-5 flex justify-between gap-4">
             <Button
               variant="outline"
               onClick={() => setShowClearHistoryDialogue(false)}
+              className="flex-1"
             >
               Cancel
             </Button>
             <Button
-              className="!bg-destructive !text-destructive-foreground"
+              className="!bg-destructive !text-destructive-foreground flex-1"
               onClick={handleClearHistory}
               disabled={updateStudentFund.isPending}
             >
               Clear
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
       {/* Quick Payment Dialog */}
