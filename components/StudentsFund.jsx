@@ -1059,7 +1059,7 @@ const StudentsFund = ({
                                   <span className="text-base font-medium text-muted-foreground">
                                     {balanceFilter === 'debit' ? 'Total Debit Balance' : balanceFilter === 'credit' ? 'Total Credit Balance' : 'Total Balance'}
                                   </span>
-                                  <span className="text-lg font-extrabold text-primary">
+                                  <span className={`text-lg font-extrabold ${allStudentBalance < 0 ? "text-destructive print:!text-red-600" : "text-primary print:!text-black"}`}>
                                     {allStudentBalance?.toFixed(2)}
                                   </span>
                                 </div>
@@ -1096,7 +1096,9 @@ const StudentsFund = ({
                                               ? `${student.studentId.name} (${student.studentId.studentSpecificField?.admissionNumber || student.studentId._id})`
                                               : selectedBatchData?.name}
                                           </TableCell>
-                                          <TableCell className={`text-right pr-8 ${student.balance < 0 ? "text-destructive font-medium" : ""}`}>
+                                          <TableCell 
+                                            className={`text-right pr-8 ${student.balance < 0 ? "text-destructive print:!text-red-600 font-medium" : ""}`}
+                                          >
                                             {student.balance?.toFixed(2)}
                                           </TableCell>
                                         </TableRow>
@@ -1378,8 +1380,8 @@ const StudentsFund = ({
                           </TableCell>
                           <TableCell
                             className={`text-right pr-8 font-medium ${(student.balance || 0) < 0
-                              ? "text-destructive"
-                              : "text-green-600"
+                              ? "text-destructive print:!text-red-600"
+                              : "text-green-600 print:!text-green-600"
                               } ${department ? "cursor-pointer hover:underline" : ""}`}
                             onClick={() => department && initiateQuickPayment(student)}
                           >
