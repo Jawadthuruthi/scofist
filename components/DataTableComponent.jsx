@@ -1240,7 +1240,7 @@ const DataTableComponent = ({
                   setFilterYear(parseInt(v));
                   if (isApiFiltering) debouncedApiFilterUpdate();
                 }}>
-                  <SelectTrigger className="flex-1 h-10 text-sm font-medium bg-background border-muted-foreground/20">
+                  <SelectTrigger className="flex-1 h-9 text-sm font-medium bg-background border-muted-foreground/20">
                     <SelectValue placeholder="Year" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1254,7 +1254,7 @@ const DataTableComponent = ({
                   setFilterMonth(parseInt(v));
                   if (isApiFiltering) debouncedApiFilterUpdate();
                 }}>
-                  <SelectTrigger className="flex-1 h-10 text-sm font-medium bg-background border-muted-foreground/20">
+                  <SelectTrigger className="flex-1 h-9 text-sm font-medium bg-background border-muted-foreground/20">
                     <SelectValue placeholder="Month" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1322,7 +1322,7 @@ const DataTableComponent = ({
                     setFilterYear(parseInt(v));
                     if (isApiFiltering) debouncedApiFilterUpdate();
                   }}>
-                    <SelectTrigger className="w-[80px] h-8 text-xs">
+                    <SelectTrigger className="w-[80px] h-9 text-xs">
                       <SelectValue placeholder="Year" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1336,7 +1336,7 @@ const DataTableComponent = ({
                     setFilterMonth(parseInt(v));
                     if (isApiFiltering) debouncedApiFilterUpdate();
                   }}>
-                    <SelectTrigger className="w-[120px] h-8 text-xs">
+                    <SelectTrigger className="w-[120px] h-9 text-xs">
                       <SelectValue placeholder="Month" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1693,7 +1693,7 @@ const DataTableComponent = ({
       {/* Detail View Modal for drill-down */}
       <Dialog open={!!detailView} onOpenChange={(open) => !open && setDetailView(null)}>
         <DialogContent className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
             <div className="p-2 rounded-lg bg-primary/10">
               <FileSpreadsheet className="h-5 w-5 text-primary" />
             </div>
@@ -1715,7 +1715,7 @@ const DataTableComponent = ({
             </DialogClose>
           </DialogHeader>
 
-          <div className="p-5">
+          <div className="py-5 px-0 sm:p-5">
             {detailsLoading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary opacity-70" />
@@ -1733,11 +1733,13 @@ const DataTableComponent = ({
                 <p className="text-sm">There are no matching entries for the selected filter.</p>
               </div>
             ) : (
-              <div className="border rounded-none shadow-sm bg-background overflow-hidden">
+              <div className="border-y sm:border rounded-none sm:rounded-lg shadow-sm bg-background overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
-                      <TableHead className="w-[60px] font-bold text-center">Sl. No.</TableHead>
+                      {detailView?.viewType === "studentList" && (
+                        <TableHead className="w-[60px] font-bold text-center">Sl. No.</TableHead>
+                      )}
                       {detailView?.viewType === "studentList" ? (
                         <>
                           <TableHead className="w-[120px] font-bold">Student ID</TableHead>
@@ -1768,9 +1770,11 @@ const DataTableComponent = ({
                             isAbsent ? "bg-red-50/40 hover:bg-red-50/60 dark:bg-red-950/10 dark:hover:bg-red-950/20" : "hover:bg-muted/30"
                           )}
                         >
-                          <TableCell className="text-center font-medium text-muted-foreground py-3">
-                            {i + 1}
-                          </TableCell>
+                          {detailView?.viewType === "studentList" && (
+                            <TableCell className="text-center font-medium text-muted-foreground py-3">
+                              {i + 1}
+                            </TableCell>
+                          )}
                           {detailView?.viewType === "studentList" ? (
                             <>
                               <TableCell className="font-mono text-xs py-3">{rec.studentId || "—"}</TableCell>
@@ -1805,7 +1809,7 @@ const DataTableComponent = ({
                                 <TableCell className="text-muted-foreground text-sm py-3">
                                   {resource === "teacherAttendances" ? (
                                     <div className="flex flex-col gap-0.5">
-                                      <span className="whitespace-nowrap font-medium">{rec.className || "—"}</span>
+                                      <span className="whitespace-normal md:whitespace-nowrap font-medium">{rec.className || "—"}</span>
                                       {rec.leaveReason && (
                                         <span className="text-[10px] text-orange-500 font-medium leading-tight">
                                           {rec.leaveReason}

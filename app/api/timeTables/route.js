@@ -230,7 +230,7 @@ export async function GET(req, res) {
       TimeTable.find(query, projections)
         .populate({
           path: "classId",
-          select: "name batchId section",
+          select: "name shortname batchId section",
           populate: { path: "batchId", select: "name" },
         })
         .populate("timeSlots.subjectId", "name")

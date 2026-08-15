@@ -88,17 +88,23 @@ const AbsenteesDialog = ({
           </div>
           <div className="flex-1 text-left space-y-0.5">
             <DialogTitle className="text-xl font-bold m-0 text-red-700 dark:text-red-400">
-              {day} - Period {periodNumber} Absentees
+              Absentees
             </DialogTitle>
-            <DialogDescription className="m-0 text-xs">
-              {cellData?.subjectId?.name
-                ? `Subject: ${cellData.subjectId.name}`
-                : ""}
-              {" • Class: "}
-              {useShortName ? (cellData?.classId?.shortname || cellData?.classId?.name || "") : (cellData?.classId?.name || "")}
-              {cellData?.classId?.batchId?.name
-                ? ` (${cellData.classId.batchId.name})`
-                : ""}
+            <DialogDescription className="m-0 text-xs flex flex-col gap-1 text-muted-foreground mt-1">
+              <span className="flex flex-wrap gap-x-2">
+                <span>Day: <span className="font-medium text-foreground">{day}</span></span>
+                <span>•</span>
+                <span>Period: <span className="font-medium text-foreground">{periodNumber}</span></span>
+                <span>•</span>
+                <span>Class: <span className="font-medium text-foreground">
+                  {cellData?.classId?.shortname || cellData?.classId?.name || "N/A"}
+                </span></span>
+              </span>
+              <span className="flex flex-wrap gap-x-2">
+                <span className="font-medium text-foreground">{cellData?.subjectId?.name || "N/A"}</span>
+                <span>•</span>
+                <span className="font-medium text-foreground">{cellData?.teacherId?.name || "N/A"}</span>
+              </span>
             </DialogDescription>
           </div>
           <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
@@ -114,14 +120,14 @@ const AbsenteesDialog = ({
               <Table>
                 <TableHeader className="bg-red-50 dark:bg-red-950/20">
                   <TableRow>
-                    <TableHead className="h-9 py-1">Student ID</TableHead>
+                    <TableHead className="h-9 py-1">ID</TableHead>
                     <TableHead className="h-9 py-1">Student Name</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {absenteesList.map((student) => (
                     <TableRow key={student.studentId}>
-                      <TableCell className="py-2 text-xs text-muted-foreground font-mono">{student.studentId || "Unknown"}</TableCell>
+                      <TableCell className="py-2 font-medium">{student.studentId || "Unknown"}</TableCell>
                       <TableCell className="py-2 font-medium">{student.studentName || "-"}</TableCell>
                     </TableRow>
                   ))}

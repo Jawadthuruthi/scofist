@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle, XCircle, ArrowRight, CheckSquare, Square, Save, X } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, ArrowRight, Save, X, Users } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatDateShort } from "@/lib/utils";
@@ -203,28 +203,28 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] p-0 flex flex-col overflow-hidden gap-0 [&>button]:hidden">
-        <div className="px-6 py-4 shrink-0 bg-background border-b z-10">
-          <DialogHeader className="flex flex-row items-start justify-between space-y-0">
-            <div>
-              <DialogTitle className="text-xl font-bold">Review Profile Changes</DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">Review the profile modified fields.</p>
-            </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-md hover:bg-muted shrink-0 text-muted-foreground">
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </Button>
-          </DialogHeader>
-
-          <div className="grid grid-cols-12 gap-2 mt-4 pb-2 border-b-2 font-bold text-xs uppercase tracking-widest text-muted-foreground bg-slate-50 dark:bg-slate-900/50 p-2 rounded-t">
-            <div className="col-span-3 pl-2">Field</div>
-            <div className="col-span-4">Current Value</div>
-            <div className="col-span-1 text-center"></div>
-            <div className="col-span-4">Requested Value</div>
+      <DialogContent className="rounded-2xl sm:rounded-2xl max-w-6xl max-h-[70vh] sm:max-h-[95vh] [&>button.absolute]:hidden grid grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden p-0 gap-0">
+        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Users className="h-5 w-5 text-primary" />
           </div>
+          <div className="flex-1 text-left space-y-0.5">
+            <DialogTitle className="text-xl font-bold m-0">Review Profile Changes</DialogTitle>
+            <p className="text-sm text-muted-foreground m-0">Review the profile modified fields.</p>
+          </div>
+          <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <X className="h-5 w-5" />
+          </DialogClose>
+        </DialogHeader>
+
+        <div className="grid grid-cols-12 gap-2 pb-2 border-b-2 font-bold text-xs uppercase tracking-widest text-muted-foreground bg-slate-50 dark:bg-slate-900/50 p-4 px-6 z-10 shadow-sm">
+          <div className="col-span-3 pl-2">Field</div>
+          <div className="col-span-4">Current Value</div>
+          <div className="col-span-1 text-center"></div>
+          <div className="col-span-4">Requested Value</div>
         </div>
 
-        <div className="overflow-y-auto px-6 py-4 space-y-6 flex-1 bg-background">
+        <div className="overflow-y-auto px-6 py-4 space-y-6 bg-background">
 
           <div className="space-y-1">
             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-2 border-l-4 border-primary">Personal Details</h4>
@@ -286,7 +286,7 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
           )}
         </div>
 
-        <div className="px-6 py-4 border-t shrink-0 bg-background">
+        <div className="px-6 py-4 border-t bg-background">
           <DialogFooter className="gap-3 sm:gap-0">
             <div className="flex-1 text-xs text-muted-foreground italic">
               * Select an action for each modified field to save changes.
