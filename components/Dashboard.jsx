@@ -688,14 +688,14 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
             </DialogClose>
           </DialogHeader>
           <div className="p-5 space-y-6">
+          <BatchStudentsTable
+            batches={dashboardData?.batches}
+            students={dashboardData?.graduatedStudents}
+          />
           <BatchChart
             batches={dashboardData?.batches}
             students={dashboardData?.graduatedStudents}
             isLoading={isLoadingCharts}
-          />
-          <BatchStudentsTable
-            batches={dashboardData?.batches}
-            students={dashboardData?.graduatedStudents}
           />
           </div>
         </DialogContent>
@@ -721,6 +721,11 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
             </DialogClose>
           </DialogHeader>
           <div className="space-y-6 p-5">
+            <BatchStudentsTable
+              batches={dashboardData?.batches}
+              students={dashboardData?.students}
+              showStatusColumns={true}
+            />
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-2">Status By Batch</p>
               <StudentStatusByBatchChart
@@ -740,11 +745,6 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
                 </div>
               </div>
             </div>
-            <BatchStudentsTable
-              batches={dashboardData?.batches}
-              students={dashboardData?.students}
-              showStatusColumns={true}
-            />
           </div>
         </DialogContent>
       </Dialog>
@@ -917,7 +917,7 @@ const BatchStudentsTable = memo(({ batches = [], students = [], showStatusColumn
                 <th className={`${cellPadding} font-medium border-b text-center`}>Total</th>
               </>
             ) : (
-              <th className={`${cellPadding} font-medium border-b text-center`}>No. of Students</th>
+              <th className={`${cellPadding} font-medium border-b text-center`}>Students</th>
             )}
           </tr>
         </thead>
@@ -1099,7 +1099,7 @@ const ClassStudentsTable = memo(({ classes = [], batches = [], students = [] }) 
           <tr>
             <th className={`${cellPadding} font-medium border-b whitespace-nowrap`}>Sl No</th>
             <th className={`${cellPadding} font-medium border-b`}>Class</th>
-            <th className={`${cellPadding} font-medium border-b text-center`}>No. of Students</th>
+            <th className={`${cellPadding} font-medium border-b text-center`}>Students</th>
           </tr>
         </thead>
         <tbody className="divide-y">

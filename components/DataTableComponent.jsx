@@ -21,6 +21,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogClose,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
@@ -1690,62 +1692,30 @@ const DataTableComponent = ({
       </div>
       {/* Detail View Modal for drill-down */}
       <Dialog open={!!detailView} onOpenChange={(open) => !open && setDetailView(null)}>
-        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col p-0 gap-0 overflow-hidden">
-          <DialogHeader className="p-4 md:p-6 pb-4 border-b bg-background z-50 shrink-0">
-            <div className="flex items-start justify-between w-full relative">
-              <DialogTitle className="flex flex-col text-left">
-                {isMobile ? (
-                  <div className="flex flex-col gap-0.5 pr-10">
-                    <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                      {detailView?.colHeader} Records
-                    </span>
-                    <span className="text-lg font-extrabold text-foreground leading-tight">
-                      {detailView?.student?.name}
-                    </span>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-bold">
-                        {detailedRecords.length} {detailedRecords.length === 1 ? 'Record' : 'Records'}
-                      </Badge>
-                      {detailView?.student?._id && (
-                        <span className="text-[10px] font-mono text-muted-foreground">ID: {detailView.student._id}</span>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xl font-bold">{detailView?.title}</span>
-                    {detailView?.student?._id && (
-                      <span className="text-xs font-mono text-muted-foreground">ID: {detailView.student._id}</span>
-                    )}
-                  </div>
-                )}
-              </DialogTitle>
-              
-              {!isMobile && (
-                <div className="flex items-center gap-3">
-                  {detailedRecords.length > 0 && (
-                    <Badge variant="secondary" className="h-6">
-                      {detailedRecords.length} Records
-                    </Badge>
-                  )}
-                </div>
-              )}
-
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className={cn(
-                  "h-8 w-8 rounded-full hover:bg-muted shrink-0 z-20",
-                  isMobile ? "absolute right-0 top-0" : ""
-                )}
-                onClick={() => setDetailView(null)}
-              >
-                <X className="h-5 w-5" />
-              </Button>
+        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <FileSpreadsheet className="h-5 w-5 text-primary" />
             </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-xl font-bold m-0">
+                {detailView?.colHeader} Records
+              </DialogTitle>
+              <div className="m-0 flex flex-wrap items-center gap-2">
+                <DialogDescription className="font-medium text-foreground m-0">
+                  {detailView?.student?.name} {detailView?.student?._id && `(${detailView.student._id})`}
+                </DialogDescription>
+                <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-bold">
+                  {detailedRecords.length} {detailedRecords.length === 1 ? 'Record' : 'Records'}
+                </Badge>
+              </div>
+            </div>
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" onClick={() => setDetailView(null)}>
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 pt-0 md:pt-0 bg-muted/5">
+          <div className="p-5">
             {detailsLoading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary opacity-70" />
@@ -1763,7 +1733,7 @@ const DataTableComponent = ({
                 <p className="text-sm">There are no matching entries for the selected filter.</p>
               </div>
             ) : (
-              <div className="border rounded-xl shadow-sm bg-background overflow-hidden">
+              <div className="border rounded-none shadow-sm bg-background overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -1776,7 +1746,7 @@ const DataTableComponent = ({
                         </>
                       ) : (
                         <>
-                          <TableHead className="w-[150px] font-bold">Date & Day</TableHead>
+                          <TableHead className="w-[100px] font-bold">Date & Day</TableHead>
                           <TableHead className="font-bold">Subject</TableHead>
                           {(resource === "studentAttendances" || resource === "teacherAttendances") && (
                             <TableHead className="font-bold">
@@ -1811,7 +1781,9 @@ const DataTableComponent = ({
                             <>
                               <TableCell className="font-medium whitespace-nowrap py-3">
                                 <div className="flex flex-col">
-                                  <span className="text-sm font-bold">{formatDateMonthYear(rec.date)}</span>
+                                  <span className="text-sm font-bold">
+                                    {new Date(rec.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                  </span>
                                   <span className="text-xs text-muted-foreground font-medium">
                                     {new Date(rec.date).toLocaleDateString(undefined, { weekday: 'long' })}
                                   </span>
@@ -1843,9 +1815,6 @@ const DataTableComponent = ({
                                   ) : (
                                     <div className="flex flex-col gap-0.5">
                                       <span className="font-bold text-sm">{rec.teacherName || "—"}</span>
-                                      <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-tight">
-                                        {rec.className || "—"}
-                                      </span>
                                       {rec.leaveReason && (
                                         <span className="text-[10px] text-orange-500 font-medium leading-tight mt-0.5">
                                           {rec.leaveReason}
