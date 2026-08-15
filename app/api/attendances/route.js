@@ -166,13 +166,12 @@ export async function GET(req, res) {
           studentName: student.studentId?.name,
           contactNumber: student.studentId?.contactNumber,
           guardianContactNumber: student.studentId?.studentSpecificField?.guardianContactNumber,
+          // Support direct leaveReason on attendance data, fallback to Leave Register
+          leaveReason: student.leaveReason || leaveMap[leaveKey] || null,
         })),
       } : attendanceObj;
 
-      return {
-        ...baseObj,
-        leaveReason: leaveMap[leaveKey] || null
-      };
+      return baseObj;
     });
 
     // Enhanced processing for absentee tracking if requested
@@ -360,6 +359,7 @@ export async function POST(req, res) {
                   day: newAttendance.day,
                   date: newAttendance.date,
                   present: student.present,
+                  leaveReason: student.leaveReason || null,
                 },
               },
             },
@@ -457,7 +457,10 @@ export async function PUT(req, res) {
               }
             },
             {
-              $set: { "attendanceRecords.$.present": student.present },
+              $set: { 
+                "attendanceRecords.$.present": student.present,
+                "attendanceRecords.$.leaveReason": student.leaveReason || null,
+              },
             }
           );
           console.log(`[ATTENDANCE PUT] studentId=${student.studentId} updateRes:`, updateRes);
@@ -476,6 +479,7 @@ export async function PUT(req, res) {
                   day: updatedAttendance.day,
                   date: updatedAttendance.date,
                   present: student.present,
+                  leaveReason: student.leaveReason || null,
                 },
               },
             },

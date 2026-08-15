@@ -64,7 +64,58 @@ const AbsenteesDialog = ({
   day,
   periodNumber,
   absenteesList,
+  apiKey,
+  date,
 }) => {
+  const { useFetchItems: useFetchLeaveRecords } = useCrud("leave-records", apiKey);
+  const classId = cellData?.classId?._id || cellData?.classId;
+  
+  const leaveRecordsQuery = useFetchLeaveRecords(
+    0,
+    0,
+    { classId: classId || "" },
+    { enabled: !!classId && open, refetchOnWindowFocus: false }
+  );
+
+  const leaveRecords = leaveRecordsQuery.data?.["leave-records"] || [];
+
+  const getLeaveReason = (studentObj) => {
+    // 1. Check if the reason is saved directly on the attendance record
+    if (studentObj.leaveReason) return studentObj.leaveReason;
+
+    // 2. Fallback to leave-records
+    if (!leaveRecords.length) return null;
+    
+    // studentId might be a populated object or a string
+    const sId = studentObj.studentId?._id || studentObj.studentId;
+    
+    const studentLeaves = leaveRecords.filter(
+      (record) => String(record.studentId?._id || record.studentId) === String(sId)
+    );
+    
+    const targetDate = new Date(date || new Date());
+    targetDate.setHours(0, 0, 0, 0);
+    
+    for (const record of studentLeaves) {
+       if (!record.dateOfLeave) continue;
+       const leaveDate = new Date(record.dateOfLeave);
+       leaveDate.setHours(0, 0, 0, 0);
+       
+       let endDate = record.arrivedDate ? new Date(record.arrivedDate) : (record.dateOfArrival ? new Date(record.dateOfArrival) : null);
+       if (endDate) {
+           endDate.setHours(23, 59, 59, 999);
+       } else {
+           endDate = new Date(leaveDate);
+           endDate.setHours(23, 59, 59, 999);
+       }
+       
+       if (targetDate >= leaveDate && targetDate <= endDate) {
+          return record.leaveReason;
+       }
+    }
+    return null;
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-md gap-0">
@@ -92,12 +143,22 @@ const AbsenteesDialog = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {absenteesList.map((student) => (
-                    <TableRow key={student.studentId}>
-                      <TableCell>{student.studentId || "Unknown"}</TableCell>
-                      <TableCell>{student.studentName || "-"}</TableCell>
-                    </TableRow>
-                  ))}
+                  {absenteesList.map((student) => {
+                    const leaveReason = getLeaveReason(student);
+                    return (
+                      <TableRow key={student.studentId}>
+                        <TableCell>{student.studentId || "Unknown"}</TableCell>
+                        <TableCell>
+                          {student.studentName || "-"}
+                          {leaveReason && (
+                            <div className="text-xs text-red-500 font-normal mt-0.5">
+                              {leaveReason}
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -1496,6 +1557,8 @@ const TimeTablesManagements = ({
         day={currentDialogData.day}
         periodNumber={currentDialogData.periodNumber}
         absenteesList={currentAbsenteesList}
+        apiKey={apiKey}
+        date={category === "date" ? date : undefined}
       />
 
       {/* Save Progress Dialog */}

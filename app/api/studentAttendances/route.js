@@ -4,6 +4,7 @@ import StudentAttendance from "@/models/StudentAttendance";
 import User from "@/models/User";
 import Class from "@/models/Class";
 import Subject from "@/models/Subject";
+import LeaveRecord from "@/models/LeaveRecord";
 import { NextResponse } from "next/server";
 
 export async function GET(req, res) {
@@ -259,6 +260,11 @@ export async function GET(req, res) {
       const allSubjectsMap = new Map(allSubjectsList.map(s => [s._id.toString(), s.name]));
       const allTeachersMap = new Map(allTeachersList.map(t => [t._id.toString(), t.name]));
 
+      // Fetch LeaveRecords for these students to attach leave reasons
+      const leaveRecordsList = await LeaveRecord.find({
+        studentId: { $in: userIds }
+      }).lean();
+
       const formattedStudentAttendances = attendances.map(doc => {
         let records = doc.attendanceRecords || [];
 
@@ -272,6 +278,8 @@ export async function GET(req, res) {
           return subjects.core.includes(sId) || subjects.major.includes(sId);
         });
 
+        const studentLeaves = leaveRecordsList.filter(lr => lr.studentId?.toString() === doc.studentId.toString());
+
         return {
           _id: doc.studentId,
           name: userMap.get(doc.studentId.toString()) || "Unknown Student",
@@ -279,6 +287,23 @@ export async function GET(req, res) {
             const classIdStr   = r.classId?.toString();
             const subjectIdStr = r.subjectId?.toString();
             const teacherIdStr = r.teacherId?.toString();
+            
+            let finalLeaveReason = r.leaveReason;
+            if (!finalLeaveReason && (r.present === false || r.present === null)) {
+               const rDate = new Date(r.date);
+               rDate.setUTCHours(0,0,0,0);
+               const matchedLeave = studentLeaves.find(lr => {
+                  const start = new Date(lr.dateOfLeave);
+                  start.setUTCHours(0,0,0,0);
+                  const end = new Date(lr.arrivedDate || lr.dateOfArrival);
+                  end.setUTCHours(23,59,59,999);
+                  return rDate >= start && rDate <= end;
+               });
+               if (matchedLeave) {
+                  finalLeaveReason = matchedLeave.leaveReason;
+               }
+            }
+
             return {
               date: r.date,
               present: r.present ?? false,
@@ -288,7 +313,8 @@ export async function GET(req, res) {
               subjectId: subjectIdStr,
               subjectName: allSubjectsMap.get(subjectIdStr) || "Unknown",
               teacherId: teacherIdStr,
-              teacherName: allTeachersMap.get(teacherIdStr) || "N/A"
+              teacherName: allTeachersMap.get(teacherIdStr) || "N/A",
+              leaveReason: finalLeaveReason || null
             };
           })
         };
@@ -440,7 +466,8 @@ export async function GET(req, res) {
               subjectId: "$attendanceRecords.subjectId",
               subjectName: "$subjectInfo.name",
               teacherId: "$attendanceRecords.teacherId",
-              teacherName: "$teacherInfo.name"
+              teacherName: "$teacherInfo.name",
+              leaveReason: "$attendanceRecords.leaveReason"
             }
           }
         }
@@ -450,16 +477,48 @@ export async function GET(req, res) {
     // Execute the final aggregation pipeline
     const results = await StudentAttendance.aggregate(pipeline).exec();
 
+    // Fetch LeaveRecords for these students to attach leave reasons
+    const studentIdsToFetchLeaves = results.map(r => r._id.toString());
+    let leaveRecordsList = [];
+    if (studentIdsToFetchLeaves.length > 0) {
+      leaveRecordsList = await LeaveRecord.find({
+        studentId: { $in: studentIdsToFetchLeaves }
+      }).lean();
+    }
+
     // Format final results
-    const formattedStudentAttendances = results.map((record) => ({
-      _id: record._id,
-      name: record.studentName || "Unknown Student",
-      percentage: record.percentage,
-      attendanceRecords: record.attendanceRecords.map(item => ({
-        ...item,
-        teacherName: item.teacherName || "N/A"
-      }))
-    }));
+    const formattedStudentAttendances = results.map((record) => {
+      const studentLeaves = leaveRecordsList.filter(lr => lr.studentId?.toString() === record._id.toString());
+      
+      return {
+        _id: record._id,
+        name: record.studentName || "Unknown Student",
+        percentage: record.percentage,
+        attendanceRecords: record.attendanceRecords.map(item => {
+          let finalLeaveReason = item.leaveReason;
+          if (!finalLeaveReason && (item.present === false || item.present === null)) {
+             const rDate = new Date(item.date);
+             rDate.setUTCHours(0,0,0,0);
+             const matchedLeave = studentLeaves.find(lr => {
+                const start = new Date(lr.dateOfLeave);
+                start.setUTCHours(0,0,0,0);
+                const end = new Date(lr.arrivedDate || lr.dateOfArrival);
+                end.setUTCHours(23,59,59,999);
+                return rDate >= start && rDate <= end;
+             });
+             if (matchedLeave) {
+                finalLeaveReason = matchedLeave.leaveReason;
+             }
+          }
+
+          return {
+            ...item,
+            teacherName: item.teacherName || "N/A",
+            leaveReason: finalLeaveReason || null
+          };
+        })
+      };
+    });
 
     // Get total count more efficiently (same documentQuery logic)
     const countPipeline = [

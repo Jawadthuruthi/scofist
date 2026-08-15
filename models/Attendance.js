@@ -49,6 +49,10 @@ const attendanceSchema = new Schema(
           type: Boolean,
           default: false,
         },
+        leaveReason: {
+          type: String,
+          default: null,
+        },
       },
     ],
   },

@@ -182,6 +182,12 @@ export async function GET(request) {
                     markedAt: record.updatedAt || record.createdAt,
                     recordId: record._id
                 };
+                
+                if (entry.leaveReason) {
+                    if (!leavesMap[studentId]) leavesMap[studentId] = {};
+                    leavesMap[studentId][day] = entry.leaveReason;
+                }
+                
                 daysWithAttendance.add(dtStr);
             });
         });

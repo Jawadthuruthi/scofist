@@ -456,9 +456,16 @@ export default function StudentAttendanceLookup({ students = [], type = "student
                                                         Present
                                                     </Badge>
                                                 ) : (
-                                                    <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 border-none px-2 py-0 text-[10px] uppercase font-bold tracking-tight">
-                                                        Absent
-                                                    </Badge>
+                                                    <div className="flex flex-col items-center gap-0.5">
+                                                        <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 border-none px-2 py-0 text-[10px] uppercase font-bold tracking-tight">
+                                                            Absent
+                                                        </Badge>
+                                                        {rec.leaveReason && (
+                                                            <span className="text-[9px] font-medium text-red-600 truncate max-w-[80px]" title={rec.leaveReason}>
+                                                                {rec.leaveReason}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </TableCell>
                                         </TableRow>

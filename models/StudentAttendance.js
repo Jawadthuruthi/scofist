@@ -50,6 +50,10 @@ const studentAttendanceSchema = new Schema(
           type: Boolean,
           default: false,
         },
+        leaveReason: {
+          type: String,
+          default: null,
+        },
       },
     ],
   },

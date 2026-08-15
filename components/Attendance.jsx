@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Loader, Save, Calendar, Clock, CheckCircle2 } from "lucide-react";
+import { Loader, Save, Calendar, Clock, CheckCircle2, FilePlus, X, History, Check, ChevronsUpDown, FileText } from "lucide-react";
 
 // UI Components
 import {
@@ -23,11 +23,26 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
+  DialogClose,
 } from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 // Hooks and Utils
 import useCrud from "@/hooks/use-crud";
-import { formatDate, formatDateForDisplay } from "@/lib/utils";
+import { formatDate, formatDateForDisplay, cn } from "@/lib/utils";
 import Header from "./Header";
 import AbsenteeStatus from "./AbsenteeStatus";
 
@@ -61,6 +76,14 @@ const Attendance = ({ apiKey, teacherId }) => {
   const [studentLeaveStatus, setStudentLeaveStatus] = useState({});
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  
+  // Quick Leave states
+  const [quickLeaveOpen, setQuickLeaveOpen] = useState(false);
+  const [quickLeaveStudent, setQuickLeaveStudent] = useState(null);
+  const [quickLeaveReason, setQuickLeaveReason] = useState("");
+  const [quickLeaveSaving, setQuickLeaveSaving] = useState(false);
+  const [quickLeaveComboboxOpen, setQuickLeaveComboboxOpen] = useState(false);
+  const [attendanceReasons, setAttendanceReasons] = useState({});
 
   const today = useMemo(() => formatDateForDisplay(new Date()), []);
 
@@ -293,10 +316,15 @@ const Attendance = ({ apiKey, teacherId }) => {
       // Update attendance state with existing data
       if (attendanceRecord.attendanceData?.length > 0) {
         const existingAttendance = {};
+        const existingReasons = {};
         attendanceRecord.attendanceData.forEach((item) => {
           existingAttendance[item.studentId] = item.present;
+          if (item.leaveReason) {
+            existingReasons[item.studentId] = item.leaveReason;
+          }
         });
         setAttendance(existingAttendance);
+        setAttendanceReasons(existingReasons);
       }
     } else {
       setAttendanceExists(false);
@@ -385,12 +413,23 @@ const Attendance = ({ apiKey, teacherId }) => {
     });
   }, [students, classDetails, subjectId, classId]);
 
-  // Memoize attendance toggle handler
+  // Toggle individual student attendance
   const toggleAttendance = useCallback((studentId) => {
-    setAttendance((prev) => ({
-      ...prev,
-      [studentId]: !prev[studentId],
-    }));
+    setAttendance((prev) => {
+      const isCurrentlyPresent = prev[studentId];
+      if (!isCurrentlyPresent) {
+        // Marking as present, so clear the leave reason
+        setAttendanceReasons((reasons) => {
+          const newReasons = { ...reasons };
+          delete newReasons[studentId];
+          return newReasons;
+        });
+      }
+      return {
+        ...prev,
+        [studentId]: !isCurrentlyPresent,
+      };
+    });
   }, []);
 
   // Memoize attendance statistics
@@ -449,7 +488,8 @@ const Attendance = ({ apiKey, teacherId }) => {
 
       const attendanceData = filteredStudents.map((student) => ({
         studentId: student._id,
-        present: attendance[student._id] ?? false,
+        present: !!attendance[student._id],
+        leaveReason: attendanceReasons[student._id] || null,
       }));
 
       const payload = {
@@ -535,6 +575,58 @@ const Attendance = ({ apiKey, teacherId }) => {
     initializeAttendance,
   ]);
 
+  const handleQuickLeaveSubmit = async () => {
+    if (!quickLeaveStudent) return;
+
+    if (quickLeaveStudent === 'bulk') {
+      const applicableStudents = filteredStudents.filter(student => {
+        const isPresent = attendance[student._id];
+        const leaveInfo = studentLeaveStatus[student._id];
+        const isOfficialLeave = leaveInfo?.isOnLeave && !leaveInfo?.hasArrived;
+        return !isPresent && !isOfficialLeave;
+      });
+
+      if (!quickLeaveReason.trim()) {
+        setAttendanceReasons((prev) => {
+          const next = { ...prev };
+          applicableStudents.forEach(s => delete next[s._id]);
+          return next;
+        });
+        toast.success("Leave reasons cleared for all absentees!");
+      } else {
+        setAttendanceReasons((prev) => {
+          const next = { ...prev };
+          applicableStudents.forEach(s => {
+            next[s._id] = quickLeaveReason;
+          });
+          return next;
+        });
+        toast.success("Leave reason added for all absentees!");
+      }
+      setQuickLeaveOpen(false);
+      return;
+    }
+
+    if (!quickLeaveReason.trim()) {
+      // Clear existing leave reason locally
+      setAttendanceReasons((prev) => {
+        const next = { ...prev };
+        delete next[quickLeaveStudent._id];
+        return next;
+      });
+      toast.success("Leave reason cleared!");
+      setQuickLeaveOpen(false);
+      return;
+    }
+
+    setAttendanceReasons((prev) => ({
+      ...prev,
+      [quickLeaveStudent._id]: quickLeaveReason,
+    }));
+    toast.success("Leave reason added!");
+    setQuickLeaveOpen(false);
+  };
+
   // Render loading state
   if (loading) {
     return (
@@ -615,10 +707,30 @@ const Attendance = ({ apiKey, teacherId }) => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">R.no</TableHead>
-              <TableHead>Students</TableHead>
-              <TableHead className="w-[100px]">Status</TableHead>
-              <TableHead className="w-[70px]">History</TableHead>
+              <TableHead className="w-10 text-center px-2">R.no</TableHead>
+              <TableHead className="px-2">Students</TableHead>
+              <TableHead className="w-[50px] md:w-[70px] text-center px-1">
+                <span className="hidden md:inline">History</span>
+                <History className="h-4 w-4 md:hidden mx-auto" />
+              </TableHead>
+              <TableHead className="w-[50px] md:w-[70px] text-center px-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-1 hover:bg-muted/50 flex items-center justify-center mx-auto"
+                  onClick={() => {
+                    setQuickLeaveStudent('bulk');
+                    setQuickLeaveReason("");
+                    setQuickLeaveComboboxOpen(false);
+                    setQuickLeaveOpen(true);
+                  }}
+                  title="Add reason for all absentees"
+                >
+                  <span className="hidden md:inline font-semibold">Leave</span>
+                  <FilePlus className="h-4 w-4 md:hidden" />
+                  <FilePlus className="h-3 w-3 ml-1 hidden md:inline" />
+                </Button>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -636,46 +748,56 @@ const Attendance = ({ apiKey, teacherId }) => {
                     className={`cursor-pointer ${rowStyling.className}`}
                     onClick={() => toggleAttendance(student._id)}
                   >
-                    <TableCell className={rowStyling.textColor}>
+                    <TableCell className={`text-center align-middle px-2 ${rowStyling.textColor}`}>
                       {index + 1}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-2">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={student.profilePic?.url} />
-                          <AvatarFallback>
-                            {student.name.substring(0, 1)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p
-                            className={`font-medium text-xs ${rowStyling.textColor}`}
-                          >
+                        <div className="flex flex-col items-center gap-1 shrink-0">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={student.profilePic?.url} />
+                            <AvatarFallback>
+                              {student.name.substring(0, 1)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <p className={`text-[9px] ${rowStyling.textColor || "text-muted-foreground"}`}>
+                            {student.studentSpecificField?.admissionNumber || student.admissionNumber || student._id}
+                          </p>
+                        </div>
+                        <div className="flex flex-col">
+                          <p className={`font-medium text-[13px] ${rowStyling.textColor}`}>
                             {student.name}
                           </p>
-                          <p
-                            className={`text-xs ${rowStyling.textColor || "text-muted-foreground"}`}
-                          >
-                            {student._id}
-                          </p>
+                          {(!isPresent && (attendanceReasons[student._id] || (leaveInfo?.isOnLeave && !leaveInfo?.hasArrived))) && (
+                            <span className="text-[10px] font-medium text-red-600 dark:text-red-400 mt-0.5">
+                              {attendanceReasons[student._id] || leaveInfo?.leaveReason}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {leaveInfo?.isOnLeave && !leaveInfo?.hasArrived && (
-                        <div className="flex flex-col gap-1">
-                          <Badge variant="destructive" className="text-xs w-fit">
-                            On Leave
-                          </Badge>
-                          <span className="text-[10px] font-medium text-red-600 dark:text-red-400">
-                            {leaveInfo.leaveReason}
-                          </span>
+                    <TableCell className="text-center align-middle">
+                      {hasAbsenceHistory && (
+                        <div className="inline-flex items-center justify-center text-xs font-semibold text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                          {absenteeInfo.continuousAbsences}
                         </div>
                       )}
                     </TableCell>
-                    <TableCell>
-                      {hasAbsenceHistory && (
-                        <AbsenteeStatus absenteeInfo={absenteeInfo} />
+                    <TableCell className="text-center align-middle">
+                      {(!isPresent && !(leaveInfo?.isOnLeave && !leaveInfo?.hasArrived)) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 rounded-full hover:bg-muted/50 inline-flex items-center justify-center"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setQuickLeaveStudent(student);
+                            setQuickLeaveReason(attendanceReasons[student._id] || "");
+                            setQuickLeaveOpen(true);
+                          }}
+                        >
+                          <FilePlus className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                        </Button>
                       )}
                     </TableCell>
                   </TableRow>
@@ -726,6 +848,98 @@ const Attendance = ({ apiKey, teacherId }) => {
               {successMessage}
             </DialogDescription>
           </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Leave Dialog */}
+      <Dialog open={quickLeaveOpen} onOpenChange={setQuickLeaveOpen}>
+        <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-red-50 dark:bg-red-950/20 sticky top-0 z-20 backdrop-blur-md">
+            <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+              <FilePlus className="h-5 w-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-xl font-bold m-0 text-red-700 dark:text-red-400">
+                Leave Reason
+              </DialogTitle>
+              <DialogDescription className="m-0 text-xs font-medium text-muted-foreground mt-1">
+                {quickLeaveStudent === 'bulk' ? 'All Absentees' : quickLeaveStudent?.name}
+              </DialogDescription>
+            </div>
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
+          </DialogHeader>
+          <div className="px-5 py-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="reason" className="text-sm font-medium">Leave Reason</Label>
+              <div className="relative">
+                <FileText className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 z-10" />
+                <div className="relative">
+                  <Input
+                    id="reason"
+                    value={quickLeaveReason}
+                    onChange={(e) => setQuickLeaveReason(e.target.value)}
+                    placeholder="Select or type a reason..."
+                    className="pl-10 pr-10 h-10"
+                  />
+                  <Popover open={quickLeaveComboboxOpen} onOpenChange={setQuickLeaveComboboxOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      >
+                        <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0" align="end">
+                      <Command>
+                        <CommandList>
+                          <CommandGroup>
+                            {["Sick", "Fever", "Headache", "Function", "No reason"].map((r) => (
+                              <CommandItem
+                                key={r}
+                                value={r}
+                                onSelect={(currentValue) => {
+                                  setQuickLeaveReason(currentValue);
+                                  setQuickLeaveComboboxOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    quickLeaveReason === r ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {r}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="px-5 py-4 border-t bg-muted/20 sm:justify-start">
+            <div className="flex items-center gap-2 w-full justify-between sm:justify-end">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setQuickLeaveOpen(false)} disabled={quickLeaveSaving}>
+                  Cancel
+                </Button>
+                <Button variant="outline" onClick={() => setQuickLeaveReason("")} disabled={quickLeaveSaving}>
+                  Clear
+                </Button>
+              </div>
+              <Button onClick={handleQuickLeaveSubmit} disabled={quickLeaveSaving}>
+                {quickLeaveSaving ? <Loader className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div >
