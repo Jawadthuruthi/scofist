@@ -706,7 +706,7 @@ const Attendance = ({ apiKey, teacherId }) => {
 
 
       {/* Students Table */}
-      <div className="overflow-auto max-h-[calc(100vh-415px)] md:max-h-[calc(100vh-339px)] border rounded-md">
+      <div className="overflow-auto max-h-[calc(100vh-365px)] md:max-h-[calc(100vh-339px)] border rounded-md">
         <Table>
           <TableHeader>
             <TableRow>
@@ -714,13 +714,11 @@ const Attendance = ({ apiKey, teacherId }) => {
               <TableHead className="px-2">Students</TableHead>
               <TableHead className="w-[50px] md:w-[70px] text-center px-1">
                 <span className="hidden md:inline">History</span>
-                <History className="h-4 w-4 md:hidden mx-auto" />
+                <History className="h-5 w-5 md:hidden mx-auto" />
               </TableHead>
-              <TableHead className="w-[50px] md:w-[70px] text-center px-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-1 hover:bg-muted/50 flex items-center justify-center mx-auto font-medium text-muted-foreground"
+              <TableHead className="w-[50px] md:w-[90px] text-center px-1">
+                <div
+                  className="cursor-pointer flex items-center justify-center mx-auto"
                   onClick={() => {
                     setQuickLeaveStudent('bulk');
                     setQuickLeaveReason(bulkLeaveReason);
@@ -729,8 +727,11 @@ const Attendance = ({ apiKey, teacherId }) => {
                   }}
                   title="Add reason for all absentees"
                 >
-                  <span className="text-sm">Leave</span>
-                </Button>
+                  <FilePlus className="text-muted-foreground h-5 w-5 md:hidden mx-auto hover:text-foreground" />
+                  <Button size="sm" className="hidden md:inline-flex">
+                    Leave
+                  </Button>
+                </div>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -786,10 +787,8 @@ const Attendance = ({ apiKey, teacherId }) => {
                     </TableCell>
                     <TableCell className="text-center align-middle">
                       {(!isPresent && !(leaveInfo?.isOnLeave && !leaveInfo?.hasArrived)) && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 rounded-full hover:bg-muted/50 inline-flex items-center justify-center"
+                        <div
+                          className="cursor-pointer flex justify-center"
                           onClick={(e) => {
                             e.stopPropagation();
                             setQuickLeaveStudent(student);
@@ -797,8 +796,11 @@ const Attendance = ({ apiKey, teacherId }) => {
                             setQuickLeaveOpen(true);
                           }}
                         >
-                          <FilePlus className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                        </Button>
+                          <FilePlus className="text-muted-foreground h-5 w-5 md:hidden hover:text-foreground" />
+                          <Button size="sm" className="hidden md:inline-flex">
+                            Leave
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>

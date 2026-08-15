@@ -183,7 +183,7 @@ const AbsenteesDialog = ({
             </DialogTitle>
             <DialogDescription className="m-0 text-xs flex flex-col gap-1 text-muted-foreground mt-1">
               <span className="flex flex-wrap gap-x-2">
-                <span>Day: <span className="font-medium text-foreground">{day}</span></span>
+                <span className="font-medium text-foreground">{day}</span>
                 <span>•</span>
                 <span>Period: <span className="font-medium text-foreground">{periodNumber}</span></span>
                 <span>•</span>
@@ -199,15 +199,13 @@ const AbsenteesDialog = ({
             </DialogDescription>
           </div>
           <div className="flex items-center gap-2 -mr-1.5" data-html2canvas-ignore="true">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none border"
+            <button
+              className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
               onClick={handleDownload}
               title="Download Image"
             >
-              <Download className="h-4 w-4" />
-            </Button>
+              <Download className="h-5 w-5" />
+            </button>
             <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
               <X className="h-5 w-5" />
             </DialogClose>
