@@ -267,7 +267,7 @@ const MyAttendanceClient = ({ user, apiKey }) => {
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto p-6 pt-4">
+          <div className="flex-1 overflow-y-auto p-6 pt-4 min-h-0" style={{ flexShrink: 1 }}>
               <div className="rounded-md border">
                   <Table>
                       <TableHeader className="bg-muted/50 sticky top-0 z-20">

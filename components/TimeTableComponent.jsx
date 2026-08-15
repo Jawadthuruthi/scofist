@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertCircle, Check, ChevronsUpDown, FileText, Loader, UserX, X } from "lucide-react";
+import { AlertCircle, Check, ChevronsUpDown, FileText, Loader, UserX, X, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -83,6 +83,46 @@ const AbsenteesDialog = ({
 }) => {
   const { useFetchItems: useFetchLeaveRecords } = useCrud("leave-records", apiKey);
   const classId = cellData?.classId?._id || cellData?.classId;
+  const popupRef = useRef(null);
+
+  const handleDownload = async () => {
+    if (!popupRef.current) return;
+    try {
+      const currentWidth = popupRef.current.offsetWidth + 'px';
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(popupRef.current, { 
+        scale: 2, 
+        useCORS: true,
+        onclone: (clonedDoc) => {
+          const clonedPopup = clonedDoc.querySelector('[data-html2canvas-popup="true"]');
+          if (clonedPopup) {
+            clonedPopup.style.maxHeight = 'none';
+            clonedPopup.style.height = 'auto';
+            clonedPopup.style.width = currentWidth;
+            clonedPopup.style.maxWidth = currentWidth;
+            clonedPopup.style.position = 'relative';
+            clonedPopup.style.transform = 'none';
+            clonedPopup.style.left = 'auto';
+            clonedPopup.style.top = 'auto';
+
+            const scrollableDiv = clonedPopup.querySelector('.overflow-y-auto');
+            if (scrollableDiv) {
+              scrollableDiv.style.maxHeight = 'none';
+              scrollableDiv.style.height = 'auto';
+              scrollableDiv.style.overflow = 'visible';
+            }
+          }
+        }
+      });
+      const link = document.createElement("a");
+      link.download = `Absentees_${day}_Period_${periodNumber}.jpeg`;
+      link.href = canvas.toDataURL("image/jpeg", 1.0);
+      link.click();
+    } catch (error) {
+      console.error("Failed to generate image", error);
+      toast.error("Failed to download image");
+    }
+  };
   
   const leaveRecordsQuery = useFetchLeaveRecords(
     0,
@@ -132,7 +172,7 @@ const AbsenteesDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+      <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
         <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-red-50 dark:bg-red-950/20 sticky top-0 z-20 backdrop-blur-md">
           <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
             <UserX className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -158,9 +198,20 @@ const AbsenteesDialog = ({
               </span>
             </DialogDescription>
           </div>
-          <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
-            <X className="h-5 w-5" />
-          </DialogClose>
+          <div className="flex items-center gap-2 -mr-1.5" data-html2canvas-ignore="true">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none border"
+              onClick={handleDownload}
+              title="Download Image"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+            <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
+          </div>
         </DialogHeader>
         {absenteesList.length > 0 ? (
           <div className="text-sm border-0 px-4 pb-4 pt-2 max-h-80 overflow-y-auto bg-muted/5 space-y-1 flex-1">

@@ -84,6 +84,7 @@ const Attendance = ({ apiKey, teacherId }) => {
   const [quickLeaveSaving, setQuickLeaveSaving] = useState(false);
   const [quickLeaveComboboxOpen, setQuickLeaveComboboxOpen] = useState(false);
   const [attendanceReasons, setAttendanceReasons] = useState({});
+  const [bulkLeaveReason, setBulkLeaveReason] = useState("");
 
   const today = useMemo(() => formatDateForDisplay(new Date()), []);
 
@@ -586,6 +587,8 @@ const Attendance = ({ apiKey, teacherId }) => {
         return !isPresent && !isOfficialLeave;
       });
 
+      setBulkLeaveReason(quickLeaveReason);
+
       if (!quickLeaveReason.trim()) {
         setAttendanceReasons((prev) => {
           const next = { ...prev };
@@ -703,7 +706,7 @@ const Attendance = ({ apiKey, teacherId }) => {
 
 
       {/* Students Table */}
-      <div className="overflow-x-auto max-h-[calc(100vh-415px)] md:max-h-[calc(100vh-339px)] border rounded-md">
+      <div className="overflow-auto max-h-[calc(100vh-415px)] md:max-h-[calc(100vh-339px)] border rounded-md">
         <Table>
           <TableHeader>
             <TableRow>
@@ -717,18 +720,16 @@ const Attendance = ({ apiKey, teacherId }) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 px-1 hover:bg-muted/50 flex items-center justify-center mx-auto"
+                  className="h-6 px-1 hover:bg-muted/50 flex items-center justify-center mx-auto font-medium text-muted-foreground"
                   onClick={() => {
                     setQuickLeaveStudent('bulk');
-                    setQuickLeaveReason("");
+                    setQuickLeaveReason(bulkLeaveReason);
                     setQuickLeaveComboboxOpen(false);
                     setQuickLeaveOpen(true);
                   }}
                   title="Add reason for all absentees"
                 >
-                  <span className="hidden md:inline font-semibold">Leave</span>
-                  <FilePlus className="h-4 w-4 md:hidden" />
-                  <FilePlus className="h-3 w-3 ml-1 hidden md:inline" />
+                  <span className="text-sm">Leave</span>
                 </Button>
               </TableHead>
             </TableRow>
