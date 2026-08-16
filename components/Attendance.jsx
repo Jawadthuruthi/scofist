@@ -780,7 +780,7 @@ const Attendance = ({ apiKey, teacherId }) => {
                     </TableCell>
                     <TableCell className="text-center align-middle">
                       {hasAbsenceHistory && (
-                        <div className="inline-flex items-center justify-center text-xs font-semibold text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                        <div className="inline-flex items-center justify-center text-sm font-bold text-white bg-red-500 px-2.5 py-1 rounded-md">
                           {absenteeInfo.continuousAbsences}
                         </div>
                       )}

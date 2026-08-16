@@ -260,8 +260,8 @@ export default function GatePass({ activeRole, currentUser }) {
                 setShowConfirmation(true)
                 setManualConfirmId('')
                 fetchLogs(true)
-                // Auto-close confirmation after 5 seconds
-                setTimeout(() => setShowConfirmation(false), 5000)
+                // Auto-close confirmation after 2 seconds
+                setTimeout(() => setShowConfirmation(false), 2000)
             } else {
                 setErrorMsg(data.message || 'Scan failed')
                 setShowError(true)

@@ -769,7 +769,7 @@ export default function MarksManager({ apiKey, activeRole: serverRole }) {
             const data = await res.json();
             if (data.success) {
                 setShowSavedPopup(true);
-                setTimeout(() => setShowSavedPopup(false), 2500);
+                setTimeout(() => setShowSavedPopup(false), 2000);
                 const savedId = data.data?._id || currentSelectedExam?._id;
                 await refreshAllExams();
                 const updated = await fetch("/api/marks", { cache: "no-store", headers: { "api-key": apiKey } }).then(r => r.json());

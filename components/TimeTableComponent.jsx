@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import useCrud from "@/hooks/use-crud";
 import { useReactToPrint } from "react-to-print";
-import { DAYS } from "@/lib/utils";
+import { DAYS, formatDateForDisplay } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Table,
@@ -180,6 +180,9 @@ const AbsenteesDialog = ({
     return null;
   };
 
+  const d = new Date(date || new Date());
+  const formattedDateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}, ${day}`;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
@@ -193,7 +196,7 @@ const AbsenteesDialog = ({
             </DialogTitle>
             <DialogDescription className="m-0 text-xs flex flex-col gap-1 text-muted-foreground mt-1">
               <span className="flex flex-wrap gap-x-2">
-                <span className="font-medium text-foreground">{day}</span>
+                <span className="font-medium text-foreground">{formattedDateStr}</span>
                 <span>•</span>
                 <span>Period: <span className="font-medium text-foreground">{periodNumber}</span></span>
                 <span>•</span>
@@ -208,7 +211,10 @@ const AbsenteesDialog = ({
               </span>
             </DialogDescription>
           </div>
-          <div className="flex items-center gap-2 -mr-1.5" data-html2canvas-ignore="true">
+          <div className="flex flex-col gap-2 -mr-1.5" data-html2canvas-ignore="true">
+            <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
             <button
               className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
               onClick={handleDownload}
@@ -216,9 +222,6 @@ const AbsenteesDialog = ({
             >
               <Download className="h-5 w-5" />
             </button>
-            <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
-              <X className="h-5 w-5" />
-            </DialogClose>
           </div>
         </DialogHeader>
         {absenteesList.length > 0 ? (
