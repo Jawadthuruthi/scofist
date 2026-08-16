@@ -48,7 +48,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
     });
 
     const [loading, setLoading] = useState(false);
-    const [data, setData] = useState({ students: [], attendanceMap: {}, leavesMap: {}, nonWorkingDaysMap: {} });
+    const [data, setData] = useState({ students: [], attendanceMap: {}, leavesMap: {}, nonWorkingDaysMap: {}, teacherLeavesMap: {}, subjectDays: [], subjectTeacherName: "" });
     const [daysInMonth, setDaysInMonth] = useState([]);
 
     const filteredClasses = classes;
@@ -255,8 +255,12 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                 const dateKey = day.getDate();
                 const isFriday = day.getDay() === 5;
                 const isNonWorkingDay = !isFriday && (dateKey in (data.nonWorkingDaysMap || {}));
+                const teacherLeaveReason = data.teacherLeavesMap?.[dateKey];
                 
-                if (isFriday || isNonWorkingDay) {
+                const dayName = day.toLocaleDateString('en-US', { weekday: 'long' });
+                const isNoPeriod = filters.classId && data.subjectDays?.length > 0 && !data.subjectDays.includes(dayName) && !isFriday;
+                
+                if (isFriday || isNonWorkingDay || teacherLeaveReason || isNoPeriod) {
                     row.push("-");
                 } else {
                     const status = data.attendanceMap[student._id]?.[dateKey];
@@ -301,7 +305,8 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
             <style jsx global>{`
                 @media print {
                     @page { margin: 0; size: landscape; }
-                    body { -webkit-print-color-adjust: exact; margin: 0; padding: 0 !important; overflow: visible !important; }
+                    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+                    body { margin: 0; padding: 0 !important; overflow: visible !important; }
                     html { margin: 0; padding: 0; overflow: visible !important; }
                     
                     /* Hide App Layout Elements */
@@ -318,29 +323,6 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                     tfoot { display: table-footer-group; }
                 }
             `}</style>
-            {/* Print-only Header */}
-            <div className="hidden print:flex flex-col items-center mb-2 -mt-8 text-black print:text-black">
-                <div className="tracking-[0.2em] font-bold text-2xl uppercase leading-tight">
-                    STUDENTS ATTENDANCES
-                </div>
-                <div className="flex items-center gap-6 text-sm font-semibold uppercase tracking-wider mt-1 text-black print:text-black">
-                    <span>{new Date(0, filters.month).toLocaleString('default', { month: 'long' })} {filters.year}</span>
-                    <span>•</span>
-                    {filters.batchId && (
-                        <>
-                            <span>{batches.find(b => b._id === filters.batchId)?.name || 'Batch'}</span>
-                            <span>•</span>
-                        </>
-                    )}
-                    {filters.classId && (
-                        <>
-                            <span>{classes.find(c => c._id === filters.classId)?.name || 'Class'}</span>
-                            <span>•</span>
-                        </>
-                    )}
-                    <span>{subjects.find(s => s._id === filters.subjectId)?.name || 'Subject'}</span>
-                </div>
-            </div>
 
             {/* Filters - Hidden in Print */}
             <div className="flex flex-col xl:flex-row flex-wrap items-start xl:items-center gap-4 mb-6 print:hidden">
@@ -420,8 +402,60 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
             </div>
 
             {/* Table */}
-            <div className="border rounded-md overflow-x-auto print:max-h-none print:overflow-visible">
-                <Table>
+            <div className="border rounded-md print:max-h-none print:overflow-visible flex flex-col bg-background">
+                {/* Display Attendance Info - Attached to Table */}
+                {filters.subjectId && !loading && data.students && data.students.length > 0 && (
+                    <div className="flex flex-col items-center justify-center p-5 border-b bg-muted/5 print:border-b-gray-300 print:mb-2 print:p-4">
+                        <h2 className="text-xl font-bold uppercase tracking-widest text-foreground mb-3">
+                            Attendance Sheet
+                        </h2>
+                        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm font-medium text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs uppercase tracking-wider">Month:</span>
+                                <span className="text-foreground">{new Date(0, filters.month).toLocaleString('default', { month: 'long' })} {filters.year}</span>
+                            </div>
+                            {filters.batchId && (
+                                <>
+                                    <span className="text-border">|</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs uppercase tracking-wider">Batch:</span>
+                                        <span className="text-foreground">{batches.find(b => b._id === filters.batchId)?.name || 'All'}</span>
+                                    </div>
+                                </>
+                            )}
+                            {filters.classId && (
+                                <>
+                                    <span className="text-border">|</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs uppercase tracking-wider">Class:</span>
+                                        <span className="text-foreground">{classes.find(c => c._id === filters.classId)?.name || 'All'}</span>
+                                    </div>
+                                </>
+                            )}
+                            {filters.subjectId && (
+                                <>
+                                    <span className="text-border">|</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs uppercase tracking-wider">Subject:</span>
+                                        <span className="text-foreground">{subjects.find(s => s._id === filters.subjectId)?.name || ''}</span>
+                                    </div>
+                                </>
+                            )}
+                            {data.subjectTeacherName && (
+                                <>
+                                    <span className="text-border">|</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs uppercase tracking-wider text-primary print:!text-black">Teacher:</span>
+                                        <span className="text-foreground font-bold">{data.subjectTeacherName}</span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
+                
+                <div className="overflow-x-auto w-full">
+                    <Table>
                     <TableHeader className="sticky top-0 bg-secondary z-20 print:static">
                         <TableRow>
                             <TableHead className="w-[50px] sticky left-0 bg-secondary z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none">Sl.No</TableHead>
@@ -431,10 +465,17 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                 const isFriday = day.getDay() === 5;
                                 // Use 'in' check so empty-string occasions (legacy dates) are still treated as non-working
                                 const isNonWorkingDay = !isFriday && (dateKey in (data.nonWorkingDaysMap || {}));
+                                const teacherLeaveReason = data.teacherLeavesMap?.[dateKey];
+                                
+                                const dayName = day.toLocaleDateString('en-US', { weekday: 'long' });
+                                const isNoPeriod = filters.classId && data.subjectDays?.length > 0 && !data.subjectDays.includes(dayName) && !isFriday;
+
                                 return (
                                     <TableHead key={day.toISOString()} className={`text-center min-w-[30px] px-1 ${
-                                        isFriday ? 'bg-red-50 text-red-600 print:bg-red-100' :
-                                        isNonWorkingDay ? 'bg-orange-50 text-orange-600 print:bg-orange-100' : ''
+                                        isFriday ? 'bg-red-50 text-red-600 print:!bg-red-100 print:!text-red-600' :
+                                        teacherLeaveReason ? 'bg-blue-50 text-blue-600 print:!bg-blue-100 print:!text-blue-600' :
+                                        isNoPeriod ? 'bg-gray-100 text-gray-400 print:!bg-gray-200 print:!text-gray-400' :
+                                        isNonWorkingDay ? 'bg-orange-50 text-orange-600 print:!bg-orange-100 print:!text-orange-600' : ''
                                     }`}>
                                         <div className="flex flex-col items-center">
                                             <span className="text-xs font-bold">{day.getDate()}</span>
@@ -477,6 +518,10 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                         const occasionName = data.nonWorkingDaysMap?.[dateKey];
                                         // Use 'in' check so empty-string occasions (legacy dates) are still non-working
                                         const isNonWorkingDay = !isFriday && (dateKey in (data.nonWorkingDaysMap || {}));
+                                        const teacherLeaveReason = data.teacherLeavesMap?.[dateKey];
+                                        
+                                        const dayName = day.toLocaleDateString('en-US', { weekday: 'long' });
+                                        const isNoPeriod = filters.classId && data.subjectDays?.length > 0 && !data.subjectDays.includes(dayName) && !isFriday;
 
                                         if (isFriday) {
                                             const isMiddle = index === Math.floor(data.students.length / 2);
@@ -490,12 +535,54 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                             return (
                                                 <TableCell
                                                     key={day.toISOString()}
-                                                    className={`text-center p-0 border-l bg-red-50/50 print:bg-red-50 align-middle ${borderTop} ${borderBottom}`}
+                                                    className={`text-center p-0 border-l bg-red-50/50 print:!bg-red-50 align-middle ${borderTop} ${borderBottom}`}
                                                 >
                                                     <div className="flex items-center justify-center w-full h-12 relative overflow-visible">
                                                         {isMiddle && (
-                                                            <span className="absolute z-0 text-xl text-red-300 font-bold tracking-[1em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
+                                                            <span className="absolute z-0 text-xl text-red-300 print:!text-red-300 font-bold tracking-[1em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
                                                                 Friday
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            );
+                                        }
+
+                                        if (teacherLeaveReason) {
+                                            const isMiddle = index === Math.floor(data.students.length / 2);
+                                            const borderTop = index === 0 ? '' : 'border-t-0 print:border-t-0';
+                                            const borderBottom = index === data.students.length - 1 ? '' : 'border-b-0 print:border-b-0';
+
+                                            return (
+                                                <TableCell
+                                                    key={day.toISOString()}
+                                                    className={`text-center p-0 border-l bg-blue-50/50 print:!bg-blue-50 align-middle ${borderTop} ${borderBottom}`}
+                                                >
+                                                    <div className="flex items-center justify-center w-full h-12 relative overflow-visible">
+                                                        {isMiddle && (
+                                                            <span className="absolute z-0 text-xl text-blue-300 print:!text-blue-300 font-bold tracking-[0.2em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
+                                                                {teacherLeaveReason}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            );
+                                        }
+
+                                        if (isNoPeriod) {
+                                            const isMiddle = index === Math.floor(data.students.length / 2);
+                                            const borderTop = index === 0 ? '' : 'border-t-0 print:border-t-0';
+                                            const borderBottom = index === data.students.length - 1 ? '' : 'border-b-0 print:border-b-0';
+
+                                            return (
+                                                <TableCell
+                                                    key={day.toISOString()}
+                                                    className={`text-center p-0 border-l bg-gray-50/50 print:!bg-gray-100 align-middle ${borderTop} ${borderBottom}`}
+                                                >
+                                                    <div className="flex items-center justify-center w-full h-12 relative overflow-visible">
+                                                        {isMiddle && (
+                                                            <span className="absolute z-0 text-xl text-gray-400 print:!text-gray-400 font-bold tracking-[0.2em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
+                                                                No Period
                                                             </span>
                                                         )}
                                                     </div>
@@ -511,11 +598,11 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                             return (
                                                 <TableCell
                                                     key={day.toISOString()}
-                                                    className={`text-center p-0 border-l bg-orange-50/50 print:bg-orange-50 align-middle ${borderTop} ${borderBottom}`}
+                                                    className={`text-center p-0 border-l bg-orange-50/50 print:!bg-orange-50 align-middle ${borderTop} ${borderBottom}`}
                                                 >
                                                     <div className="flex items-center justify-center w-full h-12 relative overflow-visible">
                                                         {isMiddle && occasionName && (
-                                                            <span className="absolute z-0 text-xl text-orange-300 font-bold tracking-[0.5em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
+                                                            <span className="absolute z-0 text-xl text-orange-300 print:!text-orange-300 font-bold tracking-[0.5em] uppercase [writing-mode:vertical-lr] py-4 whitespace-nowrap">
                                                                 {occasionName}
                                                             </span>
                                                         )}
@@ -529,41 +616,19 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                         const leaveReason = data.leavesMap?.[student._id]?.[dateKey];
 
                                         if (isPresent === true) {
-                                            Icon = <Check className="w-4 h-4 text-green-600 font-bold" />;
+                                            Icon = <Check className="w-4 h-4 text-green-600 print:!text-green-600 font-bold" />;
                                         } else if (isPresent === false) {
                                             Icon = (
                                                 <div className="flex flex-col items-center">
-                                                    <X className="w-3 h-3 text-red-600" />
+                                                    <X className="w-3 h-3 text-red-600 print:!text-red-600" />
                                                     {leaveReason && (
-                                                        <span className="text-[7px] text-red-500 leading-none mt-0.5 line-clamp-1 max-w-[40px]">
+                                                        <span className="text-[7px] text-red-500 print:!text-red-500 leading-none mt-0.5 line-clamp-1 max-w-[40px]">
                                                             {leaveReason}
                                                         </span>
                                                     )}
                                                 </div>
                                             );
                                         }
-                                        // Removed previous return block - handled by replace_file_content scope implicitly?
-                                        // Wait, I need to include the return block to match the EndLine correctly or the structure.
-                                        // Actually, I can just stop here as the next line is `return (` which I didn't include in ReplacementContent
-                                        // BUT I need to make sure I am replacing the VALID range.
-                                        // Let's check StartLine 120 to EndLine 266 covers EVERYTHING from styles to tooltips?
-                                        // Line 120 is styles.
-                                        // Line 266 is inside Tooltip.
-                                        // This is a HUGE chunk.
-                                        // I should be careful.
-                                        // Maybe split it?
-                                        // No, a large chunk ensures consistency if I have the content right.
-                                        // The content I pasted above ends at `}` of `else if`.
-                                        // The original file goes on to `return ( ... <TableCell ...`.
-                                        // So I need to verify what I am replacing.
-                                        // StartLine 120: <style jsx global>...
-                                        // EndLine 244 (in original): ...Icon = <X ... />;
-                                        // My ReplacementContent ends with the `if (isPresent ...` block.
-                                        // So I should target up to there.
-
-                                        // Let's refined the chunk to be safe.
-                                        // Chunk 1: Styles to Filters.
-                                        // Chunk 2: Table Loop body (Friday + Visuals).
 
 
                                         return (
@@ -600,7 +665,7 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                     </TableBody>
                 </Table>
             </div>
-
+        </div>
         </div>
     );
 };

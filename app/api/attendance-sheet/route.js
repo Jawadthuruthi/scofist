@@ -7,6 +7,8 @@ import Subject from "@/models/Subject";
 import Attendance from "@/models/Attendance";
 import LeaveRecord from "@/models/LeaveRecord";
 import Settings from "@/models/Settings";
+import TimeTable from "@/models/TimeTable";
+import TeachersLeaveRecord from "@/models/TeachersLeaveRecord";
 
 // Helper to validate User via x-user-id header
 async function validateUser(request) {
@@ -310,11 +312,52 @@ export async function GET(request) {
             console.error("Failed to fetch non-working days from settings:", settingsErr);
         }
 
+        // 5. Fetch Teacher Leave Records
+        const teacherLeavesMap = {};
+        let subjectDays = [];
+        let subjectTeacherName = "";
+        if (classId) {
+            try {
+                const timeTable = await TimeTable.findOne({ classId }).populate("timeSlots.teacherId", "name").lean();
+                if (timeTable && timeTable.timeSlots) {
+                    const subjectSlots = timeTable.timeSlots.filter(s => String(s.subjectId) === String(subjectId));
+                    subjectDays = [...new Set(subjectSlots.map(s => s.day))];
+                    if (subjectSlots.length > 0) {
+                        subjectTeacherName = subjectSlots.map(s => s.teacherId?.name).filter(Boolean)[0] || "";
+                        const teacherLeaves = await TeachersLeaveRecord.find({
+                            classId,
+                            date: { $gte: startDate, $lte: endDate }
+                        }).lean();
+                        
+                        teacherLeaves.forEach(leave => {
+                            const d = new Date(leave.date);
+                            const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d.getDay()];
+                            
+                            const matchingSlot = subjectSlots.find(slot => 
+                                slot.day === dayName && 
+                                slot.periodNumber === leave.periodNumber &&
+                                String(slot.teacherId?._id || slot.teacherId) === String(leave.teacherId)
+                            );
+                            
+                            if (matchingSlot && leave.leaveReason) {
+                                teacherLeavesMap[d.getDate()] = leave.leaveReason;
+                            }
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch teacher leaves:", err);
+            }
+        }
+
         return NextResponse.json({
             students,
             attendanceMap,
             leavesMap,
-            nonWorkingDaysMap
+            nonWorkingDaysMap,
+            teacherLeavesMap,
+            subjectDays,
+            subjectTeacherName
         });
 
     } catch (error) {
