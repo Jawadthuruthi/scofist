@@ -486,7 +486,7 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
             const sId = typeof student.studentId === 'object' ? student.studentId?._id : student.studentId;
             return String(rId) === String(sId);
           });
-          const leaveReason = studentLeave?.leaveReason || "No Reason";
+          const leaveReason = studentLeave?.leaveReason || student?.leaveReason || "No Reason";
 
           studentsToMessage.push({
             name: student.studentName || "Student",
