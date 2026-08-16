@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Save, Printer, X, Loader, Trash2, Filter } from "lucide-react";
+import { Save, Printer, X, Loader, Trash2, Filter, AlertTriangle } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import useCrud from "@/hooks/use-crud";
 import PrintHeader from "./PrintHeader";
@@ -616,19 +616,35 @@ const CodeLettersComponent = ({
                     <span className="hidden sm:inline">Delete All</span>
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete All Code Letters?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will delete code letters for all non-evaluated programs currently shown. This action cannot be undone.
-                    </AlertDialogDescription>
+                <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
+                  <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                    <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                    </div>
+                    <div className="flex-1 text-left space-y-0.5">
+                      <AlertDialogTitle className="text-xl font-bold m-0 text-foreground">
+                        Delete All Code Letters?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription asChild>
+                        <div className="text-sm text-muted-foreground m-0">
+                          This will delete code letters for all non-evaluated programs currently shown. This action cannot be undone.
+                        </div>
+                      </AlertDialogDescription>
+                    </div>
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <AlertDialogCancel className="p-1.5 -mr-1.5 ml-1 rounded-lg border-none hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none bg-transparent h-auto mt-0">
+                        <X className="h-5 w-5" />
+                      </AlertDialogCancel>
+                    </div>
                   </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteAll}>
-                      Delete All
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
+                  <div className="p-5 flex flex-col gap-4">
+                    <AlertDialogFooter className="flex justify-between gap-4 mt-2 sm:justify-between w-full">
+                      <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/80 hover:text-destructive-foreground flex-1">
+                        Delete All
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </div>
                 </AlertDialogContent>
               </AlertDialog>
             )}
@@ -663,97 +679,126 @@ const CodeLettersComponent = ({
               <ProgramPrintWrapper key={program._id} program={program} apiKey={apiKey}>
                 {({ programPrintRef, handleProgramPrint }) => (
                   <div className="program-section">
-
-                    {/* Program heading + table: all inside programPrintRef so PrintHeader is captured per-program */}
-                    <div ref={programPrintRef}>
-                      {/* PrintHeader appears in per-program print */}
-                      <PrintHeader
-                        apiKey={apiKey}
-                        isFestival={true}
-                        title="CODE LETTERS"
-                      />
-                      {/* Program info + action buttons */}
-                      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 bg-muted/60 border border-border rounded-t-lg px-3 py-2 print:bg-gray-200 print:border-black print:rounded-none">
-                        {/* Info: stacked on mobile (left-aligned), pipe-separated + centred on desktop */}
-                        <div className="col-start-2 flex flex-col sm:flex-row items-center justify-center gap-0 text-xs sm:text-sm font-semibold text-foreground print:text-black print:text-xs">
-                          {/* Mobile: each on its own line */}
-                          <span className="block sm:hidden capitalize">
-                            <strong>Program:</strong> {program.programName}
-                          </span>
-                          <span className="block sm:hidden">
-                            <strong>Division:</strong> {program.divisionName}
-                          </span>
-                          <span className="block sm:hidden capitalize">
-                            <strong>Type:</strong> {program.programType}
-                          </span>
-                          <span className="block sm:hidden capitalize">
-                            <strong>Category:</strong> {program.programCategory}
-                          </span>
-                          {/* Desktop: pipe-separated inline, centred */}
-                          <div className="hidden sm:flex items-center">
-                            <span className="capitalize whitespace-nowrap pr-2">
-                              <strong>Program:</strong> {program.programName}
-                            </span>
-                            <span className="text-muted-foreground select-none">|</span>
-                            <span className="whitespace-nowrap px-2">
-                              <strong>Division:</strong> {program.divisionName}
-                            </span>
-                            <span className="text-muted-foreground select-none">|</span>
-                            <span className="capitalize whitespace-nowrap px-2">
-                              <strong>Type:</strong> {program.programType}
-                            </span>
-                            <span className="text-muted-foreground select-none">|</span>
-                            <span className="capitalize whitespace-nowrap pl-2">
-                              <strong>Category:</strong> {program.programCategory}
-                            </span>
-                          </div>
-                        </div>
-                        {/* Buttons: stacked on mobile (print top, delete below), side-by-side on desktop, always right */}
-                        <div className="col-start-3 flex flex-col sm:flex-row items-center justify-end gap-1 sm:gap-2 no-print shrink-0">
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={handleProgramPrint}
-                          >
-                            <Printer className="h-4 w-4" />
-                          </Button>
-                          {!program?.hasEvaluatedParticipants && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  disabled={deleteCodeLetter.isPending}
-                                >
-                                  {deleteCodeLetter.isPending ? (
-                                    <Loader className="animate-spin h-4 w-4" />
-                                  ) : (
-                                    <Trash2 className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Delete code letters for &quot;{program.programName}&quot;?
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
+                    {(() => {
+                      const deleteButton = !program?.hasEvaluatedParticipants ? (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              disabled={deleteCodeLetter.isPending}
+                            >
+                              {deleteCodeLetter.isPending ? (
+                                <Loader className="animate-spin h-4 w-4" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
+                            <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                              <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+                                <AlertTriangle className="h-5 w-5 text-destructive" />
+                              </div>
+                              <div className="flex-1 text-left space-y-0.5">
+                                <AlertDialogTitle className="text-xl font-bold m-0 text-foreground">
+                                  Delete code letters for &quot;{program.programName}&quot;?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription asChild>
+                                  <div className="text-sm text-muted-foreground m-0">
                                     This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(program.programId)}
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                        </div>
-                      </div>
+                                  </div>
+                                </AlertDialogDescription>
+                              </div>
+                              <div className="flex items-center gap-1 sm:gap-2">
+                                <AlertDialogCancel className="p-1.5 -mr-1.5 ml-1 rounded-lg border-none hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none bg-transparent h-auto mt-0">
+                                  <X className="h-5 w-5" />
+                                </AlertDialogCancel>
+                              </div>
+                            </AlertDialogHeader>
+                            <div className="p-5 flex flex-col gap-4">
+                              <AlertDialogFooter className="flex justify-between gap-4 mt-2 sm:justify-between w-full">
+                                <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(program.programId)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/80 hover:text-destructive-foreground flex-1"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </div>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      ) : null;
+
+                      return (
+                        <>
+                          {/* Program heading + table: all inside programPrintRef so PrintHeader is captured per-program */}
+                          <div ref={programPrintRef}>
+                            {/* PrintHeader appears in per-program print */}
+                            <PrintHeader
+                              apiKey={apiKey}
+                              isFestival={true}
+                              title="CODE LETTERS"
+                            />
+                            {/* Program info + action buttons */}
+                            <div className="grid grid-cols-[auto_1fr_auto] sm:grid-cols-[1fr_auto_1fr] items-center gap-2 bg-muted/60 border border-border rounded-t-lg px-3 py-2 print:bg-gray-200 print:border-black print:rounded-none">
+                              {/* Left: Mobile Delete Button */}
+                              <div className="col-start-1 flex items-center justify-start no-print shrink-0">
+                                <div className="sm:hidden">
+                                  {deleteButton}
+                                </div>
+                              </div>
+
+                              {/* Center: 4 line text on mobile, pipe-separated inline on desktop */}
+                              <div className="col-start-2 flex flex-col sm:flex-row items-center justify-center gap-0 text-xs sm:text-sm font-semibold text-foreground print:text-black print:text-xs text-center">
+                                {/* Mobile: each on its own line */}
+                                <span className="block sm:hidden capitalize">
+                                  <strong>Program:</strong> {program.programName}
+                                </span>
+                                <span className="block sm:hidden">
+                                  <strong>Division:</strong> {program.divisionName}
+                                </span>
+                                <span className="block sm:hidden capitalize">
+                                  <strong>Type:</strong> {program.programType}
+                                </span>
+                                <span className="block sm:hidden capitalize">
+                                  <strong>Category:</strong> {program.programCategory}
+                                </span>
+                                {/* Desktop: pipe-separated inline, centred */}
+                                <div className="hidden sm:flex items-center">
+                                  <span className="capitalize whitespace-nowrap pr-2">
+                                    <strong>Program:</strong> {program.programName}
+                                  </span>
+                                  <span className="text-muted-foreground select-none">|</span>
+                                  <span className="whitespace-nowrap px-2">
+                                    <strong>Division:</strong> {program.divisionName}
+                                  </span>
+                                  <span className="text-muted-foreground select-none">|</span>
+                                  <span className="capitalize whitespace-nowrap px-2">
+                                    <strong>Type:</strong> {program.programType}
+                                  </span>
+                                  <span className="text-muted-foreground select-none">|</span>
+                                  <span className="capitalize whitespace-nowrap pl-2">
+                                    <strong>Category:</strong> {program.programCategory}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Right: Print button (mobile + desktop), Delete button (desktop only) */}
+                              <div className="col-start-3 flex items-center justify-end gap-1 sm:gap-2 no-print shrink-0">
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={handleProgramPrint}
+                                >
+                                  <Printer className="h-4 w-4" />
+                                </Button>
+                                <div className="hidden sm:block">
+                                  {deleteButton}
+                                </div>
+                              </div>
+                            </div>
 
                       {/* Scrollable table - separate from the heading */}
                       <div className="table-container border border-t-0 border-border rounded-b-lg overflow-hidden print:rounded-none print:border-black">
@@ -865,6 +910,9 @@ const CodeLettersComponent = ({
                         </Button>
                       </div>
                     )}
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </ProgramPrintWrapper>
