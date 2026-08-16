@@ -19,7 +19,12 @@ export async function GET(req) {
     const accountName = searchParams.get("accountName"); // Get accountName
     console.log("Finance API GET:", { accountType, accountName, allParams: Object.fromEntries(searchParams) });
     const userHeader = req.headers.get("x-user");
-    const user = userHeader ? JSON.parse(userHeader) : null;
+    let user = null;
+    try {
+      user = userHeader ? JSON.parse(userHeader) : null;
+    } catch (parseError) {
+      console.warn("Failed to parse x-user header:", parseError.message);
+    }
     const activeRole = req.cookies.get("active-role")?.value;
     const isCollegeAdmin = activeRole === "College Admin";
 
@@ -31,7 +36,14 @@ export async function GET(req) {
     let query = {};
 
     if (isCollegeAdmin && accountType === "College") {
-      // STRICT ISOLATION: Only show records created by the current user
+      // STRICT ISOLATION: Accounts are per-user for College Admins.
+      // If user identity is missing, refuse the request entirely to prevent data leaks.
+      if (!user?._id) {
+        return NextResponse.json(
+          { success: false, error: "User identity required for College accounts" },
+          { status: 401 }
+        );
+      }
       query.userId = user._id;
     }
 
@@ -107,6 +119,7 @@ export async function GET(req) {
     const totalPages = Math.ceil(total / limit);
 
     // Calculate Summary (Global Balance or Filtered Summary)
+    // user._id is guaranteed non-null here for College Admin (401 guard above)
     const summaryUserId = (isCollegeAdmin && accountType === "College") ? user._id : null;
     const summary = await getFinanceSummary(accountType, accountName, summaryUserId, startDate, endDate);
 
@@ -141,8 +154,22 @@ export async function POST(req) {
     });
 
     const userHeader = req.headers.get("x-user");
-    const user = userHeader ? JSON.parse(userHeader) : null;
-    
+    let user = null;
+    try {
+      user = userHeader ? JSON.parse(userHeader) : null;
+    } catch (parseError) {
+      console.warn("Failed to parse x-user header in POST:", parseError.message);
+    }
+    const activeRole = req.cookies.get("active-role")?.value;
+    const isCollegeAdmin = activeRole === "College Admin";
+
+    if (isCollegeAdmin && !user?._id) {
+      return NextResponse.json(
+        { success: false, error: "User identity required for College accounts" },
+        { status: 401 }
+      );
+    }
+
     if (user?._id) {
         body.userId = user._id;
     }
@@ -179,15 +206,25 @@ export async function PUT(req) {
     delete updateData.updatedAt;
 
     const userHeader = req.headers.get("x-user");
-    const user = userHeader ? JSON.parse(userHeader) : null;
+    let user = null;
+    try {
+      user = userHeader ? JSON.parse(userHeader) : null;
+    } catch (parseError) {
+      console.warn("Failed to parse x-user header in PUT:", parseError.message);
+    }
     const activeRole = req.cookies.get("active-role")?.value;
     const isCollegeAdmin = activeRole === "College Admin";
 
     const query = { _id: { $in: ids } };
-    if (isCollegeAdmin && updateData.accountType !== "Org") { // If College Admin, restrict to their own records except for Org accounts
-        // Wait, for College Admin, accountType is usually "College". 
-        // If it's "College", we should isolate.
-        query.userId = user._id;
+    if (isCollegeAdmin && updateData.accountType !== "Org") {
+      // STRICT ISOLATION: College Admin can only update their own records
+      if (!user?._id) {
+        return NextResponse.json(
+          { success: false, error: "User identity required" },
+          { status: 401 }
+        );
+      }
+      query.userId = user._id;
     }
 
     const result = await Finance.updateMany(
@@ -222,13 +259,25 @@ export async function DELETE(req) {
     }
 
     const userHeader = req.headers.get("x-user");
-    const user = userHeader ? JSON.parse(userHeader) : null;
+    let user = null;
+    try {
+      user = userHeader ? JSON.parse(userHeader) : null;
+    } catch (parseError) {
+      console.warn("Failed to parse x-user header in DELETE:", parseError.message);
+    }
     const activeRole = req.cookies.get("active-role")?.value;
     const isCollegeAdmin = activeRole === "College Admin";
 
     const query = { _id: { $in: ids } };
     if (isCollegeAdmin) {
-        query.userId = user._id;
+      // STRICT ISOLATION: College Admin can only delete their own records
+      if (!user?._id) {
+        return NextResponse.json(
+          { success: false, error: "User identity required" },
+          { status: 401 }
+        );
+      }
+      query.userId = user._id;
     }
 
     const result = await Finance.deleteMany(query);

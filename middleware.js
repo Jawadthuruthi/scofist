@@ -987,5 +987,5 @@ function redirectTo404(req) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/library-dashboard/:path*", "/library-dashboard", "/judge-portal", "/judge-portal/:path*", "/api/x/:path*", "/", "/login"],
+  matcher: ["/dashboard/:path*", "/library-dashboard/:path*", "/library-dashboard", "/judge-portal", "/judge-portal/:path*", "/api/x/:path*", "/api/finance", "/api/finance/:path*", "/", "/login"],
 };

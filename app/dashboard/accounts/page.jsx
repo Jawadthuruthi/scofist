@@ -2,11 +2,10 @@
 import connectToDB from "@/lib/db";
 import Finance from "@/models/Finance";
 import { getFinanceSummary } from "@/libservices/financeService";
-import AccountsClient from "./AccountsClient";
+import { cookies, headers } from "next/headers";
+import AccountsClientWrapper from "./AccountsClientWrapper";
 
 export const dynamic = "force-dynamic"; // Ensure real-time updates
-
-import { cookies, headers } from "next/headers";
 
 export default async function AccountsPage({ searchParams }) {
     const cookieStore = await cookies();
@@ -50,7 +49,7 @@ export default async function AccountsPage({ searchParams }) {
                 <h1 className="font-bold text-xl md:text-2xl tracking-tight uppercase">ACCOUNTS {accountType !== "College" ? `(${accountType})` : ""}</h1>
                 <p className="text-muted-foreground">Manage your financial transactions</p>
             </div>
-            <AccountsClient activeRole={activeRole} initialSummary={summary} apiKey={apiKey} accountType={accountType} accountName={accountName} allCategories={allCategories} />
+            <AccountsClientWrapper activeRole={activeRole} initialSummary={summary} apiKey={apiKey} accountType={accountType} accountName={accountName} allCategories={allCategories} />
         </div>
     );
 }

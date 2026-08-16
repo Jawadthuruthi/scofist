@@ -24,11 +24,9 @@ import {
 } from "@/components/ui/dialog";
 
 import CategoryBalanceDialog from "./_components/CategoryBalanceDialog";
-import PrintAllDocsButton from "./_components/PrintAllDocsButton";
 
 export default function AccountsClient({ activeRole, initialSummary, apiKey, accountType = "College", accountName: initialAccountName = "", allCategories = [] }) {
     const [summary, setSummary] = useState(initialSummary);
-    const [transactions, setTransactions] = useState([]);
     const router = useRouter();
     const [accountName, setAccountName] = useState(initialAccountName || "");
     const [availableAccountNames, setAvailableAccountNames] = useState([]);
@@ -294,9 +292,6 @@ export default function AccountsClient({ activeRole, initialSummary, apiKey, acc
     const handleDataFetched = useCallback((data) => {
         if (data?.summary) {
             setSummary(data.summary);
-        }
-        if (data?.finance) {
-            setTransactions(data.finance);
         }
     }, []);
 
@@ -644,9 +639,6 @@ export default function AccountsClient({ activeRole, initialSummary, apiKey, acc
                 additionalProps={{
                     customActions: (
                         <div className="flex items-center gap-2">
-                            {transactions?.length > 0 && (
-                                <PrintAllDocsButton transactions={transactions} apiKey={apiKey} />
-                            )}
                             {summary?.categories && (
                                 <CategoryBalanceDialog categories={summary.categories} totalBalance={summary.totalBalance} />
                             )}
