@@ -1,5 +1,6 @@
 // app/api/program-registration/route.js - OPTIMIZED VERSION
 import { NextResponse } from "next/server";
+import { jwtVerify } from "jose";
 import connectToDB from "@/lib/db";
 import ProgramRegistration from "@/models/ProgramRegistration";
 import Program from "@/models/Program";
@@ -7,6 +8,33 @@ import Participant from "@/models/Participant";
 import Team from "@/models/Team";
 import mongoose from "mongoose";
 import { getYear } from "@/lib/getYear";
+
+const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
+
+// Extract userId from auth token cookie when x-user header is not available
+// (this route is not in the middleware matcher, so x-user is not injected)
+async function getUserIdFromRequest(request) {
+  const userStr = request.headers?.get("x-user");
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      return user?.userId || user?._id || null;
+    } catch {
+      // fall through
+    }
+  }
+  // Fallback: decode the auth token from cookie
+  const token =
+    request.cookies?.get("auth-token")?.value ||
+    request.cookies?.get("custom-member-token")?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, SECRET_KEY);
+    return payload.userId || null;
+  } catch {
+    return null;
+  }
+}
 
 // Helpers
 const toId = (v) =>
@@ -48,9 +76,7 @@ export async function GET(request) {
     
     // Extract user and role for authorization
     const activeRole = request.cookies?.get("active-role")?.value;
-    const userStr = request.headers?.get("x-user");
-    const user = userStr ? JSON.parse(userStr) : {};
-    const userId = user?.userId || user?._id;
+    const userId = await getUserIdFromRequest(request);
     const limitParam = searchParams.get("limit");
     const limit = limitParam !== null ? parseInt(limitParam) : 50;
     const skip = page * (limit || 1);
