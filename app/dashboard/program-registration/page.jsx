@@ -247,7 +247,10 @@ export default async function ProgramRegistrationPage() {
       };
     }
 
-    const deadline = new Date(settings?.festival?.registrationDeadline);
+    let deadline = new Date(settings?.festival?.registrationDeadline);
+    if (!isNaN(deadline.getTime())) {
+      deadline.setHours(23, 59, 59, 999);
+    }
 
     return (
       <>
