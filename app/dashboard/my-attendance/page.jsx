@@ -34,3 +34,4 @@ const MyAttendancePage = async () => {
 };
 
 export default MyAttendancePage;
+export const dynamic = "force-dynamic";

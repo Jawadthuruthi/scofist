@@ -8,3 +8,5 @@ export default async function Page() {
 
     return <LibraryDashboard view="rentals" initialRentals={initialRentals} initialPendingRequests={initialPendingRequests} classes={classes} />;
 }
+
+export const dynamic = "force-dynamic";

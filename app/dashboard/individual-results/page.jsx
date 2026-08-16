@@ -50,4 +50,4 @@ export default async function IndividualResultsPage() {
   }
 }
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
