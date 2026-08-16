@@ -48,7 +48,7 @@ const Header = ({ title, subTitle, alertTitle, alertDescription, rightAction }) 
                 {alertDescription || "This is an informational message."}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="justify-center">
               <AlertDialogAction onClick={() => setIsAlertOpen(false)}>
                 Got it
               </AlertDialogAction>

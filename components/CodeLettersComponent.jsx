@@ -43,6 +43,29 @@ import {
 import { MultiSelect } from "./ui/multi-select";
 import { formatOptions } from "@/lib/utils";
 
+// Per-program print wrapper component
+const ProgramPrintWrapper = ({ program, apiKey, children }) => {
+  const programPrintRef = useRef();
+  const handleProgramPrint = useReactToPrint({
+    contentRef: programPrintRef,
+    documentTitle: `Code Letters - ${program.programName}`,
+    pageStyle: `
+      @page { size: A4 portrait; margin: 0.5in; }
+      @media print {
+        body { -webkit-print-color-adjust: exact; font-size: 12px; }
+        .no-print { display: none !important; }
+        table { border-collapse: collapse !important; border: 1px solid #000 !important; width: 100% !important; }
+        table th, table td { border: 1px solid #000 !important; padding: 2px 4px !important; text-align: center !important; vertical-align: middle !important; font-size: 10px !important; }
+        table th { background-color: #f5f5f5 !important; font-weight: bold !important; color: #000 !important; }
+        .code-letter-cell { text-align: center !important; font-weight: bold !important; }
+        .participant-name-col { text-align: left !important; }
+        .sign-column { width: 60px !important; }
+      }
+    `,
+  });
+  return children({ programPrintRef, handleProgramPrint });
+};
+
 const CodeLettersComponent = ({
   divisions = [],
   apiKey,
@@ -341,6 +364,28 @@ const CodeLettersComponent = ({
     }
   };
 
+  const [deletingAll, setDeletingAll] = useState(false);
+  const handleDeleteAll = async () => {
+    try {
+      setDeletingAll(true);
+      const nonEvaluated = filteredPrograms.filter(
+        (p) => !p.hasEvaluatedParticipants
+      );
+      await Promise.all(
+        nonEvaluated.map((program) =>
+          deleteCodeLetter.mutateAsync({ data: { programId: program.programId } })
+        )
+      );
+      await fetchRegistrationsQuery.refetch();
+      toast.success("All code letters deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting all code letters:", error);
+      toast.error(error.message || "Failed to delete all code letters");
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   // Handle print
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -538,7 +583,7 @@ const CodeLettersComponent = ({
             </Select>
           </div>
 
-          {/* Bottom row on mobile / Right side on desktop: Program select */}
+          {/* Bottom row on mobile / Right side on desktop: Program select + Delete All / Print All */}
           <div className="flex items-center gap-2 w-full sm:w-auto flex-[2] sm:min-w-[160px]">
             <MultiSelect
               options={formatOptions(programsData)}
@@ -553,6 +598,51 @@ const CodeLettersComponent = ({
                 <X className="h-4 w-4" />
               </Button>
             )}
+            {/* Delete All */}
+            {filteredPrograms.some((p) => !p.hasEvaluatedParticipants) && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={deletingAll}
+                    className="whitespace-nowrap"
+                  >
+                    {deletingAll ? (
+                      <Loader className="animate-spin h-4 w-4 sm:mr-1" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 sm:mr-1" />
+                    )}
+                    <span className="hidden sm:inline">Delete All</span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete All Code Letters?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will delete code letters for all non-evaluated programs currently shown. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteAll}>
+                      Delete All
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            {/* Print All */}
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handlePrint}
+              disabled={filteredPrograms.length === 0}
+              className="whitespace-nowrap"
+            >
+              <Printer className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Print All</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -570,200 +660,214 @@ const CodeLettersComponent = ({
         ) : filteredPrograms.length > 0 ? (
           <div className="space-y-8 print:space-y-0">
             {filteredPrograms.map((program, programIndex) => (
-              <div key={program._id} className="program-section">
-                {/* Header */}
-                <PrintHeader
-                  apiKey={apiKey}
-                  isFestival={true}
-                  title="CODE LETTERS"
-                />
-                {/* Program Header */}
-                <div className="program-info mb-4 p-3 sm:p-4 bg-muted rounded-lg border print:bg-transparent print:border-none print:p-1 print:mb-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-wrap justify-center w-full gap-2 sm:gap-4 text-xs sm:text-sm text-foreground print:text-black print:text-xs">
-                      <span className="capitalize whitespace-nowrap">
-                        <strong>Program:</strong> {program.programName}
-                      </span>
-                      <span className="whitespace-nowrap">
-                        <strong>Division:</strong> {program.divisionName}
-                      </span>
-                      <span className="capitalize whitespace-nowrap">
-                        <strong>Type:</strong> {program.programType}
-                      </span>
-                      <span className="capitalize whitespace-nowrap">
-                        <strong>Category:</strong> {program.programCategory}
-                      </span>
-                    </div>
+              <ProgramPrintWrapper key={program._id} program={program} apiKey={apiKey}>
+                {({ programPrintRef, handleProgramPrint }) => (
+                  <div className="program-section">
 
-                    {!program?.hasEvaluatedParticipants && (
-                      <div className="flex items-center justify-center sm:justify-end w-full sm:w-auto mt-3 sm:mt-0 gap-2 no-print">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              disabled={deleteCodeLetter.isPending}
-                            >
-                              {deleteCodeLetter.isPending ? (
-                                <Loader className="animate-spin h-4 w-4" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Are you sure you want to delete this?
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(program.programId)}
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={handlePrint}
-                          disabled={filteredPrograms.length === 0}
-                        >
-                          <Printer className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                    {program?.hasEvaluatedParticipants && (
-                      <div className="flex items-center justify-center sm:justify-end w-full sm:w-auto mt-3 sm:mt-0 gap-2 no-print">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={handlePrint}
-                          disabled={filteredPrograms.length === 0}
-                        >
-                          <Printer className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Participants Table with Horizontal Scroll */}
-                <div className="table-container border rounded-lg overflow-hidden print:rounded-none print:border-none">
-                  <div className="overflow-x-auto print:overflow-visible h-full">
-                    <Table className="min-w-full">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12 text-center whitespace-nowrap border-t border-r border-border print:border-black">
-                            Sl.
-                          </TableHead>
-                          <TableHead className="w-24 text-center whitespace-nowrap border-t border-r border-border print:border-black">
-                            Chest No.
-                          </TableHead>
-                          <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border print:border-black participant-name-col">
-                            Participant Name
-                          </TableHead>
-                          <TableHead className="min-w-[120px] whitespace-nowrap border-t border-r border-border print:border-black">
-                            Team
-                          </TableHead>
-                          <TableHead className="w-32 text-center whitespace-nowrap border-t border-r border-border print:border-black">
-                            Code Letter
-                          </TableHead>
-                          <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border hidden print:table-cell print:border-black sign-column">
-                            Sign
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {program.participants.length > 0 ? (
-                          program.participants
-                            ?.sort((a, b) => a.chestNumber - b.chestNumber)
-                            .map((participant, index) => (
-                              <TableRow key={participant.uniqueId}>
-                                <TableCell className="text-center font-medium border-t border-r border-border print:border-black">
-                                  {index + 1}
-                                </TableCell>
-                                <TableCell className="text-center border-t border-r border-border print:border-black">
-                                  {participant.chestNumber || "-"}
-                                </TableCell>
-                                <TableCell className="font-medium border-t border-r whitespace-nowrap border-border print:border-black participant-name-col">
-                                  {participant.name || "N/A"}
-                                </TableCell>
-                                <TableCell className="border-t border-r border-border print:border-black">
-                                  {participant.teamName || "N/A"}
-                                </TableCell>
-
-                                <TableCell className="text-center border-t border-r border-border p-0 print:border-black code-letter-cell">
-                                  <span className="hidden print:inline font-bold whitespace-nowrap">
-                                    {participant.codeLetter || ""}
-                                  </span>
-                                  {participant.isEvaluated ? (
-                                    <span className="no-print font-medium p-2 text-red-600 whitespace-nowrap">
-                                      {participant.codeLetter || "-"}
-                                    </span>
+                    {/* Program heading + table: all inside programPrintRef so PrintHeader is captured per-program */}
+                    <div ref={programPrintRef}>
+                      {/* PrintHeader appears in per-program print */}
+                      <PrintHeader
+                        apiKey={apiKey}
+                        isFestival={true}
+                        title="CODE LETTERS"
+                      />
+                      {/* Program info + action buttons */}
+                      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 bg-muted/60 border border-border rounded-t-lg px-3 py-2 print:bg-gray-200 print:border-black print:rounded-none">
+                        {/* Info: stacked on mobile (left-aligned), pipe-separated + centred on desktop */}
+                        <div className="col-start-2 flex flex-col sm:flex-row items-center justify-center gap-0 text-xs sm:text-sm font-semibold text-foreground print:text-black print:text-xs">
+                          {/* Mobile: each on its own line */}
+                          <span className="block sm:hidden capitalize">
+                            <strong>Program:</strong> {program.programName}
+                          </span>
+                          <span className="block sm:hidden">
+                            <strong>Division:</strong> {program.divisionName}
+                          </span>
+                          <span className="block sm:hidden capitalize">
+                            <strong>Type:</strong> {program.programType}
+                          </span>
+                          <span className="block sm:hidden capitalize">
+                            <strong>Category:</strong> {program.programCategory}
+                          </span>
+                          {/* Desktop: pipe-separated inline, centred */}
+                          <div className="hidden sm:flex items-center">
+                            <span className="capitalize whitespace-nowrap pr-2">
+                              <strong>Program:</strong> {program.programName}
+                            </span>
+                            <span className="text-muted-foreground select-none">|</span>
+                            <span className="whitespace-nowrap px-2">
+                              <strong>Division:</strong> {program.divisionName}
+                            </span>
+                            <span className="text-muted-foreground select-none">|</span>
+                            <span className="capitalize whitespace-nowrap px-2">
+                              <strong>Type:</strong> {program.programType}
+                            </span>
+                            <span className="text-muted-foreground select-none">|</span>
+                            <span className="capitalize whitespace-nowrap pl-2">
+                              <strong>Category:</strong> {program.programCategory}
+                            </span>
+                          </div>
+                        </div>
+                        {/* Buttons: stacked on mobile (print top, delete below), side-by-side on desktop, always right */}
+                        <div className="col-start-3 flex flex-col sm:flex-row items-center justify-end gap-1 sm:gap-2 no-print shrink-0">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={handleProgramPrint}
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                          {!program?.hasEvaluatedParticipants && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  disabled={deleteCodeLetter.isPending}
+                                >
+                                  {deleteCodeLetter.isPending ? (
+                                    <Loader className="animate-spin h-4 w-4" />
                                   ) : (
-                                    <Input
-                                      value={participant.codeLetter || ""}
-                                      onChange={(e) =>
-                                        handleCodeLetterChange(
-                                          participant.uniqueId,
-                                          e.target.value.toUpperCase()
-                                        )
-                                      }
-                                      onKeyDown={(e) =>
-                                        handleCodeLetterKeyDown(e, participant.uniqueId)
-                                      }
-                                      data-codeletter-id={participant.uniqueId}
-                                      className="no-print min-w-full min-h-full rounded-none border-none m-0 p-0 text-center text-sm mx-auto"
-                                      maxLength={5}
-                                      placeholder="Code"
-                                    />
+                                    <Trash2 className="h-4 w-4" />
                                   )}
-                                </TableCell>
-                                <TableCell className="text-center hidden print:table-cell whitespace-nowrap border-t border-r border-border print:border-black">
-                                  <div className="h-6 w-16 mx-auto"></div>
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete code letters for &quot;{program.programName}&quot;?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(program.programId)}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Scrollable table - separate from the heading */}
+                      <div className="table-container border border-t-0 border-border rounded-b-lg overflow-hidden print:rounded-none print:border-black">
+                        <div className="overflow-x-auto print:overflow-visible h-full">
+                          <Table className="min-w-full">
+                            <TableHeader>
+                              {/* Column headers */}
+                              <TableRow>
+                                <TableHead className="w-12 text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                                  Sl.
+                                </TableHead>
+                                <TableHead className="w-24 text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                                  Chest No.
+                                </TableHead>
+                                <TableHead className="min-w-[150px] whitespace-nowrap border-t border-r border-border print:border-black participant-name-col">
+                                  Participant Name
+                                </TableHead>
+                                <TableHead className="min-w-[120px] whitespace-nowrap border-t border-r border-border print:border-black">
+                                  Team
+                                </TableHead>
+                                <TableHead className="w-32 text-center whitespace-nowrap border-t border-r border-border print:border-black">
+                                  Code Letter
+                                </TableHead>
+                                <TableHead className="w-20 text-center whitespace-nowrap border-t border-r border-border hidden print:table-cell print:border-black sign-column">
+                                  Sign
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                          <TableBody>
+                            {program.participants.length > 0 ? (
+                              program.participants
+                                ?.sort((a, b) => a.chestNumber - b.chestNumber)
+                                .map((participant, index) => (
+                                  <TableRow key={participant.uniqueId}>
+                                    <TableCell className="text-center font-medium border-t border-r border-border print:border-black">
+                                      {index + 1}
+                                    </TableCell>
+                                    <TableCell className="text-center border-t border-r border-border print:border-black">
+                                      {participant.chestNumber || "-"}
+                                    </TableCell>
+                                    <TableCell className="font-medium border-t border-r whitespace-nowrap border-border print:border-black participant-name-col">
+                                      {participant.name || "N/A"}
+                                    </TableCell>
+                                    <TableCell className="border-t border-r border-border print:border-black">
+                                      {participant.teamName || "N/A"}
+                                    </TableCell>
+                                    <TableCell className="text-center border-t border-r border-border p-0 print:border-black code-letter-cell">
+                                      <span className="hidden print:inline font-bold whitespace-nowrap">
+                                        {participant.codeLetter || ""}
+                                      </span>
+                                      {participant.isEvaluated ? (
+                                        <span className="no-print font-medium p-2 text-red-600 whitespace-nowrap">
+                                          {participant.codeLetter || "-"}
+                                        </span>
+                                      ) : (
+                                        <Input
+                                          value={participant.codeLetter || ""}
+                                          onChange={(e) =>
+                                            handleCodeLetterChange(
+                                              participant.uniqueId,
+                                              e.target.value.toUpperCase()
+                                            )
+                                          }
+                                          onKeyDown={(e) =>
+                                            handleCodeLetterKeyDown(e, participant.uniqueId)
+                                          }
+                                          data-codeletter-id={participant.uniqueId}
+                                          className="no-print min-w-full min-h-full rounded-none border-none m-0 p-0 text-center text-sm mx-auto"
+                                          maxLength={5}
+                                          placeholder="Code"
+                                        />
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-center hidden print:table-cell whitespace-nowrap border-t border-r border-border print:border-black">
+                                      <div className="h-6 w-16 mx-auto"></div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                            ) : (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={6}
+                                  className="text-center py-6 text-muted-foreground print:border-black"
+                                >
+                                  No participants found for this program
                                 </TableCell>
                               </TableRow>
-                            ))
-                        ) : (
-                          <TableRow>
-                            <TableCell
-                              colSpan={7}
-                              className="text-center py-6 text-muted-foreground print:border-black"
-                            >
-                              No participants found for this program
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
 
-                {/* Save button below table */}
-                {hasUnsavedChanges && (
-                  <div className="no-print flex justify-end mt-2">
-                    <Button
-                      onClick={handleSave}
-                      disabled={saving}
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <Save className="mr-2 h-4 w-4" />
-                      {saving
-                        ? "Saving..."
-                        : `Save (${Object.keys(changes).length})`}
-                    </Button>
+                    </div>{/* end programPrintRef */}
+
+                    {/* Save button below table */}
+                    {hasUnsavedChanges && (
+                      <div className="no-print flex justify-end mt-2">
+                        <Button
+                          onClick={handleSave}
+                          disabled={saving}
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Save className="mr-2 h-4 w-4" />
+                          {saving
+                            ? "Saving..."
+                            : `Save (${Object.keys(changes).length})`}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
+              </ProgramPrintWrapper>
             ))}
           </div>
         ) : (
