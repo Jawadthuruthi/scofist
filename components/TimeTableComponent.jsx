@@ -88,29 +88,39 @@ const AbsenteesDialog = ({
   const handleDownload = async () => {
     if (!popupRef.current) return;
     try {
-      const currentWidth = popupRef.current.offsetWidth + 'px';
+      const el = popupRef.current;
+      // Capture the actual rendered width so the download matches what the user sees
+      // (desktop: up to max-w-md, mobile: near full viewport width)
+      const currentWidth = el.offsetWidth;
       const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(popupRef.current, { 
-        scale: 2, 
+      const canvas = await html2canvas(el, { 
+        scale: 2,
+        width: currentWidth,
         useCORS: true,
+        scrollX: 0,
+        scrollY: 0,
         onclone: (clonedDoc) => {
           const clonedPopup = clonedDoc.querySelector('[data-html2canvas-popup="true"]');
           if (clonedPopup) {
+            // Remove height constraints so all rows are captured
             clonedPopup.style.maxHeight = 'none';
             clonedPopup.style.height = 'auto';
-            clonedPopup.style.width = currentWidth;
-            clonedPopup.style.maxWidth = currentWidth;
+            // Preserve the same width as the visible popup (responsive)
+            clonedPopup.style.width = currentWidth + 'px';
+            clonedPopup.style.maxWidth = currentWidth + 'px';
+            clonedPopup.style.minWidth = 'unset';
             clonedPopup.style.position = 'relative';
             clonedPopup.style.transform = 'none';
             clonedPopup.style.left = 'auto';
             clonedPopup.style.top = 'auto';
+            clonedPopup.style.overflow = 'visible';
 
-            const scrollableDiv = clonedPopup.querySelector('.overflow-y-auto');
-            if (scrollableDiv) {
-              scrollableDiv.style.maxHeight = 'none';
-              scrollableDiv.style.height = 'auto';
-              scrollableDiv.style.overflow = 'visible';
-            }
+            // Expand any inner scrollable areas
+            clonedPopup.querySelectorAll('.overflow-y-auto, .overflow-hidden').forEach((div) => {
+              div.style.maxHeight = 'none';
+              div.style.height = 'auto';
+              div.style.overflow = 'visible';
+            });
           }
         }
       });
