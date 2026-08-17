@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useMemo, useCallback, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -236,7 +236,8 @@ function PublicResultsContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const searchParams = useSearchParams();
-  const yearParam = searchParams.get("year") || "2025 november";
+  const params = useParams();
+  const yearParam = (params && params.year) ? decodeURIComponent(params.year) : searchParams.get("year") || "2025 november";
   const yearQuery = `year=${encodeURIComponent(yearParam)}&`;
   const yearQueryOnly = `?year=${encodeURIComponent(yearParam)}`;
 
