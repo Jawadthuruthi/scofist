@@ -32,7 +32,59 @@ const FestivalSchema = new Schema({
       default: "Sa-adiya Da-awa College",
     },
   },
+  festivalLogo: {
+    url: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+        message: "Invalid URL format",
+      },
+    },
+    publicId: {
+      type: String,
+    },
+  },
   festivalNameImage: {
+    url: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+        message: "Invalid URL format",
+      },
+    },
+    publicId: {
+      type: String,
+    },
+  },
+  festivalFullNameImage: {
+    url: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+        message: "Invalid URL format",
+      },
+    },
+    publicId: {
+      type: String,
+    },
+  },
+  festivalThemeImage: {
+    url: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: (v) => !v || /^(http|https):\/\/[^ "]+$/.test(v),
+        message: "Invalid URL format",
+      },
+    },
+    publicId: {
+      type: String,
+    },
+  },
+  festivalVenueImage: {
     url: {
       type: String,
       trim: true,
@@ -87,6 +139,12 @@ const FestivalSchema = new Schema({
       },
     },
     textPositions: {
+      top: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 0,
+      },
       right: {
         type: Number,
         min: 0,

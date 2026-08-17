@@ -59,7 +59,7 @@ const SectionNavigation = ({
   </div>
 );
 
-const FormFields = ({ form, fields, apiKey }) =>
+const FormFields = ({ form, fields, apiKey, isSubmitting }) =>
   fields.map((field, idx) => (
     <FormField
       key={idx}
@@ -88,6 +88,8 @@ const FormFields = ({ form, fields, apiKey }) =>
                 maxHeight={field.maxHeight}
                 aspectRatio={field.aspectRatio}
                 readOnly={field.readOnly}
+                hasSubmitButton={field.hasSubmitButton}
+                isSubmitting={isSubmitting}
               />
             ) : field.inputType === "select" ||
               field.inputType === "multiSelect" ? (
@@ -135,11 +137,22 @@ const FormFields = ({ form, fields, apiKey }) =>
                 readOnly={field.readOnly}
                 rows={field.rows || 3}
               />
+            ) : field.inputType === "submit" ? (
+              <div className="w-full">
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting} 
+                  className={field.buttonClassName || "w-full bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"}
+                >
+                  {isSubmitting ? <Loader className="animate-spin h-4 w-4 mr-2" /> : (field.buttonText || "Submit")}
+                </Button>
+              </div>
             ) : (
               <Input
                 type={field.type || "text"}
                 placeholder={field.placeholder}
                 {...formField}
+                value={typeof formField.value === "object" && formField.value !== null && !Array.isArray(formField.value) ? "" : formField.value}
                 readOnly={field.readOnly}
               />
             )}
@@ -159,6 +172,7 @@ const FormContent = ({
   apiKey,
   hideSubmitOn,
   gridCols = "grid-cols-2 md:grid-cols-2",
+  hideDefaultSubmit = false,
 }) => {
   const sectionRefs = React.useRef([]);
 
@@ -189,7 +203,7 @@ const FormContent = ({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(handleSubmit)}
-        className="max-w-full overflow-hidden"
+        className="max-w-full pb-2"
       >
         {totalSections > 1 && (
           <div className="mb-4">
@@ -223,47 +237,50 @@ const FormContent = ({
                 form={form}
                 fields={sections[section]}
                 apiKey={apiKey}
+                isSubmitting={loading}
               />
             </div>
           ))}
         </div>
-        <div className="flex gap-3 mt-8">
-          {activeSectionIndex > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setActiveSectionIndex((prev) => prev - 1)}
-            >
-              Previous
-            </Button>
-          )}
-          {activeSectionIndex === totalSections - 1 ? (
-            (!hideSubmitOn ||
-              form.getValues()[hideSubmitOn.field] !== hideSubmitOn.value ||
-              form.formState.isDirty) && (
-              <Button className="ml-auto" type="submit" disabled={loading}>
-                {loading ? (
-                  <Loader className="animate-spin mr-2" />
-                ) : data ? (
-                  "Save changes"
-                ) : (
-                  "Submit"
-                )}
+        {!hideDefaultSubmit && (
+          <div className="flex gap-3 mt-8">
+            {activeSectionIndex > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveSectionIndex((prev) => prev - 1)}
+              >
+                Previous
               </Button>
-            )
-          ) : (
-            <Button
-              type="button"
-              className="ml-auto"
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveSectionIndex((prev) => prev + 1);
-              }}
-            >
-              Next
-            </Button>
-          )}
-        </div>
+            )}
+            {activeSectionIndex === totalSections - 1 ? (
+              (!hideSubmitOn ||
+                form.getValues()[hideSubmitOn.field] !== hideSubmitOn.value ||
+                form.formState.isDirty) && (
+                <Button className="ml-auto" type="submit" disabled={loading}>
+                  {loading ? (
+                    <Loader className="animate-spin mr-2" />
+                  ) : data ? (
+                    "Save changes"
+                  ) : (
+                    "Submit"
+                  )}
+                </Button>
+              )
+            ) : (
+              <Button
+                type="button"
+                className="ml-auto"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveSectionIndex((prev) => prev + 1);
+                }}
+              >
+                Next
+              </Button>
+            )}
+          </div>
+        )}
       </form>
     </Form>
   );
@@ -281,6 +298,8 @@ export default function FormComponent({
   hideSubmitOn,
   onSuccess,
   gridCols,
+  removeCardWrapper = false,
+  hideDefaultSubmit = false,
 }) {
   const [customizedFormField, setCustomizedFormField] =
     React.useState(formFields);
@@ -368,6 +387,37 @@ export default function FormComponent({
     );
   }, [data, formFields, formValues]);
 
+  const content = (
+    <FormContent
+      key={data ? `edit-${data?._id}` : `create ${title}`}
+      form={form}
+      formFields={customizedFormField}
+      handleSubmit={handleSubmit}
+      data={data}
+      loading={loading}
+      apiKey={apiKey}
+      hideSubmitOn={hideSubmitOn}
+      gridCols={gridCols}
+      hideDefaultSubmit={hideDefaultSubmit}
+    />
+  );
+
+  if (removeCardWrapper) {
+    return (
+      <div className={title || description ? "space-y-4" : ""}>
+        {(title || description) && (
+          <div className="space-y-1.5 px-2">
+            {title && <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>}
+            {description && <p className="text-sm text-muted-foreground">{description}</p>}
+          </div>
+        )}
+        <div className={title || description ? "px-2" : ""}>
+          {content}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Card>
       <CardHeader className={title || description ? "p-6 pb-0" : "p-2"}>
@@ -381,17 +431,7 @@ export default function FormComponent({
         </div>
       </CardHeader>
       <CardContent>
-        <FormContent
-          key={data ? `edit-${data?._id}` : `create ${title}`}
-          form={form}
-          formFields={customizedFormField}
-          handleSubmit={handleSubmit}
-          data={data}
-          loading={loading}
-          apiKey={apiKey}
-          hideSubmitOn={hideSubmitOn}
-          gridCols={gridCols}
-        />
+        {content}
       </CardContent>
     </Card>
   );

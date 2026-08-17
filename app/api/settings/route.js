@@ -173,6 +173,14 @@ export async function POST(req, res) {
         },
         festivalNameImage:
           data.festivalNameImage ?? existingSettings?.festival?.festivalNameImage,
+        festivalFullNameImage:
+          data.festivalFullNameImage ?? existingSettings?.festival?.festivalFullNameImage,
+        festivalLogo:
+          data.festivalLogo ?? existingSettings?.festival?.festivalLogo,
+        festivalThemeImage:
+          data.festivalThemeImage ?? existingSettings?.festival?.festivalThemeImage,
+        festivalVenueImage:
+          data.festivalVenueImage ?? existingSettings?.festival?.festivalVenueImage,
         printHeader:
           data.printHeader ?? existingSettings?.festival?.printHeader,
         registrationDeadline:
@@ -186,6 +194,10 @@ export async function POST(req, res) {
             data.textColor ??
             existingSettings?.festival?.participantsCard?.textColor,
           textPositions: {
+            top:
+              data.top ??
+              existingSettings?.festival?.participantsCard?.textPositions
+                ?.top,
             right:
               data.right ??
               existingSettings?.festival?.participantsCard?.textPositions
@@ -733,11 +745,16 @@ export async function PUT(req) {
       data.festival_venue ||
       data.festival_startDate ||
       data.festival_endDate ||
+      data.festivalLogo ||
       data.festivalNameImage ||
+      data.festivalFullNameImage ||
+      data.festivalThemeImage ||
+      data.festivalVenueImage ||
       data.printHeader ||
       data.registrationDeadline ||
       data.participantsCard ||
       data.textColor ||
+      data.top !== undefined ||
       data.right !== undefined ||
       data.bottom !== undefined ||
       data.left !== undefined ||
@@ -782,6 +799,14 @@ export async function PUT(req) {
         },
         festivalNameImage:
           data.festivalNameImage ?? existingFestivalForYear.festivalNameImage,
+        festivalFullNameImage:
+          data.festivalFullNameImage ?? existingFestivalForYear.festivalFullNameImage,
+        festivalLogo:
+          data.festivalLogo ?? existingFestivalForYear.festivalLogo,
+        festivalThemeImage:
+          data.festivalThemeImage ?? existingFestivalForYear.festivalThemeImage,
+        festivalVenueImage:
+          data.festivalVenueImage ?? existingFestivalForYear.festivalVenueImage,
         printHeader:
           data.printHeader ?? existingFestivalForYear.printHeader,
         registrationDeadline:
@@ -795,6 +820,9 @@ export async function PUT(req) {
             data.textColor ??
             existingFestivalForYear.participantsCard?.textColor,
           textPositions: {
+            top:
+              data.top ??
+              existingFestivalForYear.participantsCard?.textPositions?.top,
             right:
               data.right ??
               existingFestivalForYear.participantsCard?.textPositions?.right,

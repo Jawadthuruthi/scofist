@@ -28,37 +28,17 @@ export default async function SettingsPage() {
     };
 
     const festival = {
-      festival_name: data.festival?.festivalInfo?.name || "",
-      festival_theme: data.festival?.festivalInfo?.theme || "",
+      festival_name: typeof data.festival?.festivalInfo?.name === "string" ? data.festival?.festivalInfo?.name : "",
+      festival_theme: typeof data.festival?.festivalInfo?.theme === "string" ? data.festival?.festivalInfo?.theme : "",
       festival_year:
         data.festival?.festivalInfo?.year || new Date().getFullYear(),
-      festival_venue: data.festival?.festivalInfo?.venue || "",
-      festival_startDate: data.festival?.festivalInfo?.dates?.startDate
-        ? new Date(data.festival.festivalInfo.dates.startDate)
-            .toISOString()
-            .split("T")[0]
-        : "",
-      festival_endDate: data.festival?.festivalInfo?.dates?.endDate
-        ? new Date(data.festival.festivalInfo.dates.endDate)
-            .toISOString()
-            .split("T")[0]
-        : "",
-      participantsCard: data.festival?.participantsCard?.backgroundImage || {},
-      textColor: data.festival?.participantsCard?.textColor || "#000000",
-      right: data.festival?.participantsCard?.textPositions?.right || 0,
-      bottom: data.festival?.participantsCard?.textPositions?.bottom || 0,
-      left: data.festival?.participantsCard?.textPositions?.left || 0,
+      festival_venue: typeof data.festival?.festivalInfo?.venue === "string" ? data.festival?.festivalInfo?.venue : "",
       festivalNameImage: data.festival?.festivalNameImage || {},
+      festivalFullNameImage: data.festival?.festivalFullNameImage || {},
+      festivalLogo: data.festival?.festivalLogo || {},
+      festivalThemeImage: data.festival?.festivalThemeImage || {},
+      festivalVenueImage: data.festival?.festivalVenueImage || {},
       printHeader: data.festival?.printHeader || {},
-      registrationDeadline: (() => {
-        try {
-          if (!data.festival?.registrationDeadline) return "";
-          const date = new Date(data.festival.registrationDeadline);
-          return isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
-        } catch (e) {
-          return "";
-        }
-      })(),
       instructions: data.festival?.instructions || "",
       chairmanName: data.festival?.committeeContacts?.chairman?.name || "",
       chairmanPhone: data.festival?.committeeContacts?.chairman?.phone || "",
@@ -100,7 +80,7 @@ export default async function SettingsPage() {
 
     return (
       <>
-        <Header title="SETTINGS" subTitle="Customize System Behavior" />
+        <Header title="FESTIVAL SETTINGS" subTitle="Configure Festival Details" />
         <SettingsClient
           activeRole={activeRole}
           apiKey={apiKey}

@@ -1,6 +1,7 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
+import ProgramRegistrationSettings from "@/components/ProgramRegistrationSettings";
 import { fetchData, formatOptions, parseUser } from "@/lib/utils";
 import { cookies, headers } from "next/headers";
 
@@ -270,6 +271,14 @@ export default async function ProgramRegistrationPage() {
             activeRole === "Program Leader" && deadline > new Date()
               ? `Please register before ${String(deadline.getDate()).padStart(2, "0")}-${String(deadline.getMonth() + 1).padStart(2, "0")}-${deadline.getFullYear()}.`
               : ""
+          }
+          rightAction={
+            activeRole === "Program Committee" ? (
+              <ProgramRegistrationSettings
+                festivalSettings={settings?.festival}
+                apiKey={apiKey}
+              />
+            ) : null
           }
         />
         <DynamicDataTable

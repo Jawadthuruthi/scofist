@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, CreditCard, ListTodo } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import Header from "./Header";
+import ParticipantCardSettings from "./ParticipantCardSettings";
 import {
   Select,
   SelectContent,
@@ -25,6 +26,7 @@ const ParticipantsCard = ({
   festivalSettings = {},
   activeRole,
   activeTeamId,
+  apiKey,
 }) => {
   const isProgramLeader = activeRole === "Program Leader";
 
@@ -159,10 +161,24 @@ const ParticipantsCard = ({
 
   if (!participants.length) {
     return (
-      <div className="flex justify-center items-center h-64 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-        <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">
-          No participant records available
-        </p>
+      <div>
+        <Header
+          title="PARTICIPANTS CARD"
+          subTitle="Official Identity for Festival Participants"
+          rightAction={
+            activeRole === "Program Committee" ? (
+              <ParticipantCardSettings 
+                festivalSettings={festivalSettings} 
+                apiKey={apiKey} 
+              />
+            ) : null
+          }
+        />
+        <div className="flex justify-center items-center h-64 mt-6 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">
+            No participant records available
+          </p>
+        </div>
       </div>
     );
   }
@@ -172,6 +188,14 @@ const ParticipantsCard = ({
       <Header
         title="PARTICIPANTS CARD"
         subTitle="Official Identity for Festival Participants"
+        rightAction={
+          activeRole === "Program Committee" ? (
+            <ParticipantCardSettings 
+              festivalSettings={festivalSettings} 
+              apiKey={apiKey} 
+            />
+          ) : null
+        }
       />
 
       {/* Top Controls Container */}

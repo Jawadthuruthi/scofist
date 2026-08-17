@@ -57,6 +57,7 @@ const participantsCardPage = async () => {
         teams={teams}
         activeRole={activeRole}
         activeTeamId={activeTeamId}
+        apiKey={process.env.API_KEY}
       />
     );
   } catch (error) {

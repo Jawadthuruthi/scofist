@@ -6,7 +6,7 @@ const Input = React.forwardRef(({ className, type, ...props }, ref) => {
   // Defensive check to prevent React from crashing if an object is accidentally passed
   const safeProps = { ...props };
   if (typeof safeProps.value === "object" && safeProps.value !== null && !Array.isArray(safeProps.value)) {
-    console.error("Input component received an object for 'value' prop:", safeProps.value);
+    console.error("Input component received an object for 'value' prop on field:", safeProps.name, safeProps.value);
     safeProps.value = ""; // Fallback to prevent crash
   }
 

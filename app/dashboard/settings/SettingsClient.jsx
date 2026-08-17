@@ -103,20 +103,7 @@ const institutionFormField = [
   },
 ];
 
-const festivalFormField = [
-  {
-    name: "festival_name",
-    label: "Festival Name",
-    placeholder: "e.g., esperanza",
-    required: true,
-    className: "col-span-2 md:col-span-1",
-  },
-  {
-    name: "festival_theme",
-    label: "Festival Theme/Tagline",
-    placeholder: "e.g., Recall the legacy, Reignite the light",
-    className: "col-span-2 md:col-span-1",
-  },
+const yearAndLogoFormField = [
   {
     name: "festival_year",
     label: "Festival Year",
@@ -127,25 +114,28 @@ const festivalFormField = [
       min: 2020,
       max: 2100,
     },
-    className: "col-span-2 md:col-span-1",
+    className: "col-span-2",
   },
   {
-    name: "festival_venue",
-    label: "Venue",
-    placeholder: "e.g., Sa-adiya Da-awa College",
-    className: "col-span-2 md:col-span-1",
+    name: "festivalLogo",
+    label: "Festival Square Logo",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/png", "image/jpeg", "image/svg+xml", "image/svg"],
+    defaultValue: {},
+    hasSubmitButton: true,
   },
+];
+
+const nameAndImageFormField = [
   {
-    name: "festival_startDate",
-    label: "Start Date",
-    type: "date",
-    className: "col-span-2 md:col-span-1",
-  },
-  {
-    name: "festival_endDate",
-    label: "End Date",
-    type: "date",
-    className: "col-span-2 md:col-span-1",
+    name: "festival_name",
+    label: "Festival Name Text",
+    placeholder: "e.g., esperanza",
+    required: true,
+    className: "col-span-2",
   },
   {
     name: "festivalNameImage",
@@ -156,7 +146,65 @@ const festivalFormField = [
     maxFileSize: 2 * 1024 * 1024,
     allowedTypes: ["image/png", "image/jpeg", "image/svg+xml", "image/svg"],
     defaultValue: {},
+    hasSubmitButton: true,
   },
+];
+
+const themeFormField = [
+  {
+    name: "festival_theme",
+    label: "Festival Theme Text",
+    placeholder: "e.g., Recall the legacy, Reignite the light",
+    className: "col-span-2",
+  },
+  {
+    name: "festivalThemeImage",
+    label: "Festival Theme Image",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/png", "image/jpeg", "image/svg+xml", "image/svg"],
+    defaultValue: {},
+    hasSubmitButton: true,
+  },
+];
+
+const venueFormField = [
+  {
+    name: "festival_venue",
+    label: "Festival Date & Venue Text",
+    placeholder: "e.g., 2026 Nov 12 - 14 | Sa-adiya Da-awa College",
+    className: "col-span-2",
+  },
+  {
+    name: "festivalVenueImage",
+    label: "Festival Venue Image",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/png", "image/jpeg", "image/svg+xml", "image/svg"],
+    defaultValue: {},
+    hasSubmitButton: true,
+  },
+];
+
+const fullNameFormField = [
+  {
+    name: "festivalFullNameImage",
+    label: "Festival Full Name Image",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/png", "image/jpeg", "image/svg+xml", "image/svg"],
+    defaultValue: {},
+    hasSubmitButton: true,
+  },
+];
+
+const printHeaderOnlyFormField = [
   {
     name: "printHeader",
     label: "Print Header",
@@ -168,63 +216,11 @@ const festivalFormField = [
     defaultValue: {},
     minWidth: 2480,
     minHeight: 310,
-  },
-  {
-    name: "participantsCard",
-    label: "Participants Card",
-    inputType: "image",
-    type: "object",
-    className: "col-span-2",
-    maxFileSize: 2 * 1024 * 1024,
-    allowedTypes: ["image/svg+xml", "image/png", "image/jpeg", "image/jpg"],
-    defaultValue: {},
-    aspectRatio: "1:1.4",
-    minWidth: 600,
-    minHeight: 840,
-  },
-  {
-    name: "textColor",
-    label: "Text Color",
-    type: "color",
-    className: "col-span-1",
-  },
-  {
-    name: "right",
-    label: "Right Position",
-    type: "number",
-    validators: {
-      min: 0,
-      max: 100,
-    },
-    className: "col-span-1",
-  },
-  {
-    name: "bottom",
-    label: "Bottom Position",
-    type: "number",
-    validators: {
-      min: 0,
-      max: 100,
-    },
-    className: "col-span-1",
-  },
-  {
-    name: "left",
-    label: "Left Position",
-    type: "number",
-    validators: {
-      min: 0,
-      max: 100,
-    },
-    className: "col-span-1",
-  },
-  {
-    name: "registrationDeadline",
-    label: "Registration Deadline",
-    type: "date",
-    required: true,
+    hasSubmitButton: true,
   },
 ];
+
+
 
 const committeeContactsFormField = [
   {
@@ -417,24 +413,72 @@ export default function SettingsClient({
       )}
       {activeRole === "Program Committee" && (
         <>
-          <FormComponent
-            formFields={festivalFormField}
-            apiKey={apiKey}
-            data={festival}
-            resource="settings"
-            title="Festival Settings"
-            description="Configure Festival Details"
-          />
-          <div className="mt-8">
-            <FormComponent
-              formFields={committeeContactsFormField}
-              apiKey={apiKey}
-              data={festival}
-              resource="settings"
-              title="Committee Contacts"
-              description="Contact details for Chairman and Convenor"
-              gridCols="grid-cols-1 md:grid-cols-3"
-            />
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <FormComponent
+                formFields={yearAndLogoFormField}
+                apiKey={apiKey}
+                data={festival}
+                resource="settings"
+                title="Year and Logo"
+                hideDefaultSubmit={true}
+              />
+              <FormComponent
+                formFields={nameAndImageFormField}
+                apiKey={apiKey}
+                data={festival}
+                resource="settings"
+                title="Festival Name"
+                hideDefaultSubmit={true}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <FormComponent
+                formFields={themeFormField}
+                apiKey={apiKey}
+                data={festival}
+                resource="settings"
+                title="Theme"
+                hideDefaultSubmit={true}
+              />
+              <FormComponent
+                formFields={venueFormField}
+                apiKey={apiKey}
+                data={festival}
+                resource="settings"
+                title="Venue"
+                hideDefaultSubmit={true}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <FormComponent
+                formFields={fullNameFormField}
+                apiKey={apiKey}
+                data={festival}
+                resource="settings"
+                title="Full Name"
+                hideDefaultSubmit={true}
+              />
+              <FormComponent
+                formFields={printHeaderOnlyFormField}
+                apiKey={apiKey}
+                data={festival}
+                resource="settings"
+                title="Print Header"
+                hideDefaultSubmit={true}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <FormComponent
+                formFields={committeeContactsFormField}
+                apiKey={apiKey}
+                data={festival}
+                resource="settings"
+                title="Committee Contacts"
+                description="Contact details for Chairman and Convenor"
+              />
+            </div>
+
           </div>
         </>
       )}
