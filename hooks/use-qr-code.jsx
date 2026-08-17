@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 
 export function useQRCodeConfig(activeYear) {
-  const [size, setSize] = useState(350);
+  const [size, setSize] = useState(250);
 
   const [resultsUrl, setResultsUrl] = useState("");
 
@@ -22,11 +22,11 @@ export function useQRCodeConfig(activeYear) {
   const qrOptions = useMemo(
     () => ({
       level: "H",
-      margin: 3,
+      margin: 1,
       scale: 4,
       width: size,
       color: {
-        dark: "#1e40af",
+        dark: "#000000",
         light: "#ffffff",
       },
     }),

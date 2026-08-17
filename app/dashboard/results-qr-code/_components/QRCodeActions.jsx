@@ -84,14 +84,14 @@ export function QRCodeActions({
   };
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Share2 className="h-5 w-5" />
           Actions
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="flex-1 space-y-3">
         <Button onClick={handleDownload} className="w-full" variant="default">
           <Download className="mr-2 h-4 w-4" />
           Download QR Code
