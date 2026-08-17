@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, Edit2, Trash2, Settings2, Lock, Unlock } from "lucide-react";
+import { Plus, Calendar, Edit2, Trash2, Settings2, Lock, Unlock, X } from "lucide-react";
 import Cookies from "js-cookie";
 import axios from "axios";
 import { toast } from "sonner";
@@ -14,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogClose,
 } from "@/components/ui/dialog";
 
 const YearSwitcher = ({ initialData, activeRole, initialActiveYear }) => {
@@ -211,11 +213,23 @@ const YearSwitcher = ({ initialData, activeRole, initialActiveYear }) => {
                   <Settings2 className="h-3 w-3" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Manage Festival Sessions</DialogTitle>
+              <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-hidden p-0 flex flex-col gap-0">
+                <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Settings2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 text-left space-y-0.5">
+                    <DialogTitle className="text-xl font-bold m-0">Manage Festival Sessions</DialogTitle>
+                    <DialogDescription className="m-0">
+                      Add, rename, block, or delete festival years.
+                    </DialogDescription>
+                  </div>
+                  <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                    <X className="h-5 w-5" />
+                  </DialogClose>
                 </DialogHeader>
-                <div className="flex gap-2 pt-4">
+                <div className="flex-1 overflow-y-auto p-5">
+                  <div className="flex gap-2 mb-4">
                   <Input
                     placeholder="New Year (e.g. 2026)"
                     value={newYear}
@@ -230,8 +244,8 @@ const YearSwitcher = ({ initialData, activeRole, initialActiveYear }) => {
                     <Plus className="h-4 w-4 mr-2" />
                     Add Session
                   </Button>
-                </div>
-                <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+                  </div>
+                  <div className="space-y-4">
                   {years.map((year) => (
                     <div
                       key={year}
@@ -306,6 +320,7 @@ const YearSwitcher = ({ initialData, activeRole, initialActiveYear }) => {
                       )}
                     </div>
                   ))}
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>

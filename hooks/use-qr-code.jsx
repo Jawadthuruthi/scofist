@@ -11,8 +11,9 @@ export function useQRCodeConfig(activeYear) {
   useEffect(() => {
     if (typeof window !== "undefined") {
       let url = `${window.location.origin}/results`;
-      if (activeYear && activeYear !== "2025 november") {
-        url += `?year=${encodeURIComponent(activeYear)}`;
+      if (activeYear) {
+        const year = activeYear.split(" ")[0];
+        url += `/${year}`;
       }
       setResultsUrl(url);
     }
