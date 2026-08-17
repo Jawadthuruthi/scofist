@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertCircle, Check, ChevronsUpDown, FileText, Loader, UserX, X, Download } from "lucide-react";
+import { AlertCircle, Check, ChevronsUpDown, FileText, Loader, UserX, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -165,7 +165,9 @@ const AbsenteesDialog = ({
        const leaveDate = new Date(record.dateOfLeave);
        leaveDate.setHours(0, 0, 0, 0);
        
-       let endDate = record.arrivedDate ? new Date(record.arrivedDate) : (record.dateOfArrival ? new Date(record.dateOfArrival) : null);
+       // If student has arrived back, use arrivedDate as end; otherwise use dateOfArrival if present
+       const hasArrived = !!record.arrivedDate;
+       let endDate = hasArrived ? new Date(record.arrivedDate) : (record.dateOfArrival ? new Date(record.dateOfArrival) : null);
        if (endDate) {
            endDate.setHours(23, 59, 59, 999);
        } else {
@@ -174,6 +176,10 @@ const AbsenteesDialog = ({
        }
        
        if (targetDate >= leaveDate && targetDate <= endDate) {
+          return record.leaveReason;
+       }
+       // Overdue: leave started on or before targetDate, student hasn't arrived back yet
+       if (!hasArrived && targetDate > endDate && targetDate >= leaveDate) {
           return record.leaveReason;
        }
     }
@@ -187,9 +193,14 @@ const AbsenteesDialog = ({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
         <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-red-50 dark:bg-red-950/20 sticky top-0 z-20 backdrop-blur-md">
-          <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+          <button
+            className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors focus:outline-none"
+            onClick={handleDownload}
+            title="Download Image"
+            data-html2canvas-ignore="true"
+          >
             <UserX className="h-5 w-5 text-red-600 dark:text-red-400" />
-          </div>
+          </button>
           <div className="flex-1 text-left space-y-0.5">
             <DialogTitle className="text-xl font-bold m-0 text-red-700 dark:text-red-400">
               Absentees ({absenteesList.length})
@@ -211,17 +222,10 @@ const AbsenteesDialog = ({
               </span>
             </DialogDescription>
           </div>
-          <div className="flex flex-col gap-2 -mr-1.5" data-html2canvas-ignore="true">
+          <div className="flex items-center self-stretch" data-html2canvas-ignore="true">
             <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
               <X className="h-5 w-5" />
             </DialogClose>
-            <button
-              className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none"
-              onClick={handleDownload}
-              title="Download Image"
-            >
-              <Download className="h-5 w-5" />
-            </button>
           </div>
         </DialogHeader>
         {absenteesList.length > 0 ? (

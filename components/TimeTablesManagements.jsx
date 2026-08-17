@@ -12,6 +12,7 @@ import {
   Save,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 
 // UI Components
@@ -38,6 +39,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Alert, AlertDescription } from "./ui/alert";
@@ -69,7 +71,51 @@ const AbsenteesDialog = ({
 }) => {
   const { useFetchItems: useFetchLeaveRecords } = useCrud("leave-records", apiKey);
   const classId = cellData?.classId?._id || cellData?.classId;
-  
+  const popupRef = useRef(null);
+
+  const handleDownload = async () => {
+    if (!popupRef.current) return;
+    try {
+      const el = popupRef.current;
+      const currentWidth = el.offsetWidth;
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        width: currentWidth,
+        useCORS: true,
+        scrollX: 0,
+        scrollY: 0,
+        onclone: (clonedDoc) => {
+          const clonedPopup = clonedDoc.querySelector('[data-html2canvas-popup="true"]');
+          if (clonedPopup) {
+            clonedPopup.style.maxHeight = 'none';
+            clonedPopup.style.height = 'auto';
+            clonedPopup.style.width = currentWidth + 'px';
+            clonedPopup.style.maxWidth = currentWidth + 'px';
+            clonedPopup.style.minWidth = 'unset';
+            clonedPopup.style.position = 'relative';
+            clonedPopup.style.transform = 'none';
+            clonedPopup.style.left = 'auto';
+            clonedPopup.style.top = 'auto';
+            clonedPopup.style.overflow = 'visible';
+            clonedPopup.querySelectorAll('.overflow-y-auto, .overflow-hidden').forEach((div) => {
+              div.style.maxHeight = 'none';
+              div.style.height = 'auto';
+              div.style.overflow = 'visible';
+            });
+          }
+        }
+      });
+      const link = document.createElement("a");
+      link.download = `Absentees_${day}_Period_${periodNumber}.jpeg`;
+      link.href = canvas.toDataURL("image/jpeg", 1.0);
+      link.click();
+    } catch (error) {
+      console.error("Failed to generate image", error);
+      toast.error("Failed to download image");
+    }
+  };
+
   const leaveRecordsQuery = useFetchLeaveRecords(
     0,
     0,
@@ -101,7 +147,9 @@ const AbsenteesDialog = ({
        const leaveDate = new Date(record.dateOfLeave);
        leaveDate.setHours(0, 0, 0, 0);
        
-       let endDate = record.arrivedDate ? new Date(record.arrivedDate) : (record.dateOfArrival ? new Date(record.dateOfArrival) : null);
+       // If student has arrived back, use arrivedDate as end; otherwise use dateOfArrival if present
+       const hasArrived = !!record.arrivedDate;
+       let endDate = hasArrived ? new Date(record.arrivedDate) : (record.dateOfArrival ? new Date(record.dateOfArrival) : null);
        if (endDate) {
            endDate.setHours(23, 59, 59, 999);
        } else {
@@ -112,34 +160,60 @@ const AbsenteesDialog = ({
        if (targetDate >= leaveDate && targetDate <= endDate) {
           return record.leaveReason;
        }
+       // Overdue: leave started on or before targetDate, student hasn't arrived back yet
+       if (!hasArrived && targetDate > endDate && targetDate >= leaveDate) {
+          return record.leaveReason;
+       }
     }
     return null;
   };
 
+  const d = new Date(date || new Date());
+  const formattedDateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}, ${day}`;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md gap-0">
-        <DialogHeader>
-          <DialogTitle>
-            {day} - Period {periodNumber} Absentees ({absenteesList.length})
-          </DialogTitle>
-          <DialogDescription>
-            {cellData?.subjectId?.name
-              ? `Subject: ${cellData.subjectId.name}`
-              : ""}
-            {cellData?.teacherId?.name
-              ? ` • Teacher: ${cellData.teacherId.name}`
-              : ""}
-          </DialogDescription>
+      <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+        <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-red-50 dark:bg-red-950/20 sticky top-0 z-20 backdrop-blur-md">
+          <button
+            className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors focus:outline-none"
+            onClick={handleDownload}
+            title="Download Image"
+            data-html2canvas-ignore="true"
+          >
+            <UserX className="h-5 w-5 text-red-600 dark:text-red-400" />
+          </button>
+          <div className="flex-1 text-left space-y-0.5">
+            <DialogTitle className="text-xl font-bold m-0 text-red-700 dark:text-red-400">
+              Absentees ({absenteesList.length})
+            </DialogTitle>
+            <DialogDescription className="m-0 text-xs flex flex-col gap-1 text-muted-foreground mt-1">
+              <span className="flex flex-wrap gap-x-2">
+                <span className="font-medium text-foreground">{formattedDateStr}</span>
+                <span>•</span>
+                <span>Period: <span className="font-medium text-foreground">{periodNumber}</span></span>
+              </span>
+              <span className="flex flex-wrap gap-x-2">
+                {cellData?.subjectId?.name && <span className="font-medium text-foreground">{cellData.subjectId.name}</span>}
+                {cellData?.subjectId?.name && cellData?.teacherId?.name && <span>•</span>}
+                {cellData?.teacherId?.name && <span className="font-medium text-foreground">{cellData.teacherId.name}</span>}
+              </span>
+            </DialogDescription>
+          </div>
+          <div className="flex items-center self-stretch" data-html2canvas-ignore="true">
+            <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
+          </div>
         </DialogHeader>
         {absenteesList.length > 0 ? (
-          <div className="mt-0">
-            <div className="max-h-60 overflow-y-auto">
+          <div className="text-sm border-0 px-4 pb-4 pt-2 max-h-80 overflow-y-auto bg-muted/5 space-y-1 flex-1">
+            <div className="border rounded-md overflow-hidden bg-background">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-red-50 dark:bg-red-950/20">
                   <TableRow>
-                    <TableHead>Student ID</TableHead>
-                    <TableHead>Student Name</TableHead>
+                    <TableHead className="h-9 py-1">ID</TableHead>
+                    <TableHead className="h-9 py-1">Student Name</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -147,8 +221,8 @@ const AbsenteesDialog = ({
                     const leaveReason = getLeaveReason(student);
                     return (
                       <TableRow key={student.studentId}>
-                        <TableCell>{student.studentId || "Unknown"}</TableCell>
-                        <TableCell>
+                        <TableCell className="py-2 font-medium">{student.studentId || "Unknown"}</TableCell>
+                        <TableCell className="py-2 font-medium">
                           {student.studentName || "-"}
                           {leaveReason && (
                             <div className="text-xs text-red-500 font-normal mt-0.5">
@@ -164,9 +238,9 @@ const AbsenteesDialog = ({
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center p-6">
-            <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
-            <p>Full attendance for this period</p>
+          <div className="flex flex-col items-center justify-center p-8 text-muted-foreground flex-1 bg-muted/5">
+            <CheckCircle2 className="h-10 w-10 text-green-500 mb-2 opacity-80" />
+            <p className="font-medium">Full attendance for this period</p>
           </div>
         )}
       </DialogContent>
