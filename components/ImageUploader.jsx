@@ -779,12 +779,12 @@ const ImageUploader = ({
           <Button 
             type="submit" 
             className="flex-1 bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200" 
-            disabled={disabled || isSubmitting}
+            disabled={disabled || isSubmitting || !!selectedFile}
           >
             {isSubmitting ? (
               <Loader className="animate-spin h-4 w-4 mr-2" />
             ) : null}
-            Save changes
+            {selectedFile ? "Upload Image First" : "Save changes"}
           </Button>
         )}
       </div>

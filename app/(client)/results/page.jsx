@@ -225,6 +225,7 @@ function PublicResultsContent() {
   const [divisions, setDivisions] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [isSettingsLoading, setIsSettingsLoading] = useState(true);
   const [resultData, setResultData] = useState(null);
   const [resultNo, setResultNo] = useState("");
   const [selectedDivision, setSelectedDivision] = useState("");
@@ -252,7 +253,8 @@ function PublicResultsContent() {
   useEffect(() => {
     fetchJSON(`/api/settings${yearQueryOnly}`)
       .then((data) => setSettings(data.settings || null))
-      .catch(() => console.error("Unable to load settings"));
+      .catch(() => console.error("Unable to load settings"))
+      .finally(() => setIsSettingsLoading(false));
   }, []);
 
   /* --------------- fetch programs when division changes --------------- */
@@ -413,6 +415,7 @@ function PublicResultsContent() {
   const startDate = festivalInfo.dates?.startDate;
   const endDate = festivalInfo.dates?.endDate;
   const festivalNameImage = settings?.festival?.festivalNameImage?.url || null;
+  const festivalFullNameImage = settings?.festival?.festivalFullNameImage?.url || null;
   const festivalLogo = settings?.festival?.festivalLogo?.url || null;
 
   // 🆕 Format dates
@@ -424,6 +427,14 @@ function PublicResultsContent() {
       month: "short",
     });
   };
+
+  if (isSettingsLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#fbfaf7] via-[#f5f3f0] to-[#e8e6e3] flex items-center justify-center">
+        <Loader2 className="animate-spin text-[#9e6237]" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#fbfaf7] via-[#f5f3f0] to-[#e8e6e3] flex flex-col">
@@ -451,9 +462,9 @@ function PublicResultsContent() {
           {/* HERO HEADER */}
           <div className="relative overflow-hidden bg-white">
             <div className="relative z-10 py-10 px-4 flex items-center justify-center">
-              {festivalNameImage ? (
+              {festivalFullNameImage ? (
                 <img
-                  src={festivalNameImage}
+                  src={festivalFullNameImage}
                   alt={festivalName}
                   className="w-full max-w-[95vw] sm:max-w-4xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl object-contain transition-all duration-300"
                 />

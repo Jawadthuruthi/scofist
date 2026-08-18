@@ -25,7 +25,15 @@ export default function Footer({ settings, institutionName }) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 md:mb-0">
           {/* Institution */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">{institutionName || "Sadiya Dawa College"}</h3>
+            {settings?.festival?.festivalNameImage?.url ? (
+              <img
+                src={settings.festival.festivalNameImage.url}
+                alt={institutionName || "Festival Name"}
+                className="h-16 md:h-20 w-auto max-w-[250px] mb-4 object-contain drop-shadow-md mix-blend-screen invert opacity-90"
+              />
+            ) : (
+              <h3 className="text-lg font-semibold mb-4">{institutionName || "Sadiya Dawa College"}</h3>
+            )}
             <p className="text-sm opacity-80">
               Providing excellence in integrated Islamic education since 2006.
             </p>
