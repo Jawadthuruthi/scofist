@@ -8,9 +8,10 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Edit, Loader, Plus } from "lucide-react";
+import { Edit, Loader, Plus, X } from "lucide-react";
 import { MultiSelect } from "./ui/multi-select";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -811,18 +812,40 @@ export default function PopupForm({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger ? trigger : (!hideButton && (
-          <Button variant={triggerVariant || (triggerClass ? "default" : "outline")} className={triggerClass}>
+          <Button variant={triggerVariant || (triggerClass ? "default" : "outline")} className={triggerClass} size={!triggerText ? "icon" : "default"}>
             {data ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {triggerText && <span className="ml-2">{triggerText}</span>}
           </Button>
         ))}
       </DialogTrigger>
 
-      <DialogContent className={className}>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
+      <DialogContent className={`sm:max-w-[800px] p-0 gap-0 overflow-hidden rounded-2xl max-h-[90dvh] flex flex-col [&>button.absolute]:hidden ${className || ""}`}>
+        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-blue-500/10 dark:bg-blue-500/20 sticky top-0 z-20 shrink-0">
+          <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 shrink-0">
+            {data ? <Edit className="w-5 h-5 text-blue-600 dark:text-blue-400" /> : <Plus className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+          </div>
+          <div className="flex-1 text-left space-y-0.5">
+            <DialogTitle className="text-xl font-bold m-0 text-foreground">
+              {title}
+            </DialogTitle>
+            {description && (
+              <DialogDescription asChild>
+                <div className="text-sm text-muted-foreground m-0">
+                  {description}
+                </div>
+              </DialogDescription>
+            )}
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <DialogClose asChild>
+              <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                <X className="h-5 w-5" />
+              </button>
+            </DialogClose>
+          </div>
         </DialogHeader>
+
+        <div className="p-5 overflow-y-auto flex-1 min-h-0 !shrink">
 
         <FormContent
           key={data ? `edit-${data?._id}` : `create-${title}`}
@@ -836,6 +859,7 @@ export default function PopupForm({
           buttonContainerClass={buttonContainerClass}
           capitalizeInputs={capitalizeInputs}
         />
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 
 export function useQRCodeConfig(activeYear) {
-  const [size, setSize] = useState(250);
+  const [size, setSize] = useState(300);
 
   const [resultsUrl, setResultsUrl] = useState("");
 

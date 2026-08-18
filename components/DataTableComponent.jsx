@@ -805,6 +805,21 @@ const DataTableComponent = ({
         baseData = [...baseData].sort((a, b) =>
           String(a._id).localeCompare(String(b._id), undefined, { numeric: true, sensitivity: 'base' })
         );
+      } else if (resource === "schedules") {
+        // Sort schedules by date and time descending
+        baseData = [...baseData].sort((a, b) => {
+          const dateA = a.date ? new Date(a.date).getTime() : 0;
+          const dateB = b.date ? new Date(b.date).getTime() : 0;
+          if (dateB !== dateA) return dateB - dateA;
+          
+          const timeA = a.startTime || "";
+          const timeB = b.startTime || "";
+          if (timeB !== timeA) return timeB.localeCompare(timeA);
+          
+          const stageA = a.stageNumber || 0;
+          const stageB = b.stageNumber || 0;
+          return stageA - stageB;
+        });
       } else {
         // Default sort by createdAt descending so newest records appear first
         baseData = [...baseData].sort((a, b) => {

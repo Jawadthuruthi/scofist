@@ -1,7 +1,7 @@
 // lib/qr-code/print-handler.js
 export function createPrintHandler(contentRef, options = {}) {
   return {
-    content: () => contentRef.current,
+    contentRef: contentRef,
     documentTitle: options.organizationName
       ? `${options.organizationName} - Results QR Code`
       : "Results QR Code",

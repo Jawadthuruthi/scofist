@@ -124,7 +124,7 @@ export async function GET(req, res) {
       })
       .skip(page * limit)
       .limit(limit)
-      .sort({ date: 1, startTime: 1, stageNumber: 1 })
+      .sort({ date: -1, startTime: -1, stageNumber: 1 })
       .collation({ locale: "en_US", numericOrdering: true });
 
     // Get total count for pagination info
@@ -146,7 +146,7 @@ export async function GET(req, res) {
         programCategory: schedule.programId?.category || "Unknown",
         divisionName: schedule.programId?.divisionId?.name || "Unknown",
         divisionId: schedule.programId?.divisionId?._id || "Unknown",
-        dateFormatted: schedule.date.toLocaleDateString(),
+        dateFormatted: schedule.date ? `${schedule.date.getDate().toString().padStart(2, "0")}/${(schedule.date.getMonth() + 1).toString().padStart(2, "0")}/${schedule.date.getFullYear()}` : "N/A",
         timeRange: `${formatTimeForDisplay(schedule.startTime)} - ${formatTimeForDisplay(schedule.endTime)}`,
         status: calculatedStatus, // Dynamically calculated status
       };
@@ -329,6 +329,8 @@ export async function POST(req, res) {
     // Add calculated status to response
     const responseSchedule = {
       ...populatedSchedule.toObject(),
+      dateFormatted: populatedSchedule.date ? `${populatedSchedule.date.getDate().toString().padStart(2, "0")}/${(populatedSchedule.date.getMonth() + 1).toString().padStart(2, "0")}/${populatedSchedule.date.getFullYear()}` : "N/A",
+      timeRange: `${formatTimeForDisplay(populatedSchedule.startTime)} - ${formatTimeForDisplay(populatedSchedule.endTime)}`,
       status: calculateScheduleStatus(
         populatedSchedule.date,
         populatedSchedule.startTime,
@@ -520,6 +522,8 @@ export async function PUT(req, res) {
     // Add calculated status to response
     const responseSchedule = {
       ...schedule.toObject(),
+      dateFormatted: schedule.date ? `${schedule.date.getDate().toString().padStart(2, "0")}/${(schedule.date.getMonth() + 1).toString().padStart(2, "0")}/${schedule.date.getFullYear()}` : "N/A",
+      timeRange: `${formatTimeForDisplay(schedule.startTime)} - ${formatTimeForDisplay(schedule.endTime)}`,
       status: calculateScheduleStatus(
         schedule.date,
         schedule.startTime,

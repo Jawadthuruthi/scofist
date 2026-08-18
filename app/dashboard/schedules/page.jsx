@@ -66,7 +66,7 @@ const columnsConfig = [
   {
     accessorKey: "status",
     header: "Status",
-    type: ["status"],
+    type: ["badge"],
     width: 100,
     minWidth: 100,
   },
@@ -226,7 +226,7 @@ export default async function SchedulePage() {
       if (activeRole === "Program Committee" || activeRole === "Admin") {
         return true;
       } else {
-        return column.id !== "select";
+        return column.id !== "select" && column.accessorKey !== "isPublished";
       }
     });
 
@@ -269,7 +269,7 @@ export default async function SchedulePage() {
           multiEditFormFields={multiEditFormFields}
           isFestival={true}
           apiFilters={
-            activeRole === "Program Committee"
+            (activeRole === "Program Committee" || activeRole === "Admin")
               ? {}
               : {
                   isPublished: "true",

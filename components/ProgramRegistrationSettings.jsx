@@ -19,13 +19,13 @@ const registrationFormField = [
     label: "Registration Deadline",
     type: "date",
     required: true,
-    className: "col-span-1",
+    className: "col-span-1 whitespace-nowrap",
   },
   {
     name: "saveButton",
     label: "\u00A0",
     inputType: "submit",
-    buttonText: "Save Changes",
+    buttonText: "Save",
     className: "col-span-1",
   },
 ];
@@ -71,6 +71,7 @@ export default function ProgramRegistrationSettings({ festivalSettings, apiKey }
             removeCardWrapper={true}
             onSuccess={handleSuccess}
             hideDefaultSubmit={true}
+            gridCols="grid-cols-2"
           />
         </div>
       </DialogContent>

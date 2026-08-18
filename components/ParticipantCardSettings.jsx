@@ -119,7 +119,7 @@ export default function ParticipantCardSettings({ festivalSettings, apiKey }) {
     const top = formValues?.top ?? formData.top;
 
     return (
-      <div className="w-full max-w-[300px] flex-shrink-0 sticky top-0">
+      <div className="w-full max-w-[300px] flex-shrink-0 md:sticky md:top-0 mx-auto">
         <h3 className="text-sm font-semibold mb-3 text-center text-muted-foreground">Live Preview</h3>
         <div 
           className={`w-full aspect-[1/1.4] relative rounded-lg overflow-hidden shadow-lg border border-border z-0 ${!bgUrl ? 'bg-card' : ''}`}
@@ -227,8 +227,8 @@ export default function ParticipantCardSettings({ festivalSettings, apiKey }) {
           <Settings className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[800px] p-0 gap-0 overflow-hidden rounded-2xl">
-        <div className="flex items-center gap-3 px-5 py-4 border-b bg-blue-500/10 dark:bg-blue-500/20">
+      <DialogContent className="sm:max-w-[800px] p-0 gap-0 overflow-hidden rounded-2xl max-h-[90dvh] flex flex-col">
+        <div className="flex items-center gap-3 px-5 py-4 border-b bg-blue-500/10 dark:bg-blue-500/20 shrink-0">
           <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30">
             <Settings className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
@@ -236,7 +236,7 @@ export default function ParticipantCardSettings({ festivalSettings, apiKey }) {
             Participant Card Settings
           </DialogTitle>
         </div>
-        <div className="p-5 overflow-y-auto max-h-[70vh]">
+        <div className="p-5 overflow-y-auto flex-1 min-h-0 !shrink">
           <FormComponent
             formFields={participantsCardFormField}
             apiKey={apiKey}

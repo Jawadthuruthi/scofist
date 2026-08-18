@@ -344,9 +344,11 @@ const useTableColumns = (columnConfig, onCellClick) => {
           case "active":
           case "activated":
           case "acivated":
+          case "completed":
             color = "bg-green-200 text-green-800";
             break;
           case "graduated":
+          case "upcoming":
             color = "bg-blue-200 text-blue-800";
             break;
           case "dropped out":
@@ -360,6 +362,9 @@ const useTableColumns = (columnConfig, onCellClick) => {
             break;
           case "rejected":
             color = "bg-orange-100 text-orange-800";
+            break;
+          case "ongoing":
+            color = "bg-orange-200 text-orange-800";
             break;
           case "admitted":
             color = "bg-purple-100 text-purple-800";

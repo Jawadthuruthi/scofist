@@ -51,7 +51,7 @@ export default function ConfirmationPopup({
           {icon || <Trash />}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
+      <DialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden rounded-2xl">
         <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
           <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
             <AlertTriangle className="h-5 w-5 text-destructive" />

@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Share2,
   Check,
+  QrCode,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useClipboard } from "@/hooks/use-clipboard";
@@ -24,11 +25,6 @@ export function QRCodeActions({
   printRef,
 }) {
   const { isCopied, copyToClipboard } = useClipboard();
-  const [canShare, setCanShare] = useState(false);
-
-  useEffect(() => {
-    setCanShare(typeof navigator !== "undefined" && !!navigator.share);
-  }, []);
 
   // Print handler
   const handlePrint = useReactToPrint(
@@ -63,8 +59,8 @@ export function QRCodeActions({
     window.open(resultsUrl, "_blank", "noopener,noreferrer");
   };
 
-  // Share (if supported)
-  const handleShare = async () => {
+  // Share URL
+  const handleShareUrl = async () => {
     if (navigator.share) {
       try {
         await navigator.share({
@@ -72,14 +68,52 @@ export function QRCodeActions({
           text: "Check out our festival results!",
           url: resultsUrl,
         });
-        toast.success("Shared successfully!");
+        toast.success("Shared URL successfully!");
       } catch (error) {
         if (error.name !== "AbortError") {
-          toast.error("Failed to share");
+          toast.error("Failed to share URL");
         }
       }
     } else {
       handleCopyUrl();
+    }
+  };
+
+  // Share QR Code Image
+  const handleShareQRCode = async () => {
+    try {
+      const canvas = document.querySelector("#qr-code-canvas canvas");
+      if (!canvas) {
+        toast.error("QR Code not found");
+        return;
+      }
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          toast.error("Failed to process QR code");
+          return;
+        }
+        
+        const file = new File([blob], `Results-QR-${organizationName}.png`, { type: "image/png" });
+        
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: "QR Code",
+              files: [file],
+            });
+            toast.success("QR Code shared successfully!");
+          } catch (error) {
+             if (error.name !== "AbortError") {
+                toast.error("Failed to share QR Code");
+             }
+          }
+        } else {
+          toast.error("Sharing files is not supported on this device. Try downloading instead.");
+        }
+      });
+    } catch (error) {
+      toast.error("An error occurred while sharing the QR Code");
     }
   };
 
@@ -92,16 +126,35 @@ export function QRCodeActions({
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 space-y-3">
+        {/* 1. Download QR Code */}
         <Button onClick={handleDownload} className="w-full" variant="default">
           <Download className="mr-2 h-4 w-4" />
           Download QR Code
         </Button>
 
+        {/* 2. Print QR Code */}
         <Button onClick={handlePrint} className="w-full" variant="outline">
           <Printer className="mr-2 h-4 w-4" />
           Print QR Code
         </Button>
 
+        {/* 3. Share QR Code */}
+        <Button onClick={handleShareQRCode} className="w-full" variant="outline">
+          <QrCode className="mr-2 h-4 w-4" />
+          Share QR Code
+        </Button>
+
+        {/* 4. Result URL (Text display) */}
+        <div className="py-2">
+          <div className="p-3 bg-muted rounded-lg border text-center">
+            <p className="text-xs font-medium mb-1">Results URL:</p>
+            <p className="text-xs text-muted-foreground break-all">
+              {resultsUrl}
+            </p>
+          </div>
+        </div>
+
+        {/* 5. Copy URL */}
         <Button onClick={handleCopyUrl} className="w-full" variant="outline">
           {isCopied ? (
             <Check className="mr-2 h-4 w-4" />
@@ -111,6 +164,13 @@ export function QRCodeActions({
           {isCopied ? "Copied!" : "Copy URL"}
         </Button>
 
+        {/* 6. Share URL */}
+        <Button onClick={handleShareUrl} className="w-full" variant="outline">
+          <Share2 className="mr-2 h-4 w-4" />
+          Share URL
+        </Button>
+
+        {/* 7. View Results Page */}
         <Button
           onClick={handleViewResults}
           className="w-full"
@@ -119,20 +179,6 @@ export function QRCodeActions({
           <ExternalLink className="mr-2 h-4 w-4" />
           View Results Page
         </Button>
-
-        {canShare && (
-          <Button onClick={handleShare} className="w-full" variant="secondary">
-            <Share2 className="mr-2 h-4 w-4" />
-            Share
-          </Button>
-        )}
-
-        <div className="mt-4 p-3 bg-muted rounded-lg">
-          <p className="text-xs font-medium mb-1">Results URL:</p>
-          <p className="text-xs text-muted-foreground break-all">
-            {resultsUrl}
-          </p>
-        </div>
       </CardContent>
     </Card>
   );

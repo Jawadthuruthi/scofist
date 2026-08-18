@@ -5,7 +5,6 @@ import { useRef } from "react";
 import { QRCodeGenerator } from "./QRCodeGenerator";
 import { QRCodeActions } from "./QRCodeActions";
 
-import { QRCodeInfo } from "./QRCodeInfo";
 import { useQRCodeConfig } from "@/hooks/use-qr-code";
 import { QrCode } from "lucide-react";
 import Header from "@/components/Header";
@@ -41,9 +40,6 @@ export default function ResultsQRCodeView({ activeYear }) {
 
         </div>
       </div>
-
-      {/* Info Section */}
-      <QRCodeInfo />
     </div>
   );
 }
