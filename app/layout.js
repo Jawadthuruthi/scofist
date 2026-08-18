@@ -151,7 +151,7 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning>
       <body className={`${montserrat.className} ${montserrat.variable} ${notoSansMalayalam.variable}`}>
         <Providers>{children}</Providers>
-        <Toaster />
+        <Toaster duration={1000} />
       </body>
     </html>
   );
