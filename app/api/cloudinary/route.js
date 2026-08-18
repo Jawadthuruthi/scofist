@@ -51,14 +51,14 @@ export async function DELETE(req) {
     // Delete image from Cloudinary
     const result = await cloudinary.uploader.destroy(publicId);
 
-    if (result.result === "ok") {
+    if (result.result === "ok" || result.result === "not found") {
       return NextResponse.json(
         { message: "Image deleted successfully!" },
         { status: 200 }
       );
     } else {
       return NextResponse.json(
-        { message: "Failed to delete image" },
+        { message: `Failed to delete image: ${result.result}` },
         { status: 400 }
       );
     }
