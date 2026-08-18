@@ -154,17 +154,21 @@ const Attendance = ({ apiKey, teacherId }) => {
     }
   );
 
+  const studentIds = useMemo(() => {
+    return studentsQuery.data?.users?.map((u) => u._id).join(",") || "";
+  }, [studentsQuery.data]);
+
   // Fetch leave records for students who haven't arrived yet
   const leaveRecordsQuery = useFetchLeaveRecords(
     null,
     null,
     {
-      classId,
+      studentIds,
       isArrived: "false", // Only fetch students who haven't arrived yet
     },
     {
       staleTime: 1000 * 60 * 2, // 2 minutes - leave status changes moderately
-      enabled: !!classId,
+      enabled: !!studentIds,
     }
   );
 

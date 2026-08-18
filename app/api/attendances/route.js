@@ -8,6 +8,7 @@ import {
 import Attendance from "@/models/Attendance";
 import StudentAttendance from "@/models/StudentAttendance";
 import TeachersLeaveRecord from "@/models/TeachersLeaveRecord";
+import LeaveRecord from "@/models/LeaveRecord";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
@@ -143,6 +144,34 @@ export async function GET(req, res) {
       console.error("Error fetching leave records for join:", e);
     }
 
+    let studentLeaveMap = {};
+    try {
+      const allStudentIds = new Set();
+      attendances.forEach(att => {
+        if (att.attendanceData) {
+          att.attendanceData.forEach(student => {
+             const sId = student.studentId?._id?.toString() || student.studentId?.toString();
+             if (sId) allStudentIds.add(sId);
+          });
+        }
+      });
+      
+      const studentIdsArray = Array.from(allStudentIds);
+      if (studentIdsArray.length > 0) {
+        const studentLeaves = await LeaveRecord.find({ studentId: { $in: studentIdsArray } }).lean();
+        
+        studentLeaves.forEach(lr => {
+          const sId = lr.studentId?.toString();
+          if (sId) {
+            if (!studentLeaveMap[sId]) studentLeaveMap[sId] = [];
+            studentLeaveMap[sId].push(lr);
+          }
+        });
+      }
+    } catch (e) {
+      console.error("Error fetching student leave records:", e);
+    }
+
     let formattedAttendances = attendances.map((attendance) => {
       const attendanceObj = attendance.toObject ? attendance.toObject() : attendance;
       
@@ -160,15 +189,50 @@ export async function GET(req, res) {
       
       const baseObj = attendanceObj.attendanceData ? {
         ...attendanceObj,
-        attendanceData: attendanceObj.attendanceData.map((student) => ({
-          ...student,
-          studentId: student.studentId?._id || student.studentId,
-          studentName: student.studentId?.name,
-          contactNumber: student.studentId?.contactNumber,
-          guardianContactNumber: student.studentId?.studentSpecificField?.guardianContactNumber,
-          // Support direct leaveReason on attendance data, fallback to Leave Register
-          leaveReason: student.leaveReason || leaveMap[leaveKey] || null,
-        })),
+        attendanceData: attendanceObj.attendanceData.map((student) => {
+          const sIdStr = student.studentId?._id?.toString() || student.studentId?.toString();
+          let matchedLeaveReason = null;
+          
+          if (sIdStr && studentLeaveMap[sIdStr]) {
+            const targetDate = new Date(attendanceObj.date);
+            targetDate.setHours(0, 0, 0, 0);
+            
+            for (const lr of studentLeaveMap[sIdStr]) {
+              if (!lr.dateOfLeave) continue;
+              const leaveDate = new Date(lr.dateOfLeave);
+              leaveDate.setHours(0, 0, 0, 0);
+              
+              const hasArrived = !!lr.arrivedDate;
+              let endDate = hasArrived ? new Date(lr.arrivedDate) : (lr.dateOfArrival ? new Date(lr.dateOfArrival) : null);
+              if (endDate) {
+                endDate.setHours(23, 59, 59, 999);
+              } else {
+                endDate = new Date(leaveDate);
+                endDate.setHours(23, 59, 59, 999);
+              }
+              
+              if (targetDate >= leaveDate && targetDate <= endDate) {
+                matchedLeaveReason = lr.leaveReason;
+                break;
+              }
+              
+              if (!hasArrived && targetDate > endDate && targetDate >= leaveDate) {
+                matchedLeaveReason = lr.leaveReason;
+                break;
+              }
+            }
+          }
+
+          return {
+            ...student,
+            studentId: student.studentId?._id || student.studentId,
+            studentName: student.studentId?.name,
+            contactNumber: student.studentId?.contactNumber,
+            guardianContactNumber: student.studentId?.studentSpecificField?.guardianContactNumber,
+            // Support direct leaveReason on attendance data, fallback to Leave Register
+            leaveReason: student.leaveReason || matchedLeaveReason || leaveMap[leaveKey] || null,
+          };
+        }),
       } : attendanceObj;
 
       return baseObj;

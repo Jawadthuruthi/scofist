@@ -116,11 +116,18 @@ const AbsenteesDialog = ({
     }
   };
 
+  const studentIds = useMemo(() => {
+    return absenteesList
+      .map((s) => s.studentId?._id || s.studentId)
+      .filter(Boolean)
+      .join(",");
+  }, [absenteesList]);
+
   const leaveRecordsQuery = useFetchLeaveRecords(
     0,
     0,
-    { classId: classId || "" },
-    { enabled: !!classId && open, refetchOnWindowFocus: false }
+    { studentIds },
+    { enabled: !!studentIds && open, refetchOnWindowFocus: false }
   );
 
   const leaveRecords = leaveRecordsQuery.data?.["leave-records"] || [];

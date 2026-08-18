@@ -43,6 +43,10 @@ export async function GET(req, res) {
     if (filterParams.studentId) {
       query.studentId = filterParams.studentId;
     }
+
+    if (filterParams.studentIds) {
+      query.studentId = { $in: filterParams.studentIds.split(",") };
+    }
     
     // Determine student IDs based on class/batch filters to ensure we get all records 
     // for current students, even if the record was created in an older class
