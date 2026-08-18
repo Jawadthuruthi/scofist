@@ -739,7 +739,7 @@ const CodeLettersComponent = ({
                             <PrintHeader
                               apiKey={apiKey}
                               isFestival={true}
-                              title="CODE LETTERS"
+                              title="CALL LIST"
                             />
                             {/* Program info + action buttons */}
                             <div className="grid grid-cols-[auto_1fr_auto] sm:grid-cols-[1fr_auto_1fr] items-center gap-2 bg-muted/60 border border-border rounded-t-lg px-3 py-2 print:bg-gray-200 print:border-black print:rounded-none">

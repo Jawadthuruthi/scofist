@@ -508,7 +508,7 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl, max
                 }}
               >
                 {/* Chest Number with enhanced visibility */}
-                <div className="backdrop-enhanced">
+                <div className="">
                   <h2
                     className="text-lg font-bold text-shadow-strong"
                     style={{ color: textColor }}
@@ -518,7 +518,7 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl, max
                 </div>
 
                 {/* Participant Name with enhanced visibility */}
-                <div className="backdrop-enhanced">
+                <div className="">
                   <h3
                     className="font-bold text-base text-shadow-strong"
                     style={{ color: textColor }}

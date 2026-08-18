@@ -10,7 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Edit, Loader, Plus } from "lucide-react";
+import { Edit, Loader, Plus, Minus } from "lucide-react";
 import { MultiSelect } from "./ui/multi-select";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,6 +34,95 @@ import { Switch } from "./ui/switch";
 import { Textarea } from "./ui/textarea";
 import { useRouter } from "next/navigation";
 import { ColorInput } from "./ColorInput"; // Import the new ColorInput component
+
+const NumberNavInput = ({ field, formField }) => {
+  const intervalRef = React.useRef(null);
+  const timeoutRef = React.useRef(null);
+  const latestValue = React.useRef(formField.value);
+
+  React.useEffect(() => {
+    latestValue.current = formField.value;
+  }, [formField.value]);
+
+  const applyChange = (amount) => {
+    const current = Number(latestValue.current) || 0;
+    const next = current + amount;
+    
+    if (amount < 0 && field.validators?.min !== undefined && next < field.validators.min) return;
+    if (amount > 0 && field.validators?.max !== undefined && next > field.validators.max) return;
+    
+    latestValue.current = next;
+    formField.onChange(next);
+  };
+
+  const handleStart = (e, amount) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    
+    handleStop();
+    applyChange(amount);
+    
+    timeoutRef.current = setTimeout(() => {
+      intervalRef.current = setInterval(() => {
+        applyChange(amount);
+      }, 75);
+    }, 400);
+  };
+
+  const handleStop = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  };
+
+  React.useEffect(() => {
+    const handlePointerUp = () => handleStop();
+    window.addEventListener("pointerup", handlePointerUp);
+    return () => {
+      handleStop();
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, []);
+
+  return (
+    <div className="relative flex items-center">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="absolute left-1 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-transparent select-none touch-manipulation"
+        onPointerDown={(e) => handleStart(e, -1)}
+        onPointerUp={handleStop}
+        onPointerLeave={handleStop}
+        onContextMenu={(e) => e.preventDefault()}
+        disabled={field.disabled || (field.validators?.min !== undefined && Number(formField.value || 0) <= field.validators.min)}
+      >
+        <Minus className="h-4 w-4" />
+      </Button>
+      <Input
+        type="number"
+        placeholder={field.placeholder}
+        {...formField}
+        value={formField.value !== undefined ? formField.value : ""}
+        onChange={(e) => formField.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+        readOnly={field.readOnly}
+        className="text-center px-10"
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="absolute right-1 h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-transparent select-none touch-manipulation"
+        onPointerDown={(e) => handleStart(e, 1)}
+        onPointerUp={handleStop}
+        onPointerLeave={handleStop}
+        onContextMenu={(e) => e.preventDefault()}
+        disabled={field.disabled || (field.validators?.max !== undefined && Number(formField.value || 0) >= field.validators.max)}
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
 
 const SectionNavigation = ({
   ref,
@@ -137,6 +226,8 @@ const FormFields = ({ form, fields, apiKey, isSubmitting }) =>
                 readOnly={field.readOnly}
                 rows={field.rows || 3}
               />
+            ) : field.inputType === "number-nav" ? (
+              <NumberNavInput field={field} formField={formField} />
             ) : field.inputType === "submit" ? (
               <div className="w-full">
                 <Button 
@@ -173,6 +264,8 @@ const FormContent = ({
   hideSubmitOn,
   gridCols = "grid-cols-2 md:grid-cols-2",
   hideDefaultSubmit = false,
+  renderPreview,
+  formValues,
 }) => {
   const sectionRefs = React.useRef([]);
 
@@ -223,24 +316,31 @@ const FormContent = ({
             setActiveIndex={setActiveSectionIndex}
           />
         )}
-        <div className="px-2">
-          {sectionOrder.map((section, index) => (
-            <div
-              key={section}
-              className={`grid gap-4 ${gridCols} ${activeSectionIndex === index ? "block" : "hidden"
-                }`}
-            >
-              {section !== "undefined" && (
-                <h2 className="text-lg font-bold col-span-2">{section}</h2>
-              )}
-              <FormFields
-                form={form}
-                fields={sections[section]}
-                apiKey={apiKey}
-                isSubmitting={loading}
-              />
+        <div className={`px-2 ${renderPreview ? "flex flex-col md:flex-row gap-6" : ""}`}>
+          <div className={renderPreview ? "flex-1 min-w-[300px]" : "w-full"}>
+            {sectionOrder.map((section, index) => (
+              <div
+                key={section}
+                className={`grid gap-4 ${gridCols} ${activeSectionIndex === index ? "block" : "hidden"
+                  }`}
+              >
+                {section !== "undefined" && (
+                  <h2 className="text-lg font-bold col-span-2">{section}</h2>
+                )}
+                <FormFields
+                  form={form}
+                  fields={sections[section]}
+                  apiKey={apiKey}
+                  isSubmitting={loading}
+                />
+              </div>
+            ))}
+          </div>
+          {renderPreview && (
+            <div className="flex-1 flex justify-center items-start">
+              {renderPreview(formValues)}
             </div>
-          ))}
+          )}
         </div>
         {!hideDefaultSubmit && (
           <div className="flex gap-3 mt-8">
@@ -300,6 +400,7 @@ export default function FormComponent({
   gridCols,
   removeCardWrapper = false,
   hideDefaultSubmit = false,
+  renderPreview,
 }) {
   const [customizedFormField, setCustomizedFormField] =
     React.useState(formFields);
@@ -399,6 +500,8 @@ export default function FormComponent({
       hideSubmitOn={hideSubmitOn}
       gridCols={gridCols}
       hideDefaultSubmit={hideDefaultSubmit}
+      renderPreview={renderPreview}
+      formValues={formValues}
     />
   );
 
