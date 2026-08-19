@@ -467,7 +467,7 @@ function PublicResultsContent() {
                 </button>
               </div>
               {/* Participant Card Container */}
-              <div className="w-full max-w-4xl mx-auto flex justify-center">
+              <div className="w-full max-w-2xl mx-auto flex justify-center">
                 <ParticipantCard
                   participant={authParticipant}
                   festivalSettings={settings?.festival}
