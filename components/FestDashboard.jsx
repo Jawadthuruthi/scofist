@@ -544,12 +544,20 @@ export default function FestDashboard({ apiKey, activeRole, user }) {
         
         {/* Title Overlay in front of curtain */}
         <div 
-          className="absolute inset-0 flex items-center justify-center z-[101]"
+          className="absolute inset-0 flex flex-col items-center justify-center z-[101]"
           style={{
             transition: 'opacity 2s ease-in-out',
             opacity: isCurtainOpen ? 0 : 1,
           }}
         >
+          <h2 
+            className="text-2xl md:text-5xl lg:text-6xl font-bold text-white uppercase tracking-[0.3em] text-center mb-2 md:mb-4 opacity-90 drop-shadow-xl"
+            style={{ 
+              textShadow: '0 5px 15px rgba(0,0,0,0.8)'
+            }}
+          >
+            SCOFIST
+          </h2>
           <h1 
             className="text-5xl md:text-8xl lg:text-[9rem] font-black text-white uppercase tracking-[0.2em] text-center drop-shadow-2xl"
             style={{ 
