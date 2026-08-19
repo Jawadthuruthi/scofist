@@ -224,39 +224,75 @@ const printHeaderOnlyFormField = [
 
 const committeeContactsFormField = [
   {
-    name: "chairmanName",
-    label: "Chairman Name",
-    placeholder: "Enter Chairman's Name",
+    name: "committeeContact1Position",
+    label: "Position 1",
+    placeholder: "e.g., Chairman",
     className: "col-span-1",
   },
   {
-    name: "chairmanPhone",
-    label: "Chairman Contact Number",
-    placeholder: "Enter Chairman's Phone",
+    name: "committeeContact1Name",
+    label: "Name 1",
+    placeholder: "Enter Name",
     className: "col-span-1",
   },
   {
-    name: "chairmanWhatsapp",
-    label: "Chairman WhatsApp Number",
-    placeholder: "Enter Chairman's WhatsApp (with country code)",
+    name: "committeeContact1Phone",
+    label: "Contact Number 1",
+    placeholder: "Enter Contact Number",
     className: "col-span-1",
   },
   {
-    name: "convenorName",
-    label: "Convenor Name",
-    placeholder: "Enter Convenor's Name",
+    name: "committeeContact2Position",
+    label: "Position 2",
+    placeholder: "e.g., Convenor",
     className: "col-span-1",
   },
   {
-    name: "convenorPhone",
-    label: "Convenor Contact Number",
-    placeholder: "Enter Convenor's Phone",
+    name: "committeeContact2Name",
+    label: "Name 2",
+    placeholder: "Enter Name",
     className: "col-span-1",
   },
   {
-    name: "convenorWhatsapp",
-    label: "Convenor WhatsApp Number",
-    placeholder: "Enter Convenor's WhatsApp (with country code)",
+    name: "committeeContact2Phone",
+    label: "Contact Number 2",
+    placeholder: "Enter Contact Number",
+    className: "col-span-1",
+  },
+  {
+    name: "committeeContact3Position",
+    label: "Position 3",
+    placeholder: "e.g., Coordinator",
+    className: "col-span-1",
+  },
+  {
+    name: "committeeContact3Name",
+    label: "Name 3",
+    placeholder: "Enter Name",
+    className: "col-span-1",
+  },
+  {
+    name: "committeeContact3Phone",
+    label: "Contact Number 3",
+    placeholder: "Enter Contact Number",
+    className: "col-span-1",
+  },
+  {
+    name: "committeeContact4Position",
+    label: "Position 4",
+    placeholder: "e.g., Joint Convenor",
+    className: "col-span-1",
+  },
+  {
+    name: "committeeContact4Name",
+    label: "Name 4",
+    placeholder: "Enter Name",
+    className: "col-span-1",
+  },
+  {
+    name: "committeeContact4Phone",
+    label: "Contact Number 4",
+    placeholder: "Enter Contact Number",
     className: "col-span-1",
   },
 ];
@@ -468,14 +504,15 @@ export default function SettingsClient({
                 hideDefaultSubmit={true}
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="w-full">
               <FormComponent
                 formFields={committeeContactsFormField}
                 apiKey={apiKey}
                 data={festival}
                 resource="settings"
                 title="Committee Contacts"
-                description="Contact details for Chairman and Convenor"
+                description="Contact details for Committee Members"
+                gridCols="grid-cols-1 md:grid-flow-col md:auto-cols-fr md:grid-rows-6 lg:grid-rows-3"
               />
             </div>
 

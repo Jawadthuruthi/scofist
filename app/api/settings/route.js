@@ -220,15 +220,25 @@ export async function POST(req, res) {
           existingSettings?.festival?.resultPosters ??
           [],
         committeeContacts: {
-          chairman: {
-            name: data.chairmanName ?? existingSettings?.festival?.committeeContacts?.chairman?.name,
-            phone: data.chairmanPhone ?? existingSettings?.festival?.committeeContacts?.chairman?.phone,
-            whatsapp: data.chairmanWhatsapp ?? existingSettings?.festival?.committeeContacts?.chairman?.whatsapp,
+          contact1: {
+            position: data.committeeContact1Position ?? existingSettings?.festival?.committeeContacts?.contact1?.position,
+            name: data.committeeContact1Name ?? existingSettings?.festival?.committeeContacts?.contact1?.name,
+            phone: data.committeeContact1Phone ?? existingSettings?.festival?.committeeContacts?.contact1?.phone,
           },
-          convenor: {
-            name: data.convenorName ?? existingSettings?.festival?.committeeContacts?.convenor?.name,
-            phone: data.convenorPhone ?? existingSettings?.festival?.committeeContacts?.convenor?.phone,
-            whatsapp: data.convenorWhatsapp ?? existingSettings?.festival?.committeeContacts?.convenor?.whatsapp,
+          contact2: {
+            position: data.committeeContact2Position ?? existingSettings?.festival?.committeeContacts?.contact2?.position,
+            name: data.committeeContact2Name ?? existingSettings?.festival?.committeeContacts?.contact2?.name,
+            phone: data.committeeContact2Phone ?? existingSettings?.festival?.committeeContacts?.contact2?.phone,
+          },
+          contact3: {
+            position: data.committeeContact3Position ?? existingSettings?.festival?.committeeContacts?.contact3?.position,
+            name: data.committeeContact3Name ?? existingSettings?.festival?.committeeContacts?.contact3?.name,
+            phone: data.committeeContact3Phone ?? existingSettings?.festival?.committeeContacts?.contact3?.phone,
+          },
+          contact4: {
+            position: data.committeeContact4Position ?? existingSettings?.festival?.committeeContacts?.contact4?.position,
+            name: data.committeeContact4Name ?? existingSettings?.festival?.committeeContacts?.contact4?.name,
+            phone: data.committeeContact4Phone ?? existingSettings?.festival?.committeeContacts?.contact4?.phone,
           },
         },
       },
@@ -761,12 +771,18 @@ export async function PUT(req) {
       data.instructions !== undefined ||
       data.isInstructionsVisible !== undefined ||
       data.festival?.resultPosters ||
-      data.chairmanName !== undefined ||
-      data.chairmanPhone !== undefined ||
-      data.chairmanWhatsapp !== undefined ||
-      data.convenorName !== undefined ||
-      data.convenorPhone !== undefined ||
-      data.convenorWhatsapp !== undefined
+      data.committeeContact1Position !== undefined ||
+      data.committeeContact1Name !== undefined ||
+      data.committeeContact1Phone !== undefined ||
+      data.committeeContact2Position !== undefined ||
+      data.committeeContact2Name !== undefined ||
+      data.committeeContact2Phone !== undefined ||
+      data.committeeContact3Position !== undefined ||
+      data.committeeContact3Name !== undefined ||
+      data.committeeContact3Phone !== undefined ||
+      data.committeeContact4Position !== undefined ||
+      data.committeeContact4Name !== undefined ||
+      data.committeeContact4Phone !== undefined
     ) {
       const { getYear } = await import("@/lib/getYear");
       const reqYear = await getYear(req);
@@ -843,15 +859,25 @@ export async function PUT(req) {
           existingFestivalForYear.resultPosters ??
           [],
         committeeContacts: {
-          chairman: {
-            name: data.chairmanName ?? existingFestivalForYear.committeeContacts?.chairman?.name,
-            phone: data.chairmanPhone ?? existingFestivalForYear.committeeContacts?.chairman?.phone,
-            whatsapp: data.chairmanWhatsapp ?? existingFestivalForYear.committeeContacts?.chairman?.whatsapp,
+          contact1: {
+            position: data.committeeContact1Position ?? existingFestivalForYear.committeeContacts?.contact1?.position,
+            name: data.committeeContact1Name ?? existingFestivalForYear.committeeContacts?.contact1?.name,
+            phone: data.committeeContact1Phone ?? existingFestivalForYear.committeeContacts?.contact1?.phone,
           },
-          convenor: {
-            name: data.convenorName ?? existingFestivalForYear.committeeContacts?.convenor?.name,
-            phone: data.convenorPhone ?? existingFestivalForYear.committeeContacts?.convenor?.phone,
-            whatsapp: data.convenorWhatsapp ?? existingFestivalForYear.committeeContacts?.convenor?.whatsapp,
+          contact2: {
+            position: data.committeeContact2Position ?? existingFestivalForYear.committeeContacts?.contact2?.position,
+            name: data.committeeContact2Name ?? existingFestivalForYear.committeeContacts?.contact2?.name,
+            phone: data.committeeContact2Phone ?? existingFestivalForYear.committeeContacts?.contact2?.phone,
+          },
+          contact3: {
+            position: data.committeeContact3Position ?? existingFestivalForYear.committeeContacts?.contact3?.position,
+            name: data.committeeContact3Name ?? existingFestivalForYear.committeeContacts?.contact3?.name,
+            phone: data.committeeContact3Phone ?? existingFestivalForYear.committeeContacts?.contact3?.phone,
+          },
+          contact4: {
+            position: data.committeeContact4Position ?? existingFestivalForYear.committeeContacts?.contact4?.position,
+            name: data.committeeContact4Name ?? existingFestivalForYear.committeeContacts?.contact4?.name,
+            phone: data.committeeContact4Phone ?? existingFestivalForYear.committeeContacts?.contact4?.phone,
           },
         },
       };

@@ -76,7 +76,7 @@ export default function ParticipantLoginModal({
               Welcome back!
             </h3>
             <p className="text-sm text-gray-500 text-center mt-1">
-              Enter your chest number and date of birth to view your participant card.
+              Enter your chest number and date of birth to login.
             </p>
           </div>
 
@@ -123,7 +123,7 @@ export default function ParticipantLoginModal({
               {loading ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
-                "View My Card"
+                "Login"
               )}
             </Button>
           </form>

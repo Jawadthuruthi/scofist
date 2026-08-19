@@ -302,15 +302,25 @@ const FestivalSchema = new Schema({
     },
   ],
   committeeContacts: {
-    chairman: {
+    contact1: {
+      position: { type: String, trim: true, default: "" },
       name: { type: String, trim: true, default: "" },
       phone: { type: String, trim: true, default: "" },
-      whatsapp: { type: String, trim: true, default: "" },
     },
-    convenor: {
+    contact2: {
+      position: { type: String, trim: true, default: "" },
       name: { type: String, trim: true, default: "" },
       phone: { type: String, trim: true, default: "" },
-      whatsapp: { type: String, trim: true, default: "" },
+    },
+    contact3: {
+      position: { type: String, trim: true, default: "" },
+      name: { type: String, trim: true, default: "" },
+      phone: { type: String, trim: true, default: "" },
+    },
+    contact4: {
+      position: { type: String, trim: true, default: "" },
+      name: { type: String, trim: true, default: "" },
+      phone: { type: String, trim: true, default: "" },
     },
   },
 });

@@ -66,11 +66,11 @@ function ResultsTopBar({ festivalName, festivalYear, festivalLogo, onLoginClick 
                 <img
                   src={festivalLogo}
                   alt={displayName}
-                  className="h-9 w-9 object-contain rounded-lg group-hover:opacity-85 transition-opacity flex-shrink-0"
+                  className="h-14 w-14 object-contain rounded-lg group-hover:opacity-85 transition-opacity flex-shrink-0"
                 />
               ) : (
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3f2720] to-[#9e6237] flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow flex-shrink-0">
-                  <Trophy className="w-5 h-5 text-white" />
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#3f2720] to-[#9e6237] flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow flex-shrink-0">
+                  <Trophy className="w-7 h-7 text-white" />
                 </div>
               )}
             </Link>
