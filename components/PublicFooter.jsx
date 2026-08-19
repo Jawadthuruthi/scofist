@@ -25,17 +25,21 @@ export default function Footer({ settings, institutionName }) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 md:mb-0">
           {/* Institution */}
           <div>
-            {settings?.festival?.festivalNameImage?.url ? (
+            {settings?.festival?.festivalThemeImage?.url ? (
               <img
-                src={settings.festival.festivalNameImage.url}
-                alt={institutionName || "Festival Name"}
-                className="h-16 md:h-20 w-auto max-w-[250px] mb-4 object-contain drop-shadow-md mix-blend-screen invert opacity-90"
+                src={settings.festival.festivalThemeImage.url}
+                alt="Festival Theme"
+                className="h-auto w-48 md:w-56 object-contain m-0 p-0 block drop-shadow-md"
               />
             ) : (
               <h3 className="text-lg font-semibold mb-4">{institutionName || "Sadiya Dawa College"}</h3>
             )}
-            <p className="text-sm opacity-80">
-              Providing excellence in integrated Islamic education since 2006.
+            <p className="text-sm opacity-80 leading-relaxed pr-4">
+              <span className="font-semibold text-white/90">
+                {settings?.festival?.festival_name || "Esperanza"} {settings?.festival?.festival_year || "2026"}, 11th Edition.
+              </span>
+              <br />
+              2026 September 17-20
             </p>
           </div>
 
@@ -69,23 +73,23 @@ export default function Footer({ settings, institutionName }) {
               <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/about" className="hover:text-white transition">
-                    About Us
+                  <Link href="/results" className="hover:text-white transition">
+                    Results
                   </Link>
                 </li>
                 <li>
-                  <Link href="/articles" className="hover:text-white transition">
-                    Articles
+                  <Link href="/team-points" className="hover:text-white transition">
+                    Team Points
                   </Link>
                 </li>
                 <li>
-                  <Link href="/dashboard/faculty" className="hover:text-white transition">
-                    Faculty
+                  <Link href="/schedule" className="hover:text-white transition">
+                    Schedule
                   </Link>
                 </li>
                 <li>
-                  <Link href="/updates" className="hover:text-white transition">
-                    Updates
+                  <Link href="/gallery" className="hover:text-white transition">
+                    Gallery
                   </Link>
                 </li>
               </ul>
@@ -128,7 +132,7 @@ export default function Footer({ settings, institutionName }) {
         </div>
       </div>
       <div className="max-w-6xl mx-auto mt-8 pt-6 border-t border-gray-700 text-sm text-center opacity-70">
-        © 2025 Sa-adiya College of Integrated Studies. All rights reserved.
+        © {settings?.festival?.festival_year || "2026"} {institutionName || "Sa-adiya College of Integrated Studies"}. All rights reserved.
       </div>
     </footer>
   );

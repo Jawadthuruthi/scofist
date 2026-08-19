@@ -524,9 +524,11 @@ const ImageUploader = ({
       canvas.height = targetHeight;
       const ctx = canvas.getContext("2d");
 
-      // Draw solid white background
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, targetWidth, targetHeight);
+      // Draw solid white background only for JPEGs (preserves transparency for PNGs/SVGs)
+      if (originalFile.type === "image/jpeg" || originalFile.type === "image/jpg") {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, targetWidth, targetHeight);
+      }
 
       // Draw the cropped portion
       ctx.drawImage(
@@ -561,6 +563,17 @@ const ImageUploader = ({
       }, originalFile.type);
     };
     img.src = cropImageSrc;
+  };
+
+  const handleSkipCrop = () => {
+    if (!originalFile) return;
+    
+    setSelectedFile(originalFile);
+    const objectUrl = URL.createObjectURL(originalFile);
+    setLocalPreview(objectUrl);
+    onChange({ url: "", publicId: null });
+    setIsCropOpen(false);
+    toast.success("Using original exact image! Click 'Upload Image' to submit.");
   };
 
   const handleUpload = async () => {
@@ -912,6 +925,14 @@ const ImageUploader = ({
               className="text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
             >
               Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleSkipCrop}
+              className="text-zinc-800 hover:bg-zinc-200 dark:text-zinc-200 dark:hover:bg-zinc-700"
+            >
+              Skip Cropping
             </Button>
             <Button
               type="button"

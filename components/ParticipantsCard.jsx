@@ -18,6 +18,7 @@ import { MultiSelect } from "./ui/multi-select";
 import { formatOptions } from "@/lib/utils";
 import Barcode from "react-barcode";
 import { QRCodeSVG } from "qrcode.react";
+import ProgramDetailsModal from "@/components/ProgramDetailsModal";
 
 const ParticipantsCard = ({
   participants = [],
@@ -439,7 +440,7 @@ const ParticipantsCard = ({
 export default ParticipantsCard;
 
 // Extracted component for participant card preview
-const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl, maxPrograms = 16, divisions = [] }) => {
+export const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl, maxPrograms = 16, divisions = [], layout = "col" }) => {
   const [currentPage, setCurrentPage] = useState(0);
   
   const participantsCardSettings = festivalSettings?.participantsCard || {};
@@ -475,11 +476,11 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl, max
 
   return (
     <div
-      className={`preview-container col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 gap-4`}
+      className={`preview-container col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 gap-4 ${layout === 'row' ? 'flex flex-col md:flex-row md:items-start w-full' : ''}`}
     >
       {/* Front Side Preview */}
       {(viewMode === "both" || viewMode === "front") && (
-        <Card className="border-border border overflow-hidden border-none mb-4">
+        <Card className={`border-border border overflow-hidden border-none ${layout === 'row' ? 'flex-1 mb-4 md:mb-0 w-full' : 'mb-4'}`}>
           <CardContent className="p-0">
             <div
               style={{
@@ -577,22 +578,25 @@ const ParticipantCard = ({ participant, festivalSettings, viewMode, baseUrl, max
 
       {/* Back Side Preview */}
       {(viewMode === "both" || viewMode === "back") && (
-        <Card className="overflow-hidden border border-gray-200 dark:border-gray-700">
-          <CardContent className="p-4 flex flex-col h-full md:aspect-[1/1.4] bg-white dark:bg-gray-800">
-            <div className="border-b border-gray-200 dark:border-gray-600 pb-1 mb-1">
-              <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 text-center">
-                {participant.chestNumber} - {participant.name}
-              </h3>
-              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 text-center mt-0.5">
-                {participant.teamName} | {participant.divisionName}
-              </p>
-            </div>
+        <Card className={`overflow-hidden border border-gray-200 dark:border-gray-700 ${layout === 'row' ? 'flex-1 w-full' : ''}`}>
+          <CardContent className={`p-4 flex flex-col h-full md:aspect-[1/1.4] bg-white dark:bg-gray-800 ${layout === 'row' ? 'overflow-y-hidden' : ''}`}>
+            {layout !== 'row' && (
+              <div className="border-b border-gray-200 dark:border-gray-600 pb-1 mb-1">
+                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 text-center">
+                  {participant.chestNumber} - {participant.name}
+                </h3>
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 text-center mt-0.5">
+                  {participant.teamName} | {participant.divisionName}
+                </p>
+              </div>
+            )}
 
             <ParticipantPrograms 
               participant={paginatedParticipant}
               onNextPage={handleNextPage}
               onPrevPage={handlePrevPage}
               divisions={divisions}
+              layout={layout}
             />
           </CardContent>
         </Card>
@@ -621,8 +625,13 @@ const ProgramGroup = ({ title, items }) => {
 };
 
 // Extracted component for participant programs
-const ParticipantPrograms = ({ participant, onNextPage, onPrevPage, divisions = [] }) => {
-  const programs = participant.displayedPrograms || participant.programs || [];
+const ParticipantPrograms = ({ participant, onNextPage, onPrevPage, divisions = [], layout }) => {
+  const [selectedProgramId, setSelectedProgramId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const programs = layout === 'row' 
+    ? (participant.processedPrograms || participant.allPrograms || participant.programs || [])
+    : (participant.displayedPrograms || participant.programs || []);
   
   // Primary (or general/undefined) programs
   const stagePrograms = programs.filter(p => p.category === "Stage" && p.divisionType !== "Secondary");
@@ -637,7 +646,7 @@ const ParticipantPrograms = ({ participant, onNextPage, onPrevPage, divisions = 
   });
 
   const secondaryDivisions = Object.keys(secondaryByDiv).map(divId => {
-    const divName = divisions.find(d => d._id === divId)?.name || "Secondary";
+    const divName = secondaryByDiv[divId][0]?.divisionName || divisions.find(d => d._id === divId)?.name || "Secondary";
     const divProgs = secondaryByDiv[divId];
     return {
       id: divId,
@@ -652,6 +661,109 @@ const ParticipantPrograms = ({ participant, onNextPage, onPrevPage, divisions = 
     : false;
     
   const hasPrevPage = participant.pageIndex !== undefined ? participant.pageIndex > 0 : false;
+
+  if (layout === 'row') {
+    return (
+      <div className="text-sm border-0 p-5 overflow-y-auto bg-muted/5 space-y-4 flex-1">
+        <h3 className="text-sm font-bold text-gray-800 bg-gray-100 p-2 rounded text-center mb-2 uppercase">
+          Assigned Programs
+        </h3>
+        
+        {programs.length > 0 ? (
+          <div className="space-y-4">
+             {stagePrograms.length > 0 && (
+                <div>
+                   <h4 className="text-sm font-bold text-gray-800 text-indigo-700 mb-1 border-b pb-1">
+                     Stage Programs
+                   </h4>
+                   <ul className="space-y-0 pl-1">
+                     {stagePrograms.map((p, idx) => (
+                        <li 
+                           key={p.id || p._id || idx} 
+                           className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-indigo-50 py-1 px-2 rounded transition-colors ml-2"
+                           onClick={() => { setSelectedProgramId(p.id || p._id); setIsModalOpen(true); }}
+                        >
+                           {p.displayIndex || idx + 1}. {p.name || "Unknown Program"}
+                        </li>
+                     ))}
+                   </ul>
+                </div>
+             )}
+             
+             {offStagePrograms.length > 0 && (
+                <div>
+                   <h4 className="text-sm font-bold text-gray-800 text-teal-700 mb-1 border-b pb-1">
+                     Off Stage Programs
+                   </h4>
+                   <ul className="space-y-0 pl-1">
+                     {offStagePrograms.map((p, idx) => (
+                        <li 
+                           key={p.id || p._id || idx} 
+                           className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-teal-50 py-1 px-2 rounded transition-colors ml-2"
+                           onClick={() => { setSelectedProgramId(p.id || p._id); setIsModalOpen(true); }}
+                        >
+                           {p.displayIndex || idx + 1}. {p.name || "Unknown Program"}
+                        </li>
+                     ))}
+                   </ul>
+                </div>
+             )}
+
+             {secondaryDivisions.map(secDiv => (
+               <div key={secDiv.id} className="space-y-4">
+                 {secDiv.stagePrograms.length > 0 && (
+                    <div>
+                       <h4 className="text-sm font-bold text-gray-800 text-indigo-700 mb-1 border-b pb-1">
+                         {secDiv.name} Stage Programs
+                       </h4>
+                       <ul className="space-y-0 pl-1">
+                         {secDiv.stagePrograms.map((p, idx) => (
+                            <li 
+                               key={p.id || p._id || idx} 
+                               className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-indigo-50 py-1 px-2 rounded transition-colors ml-2"
+                               onClick={() => { setSelectedProgramId(p.id || p._id); setIsModalOpen(true); }}
+                            >
+                               {p.displayIndex || idx + 1}. {p.name || "Unknown Program"}
+                            </li>
+                         ))}
+                       </ul>
+                    </div>
+                 )}
+                 {secDiv.offStagePrograms.length > 0 && (
+                    <div>
+                       <h4 className="text-sm font-bold text-gray-800 text-teal-700 mb-1 border-b pb-1">
+                         {secDiv.name} Off Stage Programs
+                       </h4>
+                       <ul className="space-y-0 pl-1">
+                         {secDiv.offStagePrograms.map((p, idx) => (
+                            <li 
+                               key={p.id || p._id || idx} 
+                               className="text-sm text-gray-700 font-medium cursor-pointer hover:bg-teal-50 py-1 px-2 rounded transition-colors ml-2"
+                               onClick={() => { setSelectedProgramId(p.id || p._id); setIsModalOpen(true); }}
+                            >
+                               {p.displayIndex || idx + 1}. {p.name || "Unknown Program"}
+                            </li>
+                         ))}
+                       </ul>
+                    </div>
+                 )}
+               </div>
+             ))}
+          </div>
+        ) : (
+          <div className="text-center text-gray-500 text-sm py-8 bg-gray-50 rounded border border-dashed border-gray-200">
+            No programs assigned to this participant.
+          </div>
+        )}
+        
+        <ProgramDetailsModal 
+          programId={selectedProgramId} 
+          isOpen={isModalOpen} 
+          onClose={() => setIsModalOpen(false)} 
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex-grow flex flex-col h-full">

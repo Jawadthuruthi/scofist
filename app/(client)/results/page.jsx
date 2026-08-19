@@ -24,6 +24,8 @@ import ResultPostersSection from "@/components/ResultPostersSection";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import PublicFooter from "@/components/PublicFooter";
+import ParticipantLoginModal from "@/components/ParticipantLoginModal";
+import { ParticipantCard } from "@/components/ParticipantsCard";
 
 /* ---------------------- helper utils ---------------------- */
 async function fetchJSON(url) {
@@ -33,7 +35,7 @@ async function fetchJSON(url) {
 }
 
 /* -------------------- TopBar Component -------------------- */
-function ResultsTopBar({ festivalName, festivalYear, festivalLogo, onMenuClick }) {
+function ResultsTopBar({ festivalName, festivalYear, festivalLogo, onLoginClick }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -56,18 +58,8 @@ function ResultsTopBar({ festivalName, festivalYear, festivalLogo, onMenuClick }
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Left: Hamburger + Festival Logo */}
+          {/* Left: Festival Logo */}
           <div className="flex items-center gap-3">
-            {/* Hamburger Menu Button */}
-            <button
-              id="results-sidebar-trigger"
-              onClick={onMenuClick}
-              className="w-9 h-9 rounded-xl bg-[#3f2720]/8 hover:bg-[#3f2720]/15 flex items-center justify-center transition-colors flex-shrink-0"
-              aria-label="Open navigation"
-            >
-              <Menu className="w-5 h-5 text-[#3f2720]" />
-            </button>
-
             {/* Festival Logo */}
             <Link href="/results" className="flex items-center gap-2 group">
               {festivalLogo ? (
@@ -85,15 +77,15 @@ function ResultsTopBar({ festivalName, festivalYear, festivalLogo, onMenuClick }
           </div>
 
           {/* Right: Participant Login */}
-          <Link
-            href="/participant"
+          <button
+            onClick={onLoginClick}
             id="participant-login-btn"
             className="flex items-center gap-2 bg-gradient-to-r from-[#3f2720] to-[#9e6237] text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:shadow-md hover:opacity-90 transition-all duration-200 group"
           >
             <LogIn className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             <span className="hidden sm:inline">Participant Login</span>
             <span className="sm:hidden">Login</span>
-          </Link>
+          </button>
         </div>
       </div>
     </header>
@@ -234,7 +226,8 @@ function PublicResultsContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showResults, setShowResults] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [authParticipant, setAuthParticipant] = useState(null);
 
   const searchParams = useSearchParams();
   const params = useParams();
@@ -278,15 +271,17 @@ function PublicResultsContent() {
     setShowResults(false);
     setError("");
 
-    if (!resultNo) {
+    if (!resultNo && !selectedProgram) {
       return;
     }
 
     setLoading(true);
 
-    fetchJSON(
-      `/api/results?${yearQuery}programId=${selectedProgram}&isResultDeclared=true&resultNumber=${resultNo}`
-    )
+    let fetchUrl = `/api/results?${yearQuery}isResultDeclared=true`;
+    if (selectedProgram) fetchUrl += `&programId=${selectedProgram}`;
+    if (resultNo) fetchUrl += `&resultNumber=${resultNo}`;
+
+    fetchJSON(fetchUrl)
       .then((r) => {
         const result = r.results?.[0];
         if (!result) {
@@ -418,6 +413,15 @@ function PublicResultsContent() {
   const festivalFullNameImage = settings?.festival?.festivalFullNameImage?.url || null;
   const festivalLogo = settings?.festival?.festivalLogo?.url || null;
 
+  const handleLoginSuccess = (participant) => {
+    setAuthParticipant(participant);
+    setShowLoginModal(false);
+  };
+
+  const handleLogout = () => {
+    setAuthParticipant(null);
+  };
+
   // 🆕 Format dates
   const formatDate = (dateString) => {
     if (!dateString) return null;
@@ -443,30 +447,46 @@ function PublicResultsContent() {
         festivalName={festivalName}
         festivalYear={festivalYear}
         festivalLogo={festivalLogo}
-        onMenuClick={() => setSidebarOpen(true)}
-      />
-
-      {/* ── SIDEBAR ── */}
-      <ResultsSidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        festivalName={festivalName}
-        festivalVenue={festivalVenue}
-        festivalNameImage={festivalNameImage}
+        onLoginClick={() => setShowLoginModal(true)}
       />
 
       {/* Main wrapper — offset for fixed topbar */}
       <div className="flex flex-1 pt-16">
         {/* ── MAIN CONTENT ── */}
-        <main className="flex-1 min-w-0">
-          {/* HERO HEADER */}
+        <main className="flex-1 overflow-y-auto relative w-full">
+          
+          {authParticipant ? (
+            <div className="p-4 md:p-8 max-w-5xl mx-auto min-h-screen">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-black text-[#3f2720]">My Participant Card</h2>
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 bg-white text-[#3f2720] border border-[#3f2720] hover:bg-gray-50 rounded-xl font-semibold shadow-sm transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+              {/* Participant Card Container */}
+              <div className="w-full max-w-4xl mx-auto flex justify-center">
+                <ParticipantCard
+                  participant={authParticipant}
+                  festivalSettings={settings?.festival}
+                  viewMode="both"
+                  layout="row"
+                  baseUrl={typeof window !== "undefined" ? window.location.origin : ""}
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* HERO HEADER */}
           <div className="relative overflow-hidden bg-white">
             <div className="relative z-10 py-10 px-4 flex items-center justify-center">
-              {festivalFullNameImage ? (
+              {festivalNameImage ? (
                 <img
-                  src={festivalFullNameImage}
+                  src={festivalNameImage}
                   alt={festivalName}
-                  className="w-full max-w-[95vw] sm:max-w-4xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl object-contain transition-all duration-300"
+                  className="w-full max-w-[75vw] sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl object-contain transition-all duration-300"
                 />
               ) : (
                 <h1 className="text-6xl md:text-8xl font-black text-center">
@@ -602,13 +622,22 @@ function PublicResultsContent() {
               <ResultPostersSection resultData={resultData} settings={settings} />
             )}
           </div>
+        </>
+      )}
+
+          {/* ── FOOTER ── */}
+          <PublicFooter settings={settings} institutionName={festivalVenue} />
         </main>
       </div>
 
-      {/* ── FOOTER ── */}
-      <PublicFooter settings={settings} institutionName={festivalVenue} />
-    </div>
-  );
+      {/* Login Modal */}
+      <ParticipantLoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        festivalNameImage={festivalNameImage}
+        onLoginSuccess={handleLoginSuccess}
+      />
+    </div>);
 }
 
 export default function PublicResultsPage() {
