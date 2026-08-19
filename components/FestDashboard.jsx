@@ -515,7 +515,8 @@ export default function FestDashboard({ apiKey, activeRole, user }) {
     <div className="flex flex-col space-y-2 relative">
       {/* Red Curtain Overlay */}
       <div 
-        className="fixed inset-0 z-[100] pointer-events-none flex"
+        onClick={() => setIsCurtainOpen(true)}
+        className={`fixed inset-0 z-[100] flex ${isCurtainOpen ? 'pointer-events-none' : 'cursor-pointer'}`}
         style={{
           transition: 'opacity 10s ease-in-out',
           opacity: isCurtainOpen ? 0 : 1,
