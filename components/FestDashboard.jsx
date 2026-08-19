@@ -518,7 +518,7 @@ export default function FestDashboard({ apiKey, activeRole, user }) {
       />
 
       {/* Festival Full Image */}
-      <div className="w-full flex justify-center my-8">
+      <div className="w-full flex justify-center mt-0 mb-6 -mt-2">
         {!settingsQuery.isLoading && (
           <img 
             src={
@@ -527,7 +527,7 @@ export default function FestDashboard({ apiKey, activeRole, user }) {
               "/sdc_seal.png"
             } 
             alt="Festival Image" 
-            className="p-4 max-w-md md:max-w-2xl h-auto object-contain"
+            className="px-4 pb-4 pt-0 w-64 sm:w-80 md:w-auto md:max-w-2xl h-auto object-contain"
           />
         )}
       </div>

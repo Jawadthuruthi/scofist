@@ -245,7 +245,7 @@ const committeeContactsFormField = [
     name: "committeeContact2Position",
     label: "Position 2",
     placeholder: "e.g., Convenor",
-    className: "col-span-1",
+    className: "col-span-1 pt-6 border-t border-border mt-2 md:pt-0 md:border-0 md:mt-0",
   },
   {
     name: "committeeContact2Name",
@@ -263,7 +263,7 @@ const committeeContactsFormField = [
     name: "committeeContact3Position",
     label: "Position 3",
     placeholder: "e.g., Coordinator",
-    className: "col-span-1",
+    className: "col-span-1 pt-6 border-t border-border mt-2 md:pt-0 md:border-0 md:mt-0",
   },
   {
     name: "committeeContact3Name",
@@ -281,7 +281,7 @@ const committeeContactsFormField = [
     name: "committeeContact4Position",
     label: "Position 4",
     placeholder: "e.g., Joint Convenor",
-    className: "col-span-1",
+    className: "col-span-1 pt-6 border-t border-border mt-2 md:pt-0 md:border-0 md:mt-0",
   },
   {
     name: "committeeContact4Name",
