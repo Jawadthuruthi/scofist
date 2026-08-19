@@ -25,7 +25,7 @@ export default function PublicHeader({ logo, name, leftLogo, centerLogo, rightLo
               <img
                 src={logo}
                 alt={`${name} Logo`}
-                className="object-contain h-10 md:h-14 w-auto drop-shadow-sm transition-transform hover:scale-105"
+                className="object-contain h-14 md:h-20 w-auto drop-shadow-sm transition-transform hover:scale-105"
               />
             </Link>
           )}
@@ -34,7 +34,7 @@ export default function PublicHeader({ logo, name, leftLogo, centerLogo, rightLo
             <img
               src={leftLogo}
               alt="Secondary Logo"
-              className="object-contain h-10 md:h-14 w-auto drop-shadow-sm"
+              className="object-contain h-14 md:h-20 w-auto drop-shadow-sm"
             />
           )}
 
@@ -51,7 +51,7 @@ export default function PublicHeader({ logo, name, leftLogo, centerLogo, rightLo
             <img
               src={centerLogo}
               alt="Center Logo"
-              className="object-contain h-8 md:h-12 w-auto drop-shadow-md"
+              className="object-contain h-12 md:h-16 w-auto drop-shadow-md"
             />
           </div>
         )}
@@ -63,7 +63,7 @@ export default function PublicHeader({ logo, name, leftLogo, centerLogo, rightLo
               <img
                 src={rightLogo}
                 alt={rightName || "Organisation Logo"}
-                className="object-contain h-10 md:h-14 w-auto drop-shadow-sm"
+                className="object-contain h-14 md:h-20 w-auto drop-shadow-sm"
               />
             </div>
           )}

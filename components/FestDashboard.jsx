@@ -158,7 +158,6 @@ export default function FestDashboard({ apiKey, activeRole, user }) {
   const [showDisplay, setShowDisplay] = useState(false);
   const [displayValue, setDisplayValue] = useState("");
   const [isWhiteTheme, setIsWhiteTheme] = useState(false);
-  const [isCurtainOpen, setIsCurtainOpen] = useState(false);
 
   // ===== STATS DATA FETCHING =====
   const isProgramRole = activeRole === "Program Leader" || activeRole === "Program Committee";
@@ -501,7 +500,6 @@ export default function FestDashboard({ apiKey, activeRole, user }) {
         case "T": navigateTo("teams"); break;
         case "G": navigateTo("graph"); break;
         case "I": navigateTo("toppers"); break;
-        case "ENTER": setIsCurtainOpen(true); break;
         case "C": navigateTo("champions"); break;
         case "D": navigateTo("display"); break;
         default: break;
@@ -513,62 +511,6 @@ export default function FestDashboard({ apiKey, activeRole, user }) {
 
   return (
     <div className="flex flex-col space-y-2 relative">
-      {/* Red Curtain Overlay */}
-      <div 
-        onClick={() => setIsCurtainOpen(true)}
-        className={`fixed inset-0 z-[100] flex ${isCurtainOpen ? 'pointer-events-none' : 'cursor-pointer'}`}
-        style={{
-          transition: 'opacity 10s ease-in-out',
-          opacity: isCurtainOpen ? 0 : 1,
-          transitionDelay: isCurtainOpen ? '1s' : '0s'
-        }}
-      >
-        {/* Left Curtain */}
-        <div 
-          className="w-1/2 h-full border-r-8 border-red-950 shadow-[20px_0_50px_rgba(0,0,0,0.5)]"
-          style={{ 
-            backgroundImage: 'repeating-linear-gradient(to right, #7f1d1d, #b91c1c 20px, #991b1b 40px)',
-            transition: 'transform 10s cubic-bezier(0.4, 0, 0.2, 1)',
-            transform: isCurtainOpen ? 'translateX(-100%)' : 'translateX(0)'
-          }}
-        />
-        {/* Right Curtain */}
-        <div 
-          className="w-1/2 h-full border-l-8 border-red-950 shadow-[-20px_0_50px_rgba(0,0,0,0.5)]"
-          style={{ 
-            backgroundImage: 'repeating-linear-gradient(to left, #7f1d1d, #b91c1c 20px, #991b1b 40px)',
-            transition: 'transform 10s cubic-bezier(0.4, 0, 0.2, 1)',
-            transform: isCurtainOpen ? 'translateX(100%)' : 'translateX(0)'
-          }}
-        />
-        
-        {/* Title Overlay in front of curtain */}
-        <div 
-          className="absolute inset-0 flex flex-col items-center justify-center z-[101]"
-          style={{
-            transition: 'opacity 2s ease-in-out',
-            opacity: isCurtainOpen ? 0 : 1,
-          }}
-        >
-          <h2 
-            className="text-2xl md:text-5xl lg:text-6xl font-bold text-white uppercase tracking-[0.3em] text-center mb-2 md:mb-4 opacity-90 drop-shadow-xl"
-            style={{ 
-              textShadow: '0 5px 15px rgba(0,0,0,0.8)'
-            }}
-          >
-            SCOFIST
-          </h2>
-          <h1 
-            className="text-5xl md:text-8xl lg:text-[9rem] font-black text-white uppercase tracking-[0.2em] text-center drop-shadow-2xl"
-            style={{ 
-              textShadow: '0 10px 30px rgba(0,0,0,0.8), 0 0 60px rgba(220,38,38,0.6)'
-            }}
-          >
-            ESPERANZA 3.0
-          </h1>
-        </div>
-      </div>
-
       <Header
         title="DASHBOARD"
         subTitle={currentDate}

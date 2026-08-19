@@ -111,7 +111,7 @@ export function Topbar({ user, hideSidebarToggle = false }) {
                   <img
                     src={institution.logo.url}
                     alt="Institution Logo"
-                    className="h-12 w-auto object-contain"
+                    className="h-20 w-auto object-contain"
                   />
                 )}
                 <div className="text-center">

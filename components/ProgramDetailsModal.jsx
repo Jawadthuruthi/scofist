@@ -133,7 +133,10 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
             <FileText className="h-6 w-6 text-primary" />
           </div>
           <div className="flex-1 text-left space-y-0.5 min-w-0">
-            <DialogTitle className="text-xl font-bold m-0 text-foreground truncate">
+            <DialogTitle 
+              className="text-xl font-bold m-0 text-foreground truncate"
+              style={{ fontFamily: 'var(--font-montserrat), "Montserrat", var(--font-noto-malayalam), "Noto Sans Malayalam", sans-serif' }}
+            >
               {program?.name || "Loading..."}
             </DialogTitle>
             <div className="flex flex-wrap gap-1.5 mt-1">
@@ -157,7 +160,14 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
           </button>
         </DialogHeader>
 
-        <div className="text-sm border-0 p-5 overflow-y-auto bg-muted/5 space-y-4 flex-1">
+        <div 
+          className="text-sm border-0 p-5 overflow-y-auto bg-muted/5 space-y-4 flex-1"
+          style={{ 
+            minHeight: 0, 
+            flexShrink: 1, 
+            fontFamily: 'var(--font-montserrat), "Montserrat", var(--font-noto-malayalam), "Noto Sans Malayalam", sans-serif' 
+          }}
+        >
 
         {loading ? (
           <div className="flex justify-center items-center py-12">

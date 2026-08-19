@@ -29,7 +29,7 @@ export default function Footer({ settings, institutionName }) {
               <img
                 src={settings.festival.festivalThemeImage.url}
                 alt="Festival Theme"
-                className="h-auto w-48 md:w-56 object-contain m-0 p-0 block drop-shadow-md"
+                className="h-auto w-48 md:w-56 object-contain m-0 pt-4 pb-4 block drop-shadow-md"
               />
             ) : (
               <h3 className="text-lg font-semibold mb-4">{institutionName || "Sadiya Dawa College"}</h3>
