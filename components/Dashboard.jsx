@@ -452,7 +452,7 @@ const ClassCard = memo(
         {/* Leave Students Popup */}
         <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
           <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
-            <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+            <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-2 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
               <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
                 <Users className="h-5 w-5 text-red-500" />
               </div>
@@ -468,7 +468,7 @@ const ClassCard = memo(
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
-            <div className="text-sm border-0 p-4 max-h-80 overflow-y-auto bg-muted/5 space-y-1 flex-1">
+            <div className="text-sm border-0 px-4 py-1 max-h-80 overflow-y-auto bg-muted/5 flex-1">
               {sortedLeaveStudents.length > 0 ? (
                 sortedLeaveStudents.map((std, index) => {
                   const student = students?.find(s => String(s._id) === String(std.studentId?._id || std.studentId));
@@ -476,7 +476,7 @@ const ClassCard = memo(
                   const leaveReason = std.reason || std.leaveReason || "";
                   const displayId = std.studentId?._id || std.studentId || "";
                   return (
-                    <div key={index} className="flex justify-between items-center py-2 px-3 border-b last:border-0 hover:bg-muted/50 rounded transition-colors">
+                    <div key={index} className="flex justify-between items-center py-0.5 px-3 border-b last:border-0 hover:bg-muted/50 rounded transition-colors">
                       <div className="flex flex-col">
                         <div className="font-semibold text-slate-700 dark:text-slate-200">
                           {index + 1}. {std.studentName} {admissionNumber ? `(${admissionNumber})` : ""}
@@ -767,7 +767,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
-          <div className="space-y-4 p-5">
+          <div className="space-y-3 p-5">
             {dashboardData?.onLeaveStudentsList?.length > 0 ? (
               Object.entries(
                 dashboardData.onLeaveStudentsList.reduce((acc, student) => {
@@ -777,13 +777,13 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
                   return acc;
                 }, {})
               ).map(([className, students]) => (
-                <div key={className} className="space-y-2 border-b pb-4 last:border-0 last:pb-0">
+                <div key={className} className="space-y-1 border-b pb-3 last:border-0 last:pb-0">
                   <h4 className="font-semibold text-sm text-primary">{className}</h4>
-                  <div className="space-y-1">
+                  <div className="space-y-0">
                     {students.map((student, index) => (
                       <div
                         key={student.id || index}
-                        className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50"
+                        className="flex items-center justify-between py-1 px-3 rounded-md hover:bg-muted/50"
                       >
                         <div className="flex flex-col">
                           <span className="text-sm font-medium">

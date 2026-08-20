@@ -9,9 +9,10 @@ export default async function ResultsQRCodePage() {
   try {
     const cookiesStore = await cookies();
     const activeYear = cookiesStore.get("active-year")?.value;
+    const apiKey = process.env.API_KEY;
     return (
       <Suspense fallback={<QRCodeSkeleton />}>
-        <ResultsQRCodeView activeYear={activeYear} />
+        <ResultsQRCodeView activeYear={activeYear} apiKey={apiKey} />
       </Suspense>
     );
   } catch (error) {

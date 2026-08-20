@@ -213,18 +213,18 @@ const AbsenteesDialog = ({
               Absentees ({absenteesList.length})
             </DialogTitle>
             <DialogDescription className="m-0 text-xs flex flex-col gap-1 text-muted-foreground mt-1">
-              <span className="flex flex-wrap gap-x-2">
+              <span className="flex flex-wrap gap-x-1 items-center">
                 <span className="font-medium text-foreground">{formattedDateStr}</span>
-                <span>•</span>
+                <span className="text-muted-foreground/50">|</span>
                 <span>Period: <span className="font-medium text-foreground">{periodNumber}</span></span>
-                <span>•</span>
+                <span className="text-muted-foreground/50">|</span>
                 <span>Class: <span className="font-medium text-foreground">
                   {cellData?.classId?.shortname || cellData?.classId?.name || "N/A"}
                 </span></span>
               </span>
-              <span className="flex flex-wrap gap-x-2">
+              <span className="flex flex-wrap gap-x-1 items-center">
                 <span className="font-medium text-foreground">{cellData?.subjectId?.name || "N/A"}</span>
-                <span>•</span>
+                <span className="text-muted-foreground/50">|</span>
                 <span className="font-medium text-foreground">{cellData?.teacherId?.name || "N/A"}</span>
               </span>
             </DialogDescription>

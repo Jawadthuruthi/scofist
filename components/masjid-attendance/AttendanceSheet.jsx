@@ -13,7 +13,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader, Save, ArrowLeft, Clock } from "lucide-react";
+import { Loader, Save, ArrowLeft, Clock, X } from "lucide-react";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
 import {
@@ -23,6 +23,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogClose,
 } from "@/components/ui/dialog";
 
 const AttendanceSheet = ({
@@ -40,6 +41,9 @@ const AttendanceSheet = ({
     const [saving, setSaving] = useState(false);
     const [existingRecordId, setExistingRecordId] = useState(null);
     const [resetDialogOpen, setResetDialogOpen] = useState(false);
+    const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+    const [currentStudentHistory, setCurrentStudentHistory] = useState([]);
+    const [currentStudentName, setCurrentStudentName] = useState("");
 
     // Fetch students
     const { useFetchItems: useFetchStudents } = useCrud("users", apiKey);
@@ -155,14 +159,19 @@ const AttendanceSheet = ({
 
         // Initialize for all current students
         students.forEach(s => {
-            historyMap[s._id] = 0;
+            historyMap[s._id] = [];
         });
 
         historyQuery.data.attendances.forEach(record => {
             record.attendanceData.forEach(item => {
                 const studentId = item.studentId._id || item.studentId;
                 if (item.status === "ABSENT" || item.status === "LEAVE") {
-                    historyMap[studentId] = (historyMap[studentId] || 0) + 1;
+                    if (!historyMap[studentId]) historyMap[studentId] = [];
+                    historyMap[studentId].push({
+                        date: record.date,
+                        prayer: record.prayer,
+                        status: item.status
+                    });
                 }
             });
         });
@@ -315,13 +324,20 @@ const AttendanceSheet = ({
                 </div>
                 {/* Date Display - Right side, styled like MyPeriods */}
                 <div className="py-1 px-8 border border-border rounded-lg text-sm font-medium self-start md:self-auto">
-                    {date}
+                    {(() => {
+                        const d = new Date(date);
+                        const dd = String(d.getDate()).padStart(2, '0');
+                        const mm = String(d.getMonth() + 1).padStart(2, '0');
+                        const yyyy = d.getFullYear();
+                        const day = d.toLocaleDateString('en-US', { weekday: 'long' });
+                        return `${dd}-${mm}-${yyyy}, ${day}`;
+                    })()}
                 </div>
             </div>
 
             {/* Stats Card - Sticky on Mobile */}
             <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2 -mx-4 px-4 md:static md:bg-transparent md:p-0 md:mx-0">
-                <div className="flex flex-col md:flex-row items-center justify-between bg-card p-4 rounded-lg border shadow-sm gap-4">
+                <div className="flex flex-col md:flex-row items-center justify-between bg-card py-2 px-4 rounded-lg border shadow-sm gap-4">
                     <div className="flex w-full md:w-auto justify-between md:justify-start gap-2 md:gap-4 flex-wrap">
                         <div className="flex flex-col items-center md:flex-row md:gap-2">
                             <span className="text-xs text-muted-foreground uppercase font-bold md:hidden">
@@ -361,7 +377,7 @@ const AttendanceSheet = ({
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[50px]">Sl No</TableHead>
+                            <TableHead className="w-[80px] text-center">Sl No</TableHead>
                             <TableHead>Student</TableHead>
                             <TableHead className="w-[100px] text-right md:text-center">History</TableHead>
                         </TableRow>
@@ -395,38 +411,44 @@ const AttendanceSheet = ({
                                     className={rowClass}
                                     onClick={() => toggleAttendance(student._id)}
                                 >
-                                    <TableCell>{index + 1}</TableCell>
+                                    <TableCell className="text-center">{index + 1}</TableCell>
                                     <TableCell>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 w-fit">
                                             <Avatar className="h-8 w-8 hidden sm:block">
                                                 <AvatarImage src={student.profilePic?.url} />
                                                 <AvatarFallback>
                                                     {student.name.charAt(0)}
                                                 </AvatarFallback>
                                             </Avatar>
-                                            <div>
-                                                <p className="font-medium text-sm md:text-base">
+                                            <div className="text-left flex flex-col">
+                                                <p className="font-medium text-sm md:text-base whitespace-nowrap">
                                                     {student.name}
                                                 </p>
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {student.admissionNumber}
-                                                    </p>
-                                                    {isOnLeave && (
-                                                        <Badge variant="outline" className="h-4 text-[10px] px-1 bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-500 dark:border-yellow-800">
-                                                            <Clock className="w-3 h-3 mr-1" />
-                                                            On Leave
-                                                        </Badge>
-                                                    )}
-                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {student.admissionNumber}
+                                                </p>
+                                                {isOnLeave && (
+                                                    <span className="text-[10px] text-yellow-600 bg-yellow-100 px-1 py-0.5 rounded border border-yellow-200 mt-1 w-fit flex items-center">
+                                                        <Clock className="w-3 h-3 mr-1" />
+                                                        On Leave
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right md:text-center">
                                         {/* History Column - Shows absent days count */}
-                                        <div className="flex flex-col items-end md:items-center">
+                                        <div 
+                                            className="flex flex-col items-end md:items-center cursor-pointer hover:bg-muted/50 p-1 rounded transition-colors"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setCurrentStudentHistory(studentHistory[student._id] || []);
+                                                setCurrentStudentName(student.name);
+                                                setHistoryDialogOpen(true);
+                                            }}
+                                        >
                                             <span className="text-sm font-bold text-muted-foreground">
-                                                {studentHistory[student._id] || 0}
+                                                {studentHistory[student._id]?.length || 0}
                                             </span>
                                             <span className="text-[10px] text-muted-foreground uppercase">
                                                 Days Absent
@@ -451,18 +473,20 @@ const AttendanceSheet = ({
             </div>
 
             {/* Floating Action Bar - Fixed at bottom for ALL screens as requested */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t flex justify-end gap-2 z-20">
-                <div className="container max-w-7xl mx-auto flex justify-end gap-2 w-full">
-                    {existingRecordId && (
-                        <Button
-                            variant="outline"
-                            className="border-destructive text-destructive hover:bg-destructive/10"
-                            onClick={() => setResetDialogOpen(true)}
-                            disabled={saving}
-                        >
-                            Reset
-                        </Button>
-                    )}
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t z-20">
+                <div className="container max-w-7xl mx-auto flex items-center justify-between gap-2 w-full">
+                    <div>
+                        {existingRecordId && (
+                            <Button
+                                variant="outline"
+                                className="border-destructive text-destructive hover:bg-destructive/10"
+                                onClick={() => setResetDialogOpen(true)}
+                                disabled={saving}
+                            >
+                                Reset
+                            </Button>
+                        )}
+                    </div>
                     <Button
                         className="w-full sm:w-auto"
                         onClick={handleSave}
@@ -504,6 +528,63 @@ const AttendanceSheet = ({
                             Yes, Reset Record
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+                <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-2 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+                        <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                            <Clock className="h-5 w-5 text-orange-500" />
+                        </div>
+                        <div className="flex-1 text-left space-y-0.5">
+                            <DialogTitle className="text-xl font-bold m-0 text-orange-600 dark:text-orange-400">
+                                Absent History - {currentStudentName}
+                            </DialogTitle>
+                            <DialogDescription className="m-0">
+                                Past instances of being absent or on leave.
+                            </DialogDescription>
+                        </div>
+                        <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                            <X className="h-5 w-5" />
+                        </DialogClose>
+                    </DialogHeader>
+                    <div className="text-sm border-0 px-4 py-1 max-h-80 overflow-y-auto bg-muted/5 flex-1">
+                        {currentStudentHistory.length > 0 ? (
+                            <div className="space-y-0">
+                                {currentStudentHistory.map((record, idx) => (
+                                    <div key={idx} className="flex items-center gap-3 py-1.5 px-3 border-b last:border-0 hover:bg-muted/50 rounded transition-colors">
+                                        <span className="font-medium text-muted-foreground w-6 text-center">{idx + 1}.</span>
+                                        <div className="flex-1">
+                                            <span className="font-medium">
+                                                {(() => {
+                                                    const d = new Date(record.date);
+                                                    const dd = String(d.getDate()).padStart(2, '0');
+                                                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                                    const yyyy = d.getFullYear();
+                                                    const day = d.toLocaleDateString('en-US', { weekday: 'long' });
+                                                    return `${dd}-${mm}-${yyyy}, ${day}`;
+                                                })()}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground block">{record.prayer}</span>
+                                        </div>
+                                        {record.status === "LEAVE" && (
+                                            <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full border border-yellow-200">
+                                                On Leave
+                                            </span>
+                                        )}
+                                        {record.status === "ABSENT" && (
+                                            <span className="text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded-full border border-red-200">
+                                                Absent
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-center text-muted-foreground py-4">No absent history found.</p>
+                        )}
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

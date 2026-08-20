@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import PrayerSection from "./PrayerSection";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ChevronsUpDown, Plus, X, CheckCircle2 } from "lucide-react";
+import { ChevronsUpDown, Plus, X, CheckCircle2, History } from "lucide-react";
 import {
     Popover,
     PopoverContent,
@@ -276,30 +276,31 @@ const MasjidDashboard = ({ classes, apiKey }) => {
                 subTitle={isMasjid ? "Manage Daily Prayer Attendance" : `Manage ${selectedCategory} Attendance`}
             />
 
-            <div className="flex items-center justify-between">
-                <div className="px-4 py-1 border rounded-md bg-background">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="px-4 py-1 border rounded-md bg-background w-fit">
                     <span className="font-medium">{formattedDate}</span>
                 </div>
-                <Link href="/dashboard/masjid-attendance/history">
-                    <Button className="bg-black hover:bg-black/90 text-white shadow-md">
-                        History
-                    </Button>
-                </Link>
-            </div>
-
-            {/* ── Session Type ── */}
-            <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                    Session Type
-                </span>
-                <div className="w-52">
-                    <CategoryCombobox
-                        value={selectedCategory}
-                        onChange={setSelectedCategory}
-                        categories={categories}
-                        onAddCategory={handleAddCategory}
-                        onRemoveCategory={handleRemoveCategory}
-                    />
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                            Session
+                        </span>
+                        <div className="w-40 sm:w-52">
+                            <CategoryCombobox
+                                value={selectedCategory}
+                                onChange={setSelectedCategory}
+                                categories={categories}
+                                onAddCategory={handleAddCategory}
+                                onRemoveCategory={handleRemoveCategory}
+                            />
+                        </div>
+                    </div>
+                    <Link href="/dashboard/masjid-attendance/history">
+                        <Button className="bg-black hover:bg-black/90 text-white shadow-md flex items-center gap-2">
+                            <History className="h-4 w-4" />
+                            <span>History</span>
+                        </Button>
+                    </Link>
                 </div>
             </div>
 

@@ -4,8 +4,9 @@
 import { QRCodeCanvas } from "qrcode.react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QrCode } from "lucide-react";
+import PrintHeader from "@/components/PrintHeader";
 
-export function QRCodeGenerator({ resultsUrl, qrOptions, printRef }) {
+export function QRCodeGenerator({ resultsUrl, qrOptions, printRef, apiKey }) {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-2">
@@ -18,20 +19,26 @@ export function QRCodeGenerator({ resultsUrl, qrOptions, printRef }) {
         <div
           ref={printRef}
           id="qr-code-canvas"
-          className="flex flex-col items-center justify-center space-y-4 p-4 sm:px-8 sm:pb-8 sm:pt-4 bg-white rounded-lg max-w-full overflow-hidden"
+          className="flex flex-col w-full bg-white rounded-lg overflow-hidden"
         >
-          <QRCodeCanvas
-            value={resultsUrl}
-            size={qrOptions.width}
-            level={qrOptions.level}
-            marginSize={qrOptions.margin}
-            bgColor={qrOptions.color.light}
-            fgColor={qrOptions.color.dark}
-            style={{ maxWidth: "100%", height: "auto" }}
-          />
-          <p className="text-sm text-center text-muted-foreground mt-4">
-            Scan to view festival results
-          </p>
+          <div className="w-full">
+            <PrintHeader apiKey={apiKey} isFestival={true} />
+          </div>
+          
+          <div className="flex flex-col items-center justify-center space-y-4 p-4 sm:px-8 sm:pb-8 sm:pt-4">
+            <QRCodeCanvas
+              value={resultsUrl}
+              size={qrOptions.width}
+              level={qrOptions.level}
+              marginSize={qrOptions.margin}
+              bgColor={qrOptions.color.light}
+              fgColor={qrOptions.color.dark}
+              style={{ maxWidth: "100%", height: "auto" }}
+            />
+            <p className="text-sm text-center text-muted-foreground mt-4">
+              Scan to view festival results
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>
