@@ -646,9 +646,14 @@ async function handleApiRequest(req) {
         userId: payload.userId,
       };
 
-      const res = NextResponse.next();
-      res.headers.set("x-user", JSON.stringify(user));
-      return res;
+      const requestHeaders = new Headers(req.headers);
+      requestHeaders.set("x-user", JSON.stringify(user));
+
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
     } catch (error) {
       // Token is invalid, continue to check API key
       console.error("Invalid auth token in API request:", error.message);
@@ -897,6 +902,20 @@ async function fetchUserProfile(userId, apiKey, origin) {
 }
 
 function prepareResponse(req, token, user, newProfileToken = null) {
+  // Validate user object before JSON.stringify to prevent errors
+  const safeUser = {
+    ...user,
+    userId: user?._id,
+  };
+
+  const requestHeaders = new Headers(req.headers);
+  try {
+    requestHeaders.set("x-user", JSON.stringify(safeUser));
+    requestHeaders.set("x-auth-token", token);
+  } catch (error) {
+    console.error("Error setting request headers:", error.message);
+  }
+
   if (user?.roles?.includes("Teacher") && user?.teacherSpecificField?.status === "Retired") {
     const loginUrl = new URL("/login", req.url);
     const logoutRes = NextResponse.redirect(loginUrl);
@@ -907,7 +926,11 @@ function prepareResponse(req, token, user, newProfileToken = null) {
     return logoutRes;
   }
 
-  const res = NextResponse.next();
+  const res = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 
   // Resolve the active role FIRST — before any access checks.
   // This prevents a stale `active-role` cookie (from a previous session
@@ -945,20 +968,6 @@ function prepareResponse(req, token, user, newProfileToken = null) {
     return redirectTo404(req);
   }
 
-  // Validate user object before JSON.stringify to prevent errors
-  const safeUser = {
-    ...user,
-    userId: user?._id,
-  };
-
-  // Set headers safely with try/catch
-  try {
-    res.headers.set("x-user", JSON.stringify(safeUser));
-    res.headers.set("x-auth-token", token);
-  } catch (error) {
-    console.error("Error setting headers:", error.message);
-  }
-
   if (req.cookies.has("force-profile-refresh")) {
     res.cookies.delete("force-profile-refresh");
   }
@@ -987,5 +996,5 @@ function redirectTo404(req) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/library-dashboard/:path*", "/library-dashboard", "/judge-portal", "/judge-portal/:path*", "/api/x/:path*", "/api/finance", "/api/finance/:path*", "/", "/login"],
+  matcher: ["/dashboard/:path*", "/library-dashboard/:path*", "/library-dashboard", "/judge-portal", "/judge-portal/:path*", "/api/:path*", "/", "/login"],
 };
