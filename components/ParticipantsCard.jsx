@@ -349,7 +349,7 @@ const ParticipantsCard = ({
         }).map((_, pageIndex) => (
           <div
             key={`page-${pageIndex}`}
-            className="print-page w-full p-4 flex flex-wrap"
+            className={`print-page w-full p-4 flex flex-wrap ${viewMode === 'back' ? 'flex-row-reverse' : ''}`}
             style={{
               width: "297mm",
               height: "210mm",
