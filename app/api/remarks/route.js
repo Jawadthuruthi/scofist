@@ -24,8 +24,8 @@ export async function GET(req) {
       }
     }
 
-    const headerStore = headers();
-    const cookieStore = cookies();
+    const headerStore = await headers();
+    const cookieStore = await cookies();
     const user = parseUser(headerStore);
     const activeRole = cookieStore.get("active-role")?.value || headerStore.get("active-role");
 
@@ -37,17 +37,30 @@ export async function GET(req) {
       if (isMyRecords) {
         query.teacherId = user.userId;
       } else {
-        const teacherClass = await Class.findOne({ teacherId: user.userId });
-        if (!teacherClass) {
-          return apiResponse.error("You are not assigned to any class.", 403);
+        const teacherClasses = await Class.find({ teacherId: user.userId });
+        if (!teacherClasses || teacherClasses.length === 0) {
+          query.teacherId = user.userId;
+        } else {
+          const assignedClassIds = teacherClasses.map(c => c._id.toString());
+          // Strictly restrict to assigned classes
+          if (filterParams.classId) {
+            if (assignedClassIds.includes(filterParams.classId)) {
+              query.classId = filterParams.classId;
+            } else {
+              // Forced empty result if they try to filter an unassigned class
+              query.classId = "unauthorized_class"; 
+            }
+          } else {
+            query.classId = { $in: assignedClassIds };
+          }
         }
-        query.classId = teacherClass._id.toString();
       }
     } else if (activeRole !== "College Admin") {
       return apiResponse.error("You are not authorized to view remarks.", 403);
     }
 
-    if (filterParams.classId) query.classId = filterParams.classId;
+    // classId is already handled for Teachers above to prevent overriding assigned classes
+    if (filterParams.classId && activeRole !== "Teacher") query.classId = filterParams.classId;
     if (filterParams.studentId) query.studentId = filterParams.studentId;
     if (filterParams.status) query.status = filterParams.status;
     if (filterParams.teacherId) query.teacherId = filterParams.teacherId;
@@ -132,13 +145,13 @@ export async function POST(req) {
   try {
     await connectToDB();
 
-    const headerStore = headers();
+    const headerStore = await headers();
     const user = parseUser(headerStore);
 
     const { studentId, classId, date, comments, status, teacherId } = await req.json();
 
     let assignedTeacherId = user.userId;
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const activeRole = cookieStore.get("active-role")?.value || headerStore.get("active-role");
 
     if (activeRole === "College Admin" && teacherId) {
@@ -171,8 +184,8 @@ export async function PUT(req) {
   try {
     await connectToDB();
 
-    const headerStore = headers();
-    const cookieStore = cookies();
+    const headerStore = await headers();
+    const cookieStore = await cookies();
     const user = parseUser(headerStore);
     const activeRole = cookieStore.get("active-role")?.value || headerStore.get("active-role");
 
@@ -207,8 +220,8 @@ export async function DELETE(req) {
   try {
     await connectToDB();
 
-    const headerStore = headers();
-    const cookieStore = cookies();
+    const headerStore = await headers();
+    const cookieStore = await cookies();
     const user = parseUser(headerStore);
     const activeRole = cookieStore.get("active-role")?.value || headerStore.get("active-role");
 

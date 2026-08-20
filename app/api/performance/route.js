@@ -37,11 +37,15 @@ export async function GET(req) {
       if (isMyRecords) {
         query.teacherId = user.userId;
       } else {
-        const teacherClass = await Class.findOne({ teacherId: user.userId });
-        if (!teacherClass) {
-          return apiResponse.error("You are not assigned to any class.", 403);
+        const teacherClasses = await Class.find({ teacherId: user.userId });
+        if (!teacherClasses || teacherClasses.length === 0) {
+          query.teacherId = user.userId;
+        } else {
+          query.$or = [
+            { classId: { $in: teacherClasses.map(c => c._id.toString()) } },
+            { teacherId: user.userId }
+          ];
         }
-        query.classId = teacherClass._id.toString();
       }
     } else if (activeRole === "Literary Leader") {
       query.teacherId = user.userId;

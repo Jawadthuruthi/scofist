@@ -646,8 +646,14 @@ async function handleApiRequest(req) {
         userId: payload.userId,
       };
 
-      const res = NextResponse.next();
-      res.headers.set("x-user", JSON.stringify(user));
+      const requestHeaders = new Headers(req.headers);
+      requestHeaders.set("x-user", JSON.stringify(user));
+      
+      const res = NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
       return res;
     } catch (error) {
       // Token is invalid, continue to check API key
@@ -678,7 +684,14 @@ async function handleAuthRequest(req, event) {
       name: "E2E Test User",
     };
 
-    const res = NextResponse.next();
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-user", JSON.stringify(mockUser));
+    const res = NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+    // Also keep response header just in case client needs it
     res.headers.set("x-user", JSON.stringify(mockUser));
     res.cookies.set("active-role", activeRole, {
       path: "/",
@@ -987,5 +1000,5 @@ function redirectTo404(req) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/library-dashboard/:path*", "/library-dashboard", "/judge-portal", "/judge-portal/:path*", "/api/x/:path*", "/api/finance", "/api/finance/:path*", "/", "/login"],
+  matcher: ["/dashboard/:path*", "/library-dashboard/:path*", "/library-dashboard", "/judge-portal", "/judge-portal/:path*", "/api/:path*", "/", "/login"],
 };
