@@ -41,10 +41,18 @@ export async function GET(req) {
         if (!teacherClasses || teacherClasses.length === 0) {
           query.teacherId = user.userId;
         } else {
-          query.$or = [
-            { classId: { $in: teacherClasses.map(c => c._id.toString()) } },
-            { teacherId: user.userId }
-          ];
+          const assignedClassIds = teacherClasses.map(c => c._id.toString());
+          // Strictly restrict to assigned classes
+          if (filterParams.classId) {
+            if (assignedClassIds.includes(filterParams.classId)) {
+              query.classId = filterParams.classId;
+            } else {
+              // Forced empty result if they try to filter an unassigned class
+              query.classId = "unauthorized_class"; 
+            }
+          } else {
+            query.classId = { $in: assignedClassIds };
+          }
         }
       }
     } else if (activeRole === "Literary Leader") {
@@ -53,7 +61,8 @@ export async function GET(req) {
       return apiResponse.error("You are not authorized to view performances.", 403);
     }
 
-    if (filterParams.classId) query.classId = filterParams.classId;
+    // classId is already handled for Teachers above to prevent overriding assigned classes
+    if (filterParams.classId && activeRole !== "Teacher") query.classId = filterParams.classId;
     if (filterParams.studentId) query.studentId = filterParams.studentId;
     if (filterParams.status) query.status = filterParams.status;
     if (filterParams.teacherId) query.teacherId = filterParams.teacherId;

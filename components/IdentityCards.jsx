@@ -3,7 +3,7 @@ import { useRef, useState, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { Printer, User, Shield, Settings } from "lucide-react";
+import { Printer, User, Shield, Settings, X } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import Barcode from "react-barcode";
 import Header from "./Header";
@@ -15,6 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
+  DialogDescription,
 } from "./ui/dialog";
 import {
   Select,
@@ -38,6 +40,7 @@ const idCardFormField = [
     maxFileSize: 2 * 1024 * 1024,
     allowedTypes: ["image/jpeg", "image/jpg", "image/png"],
     aspectRatio: "2:3",
+    hasSubmitButton: true,
     defaultValue: {},
   },
 ];
@@ -133,14 +136,51 @@ const IdentityCards = ({
       <Header
         title="IDENTITY CARDS"
         subTitle="Official Identity for Students and Teachers"
+        rightAction={
+          (userRole === "College Admin" || allRoles.includes("College Admin")) && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" title="Settings">
+                  <Settings size={16} />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-2xl overflow-hidden rounded-2xl sm:rounded-2xl max-h-[90vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0 border-gray-100 shadow-xl">
+                <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Settings className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 text-left space-y-0.5">
+                    <DialogTitle className="text-xl font-bold m-0">ID Card Settings</DialogTitle>
+                    <DialogDescription className="m-0 text-sm">
+                      Configure background and seal for ID cards
+                    </DialogDescription>
+                  </div>
+                  <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                    <X className="h-5 w-5" />
+                  </DialogClose>
+                </DialogHeader>
+                <div className="p-6 overflow-y-auto">
+                  <FormComponent
+                    formFields={idCardFormField}
+                    apiKey={apiKey}
+                    data={settings.idCard}
+                    resource="settings"
+                    hideDefaultSubmit={true}
+                    removeCardWrapper={true}
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
+          )
+        }
       />
-      <div className="flex flex-col md:flex-row gap-4 mb-6 md:items-end flex-wrap">
+      <div className="flex flex-col md:flex-row gap-4 mb-6 md:items-end flex-wrap xl:flex-nowrap">
         {isManagementView && (
           <>
-            <div className="w-full md:flex-1 md:min-w-[150px]">
+            <div className="w-full md:flex-1 md:max-w-[325px]">
               <label className="text-sm font-medium mb-1 block">ID Type</label>
               <Select value={selectionType} onValueChange={setSelectionType}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10">
                   <SelectValue placeholder="Select an option" />
                 </SelectTrigger>
                 <SelectContent>
@@ -152,7 +192,7 @@ const IdentityCards = ({
 
             {selectionType === "Student ID" ? (
               <>
-                <div className="w-full md:flex-1 md:min-w-[150px]">
+                <div className="w-full md:flex-1 md:max-w-[325px]">
                   <label htmlFor="class-select" className="text-sm font-medium mb-1 block">
                     Select a Class
                   </label>
@@ -165,7 +205,7 @@ const IdentityCards = ({
                   />
                 </div>
 
-                <div className="w-full md:flex-1 md:min-w-[150px]">
+                <div className="w-full md:flex-1 md:max-w-[325px]">
                   <label htmlFor="student-select" className="text-sm font-medium mb-1 block">
                     Select a Student
                   </label>
@@ -179,7 +219,7 @@ const IdentityCards = ({
                 </div>
               </>
             ) : (
-              <div className="w-full md:flex-1 md:min-w-[150px]">
+              <div className="w-full md:flex-1 md:max-w-[325px]">
                 <label className="text-sm font-medium mb-1 block">Select Teacher</label>
                 <MultiSelect
                   options={teacherOptions}
@@ -193,14 +233,14 @@ const IdentityCards = ({
           </>
         )}
 
-        <div className="w-full md:w-[350px] flex flex-col gap-3">
+        <div className="w-full md:flex-1 md:max-w-[325px] flex flex-col gap-3">
           <div className="flex gap-2 items-end w-full">
             <div className="flex-1">
               <label htmlFor="side-select" className="text-sm font-medium mb-1 block">
                 Print Side
               </label>
               <Select value={selectedSide} onValueChange={setSelectedSide}>
-                <SelectTrigger id="side-select">
+                <SelectTrigger id="side-select" className="h-10">
                   <SelectValue placeholder="Select Side" />
                 </SelectTrigger>
                 <SelectContent>
@@ -210,31 +250,6 @@ const IdentityCards = ({
                 </SelectContent>
               </Select>
             </div>
-
-            {(userRole === "College Admin" || allRoles.includes("College Admin")) && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" title="Settings">
-                    <Settings size={16} />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>ID Card Settings</DialogTitle>
-                  </DialogHeader>
-                  <div className="mt-4">
-                    <FormComponent
-                      formFields={idCardFormField}
-                      apiKey={apiKey}
-                      data={settings.idCard}
-                      resource="settings"
-                      title="ID Card"
-                      description="Set Your ID Card Background"
-                    />
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )}
 
             <Button
               onClick={handlePrint}
@@ -284,19 +299,38 @@ const IdentityCards = ({
               Page {pageIndex + 1}
             </div>
 
-            {filteredList
-              .slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage)
-              .map((person) => (
-                <PrintableIdCard
-                  key={`print-${person._id}`}
-                  person={person}
-                  institution={institution}
-                  academicYear={academicYear}
-                  idCardBackgroundImageUrl={idCardBackgroundImageUrl}
-                  isStudent={selectionType === "Student ID"}
-                  selectedSide={selectedSide}
-                />
-              ))}
+            {(() => {
+              let pageItems = filteredList.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
+
+              if (selectedSide === "Back Side") {
+                // For back side, we have 4 items per row. We must reverse the items within each row
+                // and pad with nulls so the back aligns perfectly with the front when the paper is flipped.
+                const row1 = pageItems.slice(0, 4);
+                const row2 = pageItems.slice(4, 8);
+                
+                while (row1.length < 4) row1.push(null);
+                while (row2.length < 4) row2.push(null);
+                
+                pageItems = [...row1.reverse(), ...row2.reverse()];
+              }
+
+              return pageItems.map((person, i) => {
+                if (!person) {
+                  return <div key={`empty-${i}`} className="w-1/4 h-1/2 p-2" />;
+                }
+                return (
+                  <PrintableIdCard
+                    key={`print-${person._id}`}
+                    person={person}
+                    institution={institution}
+                    academicYear={academicYear}
+                    idCardBackgroundImageUrl={idCardBackgroundImageUrl}
+                    isStudent={selectionType === "Student ID"}
+                    selectedSide={selectedSide}
+                  />
+                );
+              });
+            })()}
           </div>
         ))}
       </div>
@@ -357,13 +391,18 @@ const IdCard = ({
     <div className={`preview-container ${isStudentView ? "col-span-12 flex-row flex-wrap items-stretch justify-center" : "col-span-12 xs:col-span-6 md:col-span-4 xl:col-span-3 flex-col"} gap-4 flex`}>
       {/* Front Side Preview */}
       {showFront && (
-        <Card className={`shadow-md overflow-hidden border-none flex-1 ${isStudentView ? "max-w-[350px] min-w-[300px]" : ""}`}>
+        <Card className={`shadow-md overflow-hidden border-none flex-1 ${isStudentView ? "max-w-[340px] min-w-[300px]" : ""}`}>
           <CardContent className="p-0">
-            <div
-              style={{ backgroundImage: `url(${idCardBackgroundImageUrl})` }}
-              className="bg-cover bg-center w-full h-full p-4 rounded shadow"
-            >
-              {/* Centered Institution Title */}
+            <div className="relative bg-white w-full h-full p-4 rounded shadow overflow-hidden">
+              {idCardBackgroundImageUrl && (
+                <div className="absolute inset-0 w-full h-full z-0 pointer-events-none">
+                  <svg width="100%" height="100%">
+                    <image href={idCardBackgroundImageUrl} width="100%" height="100%" preserveAspectRatio="xMidYMid slice" />
+                  </svg>
+                </div>
+              )}
+              <div className="relative z-10 w-full h-full">
+                {/* Centered Institution Title */}
               <div className="text-center mb-3">
                 <h2 className="font-bold text-sm uppercase tracking-wider">
                   {institution.name || "Educational Institution"}
@@ -429,6 +468,7 @@ const IdCard = ({
                   )}
                 </div>
               </div>
+              </div>
             </div>
 
             <div className="p-2 flex flex-col items-center">
@@ -458,7 +498,7 @@ const IdCard = ({
 
       {/* Back Side Preview */}
       {showBack && (
-        <Card className={`shadow-md overflow-hidden border border-gray-200 flex-1 ${isStudentView ? "max-w-[350px] min-w-[300px]" : ""}`}>
+        <Card className={`shadow-md overflow-hidden border border-gray-200 flex-1 ${isStudentView ? "max-w-[340px] min-w-[300px]" : ""}`}>
           <CardContent className="p-4 flex flex-col h-full">
             <div className="border-b border-gray-200 pb-2 mb-3">
               <h3 className="text-sm font-semibold text-gray-800 text-center">
@@ -502,14 +542,11 @@ const IdCard = ({
 const PersonDetails = ({ person, academicYear, isStudent }) => {
   return (
     <div className="relative">
-      <div
-        className="absolute inset-0 bg-center bg-no-repeat z-0"
-        style={{
-          backgroundImage: 'url("/sdc_seal.png")',
-          opacity: 0.4,
-          backgroundSize: "250px",
-        }}
-      ></div>
+      <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-40">
+        <svg width="250" height="250">
+          <image href="/sdc_seal.png" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" />
+        </svg>
+      </div>
       <div className="relative text-xs z-10 grid grid-cols-[max-content_auto_1fr] gap-x-1 gap-y-1 w-full">
         {isStudent ? (
           <>
@@ -640,11 +677,16 @@ const PrintableIdCard = ({
       {/* Front Side Card */}
       {showFront && (
         <div className={innerClass}>
-          <div
-            style={{ backgroundImage: `url(${idCardBackgroundImageUrl})` }}
-            className="bg-cover bg-center w-full h-full p-4 rounded shadow flex flex-col"
-          >
-            <div className="text-center mb-1">
+          <div className="relative bg-white w-full h-full p-4 rounded shadow overflow-hidden flex flex-col">
+            {idCardBackgroundImageUrl && (
+              <div className="absolute inset-0 w-full h-full z-0 pointer-events-none">
+                <svg width="100%" height="100%">
+                  <image href={idCardBackgroundImageUrl} width="100%" height="100%" preserveAspectRatio="xMidYMid slice" />
+                </svg>
+              </div>
+            )}
+            <div className="relative z-10 flex flex-col h-full w-full">
+              <div className="text-center mb-1">
               <h2 className="font-bold text-xs uppercase tracking-wider">
                 {institution.name || "Educational Institution"}
               </h2>
@@ -723,6 +765,7 @@ const PrintableIdCard = ({
                   />
                 </div>
               )}
+            </div>
             </div>
           </div>
         </div>

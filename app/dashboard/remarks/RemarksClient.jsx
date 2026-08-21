@@ -5,7 +5,8 @@ import DataTableComponent from "@/components/DataTableComponent";
 import Header from "@/components/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { FileSpreadsheet, X } from "lucide-react";
 import { toast } from "sonner";
 
 const columnsConfig = [
@@ -170,6 +171,7 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
     const canEdit = isAdmin || isTeacher;
     const [isMyRecordsOpen, setIsMyRecordsOpen] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
+    const [myRecordsCount, setMyRecordsCount] = useState(0);
 
     useEffect(() => {
         setIsMounted(true);
@@ -319,11 +321,21 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
             />
 
             <Dialog open={isMyRecordsOpen} onOpenChange={setIsMyRecordsOpen}>
-                <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col p-4 sm:p-6 overflow-hidden">
-                    <DialogHeader>
-                        <DialogTitle>My Remark Records</DialogTitle>
+                <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col p-0 gap-0 overflow-hidden [&>button.absolute]:hidden rounded-2xl">
+                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                            <FileSpreadsheet className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 text-left space-y-0.5">
+                            <DialogTitle className="text-xl font-bold m-0">
+                                My Remark Records
+                            </DialogTitle>
+                        </div>
+                        <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                            <X className="h-5 w-5" />
+                        </DialogClose>
                     </DialogHeader>
-                    <div className="flex-1 overflow-hidden mt-2">
+                    <div className="flex-1 overflow-hidden p-4 sm:p-6 pt-2">
                         <DataTableComponent
                             resource="remarks"
                             apiFilters={{ teacherId: user?.userId, myRecords: "true" }}
@@ -346,7 +358,11 @@ export default function RemarksClient({ apiKey, activeRole, user, classes, teach
                             desktopSearchPlaceholder="Search student or number..."
                             extraSearchFields={["studentId", "admissionNumber"]}
                             tableHeight="calc(80vh - 180px)"
+                            onDataFetched={(data) => setMyRecordsCount(data?.pagination?.total || 0)}
                         />
+                    </div>
+                    <div className="px-4 sm:px-6 pb-4 sm:pb-6 text-sm text-gray-500 font-medium">
+                        Total Records: {myRecordsCount}
                     </div>
                 </DialogContent>
             </Dialog>

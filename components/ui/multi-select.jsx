@@ -71,7 +71,15 @@ export const MultiSelect = React.forwardRef(
   ) => {
     // Use a memoized default value to avoid recreation on every render
     const defaultValue = React.useMemo(() => (multiSelect ? [] : ""), [multiSelect]);
-    const effectiveValue = value ?? defaultValue;
+    const effectiveValue = React.useMemo(() => {
+      if (value !== undefined && value !== null) {
+        if (multiSelect) {
+          return Array.isArray(value) ? value : (value === "" ? [] : [value]);
+        }
+        return value;
+      }
+      return defaultValue;
+    }, [value, multiSelect, defaultValue]);
 
     const [selectedValues, setSelectedValues] = React.useState(effectiveValue);
     const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
@@ -98,9 +106,10 @@ export const MultiSelect = React.forwardRef(
       // Only update if the value actually changed to avoid infinite loops
       // Simple reference check first, then content check for arrays
       if (value !== undefined && value !== null) {
-        if (multiSelect && Array.isArray(value)) {
-          if (JSON.stringify(value) !== JSON.stringify(selectedValues)) {
-            setSelectedValues(value);
+        if (multiSelect) {
+          const arrayValue = Array.isArray(value) ? value : (value === "" ? [] : [value]);
+          if (JSON.stringify(arrayValue) !== JSON.stringify(selectedValues)) {
+            setSelectedValues(arrayValue);
           }
         } else if (value !== selectedValues) {
           setSelectedValues(value);
