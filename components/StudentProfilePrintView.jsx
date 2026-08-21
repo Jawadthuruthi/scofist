@@ -8,7 +8,7 @@ import PrintHeader from "@/components/PrintHeader";
 const InfoField = ({ label, value, fullWidth = false }) => {
   if (!value) return null;
   return (
-    <div className={`flex border-b border-gray-100 last:border-0 py-1.5 print:py-2 items-start text-sm print:text-[13px] leading-tight ${fullWidth ? 'sm:col-span-2' : ''}`}>
+    <div className={`flex border-b border-gray-100 last:border-0 py-1.5 print:py-[6px] items-start text-sm print:text-[13px] leading-tight ${fullWidth ? 'sm:col-span-2' : ''}`}>
       <span className="font-semibold text-gray-500 min-w-[120px] print:min-w-[110px] uppercase tracking-tighter text-[11px] print:text-[11px]">{label}</span>
       <span className="text-gray-400 mr-2">:</span>
       <span className="text-gray-900 break-words font-normal flex-1">{value}</span>
@@ -17,13 +17,13 @@ const InfoField = ({ label, value, fullWidth = false }) => {
 };
 
 const Section = ({ title, children }) => (
-  <div className="mb-4 print:mb-3 break-inside-avoid shadow-sm print:shadow-none border border-gray-100 print:border-gray-200 rounded-lg overflow-hidden">
-    <div className="bg-gray-50/50 print:bg-gray-50 px-4 py-2 print:py-1 border-b border-gray-100 print:border-gray-200">
+  <div className="mb-4 print:mb-2 break-inside-avoid shadow-sm print:shadow-none border border-gray-100 print:border-gray-200 rounded-lg overflow-hidden">
+    <div className="bg-gray-50/50 print:bg-gray-50 px-4 py-2 print:py-1.5 border-b border-gray-100 print:border-gray-200">
         <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider print:text-[13px]">
         {title}
         </h3>
     </div>
-    <div className="px-4 py-2 print:py-1 grid grid-cols-1 sm:grid-cols-2 gap-x-12 print:gap-x-8">
+    <div className="px-4 py-2 print:py-[6px] grid grid-cols-1 sm:grid-cols-2 gap-x-12 print:gap-x-8">
       {children}
     </div>
   </div>
@@ -45,7 +45,8 @@ export default function StudentProfilePrintView({ student, classes, batches, api
 
   return (
     <div 
-      className="bg-white mx-auto print:font-sans w-full max-w-[210mm] print:shadow-none print:border-none print:leading-none relative"
+      id="student-profile-print-area"
+      className="bg-white mx-auto print:font-sans w-full max-w-[210mm] print:shadow-none print:border-none print:leading-none relative flex flex-col"
       style={{
         padding: "0mm 8mm",
         minHeight: "auto",
@@ -64,37 +65,83 @@ export default function StudentProfilePrintView({ student, classes, batches, api
                 margin: 0 !important;
                 padding: 0 !important;
             }
+            
+            /* 
+             * Hide the main background app (dashboard) entirely.
+             * This collapses the 10+ page table to 0 height, eliminating blank pages!
+             */
+            .min-w-full.max-w-full {
+                display: none !important;
+            }
+            
+            /* Also hide any other background elements visually */
+            body * {
+                visibility: hidden;
+            }
+
+            /* SHOW PRINT AREA */
+            #student-profile-print-area, 
+            #student-profile-print-area * {
+                visibility: visible;
+            }
+
+            /* RESET DIALOG POSITIONING FOR PRINT */
+            [role="dialog"] {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                transform: none !important;
+                width: 100% !important;
+                height: auto !important;
+                max-height: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+            }
+            
+            #student-profile-print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: auto;
+                max-height: 297mm; /* Max A4 height */
+                overflow: hidden; /* Prevent spillover to page 2 */
+                box-sizing: border-box;
+            }
+
             .no-print,
+            .no-print *,
             button.absolute.right-4.top-4, /* Hide shadcn dialog close icon */
             [data-state="open"] > button.absolute { 
                 display: none !important;
+                visibility: hidden !important;
             }
-            /* Force the container to start at the absolute top */
-            html, body {
-                height: 100%;
-            }
+            
             /* Narrow down the PrintHeader padding for this view */
             .print-header-compact div {
                 padding-top: 0 !important;
                 padding-bottom: 0 !important;
-                margin-bottom: 4px !important;
+                margin-bottom: 0px !important;
             }
         }
       `}</style>
 
       {/* College Header - Compact in Print */}
-      <div className="mb-2 print:mb-1 print-header-compact">
+      <div className="mb-2 print:mb-0 print-header-compact">
         <PrintHeader title="STUDENT PROFILE SUMMARY" apiKey={apiKey} displayOnScreen={true} />
       </div>
 
       {/* Personal Info with Photo - Ultra Compact */}
-      <div className="relative mb-4 print:mb-3 break-inside-avoid shadow-sm print:shadow-none border border-gray-100 print:border-gray-200 rounded-lg overflow-hidden">
-        <div className="bg-gray-50/50 print:bg-gray-50 px-4 py-2 print:py-1 border-b border-gray-100 print:border-gray-200">
+      <div className="relative mb-4 print:mb-2 break-inside-avoid shadow-sm print:shadow-none border border-gray-100 print:border-gray-200 rounded-lg overflow-hidden shrink-0">
+        <div className="bg-gray-50/50 print:bg-gray-50 px-4 py-2 print:py-1.5 border-b border-gray-100 print:border-gray-200">
             <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider print:text-[13px]">
             PERSONAL DETAILS
             </h3>
         </div>
-        <div className="px-4 py-2 print:py-1 flex gap-8 justify-between relative">
+        <div className="px-4 py-2 print:py-[6px] flex gap-8 justify-between relative">
             <div className="grid grid-cols-1 sm:grid-cols-2 grow gap-x-12 print:gap-x-8 pr-32 print:pr-24">
                 <InfoField label="Full Name" value={student.name} fullWidth={true} />
                 <InfoField label="Email" value={student?.email} fullWidth={true} />
@@ -170,12 +217,6 @@ export default function StudentProfilePrintView({ student, classes, batches, api
                 <span className="text-[9px] font-bold uppercase text-gray-400">Office Scan Verified</span>
             </div>
         </div>
-      </div>
-
-      <div className="hidden print:block pt-4 text-center mt-2 border-t border-gray-100">
-          <p className="text-[11px] text-gray-400 font-medium">
-            Electronic Profile Summary | Scofist Institutional System
-          </p>
       </div>
     </div>
   );

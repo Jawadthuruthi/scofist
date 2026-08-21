@@ -11,6 +11,8 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogClose,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { MultiSelect } from "./ui/multi-select";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -463,17 +465,28 @@ export default function PopupFilter({
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="sm:max-w-3xl w-[95vw]">
-            <DialogHeader>
-              <DialogTitle>Filter {title}</DialogTitle>
+          <DialogContent className="rounded-2xl sm:rounded-2xl sm:max-w-3xl w-[95vw] max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+            <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Filter className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 text-left space-y-0.5">
+                <DialogTitle className="text-xl font-bold m-0">Filter {title}</DialogTitle>
+                <DialogDescription className="m-0">
+                  Adjust filters to refine the {title.toLowerCase()} list
+                </DialogDescription>
+              </div>
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                <X className="h-5 w-5" />
+              </DialogClose>
             </DialogHeader>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 overflow-y-auto">
               {/* Individual Filters */}
               {filterConfig.map((filterItem) => renderFilterItem(filterItem, false))}
             </div>
 
-            <DialogFooter className="flex justify-between">
+            <DialogFooter className="flex justify-between p-5 border-t bg-muted/20 sticky bottom-0 z-20">
               <Button variant="outline" onClick={handleClearFilters}>
                 Clear All
               </Button>
