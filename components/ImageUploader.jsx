@@ -923,7 +923,7 @@ const ImageUploader = ({
           <DialogFooter className="flex flex-row justify-end flex-wrap gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800/80">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               onClick={() => setIsCropOpen(false)}
               className="text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
             >
