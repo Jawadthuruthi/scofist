@@ -1,9 +1,11 @@
 import { apiResponse } from "@/lib/apiResponse";
+import connectToDB from "@/lib/db";
 import TeachersLeaveRecord from "@/models/TeachersLeaveRecord";
 import { NextResponse } from "next/server";
 
 export async function GET(req) {
   try {
+    await connectToDB();
     const url = new URL(req.url);
 
     const filterParams = {};
@@ -58,6 +60,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
+    await connectToDB();
     const data = await req.json();
     const date = new Date(data.date);
     date.setUTCHours(0, 0, 0, 0);
@@ -87,6 +90,7 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   try {
+    await connectToDB();
     const { _id } = await req.json();
     if (!_id) {
       return NextResponse.json(
