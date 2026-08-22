@@ -73,6 +73,7 @@ const CodeLettersComponent = ({
   additionalProps = {},
 }) => {
   const [programs, setPrograms] = useState([]);
+  const [filteredPrograms, setFilteredPrograms] = useState([]);
   const [selectedClass, setSelectedClass] = useState("all");
   const [selectedProgram, setSelectedProgram] = useState("all");
 
