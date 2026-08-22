@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, Edit2, Trash2, Settings2, Lock, Unlock, X } from "lucide-react";
+import { Plus, Calendar, Edit2, Trash2, Settings2, Lock, Unlock, X, Check } from "lucide-react";
 import Cookies from "js-cookie";
 import axios from "axios";
 import { toast } from "sonner";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,9 @@ const YearSwitcher = ({ initialData, activeRole, initialActiveYear }) => {
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [editingYear, setEditingYear] = useState(null);
   const [editValue, setEditValue] = useState("");
+
+  const popupRef = useRef(null);
+  const { handleDownload } = useDownloadPopup(popupRef, `Festival_Sessions.jpeg`);
 
   useEffect(() => {
     // Always fetch in background to keep data fresh for mutation actions
@@ -213,18 +217,24 @@ const YearSwitcher = ({ initialData, activeRole, initialActiveYear }) => {
                   <Settings2 className="h-3 w-3" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-hidden p-0 flex flex-col gap-0">
+              <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-hidden p-0 flex flex-col gap-0">
                 <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                  <div className="p-2 rounded-lg bg-primary/10">
+                  <button 
+                    type="button"
+                    className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+                    onClick={handleDownload}
+                    title="Download Image"
+                    data-html2canvas-ignore="true"
+                  >
                     <Settings2 className="h-5 w-5 text-primary" />
-                  </div>
+                  </button>
                   <div className="flex-1 text-left space-y-0.5">
                     <DialogTitle className="text-xl font-bold m-0">Manage Festival Sessions</DialogTitle>
                     <DialogDescription className="m-0">
                       Add, rename, block, or delete festival years.
                     </DialogDescription>
                   </div>
-                  <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                  <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
                     <X className="h-5 w-5" />
                   </DialogClose>
                 </DialogHeader>

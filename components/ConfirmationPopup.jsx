@@ -15,6 +15,7 @@ import {
 import { Loader, Trash, AlertTriangle, X } from "lucide-react";
 import { capitalize } from "lodash";
 import { Input } from "./ui/input";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 export default function ConfirmationPopup({
   loading = false,
@@ -28,6 +29,9 @@ export default function ConfirmationPopup({
 }) {
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
+
+  const popupRef = React.useRef(null);
+  const { handleDownload } = useDownloadPopup(popupRef, `Confirmation_${title.replace(/\s+/g, '_')}.jpeg`);
 
   const handleClick = React.useCallback(async () => {
     try {
@@ -51,11 +55,17 @@ export default function ConfirmationPopup({
           {icon || <Trash />}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden rounded-2xl">
+      <DialogContent ref={popupRef} data-html2canvas-popup="true" className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden rounded-2xl">
         <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-          <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+          <button 
+            type="button"
+            className="p-2 rounded-lg bg-destructive/10 shrink-0 hover:bg-destructive/20 transition-colors focus:outline-none cursor-pointer"
+            onClick={handleDownload}
+            title="Download Image"
+            data-html2canvas-ignore="true"
+          >
             <AlertTriangle className="h-5 w-5 text-destructive" />
-          </div>
+          </button>
           <div className="flex-1 text-left space-y-0.5">
             <DialogTitle className="text-xl font-bold m-0 text-foreground">
               {title}
@@ -66,7 +76,7 @@ export default function ConfirmationPopup({
               </div>
             </DialogDescription>
           </div>
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2" data-html2canvas-ignore="true">
             <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
               <X className="h-5 w-5" />
             </DialogClose>

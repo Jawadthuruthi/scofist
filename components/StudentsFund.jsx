@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import Header from "./Header";
 import useCrud from "@/hooks/use-crud";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import {
   Table,
   TableBody,
@@ -1012,11 +1013,11 @@ const StudentsFund = ({
                                 View All Students Balance
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-2xl h-[90vh] sm:h-[70vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
+                            <DialogContent ref={allStudentsBalancePopupRef} data-html2canvas-popup="true" className="sm:max-w-2xl h-[90vh] sm:h-[70vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
                               <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                                <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                                <button type="button" className="p-2 rounded-lg bg-primary/10 shrink-0 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer" onClick={handleAllStudentsBalanceDownload} title="Download Image" data-html2canvas-ignore="true">
                                   <FileText className="h-5 w-5 text-primary" />
-                                </div>
+                                </button>
                                 <div className="flex-1 text-left space-y-0.5">
                                   <DialogTitle className="text-xl font-bold m-0">All Students Balance</DialogTitle>
                                   <DialogDescription className="m-0">
@@ -1038,7 +1039,7 @@ const StudentsFund = ({
                                     <Printer className="h-5 w-5" />
                                     Print
                                   </Button>
-                                  <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                                  <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
                                     <X className="h-5 w-5" />
                                   </DialogClose>
                                 </div>
@@ -1412,9 +1413,9 @@ const StudentsFund = ({
         <div className="lg:col-span-1">
           <Card className="sticky top-6 overflow-hidden">
             <CardHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-              <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                <History className="h-5 w-5 text-primary" />
-              </div>
+              <button type="button" className="p-2 rounded-lg bg-primary/10 shrink-0 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer" onClick={handleTransactionHistoryDownload} title="Download Image" data-html2canvas-ignore="true">
+                          <History className="h-5 w-5 text-primary" />
+                        </button>
               <div className="flex-1 text-left space-y-0.5">
                 <CardTitle className="text-xl font-bold m-0">
                   Transaction History
@@ -1483,11 +1484,11 @@ const StudentsFund = ({
                         View Full History
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-2xl h-[80vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
+                    <DialogContent ref={transactionHistoryPopupRef} data-html2canvas-popup="true" className="sm:max-w-2xl h-[80vh] flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
                       <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                        <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                        <button type="button" className="p-2 rounded-lg bg-primary/10 shrink-0 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer" onClick={handleTransactionHistoryDownload} title="Download Image" data-html2canvas-ignore="true">
                           <History className="h-5 w-5 text-primary" />
-                        </div>
+                        </button>
                         <div className="flex-1 text-left space-y-0.5">
                           <DialogTitle className="text-xl font-bold m-0">
                             Transaction History
@@ -1513,7 +1514,7 @@ const StudentsFund = ({
                             <Printer className="h-5 w-5" />
                             Print
                           </Button>
-                          <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                          <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
                             <X className="h-5 w-5" />
                           </DialogClose>
                         </div>
@@ -1777,9 +1778,9 @@ const StudentsFund = ({
       >
         <DialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-            <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+            <button type="button" className="p-2 rounded-lg bg-destructive/10 shrink-0 hover:bg-destructive/20 transition-colors focus:outline-none cursor-pointer" onClick={handleDeleteDownload} title="Download Image" data-html2canvas-ignore="true">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-            </div>
+            </button>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0 text-foreground">Clear History</DialogTitle>
               <DialogDescription asChild>
@@ -1790,7 +1791,7 @@ const StudentsFund = ({
               </DialogDescription>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
-              <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <DialogClose className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
                 <X className="h-5 w-5" />
               </DialogClose>
             </div>

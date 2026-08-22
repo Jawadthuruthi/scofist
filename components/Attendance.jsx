@@ -43,6 +43,7 @@ import {
 // Hooks and Utils
 import useCrud from "@/hooks/use-crud";
 import { formatDate, formatDateForDisplay, cn } from "@/lib/utils";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import Header from "./Header";
 import AbsenteeStatus from "./AbsenteeStatus";
 
@@ -85,6 +86,9 @@ const Attendance = ({ apiKey, teacherId }) => {
   const [quickLeaveComboboxOpen, setQuickLeaveComboboxOpen] = useState(false);
   const [attendanceReasons, setAttendanceReasons] = useState({});
   const [bulkLeaveReason, setBulkLeaveReason] = useState("");
+
+  const quickLeavePopupRef = useRef(null);
+  const { handleDownload: handleQuickLeaveDownload } = useDownloadPopup(quickLeavePopupRef, `Leave_Reason.jpeg`);
 
   const today = useMemo(() => formatDateForDisplay(new Date()), []);
 
@@ -860,11 +864,17 @@ const Attendance = ({ apiKey, teacherId }) => {
 
       {/* Quick Leave Dialog */}
       <Dialog open={quickLeaveOpen} onOpenChange={setQuickLeaveOpen}>
-        <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden">
+        <DialogContent ref={quickLeavePopupRef} data-html2canvas-popup="true" className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden">
           <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-red-50 dark:bg-red-950/20 sticky top-0 z-20 backdrop-blur-md">
-            <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+            <button 
+              type="button"
+              className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors focus:outline-none cursor-pointer"
+              onClick={handleQuickLeaveDownload}
+              title="Download Image"
+              data-html2canvas-ignore="true"
+            >
               <FilePlus className="h-5 w-5 text-red-600 dark:text-red-400" />
-            </div>
+            </button>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0 text-red-700 dark:text-red-400">
                 Leave Reason
@@ -873,7 +883,7 @@ const Attendance = ({ apiKey, teacherId }) => {
                 {quickLeaveStudent === 'bulk' ? 'All Absentees' : quickLeaveStudent?.name}
               </DialogDescription>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>

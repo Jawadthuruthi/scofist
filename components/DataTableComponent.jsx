@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { useMemo, useRef, useState, useEffect, useCallback, isValidElement, cloneElement } from "react";
 import useTableColumns from "@/hooks/use-table-columns";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import useCrud from "@/hooks/use-crud";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -201,6 +202,11 @@ const DataTableComponent = ({
     }
   }, [setToppersOnly, toppersOnly]);
 
+  const searchInputRef = useRef(null);
+
+  const popupRef = useRef(null);
+  const { handleDownload } = useDownloadPopup(popupRef, `Detailed_Records.jpeg`);
+
   const tableRef = useRef(null);
   const isFetchingRef = useRef(false);
   const loaderRef = useRef(null);
@@ -272,6 +278,8 @@ const DataTableComponent = ({
     setGlobalFilter,
     hasFilters,
   } = useDataFilter(data, initialFilters, searchableFields);
+
+  const prevFiltersRef = useRef(JSON.stringify(filters));
 
   const [lastFilterHash, setLastFilterHash] = useState(() => JSON.stringify({
     filters: activeApiFilters,
@@ -1707,11 +1715,17 @@ const DataTableComponent = ({
       </div>
       {/* Detail View Modal for drill-down */}
       <Dialog open={!!detailView} onOpenChange={(open) => !open && setDetailView(null)}>
-        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+        <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-            <div className="p-2 rounded-lg bg-primary/10">
+            <button 
+              type="button"
+              className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+              onClick={handleDownload}
+              title="Download Image"
+              data-html2canvas-ignore="true"
+            >
               <FileSpreadsheet className="h-5 w-5 text-primary" />
-            </div>
+            </button>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0">
                 {detailView?.colHeader} Records
@@ -1725,7 +1739,7 @@ const DataTableComponent = ({
                 </Badge>
               </div>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" onClick={() => setDetailView(null)}>
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" onClick={() => setDetailView(null)} data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>

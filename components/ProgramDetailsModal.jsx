@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +21,9 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
   const [schedule, setSchedule] = useState(null);
   const [result, setResult] = useState(null);
   const [settings, setSettings] = useState(null);
+
+  const popupRef = useRef(null);
+  const { handleDownload } = useDownloadPopup(popupRef, `Program_Details_${program?.name?.replace(/\s+/g, '_') || 'Loading'}.jpeg`);
 
   useEffect(() => {
     if (!isOpen || !programId) return;
@@ -127,11 +132,17 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] overflow-hidden flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
+      <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] overflow-hidden flex flex-col p-0 gap-0 [&>button.absolute]:hidden">
         <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-amber-100/80 dark:bg-amber-900/30 sticky top-0 z-20 backdrop-blur-md shrink-0">
-          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+          <button 
+            type="button"
+            className="p-2 rounded-lg bg-primary/10 shrink-0 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+            onClick={handleDownload}
+            title="Download Image"
+            data-html2canvas-ignore="true"
+          >
             <FileText className="h-6 w-6 text-primary" />
-          </div>
+          </button>
           <div className="flex-1 text-left space-y-0.5 min-w-0">
             <DialogTitle 
               className="text-xl font-bold m-0 text-foreground truncate"
@@ -152,12 +163,11 @@ const ProgramDetailsModal = ({ programId, isOpen, onClose }) => {
               )}
             </div>
           </div>
-          <button 
-            onClick={() => onClose()} 
-            className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none shrink-0"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1 sm:gap-2 ml-2" data-html2canvas-ignore="true">
+            <DialogClose className="p-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
+          </div>
         </DialogHeader>
 
         <div 

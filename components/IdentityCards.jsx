@@ -8,6 +8,7 @@ import { useReactToPrint } from "react-to-print";
 import Barcode from "react-barcode";
 import Header from "./Header";
 import dynamic from "next/dynamic";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 const FormComponent = dynamic(() => import("./FormComponent"), { ssr: false });
 import {
   Dialog,
@@ -64,6 +65,8 @@ const IdentityCards = ({
   const [selectedSide, setSelectedSide] = useState("Both Sides");
 
   const pageRef = useRef(null);
+  const popupRef = useRef(null);
+  const { handleDownload } = useDownloadPopup(popupRef, `ID_Card_Settings.jpeg`);
 
   const router = useRouter();
 
@@ -144,18 +147,24 @@ const IdentityCards = ({
                   <Settings size={16} />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-2xl overflow-hidden rounded-2xl sm:rounded-2xl max-h-[90vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0 border-gray-100 shadow-xl">
+              <DialogContent ref={popupRef} data-html2canvas-popup="true" className="sm:max-w-2xl overflow-hidden rounded-2xl sm:rounded-2xl max-h-[90vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0 border-gray-100 shadow-xl">
                 <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-                  <div className="p-2 rounded-lg bg-primary/10">
+                  <button 
+                    type="button"
+                    className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+                    onClick={handleDownload}
+                    title="Download Image"
+                    data-html2canvas-ignore="true"
+                  >
                     <Settings className="h-5 w-5 text-primary" />
-                  </div>
+                  </button>
                   <div className="flex-1 text-left space-y-0.5">
                     <DialogTitle className="text-xl font-bold m-0">ID Card Settings</DialogTitle>
                     <DialogDescription className="m-0 text-sm">
                       Configure background and seal for ID cards
                     </DialogDescription>
                   </div>
-                  <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                  <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
                     <X className="h-5 w-5" />
                   </DialogClose>
                 </DialogHeader>

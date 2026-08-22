@@ -1,17 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle, XCircle, ArrowRight, Save, X, Users } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatDateShort } from "@/lib/utils";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 export default function ProfileComparisonDialog({ student, open, onClose, onActionComplete }) {
   const [loading, setLoading] = useState(false);
   const [fieldActions, setFieldActions] = useState({}); // { [path]: "approve" | "reject" }
   const queryClient = useQueryClient();
+  const popupRef = useRef(null);
+  const { handleDownload } = useDownloadPopup(popupRef, `Profile_Comparison_${student?.name?.replace(/\s+/g, '_') || 'Loading'}.jpeg`);
 
   useEffect(() => {
     if (open && student?.pendingProfileUpdate) {
@@ -203,16 +206,22 @@ export default function ProfileComparisonDialog({ student, open, onClose, onActi
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="rounded-2xl sm:rounded-2xl max-w-6xl max-h-[70vh] sm:max-h-[95vh] [&>button.absolute]:hidden grid grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden p-0 gap-0">
+      <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-6xl max-h-[70vh] sm:max-h-[95vh] [&>button.absolute]:hidden grid grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden p-0 gap-0">
         <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-          <div className="p-2 rounded-lg bg-primary/10">
+          <button 
+            type="button"
+            className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+            onClick={handleDownload}
+            title="Download Image"
+            data-html2canvas-ignore="true"
+          >
             <Users className="h-5 w-5 text-primary" />
-          </div>
+          </button>
           <div className="flex-1 text-left space-y-0.5">
             <DialogTitle className="text-xl font-bold m-0">Review Profile Changes</DialogTitle>
             <p className="text-sm text-muted-foreground m-0">Review the profile modified fields.</p>
           </div>
-          <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+          <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
             <X className="h-5 w-5" />
           </DialogClose>
         </DialogHeader>

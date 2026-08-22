@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,12 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
     const [currentAbsentees, setCurrentAbsentees] = useState([]);
     const [currentPresentees, setCurrentPresentees] = useState([]);
     const [currentClassName, setCurrentClassName] = useState("");
+
+    const absenteesPopupRef = useRef(null);
+    const { handleDownload: handleAbsenteesDownload } = useDownloadPopup(absenteesPopupRef, `Absentees_${currentClassName.replace(/\s+/g, '_')}_${prayer}.jpeg`);
+
+    const presenteesPopupRef = useRef(null);
+    const { handleDownload: handlePresenteesDownload } = useDownloadPopup(presenteesPopupRef, `Presentees_${currentClassName.replace(/\s+/g, '_')}_${prayer}.jpeg`);
 
     const formattedDate = formatDate(date);
 
@@ -161,11 +168,17 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
             </Card>
 
             <Dialog open={absenteesDialogOpen} onOpenChange={setAbsenteesDialogOpen}>
-                <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+                <DialogContent ref={absenteesPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
                     <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-2 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-                        <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+                        <button 
+                            type="button"
+                            className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors focus:outline-none cursor-pointer"
+                            onClick={handleAbsenteesDownload}
+                            title="Download Image"
+                            data-html2canvas-ignore="true"
+                        >
                             <Users className="h-5 w-5 text-red-500" />
-                        </div>
+                        </button>
                         <div className="flex-1 text-left space-y-0.5">
                             <DialogTitle className="text-xl font-bold m-0 text-red-600 dark:text-red-400">
                                 Absentees - {currentClassName}
@@ -174,7 +187,7 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
                                 List of absentees for {prayer}.
                             </DialogDescription>
                         </div>
-                        <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                        <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
                             <X className="h-5 w-5" />
                         </DialogClose>
                     </DialogHeader>
@@ -206,11 +219,17 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
             </Dialog>
 
             <Dialog open={presenteesDialogOpen} onOpenChange={setPresenteesDialogOpen}>
-                <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+                <DialogContent ref={presenteesPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
                     <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-2 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-                        <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                        <button 
+                            type="button"
+                            className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors focus:outline-none cursor-pointer"
+                            onClick={handlePresenteesDownload}
+                            title="Download Image"
+                            data-html2canvas-ignore="true"
+                        >
                             <Users className="h-5 w-5 text-green-500" />
-                        </div>
+                        </button>
                         <div className="flex-1 text-left space-y-0.5">
                             <DialogTitle className="text-xl font-bold m-0 text-green-600 dark:text-green-400">
                                 Presentees - {currentClassName}
@@ -219,7 +238,7 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
                                 List of students marked present for {prayer}
                             </DialogDescription>
                         </div>
-                        <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                        <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
                             <X className="h-5 w-5" />
                         </DialogClose>
                     </DialogHeader>

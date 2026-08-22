@@ -18,6 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
+import { useRef } from "react";
 import { Loader, Users, X, Eye } from "lucide-react";
 import useCrud from "@/hooks/use-crud";
 import { formatDateForDisplay } from "@/lib/utils";
@@ -38,6 +40,9 @@ const PendingRequestsDialog = ({ open, onClose, apiKey, onView, role = "Student"
     }
   );
 
+  const popupRef = useRef(null);
+  const { handleDownload } = useDownloadPopup(popupRef, `Pending_Requests_${role}.jpeg`);
+
   const pendingStudents = useMemo(() => {
     const students = data?.users || [];
     return [...students].sort((a, b) => {
@@ -49,18 +54,24 @@ const PendingRequestsDialog = ({ open, onClose, apiKey, onView, role = "Student"
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[85vh] [&>button.absolute]:hidden grid grid-rows-[auto_minmax(0,1fr)] p-0 gap-0">
+      <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[85vh] [&>button.absolute]:hidden grid grid-rows-[auto_minmax(0,1fr)] p-0 gap-0">
         <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-          <div className="p-2 rounded-lg bg-primary/10">
+          <button 
+            type="button"
+            className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+            onClick={handleDownload}
+            title="Download Image"
+            data-html2canvas-ignore="true"
+          >
             <Users className="h-5 w-5 text-primary" />
-          </div>
+          </button>
           <div className="flex-1 text-left space-y-0.5">
             <DialogTitle className="text-xl font-bold m-0">Profile Update Requests</DialogTitle>
             <DialogDescription className="m-0">
               {role}s who have requested
             </DialogDescription>
           </div>
-          <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+          <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
             <X className="h-5 w-5" />
           </DialogClose>
         </DialogHeader>

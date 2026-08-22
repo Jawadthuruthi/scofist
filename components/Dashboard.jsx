@@ -48,8 +48,14 @@ import {
   Cell,
   LabelList,
 } from "recharts";
+import {
+  LineChart,
+  Line,
+  CartesianGrid,
+} from "recharts";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 import useCrud from "@/hooks/use-crud";
 import Header from "@/components/Header";
@@ -261,6 +267,12 @@ const ClassCard = memo(
     const [leaveOpen, setLeaveOpen] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
 
+    const activePopupRef = useRef(null);
+    const { handleDownload: handleActiveDownload } = useDownloadPopup(activePopupRef, `Active_Students_${classData.name.replace(/\s+/g, '_')}.jpeg`);
+
+    const leavePopupRef = useRef(null);
+    const { handleDownload: handleLeaveDownload } = useDownloadPopup(leavePopupRef, `Leave_Students_${classData.name.replace(/\s+/g, '_')}.jpeg`);
+
     const { classStudentsList, classBatch, attendanceStats } = useMemo(() => {
       const filteredStudents =
         students?.filter((student) => {
@@ -413,11 +425,17 @@ const ClassCard = memo(
 
         {/* Active Students Popup */}
         <Dialog open={activeOpen} onOpenChange={setActiveOpen}>
-          <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+          <DialogContent ref={activePopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
             <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-              <div className="p-2 rounded-lg bg-primary/10">
+              <button 
+                type="button"
+                className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+                onClick={handleActiveDownload}
+                title="Download Image"
+                data-html2canvas-ignore="true"
+              >
                 <Users className="h-5 w-5 text-primary" />
-              </div>
+              </button>
               <div className="flex-1 text-left space-y-0.5">
                 <DialogTitle className="text-xl font-bold m-0">
                   Active Students - {classData.name}
@@ -426,7 +444,7 @@ const ClassCard = memo(
                 List of all active students in {classData.name} ({classStudentsList.length} students)
               </DialogDescription>
               </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -451,11 +469,17 @@ const ClassCard = memo(
 
         {/* Leave Students Popup */}
         <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
-          <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+          <DialogContent ref={leavePopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
             <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-2 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-              <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+              <button 
+                type="button"
+                className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors focus:outline-none cursor-pointer"
+                onClick={handleLeaveDownload}
+                title="Download Image"
+                data-html2canvas-ignore="true"
+              >
                 <Users className="h-5 w-5 text-red-500" />
-              </div>
+              </button>
               <div className="flex-1 text-left space-y-0.5">
                 <DialogTitle className="text-xl font-bold m-0 text-red-600 dark:text-red-400">
                   On Leave Students - {classData.name}
@@ -464,7 +488,7 @@ const ClassCard = memo(
                 Students on leave today in {classData.name} ({sortedLeaveStudents.length} students)
               </DialogDescription>
               </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -515,6 +539,24 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
   const [totalStudentsDialogOpen, setTotalStudentsDialogOpen] = useState(false);
   const [onLeaveDialogOpen, setOnLeaveDialogOpen] = useState(false);
   const [classesDialogOpen, setClassesDialogOpen] = useState(false);
+
+  const facultyPopupRef = useRef(null);
+  const { handleDownload: handleFacultyDownload } = useDownloadPopup(facultyPopupRef, "Total_Faculty.jpeg");
+
+  const activeStudentsPopupRef = useRef(null);
+  const { handleDownload: handleActiveStudentsDownload } = useDownloadPopup(activeStudentsPopupRef, "Active_Students.jpeg");
+
+  const graduatedStudentsPopupRef = useRef(null);
+  const { handleDownload: handleGraduatedStudentsDownload } = useDownloadPopup(graduatedStudentsPopupRef, "Graduated_Students.jpeg");
+
+  const totalStudentsPopupRef = useRef(null);
+  const { handleDownload: handleTotalStudentsDownload } = useDownloadPopup(totalStudentsPopupRef, "Total_Students.jpeg");
+
+  const onLeavePopupRef = useRef(null);
+  const { handleDownload: handleOnLeaveDownload } = useDownloadPopup(onLeavePopupRef, "Students_On_Leave.jpeg");
+
+  const classesPopupRef = useRef(null);
+  const { handleDownload: handleClassesDownload } = useDownloadPopup(classesPopupRef, "Total_Classes.jpeg");
 
   const sortedTeachersLocal = useMemo(() => {
     return [...(teachers || [])].sort(
@@ -595,13 +637,19 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
         ))}
       </div>
 
-      {/* Faculty Profiles Dialog */}
+      {/* Faculty Profiles */}
       <Dialog open={facultyDialogOpen} onOpenChange={setFacultyDialogOpen}>
-        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+        <DialogContent ref={facultyPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-            <div className="p-2 rounded-lg bg-primary/10">
+            <button 
+              type="button"
+              className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+              onClick={handleFacultyDownload}
+              title="Download Image"
+              data-html2canvas-ignore="true"
+            >
               <UserCheck className="h-5 w-5 text-primary" />
-            </div>
+            </button>
             <div className="flex-1 text-left space-y-0.5">
               <DialogTitle className="text-xl font-bold m-0">
                 Faculty Profiles
@@ -610,7 +658,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               View active teaching staff profiles
             </DialogDescription>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -634,7 +682,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
 
       {/* Active Students Chart Dialog */}
       <Dialog open={activeStudentsDialogOpen} onOpenChange={setActiveStudentsDialogOpen}>
-        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+        <DialogContent ref={activeStudentsPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <BarChart className="h-5 w-5 text-primary" />
@@ -647,7 +695,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               Distribution of active students.
             </DialogDescription>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -670,7 +718,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
 
       {/* Graduated Students Chart Dialog */}
       <Dialog open={graduatedStudentsDialogOpen} onOpenChange={setGraduatedStudentsDialogOpen}>
-        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+        <DialogContent ref={graduatedStudentsPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <BarChart className="h-5 w-5 text-primary" />
@@ -683,7 +731,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               Distribution of graduated students.
             </DialogDescription>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -703,7 +751,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
 
       {/* Total Students Charts Dialog */}
       <Dialog open={totalStudentsDialogOpen} onOpenChange={setTotalStudentsDialogOpen}>
-        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+        <DialogContent ref={totalStudentsPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <Users className="h-5 w-5 text-primary" />
@@ -716,7 +764,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               Student status distribution.
             </DialogDescription>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -750,7 +798,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
       </Dialog>
       {/* On Leave Students Dialog */}
       <Dialog open={onLeaveDialogOpen} onOpenChange={setOnLeaveDialogOpen}>
-        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md max-h-[70vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+        <DialogContent ref={onLeavePopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-md max-h-[70vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <Users className="h-5 w-5 text-primary" />
@@ -763,7 +811,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               Students currently on active leave
             </DialogDescription>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>
@@ -816,7 +864,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
 
       {/* Active Classes Dialog */}
       <Dialog open={classesDialogOpen} onOpenChange={setClassesDialogOpen}>
-        <DialogContent className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+        <DialogContent ref={classesPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
           <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
             <div className="p-2 rounded-lg bg-primary/10">
               <BookOpen className="h-5 w-5 text-primary" />
@@ -829,7 +877,7 @@ const StatsOverview = memo(({ totalStats, isLoading, teachers, sortedClasses, on
               informations about active classes
             </DialogDescription>
             </div>
-            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
               <X className="h-5 w-5" />
             </DialogClose>
           </DialogHeader>

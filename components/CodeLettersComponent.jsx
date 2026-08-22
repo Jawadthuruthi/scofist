@@ -42,6 +42,7 @@ import {
 } from "./ui/alert-dialog";
 import { MultiSelect } from "./ui/multi-select";
 import { formatOptions } from "@/lib/utils";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 // Per-program print wrapper component
 const ProgramPrintWrapper = ({ program, apiKey, children }) => {
@@ -72,8 +73,15 @@ const CodeLettersComponent = ({
   additionalProps = {},
 }) => {
   const [programs, setPrograms] = useState([]);
-  const [filteredPrograms, setFilteredPrograms] = useState([]);
-  const [selectedProgram, setSelectedProgram] = useState("");
+  const [selectedClass, setSelectedClass] = useState("all");
+  const [selectedProgram, setSelectedProgram] = useState("all");
+
+  const deleteAllPopupRef = useRef(null);
+  const { handleDownload: handleDeleteAllDownload } = useDownloadPopup(deleteAllPopupRef, `Delete_All_Code_Letters.jpeg`);
+
+  const deleteProgramPopupRef = useRef(null);
+  const { handleDownload: handleDeleteProgramDownload } = useDownloadPopup(deleteProgramPopupRef, `Delete_Program_Code_Letters.jpeg`);
+
   const [selectedDivision, setSelectedDivision] = useState("");
   const [status, setStatus] = useState("both");
   const [category, setCategory] = useState("both");
@@ -616,11 +624,17 @@ const CodeLettersComponent = ({
                     <span className="hidden sm:inline">Delete All</span>
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
+                <AlertDialogContent ref={deleteAllPopupRef} data-html2canvas-popup="true" className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
                   <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                    <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+                    <button 
+                      type="button"
+                      className="p-2 rounded-lg bg-destructive/10 shrink-0 hover:bg-destructive/20 transition-colors focus:outline-none cursor-pointer"
+                      onClick={handleDeleteAllDownload}
+                      title="Download Image"
+                      data-html2canvas-ignore="true"
+                    >
                       <AlertTriangle className="h-5 w-5 text-destructive" />
-                    </div>
+                    </button>
                     <div className="flex-1 text-left space-y-0.5">
                       <AlertDialogTitle className="text-xl font-bold m-0 text-foreground">
                         Delete All Code Letters?
@@ -631,7 +645,7 @@ const CodeLettersComponent = ({
                         </div>
                       </AlertDialogDescription>
                     </div>
-                    <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2" data-html2canvas-ignore="true">
                       <AlertDialogCancel className="p-1.5 -mr-1.5 ml-1 rounded-lg border-none hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none bg-transparent h-auto mt-0">
                         <X className="h-5 w-5" />
                       </AlertDialogCancel>
@@ -695,11 +709,17 @@ const CodeLettersComponent = ({
                               )}
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
+                          <AlertDialogContent ref={(el) => { if (el) deleteProgramPopupRef.current = el; }} data-html2canvas-popup="true" className="sm:max-w-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden overflow-hidden">
                             <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
-                              <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+                              <button 
+                                type="button"
+                                className="p-2 rounded-lg bg-destructive/10 shrink-0 hover:bg-destructive/20 transition-colors focus:outline-none cursor-pointer"
+                                onClick={handleDeleteProgramDownload}
+                                title="Download Image"
+                                data-html2canvas-ignore="true"
+                              >
                                 <AlertTriangle className="h-5 w-5 text-destructive" />
-                              </div>
+                              </button>
                               <div className="flex-1 text-left space-y-0.5">
                                 <AlertDialogTitle className="text-xl font-bold m-0 text-foreground">
                                   Delete code letters for &quot;{program.programName}&quot;?
@@ -710,7 +730,7 @@ const CodeLettersComponent = ({
                                   </div>
                                 </AlertDialogDescription>
                               </div>
-                              <div className="flex items-center gap-1 sm:gap-2">
+                              <div className="flex items-center gap-1 sm:gap-2" data-html2canvas-ignore="true">
                                 <AlertDialogCancel className="p-1.5 -mr-1.5 ml-1 rounded-lg border-none hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none bg-transparent h-auto mt-0">
                                   <X className="h-5 w-5" />
                                 </AlertDialogCancel>

@@ -15,6 +15,7 @@ import { Edit, Loader, Plus, X } from "lucide-react";
 import { MultiSelect } from "./ui/multi-select";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import {
   Form,
   FormControl,
@@ -686,6 +687,8 @@ export default function PopupForm({
 
   const [loading, setLoading] = React.useState(false);
   const isSubmittingRef = React.useRef(false);
+  const popupRef = React.useRef(null);
+  const { handleDownload } = useDownloadPopup(popupRef, `${title.replace(/\s+/g, '_')}_Form.jpeg`);
 
   // Custom form fields to handle object nesting
   const customFormFields = React.useMemo(() => {
@@ -819,11 +822,17 @@ export default function PopupForm({
         ))}
       </DialogTrigger>
 
-      <DialogContent className={`sm:max-w-[800px] p-0 gap-0 overflow-hidden rounded-2xl max-h-[90dvh] flex flex-col [&>button.absolute]:hidden ${className || ""}`}>
+      <DialogContent ref={popupRef} data-html2canvas-popup="true" className={`sm:max-w-[800px] p-0 gap-0 overflow-hidden rounded-2xl max-h-[90dvh] flex flex-col [&>button.absolute]:hidden ${className || ""}`}>
         <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-blue-500/10 dark:bg-blue-500/20 sticky top-0 z-20 shrink-0">
-          <div className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 shrink-0">
+          <button 
+            type="button"
+            className="p-2 rounded-lg bg-blue-500/20 dark:bg-blue-500/30 shrink-0 focus:outline-none hover:bg-blue-500/30 dark:hover:bg-blue-500/40 transition-colors cursor-pointer"
+            onClick={handleDownload}
+            title="Download Image"
+            data-html2canvas-ignore="true"
+          >
             {data ? <Edit className="w-5 h-5 text-blue-600 dark:text-blue-400" /> : <Plus className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
-          </div>
+          </button>
           <div className="flex-1 text-left space-y-0.5">
             <DialogTitle className="text-xl font-bold m-0 text-foreground">
               {title}
@@ -836,7 +845,7 @@ export default function PopupForm({
               </DialogDescription>
             )}
           </div>
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2" data-html2canvas-ignore="true">
             <DialogClose asChild>
               <button className="p-1.5 -mr-1.5 ml-1 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
                 <X className="h-5 w-5" />

@@ -13,8 +13,9 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader, Save, ArrowLeft, Clock, X } from "lucide-react";
+import { Loader, Save, ArrowLeft, Clock, X, Download } from "lucide-react";
 import useCrud from "@/hooks/use-crud";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import { toast } from "sonner";
 import {
     Dialog,
@@ -44,6 +45,8 @@ const AttendanceSheet = ({
     const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
     const [currentStudentHistory, setCurrentStudentHistory] = useState([]);
     const [currentStudentName, setCurrentStudentName] = useState("");
+    const popupRef = useRef(null);
+    const { handleDownload } = useDownloadPopup(popupRef, `Absent_History_${currentStudentName.replace(/\s+/g, '_')}.jpeg`);
 
     // Fetch students
     const { useFetchItems: useFetchStudents } = useCrud("users", apiKey);
@@ -532,11 +535,17 @@ const AttendanceSheet = ({
             </Dialog>
 
             <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
-                <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+                <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
                     <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-2 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-                        <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                        <button 
+                            type="button"
+                            className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors focus:outline-none cursor-pointer"
+                            onClick={handleDownload}
+                            title="Download Image"
+                            data-html2canvas-ignore="true"
+                        >
                             <Clock className="h-5 w-5 text-orange-500" />
-                        </div>
+                        </button>
                         <div className="flex-1 text-left space-y-0.5">
                             <DialogTitle className="text-xl font-bold m-0 text-orange-600 dark:text-orange-400">
                                 Absent History - {currentStudentName}
@@ -545,7 +554,7 @@ const AttendanceSheet = ({
                                 Past instances of being absent or on leave.
                             </DialogDescription>
                         </div>
-                        <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+                        <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
                             <X className="h-5 w-5" />
                         </DialogClose>
                     </DialogHeader>

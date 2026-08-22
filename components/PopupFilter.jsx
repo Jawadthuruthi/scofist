@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useEffect, useMemo } from "react";
+import { useCallback, useState, useEffect, useMemo, useRef } from "react";
 import { X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { MultiSelect } from "./ui/multi-select";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 // Define all available operators
 const OPERATORS = {
@@ -90,6 +91,8 @@ export default function PopupFilter({
   const isInline = inlineOnDesktop && !isMobile;
   const [open, setOpen] = useState(false);
   const [localFilters, setLocalFilters] = useState(filters);
+  const popupRef = useRef(null);
+  const { handleDownload } = useDownloadPopup(popupRef, `${title.replace(/\s+/g, '_')}_Filter.jpeg`);
   // Sync local filters with props
   useEffect(() => {
     setLocalFilters(filters);
@@ -465,18 +468,24 @@ export default function PopupFilter({
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="rounded-2xl sm:rounded-2xl sm:max-w-3xl w-[95vw] max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+          <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl sm:max-w-3xl w-[95vw] max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
             <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-              <div className="p-2 rounded-lg bg-primary/10">
+              <button 
+                type="button"
+                className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+                onClick={handleDownload}
+                title="Download Image"
+                data-html2canvas-ignore="true"
+              >
                 <Filter className="h-5 w-5 text-primary" />
-              </div>
+              </button>
               <div className="flex-1 text-left space-y-0.5">
                 <DialogTitle className="text-xl font-bold m-0">Filter {title}</DialogTitle>
                 <DialogDescription className="m-0">
                   Adjust filters to refine the {title.toLowerCase()} list
                 </DialogDescription>
               </div>
-              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
                 <X className="h-5 w-5" />
               </DialogClose>
             </DialogHeader>

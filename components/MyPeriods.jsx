@@ -45,6 +45,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import Cookies from "js-cookie";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
+import { useRef } from "react";
 
 const leaveReasons = [
   "Home Leave",
@@ -75,6 +77,12 @@ const MyPeriods = ({ apiKey, teacherId, isPrincipal }) => {
   const [bulkComboboxOpen, setBulkComboboxOpen] = useState(false);
   const [bulkError, setBulkError] = useState(false);
   const [bulkExistingRecordIds, setBulkExistingRecordIds] = useState([]); // _ids of existing leave records
+
+  const bulkPopupRef = useRef(null);
+  const { handleDownload: handleBulkDownload } = useDownloadPopup(bulkPopupRef, `Bulk_Leave_Reason.jpeg`);
+
+  const reasonPopupRef = useRef(null);
+  const { handleDownload: handleReasonDownload } = useDownloadPopup(reasonPopupRef, `Leave_Reason.jpeg`);
 
   // ── Hifz & Doura state ───────────────────────────────────────────────
   const [hifzEnrollments, setHifzEnrollments] = useState([]);
@@ -1479,11 +1487,17 @@ Teacher: ${teacherName || "Teacher"}`;
 
         {/* ── Bulk Reason Dialog ── */}
         <Dialog open={bulkReasonOpen} onOpenChange={(o) => { setBulkReasonOpen(o); if (!o) { setBulkReason(""); setBulkError(false); setBulkExistingRecordIds([]); } }}>
-          <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+          <DialogContent ref={bulkPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
             <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-              <div className="p-2 rounded-lg bg-primary/10">
+              <button 
+                type="button"
+                className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+                onClick={handleBulkDownload}
+                title="Download Image"
+                data-html2canvas-ignore="true"
+              >
                 <FileText className="h-5 w-5 text-primary" />
-              </div>
+              </button>
               <div className="flex-1 text-left space-y-0.5">
                 <DialogTitle className="text-xl font-bold m-0">
                   Reason for All Periods
@@ -1492,7 +1506,7 @@ Teacher: ${teacherName || "Teacher"}`;
                   This reason will be applied to all periods that don&apos;t have attendance marked yet.
                 </DialogDescription>
               </div>
-              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
                 <X className="h-5 w-5" />
               </DialogClose>
             </DialogHeader>
@@ -1582,11 +1596,17 @@ Teacher: ${teacherName || "Teacher"}`;
         </Dialog>
 
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+          <DialogContent ref={reasonPopupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
             <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
-              <div className="p-2 rounded-lg bg-primary/10">
+              <button 
+                type="button"
+                className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+                onClick={handleReasonDownload}
+                title="Download Image"
+                data-html2canvas-ignore="true"
+              >
                 <FileText className="h-5 w-5 text-primary" />
-              </div>
+              </button>
               <div className="flex-1 text-left space-y-0.5">
                 <DialogTitle className="text-xl font-bold m-0">
                   Leave Reason
@@ -1595,7 +1615,7 @@ Teacher: ${teacherName || "Teacher"}`;
                   Provide a leave reason.
                 </DialogDescription>
               </div>
-              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
                 <X className="h-5 w-5" />
               </DialogClose>
             </DialogHeader>
