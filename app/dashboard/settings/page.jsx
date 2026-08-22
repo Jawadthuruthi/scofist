@@ -84,9 +84,14 @@ export default async function SettingsPage() {
       committeePosters: data.org?.committeePosters || [],
     };
 
+    const isFestivalRole = activeRole === "Program Committee" || activeRole === "Program Leader";
+
     return (
       <>
-        <Header title="FESTIVAL SETTINGS" subTitle="Configure Festival Details" />
+        <Header 
+          title={isFestivalRole ? "FESTIVAL SETTINGS" : "SETTINGS"} 
+          subTitle={isFestivalRole ? "Configure Festival Details" : "Configure all settings"} 
+        />
         <SettingsClient
           activeRole={activeRole}
           apiKey={apiKey}

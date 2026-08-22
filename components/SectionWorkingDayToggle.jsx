@@ -294,13 +294,18 @@ export default function SectionWorkingDayToggle({ apiKey, general }) {
             <h2 className="text-2xl font-semibold tracking-tight">Working Days</h2>
             <p className="text-sm text-muted-foreground">Manage working days for all sections</p>
           </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <History className="h-4 w-4" />
-                <span className="hidden sm:inline">History</span>
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2 items-center">
+            <Button size="sm" onClick={handleSave} disabled={loading}>
+              {loading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+              Save changes
+            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <History className="h-4 w-4" />
+                  <span className="hidden sm:inline">History</span>
+                </Button>
+              </DialogTrigger>
             <DialogContent className="rounded-2xl sm:rounded-2xl max-w-md max-h-[80vh] flex flex-col overflow-hidden p-0 gap-0">
               <DialogHeader className="flex flex-row items-center gap-3 px-5 py-4 border-b space-y-0" style={{ background: `#64748b10` }}>
                 <div className="p-2 rounded-lg" style={{ background: `#64748b20` }}>
@@ -337,7 +342,8 @@ export default function SectionWorkingDayToggle({ apiKey, general }) {
                 )}
               </div>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-6">
@@ -389,13 +395,6 @@ export default function SectionWorkingDayToggle({ apiKey, general }) {
             and teachers will not be counted as absent for those periods today.
             Past days&apos; records are never affected.
           </p>
-
-          <div className="flex justify-end pt-4 border-t">
-            <Button onClick={handleSave} disabled={loading}>
-              {loading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-              Save changes
-            </Button>
-          </div>
         </div>
       </CardContent>
     </Card>

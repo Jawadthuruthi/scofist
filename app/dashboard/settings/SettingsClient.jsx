@@ -17,6 +17,7 @@ const appIconFormField = [
     maxFileSize: 2 * 1024 * 1024,
     allowedTypes: ["image/jpeg", "image/png", "image/svg+xml"],
     defaultValue: {},
+    hasSubmitButton: true,
   },
 ];
 
@@ -28,7 +29,7 @@ const institutionFormField = [
     label: "Institution Logo",
     inputType: "image",
     type: "object",
-    className: "col-span-2",
+    className: "col-span-2 md:col-span-1",
     maxFileSize: 2 * 1024 * 1024,
     allowedTypes: ["image/jpeg", "image/png", "image/svg+xml"],
     defaultValue: {},
@@ -38,7 +39,7 @@ const institutionFormField = [
     label: "Institution Photo",
     inputType: "image",
     type: "object",
-    className: "col-span-2",
+    className: "col-span-2 md:col-span-1",
     maxFileSize: 2 * 1024 * 1024,
     allowedTypes: ["image/jpeg", "image/png", "image/svg+xml"],
     defaultValue: {},
@@ -100,6 +101,13 @@ const institutionFormField = [
     name: "instagram",
     label: "Instagram URL",
     placeholder: "Enter Instagram URL",
+    className: "col-span-2 md:col-span-1",
+  },
+  {
+    name: "saveButton",
+    inputType: "submit",
+    buttonText: "Save changes",
+    className: "col-span-2 md:col-span-1 flex items-end",
   },
 ];
 
@@ -434,6 +442,7 @@ export default function SettingsClient({
             resource="settings"
             title="Institution Profile"
             description="Configure Your Institution Details"
+            hideDefaultSubmit={true}
           />
           <div className="mt-8">
             <FormComponent
@@ -443,6 +452,7 @@ export default function SettingsClient({
               resource="settings"
               title="App Icon"
               description="Configure the PWA App Icon"
+              hideDefaultSubmit={true}
             />
           </div>
         </>
