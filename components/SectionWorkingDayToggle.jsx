@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -295,10 +295,6 @@ export default function SectionWorkingDayToggle({ apiKey, general }) {
             <p className="text-sm text-muted-foreground">Manage working days for all sections</p>
           </div>
           <div className="flex gap-2 items-center">
-            <Button size="sm" onClick={handleSave} disabled={loading}>
-              {loading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-              Save changes
-            </Button>
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
@@ -390,13 +386,20 @@ export default function SectionWorkingDayToggle({ apiKey, general }) {
             />
           </div>
           
-          <p className="text-xs text-muted-foreground mt-4">
-            When a section is <strong>Off</strong>, its periods are hidden in Today&apos;s Schedule and My Periods,
-            and teachers will not be counted as absent for those periods today.
-            Past days&apos; records are never affected.
-          </p>
         </div>
       </CardContent>
+      <CardFooter className="px-6 pb-6 pt-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <p className="text-xs text-muted-foreground">
+          When a section is <strong>Off</strong>, its periods are hidden in Today&apos;s Schedule and My Periods,
+          and teachers will not be counted as absent for those periods today.
+          Past days&apos; records are never affected.
+        </p>
+        <Button size="sm" onClick={handleSave} disabled={loading} className="self-end sm:self-auto shrink-0">
+          {loading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+          <span className="hidden sm:inline">Save changes</span>
+          <span className="sm:hidden">Save</span>
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
