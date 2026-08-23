@@ -385,16 +385,15 @@ export default function SectionWorkingDayToggle({ apiKey, general }) {
               loading={loading}
             />
           </div>
-          
         </div>
       </CardContent>
-      <CardFooter className="px-6 pb-6 pt-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <CardFooter className="px-6 pb-6 pt-0 flex flex-row justify-between items-center gap-4">
         <p className="text-xs text-muted-foreground">
           When a section is <strong>Off</strong>, its periods are hidden in Today&apos;s Schedule and My Periods,
           and teachers will not be counted as absent for those periods today.
           Past days&apos; records are never affected.
         </p>
-        <Button size="sm" onClick={handleSave} disabled={loading} className="self-end sm:self-auto shrink-0">
+        <Button size="sm" onClick={handleSave} disabled={loading} className="shrink-0">
           {loading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
           <span className="hidden sm:inline">Save changes</span>
           <span className="sm:hidden">Save</span>
