@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Star, Trophy, Loader2, Download, Share2, ImagePlus, Printer, Image as ImageIcon } from "lucide-react";
+import { Star, Trophy, Loader2, Download, Share2, ImagePlus, Printer, Image as ImageIcon, X } from "lucide-react";
 import html2canvas from "html2canvas";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -292,15 +292,26 @@ export default function StarOfTheMonthModal({ classes = [] }) {
           </Button>
         </DialogTrigger>
       
-      <DialogContent className="w-[95vw] sm:w-full sm:max-w-md md:max-w-2xl bg-white max-h-[90vh] overflow-y-auto overflow-x-hidden p-3 md:p-6">
-        <DialogHeader className="pb-0 mb-0">
-          <DialogTitle className="flex items-center gap-2 text-lg md:text-xl text-indigo-700">
-            <Star className="h-4 w-4 md:h-5 md:w-5 fill-yellow-400 text-yellow-500" />
-            Star of the Month
-          </DialogTitle>
+      <DialogContent className="rounded-2xl sm:rounded-2xl max-w-3xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
+        <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
+            <div className="p-2 rounded-lg bg-primary/10 transition-colors">
+              <Star className="h-5 w-5 text-primary fill-primary" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className="text-xl font-bold m-0 text-foreground">
+                Star of the Month
+              </DialogTitle>
+              <DialogDescription className="m-0">
+                Top performer of the month.
+              </DialogDescription>
+            </div>
+            <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none">
+              <X className="h-5 w-5" />
+            </DialogClose>
         </DialogHeader>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 pb-0 pt-1">
+        <div className="p-5 flex flex-col gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 pb-0 pt-1">
           <div className="space-y-1 md:space-y-2 col-span-1">
             <label className="text-xs md:text-sm font-medium">Year</label>
             <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
@@ -595,6 +606,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       </DialogContent>
       </Dialog>

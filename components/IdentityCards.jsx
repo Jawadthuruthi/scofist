@@ -37,12 +37,24 @@ const idCardFormField = [
     label: "ID Card Background",
     inputType: "image",
     type: "object",
-    className: "col-span-2",
+    className: "col-span-2 sm:col-span-1",
     maxFileSize: 2 * 1024 * 1024,
     allowedTypes: ["image/jpeg", "image/jpg", "image/png"],
     aspectRatio: "2:3",
     hasSubmitButton: true,
     defaultValue: {},
+  },
+  {
+    name: "sealImage",
+    label: "ID Card Seal",
+    inputType: "image",
+    type: "object",
+    className: "col-span-2 sm:col-span-1",
+    maxFileSize: 2 * 1024 * 1024,
+    allowedTypes: ["image/jpeg", "image/jpg", "image/png"],
+    aspectRatio: "1:1",
+    hasSubmitButton: true,
+    defaultValue: { url: "/sdc_seal.png" },
   },
 ];
 
@@ -51,6 +63,7 @@ const IdentityCards = ({
   institution = {},
   classes = [],
   idCardBackgroundImageUrl = "",
+  idCardSealImageUrl = "",
   teachers = [],
   apiKey,
   settings = {},
@@ -138,7 +151,7 @@ const IdentityCards = ({
     <div>
       <Header
         title="IDENTITY CARDS"
-        subTitle="Official Identity for Students and Teachers"
+        subTitle="Identity cards for Students and Teachers"
         rightAction={
           (userRole === "College Admin" || allRoles.includes("College Admin")) && (
             <Dialog>
@@ -161,7 +174,7 @@ const IdentityCards = ({
                   <div className="flex-1 text-left space-y-0.5">
                     <DialogTitle className="text-xl font-bold m-0">ID Card Settings</DialogTitle>
                     <DialogDescription className="m-0 text-sm">
-                      Configure background and seal for ID cards
+                      Background and seal for ID cards
                     </DialogDescription>
                   </div>
                   <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
@@ -186,22 +199,22 @@ const IdentityCards = ({
       <div className="flex flex-col md:flex-row gap-4 mb-6 md:items-end flex-wrap xl:flex-nowrap">
         {isManagementView && (
           <>
-            <div className="w-full md:flex-1 md:max-w-[325px]">
-              <label className="text-sm font-medium mb-1 block">ID Type</label>
-              <Select value={selectionType} onValueChange={setSelectionType}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Select an option" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Student ID">Student ID</SelectItem>
-                  <SelectItem value="Teacher ID">Teacher ID</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="flex flex-row gap-4 w-full md:w-auto md:flex-1 md:max-w-[666px]">
+              <div className="w-1/2 md:w-full md:flex-1 md:max-w-[325px]">
+                <label className="text-sm font-medium mb-1 block">ID Type</label>
+                <Select value={selectionType} onValueChange={setSelectionType}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Select an option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Student ID">Student ID</SelectItem>
+                    <SelectItem value="Teacher ID">Teacher ID</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {selectionType === "Student ID" ? (
-              <>
-                <div className="w-full md:flex-1 md:max-w-[325px]">
+              {selectionType === "Student ID" ? (
+                <div className="w-1/2 md:w-full md:flex-1 md:max-w-[325px]">
                   <label htmlFor="class-select" className="text-sm font-medium mb-1 block">
                     Select a Class
                   </label>
@@ -213,28 +226,30 @@ const IdentityCards = ({
                     multiSelect={true}
                   />
                 </div>
-
-                <div className="w-full md:flex-1 md:max-w-[325px]">
-                  <label htmlFor="student-select" className="text-sm font-medium mb-1 block">
-                    Select a Student
-                  </label>
+              ) : (
+                <div className="w-1/2 md:w-full md:flex-1 md:max-w-[325px]">
+                  <label className="text-sm font-medium mb-1 block">Select Teacher</label>
                   <MultiSelect
-                    options={studentOptions}
-                    onValueChange={setSelectedStudent}
-                    value={selectedStudent}
-                    placeholder="Select a Student"
+                    options={teacherOptions}
+                    onValueChange={setSelectedTeacher}
+                    value={selectedTeacher}
+                    placeholder="Select a teacher"
                     multiSelect={true}
                   />
                 </div>
-              </>
-            ) : (
+              )}
+            </div>
+
+            {selectionType === "Student ID" && (
               <div className="w-full md:flex-1 md:max-w-[325px]">
-                <label className="text-sm font-medium mb-1 block">Select Teacher</label>
+                <label htmlFor="student-select" className="text-sm font-medium mb-1 block">
+                  Select a Student
+                </label>
                 <MultiSelect
-                  options={teacherOptions}
-                  onValueChange={setSelectedTeacher}
-                  value={selectedTeacher}
-                  placeholder="Select a teacher"
+                  options={studentOptions}
+                  onValueChange={setSelectedStudent}
+                  value={selectedStudent}
+                  placeholder="Select a Student"
                   multiSelect={true}
                 />
               </div>
@@ -281,6 +296,7 @@ const IdentityCards = ({
             institution={institution}
             academicYear={academicYear}
             idCardBackgroundImageUrl={idCardBackgroundImageUrl}
+            idCardSealImageUrl={idCardSealImageUrl}
             isStudent={selectionType === "Student ID"}
             selectedSide={selectedSide}
             userRole={userRole}
@@ -334,6 +350,7 @@ const IdentityCards = ({
                     institution={institution}
                     academicYear={academicYear}
                     idCardBackgroundImageUrl={idCardBackgroundImageUrl}
+                    idCardSealImageUrl={idCardSealImageUrl}
                     isStudent={selectionType === "Student ID"}
                     selectedSide={selectedSide}
                   />
@@ -387,6 +404,7 @@ const IdCard = ({
   institution,
   academicYear,
   idCardBackgroundImageUrl,
+  idCardSealImageUrl,
   isStudent,
   selectedSide,
   userRole,
@@ -511,7 +529,7 @@ const IdCard = ({
           <CardContent className="p-4 flex flex-col h-full">
             <div className="border-b border-gray-200 pb-2 mb-3">
               <h3 className="text-sm font-semibold text-gray-800 text-center">
-                Contact Information
+                {isStudent ? `${person._id?.substring(0, 8).toUpperCase()} - ` : ""}Contact Information
               </h3>
             </div>
 
@@ -519,6 +537,7 @@ const IdCard = ({
               person={person}
               academicYear={academicYear}
               isStudent={isStudent}
+              idCardSealImageUrl={idCardSealImageUrl}
             />
 
             <div className="mt-auto bg-indigo-50 p-2 rounded-md">
@@ -548,14 +567,18 @@ const IdCard = ({
 };
 
 // Extracted component for person details (reused in both preview and print views)
-const PersonDetails = ({ person, academicYear, isStudent }) => {
+const PersonDetails = ({ person, academicYear, isStudent, idCardSealImageUrl }) => {
+  const sealUrl = idCardSealImageUrl || "/sdc_seal.png";
+  
   return (
     <div className="relative">
-      <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-40">
-        <svg width="250" height="250">
-          <image href="/sdc_seal.png" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" />
-        </svg>
-      </div>
+      {sealUrl && (
+        <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-40">
+          <svg width="250" height="250">
+            <image href={sealUrl} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" />
+          </svg>
+        </div>
+      )}
       <div className="relative text-xs z-10 grid grid-cols-[max-content_auto_1fr] gap-x-1 gap-y-1 w-full">
         {isStudent ? (
           <>
@@ -669,6 +692,7 @@ const PrintableIdCard = ({
   institution,
   academicYear,
   idCardBackgroundImageUrl,
+  idCardSealImageUrl,
   isStudent,
   selectedSide,
 }) => {
@@ -786,7 +810,7 @@ const PrintableIdCard = ({
           <div className="p-2 bg-white h-full flex flex-col">
             <div className="border-b border-gray-200 pb-1 mb-1">
               <h3 className="text-xs font-semibold text-gray-800 text-center">
-                Contact Information
+                {isStudent ? `${person._id?.substring(0, 8).toUpperCase()} - ` : ""}Contact Information
               </h3>
             </div>
 
@@ -794,6 +818,7 @@ const PrintableIdCard = ({
               person={person}
               academicYear={academicYear}
               isStudent={isStudent}
+              idCardSealImageUrl={idCardSealImageUrl}
             />
 
             <div className="bg-indigo-50 p-1 rounded text-center text-xs mt-auto">

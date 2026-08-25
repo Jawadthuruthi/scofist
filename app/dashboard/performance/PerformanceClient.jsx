@@ -298,7 +298,7 @@ export default function PerformanceClient({ apiKey, activeRole, user, classes, t
                 columnsConfig={columnsConfig}
                 formFields={formFields}
                 apiKey={apiKey}
-                createFormTitle="Add New Performance Record"
+                createFormTitle="Add New Performance"
                 editFormTitle="Edit Performance Record"
                 deleteFormTitle="Delete Performance Record"
                 createSuccessMessage={statusMessages.create}

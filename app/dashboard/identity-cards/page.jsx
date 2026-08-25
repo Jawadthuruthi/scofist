@@ -34,6 +34,7 @@ const identityCardsPage = async () => {
         settings={settings}
         institution={settings.institution}
         idCardBackgroundImageUrl={settings.idCard?.backgroundImage?.url}
+        idCardSealImageUrl={settings.idCard?.sealImage?.url}
         classes={classes}
         teachers={sortTeachers(teachers)}
         userRole={activeRole}

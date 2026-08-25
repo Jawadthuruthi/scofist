@@ -757,7 +757,7 @@ const ImageUploader = ({
       </div>
 
       {/* Upload, Change Image, and optional Submit buttons */}
-      <div className="flex gap-2 w-full">
+      <div className={`grid gap-2 w-full ${hasSubmitButton ? 'grid-cols-2' : 'grid-cols-1'}`}>
         {selectedFile && !loading && (
           <Button
             type="button"

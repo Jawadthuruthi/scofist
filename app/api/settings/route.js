@@ -135,6 +135,8 @@ export async function POST(req, res) {
       idCard: {
         backgroundImage:
           data.backgroundImage ?? existingSettings?.idCard?.backgroundImage,
+        sealImage:
+          data.sealImage ?? existingSettings?.idCard?.sealImage,
       },
       general: {
         isWorkingDay:
@@ -393,9 +395,11 @@ export async function PUT(req) {
     }
 
     // ID Card
-    if (data.backgroundImage) {
+    if (data.backgroundImage || data.sealImage) {
       updateData.idCard = {
-        backgroundImage: data.backgroundImage,
+        ...existingSettings?.idCard,
+        ...(data.backgroundImage && { backgroundImage: data.backgroundImage }),
+        ...(data.sealImage && { sealImage: data.sealImage }),
       };
     }
 

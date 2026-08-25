@@ -34,7 +34,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import useDataFilter from "@/hooks/use-data-filter";
 import dynamic from "next/dynamic";
-import { Loader, Search, X, Trophy, FileSpreadsheet, Printer, CheckCircle2, Star } from "lucide-react";
+import { Loader, Search, X, Trophy, FileSpreadsheet, Printer, CheckCircle2, Star, UserCheck, UserX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { capitalize, debounce } from "lodash";
 import { Skeleton } from "./ui/skeleton";
@@ -1716,18 +1716,24 @@ const DataTableComponent = ({
       {/* Detail View Modal for drill-down */}
       <Dialog open={!!detailView} onOpenChange={(open) => !open && setDetailView(null)}>
         <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl max-w-5xl max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden overflow-y-auto p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+          <DialogHeader className={`flex flex-row items-center gap-3 mx-0 px-4 sm:px-5 py-4 border-b space-y-0 sticky top-0 z-20 backdrop-blur-md shrink-0 bg-background/95 ${detailView?.colHeader === "Present" ? "bg-green-50 dark:bg-green-950/20" : detailView?.colHeader === "Absent" ? "bg-red-50 dark:bg-red-950/20" : "bg-muted/50 dark:bg-muted/20"}`}>
             <button 
               type="button"
-              className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors focus:outline-none cursor-pointer"
+              className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer ${detailView?.colHeader === "Present" ? "bg-green-100 dark:bg-green-900/30 hover:bg-green-200" : detailView?.colHeader === "Absent" ? "bg-red-100 dark:bg-red-900/30 hover:bg-red-200" : "bg-primary/10 hover:bg-primary/20"}`}
               onClick={handleDownload}
               title="Download Image"
               data-html2canvas-ignore="true"
             >
-              <FileSpreadsheet className="h-5 w-5 text-primary" />
+              {detailView?.colHeader === "Present" ? (
+                <UserCheck className="h-5 w-5 text-green-600 dark:text-green-500" />
+              ) : detailView?.colHeader === "Absent" ? (
+                <UserX className="h-5 w-5 text-red-500" />
+              ) : (
+                <FileSpreadsheet className="h-5 w-5 text-primary" />
+              )}
             </button>
             <div className="flex-1 text-left space-y-0.5">
-              <DialogTitle className="text-xl font-bold m-0">
+              <DialogTitle className={`text-xl font-bold m-0 ${detailView?.colHeader === "Present" ? "text-green-600 dark:text-green-400" : detailView?.colHeader === "Absent" ? "text-red-600 dark:text-red-400" : ""}`}>
                 {detailView?.colHeader} Records
               </DialogTitle>
               <div className="m-0 flex flex-wrap items-center gap-2">
@@ -1744,7 +1750,7 @@ const DataTableComponent = ({
             </DialogClose>
           </DialogHeader>
 
-          <div className="py-5 px-0 sm:p-5">
+          <div className="py-5 px-2 sm:p-5">
             {detailsLoading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary opacity-70" />
@@ -1762,7 +1768,7 @@ const DataTableComponent = ({
                 <p className="text-sm">There are no matching entries for the selected filter.</p>
               </div>
             ) : (
-              <div className="border-y sm:border rounded-none sm:rounded-lg shadow-sm bg-background overflow-hidden">
+              <div className="border rounded-md sm:rounded-lg shadow-sm bg-background overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -1778,9 +1784,9 @@ const DataTableComponent = ({
                       ) : (
                         <>
                           <TableHead className="w-[100px] font-bold">Date & Day</TableHead>
-                          <TableHead className="font-bold">Subject</TableHead>
+                          <TableHead className="w-[110px] font-bold">Subject</TableHead>
                           {(resource === "studentAttendances" || resource === "teacherAttendances") && (
-                            <TableHead className="font-bold">
+                            <TableHead className="font-bold min-w-[140px]">
                               {resource === "teacherAttendances" ? "Class" : "Teacher"}
                             </TableHead>
                           )}
@@ -1814,7 +1820,7 @@ const DataTableComponent = ({
                             <>
                               <TableCell className="font-medium whitespace-nowrap py-3">
                                 <div className="flex flex-col">
-                                  <span className="text-sm font-bold">
+                                  <span className="text-sm font-medium">
                                     {new Date(rec.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                   </span>
                                   <span className="text-xs text-muted-foreground font-medium">
