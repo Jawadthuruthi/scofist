@@ -1,4 +1,4 @@
-import DynamicDataTable from "@/components/DynamicDataTable";
+import ClassesClient from "@/components/ClassesClient";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData, formatOptions, sortTeachers } from "@/lib/utils";
@@ -131,6 +131,7 @@ export default async function ClassesPage() {
         label: "Assign a teacher",
         type: "text",
         inputType: "select",
+        className: "md:col-span-2",
         options: formatOptions(sortTeachers(teachers)),
       },
       {
@@ -205,22 +206,12 @@ export default async function ClassesPage() {
           title="CLASSES MANAGEMENT"
           subTitle="Organize and Oversee Classes"
         />
-        <DynamicDataTable
-          resource="classes"
-          initialData={[]}
+        <ClassesClient
           columnsConfig={columnsConfig}
           formFields={dynamicFormFields}
           apiKey={apiKey}
-          createFormTitle="Add New Class"
-          editFormTitle="Edit Class"
-          deleteFormTitle="Delete Class"
-          createSuccessMessage={statusMessages.create}
-          editSuccessMessage={statusMessages.edit}
-          deleteSuccessMessage={statusMessages.delete}
+          statusMessages={statusMessages}
           filterConfig={filterConfig}
-          limit={20}
-          enableSearch={true}
-          defaultSorting={[{ id: "_id", desc: false }]}
         />
       </>
     );

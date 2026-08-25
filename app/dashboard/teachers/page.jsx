@@ -1,8 +1,7 @@
-import DynamicDataTable from "@/components/DynamicDataTable";
+import TeachersClient from "@/components/TeachersClient";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData } from "@/lib/utils";
-import PendingTeacherRequestsWrapper from "@/components/PendingTeacherRequestsWrapper";
 const columnsConfig = [
   {
     id: "select",
@@ -57,6 +56,7 @@ const formFields = [
     type: "text",
     placeholder: "Teacher ID",
     required: true,
+    className: "md:col-span-2",
     validators: {
       minLength: 3,
       minLengthMessage: "Teacher ID must be at least 3 characters long",
@@ -111,6 +111,7 @@ const formFields = [
     type: "date",
     placeholder: "Date Of Birth",
     required: true,
+    className: "md:col-span-2",
     validators: {
       maxDate: new Date().toISOString().split("T")[0],
       maxDateMessage: "Date of birth cannot be in the future",
@@ -257,27 +258,13 @@ export default async function BatchesPage() {
           title="TEACHERS MANAGEMENT"
           subTitle="Organize and Oversee Teachers"
         />
-        <DynamicDataTable
-          resource="users"
-          initialData={[]}
+        <TeachersClient
           columnsConfig={columnsConfig}
           formFields={dynamicFormFields}
           apiKey={apiKey}
-          createFormTitle="Add New Teacher"
-          editFormTitle="Edit Teacher"
-          deleteFormTitle="Delete Teacher"
-          createSuccessMessage={statusMessages.create}
-          editSuccessMessage={statusMessages.edit}
-          deleteSuccessMessage={statusMessages.delete}
+          statusMessages={statusMessages}
           filterConfig={filterConfig}
-          limit={50}
-          tableHeight="calc(100vh - 250px)"
           apiFilters={apiFilters}
-          printTitle={"Teachers"}
-          enableSearch={true}
-          defaultSorting={[{ id: "dateOfBirth", desc: false }]}
-          customTopRightButtons={<PendingTeacherRequestsWrapper key="pending-requests" apiKey={apiKey} />}
-          formClassName="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl"
         />
       </>
     );
