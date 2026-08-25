@@ -38,6 +38,11 @@ export const useDownloadPopup = (popupRef, filename = "Popup_Image.jpeg") => {
               div.style.height = 'auto';
               div.style.overflow = 'visible';
             });
+
+            // Fix sticky elements moving to the top in the captured image
+            clonedPopup.querySelectorAll('.sticky').forEach((div) => {
+              div.style.position = 'relative';
+            });
           }
         }
       });

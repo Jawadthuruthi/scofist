@@ -230,7 +230,7 @@ export default function AcademicCalendarManager({ apiKey }) {
                     <Button onClick={handlePrint} className="h-8 sm:h-9 px-2 sm:px-4 gap-1 sm:gap-2 btn-print text-xs sm:text-sm">
                         <Printer className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Print
                     </Button>
-                    <Button onClick={() => openAddDialog()} className="h-8 sm:h-9 px-2 sm:px-4 gap-1 sm:gap-2 text-xs sm:text-sm">
+                    <Button onClick={() => openAddDialog()} className="h-8 sm:h-9 px-2 sm:px-4 gap-1 sm:gap-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white">
                         <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span>Add <span className="hidden sm:inline">Special Day</span></span>
                     </Button>
                 </div>
@@ -373,7 +373,7 @@ export default function AcademicCalendarManager({ apiKey }) {
                             </div>
                         ))}
                     </div>
-                    <Button className="w-full gap-2 mt-2" onClick={() => openAddDialog(selectedDay || "")}>
+                    <Button className="w-full gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => openAddDialog(selectedDay || "")}>
                         <Plus className="h-4 w-4" /> <span>Add <span className="hidden sm:inline">Special Day</span></span>
                     </Button>
                 </DialogContent>

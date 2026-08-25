@@ -628,6 +628,15 @@ const AttendanceSheet = ({ apiKey, userId, userRole }) => {
                                                     )}
                                                 </div>
                                             );
+                                        } else if (leaveReason) {
+                                            Icon = (
+                                                <div className="flex flex-col items-center">
+                                                    <span className="text-xs font-bold text-yellow-600 print:!text-yellow-600 leading-none mt-1">L</span>
+                                                    <span className="text-[7px] text-yellow-600 print:!text-yellow-600 leading-none mt-0.5 line-clamp-1 max-w-[40px]">
+                                                        {leaveReason}
+                                                    </span>
+                                                </div>
+                                            );
                                         }
 
 

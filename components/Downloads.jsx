@@ -288,11 +288,11 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
         title="QUESTION PAPERS"
         subTitle="Download and upload question papers"
       />
-      <div className="container mx-auto p-4 space-y-6">
+      <div className="space-y-6 mt-4">
         {/* Upload Section */}
         {activeRole === "College Admin" && (
           <Card>
-            <CardHeader>
+            <CardHeader className="bg-muted/20 border-b mb-4">
               <CardTitle>Upload previous year question papers</CardTitle>
               <CardDescription>
                 Upload question papers for students
@@ -316,8 +316,8 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                 }
               }}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2 col-span-2 md:col-span-1">
                   <Label htmlFor="course">Course</Label>
                   <MultiSelect
                     id="course"
@@ -333,7 +333,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                     multiSelect={false}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-1">
                   <Label htmlFor="year">Year</Label>
                   <Select id="year" value={year} onValueChange={setYear}>
                     <SelectTrigger>
@@ -348,7 +348,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-1">
                   <Label htmlFor="semester">Semester</Label>
                   <Select
                     id="semester"
@@ -367,7 +367,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-2 md:col-span-1">
                   <Label htmlFor="subject">Subject</Label>
                   <Input
                     id="subject"
@@ -430,7 +430,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
 
         {/* Downloads Table */}
         <Card>
-          <CardHeader>
+          <CardHeader className="bg-muted/20 border-b mb-4">
             <CardTitle>
               Available Question Papers ({filteredDownloads.length})
             </CardTitle>
@@ -439,8 +439,8 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="space-y-2 col-span-2 md:col-span-2">
                 <Label>Filter by Course</Label>
                 <Select
                   value={filterCourse ?? "all"}
@@ -459,7 +459,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 col-span-1">
                 <Label>Filter by Year</Label>
                 <Select
                   value={filterYear ?? "all"}
@@ -478,7 +478,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 col-span-1">
                 <Label>Filter by Semester</Label>
                 <Select
                   value={filterSemester ?? "all"}
@@ -499,7 +499,7 @@ const Downloads = ({ initialDownloads = [], apiKey, activeRole }) => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto border-x">
               <Table>
                 <TableHeader>
                   <TableRow>

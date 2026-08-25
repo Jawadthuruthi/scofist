@@ -20,13 +20,13 @@ export default async function MarksPage() {
         );
 
     return (
-        <div className="flex flex-col space-y-2">
+        <div className="flex flex-col space-y-4">
             <Header
                 title="MARKS MANAGEMENT"
                 subTitle="Manage exam marks and results by class"
                 icon={<FileSpreadsheet className="h-5 w-5 text-muted-foreground" />}
             />
-            <div className="px-4">
+            <div>
                 <MarksManager apiKey={apiKey} activeRole={activeRole} />
             </div>
         </div>

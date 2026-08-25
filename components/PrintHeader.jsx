@@ -81,22 +81,22 @@ export default function PrintHeader({
           <div className="flex flex-col max-w-full overflow-x-auto print:overflow-visible">
             {/* Header with logo and data info */}
             {!hidePrintLogo && (
-              <div className="flex items-center w-full min-w-0 justify-between px-8 py-4 bg-gradient-to-b from-white to-gray-50 border-b border-gray-200">
+              <div className="flex flex-col sm:flex-row items-center sm:justify-between w-full min-w-0 px-4 sm:px-8 py-4 sm:py-4 bg-gradient-to-b from-white to-gray-50 border-b border-gray-200 gap-4 sm:gap-0">
                 {/* Left side - Logo and Name side-by-side */}
-                <div className="flex items-center gap-6">
-                  <div className="flex-shrink-0 w-24 h-24">
+                <div className="flex flex-row items-center gap-3 sm:gap-6 text-left">
+                  <div className="flex-shrink-0 w-14 h-14 sm:w-24 sm:h-24">
                     {data.logo && data.logo.url ? (
                       <Image
                         src={data.logo.url}
                         alt="Institution Logo"
                         width={96}
                         height={96}
-                        className="object-contain"
+                        className="object-contain w-full h-full"
                         unoptimized
                         priority
                       />
                     ) : (
-                      <div className="w-24 h-24 bg-gray-50 flex items-center justify-center rounded-md border border-gray-200">
+                      <div className="w-14 h-14 sm:w-24 sm:h-24 bg-gray-50 flex items-center justify-center rounded-md border border-gray-200">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           width="24"
@@ -116,18 +116,18 @@ export default function PrintHeader({
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-col text-left leading-tight">
-                    <h1 className="text-xl font-bold mb-0 text-gray-800">
+                  <div className="flex flex-col leading-tight">
+                    <h1 className="text-sm sm:text-xl font-bold mb-0 text-gray-800 leading-tight">
                       {data.name || "INSTITUTION NAME"}
                     </h1>
-                    <p className="text-sm text-gray-600 italic">
+                    <p className="text-[10px] sm:text-sm text-gray-600 italic leading-tight mt-0.5">
                       {data.tagline && <span>{data.tagline}</span>}
                     </p>
                   </div>
                 </div>
 
                 {/* Right side - Contact details */}
-                <div className="text-right flex flex-col justify-center space-y-0.5 text-xs text-gray-600 max-w-xs">
+                <div className="text-center sm:text-right flex flex-col justify-center space-y-0.5 text-[10px] sm:text-xs text-gray-600 w-full sm:max-w-xs mt-2 sm:mt-0">
                   <p className="font-medium">{data.address || ""}</p>
                   <p>
                     {data.contact?.primaryPhone &&

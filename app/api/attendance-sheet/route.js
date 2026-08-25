@@ -159,7 +159,9 @@ export async function GET(request) {
             dateOfLeave: { $lte: endDate },
             $or: [
                 { dateOfArrival: { $gte: startDate } },
-                { arrivedDate: { $gte: startDate } }
+                { arrivedDate: { $gte: startDate } },
+                { arrivedDate: { $exists: false } },
+                { arrivedDate: null }
             ]
         });
 
@@ -195,9 +197,23 @@ export async function GET(request) {
         });
 
         // Process Leaves
+        const today = new Date();
+        const todayIST = new Date(today.getTime() + 5.5 * 60 * 60 * 1000);
+        todayIST.setUTCHours(0, 0, 0, 0);
+
         leaveRecords.forEach(leave => {
             const start = leave.dateOfLeave < startDate ? startDate : leave.dateOfLeave;
-            const end = (leave.dateOfArrival && leave.dateOfArrival < endDate) ? leave.dateOfArrival : endDate;
+            
+            // If they haven't arrived yet, leave continues through the end of the month.
+            // If they have arrived, leave ends on arrivedDate.
+            const actualEnd = leave.arrivedDate ? leave.arrivedDate : endDate;
+            let end = (actualEnd < endDate) ? actualEnd : endDate;
+
+            // Cap the end date to today to avoid showing leave reasons for upcoming days
+            if (end > todayIST) {
+                end = todayIST;
+            }
+
             // Logic to iterate days between start and end and populate leavesMap
             for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
                 if (d.getMonth() === month) {

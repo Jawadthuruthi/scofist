@@ -246,10 +246,10 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
   return (
     <>
       <Header title="BOOKS" subTitle="Download and upload books" />
-      <div className="container mx-auto p-4 space-y-6">
+      <div className="space-y-6 mt-4">
         {activeRole === "College Admin" && (
           <Card>
-            <CardHeader>
+            <CardHeader className="bg-muted/20 border-b mb-4">
               <CardTitle>Upload Book</CardTitle>
               <CardDescription>Upload a new book for a course</CardDescription>
             </CardHeader>
@@ -328,7 +328,7 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
         )}
 
         <Card>
-          <CardHeader>
+          <CardHeader className="bg-muted/20 border-b mb-4">
             <CardTitle>Available Books ({filteredBooks.length})</CardTitle>
             <CardDescription>Filter and download books</CardDescription>
           </CardHeader>
@@ -360,7 +360,7 @@ const Books = ({ initialBooks = [], apiKey, activeRole }) => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto border-x">
               <Table>
                 <TableHeader>
                   <TableRow>

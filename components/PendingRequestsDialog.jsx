@@ -106,7 +106,7 @@ const PendingRequestsDialog = ({ open, onClose, apiKey, onView, role = "Student"
                   <TableRow key={student._id}>
                     <TableCell className="font-medium px-2 sm:px-4 py-2 sm:py-3">{index + 1}</TableCell>
                     <TableCell className="text-xs text-muted-foreground px-2 sm:px-4 py-2 sm:py-3 max-w-[80px] sm:max-w-none truncate" title={student._id}>{student._id}</TableCell>
-                    <TableCell className="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm">{student.name}</TableCell>
+                    <TableCell className="px-2 sm:px-4 py-2 sm:py-3 text-sm break-words max-w-[150px] sm:max-w-xs">{student.name}</TableCell>
                     <TableCell className="px-2 sm:px-4 py-2 sm:py-3 text-sm hidden sm:table-cell">
                       {student.profileRequestDate 
                         ? formatDateForDisplay(student.profileRequestDate)

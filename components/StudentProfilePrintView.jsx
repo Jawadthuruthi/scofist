@@ -46,9 +46,8 @@ export default function StudentProfilePrintView({ student, classes, batches, api
   return (
     <div 
       id="student-profile-print-area"
-      className="bg-white mx-auto print:font-sans w-full max-w-[210mm] print:shadow-none print:border-none print:leading-none relative flex flex-col"
+      className="bg-white mx-auto print:font-sans w-full max-w-[210mm] print:shadow-none print:border-none print:leading-none relative flex flex-col px-2 sm:px-[8mm]"
       style={{
-        padding: "0mm 8mm",
         minHeight: "auto",
       }}
     >
@@ -141,8 +140,17 @@ export default function StudentProfilePrintView({ student, classes, batches, api
             PERSONAL DETAILS
             </h3>
         </div>
-        <div className="px-4 py-2 print:py-[6px] flex gap-8 justify-between relative">
-            <div className="grid grid-cols-1 sm:grid-cols-2 grow gap-x-12 print:gap-x-8 pr-32 print:pr-24">
+        <div className="px-4 py-2 print:py-[6px] flex flex-col sm:flex-row gap-4 sm:gap-8 justify-between relative">
+            {/* Photo Area - First on mobile, absolute on desktop/print */}
+            <div className="flex justify-center sm:absolute sm:right-4 sm:top-2 w-full sm:w-auto order-first sm:order-none print:absolute print:right-4 print:top-2 print:w-auto mb-2 sm:mb-0">
+                <Avatar className="h-24 w-24 sm:h-28 sm:w-28 print:h-24 print:w-24 border-2 border-slate-100 rounded-lg shadow-inner overflow-hidden">
+                    <AvatarImage src={student?.profilePic?.url} alt={student?.name} className="object-cover" />
+                    <AvatarFallback className="bg-slate-50 text-slate-300 font-black text-2xl">
+                        {getInitials(student.name)}
+                    </AvatarFallback>
+                </Avatar>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 grow gap-x-12 print:gap-x-8 sm:pr-32 print:pr-24 w-full">
                 <InfoField label="Full Name" value={student.name} fullWidth={true} />
                 <InfoField label="Email" value={student?.email} fullWidth={true} />
                 
@@ -152,15 +160,6 @@ export default function StudentProfilePrintView({ student, classes, batches, api
                 <InfoField label="Aadhar No" value={student?.aadharNo} />
                 <InfoField label="Contact No" value={student.contactNumber} />
                 <InfoField label="Alt. Contact" value={student.alternativeNumber} />
-            </div>
-            {/* Absolute Photo Area */}
-            <div className="absolute right-4 top-2">
-                <Avatar className="h-28 w-28 print:h-24 print:w-24 border-2 border-slate-100 rounded-lg shadow-inner overflow-hidden">
-                    <AvatarImage src={student?.profilePic?.url} alt={student?.name} className="object-cover" />
-                    <AvatarFallback className="bg-slate-50 text-slate-300 font-black text-2xl">
-                        {getInitials(student.name)}
-                    </AvatarFallback>
-                </Avatar>
             </div>
         </div>
       </div>

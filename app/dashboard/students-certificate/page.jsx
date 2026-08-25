@@ -1,4 +1,5 @@
 import StudentsCertificate from "@/components/StudentsCertificate";
+import Header from "@/components/Header";
 import { headers } from "next/headers";
 import { cookies } from "next/headers";
 
@@ -21,11 +22,8 @@ export default async function StudentsCertificatePage() {
     const userRole = cookieStore.get("active-role")?.value || "College Admin";
 
     return (
-        <div className="p-4 h-full flex flex-col print:block print:h-auto print:p-0">
-            <div className="mb-6 print:hidden">
-                <h1 className="text-2xl font-bold tracking-tight uppercase">STUDENTS CERTIFICATE</h1>
-                <p className="text-muted-foreground">Generate and print student certificates.</p>
-            </div>
+        <div className="h-full flex flex-col print:block print:h-auto print:p-0 space-y-4">
+            <Header title="STUDENTS CERTIFICATE" subTitle="Generate and print student certificates." />
             <div className="flex-1 min-h-0 print:block print:h-auto print:overflow-visible">
                 <StudentsCertificate apiKey={apiKey} userId={userId} userRole={userRole} />
             </div>

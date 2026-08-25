@@ -1,4 +1,5 @@
 import ClearanceCertificate from "@/components/ClearanceCertificate";
+import Header from "@/components/Header";
 import { headers } from "next/headers";
 import { cookies } from "next/headers";
 
@@ -21,11 +22,8 @@ export default async function ClearanceCertificatePage() {
     const userRole = cookieStore.get("active-role")?.value || "College Admin";
 
     return (
-        <div className="p-4 h-full flex flex-col print:block print:h-auto print:p-0">
-            <div className="mb-6 print:hidden">
-                <h1 className="text-2xl font-bold tracking-tight uppercase">CLEARANCE CERTIFICATE</h1>
-                <p className="text-muted-foreground">Generate and print clearance certificates.</p>
-            </div>
+        <div className="h-full flex flex-col print:block print:h-auto print:p-0 space-y-4">
+            <Header title="CLEARANCE CERTIFICATE" subTitle="Generate and print clearance certificates." />
             <div className="flex-1 min-h-0 print:block print:h-auto print:overflow-visible">
                 <ClearanceCertificate apiKey={apiKey} userId={userId} userRole={userRole} />
             </div>

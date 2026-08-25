@@ -266,10 +266,10 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
         title="SYLLABUS"
         subTitle="Download and upload syllabus"
       />
-      <div className="container mx-auto p-4 space-y-6">
+      <div className="space-y-6 mt-4">
         {activeRole === "College Admin" && (
           <Card>
-            <CardHeader>
+            <CardHeader className="bg-muted/20 border-b mb-4">
               <CardTitle>Upload Syllabus</CardTitle>
               <CardDescription>
                 Upload syllabus for students to download
@@ -360,7 +360,7 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
         )}
 
         <Card>
-          <CardHeader>
+          <CardHeader className="bg-muted/20 border-b mb-4">
             <CardTitle>
               Available Syllabuses ({filteredSyllabus.length})
             </CardTitle>
@@ -404,7 +404,7 @@ const Syllabus = ({ initialSyllabus = [], apiKey, activeRole }) => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto border-x">
               <Table>
                 <TableHeader>
                   <TableRow>
