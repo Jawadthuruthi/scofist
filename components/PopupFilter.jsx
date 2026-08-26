@@ -361,8 +361,10 @@ export default function PopupFilter({
     const nestedArrayField = filterItem.nestedArrayField || null;
     const className = filterItem.className || "";
 
+    const defaultColSpan = className.includes('col-span-') ? '' : 'col-span-2 sm:col-span-1';
+
     return (
-      <div key={filterId} className={inline ? `w-40 shrink-0 ${className}` : `space-y-2 ${className}`}>
+      <div key={filterId} className={inline ? `w-40 shrink-0 ${className}` : `${defaultColSpan} space-y-2 ${className}`}>
         {!inline && (
           <label className="text-sm font-medium block">
             {displayName}
@@ -483,7 +485,7 @@ export default function PopupFilter({
               <div className="flex-1 text-left space-y-0.5">
                 <DialogTitle className="text-xl font-bold m-0">Filter {title}</DialogTitle>
                 <DialogDescription className="m-0">
-                  Adjust filters to refine the {title.toLowerCase()} list
+                  Filters to refine the {title.toLowerCase()} list.
                 </DialogDescription>
               </div>
               <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
@@ -491,7 +493,7 @@ export default function PopupFilter({
               </DialogClose>
             </DialogHeader>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4 p-5 overflow-y-auto">
               {/* Individual Filters */}
               {filterConfig.map((filterItem) => renderFilterItem(filterItem, false))}
             </div>

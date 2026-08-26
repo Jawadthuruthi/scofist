@@ -201,12 +201,14 @@ export default async function ParticipantsPage() {
         label: "Team",
         inputType: "select",
         options: formatOptions(teams),
+        className: "col-span-1",
       },
       {
         id: "divisionId",
         label: "Division",
         inputType: "select",
         options: formatOptions(divisions),
+        className: "col-span-1",
       },
     ];
 

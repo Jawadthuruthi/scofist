@@ -124,6 +124,7 @@ export default async function TeamsPage() {
           editSuccessMessage={statusMessages.edit}
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
+          filterMaxWidthClass="sm:max-w-md"
           limit={20}
           readOnly={activeRole !== "Program Committee"}
           isFestival={true}

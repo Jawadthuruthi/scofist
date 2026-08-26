@@ -133,6 +133,7 @@ export default async function ProgramsPage() {
           { value: "Group", label: "Group" },
           { value: "Individual", label: "Individual" },
         ],
+        className: "col-span-1",
       },
       {
         id: "category",
@@ -142,6 +143,7 @@ export default async function ProgramsPage() {
           { value: "Stage", label: "Stage" },
           { value: "Off-Stage", label: "Off-Stage" },
         ],
+        className: "col-span-1",
       },
       {
         id: "divisionId",
