@@ -21,7 +21,7 @@ const columnsConfig = [
     maxWidth: 60,
     minWidth: 60,
   },
-  { accessorKey: "name", header: "Team Name" },
+  { accessorKey: "name", header: "Team Name", type: ["teamSummary"] },
   { accessorKey: "color", header: "Color", type: ["color"], width: 80 },
   { accessorKey: "leaderName", header: "Team Leader" },
   {

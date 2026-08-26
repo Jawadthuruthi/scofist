@@ -43,13 +43,13 @@ export default function PrintHeader({
           <div className="flex flex-col max-w-full overflow-x-auto">
             {/* Header with festival print header */}
             {data.printHeader?.url && (
-              <div className="flex items-center justify-center w-full max-h-10 max-w-xl mx-auto bg-white mb-1 ">
+              <div className="flex items-center justify-center w-full bg-white mb-4">
                 <Image
                   src={data.printHeader.url}
                   alt="Festival Print Header"
                   width={2480}
                   height={300}
-                  className=" w-full h-full aspect-[8/1]"
+                  className="w-full h-auto object-contain"
                   priority
                   unoptimized
                 />

@@ -36,7 +36,7 @@ export default async function JudgesPage() {
           title="JUDGES"
           subTitle="Assign programs to judges for mark entry"
         />
-        <div className="p-4">
+        <div className="pt-4">
           <JudgesManagement
             programs={sortedPrograms}
             divisions={divisions}

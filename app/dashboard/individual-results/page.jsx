@@ -27,7 +27,7 @@ export default async function IndividualResultsPage() {
           title="INDIVIDUAL RESULTS"
           subTitle="View Individual Participant Results"
         />
-        <div className="p-4">
+        <div className="pt-4">
           <IndividualResultsComponent
             divisions={sortedDivisions}
             apiKey={apiKey}

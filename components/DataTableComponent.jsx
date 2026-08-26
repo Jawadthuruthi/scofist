@@ -138,6 +138,7 @@ const DataTableComponent = ({
   rowLinkKey = "_id",
   rowLinkSearchParams = "",
   enableDefaultSort = true,
+  filterMaxWidthClass,
   defaultSorting = DEFAULT_ARRAY,
   createButtonClass = "",
   createButtonText = "",
@@ -1148,6 +1149,7 @@ const DataTableComponent = ({
               hasFilters={hasFilters || Object.keys(filters).length > 0}
               title={filterTitle || capitalize(resource)}
               filterType={filterType}
+              maxWidthClass={filterMaxWidthClass}
               inlineOnDesktop={additionalProps?.inlineFiltersOnDesktop || inlineFiltersOnDesktop}
             />
 
@@ -1320,6 +1322,7 @@ const DataTableComponent = ({
                 hasFilters={hasFilters || Object.keys(filters).length > 0}
                 title={filterTitle || capitalize(resource)}
                 filterType={filterType}
+                maxWidthClass={filterMaxWidthClass}
                 inlineOnDesktop={additionalProps?.inlineFiltersOnDesktop || inlineFiltersOnDesktop}
               />
 

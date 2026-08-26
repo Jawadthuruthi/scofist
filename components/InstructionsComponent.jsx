@@ -14,7 +14,20 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useReactToPrint } from "react-to-print";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -72,6 +85,29 @@ const InstructionsComponent = ({ data = "", isInstructionsVisible = true, apiKey
     setInstructions(originalInstructions);
     setIsEditing(false);
   }, [originalInstructions]);
+
+  // Handle delete instructions
+  const handleDelete = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const data = await updateItem.mutateAsync({
+        data: {
+          instructions: "",
+        },
+      });
+
+      setInstructions("");
+      setOriginalInstructions("");
+      setIsEditing(false);
+      toast.success("Instructions deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting instructions:", error);
+      toast.error("Failed to delete instructions");
+    } finally {
+      setLoading(false);
+    }
+  }, [updateItem]);
 
   // Handle start editing
   const handleEdit = useCallback(() => {
@@ -146,29 +182,85 @@ const InstructionsComponent = ({ data = "", isInstructionsVisible = true, apiKey
 
   const actionControls = (
     <div className="flex items-center gap-2">
-      {!readOnly && !isEditing && (
-        <Button variant="outline" onClick={handleEdit} size="sm">
-          <Edit3 className="w-4 h-4 mr-1" />
-          Edit
+      {!isEditing && originalInstructions && !readOnly && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleVisibility}
+          title={isVisible ? "Hide from Program Leaders" : "Show to Program Leaders"}
+        >
+          {isVisible ? (
+            <>
+              <Eye className="w-4 h-4 mr-1 text-green-600" />
+              Visible
+            </>
+          ) : (
+            <>
+              <EyeOff className="w-4 h-4 mr-1 text-red-600" />
+              Hidden
+            </>
+          )}
         </Button>
       )}
 
-      <Button
-        onClick={isMobile ? handleDownloadPDF : handlePrint}
-        size="sm"
-      >
-        {isMobile ? (
-          <>
-            <Download className="w-4 h-4 mr-1" />
-            PDF
-          </>
-        ) : (
-          <>
-            <Printer className="w-4 h-4 mr-1" />
-            Print
-          </>
-        )}
-      </Button>
+      {!readOnly && !isEditing && (
+        <>
+          <Button variant="outline" onClick={handleEdit} size="sm">
+            <Edit3 className="w-4 h-4 mr-1" />
+            Edit
+          </Button>
+          {originalInstructions && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  <span>Delete</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 overflow-hidden">
+                <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-destructive/5 dark:bg-destructive/10 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
+                  <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                  </div>
+                  <div className="flex-1 text-left space-y-0.5">
+                    <AlertDialogTitle className="text-xl font-bold m-0 text-destructive">
+                      Are you absolutely sure?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="m-0 text-sm text-muted-foreground">
+                      This will permanently delete the festival instructions. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </div>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="p-5 border-t bg-muted/20 flex justify-between gap-4 sm:space-x-0">
+                  <AlertDialogCancel className="flex-1 mt-0">Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 flex-1">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </>
+      )}
+
+      {!isEditing && (
+        <Button
+          onClick={isMobile ? handleDownloadPDF : handlePrint}
+          size="sm"
+        >
+          {isMobile ? (
+            <>
+              <Download className="w-4 h-4 mr-1" />
+              PDF
+            </>
+          ) : (
+            <>
+              <Printer className="w-4 h-4 mr-1" />
+              Print
+            </>
+          )}
+        </Button>
+      )}
     </div>
   );
 
@@ -202,7 +294,7 @@ const InstructionsComponent = ({ data = "", isInstructionsVisible = true, apiKey
       </div>
 
       {/* Main Content */}
-      <div ref={printRef} className="space-y-4 sm:space-y-6">
+      <div ref={printRef} className="space-y-4 sm:space-y-6 print:space-y-2 print:pt-4">
         <PrintHeader
           apiKey={apiKey}
           title="FESTIVAL INSTRUCTIONS"
@@ -210,45 +302,14 @@ const InstructionsComponent = ({ data = "", isInstructionsVisible = true, apiKey
           isFestival={true}
         />
 
-        <Card>
-          <CardHeader className="pb-3 sm:pb-4 print:hidden">
-            <div className="flex items-start justify-between gap-2">
-              <div className="space-y-1 min-w-0 flex-1">
-                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                  <BookOpen className="w-5 h-5 text-primary" />
-                  General Instructions
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Important guidelines for participants
-                </p>
-              </div>
-
-              {!isEditing && originalInstructions && !readOnly && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleVisibility}
-                  className="print:hidden h-8 w-8 p-0"
-                  title={isVisible ? "Hide from Program Leaders" : "Show to Program Leaders"}
-                >
-                  {isVisible ? (
-                    <Eye className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <EyeOff className="w-5 h-5 text-red-600" />
-                  )}
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
+        <div className="space-y-4 pt-2">
             {isEditing ? (
               <div className="space-y-4 print:hidden">
+                <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2 text-foreground">
+                  <BookOpen className="w-5 h-5 text-primary" />
+                  General Instructions
+                </h2>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    Instructions
-                  </label>
                   <Textarea
                     value={instructions}
                     onChange={handleInstructionsChange}
@@ -271,15 +332,7 @@ Examples:
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-2 pt-4">
-                  <Button
-                    onClick={handleSave}
-                    disabled={loading || !instructions.trim()}
-                    size="sm"
-                  >
-                    <Save className="w-4 h-4 mr-1" />
-                    {loading ? "Saving..." : "Save Instructions"}
-                  </Button>
+                <div className="flex flex-row justify-end gap-2 pt-4">
                   <Button
                     variant="outline"
                     onClick={handleCancel}
@@ -288,6 +341,14 @@ Examples:
                   >
                     <X className="w-4 h-4 mr-1" />
                     Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={loading || !instructions.trim()}
+                    size="sm"
+                  >
+                    <Save className="w-4 h-4 mr-1" />
+                    {loading ? "Saving..." : "Save Instructions"}
                   </Button>
                 </div>
               </div>
@@ -309,6 +370,10 @@ Examples:
                       <div className="space-y-4">
                         {/* Instructions Content */}
                         <div className="bg-muted/30 p-4 sm:p-6 rounded-lg border-l-4 border-primary">
+                          <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2 mb-4 text-foreground">
+                            <BookOpen className="w-5 h-5 text-primary" />
+                            General Instructions
+                          </h2>
                           <div 
                             className="whitespace-pre-wrap text-sm sm:text-base leading-relaxed break-words font-google-sans"
                           >
@@ -353,8 +418,7 @@ Examples:
                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </div>
       </div>
 
       {/* Print Footer */}

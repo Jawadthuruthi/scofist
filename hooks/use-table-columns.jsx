@@ -8,6 +8,8 @@ import { CLASS_ORDER } from "@/lib/utils";
 import LiteraryWhatsAppAction from "@/components/LiteraryWhatsAppAction";
 import LiteraryWhatsAppBulkAction from "@/components/LiteraryWhatsAppBulkAction";
 import LiteraryPerformanceAction from "@/components/LiteraryPerformanceAction";
+import DivisionSummaryCell from "@/components/DivisionSummaryCell";
+import TeamSummaryCell from "@/components/TeamSummaryCell";
 
 const SaveContactButton = ({ number, altNumber, name }) => {
     const [href, setHref] = useState("");
@@ -123,6 +125,18 @@ const useTableColumns = (columnConfig, onCellClick) => {
           </div>
         );
       };
+    }
+
+    if (col.type?.includes("divisionId")) {
+      columnDefinition.cell = ({ row }) => (
+        <DivisionSummaryCell division={row.original} />
+      );
+    }
+
+    if (col.type?.includes("teamSummary")) {
+      columnDefinition.cell = ({ row }) => (
+        <TeamSummaryCell team={row.original} />
+      );
     }
 
     if (col.type?.includes("array")) {

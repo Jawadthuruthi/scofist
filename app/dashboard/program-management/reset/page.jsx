@@ -76,18 +76,22 @@ export default function ResetPage() {
   };
 
   return (
-    <div className="container max-w-4xl py-6 space-y-8">
+    <div className="max-w-4xl lg:max-w-5xl">
       {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight text-destructive flex items-center gap-2">
-          <AlertTriangle className="h-8 w-8" />
-          Danger Zone - Data Reset
-        </h1>
-        <p className="text-muted-foreground">
-          Permanently delete festival data. This action cannot be undone.
-        </p>
+      <div className="py-2 mb-1 flex items-center justify-between no-print">
+        <div>
+          <h1 className="font-bold text-xl md:text-2xl text-destructive flex items-center gap-2">
+            <AlertTriangle className="h-6 w-6" />
+            DATA RESET - Danger Zone
+          </h1>
+          <h3 className="text-muted-foreground">
+            Permanently delete festival data. <br />
+            This action cannot be undone.
+          </h3>
+        </div>
       </div>
 
+      <div className="pt-4 space-y-8">
       {/* Reset Options Card */}
       <Card className="border-destructive/20 shadow-lg">
         <CardHeader className="bg-destructive/5 rounded-t-xl">
@@ -194,26 +198,30 @@ export default function ResetPage() {
             className="gap-2"
           >
             <Trash2 className="h-4 w-4" />
-            Reset Selected Data...
+            Reset selected data
           </Button>
         </CardFooter>
       </Card>
 
       {/* Confirmation Dialog */}
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Are you absolutely sure?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              selected data from our servers.
-            </AlertDialogDescription>
+        <AlertDialogContent className="sm:max-w-lg flex flex-col p-0 gap-0 overflow-hidden">
+          <AlertDialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-destructive/5 dark:bg-destructive/10 sticky top-0 z-20 backdrop-blur-md shrink-0 text-left">
+            <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+            </div>
+            <div className="flex-1 text-left space-y-0.5">
+              <AlertDialogTitle className="text-xl font-bold m-0 text-destructive">
+                Are you absolutely sure?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="m-0 text-sm text-muted-foreground">
+                This action cannot be undone. This will permanently delete the
+                selected data from our servers.
+              </AlertDialogDescription>
+            </div>
           </AlertDialogHeader>
 
-          <div className="py-4 space-y-4">
+          <div className="px-5 py-4 space-y-4">
             <div className="p-3 bg-destructive/10 text-destructive rounded-md text-sm font-medium">
               You are about to delete:{" "}
               {mode === "all"
@@ -234,14 +242,14 @@ export default function ResetPage() {
             </div>
           </div>
 
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setConfirmText("")}>
+          <AlertDialogFooter className="p-5 border-t bg-muted/20 flex justify-between gap-4 sm:space-x-0">
+            <AlertDialogCancel className="flex-1 mt-0" onClick={() => setConfirmText("")}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleReset}
               disabled={confirmText !== "DELETE" || loading}
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 flex-1"
             >
               {loading ? (
                 <>
@@ -255,6 +263,7 @@ export default function ResetPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

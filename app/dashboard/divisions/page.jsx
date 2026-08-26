@@ -22,7 +22,7 @@ const columnsConfig = [
     maxWidth: 60,
     minWidth: 60,
   },
-  { accessorKey: "_id", header: "Division ID" },
+  { accessorKey: "_id", header: "Division ID", type: ["divisionId"] },
   { accessorKey: "name", header: "Name" },
   { accessorKey: "type", header: "Type" },
   {
@@ -199,6 +199,7 @@ export default async function DivisionsPage() {
           limit={20}
           readOnly={activeRole !== "Program Committee"}
           isFestival={true}
+          filterMaxWidthClass="sm:max-w-md"
         />
       </>
     );

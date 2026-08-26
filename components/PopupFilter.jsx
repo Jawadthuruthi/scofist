@@ -86,6 +86,7 @@ export default function PopupFilter({
   title = "Table",
   triggerClass = "",
   inlineOnDesktop = false,
+  maxWidthClass = "sm:max-w-3xl",
 }) {
   const isMobile = useIsMobile();
   const isInline = inlineOnDesktop && !isMobile;
@@ -468,7 +469,7 @@ export default function PopupFilter({
             </Button>
           </DialogTrigger>
 
-          <DialogContent ref={popupRef} data-html2canvas-popup="true" className="rounded-2xl sm:rounded-2xl sm:max-w-3xl w-[95vw] max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0">
+          <DialogContent ref={popupRef} data-html2canvas-popup="true" className={`rounded-2xl sm:rounded-2xl ${maxWidthClass} w-[95vw] max-h-[70vh] sm:max-h-[80vh] [&>button.absolute]:hidden flex flex-col p-0 gap-0`}>
             <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md">
               <button 
                 type="button"
@@ -495,11 +496,13 @@ export default function PopupFilter({
               {filterConfig.map((filterItem) => renderFilterItem(filterItem, false))}
             </div>
 
-            <DialogFooter className="flex justify-between p-5 border-t bg-muted/20 sticky bottom-0 z-20">
-              <Button variant="outline" onClick={handleClearFilters}>
+            <DialogFooter className="flex flex-row gap-3 p-5 border-t bg-muted/20 sticky bottom-0 z-20 sm:justify-end">
+              <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleClearFilters}>
                 Clear All
               </Button>
-              <Button onClick={() => setOpen(false)}>Apply Filters</Button>
+              <Button className="flex-1 sm:flex-none" onClick={() => setOpen(false)}>
+                Apply Filters
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

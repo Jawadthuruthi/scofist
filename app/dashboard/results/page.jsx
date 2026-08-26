@@ -44,7 +44,7 @@ export default async function ResultPage() {
           title="RESULTS MANAGEMENT"
           subTitle="Manage and Declare Competition Results"
         />
-        <div className="p-4">
+        <div className="pt-4">
           <ResultComponentWrapper
             programs={sortedPrograms}
             divisions={divisions}
