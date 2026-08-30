@@ -69,7 +69,12 @@ export default async function NonRespondersPage() {
       <>
         <Header
           title="NON-RESPONDERS"
-          subTitle="Participants without code letters for registered programs"
+          subTitle={
+            <>
+              Participants without code letters
+              <span className="hidden md:inline"> for registered programs</span>
+            </>
+          }
         />
         <DynamicDataTable
           resource="participants"
