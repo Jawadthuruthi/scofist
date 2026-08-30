@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, CheckCircle2, Clock, Users, X } from "lucide-react";
 import Link from "next/link";
 import useCrud from "@/hooks/use-crud";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDateForDisplay } from "@/lib/utils";
+import { toast } from "sonner";
 
 import {
     Dialog,
@@ -37,6 +38,7 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
     const { handleDownload: handlePresenteesDownload } = useDownloadPopup(presenteesPopupRef, `Presentees_${currentClassName.replace(/\s+/g, '_')}_${prayer}.jpeg`);
 
     const formattedDate = formatDate(date);
+    const displayDate = formatDateForDisplay(date);
 
     // Fetch attendance status for this prayer
     const { useFetchItems } = useCrud("masjid/attendance", apiKey);
@@ -76,6 +78,77 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
         setCurrentPresentees(presentees);
         setCurrentClassName(className);
         setPresenteesDialogOpen(true);
+    };
+
+    const handleSendWhatsApp = async (e, record) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const sObj = record.studentId;
+        let number =
+            sObj?.studentSpecificField?.guardianContactNumber ||
+            sObj?.guardianContactNumber ||
+            sObj?.studentSpecificField?.guardianAlternativeNumber ||
+            sObj?.guardianAlternativeNumber ||
+            sObj?.studentSpecificField?.contactNumber ||
+            sObj?.contactNumber ||
+            sObj?.alternativeNumber;
+
+        const studentIdStr = typeof sObj === "object" ? sObj?._id : sObj;
+
+        // If not found in populated record, fetch user details as fallback
+        if (!number && studentIdStr) {
+            try {
+                const res = await fetch(`/api/users?_id=${studentIdStr}`, {
+                    headers: apiKey ? { "api-key": apiKey } : {},
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const user = data?.users?.[0];
+                    if (user) {
+                        number =
+                            user.studentSpecificField?.guardianContactNumber ||
+                            user.guardianContactNumber ||
+                            user.studentSpecificField?.guardianAlternativeNumber ||
+                            user.guardianAlternativeNumber ||
+                            user.studentSpecificField?.contactNumber ||
+                            user.contactNumber ||
+                            user.alternativeNumber;
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching student contact details:", err);
+            }
+        }
+
+        if (!number) {
+            toast.error(`No contact number found for ${sObj?.name || "this student"}.`);
+            return;
+        }
+
+        let formattedNumber = String(number).replace(/\D/g, "");
+        if (!formattedNumber) {
+            toast.error(`Invalid contact number for ${sObj?.name || "this student"}.`);
+            return;
+        }
+
+        // Add 91 country code prefix if 10 digits
+        if (formattedNumber.length === 10) {
+            formattedNumber = `91${formattedNumber}`;
+        }
+
+        const studentName = sObj?.name || "Student";
+        const leaveReason = record.status === "LEAVE" ? "On Leave" : "No Reason";
+        const msg = `Dear parent, your child ${studentName} is absent today for ${prayer} (${currentClassName}).\nLeave Reason : ${leaveReason}`;
+        const url = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(msg)}`;
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     return (
@@ -184,30 +257,43 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
                                 Absentees - {currentClassName}
                             </DialogTitle>
                             <DialogDescription className="m-0">
-                                List of absentees for {prayer}.
+                                {displayDate ? `${displayDate} - ${prayer}` : prayer}
                             </DialogDescription>
                         </div>
                         <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
                             <X className="h-5 w-5" />
                         </DialogClose>
                     </DialogHeader>
-                    <div className="text-sm border-0 px-4 py-1 max-h-80 overflow-y-auto bg-muted/5 flex-1">
+                    <div className="text-sm border-0 px-4 py-2 max-h-80 overflow-y-auto bg-muted/5 flex-1 space-y-1">
                         {currentAbsentees.length > 0 ? (
-                            <div className="space-y-0">
+                            <div className="space-y-1">
                                 {currentAbsentees.map((record, idx) => (
-                                    <div key={idx} className="flex items-center gap-3 py-1.5 px-3 border-b last:border-0 hover:bg-muted/50 rounded transition-colors">
-                                        <span className="font-medium text-muted-foreground w-6 text-center">{idx + 1}.</span>
-                                        <div className="flex flex-col">
-                                            <span>
-                                                {record.studentId?.name || "Unknown Student"}
-                                            </span>
-                                            {record.status === "LEAVE" && (
-                                                <span className="text-xs text-yellow-600 bg-yellow-100 px-1 py-0.5 rounded border border-yellow-200 mt-0.5 w-fit flex items-center">
-                                                    <Clock className="w-3 h-3 mr-1" />
-                                                    On Leave
+                                    <div key={idx} className="flex items-center justify-between gap-3 py-2.5 px-3 border-b last:border-0 hover:bg-muted/50 rounded-lg transition-colors">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            <span className="font-medium text-muted-foreground w-6 text-center shrink-0">{idx + 1}.</span>
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-medium text-foreground truncate">
+                                                    {record.studentId?.name || "Unknown Student"}
                                                 </span>
-                                            )}
+                                                {record.status === "LEAVE" && (
+                                                    <span className="text-xs text-yellow-700 bg-yellow-100 dark:bg-yellow-950/50 dark:text-yellow-400 px-1.5 py-0.5 rounded border border-yellow-200 dark:border-yellow-900/50 mt-1 w-fit flex items-center">
+                                                        <Clock className="w-3 h-3 mr-1" />
+                                                        On Leave
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => handleSendWhatsApp(e, record)}
+                                            className="p-1.5 rounded-full text-green-600 hover:text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-950/40 transition-colors focus:outline-none cursor-pointer shrink-0"
+                                            title={`Send WhatsApp message to parent of ${record.studentId?.name || "student"}`}
+                                            data-html2canvas-ignore="true"
+                                        >
+                                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -235,20 +321,20 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
                                 Presentees - {currentClassName}
                             </DialogTitle>
                             <DialogDescription className="m-0">
-                                List of students marked present for {prayer}
+                                {displayDate ? `${displayDate} - ${prayer}` : prayer}
                             </DialogDescription>
                         </div>
                         <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
                             <X className="h-5 w-5" />
                         </DialogClose>
                     </DialogHeader>
-                    <div className="text-sm border-0 px-4 py-1 max-h-80 overflow-y-auto bg-muted/5 flex-1">
+                    <div className="text-sm border-0 px-4 py-2 max-h-80 overflow-y-auto bg-muted/5 flex-1 space-y-1">
                         {currentPresentees.length > 0 ? (
-                            <div className="space-y-0">
+                            <div className="space-y-1">
                                 {currentPresentees.map((record, idx) => (
-                                    <div key={idx} className="flex items-center gap-3 py-1.5 px-3 border-b last:border-0 hover:bg-muted/50 rounded transition-colors">
-                                        <span className="font-medium text-muted-foreground w-6 text-center">{idx + 1}.</span>
-                                        <span>
+                                    <div key={idx} className="flex items-center gap-3 py-2.5 px-3 border-b last:border-0 hover:bg-muted/50 rounded-lg transition-colors">
+                                        <span className="font-medium text-muted-foreground w-6 text-center shrink-0">{idx + 1}.</span>
+                                        <span className="font-medium text-foreground">
                                             {record.studentId?.name || "Unknown Student"}
                                         </span>
                                     </div>

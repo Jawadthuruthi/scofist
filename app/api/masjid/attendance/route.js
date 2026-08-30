@@ -45,7 +45,10 @@ export async function GET(req) {
             .populate("classId", "name")
             .populate("batchId", "name")
             .populate("markedBy", "name")
-            .populate("attendanceData.studentId", "name profilePic");
+            .populate(
+                "attendanceData.studentId",
+                "name profilePic guardianContactNumber guardianAlternativeNumber contactNumber studentSpecificField"
+            );
 
         return NextResponse.json({ attendances }, { status: 200 });
     } catch (error) {

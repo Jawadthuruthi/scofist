@@ -12,8 +12,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Loader, Save, ArrowLeft, Clock, X, Download } from "lucide-react";
+import { Loader, Save, ArrowLeft, Clock, X, Calendar, History } from "lucide-react";
 import useCrud from "@/hooks/use-crud";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import { toast } from "sonner";
@@ -310,158 +309,179 @@ const AttendanceSheet = ({
     }
 
     return (
-        <div className="space-y-6 pb-20 md:pb-24">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => router.push(`/dashboard/masjid-attendance?expanded=${prayer}`)}>
+        <div className="space-y-4">
+            {/* Header & Metadata */}
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                <div className="flex items-start md:items-center gap-2 flex-1">
+                    <Button variant="ghost" size="icon" className="shrink-0 -mt-0.5 md:mt-0" onClick={() => router.push(`/dashboard/masjid-attendance?expanded=${prayer}`)}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <div>
+                    <div className="flex-1 min-w-0">
                         <h1 className="text-xl md:text-2xl font-bold tracking-tight uppercase">
                             MARK ATTENDANCE
                         </h1>
                         <p className="text-sm text-muted-foreground">
                             {sessionLabel && sessionLabel !== "General" ? `${sessionLabel} · ` : ""}{prayer} - {className}
                         </p>
-                    </div>
-                </div>
-                {/* Date Display - Right side, styled like MyPeriods */}
-                <div className="py-1 px-8 border border-border rounded-lg text-sm font-medium self-start md:self-auto">
-                    {(() => {
-                        const d = new Date(date);
-                        const dd = String(d.getDate()).padStart(2, '0');
-                        const mm = String(d.getMonth() + 1).padStart(2, '0');
-                        const yyyy = d.getFullYear();
-                        const day = d.toLocaleDateString('en-US', { weekday: 'long' });
-                        return `${dd}-${mm}-${yyyy}, ${day}`;
-                    })()}
-                </div>
-            </div>
-
-            {/* Stats Card - Sticky on Mobile */}
-            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2 -mx-4 px-4 md:static md:bg-transparent md:p-0 md:mx-0">
-                <div className="flex flex-col md:flex-row items-center justify-between bg-card py-2 px-4 rounded-lg border shadow-sm gap-4">
-                    <div className="flex w-full md:w-auto justify-between md:justify-start gap-2 md:gap-4 flex-wrap">
-                        <div className="flex flex-col items-center md:flex-row md:gap-2">
-                            <span className="text-xs text-muted-foreground uppercase font-bold md:hidden">
-                                Total
+                        {/* Mobile Date - aligned directly under heading and subheading */}
+                        <div className="flex md:hidden items-center gap-1.5 text-muted-foreground mt-1">
+                            <Calendar className="h-4 w-4 shrink-0" />
+                            <span className="text-xs sm:text-sm font-medium">
+                                {(() => {
+                                    const d = new Date(date);
+                                    const dd = String(d.getDate()).padStart(2, '0');
+                                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                    const yyyy = d.getFullYear();
+                                    const day = d.toLocaleDateString('en-US', { weekday: 'long' });
+                                    return `${dd}-${mm}-${yyyy}, ${day}`;
+                                })()}
                             </span>
-                            <Badge variant="outline" className="text-sm md:text-base py-1 px-3">
-                                <span className="hidden md:inline mr-1">Total:</span>
-                                {stats.total}
-                            </Badge>
-                        </div>
-                        <div className="flex flex-col items-center md:flex-row md:gap-2">
-                            <span className="text-xs text-muted-foreground uppercase font-bold md:hidden">
-                                Present
-                            </span>
-                            <Badge variant="success" className="text-sm md:text-base py-1 px-3">
-                                <span className="hidden md:inline mr-1">Present:</span>
-                                {stats.present}
-                            </Badge>
-                        </div>
-                        <div className="flex flex-col items-center md:flex-row md:gap-2">
-                            <span className="text-xs text-muted-foreground uppercase font-bold md:hidden">
-                                Absent
-                            </span>
-                            <Badge
-                                variant="destructive"
-                                className="text-sm md:text-base py-1 px-3"
-                            >
-                                <span className="hidden md:inline mr-1">Absent:</span>
-                                {stats.absent}
-                            </Badge>
                         </div>
                     </div>
                 </div>
+
+                {/* Desktop Date */}
+                <div className="hidden md:flex items-center gap-2 text-muted-foreground px-0">
+                    <Calendar className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                        {(() => {
+                            const d = new Date(date);
+                            const dd = String(d.getDate()).padStart(2, '0');
+                            const mm = String(d.getMonth() + 1).padStart(2, '0');
+                            const yyyy = d.getFullYear();
+                            const day = d.toLocaleDateString('en-US', { weekday: 'long' });
+                            return `${dd}-${mm}-${yyyy}, ${day}`;
+                        })()}
+                    </span>
+                </div>
             </div>
 
-            <div className="border rounded-md overflow-hidden">
+            {/* Stats Cards - Exactly same style as in /dashboard/periods */}
+            <div className="border border-border rounded-lg p-2 md:p-4 bg-card/30">
+                <div className="grid grid-cols-3 gap-2 md:gap-4 text-center">
+                    <div className="flex flex-col items-center gap-1 md:gap-2">
+                        <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+                            Total
+                        </span>
+                        <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+                            {stats.total}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-1 md:gap-2">
+                        <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+                            Present
+                        </span>
+                        <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg border border-border bg-background text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+                            {stats.present}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-1 md:gap-2">
+                        <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate w-full">
+                            Absent
+                        </span>
+                        <div className="w-full max-w-[70px] md:max-w-[90px] py-1 md:py-1.5 rounded-lg bg-red-500 text-white text-base md:text-xl font-bold shadow-sm flex items-center justify-center">
+                            {stats.absent}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Students Table */}
+            <div className="overflow-auto max-h-[calc(100vh-365px)] md:max-h-[calc(100vh-339px)] border rounded-md">
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[80px] text-center">Sl No</TableHead>
-                            <TableHead>Student</TableHead>
-                            <TableHead className="w-[100px] text-right md:text-center">History</TableHead>
+                            <TableHead className="w-10 text-center px-2">R.no</TableHead>
+                            <TableHead className="px-2">Students</TableHead>
+                            <TableHead className="w-[50px] md:w-[70px] text-center px-1">
+                                <span className="hidden md:inline">History</span>
+                                <History className="h-5 w-5 md:hidden mx-auto" />
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {students.map((student, index) => {
-                            const isOnLeave = studentsOnLeave[student._id];
-                            const isPresent = attendance[student._id];
+                        {students.length > 0 ? (
+                            students.map((student, index) => {
+                                const isOnLeave = studentsOnLeave[student._id];
+                                const isPresent = attendance[student._id];
+                                const studentHistoryList = studentHistory[student._id] || [];
+                                const historyCount = studentHistoryList.length;
 
-                            // Visual state determination
-                            let rowClass = "hover:bg-transparent";
+                                // Visual state determination matching Attendance.jsx
+                                let rowClass = "hover:bg-muted/50";
+                                let textColor = "";
 
-                            // If present, show normal style even if on leave (user overrode it)
-                            // If NOT present:
-                            //   If on Leave -> Red with Indicator
-                            //   If not on Leave -> Red Normal
-                            if (isPresent) {
-                                rowClass = "cursor-pointer";
-                            } else {
-                                if (isOnLeave) {
-                                    // Red background for leave, border to distinguish "Explained Absence"
-                                    rowClass = "bg-red-50/80 dark:bg-red-950/30 cursor-pointer border-l-4 border-l-yellow-500";
-                                } else {
-                                    rowClass = "bg-red-50 dark:bg-red-950/20 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer";
+                                if (!isPresent) {
+                                    if (isOnLeave) {
+                                        rowClass = "bg-red-100 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-950";
+                                        textColor = "text-red-900 dark:text-red-100";
+                                    } else {
+                                        rowClass = "bg-rose-50 dark:bg-rose-950 hover:bg-rose-50 dark:hover:bg-rose-950";
+                                        textColor = "text-rose-900 dark:text-rose-100";
+                                    }
                                 }
-                            }
 
-                            return (
-                                <TableRow
-                                    key={student._id}
-                                    className={rowClass}
-                                    onClick={() => toggleAttendance(student._id)}
-                                >
-                                    <TableCell className="text-center">{index + 1}</TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3 w-fit">
-                                            <Avatar className="h-8 w-8 hidden sm:block">
-                                                <AvatarImage src={student.profilePic?.url} />
-                                                <AvatarFallback>
-                                                    {student.name.charAt(0)}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div className="text-left flex flex-col">
-                                                <p className="font-medium text-sm md:text-base whitespace-nowrap">
-                                                    {student.name}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {student.admissionNumber}
-                                                </p>
-                                                {isOnLeave && (
-                                                    <span className="text-[10px] text-yellow-600 bg-yellow-100 px-1 py-0.5 rounded border border-yellow-200 mt-1 w-fit flex items-center">
-                                                        <Clock className="w-3 h-3 mr-1" />
-                                                        On Leave
-                                                    </span>
+                                return (
+                                    <TableRow
+                                        key={student._id}
+                                        className={`cursor-pointer ${rowClass}`}
+                                        onClick={() => toggleAttendance(student._id)}
+                                    >
+                                        <TableCell className={`text-center align-middle px-2 ${textColor}`}>
+                                            {index + 1}
+                                        </TableCell>
+                                        <TableCell className="px-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex flex-col items-center gap-1 shrink-0">
+                                                    <Avatar className="h-8 w-8">
+                                                        <AvatarImage src={student.profilePic?.url} />
+                                                        <AvatarFallback>
+                                                            {student.name.substring(0, 1)}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <p className={`text-[9px] ${textColor || "text-muted-foreground"}`}>
+                                                        {student.studentSpecificField?.admissionNumber || student.admissionNumber || student._id}
+                                                    </p>
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <p className={`font-medium text-[13px] ${textColor}`}>
+                                                        {student.name}
+                                                    </p>
+                                                    {isOnLeave && (
+                                                        <span className="text-[10px] text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30 px-1 py-0.5 rounded border border-yellow-200 dark:border-yellow-800 mt-0.5 w-fit flex items-center">
+                                                            <Clock className="w-3 h-3 mr-1" />
+                                                            On Leave
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-center align-middle px-1">
+                                            <div 
+                                                className="cursor-pointer flex items-center justify-center mx-auto hover:bg-muted/50 p-1 rounded transition-colors"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCurrentStudentHistory(studentHistoryList);
+                                                    setCurrentStudentName(student.name);
+                                                    setHistoryDialogOpen(true);
+                                                }}
+                                                title="View Absent History"
+                                            >
+                                                {historyCount > 0 ? (
+                                                    <div className="inline-flex items-center justify-center text-xs md:text-sm font-bold text-white bg-red-500 px-2 md:px-2.5 py-0.5 md:py-1 rounded-md">
+                                                        {historyCount}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground">0</span>
                                                 )}
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-right md:text-center">
-                                        {/* History Column - Shows absent days count */}
-                                        <div 
-                                            className="flex flex-col items-end md:items-center cursor-pointer hover:bg-muted/50 p-1 rounded transition-colors"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setCurrentStudentHistory(studentHistory[student._id] || []);
-                                                setCurrentStudentName(student.name);
-                                                setHistoryDialogOpen(true);
-                                            }}
-                                        >
-                                            <span className="text-sm font-bold text-muted-foreground">
-                                                {studentHistory[student._id]?.length || 0}
-                                            </span>
-                                            <span className="text-[10px] text-muted-foreground uppercase">
-                                                Days Absent
-                                            </span>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                        {students.length === 0 && (
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })
+                        ) : (
                             <TableRow>
                                 <TableCell
                                     colSpan={3}
@@ -475,34 +495,25 @@ const AttendanceSheet = ({
                 </Table>
             </div>
 
-            {/* Floating Action Bar - Fixed at bottom for ALL screens as requested */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t z-20">
-                <div className="container max-w-7xl mx-auto flex items-center justify-between gap-2 w-full">
-                    <div>
-                        {existingRecordId && (
-                            <Button
-                                variant="outline"
-                                className="border-destructive text-destructive hover:bg-destructive/10"
-                                onClick={() => setResetDialogOpen(true)}
-                                disabled={saving}
-                            >
-                                Reset
-                            </Button>
-                        )}
-                    </div>
-                    <Button
-                        className="w-full sm:w-auto"
-                        onClick={handleSave}
-                        disabled={saving}
-                    >
-                        {saving ? (
-                            <Loader className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <Save className="mr-2 h-4 w-4" />
-                        )}
-                        {existingRecordId ? "Update Attendance" : "Save Attendance"}
-                    </Button>
-                </div>
+            {/* Action Buttons */}
+            <div className="flex justify-between">
+                <Button
+                    variant="outline"
+                    className="border border-border"
+                    onClick={() => setResetDialogOpen(true)}
+                    disabled={!existingRecordId || saving}
+                >
+                    {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+                    Reset
+                </Button>
+                <Button
+                    onClick={handleSave}
+                    disabled={saving || !students.length}
+                >
+                    {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+                    <Save className="mr-2 h-4 w-4" />
+                    {existingRecordId ? "Update" : "Save"}
+                </Button>
             </div>
 
             <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
