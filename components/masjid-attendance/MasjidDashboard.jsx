@@ -81,7 +81,7 @@ const CategoryCombobox = ({ value, onChange, categories, onAddCategory, onRemove
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[220px] p-0" align="start" style={{ zIndex: 9999 }}>
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[220px] p-0" align="start" style={{ zIndex: 9999 }}>
                 <div className="flex flex-col">
                     <div className="flex items-center gap-1 px-2 py-2 border-b">
                         <input
@@ -280,12 +280,12 @@ const MasjidDashboard = ({ classes, apiKey }) => {
                 <div className="px-4 py-1 border rounded-md bg-background w-fit">
                     <span className="font-medium">{formattedDate}</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 flex-1 sm:flex-initial min-w-0">
                         <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
                             Session
                         </span>
-                        <div className="w-40 sm:w-52">
+                        <div className="flex-1 sm:w-56 min-w-0">
                             <CategoryCombobox
                                 value={selectedCategory}
                                 onChange={setSelectedCategory}
@@ -295,7 +295,7 @@ const MasjidDashboard = ({ classes, apiKey }) => {
                             />
                         </div>
                     </div>
-                    <Link href="/dashboard/masjid-attendance/history">
+                    <Link href="/dashboard/masjid-attendance/history" className="shrink-0">
                         <Button className="bg-black hover:bg-black/90 text-white shadow-md flex items-center gap-2">
                             <History className="h-4 w-4" />
                             <span>History</span>

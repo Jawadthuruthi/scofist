@@ -154,10 +154,10 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
     return (
         <>
             <Card className="border-l-4 border-l-primary">
-                <CardHeader className="py-4 px-6 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+                <CardHeader className="py-3 px-4 sm:px-6 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <CardTitle className="text-lg font-bold">{prayer}</CardTitle>
+                        <div className="flex items-center gap-3 sm:gap-4">
+                            <CardTitle className="text-base sm:text-lg font-bold">{prayer}</CardTitle>
                             <Badge variant={isComplete ? "success" : "secondary"}>
                                 {markedCount}/{totalClasses} Marked
                             </Badge>
@@ -168,8 +168,8 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
                     </div>
                 </CardHeader>
                 {isOpen && (
-                    <CardContent className="pt-0 pb-4 px-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                    <CardContent className="pt-0 pb-3.5 px-4 sm:px-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mt-1">
                             {classes.map((cls) => {
                                 // Find the specific attendance record for this class
                                 const attendanceRecord = attendanceData?.attendances?.find(
@@ -199,11 +199,11 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
                                         prefetch={false}
                                     >
                                         <div
-                                            className={`p-4 border rounded-lg flex items-center justify-between hover:bg-accent transition-colors ${isMarked ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900" : ""
+                                            className={`p-3 sm:p-3.5 border rounded-lg flex items-center justify-between hover:bg-accent transition-colors ${isMarked ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900" : ""
                                                 }`}
                                         >
                                             <div>
-                                                <h4 className="font-medium">
+                                                <h4 className="font-medium text-sm sm:text-base">
                                                     {cls.name}
                                                 </h4>
                                                 {isMarked ? (
