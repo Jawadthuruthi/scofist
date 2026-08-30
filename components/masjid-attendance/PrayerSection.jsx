@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, CheckCircle2, Clock, Users, X } from "lucide-react";
 import Link from "next/link";
 import useCrud from "@/hooks/use-crud";
-import { formatDate, formatDateForDisplay } from "@/lib/utils";
+import { formatDate, formatDateForDisplay, cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 import {
@@ -39,6 +39,13 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
 
     const formattedDate = formatDate(date);
     const displayDate = formatDateForDisplay(date);
+
+    const isPastDate = useMemo(() => {
+        if (!date) return false;
+        const todayStr = formatDate(new Date());
+        const dateStr = formatDate(new Date(date));
+        return dateStr < todayStr;
+    }, [date]);
 
     // Fetch attendance status for this prayer
     const { useFetchItems } = useCrud("masjid/attendance", apiKey);
@@ -254,46 +261,75 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
                                 const absenteeCount = absentees.length;
                                 const presenteeCount = presentees.length;
 
+                                const cardContent = (
+                                    <div
+                                        className={cn(
+                                            "p-3 sm:p-3.5 border rounded-lg flex items-center justify-between transition-colors",
+                                            isMarked ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900" : "",
+                                            !isPastDate && "hover:bg-accent cursor-pointer",
+                                            isPastDate && isMarked && "hover:bg-green-100/60 dark:hover:bg-green-900/30 cursor-pointer",
+                                            isPastDate && !isMarked && "opacity-70 cursor-default"
+                                        )}
+                                        onClick={
+                                            isPastDate && isMarked
+                                                ? (e) => {
+                                                      if (absenteeCount > 0) {
+                                                          handleShowAbsentees(e, absentees, cls.name);
+                                                      } else {
+                                                          handleShowPresentees(e, presentees, cls.name);
+                                                      }
+                                                  }
+                                                : undefined
+                                        }
+                                    >
+                                        <div>
+                                            <h4 className="font-medium text-sm sm:text-base">
+                                                {cls.name}
+                                            </h4>
+                                            {isMarked ? (
+                                                <div
+                                                    className="text-xs text-green-600 font-medium hover:underline cursor-pointer z-10 relative"
+                                                    onClick={(e) => handleShowPresentees(e, presentees, cls.name)}
+                                                >
+                                                    {presenteeCount} Present
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-muted-foreground">
+                                                    {isPastDate ? "Not Marked" : "Pending"}
+                                                </p>
+                                            )}
+                                        </div>
+                                        {isMarked ? (
+                                            <div 
+                                                className="flex items-center justify-center h-8 w-8 rounded-full bg-red-100 dark:bg-red-900 cursor-pointer z-10 relative hover:bg-red-200 dark:hover:bg-red-800"
+                                                onClick={(e) => handleShowAbsentees(e, absentees, cls.name)}
+                                                title="View Absentees"
+                                            >
+                                                <span className="text-sm font-bold text-red-700 dark:text-red-300">
+                                                    {absenteeCount}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <Clock className="h-5 w-5 text-muted-foreground" />
+                                        )}
+                                    </div>
+                                );
+
+                                if (isPastDate) {
+                                    return (
+                                        <div key={cls._id}>
+                                            {cardContent}
+                                        </div>
+                                    );
+                                }
+
                                 return (
                                     <Link
                                         key={cls._id}
                                         href={`/dashboard/general-attendance/mark?classId=${cls._id}&className=${cls.name}&batchId=${cls.batchId}&prayer=${prayer}&date=${formattedDate}&apiKey=${apiKey}&sessionLabel=${encodeURIComponent(sessionCategory || "General")}`}
                                         prefetch={false}
                                     >
-                                        <div
-                                            className={`p-3 sm:p-3.5 border rounded-lg flex items-center justify-between hover:bg-accent transition-colors ${isMarked ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900" : ""
-                                                }`}
-                                        >
-                                            <div>
-                                                <h4 className="font-medium text-sm sm:text-base">
-                                                    {cls.name}
-                                                </h4>
-                                                {isMarked ? (
-                                                    <div
-                                                        className="text-xs text-green-600 font-medium hover:underline cursor-pointer z-10 relative"
-                                                        onClick={(e) => handleShowPresentees(e, presentees, cls.name)}
-                                                    >
-                                                        {presenteeCount} Present
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-xs text-muted-foreground">
-                                                        Pending
-                                                    </p>
-                                                )}
-                                            </div>
-                                            {isMarked ? (
-                                                <div 
-                                                    className="flex items-center justify-center h-8 w-8 rounded-full bg-red-100 dark:bg-red-900 cursor-pointer z-10 relative hover:bg-red-200 dark:hover:bg-red-800"
-                                                    onClick={(e) => handleShowAbsentees(e, absentees, cls.name)}
-                                                >
-                                                    <span className="text-sm font-bold text-red-700 dark:text-red-300">
-                                                        {absenteeCount}
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <Clock className="h-5 w-5 text-muted-foreground" />
-                                            )}
-                                        </div>
+                                        {cardContent}
                                     </Link>
                                 );
                             })}

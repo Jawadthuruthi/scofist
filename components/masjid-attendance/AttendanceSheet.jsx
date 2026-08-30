@@ -17,6 +17,7 @@ import { Loader, Save, ArrowLeft, Clock, X, Calendar, History, CheckCircle2 } fr
 import useCrud from "@/hooks/use-crud";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import { toast } from "sonner";
+import { formatDate, cn } from "@/lib/utils";
 import {
     Dialog,
     DialogContent,
@@ -47,6 +48,20 @@ const AttendanceSheet = ({
     const [currentStudentName, setCurrentStudentName] = useState("");
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
+
+    const isPastDate = useMemo(() => {
+        if (!date) return false;
+        const todayStr = formatDate(new Date());
+        let dateStr = "";
+        if (typeof date === "string" && date.includes("T")) {
+            dateStr = date.split("T")[0];
+        } else if (typeof date === "string" && date.length === 10) {
+            dateStr = date;
+        } else {
+            dateStr = formatDate(new Date(date));
+        }
+        return dateStr < todayStr;
+    }, [date]);
 
     const displayDate = useMemo(() => {
         if (!date) return "";
@@ -242,6 +257,11 @@ const AttendanceSheet = ({
     const deleteAttendance = useDeleteAttendance();
 
     const handleSave = async () => {
+        if (isPastDate) {
+            toast.error("Marking or updating attendance for previous dates is not allowed.");
+            return;
+        }
+
         setSaving(true);
         try {
             const attendanceData = students.map((student) => {
@@ -286,7 +306,7 @@ const AttendanceSheet = ({
     };
 
     const handleReset = async () => {
-        if (!existingRecordId) return;
+        if (!existingRecordId || isPastDate) return;
 
         setSaving(true);
         try {
@@ -339,6 +359,16 @@ const AttendanceSheet = ({
 
     return (
         <div className="space-y-4 pt-3 md:pt-4">
+            {/* Read-Only Banner for Past Dates */}
+            {isPastDate && (
+                <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                    <Clock className="h-4 w-4 shrink-0" />
+                    <span>
+                        <strong>Read-only mode:</strong> Viewing attendance for a previous date. Marking or updating attendance is disabled.
+                    </span>
+                </div>
+            )}
+
             {/* Header & Metadata */}
             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
                 <div className="flex items-start md:items-center gap-2 flex-1">
@@ -347,7 +377,7 @@ const AttendanceSheet = ({
                     </Button>
                     <div className="flex-1 min-w-0">
                         <h1 className="text-xl md:text-2xl font-bold tracking-tight uppercase">
-                            MARK ATTENDANCE
+                            {isPastDate ? "VIEW ATTENDANCE" : "MARK ATTENDANCE"}
                         </h1>
                         <p className="text-sm text-muted-foreground">
                             {sessionLabel && sessionLabel !== "General" ? `${sessionLabel} · ` : ""}{prayer} - {className}
@@ -455,8 +485,11 @@ const AttendanceSheet = ({
                                 return (
                                     <TableRow
                                         key={student._id}
-                                        className={`cursor-pointer ${rowClass}`}
-                                        onClick={() => toggleAttendance(student._id)}
+                                        className={cn(
+                                            !isPastDate ? "cursor-pointer hover:bg-muted/50" : "cursor-default",
+                                            rowClass
+                                        )}
+                                        onClick={!isPastDate ? () => toggleAttendance(student._id) : undefined}
                                     >
                                         <TableCell className={`text-center align-middle px-2 ${textColor}`}>
                                             {index + 1}
@@ -525,25 +558,34 @@ const AttendanceSheet = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-between">
-                <Button
-                    variant="outline"
-                    className="border border-border"
-                    onClick={() => setResetDialogOpen(true)}
-                    disabled={!existingRecordId || saving}
-                >
-                    {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-                    Reset
-                </Button>
-                <Button
-                    onClick={handleSave}
-                    disabled={saving || !students.length}
-                >
-                    {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-                    <Save className="mr-2 h-4 w-4" />
-                    {existingRecordId ? "Update" : "Save"}
-                </Button>
-            </div>
+            {!isPastDate ? (
+                <div className="flex justify-between">
+                    <Button
+                        variant="outline"
+                        className="border border-border"
+                        onClick={() => setResetDialogOpen(true)}
+                        disabled={!existingRecordId || saving}
+                    >
+                        {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+                        Reset
+                    </Button>
+                    <Button
+                        onClick={handleSave}
+                        disabled={saving || !students.length}
+                    >
+                        {saving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+                        <Save className="mr-2 h-4 w-4" />
+                        {existingRecordId ? "Update" : "Save"}
+                    </Button>
+                </div>
+            ) : (
+                <div className="flex justify-between items-center text-xs text-muted-foreground border-t pt-3">
+                    <span>Attendance marking and updating is disabled for previous dates.</span>
+                    <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/general-attendance?expanded=${prayer}`)}>
+                        Back to Dashboard
+                    </Button>
+                </div>
+            )}
 
             <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
                 <DialogContent>

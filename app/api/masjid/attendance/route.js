@@ -73,6 +73,27 @@ export async function POST(req) {
             );
         }
 
+        // Prevent marking or updating attendance for previous dates
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+        
+        let dateStr = "";
+        if (typeof date === "string" && date.includes("T")) {
+            dateStr = date.split("T")[0];
+        } else if (typeof date === "string" && date.length === 10) {
+            dateStr = date;
+        } else {
+            const d = new Date(date);
+            dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        }
+
+        if (dateStr < todayStr) {
+            return NextResponse.json(
+                { message: "Marking or updating attendance for previous dates is not allowed." },
+                { status: 403 }
+            );
+        }
+
         // Ensure date is a Date object
         const attendanceDate = new Date(date);
 
@@ -130,6 +151,24 @@ export async function DELETE(req) {
             return NextResponse.json(
                 { message: "Invalid or missing IDs" },
                 { status: 400 }
+            );
+        }
+
+        // Prevent resetting attendance for previous dates
+        const records = await MasjidAttendance.find({ _id: { $in: ids } });
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+        const hasPastRecord = records.some((r) => {
+            const d = new Date(r.date);
+            const rDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+            return rDateStr < todayStr;
+        });
+
+        if (hasPastRecord) {
+            return NextResponse.json(
+                { message: "Resetting attendance for previous dates is not allowed." },
+                { status: 403 }
             );
         }
 
