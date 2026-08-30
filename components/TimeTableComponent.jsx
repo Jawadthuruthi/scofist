@@ -44,6 +44,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import PrintHeader from "@/components/PrintHeader";
 
 const leaveReasons = [
@@ -84,55 +85,7 @@ const AbsenteesDialog = ({
   const { useFetchItems: useFetchLeaveRecords } = useCrud("leave-records", apiKey);
   const classId = cellData?.classId?._id || cellData?.classId;
   const popupRef = useRef(null);
-
-  const handleDownload = async () => {
-    if (!popupRef.current) return;
-    try {
-      const el = popupRef.current;
-      // Capture the actual rendered width so the download matches what the user sees
-      // (desktop: up to max-w-md, mobile: near full viewport width)
-      const currentWidth = el.offsetWidth;
-      const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(el, { 
-        scale: 2,
-        width: currentWidth,
-        useCORS: true,
-        scrollX: 0,
-        scrollY: 0,
-        onclone: (clonedDoc) => {
-          const clonedPopup = clonedDoc.querySelector('[data-html2canvas-popup="true"]');
-          if (clonedPopup) {
-            // Remove height constraints so all rows are captured
-            clonedPopup.style.maxHeight = 'none';
-            clonedPopup.style.height = 'auto';
-            // Preserve the same width as the visible popup (responsive)
-            clonedPopup.style.width = currentWidth + 'px';
-            clonedPopup.style.maxWidth = currentWidth + 'px';
-            clonedPopup.style.minWidth = 'unset';
-            clonedPopup.style.position = 'relative';
-            clonedPopup.style.transform = 'none';
-            clonedPopup.style.left = 'auto';
-            clonedPopup.style.top = 'auto';
-            clonedPopup.style.overflow = 'visible';
-
-            // Expand any inner scrollable areas
-            clonedPopup.querySelectorAll('.overflow-y-auto, .overflow-hidden').forEach((div) => {
-              div.style.maxHeight = 'none';
-              div.style.height = 'auto';
-              div.style.overflow = 'visible';
-            });
-          }
-        }
-      });
-      const link = document.createElement("a");
-      link.download = `Absentees_${day}_Period_${periodNumber}.jpeg`;
-      link.href = canvas.toDataURL("image/jpeg", 1.0);
-      link.click();
-    } catch (error) {
-      console.error("Failed to generate image", error);
-      toast.error("Failed to download image");
-    }
-  };
+  const { handleDownload } = useDownloadPopup(popupRef, `Absentees_${day}_Period_${periodNumber}.jpeg`);
   
   const studentIds = useMemo(() => {
     return absenteesList

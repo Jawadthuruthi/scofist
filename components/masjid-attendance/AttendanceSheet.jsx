@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     Table,
@@ -12,7 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Loader, Save, ArrowLeft, Clock, X, Calendar, History } from "lucide-react";
+import { Loader, Save, ArrowLeft, Clock, X, Calendar, History, CheckCircle2 } from "lucide-react";
 import useCrud from "@/hooks/use-crud";
 import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import { toast } from "sonner";
@@ -44,8 +45,27 @@ const AttendanceSheet = ({
     const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
     const [currentStudentHistory, setCurrentStudentHistory] = useState([]);
     const [currentStudentName, setCurrentStudentName] = useState("");
+    const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
+
+    const displayDate = useMemo(() => {
+        if (!date) return "";
+        const d = new Date(date);
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        const day = d.toLocaleDateString('en-US', { weekday: 'long' });
+        return `${dd}-${mm}-${yyyy}, ${day}`;
+    }, [date]);
+
     const popupRef = useRef(null);
     const { handleDownload } = useDownloadPopup(popupRef, `Absent_History_${currentStudentName.replace(/\s+/g, '_')}.jpeg`);
+
+    const successPopupRef = useRef(null);
+    const { handleDownload: handleSuccessDownload } = useDownloadPopup(
+        successPopupRef,
+        `Attendance_${(className || "Class").replace(/\s+/g, '_')}_${prayer}_${(date || "").replace(/\s+/g, '_')}.jpeg`
+    );
 
     // Fetch students
     const { useFetchItems: useFetchStudents } = useCrud("users", apiKey);
@@ -254,9 +274,9 @@ const AttendanceSheet = ({
             };
 
             await saveAttendance.mutateAsync(payload);
-            toast.success("Attendance saved successfully");
-            // Navigate back to dashboard with expanded state
-            router.push(`/dashboard/masjid-attendance?expanded=${prayer}`);
+            setSuccessMessage(existingRecordId ? "Attendance Updated Successfully!" : "Attendance Saved Successfully!");
+            setShowSuccessDialog(true);
+            setExistingRecordId(true);
         } catch (error) {
             console.error("Error saving attendance:", error);
             toast.error("Failed to save attendance");
@@ -271,9 +291,18 @@ const AttendanceSheet = ({
         setSaving(true);
         try {
             await deleteAttendance.mutateAsync({ data: { ids: [existingRecordId] } });
-            toast.success("Attendance reset successfully");
             setResetDialogOpen(false);
-            router.push(`/dashboard/masjid-attendance?expanded=${prayer}`);
+            setSuccessMessage("Attendance Reset Successfully!");
+            setShowSuccessDialog(true);
+            setExistingRecordId(null);
+            
+            // Reset attendance based on leave status
+            const resetAttendance = {};
+            students.forEach((student) => {
+                const isOnLeave = studentsOnLeave[student._id];
+                resetAttendance[student._id] = !isOnLeave;
+            });
+            setAttendance(resetAttendance);
         } catch (error) {
             console.error("Error resetting attendance:", error);
             toast.error("Failed to reset attendance");
@@ -309,11 +338,11 @@ const AttendanceSheet = ({
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 pt-3 md:pt-4">
             {/* Header & Metadata */}
             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
                 <div className="flex items-start md:items-center gap-2 flex-1">
-                    <Button variant="ghost" size="icon" className="shrink-0 -mt-0.5 md:mt-0" onClick={() => router.push(`/dashboard/masjid-attendance?expanded=${prayer}`)}>
+                    <Button variant="ghost" size="icon" className="shrink-0 -mt-0.5 md:mt-0" onClick={() => router.push(`/dashboard/general-attendance?expanded=${prayer}`)}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div className="flex-1 min-w-0">
@@ -604,6 +633,113 @@ const AttendanceSheet = ({
                         ) : (
                             <p className="text-center text-muted-foreground py-4">No absent history found.</p>
                         )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Success Dialog matching My Periods / Attendance.jsx */}
+            <Dialog open={showSuccessDialog} onOpenChange={(open) => {
+                if (!open) {
+                    setShowSuccessDialog(false);
+                    router.push(`/dashboard/general-attendance?expanded=${prayer}`);
+                }
+            }}>
+                <DialogContent 
+                    ref={successPopupRef}
+                    data-html2canvas-popup="true"
+                    className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-2xl [&>button.absolute]:hidden flex flex-col max-h-[90vh]"
+                >
+                    <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+                        <button 
+                            type="button"
+                            className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer ${
+                                successMessage?.toLowerCase().includes("reset")
+                                    ? "bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50"
+                                    : "bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50"
+                            }`}
+                            onClick={handleSuccessDownload}
+                            title="Download Image"
+                            data-html2canvas-ignore="true"
+                        >
+                            <CheckCircle2 className={`h-5 w-5 ${
+                                successMessage?.toLowerCase().includes("reset")
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-emerald-600 dark:text-emerald-400"
+                            }`} />
+                        </button>
+                        <div className="flex-1 text-left space-y-0.5">
+                            <DialogTitle className={`text-xl font-bold m-0 ${
+                                successMessage?.toLowerCase().includes("reset")
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-emerald-600 dark:text-emerald-400"
+                            }`}>
+                                {successMessage?.toLowerCase().includes("reset")
+                                    ? "Attendance Reset"
+                                    : successMessage?.toLowerCase().includes("update")
+                                    ? "Attendance Updated"
+                                    : "Attendance Saved"}
+                            </DialogTitle>
+                            <DialogDescription className="m-0 text-xs text-muted-foreground">
+                                {successMessage || (successMessage?.toLowerCase().includes("reset") ? "Attendance records have been reset." : "Attendance marked and saved successfully.")}
+                            </DialogDescription>
+                        </div>
+                        <DialogClose 
+                            className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" 
+                            data-html2canvas-ignore="true"
+                            onClick={() => {
+                                setShowSuccessDialog(false);
+                                router.push(`/dashboard/general-attendance?expanded=${prayer}`);
+                            }}
+                        >
+                            <X className="h-5 w-5" />
+                        </DialogClose>
+                    </DialogHeader>
+
+                    <div className="p-5 space-y-4 bg-muted/5 flex-1">
+                        {/* Class & Prayer Details Card */}
+                        <div className="bg-card border rounded-xl p-3.5 space-y-2 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <span className="font-semibold text-base text-foreground">
+                                    {className || "Class"}
+                                </span>
+                                <Badge variant="outline" className="text-xs px-2.5 py-0.5 bg-primary/5 text-primary border-primary/20 font-medium">
+                                    {sessionLabel && sessionLabel !== "General" ? `${sessionLabel} · ` : ""}{prayer}
+                                </Badge>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-y-1 gap-x-2 text-xs text-muted-foreground">
+                                <span>{displayDate}</span>
+                            </div>
+                        </div>
+
+                        {/* Metrics Summary Grid */}
+                        <div className="grid grid-cols-3 gap-2.5">
+                            <div className="flex flex-col items-center justify-center p-3 rounded-xl border bg-card shadow-sm">
+                                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Total
+                                </span>
+                                <span className="text-xl font-bold text-foreground mt-0.5">
+                                    {stats.total}
+                                </span>
+                            </div>
+
+                            <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 shadow-sm">
+                                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                    Present
+                                </span>
+                                <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                    {stats.present}
+                                </span>
+                            </div>
+
+                            <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-rose-500/20 bg-rose-500/10 shadow-sm">
+                                <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                                    Absent
+                                </span>
+                                <span className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                                    {stats.absent}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>

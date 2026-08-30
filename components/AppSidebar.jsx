@@ -188,7 +188,7 @@ const items = [
   },
   {
     title: "General Attendance",
-    url: "/dashboard/masjid-attendance",
+    url: "/dashboard/general-attendance",
     icon: ClipboardList,
     allowedRoles: ["Teacher"],
   },

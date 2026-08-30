@@ -37,13 +37,66 @@ export default function StarOfTheMonthModal({ classes = [] }) {
     }
   };
 
+  const waitForImages = async (container) => {
+    if (!container) return;
+    const images = Array.from(container.querySelectorAll("img"));
+    if (images.length === 0) return;
+    await Promise.all(
+      images.map(async (img) => {
+        if (!img.crossOrigin && img.src && !img.src.startsWith("data:")) {
+          img.crossOrigin = "anonymous";
+        }
+        if (!img.complete) {
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        }
+        if (img.decode) {
+          try {
+            await img.decode();
+          } catch (_) {}
+        }
+      })
+    );
+  };
+
+  const prepareForCapture = async (container) => {
+    if (typeof document !== "undefined" && document.fonts && document.fonts.ready) {
+      try {
+        await document.fonts.ready;
+      } catch (_) {}
+    }
+    await waitForImages(container);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  };
+
   const handleDownload = async (index, data) => {
     const posterRef = posterRefs.current[index];
     if (!posterRef) return;
     setExporting(true);
     try {
-      const canvas = await html2canvas(posterRef, { useCORS: true, scale: 2 });
-      const imgData = canvas.toDataURL('image/jpeg', 0.9);
+      await prepareForCapture(posterRef);
+      const canvas = await html2canvas(posterRef, {
+        useCORS: true,
+        scale: 3,
+        allowTaint: false,
+        logging: false,
+        imageTimeout: 15000,
+        onclone: async (clonedDoc) => {
+          const style = clonedDoc.createElement("style");
+          style.innerHTML = `
+            *, *::before, *::after {
+              animation: none !important;
+              animation-duration: 0s !important;
+              transition: none !important;
+              transition-duration: 0s !important;
+            }
+          `;
+          clonedDoc.head.appendChild(style);
+        },
+      });
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
       const link = document.createElement('a');
       link.href = imgData;
       const monthLabel = months.find(m => m.value === selectedMonth)?.label || "Month";
@@ -65,7 +118,26 @@ export default function StarOfTheMonthModal({ classes = [] }) {
     if (!posterRef) return;
     setExporting(true);
     try {
-      const canvas = await html2canvas(posterRef, { useCORS: true, scale: 2 });
+      await prepareForCapture(posterRef);
+      const canvas = await html2canvas(posterRef, {
+        useCORS: true,
+        scale: 3,
+        allowTaint: false,
+        logging: false,
+        imageTimeout: 15000,
+        onclone: async (clonedDoc) => {
+          const style = clonedDoc.createElement("style");
+          style.innerHTML = `
+            *, *::before, *::after {
+              animation: none !important;
+              animation-duration: 0s !important;
+              transition: none !important;
+              transition-duration: 0s !important;
+            }
+          `;
+          clonedDoc.head.appendChild(style);
+        },
+      });
       canvas.toBlob(async (blob) => {
         if (!blob) {
           toast.error("Failed to generate image");
@@ -89,7 +161,7 @@ export default function StarOfTheMonthModal({ classes = [] }) {
           toast.error("Sharing is not supported on this device/browser");
         }
         setExporting(false);
-      }, "image/jpeg", 0.9);
+      }, "image/jpeg", 1.0);
     } catch (err) {
       console.error(err);
       toast.error("Failed to share poster");
@@ -141,12 +213,24 @@ export default function StarOfTheMonthModal({ classes = [] }) {
     setExporting(true);
     toast.info("Preparing posters for printing...");
     try {
+      if (typeof document !== "undefined" && document.fonts && document.fonts.ready) {
+        try {
+          await document.fonts.ready;
+        } catch (_) {}
+      }
       const images = [];
       for (let i = 0; i < filteredStarData.length; i++) {
         const posterRef = posterRefs.current[i];
         if (posterRef) {
-          const canvas = await html2canvas(posterRef, { useCORS: true, scale: 2 });
-          images.push(canvas.toDataURL('image/jpeg', 0.9));
+          await waitForImages(posterRef);
+          const canvas = await html2canvas(posterRef, {
+            useCORS: true,
+            scale: 3,
+            allowTaint: false,
+            logging: false,
+            imageTimeout: 15000,
+          });
+          images.push(canvas.toDataURL('image/jpeg', 1.0));
         }
       }
       

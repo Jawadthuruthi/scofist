@@ -55,17 +55,64 @@ export default function ResultPostersSection({ resultData, settings }) {
       const element = document.getElementById(`poster-${posterNumber}`);
       if (!element) return;
 
+      if (typeof document !== "undefined" && document.fonts && document.fonts.ready) {
+        try {
+          await document.fonts.ready;
+        } catch (_) {}
+      }
+
+      const images = Array.from(element.querySelectorAll("img"));
+      if (images.length > 0) {
+        await Promise.all(
+          images.map(async (img) => {
+            if (!img.crossOrigin && img.src && !img.src.startsWith("data:")) {
+              img.crossOrigin = "anonymous";
+            }
+            if (!img.complete) {
+              await new Promise((resolve) => {
+                img.onload = resolve;
+                img.onerror = resolve;
+              });
+            }
+            if (img.decode) {
+              try {
+                await img.decode();
+              } catch (_) {}
+            }
+          })
+        );
+      }
+
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 3,
+        useCORS: true,
+        allowTaint: false,
         backgroundColor: null,
         logging: false,
+        imageTimeout: 15000,
+        onclone: async (clonedDoc) => {
+          const style = clonedDoc.createElement("style");
+          style.innerHTML = `
+            *, *::before, *::after {
+              animation: none !important;
+              animation-duration: 0s !important;
+              transition: none !important;
+              transition-duration: 0s !important;
+            }
+          `;
+          clonedDoc.head.appendChild(style);
+        },
       });
 
       const link = document.createElement("a");
       link.download = `Result-${resultData.resultNumber}-Poster-${posterNumber}.png`;
       link.href = canvas.toDataURL("image/png");
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch (error) {
       console.error("Failed to download poster:", error);
     }

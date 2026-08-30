@@ -456,6 +456,22 @@ const pages = [
     allowedRoles: ["College Admin", "Program Committee", "Spark Admin", "Org Admin"],
   },
   {
+    title: "General Attendance",
+    path: "/dashboard/general-attendance",
+    allowedRoles: ["Org Admin", "Teacher"],
+  },
+  {
+    title: "General Attendance Mark",
+    path: "/dashboard/general-attendance/mark",
+    pattern: /^\/dashboard\/general-attendance\/mark(?:\/[^/]+)?$/,
+    allowedRoles: ["Org Admin", "Teacher"],
+  },
+  {
+    title: "General Attendance History",
+    path: "/dashboard/general-attendance/history",
+    allowedRoles: ["Org Admin", "Teacher"],
+  },
+  {
     title: "Masjid Attendance",
     path: "/dashboard/masjid-attendance",
     allowedRoles: ["Org Admin", "Teacher"],

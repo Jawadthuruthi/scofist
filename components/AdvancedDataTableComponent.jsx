@@ -43,6 +43,7 @@ const AdvancedDataTableComponent = ({
                 tableHeight={tab.tableHeight}
                 readOnly={tab.readOnly}
                 filterTitle={tab.filterTitle}
+                filterDescription={tab.filterDescription}
                 filterType={tab.filterType}
                 apiEndpoint={tab.apiEndpoint}
                 apiFilters={tab.apiFilters}
@@ -53,6 +54,7 @@ const AdvancedDataTableComponent = ({
                 highlightHighest={tab.highlightHighest}
                 limit={tab.limit}
                 defaultSorting={tab.defaultSorting}
+                enableSearch={tab.enableSearch}
               />
             </TabsContent>
           ))}
@@ -70,6 +72,7 @@ const AdvancedDataTableComponent = ({
           tableHeight={table.tableHeight}
           readOnly={table.readOnly}
           filterTitle={table.filterTitle}
+          filterDescription={table.filterDescription}
           filterType={table.filterType}
           apiEndpoint={table.apiEndpoint}
           apiFilters={table.apiFilters}
@@ -80,6 +83,7 @@ const AdvancedDataTableComponent = ({
           highlightHighest={table.highlightHighest}
           limit={table.limit}
           defaultSorting={table.defaultSorting}
+          enableSearch={table.enableSearch}
         />
       ))}
     </div>

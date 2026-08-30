@@ -84,6 +84,7 @@ export default function PopupFilter({
   setGlobalFilter,
   hasFilters,
   title = "Table",
+  description,
   triggerClass = "",
   inlineOnDesktop = false,
   maxWidthClass = "sm:max-w-3xl",
@@ -361,7 +362,7 @@ export default function PopupFilter({
     const nestedArrayField = filterItem.nestedArrayField || null;
     const className = filterItem.className || "";
 
-    const defaultColSpan = className.includes('col-span-') ? '' : 'col-span-2 sm:col-span-1';
+    const defaultColSpan = inputType === "dateRange" ? "col-span-2" : (className.includes('col-span-') ? '' : 'col-span-2 sm:col-span-1');
 
     return (
       <div key={filterId} className={inline ? `w-40 shrink-0 ${className}` : `${defaultColSpan} space-y-2 ${className}`}>
@@ -372,8 +373,8 @@ export default function PopupFilter({
         )}
 
         {inputType === "dateRange" ? (
-          <div className="flex flex-col space-y-2">
-            <div className="flex items-center space-x-2">
+          <div className="flex flex-col space-y-2 w-full">
+            <div className="flex items-center space-x-2 w-full">
               <Input
                 type="date"
                 value={currentValue.startDate || ""}
@@ -388,9 +389,9 @@ export default function PopupFilter({
                     nestedArrayField
                   )
                 }
-                className="flex-1 h-8 text-xs"
+                className="flex-1 h-9 text-xs sm:text-sm bg-background"
               />
-              <span className="text-xs">to</span>
+              <span className="text-xs text-muted-foreground font-medium px-0.5">to</span>
               <Input
                 type="date"
                 value={currentValue.endDate || ""}
@@ -405,7 +406,7 @@ export default function PopupFilter({
                     nestedArrayField
                   )
                 }
-                className="flex-1 h-8 text-xs"
+                className="flex-1 h-9 text-xs sm:text-sm bg-background"
               />
             </div>
           </div>
@@ -442,6 +443,13 @@ export default function PopupFilter({
       </div>
     );
   };
+
+  const sortedFilterConfig = useMemo(() => {
+    if (isInline) return filterConfig;
+    const dateRangeFilters = filterConfig.filter(f => f.inputType === "dateRange");
+    const otherFilters = filterConfig.filter(f => f.inputType !== "dateRange");
+    return [...dateRangeFilters, ...otherFilters];
+  }, [filterConfig, isInline]);
 
   if (isInline) {
     return (
@@ -485,7 +493,7 @@ export default function PopupFilter({
               <div className="flex-1 text-left space-y-0.5">
                 <DialogTitle className="text-xl font-bold m-0">Filter {title}</DialogTitle>
                 <DialogDescription className="m-0">
-                  Filters to refine the {title.toLowerCase()} list.
+                  {description || `Refine the ${title}.`}
                 </DialogDescription>
               </div>
               <DialogClose className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" data-html2canvas-ignore="true">
@@ -495,7 +503,7 @@ export default function PopupFilter({
 
             <div className="grid grid-cols-2 gap-4 p-5 overflow-y-auto">
               {/* Individual Filters */}
-              {filterConfig.map((filterItem) => renderFilterItem(filterItem, false))}
+              {sortedFilterConfig.map((filterItem) => renderFilterItem(filterItem, false))}
             </div>
 
             <DialogFooter className="flex flex-row gap-3 p-5 border-t bg-muted/20 sticky bottom-0 z-20 sm:justify-end">

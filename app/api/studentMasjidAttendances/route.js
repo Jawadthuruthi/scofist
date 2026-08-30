@@ -42,6 +42,12 @@ export async function GET(req, res) {
 
         if (filterParams.prayer) {
             lookupMatch.prayer = filterParams.prayer;
+        } else if (filterParams.session) {
+            if (filterParams.session.toLowerCase() === "masjid") {
+                lookupMatch.prayer = { $in: ["ZUHR", "ASAR", "MAGRIB", "ISHA", "SUBH", "Zuhr", "Asar", "Magrib", "Isha", "Subh"] };
+            } else {
+                lookupMatch.prayer = { $regex: new RegExp(`^${filterParams.session}$`, "i") };
+            }
         }
 
         // Handle date filtering for lookup

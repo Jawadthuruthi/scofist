@@ -116,6 +116,7 @@ const DataTableComponent = ({
   apiFilters = DEFAULT_API_FILTERS,
   readOnly = false,
   filterTitle = "",
+  filterDescription = "",
   filterType = "client",
   infiniteScrollThreshold = 0.3,
   printTitle,
@@ -224,6 +225,8 @@ const DataTableComponent = ({
   }, [showSuccess]);
 
   const isMobile = useIsMobile();
+  const isDateRangeInPopupMobile = dateRangeInPopup === true || dateRangeInPopup === "mobileOnly";
+  const isDateRangeInPopupDesktop = dateRangeInPopup === true;
 
   // Sync activeApiFilters with prop
   useEffect(() => {
@@ -1139,7 +1142,7 @@ const DataTableComponent = ({
             <ColumnCustomization table={table} columnsConfig={columnsConfig} />
             
             <PopupFilter
-              filterConfig={dateRangeInPopup ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
+              filterConfig={isDateRangeInPopupMobile ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
               filters={filters}
               setFilter={handleSetFilter}
               removeFilter={handleRemoveFilter}
@@ -1148,6 +1151,7 @@ const DataTableComponent = ({
               setGlobalFilter={handleSetGlobalFilter}
               hasFilters={hasFilters || Object.keys(filters).length > 0}
               title={filterTitle || capitalize(resource)}
+              description={filterDescription}
               filterType={filterType}
               maxWidthClass={filterMaxWidthClass}
               inlineOnDesktop={additionalProps?.inlineFiltersOnDesktop || inlineFiltersOnDesktop}
@@ -1312,7 +1316,7 @@ const DataTableComponent = ({
               <ColumnCustomization table={table} columnsConfig={columnsConfig} className={(additionalProps?.inlineFiltersOnDesktop || inlineFiltersOnDesktop) ? "h-10 w-10" : ""} />
 
               <PopupFilter
-                filterConfig={dateRangeInPopup ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
+                filterConfig={isDateRangeInPopupDesktop ? filterConfig : filterConfig.filter(f => f.inputType !== "dateRange")}
                 filters={filters}
                 setFilter={handleSetFilter}
                 removeFilter={handleRemoveFilter}
@@ -1321,6 +1325,7 @@ const DataTableComponent = ({
                 setGlobalFilter={handleSetGlobalFilter}
                 hasFilters={hasFilters || Object.keys(filters).length > 0}
                 title={filterTitle || capitalize(resource)}
+                description={filterDescription}
                 filterType={filterType}
                 maxWidthClass={filterMaxWidthClass}
                 inlineOnDesktop={additionalProps?.inlineFiltersOnDesktop || inlineFiltersOnDesktop}
@@ -1328,6 +1333,26 @@ const DataTableComponent = ({
 
               {resource === "performance" && activeRole === "College Admin" && (
                 <StarOfTheMonthModal classes={filterConfig?.find(f => f.id === "classId")?.options || []} />
+              )}
+
+              {/* Desktop Date Range Filter */}
+              {!isDateRangeInPopupDesktop && filterConfig.find(f => f.inputType === "dateRange") && (
+                <div className="flex items-center gap-2">
+                  <DateRangeFilter
+                    value={(() => {
+                      const filterState = filters[filterConfig.find(f => f.inputType === "dateRange").id];
+                      return filterState?.value || filterState || {};
+                    })()}
+                    onChange={(val) => {
+                      const config = filterConfig.find(f => f.inputType === "dateRange");
+                      if (val.startDate || val.endDate) {
+                        handleSetFilter(config.id, val, "dateRange", null);
+                      } else {
+                        handleRemoveFilter(config.id);
+                      }
+                    }}
+                  />
+                </div>
               )}
 
               {enableSearch && (
@@ -1390,28 +1415,6 @@ const DataTableComponent = ({
                     : trailingToolbar}
                 </div>
               )}
-
-              <div className="flex items-center gap-2">
-                {/* Desktop Date Range Filter */}
-                {!dateRangeInPopup && filterConfig.find(f => f.inputType === "dateRange") && (
-                  <DateRangeFilter
-                    value={(() => {
-                      const filterState = filters[filterConfig.find(f => f.inputType === "dateRange").id];
-                      return filterState?.value || filterState || {};
-                    })()}
-                    onChange={(val) => {
-                      const config = filterConfig.find(f => f.inputType === "dateRange");
-                      if (val.startDate || val.endDate) {
-                        handleSetFilter(config.id, val, "dateRange", null);
-                      } else {
-                        handleRemoveFilter(config.id);
-                      }
-                    }}
-                  />
-                )}
-
-
-              </div>
             </div>
             <div className="space-x-2 flex items-center">
               {actionButtons}
@@ -1787,7 +1790,9 @@ const DataTableComponent = ({
                       ) : (
                         <>
                           <TableHead className="w-[100px] font-bold">Date & Day</TableHead>
-                          <TableHead className="w-[110px] font-bold">Subject</TableHead>
+                          <TableHead className="w-[110px] font-bold">
+                            {resource === "studentMasjidAttendances" ? "Prayer / Session" : "Subject"}
+                          </TableHead>
                           {(resource === "studentAttendances" || resource === "teacherAttendances") && (
                             <TableHead className="font-bold min-w-[140px]">
                               {resource === "teacherAttendances" ? "Class" : "Teacher"}
@@ -1834,11 +1839,16 @@ const DataTableComponent = ({
                               <TableCell className="py-3">
                                 <div className="flex flex-col">
                                   <span className="font-semibold text-sm">
-                                    {rec.subjectName || "—"}
+                                    {rec.prayer || rec.subjectName || "—"}
                                   </span>
                                   {rec.periodNumber && (
                                     <span className="text-[10px] text-muted-foreground font-medium">
                                       PERIOD {rec.periodNumber}
+                                    </span>
+                                  )}
+                                  {rec.status === "LEAVE" && (
+                                    <span className="text-[10px] text-yellow-600 dark:text-yellow-400 font-medium leading-tight mt-0.5">
+                                      On Leave
                                     </span>
                                   )}
                                 </div>

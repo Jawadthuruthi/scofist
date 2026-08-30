@@ -188,7 +188,7 @@ const ClasswiseSection = ({ classes, apiKey, selectedCategory, formattedDate, to
                                 className="hover:bg-accent/50 cursor-pointer"
                                 onClick={() =>
                                     router.push(
-                                        `/dashboard/masjid-attendance/mark?classId=${cls._id}&className=${encodeURIComponent(cls.name)}&batchId=${cls.batchId || ""}&prayer=${categoryKey}&date=${formattedDate}&apiKey=${apiKey}&sessionLabel=${encodeURIComponent(selectedCategory)}`
+                                        `/dashboard/general-attendance/mark?classId=${cls._id}&className=${encodeURIComponent(cls.name)}&batchId=${cls.batchId || ""}&prayer=${categoryKey}&date=${formattedDate}&apiKey=${apiKey}&sessionLabel=${encodeURIComponent(selectedCategory)}`
                                     )
                                 }
                             >
@@ -295,7 +295,7 @@ const MasjidDashboard = ({ classes, apiKey }) => {
                             />
                         </div>
                     </div>
-                    <Link href="/dashboard/masjid-attendance/history" className="shrink-0">
+                    <Link href="/dashboard/general-attendance/history" className="shrink-0">
                         <Button className="bg-black hover:bg-black/90 text-white shadow-md flex items-center gap-2">
                             <History className="h-4 w-4" />
                             <span>History</span>

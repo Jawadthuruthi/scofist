@@ -58,6 +58,7 @@ import useCrud from "@/hooks/use-crud";
 import { useReactToPrint } from "react-to-print";
 import { Input } from "./ui/input";
 import ConfirmationPopup from "./ConfirmationPopup";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 
 const AbsenteesDialog = ({
   open,
@@ -72,49 +73,7 @@ const AbsenteesDialog = ({
   const { useFetchItems: useFetchLeaveRecords } = useCrud("leave-records", apiKey);
   const classId = cellData?.classId?._id || cellData?.classId;
   const popupRef = useRef(null);
-
-  const handleDownload = async () => {
-    if (!popupRef.current) return;
-    try {
-      const el = popupRef.current;
-      const currentWidth = el.offsetWidth;
-      const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(el, {
-        scale: 2,
-        width: currentWidth,
-        useCORS: true,
-        scrollX: 0,
-        scrollY: 0,
-        onclone: (clonedDoc) => {
-          const clonedPopup = clonedDoc.querySelector('[data-html2canvas-popup="true"]');
-          if (clonedPopup) {
-            clonedPopup.style.maxHeight = 'none';
-            clonedPopup.style.height = 'auto';
-            clonedPopup.style.width = currentWidth + 'px';
-            clonedPopup.style.maxWidth = currentWidth + 'px';
-            clonedPopup.style.minWidth = 'unset';
-            clonedPopup.style.position = 'relative';
-            clonedPopup.style.transform = 'none';
-            clonedPopup.style.left = 'auto';
-            clonedPopup.style.top = 'auto';
-            clonedPopup.style.overflow = 'visible';
-            clonedPopup.querySelectorAll('.overflow-y-auto, .overflow-hidden').forEach((div) => {
-              div.style.maxHeight = 'none';
-              div.style.height = 'auto';
-              div.style.overflow = 'visible';
-            });
-          }
-        }
-      });
-      const link = document.createElement("a");
-      link.download = `Absentees_${day}_Period_${periodNumber}.jpeg`;
-      link.href = canvas.toDataURL("image/jpeg", 1.0);
-      link.click();
-    } catch (error) {
-      console.error("Failed to generate image", error);
-      toast.error("Failed to download image");
-    }
-  };
+  const { handleDownload } = useDownloadPopup(popupRef, `Absentees_${day}_Period_${periodNumber}.jpeg`);
 
   const studentIds = useMemo(() => {
     return absenteesList

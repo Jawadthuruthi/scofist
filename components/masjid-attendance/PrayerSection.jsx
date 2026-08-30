@@ -151,6 +151,54 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
         document.body.removeChild(a);
     };
 
+    const handleSendPrayerWhatsApp = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!attendanceData?.attendances || attendanceData.attendances.length === 0) {
+            toast.error("No attendance marked yet for this prayer.");
+            return;
+        }
+
+        const classSections = [];
+        let totalAbsenteesCount = 0;
+
+        // Iterate through classes in order to maintain consistent ordering
+        classes.forEach((cls) => {
+            const att = attendanceData.attendances.find(
+                (a) => String(a.classId?._id || a.classId) === String(cls._id)
+            );
+            if (att && att.attendanceData) {
+                const absentees = att.attendanceData.filter(
+                    (record) => record.status === "ABSENT" || record.status === "LEAVE"
+                );
+                if (absentees.length > 0) {
+                    totalAbsenteesCount += absentees.length;
+                    const studentList = absentees.map((record, idx) => {
+                        const name = record.studentId?.name || "Unknown Student";
+                        const leaveTag = record.status === "LEAVE" ? " (On Leave)" : "";
+                        return `${idx + 1}. ${name}${leaveTag}`;
+                    });
+                    classSections.push(`*${cls.name}*\n${studentList.join("\n")}`);
+                }
+            }
+        });
+
+        if (totalAbsenteesCount === 0) {
+            toast.info(`No absentees for ${prayer}.`);
+            return;
+        }
+
+        const title = sessionCategory && sessionCategory !== "General" && sessionCategory !== "Masjid"
+            ? `*ABSENTEES LIST - ${sessionCategory.toUpperCase()} (${prayer})*`
+            : `*ABSENTEES LIST - ${prayer}*`;
+
+        const message = `${title}\n📅 Date: ${displayDate || formattedDate}\n*Total Absentees:* ${totalAbsenteesCount}\n\n${classSections.join("\n\n")}`;
+
+        const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+        window.open(url, "_blank");
+    };
+
     return (
         <>
             <Card className="border-l-4 border-l-primary">
@@ -162,9 +210,23 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
                                 {markedCount}/{totalClasses} Marked
                             </Badge>
                         </div>
-                        <Button variant="ghost" size="sm">
-                            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </Button>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                            {markedCount > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={handleSendPrayerWhatsApp}
+                                    className="p-1.5 rounded-full text-green-600 hover:text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-950/40 transition-colors focus:outline-none cursor-pointer shrink-0"
+                                    title={`Send ${prayer} absentees via WhatsApp`}
+                                >
+                                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                                    </svg>
+                                </button>
+                            )}
+                            <Button variant="ghost" size="sm">
+                                {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </Button>
+                        </div>
                     </div>
                 </CardHeader>
                 {isOpen && (
@@ -195,7 +257,7 @@ const PrayerSection = ({ prayer, classes, date, apiKey, sessionCategory }) => {
                                 return (
                                     <Link
                                         key={cls._id}
-                                        href={`/dashboard/masjid-attendance/mark?classId=${cls._id}&className=${cls.name}&batchId=${cls.batchId}&prayer=${prayer}&date=${formattedDate}&apiKey=${apiKey}&sessionLabel=${encodeURIComponent(sessionCategory || "General")}`}
+                                        href={`/dashboard/general-attendance/mark?classId=${cls._id}&className=${cls.name}&batchId=${cls.batchId}&prayer=${prayer}&date=${formattedDate}&apiKey=${apiKey}&sessionLabel=${encodeURIComponent(sessionCategory || "General")}`}
                                         prefetch={false}
                                     >
                                         <div
