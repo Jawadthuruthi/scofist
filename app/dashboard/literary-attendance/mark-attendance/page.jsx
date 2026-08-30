@@ -2,7 +2,7 @@
 
 import { formatDateForDisplay } from "@/lib/utils";
 import Header from "@/components/Header";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -14,19 +14,21 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useCrud from "@/hooks/use-crud";
 import { useSearchParams } from "next/navigation";
-import { Calendar, Clock, Loader, User, UserCheck, CheckCircle2 } from "lucide-react";
+import { Calendar, Clock, Loader, User, UserCheck, CheckCircle2, X, Check, Save } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Save } from "lucide-react";
+import { useDownloadPopup } from "@/hooks/useDownloadPopup";
 import AbsenteeStatus from "@/components/AbsenteeStatus";
 
 const LiteraryAttendance = () => {
@@ -48,12 +50,18 @@ const LiteraryAttendance = () => {
       batchId: searchParams.get("batchId"),
       groupId: searchParams.get("groupId"),
       date: searchParams.get("date"),
-      apiKey: searchParams.get("apiKey"),
-      category: searchParams.get("category"),
       day: searchParams.get("day"),
-      sessionLabel: searchParams.get("sessionLabel") || searchParams.get("category"),
+      category: searchParams.get("category"),
+      apiKey: searchParams.get("apiKey"),
+      sessionLabel: searchParams.get("sessionLabel"),
     }),
     [searchParams]
+  );
+
+  const successPopupRef = useRef(null);
+  const { handleDownload: handleSuccessDownload } = useDownloadPopup(
+    successPopupRef,
+    `Literary_Attendance_${(queryParams.className || queryParams.groupName || "Attendance").replace(/\s+/g, '_')}_${(queryParams.date || "").replace(/\s+/g, '_')}.jpeg`
   );
 
   const {
@@ -123,7 +131,7 @@ const LiteraryAttendance = () => {
 
   const previousAbsentees = useMemo(() => {
     return absenteesQuery.data?.absentees || [];
-  });
+  }, [absenteesQuery.data]);
 
   const getStudentAbsenteeInfo = useCallback(
     (studentId) => {
@@ -269,7 +277,7 @@ const LiteraryAttendance = () => {
       );
     }
     return studentsQuery.data?.users || [];
-  }, [studentsQuery.data, participantsQuery.data]);
+  }, [studentsQuery.data, participantsQuery.data, groupLeaderId, groupAssistantLeaderId]);
 
   useEffect(() => {
     if (studentsQuery.isLoading || attendanceQuery.isLoading) {
@@ -280,16 +288,14 @@ const LiteraryAttendance = () => {
   }, [studentsQuery.isLoading, attendanceQuery.isLoading]);
 
   useEffect(() => {
-    // Wait for leave records to load
     if (leaveRecordsQuery.isLoading || studentsQuery.isLoading) return;
 
     if (students?.length > 0) {
-      // Only set attendance if we don't have existing attendance data
       if (Object.keys(attendance).length === 0) {
         const initialAttendance = {};
         students.forEach((student) => {
           const isOnLeave = studentsOnLeave[student._id];
-          initialAttendance[student._id] = !isOnLeave; // Default to absent if on leave, otherwise present
+          initialAttendance[student._id] = !isOnLeave;
         });
         setAttendance(initialAttendance);
       }
@@ -311,11 +317,7 @@ const LiteraryAttendance = () => {
     const total = students.length;
     const present = Object.values(attendance).filter((status) => status).length;
     const absent = total - present;
-    const presentPercentage =
-      total > 0 ? Math.round((present / total) * 100) : 0;
-    const absentPercentage = total > 0 ? Math.round((absent / total) * 100) : 0;
-
-    return { total, present, absent, presentPercentage, absentPercentage };
+    return { total, present, absent };
   }, [students.length, attendance]);
 
   const attendanceExists = useMemo(() => {
@@ -402,7 +404,7 @@ const LiteraryAttendance = () => {
         setShowSuccessDialog(true);
         setTimeout(
           () => (window.location.href = "/dashboard/literary-attendance"),
-          1000
+          2000
         );
       } else {
         await saveAttendance.mutateAsync(attendancePayload);
@@ -410,7 +412,7 @@ const LiteraryAttendance = () => {
         setShowSuccessDialog(true);
         setTimeout(
           () => (window.location.href = "/dashboard/literary-attendance"),
-          1000
+          2000
         );
       }
     } catch (error) {
@@ -440,7 +442,7 @@ const LiteraryAttendance = () => {
       setShowSuccessDialog(true);
       setTimeout(
         () => (window.location.href = "/dashboard/literary-attendance"),
-        1000
+        2000
       );
     } catch (error) {
       console.error("Error deleting attendance:", error);
@@ -611,19 +613,105 @@ const LiteraryAttendance = () => {
         </>
       )}
 
+      {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
-          <DialogHeader className="flex flex-col items-center justify-center text-center space-y-3">
-            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
-              <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+        <DialogContent
+          ref={successPopupRef}
+          data-html2canvas-popup="true"
+          className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md [&>button.absolute]:hidden flex flex-col p-0 gap-0"
+        >
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <button 
+              type="button"
+              className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer ${
+                successMessage?.toLowerCase().includes("reset")
+                  ? "bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50"
+                  : "bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50"
+              }`}
+              onClick={handleSuccessDownload}
+              title="Download Image"
+              data-html2canvas-ignore="true"
+            >
+              <CheckCircle2 className={`h-5 w-5 ${
+                successMessage?.toLowerCase().includes("reset")
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-emerald-600 dark:text-emerald-400"
+              }`} />
+            </button>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className={`text-xl font-bold m-0 ${
+                successMessage?.toLowerCase().includes("reset")
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-emerald-600 dark:text-emerald-400"
+              }`}>
+                {successMessage?.toLowerCase().includes("reset")
+                  ? "Attendance Reset"
+                  : successMessage?.toLowerCase().includes("updat")
+                  ? "Attendance Updated"
+                  : "Attendance Saved"}
+              </DialogTitle>
+              <DialogDescription className="m-0 text-xs text-muted-foreground">
+                {successMessage || (successMessage?.toLowerCase().includes("reset") ? "Attendance records have been reset." : "Attendance marked and saved successfully.")}
+              </DialogDescription>
             </div>
-            <DialogTitle className="text-2xl font-bold text-green-600 dark:text-green-400">
-              Successful
-            </DialogTitle>
-            <DialogDescription className="text-lg">
-              {successMessage}
-            </DialogDescription>
+            <DialogClose 
+              className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" 
+              data-html2canvas-ignore="true"
+              onClick={() => {
+                setShowSuccessDialog(false);
+                window.location.href = "/dashboard/literary-attendance";
+              }}
+            >
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
+
+          <div className="p-5 space-y-4 bg-muted/5 flex-1">
+            {/* Overview Card */}
+            <div className="bg-card border rounded-xl p-3.5 space-y-2.5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-base text-foreground">
+                  {queryParams.className || queryParams.groupName || "Literary Attendance"}
+                </span>
+                <Badge variant="outline" className="text-xs px-2.5 py-0.5 bg-primary/5 text-primary border-primary/20 font-medium">
+                  {queryParams.sessionLabel || queryParams.category || "Literary"}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap items-center gap-y-1 gap-x-2 text-xs text-muted-foreground">
+                <span>{queryParams.date ? formatDateForDisplay(new Date(queryParams.date)) : formatDateForDisplay(new Date())}</span>
+              </div>
+            </div>
+
+            {/* Metrics Summary Grid */}
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="flex flex-col items-center justify-center p-3 rounded-xl border bg-card shadow-sm">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Total
+                </span>
+                <span className="text-xl font-bold text-foreground mt-0.5">
+                  {stats.total}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 shadow-sm">
+                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                  Present
+                </span>
+                <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  {stats.present}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-rose-500/20 bg-rose-500/10 shadow-sm">
+                <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                  Absent
+                </span>
+                <span className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                  {stats.absent}
+                </span>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

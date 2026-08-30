@@ -92,9 +92,16 @@ const Attendance = ({ apiKey, teacherId }) => {
 
   const today = useMemo(() => formatDateForDisplay(new Date()), []);
 
+  const successPopupRef = useRef(null);
+  const { handleDownload: handleSuccessDownload } = useDownloadPopup(
+    successPopupRef,
+    `Attendance_${(classDetails?.name || "Class").replace(/\s+/g, '_')}_${today.replace(/\s+/g, '_')}.jpeg`
+  );
+
   // CRUD hooks with optimized options
   const { useFetchItems: useFetchUsers } = useCrud("users", apiKey);
   const { useFetchItems: useFetchClass } = useCrud("classes", apiKey);
+  const { useFetchItems: useFetchSubject } = useCrud("subjects", apiKey);
   const { useFetchItems: useFetchPeriod } = useCrud("periods", apiKey);
   const { useFetchItems: useFetchLeaveRecords } = useCrud(
     "leave-records",
@@ -115,6 +122,16 @@ const Attendance = ({ apiKey, teacherId }) => {
     {
       staleTime: 1000 * 60 * 60, // 1 hour - classes don't change frequently
       enabled: !!classId,
+    }
+  );
+
+  const subjectQuery = useFetchSubject(
+    null,
+    null,
+    { _id: subjectId },
+    {
+      staleTime: 1000 * 60 * 60,
+      enabled: !!subjectId,
     }
   );
 
@@ -200,13 +217,21 @@ const Attendance = ({ apiKey, teacherId }) => {
 
   // Memoize subject name for performance
   const subjectName = useMemo(() => {
+    if (subjectQuery.data?.subjects?.[0]?.name) {
+      return subjectQuery.data.subjects[0].name;
+    }
     if (!classDetails) return undefined;
     const allSubjects = [
       ...(classDetails.coreSubjects || []),
-      ...(classDetails.majorSubjects || [])
+      ...(classDetails.majorSubjects || []),
+      ...(classDetails.subjects || [])
     ];
-    return allSubjects.find((subject) => String(subject._id) === String(subjectId))?.name;
-  }, [classDetails, subjectId]);
+    const found = allSubjects.find((subject) => {
+      const id = typeof subject === "object" ? subject?._id : subject;
+      return String(id) === String(subjectId);
+    });
+    return typeof found === "object" ? found?.name : found || undefined;
+  }, [subjectQuery.data, classDetails, subjectId]);
 
   // Process leave records to determine student status
   const processLeaveStatus = useCallback((leaveRecords, studentList) => {
@@ -364,7 +389,7 @@ const Attendance = ({ apiKey, teacherId }) => {
     if (showSuccessDialog) {
       const timer = setTimeout(() => {
         window.location.href = "/dashboard/my-periods";
-      }, 1000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [showSuccessDialog]);
@@ -846,19 +871,111 @@ const Attendance = ({ apiKey, teacherId }) => {
         </Button>
       </div>
 
+      {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="w-[90%] sm:w-full sm:max-w-md rounded-xl">
-          <DialogHeader className="flex flex-col items-center justify-center text-center space-y-3">
-            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
-              <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+        <DialogContent
+          ref={successPopupRef}
+          data-html2canvas-popup="true"
+          className="rounded-2xl sm:rounded-2xl overflow-hidden max-w-md [&>button.absolute]:hidden flex flex-col p-0 gap-0"
+        >
+          <DialogHeader className="flex flex-row items-center gap-3 mx-0 px-5 py-4 border-b space-y-0 bg-muted/50 dark:bg-muted/20 sticky top-0 z-20 backdrop-blur-md shrink-0">
+            <button 
+              type="button"
+              className={`p-2 rounded-lg transition-colors focus:outline-none cursor-pointer ${
+                successMessage?.toLowerCase().includes("reset")
+                  ? "bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50"
+                  : "bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50"
+              }`}
+              onClick={handleSuccessDownload}
+              title="Download Image"
+              data-html2canvas-ignore="true"
+            >
+              <CheckCircle2 className={`h-5 w-5 ${
+                successMessage?.toLowerCase().includes("reset")
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-emerald-600 dark:text-emerald-400"
+              }`} />
+            </button>
+            <div className="flex-1 text-left space-y-0.5">
+              <DialogTitle className={`text-xl font-bold m-0 ${
+                successMessage?.toLowerCase().includes("reset")
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-emerald-600 dark:text-emerald-400"
+              }`}>
+                {successMessage?.toLowerCase().includes("reset")
+                  ? "Attendance Reset"
+                  : successMessage?.toLowerCase().includes("update")
+                  ? "Attendance Updated"
+                  : "Attendance Saved"}
+              </DialogTitle>
+              <DialogDescription className="m-0 text-xs text-muted-foreground">
+                {successMessage || (successMessage?.toLowerCase().includes("reset") ? "Attendance records have been reset." : "Attendance marked and saved successfully.")}
+              </DialogDescription>
             </div>
-            <DialogTitle className="text-2xl font-bold text-green-600 dark:text-green-400">
-              Successful
-            </DialogTitle>
-            <DialogDescription className="text-lg">
-              {successMessage}
-            </DialogDescription>
+            <DialogClose 
+              className="p-1.5 -mr-1.5 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus:outline-none" 
+              data-html2canvas-ignore="true"
+              onClick={() => {
+                setShowSuccessDialog(false);
+                window.location.href = "/dashboard/my-periods";
+              }}
+            >
+              <X className="h-5 w-5" />
+            </DialogClose>
           </DialogHeader>
+
+          <div className="p-5 space-y-4 bg-muted/5 flex-1">
+            {/* Class & Period Details Card */}
+            <div className="bg-card border rounded-xl p-3.5 space-y-2 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-base text-foreground">
+                  {classDetails?.name || "Class"}
+                </span>
+                <Badge variant="outline" className="text-xs px-2.5 py-0.5 bg-primary/5 text-primary border-primary/20 font-medium">
+                  {periodNumber ? `Period ${periodNumber}` : (periodDetails?.name || "Period")}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap items-center gap-y-1 gap-x-2 text-xs text-muted-foreground">
+                {subjectName && (
+                  <span className="font-medium text-foreground">
+                    {subjectName}
+                  </span>
+                )}
+                {subjectName && <span>•</span>}
+                <span>{today}</span>
+              </div>
+            </div>
+
+            {/* Metrics Summary Grid */}
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="flex flex-col items-center justify-center p-3 rounded-xl border bg-card shadow-sm">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Total
+                </span>
+                <span className="text-xl font-bold text-foreground mt-0.5">
+                  {filteredStudents.length}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 shadow-sm">
+                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                  Present
+                </span>
+                <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  {Object.values(attendance).filter(Boolean).length}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-rose-500/20 bg-rose-500/10 shadow-sm">
+                <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                  Absent
+                </span>
+                <span className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                  {Math.max(0, filteredStudents.length - Object.values(attendance).filter(Boolean).length)}
+                </span>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
