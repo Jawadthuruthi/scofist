@@ -37,8 +37,8 @@ export default async function NonRespondersPage() {
     const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
 
     // Fetch related data for form options
-    const [batches, teams, divisions] = await Promise.all([
-      fetchData("batches", "projection=_id,name&status=Active", 0),
+    const [classes, teams, divisions] = await Promise.all([
+      fetchData("classes", "projection=_id,name", 0),
       fetchData("teams", `${yearParam}projection=_id,name`, 0),
       fetchData("divisions", `${yearParam}projection=_id,name&type=Primary`, 0),
     ]);
@@ -46,22 +46,24 @@ export default async function NonRespondersPage() {
     const filterConfig = [
       { id: "name", label: "Name" },
       {
-        id: "batchId",
-        label: "Batch",
+        id: "classId",
+        label: "Class",
         inputType: "select",
-        options: formatOptions(batches),
+        options: formatOptions(classes),
       },
       {
         id: "teamId",
         label: "Team",
         inputType: "select",
         options: formatOptions(teams),
+        className: "col-span-1",
       },
       {
         id: "divisionId",
         label: "Division",
         inputType: "select",
         options: formatOptions(divisions),
+        className: "col-span-1",
       },
     ];
 

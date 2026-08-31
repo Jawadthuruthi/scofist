@@ -53,10 +53,9 @@ export default async function PendingEvaluationPage() {
     const activeYear = cookiesStore.get("active-year")?.value;
     const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
 
-    // Fetch divisions and teams for filter options
-    const [divisions, teams] = await Promise.all([
+    // Fetch divisions for filter options
+    const [divisions] = await Promise.all([
       fetchData("divisions", `${yearParam}projection=id,name`, 0),
-      fetchData("teams", `${yearParam}projection=id,name`, 0),
     ]);
 
     // Filter configuration
@@ -66,12 +65,6 @@ export default async function PendingEvaluationPage() {
         label: "Division",
         inputType: "select",
         options: formatOptions(divisions),
-      },
-      {
-        id: "teamName",
-        label: "Team",
-        inputType: "select",
-        options: formatOptions(teams),
       },
       {
         id: "programCategory",
@@ -88,7 +81,7 @@ export default async function PendingEvaluationPage() {
       <>
         <Header
           title="PENDING EVALUATION"
-          subTitle="Programs with code letters assigned but not evaluated"
+          subTitle="Programs with code letters but not evaluated"
         />
         <DynamicDataTable
           resource="pending-evaluation"
