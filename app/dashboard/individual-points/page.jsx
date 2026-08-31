@@ -1,7 +1,8 @@
 import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
-import { fetchData, formatOptions } from "@/lib/utils";
+import { fetchData, formatOptions, sortClasses } from "@/lib/utils";
+import { cookies } from "next/headers";
 
 const columnsConfig = [
   {
@@ -23,44 +24,65 @@ const columnsConfig = [
   {
     accessorKey: "programsCount",
     header: "Programs Count",
-    type: ["number"],
+    type: ["clickableNumber"],
+    clickable: true,
+    valueKey: "programs",
+    viewType: "programsList",
   },
   {
     accessorKey: "stagePoints",
     header: "Stage Points",
-    type: ["number"],
+    type: ["clickableNumber"],
+    clickable: true,
+    valueKey: "programs",
+    viewType: "programsList",
+    filterKey: "category",
+    filterValue: "Stage",
   },
   {
     accessorKey: "offStagePoints",
     header: "Off-Stage Points",
-    type: ["number"],
+    type: ["clickableNumber"],
+    clickable: true,
+    valueKey: "programs",
+    viewType: "programsList",
+    filterKey: "category",
+    filterValue: "Off-Stage",
   },
   {
     accessorKey: "totalPoints",
     header: "Total Points",
-    type: ["number"],
+    type: ["clickableNumber"],
+    clickable: true,
+    valueKey: "programs",
+    viewType: "programsList",
   },
 ];
 
 export default async function IndividualPointsPage() {
   try {
     const apiKey = process.env.API_KEY;
+    const cookiesStore = await cookies();
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
 
     // Fetch related data for form options
-    const [batches, teams, divisions, results] = await Promise.all([
-      fetchData("batches", "projection=_id,name&status=Active", 0),
-      fetchData("teams", "projection=_id,name", 0),
-      fetchData("divisions", "projection=_id,name&type=Primary", 0),
-      fetchData("results", "projection=_id&isResultDeclared=true", 0),
+    const [classes, teams, divisions, results] = await Promise.all([
+      fetchData("classes", `${yearParam}projection=_id,name`, 0),
+      fetchData("teams", `${yearParam}projection=_id,name`, 0),
+      fetchData("divisions", `${yearParam}projection=_id,name&type=Primary`, 0),
+      fetchData("results", `${yearParam}projection=_id&isResultDeclared=true`, 0),
     ]);
+
+    const sortedClasses = classes ? [...classes].sort(sortClasses) : [];
 
     const filterConfig = [
       { id: "name", label: "Name" },
       {
-        id: "batchId",
-        label: "Batch",
+        id: "classId",
+        label: "Class",
         inputType: "select",
-        options: formatOptions(batches),
+        options: formatOptions(sortedClasses),
       },
       {
         id: "teamId",
@@ -76,11 +98,15 @@ export default async function IndividualPointsPage() {
       },
     ];
 
+    const maxResultNumber = results?.length > 0 
+      ? Math.max(...results.map(r => r.resultNumber || 0)) 
+      : 0;
+
     return (
       <>
         <Header
           title="INDIVIDUAL POINTS"
-          subTitle={`Participant result after ${results?.length} results.`}
+          subTitle={`Participant result after ${maxResultNumber} results.`}
         />
         <DynamicDataTable
           resource="participants"
@@ -88,7 +114,7 @@ export default async function IndividualPointsPage() {
           columnsConfig={columnsConfig}
           apiKey={apiKey}
           filterConfig={filterConfig}
-          limit={20}
+          limit={5000}
           readOnly={true}
           isFestival={true}
           apiFilters={{

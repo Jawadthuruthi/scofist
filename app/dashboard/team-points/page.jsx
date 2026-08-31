@@ -2,6 +2,7 @@ import DynamicDataTable from "@/components/DynamicDataTable";
 import ErrorPage from "@/components/ErrorPage";
 import Header from "@/components/Header";
 import { fetchData } from "@/lib/utils";
+import { cookies } from "next/headers";
 
 const columnsConfig = [
   {
@@ -37,18 +38,25 @@ const filterConfig = [{ id: "name", label: "Team Name" }];
 export default async function TeamPointsPage() {
   try {
     const apiKey = process.env.API_KEY;
+    const cookiesStore = await cookies();
+    const activeYear = cookiesStore.get("active-year")?.value;
+    const yearParam = activeYear ? `year=${encodeURIComponent(activeYear)}&` : "";
 
     const results = await fetchData(
       "results",
-      "projection=_id&isResultDeclared=true",
+      `${yearParam}projection=_id&isResultDeclared=true`,
       0
     );
+
+    const maxResultNumber = results?.length > 0 
+      ? Math.max(...results.map(r => r.resultNumber || 0)) 
+      : 0;
 
     return (
       <>
         <Header
           title="TEAM POINTS"
-          subTitle={`Team result after ${results?.length} results.`}
+          subTitle={`Team result after ${maxResultNumber} results.`}
         />
         <DynamicDataTable
           resource="teams"

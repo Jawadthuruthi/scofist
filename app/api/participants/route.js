@@ -497,10 +497,19 @@ export async function GET(req, res) {
       // Get total count
       const totalPipeline = [{ $match: query }, { $count: "total" }];
 
-      const [participants, totalResult] = await Promise.all([
+      const [participantsRaw, totalResult] = await Promise.all([
         Participant.aggregate(pipeline),
         Participant.aggregate(totalPipeline),
       ]);
+
+      const participants = await Participant.populate(participantsRaw, {
+        path: "programs.id",
+        select: ["_id", "name", "category", "type", "divisionId"],
+        populate: {
+          path: "divisionId",
+          select: ["_id", "name", "type"],
+        },
+      });
 
       const total = totalResult[0]?.total || 0;
 
@@ -517,12 +526,22 @@ export async function GET(req, res) {
         divisionName: participant.divisionDetails[0]?.name || "Unknown",
         programsCount: participant.programs?.length || 0,
         stageProgramsCount:
-          participant.programs?.filter((p) => p.category === "Stage")?.length ||
+          participant.programs?.filter((p) => p.id?.category === "Stage")?.length ||
           0,
         offStageProgramsCount:
-          participant.programs?.filter((p) => p.category === "Off-Stage")
+          participant.programs?.filter((p) => p.id?.category === "Off-Stage")
             ?.length || 0,
         totalPoints: participant.totalPoints || 0,
+        programs: participant.programs?.map((program) => ({
+          ...program,
+          id: program?.id?._id || program?.id,
+          name: program?.id?.name,
+          type: program?.id?.type,
+          category: program?.id?.category,
+          divisionId: program?.id?.divisionId?._id,
+          divisionType: program?.id?.divisionId?.type,
+          divisionName: program?.id?.divisionId?.name,
+        })) || [],
       }));
 
       return NextResponse.json(

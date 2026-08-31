@@ -677,10 +677,9 @@ const DataTableComponent = ({
       return;
     }
 
-    const studentId = row._id;
     const arrayKey = col.valueKey || col.totalKey;
     const records = row[arrayKey]?.filter(
-      (item) => item?.[col.accessorKey || col.filterKey] === col.filterValue
+      (item) => !col.filterKey || item?.[col.accessorKey || col.filterKey] === col.filterValue
     ) || [];
 
     setDetailView({
@@ -688,9 +687,9 @@ const DataTableComponent = ({
       col: col,
       title: col.header === "Absentees" 
         ? `Absent Students for ${formatDateForDisplay(row.date)}` 
-        : `${col.header} Records for ${row.name}`,
+        : `${col.header} for ${row.name || row.teamName || "Selected Item"}`,
       colHeader: col.header,
-      viewType: col.header === "Absentees" ? "studentList" : "recordList"
+      viewType: col.viewType || (col.header === "Absentees" ? "studentList" : "recordList")
     });
     setDetailedRecords(records);
   }, [onCellClick]);
@@ -1787,6 +1786,15 @@ const DataTableComponent = ({
                           <TableHead className="font-bold">Name</TableHead>
                           <TableHead className="font-bold">Class</TableHead>
                         </>
+                      ) : detailView?.viewType === "programsList" ? (
+                        <>
+                          <TableHead className="w-[60px] font-bold text-center">Sl. No.</TableHead>
+                          <TableHead className="font-bold">Program</TableHead>
+                          <TableHead className="font-bold">Category</TableHead>
+                          <TableHead className="font-bold text-center">Grade</TableHead>
+                          <TableHead className="font-bold text-center">Rank</TableHead>
+                          <TableHead className="font-bold text-center">Points</TableHead>
+                        </>
                       ) : (
                         <>
                           <TableHead className="w-[100px] font-bold">Date & Day</TableHead>
@@ -1823,6 +1831,28 @@ const DataTableComponent = ({
                               <TableCell className="font-mono text-xs py-3">{rec.studentId || "—"}</TableCell>
                               <TableCell className="font-bold text-sm py-3 uppercase">{rec.studentName || rec.name || "—"}</TableCell>
                               <TableCell className="text-muted-foreground text-sm py-3 font-medium">{rec.className || "—"}</TableCell>
+                            </>
+                          ) : detailView?.viewType === "programsList" ? (
+                            <>
+                              <TableCell className="text-center font-medium text-muted-foreground py-3">
+                                {i + 1}
+                              </TableCell>
+                              <TableCell className="font-bold text-sm py-3 uppercase">
+                                {rec.name || "—"}
+                                {rec.type && <span className="block text-xs font-normal text-muted-foreground">{rec.type}</span>}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground text-sm py-3 font-medium">
+                                {rec.category || "—"}
+                              </TableCell>
+                              <TableCell className="text-center text-sm py-3 font-medium text-indigo-600">
+                                {rec.grade || "—"}
+                              </TableCell>
+                              <TableCell className="text-center text-sm py-3 font-medium">
+                                {rec.rank || "—"}
+                              </TableCell>
+                              <TableCell className="text-center text-sm py-3 font-bold text-green-600">
+                                {rec.points || 0}
+                              </TableCell>
                             </>
                           ) : (
                             <>

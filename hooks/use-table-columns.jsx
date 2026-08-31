@@ -626,6 +626,27 @@ const useTableColumns = (columnConfig, onCellClick) => {
       };
     }
 
+    // Apply clickable number
+    if (col.type?.includes("clickableNumber")) {
+      columnDefinition.cell = ({ row }) => {
+        const val = row.getValue(col.accessorKey) || 0;
+        
+        if (col.clickable && val > 0) {
+          return (
+            <Button
+              variant="link"
+              className="p-0 h-auto font-medium text-primary hover:text-primary/80"
+              onClick={() => onCellClick?.(row.original, col)}
+            >
+              {val}
+            </Button>
+          );
+        }
+        
+        return val;
+      };
+    }
+
     // Render two fields stacked with labeled sub-headings in a single cell
     if (col.type?.includes("dualField")) {
       columnDefinition.cell = ({ row }) => {
