@@ -114,7 +114,7 @@ export default async function UndeclaredResultsPage() {
           readOnly={true}
           printTitle="Undeclared Results Report"
           apiKey={apiKey}
-          limit={50}
+          limit={1000}
           isFestival={true}
         />
       </>

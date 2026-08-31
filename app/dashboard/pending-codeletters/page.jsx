@@ -96,7 +96,7 @@ export default async function PendingCodeLettersPage() {
           readOnly={true}
           printTitle="Programs Without Registrations"
           apiKey={apiKey}
-          limit={50}
+          limit={1000}
           isFestival={true}
         />
       </>

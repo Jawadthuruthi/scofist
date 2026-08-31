@@ -48,7 +48,7 @@ export default async function DeclaredResultsPage() {
           initialData={[]}
           columnsConfig={columnsConfig}
           apiKey={apiKey}
-          limit={20}
+          limit={1000}
           readOnly={true}
           apiFilters={{
             isResultDeclared: true,

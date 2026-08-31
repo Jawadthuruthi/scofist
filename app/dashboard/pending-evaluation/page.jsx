@@ -100,7 +100,7 @@ export default async function PendingEvaluationPage() {
           readOnly={true}
           printTitle="Pending Evaluation Report"
           apiKey={apiKey}
-          limit={50}
+          limit={1000}
           isFestival={true}
         />
       </>

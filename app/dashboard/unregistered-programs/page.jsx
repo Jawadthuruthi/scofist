@@ -157,7 +157,7 @@ export default async function RegistrationStatusPage() {
           apiKey={apiKey}
           filterConfig={filterConfig}
           apiFilters={apiFilters}
-          limit={20}
+          limit={1000}
           readOnly={true}
           isFestival={true}
         />

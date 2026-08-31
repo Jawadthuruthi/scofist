@@ -69,7 +69,7 @@ export default async function NonWinnersPage() {
           columnsConfig={columnsConfig}
           apiKey={apiKey}
           filterConfig={filterConfig}
-          limit={20}
+          limit={1000}
           readOnly={true}
           isFestival={true}
           apiFilters={{

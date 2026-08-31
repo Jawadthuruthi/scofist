@@ -77,7 +77,7 @@ export default async function WinnersListPage() {
           initialData={[]}
           columnsConfig={columnsConfig}
           apiKey={apiKey}
-          limit={100}
+          limit={1000}
           readOnly={true}
           filterType="api"
           apiFilters={{
