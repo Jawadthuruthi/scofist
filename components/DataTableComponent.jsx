@@ -1673,20 +1673,20 @@ const DataTableComponent = ({
               <TableBody>
                 {groupedTopperRows.map((group, idx) => (
                   <TableRow key={idx}>
-                    <TableCell className="text-center border py-2">{idx + 1}</TableCell>
-                    <TableCell className="font-bold border bg-muted/5 py-2 uppercase">
+                    <TableCell className="text-center border py-2 align-middle">{idx + 1}</TableCell>
+                    <TableCell className="font-bold border bg-muted/5 py-2 uppercase align-middle">
                       {group.className}
                     </TableCell>
-                    <TableCell className="border leading-relaxed py-2 font-normal text-foreground">
-                      <div className="flex flex-col gap-1">
+                    <TableCell className="border leading-relaxed py-2 font-normal text-foreground text-left align-middle">
+                      <div className="flex flex-col gap-1 h-full justify-center">
                         {group.students.map((student, sIdx) => (
-                          <div key={sIdx} className="whitespace-nowrap">
+                          <div key={sIdx} className="whitespace-nowrap text-left">
                             {sIdx + 1}. [{student.id}] {student.name}
                           </div>
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right border font-bold py-2 px-4 shadow-none">
+                    <TableCell className="text-right border font-bold py-2 px-4 shadow-none align-middle">
                       {group.percentage.toFixed(2)}%
                     </TableCell>
                   </TableRow>

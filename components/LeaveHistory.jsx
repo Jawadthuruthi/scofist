@@ -3,45 +3,12 @@
 import { useMemo } from "react";
 import DataTableComponent from "@/components/DataTableComponent";
 import Header from "@/components/Header";
-import { formatOptions } from "@/lib/utils";
+import { formatOptions, sortClasses } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 export default function LeaveHistory({ classes, students, apiKey, role, teacherClassId }) {
     const sortedClasses = useMemo(() => {
-        const classOrder = [
-            "PLUS ONE",
-            "PLUS ONE A",
-            "PLUS ONE B",
-            "PLUS TWO",
-            "PLUS TWO A",
-            "PLUS TWO B",
-            "DEGREE FIRST YEAR",
-            "DEGREE SECOND YEAR",
-            "DEGREE THIRD YEAR",
-            "PG FIRST YEAR",
-            "PG SECOND YEAR",
-            "8TH STD",
-            "9TH STD",
-            "10TH STD",
-        ].map((name) => name.replace(/\s/g, ""));
-
-        return [...classes].sort((a, b) => {
-            const nameA = a.name.trim().toUpperCase().replace(/\s/g, "");
-            const nameB = b.name.trim().toUpperCase().replace(/\s/g, "");
-            const indexA = classOrder.indexOf(nameA);
-            const indexB = classOrder.indexOf(nameB);
-
-            if (indexA !== -1 && indexB !== -1) {
-                return indexA - indexB;
-            }
-            if (indexA !== -1) {
-                return -1;
-            }
-            if (indexB !== -1) {
-                return 1;
-            }
-            return a.name.localeCompare(b.name);
-        });
+        return [...classes].sort((a, b) => sortClasses(a, b));
     }, [classes]);
 
     const formattedStudents = useMemo(() => {

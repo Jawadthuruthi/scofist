@@ -4,6 +4,7 @@ import User from "./User";
 import Class from "./Class";
 import Subject from "./Subject";
 import Batch from "./Batch";
+import { sortClasses } from "../lib/utils";
 
 const studentAttendanceSchema = new Schema(
   {
@@ -250,41 +251,8 @@ studentAttendanceSchema.statics.getAttendanceToppers = async function (
     allClassMap[String(c._id)] = c.name;
   });
 
-  // Custom sort order
-  const classOrder = [
-    "PLUS ONE",
-    "PLUS ONE A",
-    "PLUS ONE B",
-    "PLUS TWO",
-    "PLUS TWO A",
-    "PLUS TWO B",
-    "DEGREE FIRST YEAR",
-    "DEGREE SECOND YEAR",
-    "DEGREE THIRD YEAR",
-    "PG FIRST YEAR",
-    "PG SECOND YEAR",
-    "8TH STD",
-    "9TH STD",
-    "10TH STD",
-    "11TH STD",
-    "12TH STD",
-  ].map((name) => name.replace(/\s+/g, "").toUpperCase());
-
   classResults.sort((a, b) => {
-    const rawNameA = allClassMap[String(a.classId)];
-    const rawNameB = allClassMap[String(b.classId)];
-    const nameA = String(rawNameA || "").trim().toUpperCase().replace(/\s+/g, "");
-    const nameB = String(rawNameB || "").trim().toUpperCase().replace(/\s+/g, "");
-
-    const indexA = classOrder.indexOf(nameA);
-    const indexB = classOrder.indexOf(nameB);
-
-    if (indexA !== -1 && indexB !== -1) {
-      return indexA - indexB;
-    }
-    if (indexA !== -1) return -1;
-    if (indexB !== -1) return 1;
-    return nameA.localeCompare(nameB);
+    return sortClasses(a, b, (item) => allClassMap[String(item.classId)]);
   });
 
   // Apply pagination to the sorted class results

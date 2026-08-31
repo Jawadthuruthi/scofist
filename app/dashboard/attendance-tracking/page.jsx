@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import Header from "@/components/Header";
 import ClientOnlyAdvancedDataTable from "@/components/ClientOnlyAdvancedDataTable";
 import StudentAttendanceLookup from "@/components/StudentAttendanceLookupWrapper";
-import { fetchData, formatOptions, OPERATORS, sortTeachers } from "@/lib/utils";
+import { fetchData, formatOptions, OPERATORS, sortTeachers, sortClasses } from "@/lib/utils";
 
 const API_ENDPOINTS = [
   {
@@ -41,7 +41,7 @@ const AttendanceTrackingPage = async () => {
       )
     );
 
-    const formattedClasses = classes.map((c) => ({
+    const formattedClasses = [...classes].sort((a, b) => sortClasses(a, b)).map((c) => ({
       ...c,
       name: c.batchName ? `${c.name} (${c.batchName})` : c.name,
       originalName: c.name,
