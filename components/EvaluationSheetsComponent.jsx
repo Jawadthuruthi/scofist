@@ -248,6 +248,11 @@ const EvaluationSheetsComponent = ({ apiKey }) => {
           height: auto !important;
           flex-shrink: 0;
           overflow: hidden;
+          background-color: #f5f5f5 !important;
+          border: 1px solid #000 !important;
+          border-bottom: none !important;
+          padding: 2px 4px !important;
+          margin-bottom: 0 !important;
         }
         
         /* Table container - flexible height */
@@ -256,6 +261,7 @@ const EvaluationSheetsComponent = ({ apiKey }) => {
           flex-direction: column;
           min-height: 0;
           overflow: hidden;
+          border: 1px solid #000 !important;
         }
         
         /* Evaluation table */
@@ -321,78 +327,101 @@ const EvaluationSheetsComponent = ({ apiKey }) => {
     <div className="space-y-6">
       {/* Controls */}
       <div className="no-print">
-        <div className="flex flex-col gap-4">
-          {/* Filters Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="flex items-center gap-2">
-              <Select value={category} onValueChange={(val) => { setCategory(val); setSelectedProgram(""); }}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="both">Both</SelectItem>
-                  <SelectItem value="Stage">Stage</SelectItem>
-                  <SelectItem value="Off-Stage">Off Stage</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <Select
-                value={selectedDivision || "all"}
-                onValueChange={(val) => { setSelectedDivision(val === "all" ? "" : val); setSelectedProgram(""); }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="All Divisions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Divisions</SelectItem>
-                  {availableDivisions.map((division) => (
-                    <SelectItem key={division._id} value={division._id}>
-                      {division.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <div className="flex flex-col gap-3">
+          {/* Controls Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            {/* First 2 dropdowns: Side by side in mobile view */}
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3 flex-shrink-0">
+              <div className="w-full sm:w-36 lg:w-40">
+                <Select
+                  value={category}
+                  onValueChange={(val) => {
+                    setCategory(val);
+                    setSelectedProgram("");
+                  }}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="both">Both</SelectItem>
+                    <SelectItem value="Stage">Stage</SelectItem>
+                    <SelectItem value="Off-Stage">Off Stage</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <MultiSelect
-              options={formatOptions(availablePrograms)}
-              value={selectedProgram}
-              onValueChange={setSelectedProgram}
-              placeholder="All Programs"
-              multiSelect={false}
-            />
-
-            {(selectedDivision || selectedProgram || category !== "both") && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearFilters}
-                className="w-full"
-              >
-                <X className="h-3 w-3 mr-1" />
-                Clear
-              </Button>
-            )}
-          </div>
-
-          {/* Stats and Actions */}
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div className="text-sm text-muted-foreground flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              <span>{filteredRegistrations.length} programs</span>
+              <div className="w-full sm:w-56 lg:w-64">
+                <Select
+                  value={selectedDivision || "all"}
+                  onValueChange={(val) => {
+                    setSelectedDivision(val === "all" ? "" : val);
+                    setSelectedProgram("");
+                  }}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="All Divisions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Divisions</SelectItem>
+                    {availableDivisions.map((division) => (
+                      <SelectItem key={division._id} value={division._id}>
+                        {division.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Program Dropdown & Clear Button: Side by side on mobile view, inline on desktop */}
+            <div className="flex items-center gap-2 flex-1 min-w-0 sm:min-w-[200px]">
+              <div className="flex-1 min-w-0">
+                <MultiSelect
+                  options={formatOptions(availablePrograms)}
+                  value={selectedProgram}
+                  onValueChange={setSelectedProgram}
+                  placeholder="All Programs"
+                  multiSelect={false}
+                  className="h-10 min-h-10 w-full"
+                />
+              </div>
+
+              {(selectedDivision || selectedProgram || category !== "both") && (
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="h-10 px-3 whitespace-nowrap flex-shrink-0"
+                  title="Clear Filters"
+                >
+                  <X className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Clear</span>
+                </Button>
+              )}
+            </div>
+
+            {/* Print Sheets Button */}
+            <div className="flex items-center flex-shrink-0">
               <Button
                 variant="default"
                 onClick={handlePrint}
                 disabled={filteredRegistrations.length === 0}
-                className="flex-1 sm:flex-none"
+                className="h-10 whitespace-nowrap w-full sm:w-auto"
               >
                 <Printer className="mr-2 h-4 w-4" />
                 Print Sheets
               </Button>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground px-1">
+            <div className="flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              <span>
+                {filteredRegistrations.length}{" "}
+                {filteredRegistrations.length === 1 ? "program" : "programs"}
+              </span>
             </div>
           </div>
         </div>
@@ -419,30 +448,29 @@ const EvaluationSheetsComponent = ({ apiKey }) => {
                   isFestival={true}
                 />
 
-                {/* Program Header */}
-                <div className="program-info mb-4 p-3 sm:p-4 bg-muted rounded-lg border print:bg-transparent print:border-none print:p-1 print:mb-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                    <div className="mb-2 sm:mb-0 text-center w-full">
-                      <div className="flex flex-wrap w-full justify-center gap-2 sm:gap-4 mt-1 print:mt-0 text-xs sm:text-sm text-foreground print:text-black print:text-xs">
-                        <span className="capitalize whitespace-nowrap">
-                          <strong>Program:</strong> {program.programName}
-                        </span>
-                        <span className="whitespace-nowrap">
-                          <strong>Division:</strong> {program.divisionName}
-                        </span>
-                        <span className="capitalize whitespace-nowrap">
-                          <strong>Type:</strong> {program.programType}
-                        </span>
-                        <span className="capitalize whitespace-nowrap">
-                          <strong>Category:</strong> {program.programCategory}
-                        </span>
-                      </div>
-                    </div>
+                {/* Program Header - Attached directly to table below */}
+                <div className="program-info p-2 sm:p-2.5 bg-muted/60 rounded-t-lg border border-border print:bg-gray-100 print:border-black print:border-b-0 print:rounded-none print:p-1">
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-4 text-xs sm:text-sm font-semibold text-foreground print:text-black print:text-xs text-center w-full">
+                    <span className="capitalize whitespace-nowrap">
+                      <strong>Program:</strong> {program.programName}
+                    </span>
+                    <span className="hidden sm:inline text-muted-foreground select-none">|</span>
+                    <span className="whitespace-nowrap">
+                      <strong>Division:</strong> {program.divisionName}
+                    </span>
+                    <span className="hidden sm:inline text-muted-foreground select-none">|</span>
+                    <span className="capitalize whitespace-nowrap">
+                      <strong>Type:</strong> {program.programType}
+                    </span>
+                    <span className="hidden sm:inline text-muted-foreground select-none">|</span>
+                    <span className="capitalize whitespace-nowrap">
+                      <strong>Category:</strong> {program.programCategory}
+                    </span>
                   </div>
                 </div>
 
-                {/* Evaluation Sheet Table */}
-                <div className="table-container border rounded-lg overflow-hidden print:rounded-none print:border print:border-black">
+                {/* Evaluation Sheet Table - Attached directly to header above */}
+                <div className="table-container border border-t-0 border-border rounded-b-lg overflow-hidden print:rounded-none print:border print:border-black">
                   <div className="overflow-x-auto print:overflow-visible h-full">
                     <Table className="min-w-full evaluation-table border-collapse h-full">
                       <TableHeader>

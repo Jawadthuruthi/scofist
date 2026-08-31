@@ -1309,7 +1309,7 @@ const DataTableComponent = ({
         /* ── Desktop Layout ── */
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="mr-auto flex items-center flex-wrap gap-2">
+            <div className="mr-auto flex-1 min-w-0 flex items-center flex-wrap gap-2">
               {additionalProps?.customToolbar && (
                 <div className="mr-2">{additionalProps.customToolbar}</div>
               )}
@@ -1356,7 +1356,7 @@ const DataTableComponent = ({
               )}
 
               {enableSearch && (
-                <div className="relative">
+                <div className={cn("relative", (searchBarClassName?.includes("w-full") || searchBarClassName?.includes("flex-1")) ? "flex-1 min-w-[200px]" : "")}>
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder={desktopSearchPlaceholder}

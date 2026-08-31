@@ -442,7 +442,7 @@ export const MultiSelect = React.forwardRef(
                           className={cn(
                             isAnimating ? "animate-bounce" : "",
                             multiSelectVariants(badgeVariant),
-                            "max-w-full h-auto py-1"
+                            "max-w-full min-w-0 h-auto py-1"
                           )}
                           style={{ animationDuration: `${animation}s` }}
                           title={option?.isCustom ? "Custom option" : ""}
@@ -450,7 +450,7 @@ export const MultiSelect = React.forwardRef(
                           {IconComponent && (
                             <IconComponent className="h-4 w-4 mr-2 flex-shrink-0" />
                           )}
-                          <span className="whitespace-normal break-words text-left">
+                          <span className="truncate text-left">
                             {option?.label ||
                               (typeof selectedValues === "object"
                                 ? selectedValues?.label ||
@@ -458,13 +458,6 @@ export const MultiSelect = React.forwardRef(
                                 JSON.stringify(selectedValues)
                                 : selectedValues)}
                           </span>
-                          <XCircle
-                            className="ml-2 h-4 w-4 cursor-pointer flex-shrink-0"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              if (!readOnly) handleClear();
-                            }}
-                          />
                         </Badge>
                       );
                     })()
@@ -516,8 +509,9 @@ export const MultiSelect = React.forwardRef(
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-auto min-w-[--radix-popover-trigger-width] max-w-[300px] p-0"
+          className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] p-0 overflow-hidden"
           align="start"
+          collisionPadding={12}
           onEscapeKeyDown={() => setIsPopoverOpen(false)}
         >
           <div className="flex flex-col">

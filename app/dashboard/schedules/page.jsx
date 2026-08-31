@@ -117,12 +117,24 @@ export default async function SchedulePage() {
 
     const formFields = [
       {
+        name: "date",
+        label: "Date",
+        type: "date",
+        required: true,
+        className: "col-span-1",
+        validators: {
+          min: new Date().toISOString().split("T")[0],
+          minMessage: "Date cannot be in the past",
+        },
+      },
+      {
         name: "divisionId",
         label: "Division",
         type: "text",
         inputType: "select",
         options: formatOptions(divisions),
         placeholder: "Select a division",
+        className: "col-span-1",
       },
       {
         name: "programId",
@@ -132,18 +144,9 @@ export default async function SchedulePage() {
         options: formatOptions(programs),
         required: true,
         placeholder: "Select a program",
+        className: "col-span-2",
         filter: {
           dependentField: "divisionId",
-        },
-      },
-      {
-        name: "date",
-        label: "Date",
-        type: "date",
-        required: true,
-        validators: {
-          min: new Date().toISOString().split("T")[0],
-          minMessage: "Date cannot be in the past",
         },
       },
       {
@@ -151,12 +154,14 @@ export default async function SchedulePage() {
         label: "Start Time",
         type: "time",
         placeholder: "Select start time",
+        className: "col-span-1",
       },
       {
         name: "endTime",
         label: "End Time",
         type: "time",
         placeholder: "Select end time",
+        className: "col-span-1",
       },
       {
         name: "stageNumber",
@@ -165,6 +170,7 @@ export default async function SchedulePage() {
         inputType: "select",
         options: stageOptions,
         placeholder: "Select stage",
+        className: "col-span-1",
         validators: {
           min: 1,
           minMessage: "Stage number must be at least 1",
@@ -173,27 +179,37 @@ export default async function SchedulePage() {
 
       {
         name: "isPublished",
-        label: "Publish Schedule",
+        label: "Status",
         inputType: "select",
         options: [
           { value: "true", label: "Published" },
           { value: "false", label: "Draft" },
         ],
+        className: "col-span-1",
       },
     ];
 
     const filterConfig = [
       {
+        id: "date",
+        label: "Date",
+        inputType: "date",
+        type: "date",
+        className: "col-span-1",
+      },
+      {
         id: "divisionId",
         label: "Division",
         inputType: "select",
         options: formatOptions(divisions),
+        className: "col-span-1",
       },
       {
         id: "programId",
         label: "Program",
         inputType: "select",
         options: formatOptions(programs),
+        className: "col-span-2",
         filters: [
           {
             dependentField: "divisionId",
@@ -201,24 +217,21 @@ export default async function SchedulePage() {
         ],
       },
       {
-        id: "date",
-        label: "Date",
-        inputType: "date",
-      },
-      {
         id: "stageNumber",
         label: "Stage",
         inputType: "select",
         options: stageOptions,
+        className: "col-span-1",
       },
       {
         id: "isPublished",
-        label: "Published Status",
+        label: "Status",
         inputType: "select",
         options: [
           { value: "true", label: "Published" },
           { value: "false", label: "Draft" },
         ],
+        className: "col-span-1",
       },
     ];
 
@@ -233,7 +246,7 @@ export default async function SchedulePage() {
     const multiEditFormFields = [
       {
         name: "isPublished",
-        label: "Publish Schedule",
+        label: "Status",
         inputType: "select",
         options: [
           { value: "true", label: "Published" },
@@ -261,6 +274,9 @@ export default async function SchedulePage() {
           editSuccessMessage={statusMessages.edit}
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
+          filterTitle="Schedules"
+          enableSearch={true}
+          searchBarClassName="flex-1 w-full"
           limit={50}
           readOnly={activeRole !== "Program Committee"}
           printTitle="Event Schedule"

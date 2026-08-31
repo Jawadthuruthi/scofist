@@ -56,7 +56,7 @@ export default async function EvaluationPage() {
           title="PERFORMANCE EVALUATION"
           subTitle={"Manage and Oversee Participant Evaluations"}
         />
-        <div className="pt-4">
+        <div className="pt-1">
           <EvaluationComponent
             programs={sortedPrograms}
             divisions={divisions}

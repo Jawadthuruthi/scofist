@@ -25,7 +25,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useDynamicFormSchema } from "@/hooks/use-dynamic-form-schema";
-import { getDefaultValues } from "@/lib/utils";
+import { getDefaultValues, cn } from "@/lib/utils";
 import ImageUploader from "./ImageUploader";
 import { Progress } from "@/components/ui/progress";
 import RangeInput from "./RangeInput";
@@ -305,7 +305,7 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
       control={form.control}
       name={fieldToRender.name}
       render={({ field: formField }) => (
-        <FormItem className={fieldToRender.className}>
+        <FormItem className={cn("min-w-0", fieldToRender.className || "col-span-2 md:col-span-1")}>
           {fieldToRender.label && !fieldToRender.hideLabel && (
             <FormLabel htmlFor={fieldToRender.name}>
               {fieldToRender.label}
@@ -313,8 +313,8 @@ function FieldRenderer({ field, form, apiKey, data, capitalizeInputs }) {
             </FormLabel>
           )}
           <FormControl>
-            <div className="flex gap-2 items-start">
-              <div className="flex-1">
+            <div className="flex gap-2 items-start w-full min-w-0">
+              <div className="flex-1 min-w-0">
                 {fieldToRender.inputType === "image" ? (
                   <ImageUploader
                     value={formField.value}
@@ -594,10 +594,10 @@ const FormContent = ({
           {sectionOrder.map((section, index) => (
             <div
               key={section}
-              className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${activeSectionIndex === index ? "grid" : "hidden"}`}
+              className={`grid grid-cols-2 gap-4 ${activeSectionIndex === index ? "grid" : "hidden"}`}
             >
               {section !== "undefined" && (
-                <h2 className="text-lg font-bold md:col-span-2">{section}</h2>
+                <h2 className="text-lg font-bold col-span-2">{section}</h2>
               )}
               <FormFields
                 form={form}
@@ -607,7 +607,7 @@ const FormContent = ({
                 capitalizeInputs={capitalizeInputs}
               />
               {/* Navigation buttons inline with last input */}
-              <div className={`flex items-end gap-2 pb-1 ${buttonContainerClass || ""}`}>
+              <div className={`flex items-end gap-2 pb-1 ${buttonContainerClass || "col-span-2"}`}>
                 {activeSectionIndex > 0 && (
                   <Button
                     type="button"

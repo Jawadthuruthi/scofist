@@ -494,6 +494,7 @@ const EvaluationComponent = ({
   const clearFilters = () => {
     setSelectedDivision("");
     setSelectedProgram("");
+    setStatus("both");
   };
 
   const hasUnsavedChanges = Object.keys(changes).length > 0;
@@ -505,11 +506,12 @@ const EvaluationComponent = ({
     <div className="space-y-6">
       {/* Controls */}
       <div className="no-print">
-          {/* Filters Row */}
-          <div className="grid grid-cols-12 gap-3">
-            <div className="col-span-6 lg:col-span-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          {/* Status & Division (side-by-side on mobile, individual on desktop) */}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3 flex-shrink-0">
+            <div className="w-full sm:w-36 lg:w-40">
               <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10 w-full">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -519,12 +521,13 @@ const EvaluationComponent = ({
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-6 lg:col-span-3">
+
+            <div className="w-full sm:w-56 lg:w-64">
               <Select
                 value={selectedDivision || "all"}
                 onValueChange={(v) => setSelectedDivision(v === "all" ? "" : v)}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="h-10 w-full">
                   <SelectValue placeholder="All Divisions" />
                 </SelectTrigger>
                 <SelectContent>
@@ -537,29 +540,49 @@ const EvaluationComponent = ({
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
-            <MultiSelect
-              options={formatOptions(filteredPrograms)}
-              value={selectedProgram}
-              onValueChange={setSelectedProgram}
-              placeholder="All Programs"
-              multiSelect={false}
-              className="col-span-12 xs:col-span-8 lg:col-span-4"
-            />
+          {/* Program Dropdown & Clear Button side by side */}
+          <div className="flex items-center gap-2 flex-1 min-w-0 sm:min-w-[180px] lg:min-w-[200px]">
+            <div className="flex-1 min-w-0">
+              <MultiSelect
+                options={formatOptions(filteredPrograms)}
+                value={selectedProgram}
+                onValueChange={setSelectedProgram}
+                placeholder="All Programs"
+                multiSelect={false}
+                className="h-10 min-h-10 w-full"
+              />
+            </div>
 
-            <div className="flex items-center gap-2 col-span-10 xs:col-span-3 lg:col-span-2">
-              <span className="text-sm font-medium whitespace-nowrap ">
-                Judges:
-              </span>
+            {(selectedDivision || selectedProgram || status !== "both") && (
+              <Button
+                variant="outline"
+                onClick={clearFilters}
+                className="h-10 px-3 whitespace-nowrap flex-shrink-0"
+                title="Clear Filters"
+              >
+                <X className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Clear</span>
+              </Button>
+            )}
+          </div>
+
+          {/* Judges count selector - full width on mobile, widened on desktop */}
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-shrink-0">
+            <span className="text-sm font-medium whitespace-nowrap text-muted-foreground">
+              Judges:
+            </span>
+            <div className="flex-1 sm:w-36 lg:w-40">
               <Select
                 value={judgeNumber.toString()}
                 onValueChange={(v) => setJudgeNumber(parseInt(v))}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="h-10 w-full">
                   <SelectValue placeholder="Select..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {[1, 2, 3, 4, 5].map((num) => (
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                     <SelectItem key={num} value={num.toString()}>
                       {num}
                     </SelectItem>
@@ -567,18 +590,8 @@ const EvaluationComponent = ({
                 </SelectContent>
               </Select>
             </div>
-
-            {(selectedDivision || selectedProgram) && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearFilters}
-                className="w-full h-full col-span-2 xs:col-span-1 lg:col-span-1"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
           </div>
+        </div>
       </div>
 
       {/* Printable Content */}
@@ -608,31 +621,36 @@ const EvaluationComponent = ({
           <div className="space-y-8">
             {filteredRegistrations.map((program, programIndex) => (
               <div key={program._id} className="program-section">
-                {/* Program Header */}
-                <div className="mb-4 p-3 sm:p-4 bg-muted rounded-lg border">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div className="flex flex-wrap gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-foreground">
-                      <span className="whitespace-nowrap">
+                {/* Program Header - Attached directly to table below */}
+                <div className="program-info relative p-2.5 sm:p-3 bg-muted/60 rounded-t-lg border border-border print:bg-gray-100 print:border-black print:border-b-0 print:rounded-none">
+                  <div className="flex flex-col sm:flex-row items-center justify-center min-h-[32px] gap-2">
+                    {/* Centered Program Details */}
+                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm font-semibold text-foreground print:text-black print:text-xs text-center w-full sm:w-auto px-2">
+                      <span className="capitalize whitespace-nowrap">
                         <strong>Program:</strong> {program.programName}
                       </span>
+                      <span className="hidden sm:inline text-muted-foreground select-none">|</span>
                       <span className="whitespace-nowrap">
                         <strong>Division:</strong> {program.divisionName}
                       </span>
+                      <span className="hidden sm:inline text-muted-foreground select-none">|</span>
                       <span className="capitalize whitespace-nowrap">
                         <strong>Type:</strong> {program.programType}
                       </span>
+                      <span className="hidden sm:inline text-muted-foreground select-none">|</span>
                       <span className="capitalize whitespace-nowrap">
                         <strong>Category:</strong> {program.programCategory}
                       </span>
                     </div>
 
-                    {/* Action buttons in program header */}
-                    <div className="flex items-center gap-2 no-print shrink-0">
+                    {/* Action buttons in program header - pinned right on desktop */}
+                    <div className="sm:absolute sm:right-3 sm:top-1/2 sm:-translate-y-1/2 flex items-center gap-2 no-print shrink-0">
                       <Button
                         variant="default"
                         size="sm"
                         onClick={handlePrint}
                         disabled={filteredRegistrations.length === 0}
+                        title="Print Program Sheet"
                       >
                         <Printer className="h-4 w-4" />
                       </Button>
@@ -643,6 +661,7 @@ const EvaluationComponent = ({
                             variant="destructive"
                             size="sm"
                             disabled={deleteEvaluation.isPending}
+                            title="Clear All Marks"
                           >
                             {deleteEvaluation.isPending ? (
                               <Loader className="animate-spin h-4 w-4" />
@@ -678,6 +697,7 @@ const EvaluationComponent = ({
                           onClick={handleSave}
                           disabled={saving}
                           className="bg-green-600 hover:bg-green-700"
+                          title="Save Marks"
                         >
                           <Save className="h-4 w-4" />
                         </Button>
@@ -686,8 +706,8 @@ const EvaluationComponent = ({
                   </div>
                 </div>
 
-                {/* Participants Table with Horizontal Scroll */}
-                <div className="border rounded-lg overflow-hidden border-collapse">
+                {/* Participants Table with Horizontal Scroll - Attached directly to header above */}
+                <div className="border border-t-0 border-border rounded-b-lg overflow-hidden border-collapse print:rounded-none print:border print:border-black">
                   <div className="overflow-x-auto ">
                     <Table className="min-w-full">
                       <TableHeader>

@@ -358,14 +358,14 @@ export default function PopupFilter({
       DEFAULT_OPERATORS[inputType] ||
       OPERATORS.CONTAINS;
     const availableOptions = getFilteredOptions(filterItem);
-    const type = filterItem.type || "text";
+    const type = filterItem.type || (inputType === "date" ? "date" : inputType === "number" ? "number" : "text");
     const nestedArrayField = filterItem.nestedArrayField || null;
     const className = filterItem.className || "";
 
     const defaultColSpan = inputType === "dateRange" ? "col-span-2" : (className.includes('col-span-') ? '' : 'col-span-2 sm:col-span-1');
 
     return (
-      <div key={filterId} className={inline ? `w-40 shrink-0 ${className}` : `${defaultColSpan} space-y-2 ${className}`}>
+      <div key={filterId} className={inline ? `w-40 shrink-0 ${className}` : `${defaultColSpan} space-y-2 min-w-0 ${className}`}>
         {!inline && (
           <label className="text-sm font-medium block">
             {displayName}

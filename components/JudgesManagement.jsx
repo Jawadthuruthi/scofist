@@ -586,7 +586,7 @@ const JudgesManagement = ({
                   <SelectValue placeholder="Select judge number" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[1, 2, 3, 4, 5].map((n) => (
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                     <SelectItem
                       key={n}
                       value={String(n)}
@@ -736,7 +736,7 @@ const JudgesManagement = ({
                   <SelectValue placeholder="Select judge number" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[1, 2, 3, 4, 5].map((n) => (
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                     <SelectItem
                       key={n}
                       value={String(n)}

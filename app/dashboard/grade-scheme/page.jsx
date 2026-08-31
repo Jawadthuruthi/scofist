@@ -93,12 +93,13 @@ export default async function GradeSchemePage() {
     ];
 
     const filterConfig = [
-      { id: "markRange", label: "Mark Range" },
-      { id: "grade", label: "Grade" },
+      { id: "markRange", label: "Mark Range", className: "col-span-2" },
+      { id: "grade", label: "Grade", className: "col-span-1" },
       {
         id: "points",
         label: "Points",
         inputType: "number",
+        className: "col-span-1",
       },
     ];
 
@@ -131,6 +132,7 @@ export default async function GradeSchemePage() {
           editSuccessMessage={statusMessages.edit}
           deleteSuccessMessage={statusMessages.delete}
           filterConfig={filterConfig}
+          filterTitle="Grade Schemes"
           limit={20}
           readOnly={activeRole !== "Program Committee"}
           isFestival={true}
